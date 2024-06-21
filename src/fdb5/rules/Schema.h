@@ -58,8 +58,8 @@ public: // methods
     void expandSecond(const CanonicalKey& field, WriteVisitor &visitor, const CanonicalKey& dbKey) const;
     void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const CanonicalKey& dbKey) const;
 
-    bool expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result) const ;
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  CanonicalKey& result) const ;
+    // bool expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result) const ;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result) const ;
     void matchFirstLevel(const CanonicalKey& dbKey,  std::set<CanonicalKey> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<CanonicalKey>& result, const char* missing) const ;
 

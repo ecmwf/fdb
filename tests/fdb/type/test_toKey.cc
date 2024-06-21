@@ -31,7 +31,7 @@ char data[4];
 
 CASE( "ClimateDaily - no expansion" ) {
 
-    fdb5::CanonicalKey key(config.schema().registry());
+    fdb5::CanonicalKey key{};
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -48,7 +48,7 @@ CASE( "ClimateDaily - no expansion" ) {
 
 CASE( "Step & ClimateDaily - expansion" ) {
 
-    fdb5::ApiKey key(config.schema().registry());
+    fdb5::TypedKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -172,7 +172,7 @@ CASE( "Levelist" ) {
     values.insert("0.333333");
     values.sort();
 
-    fdb5::ApiKey key(config.schema().registry());
+    fdb5::TypedKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("levelist"));
 
@@ -227,7 +227,7 @@ CASE( "Levelist" ) {
 
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
-    fdb5::ApiKey key = fdb5::ApiKey::parseString(
+    fdb5::TypedKey key = fdb5::TypedKey::parseString(
         "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128",
         config.schema().registry());
 
@@ -246,7 +246,7 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
 CASE( "ClimateMonthly - string ctor - expansion" ) {
 
-    fdb5::ApiKey key = fdb5::ApiKey::parseString(
+    fdb5::TypedKey key = fdb5::TypedKey::parseString(
         "class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128",
         config.schema().registry());
 
@@ -268,7 +268,7 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 // do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from CanonicalKey?
 CASE( "Date - string ctor - expansion" ) {
 
-    fdb5::ApiKey key = fdb5::ApiKey::parseString(
+    fdb5::TypedKey key = fdb5::TypedKey::parseString(
             "class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
             config.schema().registry());
 

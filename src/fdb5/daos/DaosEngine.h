@@ -41,7 +41,7 @@ protected: // methods
 
     virtual bool canHandle(const eckit::URI&, const Config&) const override;
 
-    virtual std::vector<eckit::URI> allLocations(const CanonicalKey& key, const Config& config) const override { NOTIMP; };
+    // virtual std::vector<eckit::URI> allLocations(const CanonicalKey& key, const Config& config) const override { NOTIMP; };
 
     virtual std::vector<eckit::URI> visitableLocations(const CanonicalKey& key, const Config& config) const override;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;

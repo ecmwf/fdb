@@ -52,8 +52,8 @@ Rule::~Rule() {
 void Rule::expand( const metkit::mars::MarsRequest &request,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
-                   std::vector<ApiKey> &keys,
-                   CanonicalKey& full,
+                   std::vector<TypedKey> &keys,
+                   TypedKey& fullComputedKey,
                    ReadVisitor &visitor) const {
 
 	ASSERT(depth < 3);
@@ -65,24 +65,24 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
         // TODO: join these 2 methods
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
-            if (!visitor.selectDatum( keys[2], full)) {
+            if (!visitor.selectDatum( keys[2], fullComputedKey)) {
                 return; // This it not useful
             }
         } else {
 
             switch (depth) {
             case 0:
-                if (!visitor.selectDatabase(keys[0].canonical(), full)) {
+                if (!visitor.selectDatabase(keys[0].canonical(), fullComputedKey)) {
                     return;
                 };
 
                 // Here we recurse on the database's schema (rather than the master schema)
-                ASSERT(keys[0] == full);
+                ASSERT(keys[0] == fullComputedKey);
                 visitor.databaseSchema().expandSecond(request, visitor, keys[0].canonical());
                 return;
 
             case 1:
-                if (!visitor.selectIndex(keys[1].canonical(), full)) {
+                if (!visitor.selectIndex(keys[1].canonical(), fullComputedKey)) {
                     return;
                 }
                 break;
@@ -93,7 +93,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
             }
 
             for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(request, visitor, depth + 1, keys, full);
+                (*i)->expand(request, visitor, depth + 1, keys, fullComputedKey);
             }
         }
         return;
@@ -109,7 +109,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
     // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
-    ApiKey& k = keys[depth];
+    TypedKey& k = keys[depth];
 
     if (values.empty() && (*cur)->optional()) {
         values.push_back((*cur)->defaultValue());
@@ -118,28 +118,28 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
     for (eckit::StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
         k.push(keyword, *i);
-        full.push(keyword, *i);
+        fullComputedKey.push(keyword, *i);
 
         if ((*cur)->match(k.canonical()))
-            expand(request, next, depth, keys, full, visitor);
+            expand(request, next, depth, keys, fullComputedKey, visitor);
 
-        full.pop(keyword);
+        fullComputedKey.pop(keyword);
         k.pop(keyword);
 
     }
 
 }
 
-void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<ApiKey> &keys, CanonicalKey& full) const {
+void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<TypedKey> &keys, TypedKey& fullComputedKey) const {
     ASSERT(keys.size() == 3);
-    expand(request, predicates_.begin(), depth, keys, full, visitor);
+    expand(request, predicates_.begin(), depth, keys, fullComputedKey, visitor);
 }
 
-void Rule::expand( const CanonicalKey& field,
+void Rule::expand( const CanonicalKey& initialFieldKey,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
-                   std::vector<ApiKey> &keys,
-                   CanonicalKey& full,
+                   std::vector<TypedKey> &keys,
+                   TypedKey& fullComputedKey,
                    WriteVisitor &visitor) const {
 
     static bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
@@ -149,7 +149,6 @@ void Rule::expand( const CanonicalKey& field,
     }
 
     ASSERT(depth < 3);
-
 
     if (cur == predicates_.end()) {
 
@@ -168,24 +167,24 @@ void Rule::expand( const CanonicalKey& field,
                 throw eckit::SeriousBug(oss.str());
             }
             visitor.rule(this);
-            visitor.selectDatum( keys[2], full);
+            visitor.selectDatum( keys[2], fullComputedKey);
         } else {
 
             switch (depth) {
             case 0:
                 if (keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
-                    visitor.selectDatabase(keys[0].canonical(), full);
+                    visitor.selectDatabase(keys[0].canonical(), fullComputedKey);
                     visitor.prev_[0] = keys[0].canonical();
                     visitor.prev_[1] = CanonicalKey{};
                 }
 
                 // Here we recurse on the database's schema (rather than the master schema)
-                visitor.databaseSchema().expandSecond(field, visitor, keys[0].canonical());
+                visitor.databaseSchema().expandSecond(initialFieldKey, visitor, keys[0].canonical());
                 return;
 
             case 1:
                 if (keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
-                    visitor.selectIndex(keys[1].canonical(), full);
+                    visitor.selectIndex(keys[1].canonical(), fullComputedKey);
                     visitor.prev_[1] = keys[1].canonical();
                 }
                 break;
@@ -196,7 +195,7 @@ void Rule::expand( const CanonicalKey& field,
             }
 
             for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(field, visitor, depth + 1, keys, full);
+                (*i)->expand(initialFieldKey, visitor, depth + 1, keys, fullComputedKey);
             }
         }
         return;
@@ -206,56 +205,55 @@ void Rule::expand( const CanonicalKey& field,
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(field);
-
-    ApiKey& k = keys[depth];
+    const std::string &value = (*cur)->value(initialFieldKey);
+    TypedKey& k = keys[depth];
 
     k.push(keyword, value);
-    full.push(keyword, value);
+    fullComputedKey.push(keyword, value);
 
     if ((*cur)->match(k.canonical())) {
-        expand(field, next, depth, keys, full, visitor);
+        expand(initialFieldKey, next, depth, keys, fullComputedKey, visitor);
     }
 
-    full.pop(keyword);
+    fullComputedKey.pop(keyword);
     k.pop(keyword);
 
 
 }
-void Rule::expand(const CanonicalKey& field, WriteVisitor &visitor, size_t depth, std::vector<ApiKey> &keys, CanonicalKey& full) const {
+void Rule::expand(const CanonicalKey& initialFieldKey, WriteVisitor &visitor, size_t depth, std::vector<TypedKey> &keys, TypedKey& fullComputedKey) const {
     ASSERT(keys.size() == 3);
-    expand(field, predicates_.begin(), depth, keys, full, visitor);
+    expand(initialFieldKey, predicates_.begin(), depth, keys, fullComputedKey, visitor);
 }
 
-void Rule::expandFirstLevel( const CanonicalKey& dbKey, std::vector<Predicate *>::const_iterator cur, CanonicalKey& result, bool& found) const {
+// void Rule::expandFirstLevel( const CanonicalKey& dbKey, std::vector<Predicate *>::const_iterator cur, CanonicalKey& result, bool& found) const {
 
-    if (cur == predicates_.end()) {
-        found = true;
-        return;
-    }
+//     if (cur == predicates_.end()) {
+//         found = true;
+//         return;
+//     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
+//     std::vector<Predicate *>::const_iterator next = cur;
+//     ++next;
 
-    const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(dbKey);
+//     const std::string &keyword = (*cur)->keyword();
+//     const std::string &value = (*cur)->value(dbKey);
 
-    result.push(keyword, value);
+//     result.push(keyword, value);
 
-    if ((*cur)->match(result)) {
-        expandFirstLevel(dbKey, next, result, found);
-    }
+//     if ((*cur)->match(result)) {
+//         expandFirstLevel(dbKey, next, result, found);
+//     }
 
-    if (!found) {
-        result.pop(keyword);
-    }
-}
+//     if (!found) {
+//         result.pop(keyword);
+//     }
+// }
 
-void Rule::expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result, bool& found) const {
-    expandFirstLevel(dbKey, predicates_.begin(), result, found);
-}
+// void Rule::expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result, bool& found) const {
+//     expandFirstLevel(dbKey, predicates_.begin(), result, found);
+// }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, CanonicalKey& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -275,7 +273,7 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
 
         result.push(keyword, value);
 
-        if ((*cur)->match(result)) {
+        if ((*cur)->match(result.canonical())) {
             expandFirstLevel(rq, next, result, found);
         }
 
@@ -287,13 +285,14 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
     }
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, CanonicalKey& result, bool& done) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result, bool& done) const {
     expandFirstLevel(request, predicates_.begin(), result, done);
 }
 
 
 void Rule::matchFirstLevel( const CanonicalKey& dbKey, std::vector<Predicate *>::const_iterator cur, CanonicalKey& tmp, std::set<CanonicalKey>& result, const char* missing) const {
 
+    // std::cout << "Rule::matchFirstLevel  dbKey " << dbKey << "  tmp " << tmp << "  result.size() " << result.size() << std::endl;
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
             result.insert(tmp);
@@ -324,7 +323,7 @@ void Rule::matchFirstLevel( const CanonicalKey& dbKey, std::vector<Predicate *>:
 }
 
 void Rule::matchFirstLevel(const CanonicalKey& dbKey,  std::set<CanonicalKey>& result, const char* missing) const {
-    CanonicalKey tmp;
+    CanonicalKey tmp{};
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
 
@@ -362,7 +361,7 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
 }
 
 void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<CanonicalKey>& result, const char* missing) const {
-    CanonicalKey tmp(registry());
+    CanonicalKey tmp{};
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 
@@ -395,7 +394,7 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::CanonicalKey> &keys, size_t de
     return 0;
 }
 
-void Rule::fill(Key& key, const eckit::StringList& values) const {
+void Rule::fill(TypedKey& key, const eckit::StringList& values) const {
 
     // See FDB-103. This is a hack to work around the indexing abstraction
     // being leaky.

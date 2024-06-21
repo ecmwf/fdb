@@ -54,9 +54,9 @@ public: // methods
     const Schema& schema() const;
 
     bool axis(const std::string &keyword, eckit::StringSet &s) const;
-    bool inspect(const ApiKey& key, Field& field);
-    eckit::DataHandle *retrieve(const ApiKey& key);
-    void archive(const ApiKey& key, const void *data, eckit::Length length);
+    bool inspect(const TypedKey& key, Field& field);
+    eckit::DataHandle *retrieve(const TypedKey& key);
+    void archive(const TypedKey& key, const void *data, eckit::Length length);
 
     bool open();
     void flush();
@@ -79,7 +79,7 @@ public: // methods
 
     void visitEntries(EntryVisitor& visitor, bool sorted = false);
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const ApiKey& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    void index(const TypedKey& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;

@@ -19,6 +19,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
@@ -104,15 +105,15 @@ void FDB::archive(const CanonicalKey& key, const void* data, size_t length) {
     // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
     // serialisation won't work properly...)
     CanonicalKey keyInternal(key);
-    keyInternal.registry(config().schema().registry());
 
     // step in archival requests from the model is just an integer. We need to include the stepunit
     auto stepunit = keyInternal.find("stepunits");
     if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+        if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
             auto step = keyInternal.find("step");
             if (step != keyInternal.end()) {
-                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
+                std::string canonicalStep = config().schema().registry()->lookupType("step").toKey("step", step->second + static_cast<char>(tolower(stepunit->second[0])));
+                keyInternal.set("step", canonicalStep);
             }
         }
         keyInternal.unset("stepunits");

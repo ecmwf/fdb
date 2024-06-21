@@ -32,15 +32,15 @@ class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
 
-    BaseArchiveVisitor(Archiver &owner, const CanonicalKey& field);
+    BaseArchiveVisitor(Archiver &owner, const CanonicalKey& initialFieldKey);
 
 protected: // methods
 
-    virtual bool selectDatabase(const CanonicalKey& dbKey, const CanonicalKey& full);
+    virtual bool selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey);
 
-    virtual bool selectIndex(const CanonicalKey& idxKey, const CanonicalKey& full);
+    virtual bool selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey);
 
-    virtual void checkMissingKeys(const CanonicalKey& full);
+    virtual void checkMissingKeys(const TypedKey& fullComputedKey);
 
     virtual const Schema& databaseSchema() const;
 
@@ -50,7 +50,7 @@ private: // members
 
     Archiver &owner_;
 
-    const CanonicalKey& field_;
+    const CanonicalKey& initialFieldKey_;
 
     bool checkMissingKeysOnWrite_;
 };

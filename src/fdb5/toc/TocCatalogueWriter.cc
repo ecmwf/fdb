@@ -121,7 +121,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const ApiKey& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const TypedKey& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -151,7 +151,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
     private:
-        void visitDatum(const Field& field, const ApiKey& datumKey) override {
+        void visitDatum(const Field& field, const TypedKey& datumKey) override {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
@@ -294,7 +294,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const ApiKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const TypedKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {

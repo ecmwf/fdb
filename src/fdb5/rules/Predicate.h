@@ -44,9 +44,10 @@ public: // methods
     bool match(const CanonicalKey& key) const;
 
     void dump( std::ostream &s, const TypesRegistry &registry ) const;
-    void fill(Key& key, const std::string& value) const;
+    void fill(TypedKey& key, const std::string& value) const;
 
     const std::string &value(const CanonicalKey& key) const;
+    // const std::string &value(const TypedKey& key) const;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
     const std::string &defaultValue() const;
 

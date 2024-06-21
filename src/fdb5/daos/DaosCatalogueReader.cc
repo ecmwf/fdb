@@ -122,7 +122,7 @@ bool DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) 
 
 }
 
-bool DaosCatalogueReader::retrieve(const ApiKey& key, Field& field) const {
+bool DaosCatalogueReader::retrieve(const TypedKey& key, Field& field) const {
 
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;

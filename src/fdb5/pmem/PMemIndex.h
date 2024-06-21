@@ -58,7 +58,7 @@ protected: // methods
     virtual void reopen();
 
     virtual bool get( const CanonicalKey& key, Field &field ) const;
-    virtual void add( const ApiKey& key, const Field &field );
+    virtual void add( const TypedKey& key, const Field &field );
     virtual void flush();
     virtual void encode(eckit::Stream &s) const override;
     virtual void entries(EntryVisitor &visitor) const;

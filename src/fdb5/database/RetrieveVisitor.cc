@@ -35,7 +35,7 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const CanonicalKey&) {
+bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) {
 
     if(db_) {
         if(dbKey == db_->key()) {
@@ -43,7 +43,7 @@ bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const CanonicalK
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << dbKey << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "RetrieveVisitor::selectDatabase " << dbKey << std::endl;
 //    db_.reset(DBFactory::buildReader(key));
     db_ = DB::buildReader(dbKey);
 
@@ -64,17 +64,17 @@ bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const CanonicalK
     }
 }
 
-bool RetrieveVisitor::selectIndex(const CanonicalKey& idxKey, const CanonicalKey&) {
+bool RetrieveVisitor::selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) {
     ASSERT(db_);
     // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return db_->selectIndex(idxKey);
 }
 
-bool RetrieveVisitor::selectDatum(const ApiKey& key, const CanonicalKey&) {
+bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
     ASSERT(db_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(key);
+    eckit::DataHandle *dh = db_->retrieve(datumKey);
 
     if (dh) {
         gatherer_.add(dh);

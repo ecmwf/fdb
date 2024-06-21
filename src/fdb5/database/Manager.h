@@ -51,7 +51,7 @@ public: // methods
     eckit::URI location(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::URI> allLocations(const CanonicalKey& key);
+    // std::vector<eckit::URI> allLocations(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);

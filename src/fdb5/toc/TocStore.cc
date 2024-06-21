@@ -106,10 +106,10 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const CanonicalKey& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const CanonicalKey& idxKey, const void *data, eckit::Length length) {
     dirty_ = true;
 
-    eckit::PathName dataPath = getDataPath(key);
+    eckit::PathName dataPath = getDataPath(idxKey);
 
     eckit::DataHandle &dh = getDataHandle(dataPath);
 

@@ -35,7 +35,6 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class Key;
 class CanonicalKey;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -55,7 +54,7 @@ public: // methods
     bool operator==(const IndexAxis& rhs) const;
     bool operator!=(const IndexAxis& rhs) const;
 
-    void insert(const Key& key);
+    void insert(const CanonicalKey& key);
     /// @note: the values are required to be cannonicalised
     void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;

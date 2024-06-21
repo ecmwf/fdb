@@ -77,7 +77,7 @@ protected: // methods
     std::vector<eckit::PathName> metadataPaths() const;
     const Schema& schema() const override;
 
-    virtual eckit::DataHandle *retrieve(const ApiKey& key) const;
+    virtual eckit::DataHandle *retrieve(const TypedKey& key) const;
     virtual void archive(const CanonicalKey& key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 

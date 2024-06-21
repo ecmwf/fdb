@@ -56,7 +56,7 @@ public: // methods
     virtual eckit::URI location(const CanonicalKey& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
-    virtual std::vector<eckit::URI> allLocations(const CanonicalKey& key, const Config& config) const = 0;
+    // virtual std::vector<eckit::URI> allLocations(const CanonicalKey& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const CanonicalKey& key, const Config& config) const = 0;

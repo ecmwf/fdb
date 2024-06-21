@@ -80,7 +80,7 @@ void PMemIndex::close() {
     // Intentionally left blank. Indices neither opened nor closed (part of open DB).
 }
 
-void PMemIndex::add(const ApiKey& key, const Field &field) {
+void PMemIndex::add(const TypedKey& key, const Field &field) {
 
     struct Inserter : FieldLocationVisitor {
         Inserter(PBranchingNode& indexNode, const CanonicalKey& key, DataPoolManager& poolManager) :

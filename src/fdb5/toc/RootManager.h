@@ -49,7 +49,7 @@ public: // methods
     TocPath directory(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> allRoots(const CanonicalKey& key);
+    // std::vector<eckit::PathName> allRoots(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitableRoots(const CanonicalKey& key);

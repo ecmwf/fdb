@@ -45,7 +45,6 @@ void Archiver::archive(const CanonicalKey& key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
     
-
     dbConfig_.schema().expand(key, visitor);
 
     const Rule* rule = visitor.rule();

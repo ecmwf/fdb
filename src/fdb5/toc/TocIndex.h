@@ -97,8 +97,8 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get( const ApiKey& key, const CanonicalKey& remapKey, Field &field ) const override;
-    void add( const ApiKey& key, const Field &field ) override;
+    bool get( const TypedKey& key, const CanonicalKey& remapKey, Field &field ) const override;
+    void add( const TypedKey& key, const Field &field ) override;
     void flush() override;
     void encode(eckit::Stream& s, const int version) const override;
     void entries(EntryVisitor& visitor) const override;

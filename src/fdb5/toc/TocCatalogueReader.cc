@@ -104,7 +104,7 @@ void TocCatalogueReader::close() {
     }
 }
 
-bool TocCatalogueReader::retrieve(const ApiKey& key, Field& field) const {
+bool TocCatalogueReader::retrieve(const TypedKey& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 

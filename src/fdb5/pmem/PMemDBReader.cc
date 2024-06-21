@@ -73,7 +73,7 @@ void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 }
 
 
-eckit::DataHandle* PMemDBReader::retrieve(const ApiKey& key) const {
+eckit::DataHandle* PMemDBReader::retrieve(const TypedKey& key) const {
 
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "From index " << currentIndex_ << std::endl;

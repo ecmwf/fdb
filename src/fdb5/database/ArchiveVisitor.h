@@ -34,7 +34,7 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectDatum(const ApiKey& key, const CanonicalKey& full) override;
+    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 
     virtual void print( std::ostream &out ) const override;
 

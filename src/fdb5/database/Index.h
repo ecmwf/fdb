@@ -39,7 +39,7 @@ class Stream;
 namespace fdb5 {
 
 class CanonicalKey;
-class ApiKey;
+class TypedKey;
 class Index;
 class IndexLocationVisitor;
 class Schema;
@@ -81,15 +81,15 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const ApiKey& key, const CanonicalKey& remapKey, Field &field) const = 0;
-    virtual void put(const ApiKey& key, const Field &field);
+    virtual bool get(const TypedKey& key, const CanonicalKey& remapKey, Field &field) const = 0;
+    virtual void put(const TypedKey& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    virtual bool mayContain(const ApiKey& key) const;
+    virtual bool mayContain(const TypedKey& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -109,7 +109,7 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const ApiKey& key, const Field &field) = 0;
+    virtual void add(const TypedKey& key, const Field &field) = 0;
 
 protected: // members
 
@@ -161,8 +161,8 @@ public: // methods
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const ApiKey& key, const CanonicalKey& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
-    void put(const ApiKey& key, const Field& field) { content_->put(key, field); }
+    bool get(const TypedKey& key, const CanonicalKey& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
+    void put(const TypedKey& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
@@ -176,7 +176,7 @@ public: // methods
     const IndexBase* content() const { return content_; }
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
-    bool mayContain(const ApiKey& key) const { return content_->mayContain(key); }
+    bool mayContain(const TypedKey& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }
 

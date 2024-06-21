@@ -250,10 +250,10 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::allLocations(const CanonicalKey& key, const Config& config) const
-{
-    return databases(key, CatalogueRootManager(config).allRoots(key), config);
-}
+// std::vector<eckit::URI> TocEngine::allLocations(const CanonicalKey& key, const Config& config) const
+// {
+//     return databases(key, CatalogueRootManager(config).allRoots(key), config);
+// }
 
 std::vector<eckit::URI> TocEngine::visitableLocations(const CanonicalKey& key, const Config& config) const
 {

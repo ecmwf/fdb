@@ -57,7 +57,7 @@ protected: // methods
 
     virtual bool canHandle(const eckit::PathName& path) const;
 
-    virtual std::vector<eckit::PathName> allLocations(const CanonicalKey& key, const Config& config) const;
+    // virtual std::vector<eckit::PathName> allLocations(const CanonicalKey& key, const Config& config) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const CanonicalKey& key, const Config& config) const;
     virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const;

@@ -133,7 +133,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     visitor.databaseComplete(*this);
 }
 
-eckit::DataHandle * PMemDB::retrieve(const ApiKey& key) const {
+eckit::DataHandle * PMemDB::retrieve(const TypedKey& key) const {
     Log::error() << "retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -188,7 +188,7 @@ void PMemDB::dump(std::ostream& out, bool simple) const {
 
     struct DumpVisitor : EntryVisitor {
         DumpVisitor(std::ostream& out) : out_(out) {}
-        void visitDatum(const Field& field, const ApiKey& datumKey) override {
+        void visitDatum(const Field& field, const TypedKey& datumKey) override {
             out_ << "ENTRY" << std::endl;
             out_ << "  " << datumKey << std::endl;
             field.location().dump(out_);

@@ -95,8 +95,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     Config conf = config(args);
     const Schema& schema = conf.schema();
 
-    CanonicalKey source;
-    CanonicalKey target;
+    TypedKey source{conf.schema().registry()};
+    TypedKey target{conf.schema().registry()};
     ASSERT(schema.expandFirstLevel(sourceRequest.request(), source));
     ASSERT(schema.expandFirstLevel(targetRequest.request(), target));
 
@@ -118,12 +118,12 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         ASSERT(it != source.end());
         if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
             std::stringstream ss;
-            ss << "CanonicalKey " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
+            ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
             throw UserError(ss.str(), Here());
         }
     }
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source, conf);
+    std::unique_ptr<DB> dbSource = DB::buildReader(source.canonical(), conf);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
@@ -136,7 +136,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildReader(target, conf);
+    std::unique_ptr<DB> dbTarget = DB::buildReader(target.canonical(), conf);
 
     if (remove_) {
         if (!dbTarget->exists()) {
@@ -156,7 +156,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<DB> newDB = DB::buildWriter(target, conf);
+    std::unique_ptr<DB> newDB = DB::buildWriter(target.canonical(), conf);
 
     // This only works for tocDBs
 

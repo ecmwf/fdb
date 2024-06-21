@@ -20,8 +20,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AdoptVisitor::AdoptVisitor(Archiver &owner, const CanonicalKey& field, const PathName &path, Offset offset, Length length) :
-    BaseArchiveVisitor(owner, field),
+AdoptVisitor::AdoptVisitor(Archiver &owner, const CanonicalKey& initialFieldKey, const PathName &path, Offset offset, Length length) :
+    BaseArchiveVisitor(owner, initialFieldKey),
     path_(path),
     offset_(offset),
     length_(length) {
@@ -29,14 +29,14 @@ AdoptVisitor::AdoptVisitor(Archiver &owner, const CanonicalKey& field, const Pat
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const ApiKey& key, const CanonicalKey& full) {
+bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
 
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
-    checkMissingKeys(full);
+    checkMissingKeys(fullComputedKey);
 
     ASSERT(current());
 
-    current()->index(key, path_, offset_, length_);
+    current()->index(datumKey, path_, offset_, length_);
 
     return true;
 }

@@ -80,7 +80,7 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const ApiKey& datumKey) override {
+    void visitDatum(const Field& field, const TypedKey& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 

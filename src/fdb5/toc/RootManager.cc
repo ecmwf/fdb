@@ -642,20 +642,20 @@ TocPath RootManager::directory(const CanonicalKey& key) {
     throw eckit::SeriousBug(oss.str());
 }
 
-std::vector<PathName> RootManager::allRoots(const CanonicalKey& key)
-{
-    eckit::StringSet roots;
+// std::vector<PathName> RootManager::allRoots(const CanonicalKey& key)
+// {
+//     eckit::StringSet roots;
 
-    std::string k = key.valuesToString();
+//     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(k)) {
-            i->all(roots);
-        }
-    }
+//     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
+//         if(i->match(k)) {
+//             i->all(roots);
+//         }
+//     }
 
-    return std::vector<eckit::PathName>(roots.begin(), roots.end());
-}
+//     return std::vector<eckit::PathName>(roots.begin(), roots.end());
+// }
 
 std::vector<PathName> RootManager::visitableRoots(const std::set<CanonicalKey>& keys) {
 
