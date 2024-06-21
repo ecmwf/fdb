@@ -133,7 +133,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     visitor.databaseComplete(*this);
 }
 
-eckit::DataHandle * PMemDB::retrieve(const TypedKey& key) const {
+eckit::DataHandle * PMemDB::retrieve(const Key& key) const {
     Log::error() << "retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }

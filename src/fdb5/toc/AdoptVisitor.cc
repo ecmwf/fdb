@@ -36,7 +36,7 @@ bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullCom
 
     ASSERT(current());
 
-    current()->index(datumKey, path_, offset_, length_);
+    current()->index(datumKey.canonical(), path_, offset_, length_);
 
     return true;
 }

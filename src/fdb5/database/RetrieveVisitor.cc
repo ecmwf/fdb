@@ -74,7 +74,7 @@ bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& full
     ASSERT(db_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(datumKey);
+    eckit::DataHandle *dh = db_->retrieve(datumKey.canonical());
 
     if (dh) {
         gatherer_.add(dh);

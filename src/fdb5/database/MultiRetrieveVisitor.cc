@@ -100,7 +100,7 @@ bool MultiRetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&
     LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << datumKey << ", " << full << std::endl;
 
     Field field;
-    if (db_->inspect(datumKey, field)) {
+    if (db_->inspect(datumKey.canonical(), field)) {
 
         Key simplifiedKey;
         for (auto k = datumKey.begin(); k != datumKey.end(); k++) {

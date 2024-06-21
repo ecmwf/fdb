@@ -78,7 +78,7 @@ void TocIndex::encode(eckit::Stream& s, const int version) const {
 }
 
 
-bool TocIndex::get(const TypedKey& key, const Key& remapKey, Field &field) const {
+bool TocIndex::get(const Key& key, const Key& remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
@@ -124,7 +124,7 @@ void TocIndex::close() {
     }
 }
 
-void TocIndex::add(const TypedKey& key, const Field &field) {
+void TocIndex::add(const Key& key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == TocIndex::WRITE );
 

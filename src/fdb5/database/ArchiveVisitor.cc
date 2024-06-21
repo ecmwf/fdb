@@ -28,7 +28,7 @@ bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullC
 
     ASSERT(current());
 
-    current()->archive(datumKey, data_, size_);
+    current()->archive(datumKey.canonical(), data_, size_);
 
     return true;
 }

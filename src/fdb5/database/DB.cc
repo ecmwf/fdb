@@ -83,7 +83,7 @@ bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     return cat->axis(keyword, s);
 }
 
-bool DB::inspect(const TypedKey& key, Field& field) {
+bool DB::inspect(const Key& key, Field& field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
 
@@ -93,7 +93,7 @@ bool DB::inspect(const TypedKey& key, Field& field) {
     return cat->retrieve(key, field);
 }
 
-eckit::DataHandle *DB::retrieve(const TypedKey& key) {
+eckit::DataHandle *DB::retrieve(const Key& key) {
 
     Field field;
     if (inspect(key, field)) {
@@ -103,7 +103,7 @@ eckit::DataHandle *DB::retrieve(const TypedKey& key) {
     return nullptr;
 }
 
-void DB::archive(const TypedKey& key, const void* data, eckit::Length length) {
+void DB::archive(const Key& key, const void* data, eckit::Length length) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
@@ -164,7 +164,7 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const TypedKey& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void DB::index(const Key& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);

@@ -121,7 +121,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const TypedKey& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -155,7 +155,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(datumKey, location.uri(), location.offset(), location.length());
+            writer_.index(datumKey.canonical(), location.uri(), location.offset(), location.length());
 
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
@@ -294,7 +294,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const TypedKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {

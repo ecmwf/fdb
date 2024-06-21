@@ -42,7 +42,7 @@ public: // methods
     virtual ~PMemDBReader() override;
 
     virtual bool selectIndex(const Key& idxKey);
-    virtual eckit::DataHandle* retrieve(const TypedKey& key) const;
+    virtual eckit::DataHandle* retrieve(const Key& key) const;
 
     virtual std::vector<Index> indexes(bool sorted) const;
 

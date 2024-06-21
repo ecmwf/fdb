@@ -47,8 +47,8 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
 
-    bool get( const Key& key, const Key& remapKey, Field &field ) const override;
-    void add( const TypedKey& key, const Field &field ) override;
+    bool get(const Key& key, const Key& remapKey, Field &field ) const override;
+    void add(const Key& key, const Field &field ) override;
     void flush() override { NOTIMP; }
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
     void entries(EntryVisitor& visitor) const override;

@@ -159,7 +159,7 @@ bool DaosIndex::get(const Key& key, const Key& remapKey, Field &field) const {
 
 }
 
-void DaosIndex::add(const TypedKey& key, const Field &field) {
+void DaosIndex::add(const Key& key, const Field &field) {
 
     eckit::MemoryHandle h{(size_t) PATH_MAX};
     eckit::HandleStream hs{h};

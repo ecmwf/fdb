@@ -57,8 +57,8 @@ protected: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual bool get( const Key& key, Field &field ) const;
-    virtual void add( const TypedKey& key, const Field &field );
+    virtual bool get(const Key& key, Field &field ) const;
+    virtual void add(const Key& key, const Field &field );
     virtual void flush();
     virtual void encode(eckit::Stream &s) const override;
     virtual void entries(EntryVisitor &visitor) const;

@@ -125,11 +125,11 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
     s << type_;
 }
 
-void IndexBase::put(const TypedKey& key, const Field &field) {
+void IndexBase::put(const Key& key, const Field &field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
-    axes_.insert(key.canonical());
+    axes_.insert(key);
     add(key, field);
 }
 
@@ -142,8 +142,8 @@ bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-bool IndexBase::mayContain(const TypedKey& key) const {
-    return axes_.contains(key.canonical());
+bool IndexBase::mayContain(const Key& key) const {
+    return axes_.contains(key);
 }
 
 const Key& IndexBase::key() const {
@@ -200,8 +200,8 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get( const TypedKey&, const Key&, Field&) const override { NOTIMP; }
-    virtual void add( const TypedKey&, const Field&) override { NOTIMP; }
+    virtual bool get(const Key&, const Key&, Field&) const override { NOTIMP; }
+    virtual void add(const Key&, const Field&) override { NOTIMP; }
     virtual void flush() override { NOTIMP; }
     virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }
     virtual void entries(EntryVisitor&) const override { NOTIMP; }
