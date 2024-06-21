@@ -42,9 +42,9 @@ private:  // methods
 
     // From Visitor
 
-    virtual bool selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) override;
+    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
 
-    virtual bool selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) override;
+    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
 
     virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 

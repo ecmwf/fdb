@@ -350,7 +350,7 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
                 fdb5::DaosKeyValue index_kv{s, name};
                 std::vector<char> data;
                 eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index kv");
-                fdb5::CanonicalKey key(ms);
+                fdb5::Key key(ms);
                 std::string idx{key.valuesToString()};
 
                 catalogue_.remove(name, logAlways, logVerbose, doit_);

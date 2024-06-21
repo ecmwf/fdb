@@ -29,7 +29,7 @@ bool Matcher::optional() const {
     return false;
 }
 
-const std::string &Matcher::value(const CanonicalKey& key, const std::string &keyword) const {
+const std::string &Matcher::value(const Key& key, const std::string &keyword) const {
     return key.get(keyword);
 }
 

@@ -71,7 +71,7 @@ class FDBList : public FDBVisitTool {
 };
 
 
-std::string keySignature(const fdb5::CanonicalKey& key) {
+std::string keySignature(const fdb5::Key& key) {
     std::string signature;
     std::string separator;
     for (auto k : key.keys()) {
@@ -136,13 +136,13 @@ void FDBList::execute(const CmdArgs& args) {
 
         // If --full is supplied, then include all entries including duplicates.
         auto listObject = fdb.list(request, !full_ && !compact_);
-        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<CanonicalKey>>>> requests;
+        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
 
         ListElement elem;
         while (listObject.next(elem)) {
 
             if (compact_) {
-                std::vector<CanonicalKey> keys = elem.key();
+                std::vector<Key> keys = elem.key();
                 ASSERT(keys.size() == 3);
 
                 std::string treeAxes = keys[0];
@@ -153,8 +153,8 @@ void FDBList::execute(const CmdArgs& args) {
 
                 auto it = requests.find(treeAxes);
                 if (it == requests.end()) {
-                    std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<CanonicalKey>>> leaves;
-                    leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<CanonicalKey>{keys[2]}));
+                    std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>> leaves;
+                    leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     requests.emplace(treeAxes, leaves);
                 } else {
                     auto h = it->second.find(signature);
@@ -162,7 +162,7 @@ void FDBList::execute(const CmdArgs& args) {
                         h->second.first.merge(keys[2].request());
                         h->second.second.insert(keys[2]);
                     } else {
-                        it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<CanonicalKey>{keys[2]}));
+                        it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     }
                 }
             } else {

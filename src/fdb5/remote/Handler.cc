@@ -623,7 +623,7 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
 static void archiveBlobPayload(FDB& fdb, const void* data, size_t length) {
     MemoryStream s(data, length);
 
-    fdb5::CanonicalKey key(s);
+    fdb5::Key key(s);
 
     std::stringstream ss_key;
     ss_key << key;

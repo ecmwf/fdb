@@ -153,7 +153,7 @@ CASE( "dummy_daos_write_then_read" ) {
     daos_size_t size;
     daos_size_t oid_alloc_size = 1;
 
-    // CanonicalKey-Value
+    // Key-Value
 
     daos_obj_id_t oid_kv;
     rc = daos_cont_alloc_oids(coh, oid_alloc_size, &oid_kv.lo, NULL);

@@ -29,7 +29,7 @@ public:
 
     DaosFieldLocation(const DaosFieldLocation& rhs);
     DaosFieldLocation(const eckit::URI &uri);
-    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey);
+    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     DaosFieldLocation(eckit::Stream&);
 
     eckit::DataHandle* dataHandle() const override;

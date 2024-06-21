@@ -21,10 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::unique_ptr<DB> DB::buildReader(const CanonicalKey& key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildReader(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, true));
 }
-std::unique_ptr<DB> DB::buildWriter(const CanonicalKey& key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildWriter(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
@@ -34,7 +34,7 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::unique_ptr<DB>(new DB(uri, config, false));
 }
 
-DB::DB(const CanonicalKey& key, const fdb5::Config& config, bool read) {
+DB::DB(const Key& key, const fdb5::Config& config, bool read) {
     catalogue_ = CatalogueFactory::instance().build(key, config.expandConfig(), read);
 }
 
@@ -54,17 +54,17 @@ std::string DB::dbType() const {
     return catalogue_->type();// + ":" + store_->type();
 }
 
-const CanonicalKey& DB::key() const {
+const Key& DB::key() const {
     return catalogue_->key();
 }
-const CanonicalKey& DB::indexKey() const {
+const Key& DB::indexKey() const {
     return catalogue_->indexKey();
 }
 const Schema& DB::schema() const {
     return catalogue_->schema();
 }
 
-bool DB::selectIndex(const CanonicalKey& idxKey) {
+bool DB::selectIndex(const Key& idxKey) {
     return catalogue_->selectIndex(idxKey);
 }
 

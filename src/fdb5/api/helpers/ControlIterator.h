@@ -137,7 +137,7 @@ struct ControlElement {
     ControlElement(eckit::Stream& s);
 
     // Database key
-    CanonicalKey key;
+    Key key;
 
     // The location of the Database this response is for
     eckit::URI location;

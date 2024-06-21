@@ -26,10 +26,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// Key::Key(const std::shared_ptr<TypesRegistry> reg) :
+// BaseKey::BaseKey(const std::shared_ptr<TypesRegistry> reg) :
 //     keys_(), registry_(reg) {}
 
-// Key::Key(const std::string &s, const Rule *rule) :
+// BaseKey::BaseKey(const std::string &s, const Rule *rule) :
 //     keys_(), registry_(rule ? rule->registry() : nullptr) {
 
 //     eckit::Tokenizer parse(":", true);
@@ -40,7 +40,7 @@ namespace fdb5 {
 //     rule->fill(*this, values);
 // }
 
-// Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
+// BaseKey::BaseKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
 //     keys_(keys),
 //     registry_(reg) {
 
@@ -51,12 +51,12 @@ namespace fdb5 {
 //     }
 // }
 
-// Key::Key(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
+// BaseKey::BaseKey(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
 //     registry_(reg) {
 //     decode(s);
 // }
 
-// Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
+// BaseKey::BaseKey(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
 //     keys_(l),
 //     registry_(reg) {
 
@@ -65,9 +65,9 @@ namespace fdb5 {
 //     }
 // }
 
-Key::~Key() {}
+BaseKey::~BaseKey() {}
 
-void Key::decode(eckit::Stream& s) {
+void BaseKey::decode(eckit::Stream& s) {
 
     keys_.clear();
     names_.clear();
@@ -91,7 +91,7 @@ void Key::decode(eckit::Stream& s) {
     }
 }
 
-void Key::encode(eckit::Stream& s) const {
+void BaseKey::encode(eckit::Stream& s) const {
     // const TypesRegistry* registry = (registry_ ? registry_.get() : nullptr);
 
     s << keys_.size();
@@ -105,7 +105,7 @@ void Key::encode(eckit::Stream& s) const {
     }
 }
 
-std::set<std::string> Key::keys() const {
+std::set<std::string> BaseKey::keys() const {
 
     std::set<std::string> k;
 
@@ -116,12 +116,12 @@ std::set<std::string> Key::keys() const {
     return k;
 }
 
-void Key::clear() {
+void BaseKey::clear() {
     keys_.clear();
     names_.clear();
 }
 
-void Key::set(const std::string &k, const std::string &v) {
+void BaseKey::set(const std::string &k, const std::string &v) {
 
     ASSERT(names_.size() == keys_.size());
 
@@ -134,33 +134,33 @@ void Key::set(const std::string &k, const std::string &v) {
     }
 }
 
-void Key::unset(const std::string &k) {
+void BaseKey::unset(const std::string &k) {
     keys_.erase(k);
 }
 
-void Key::push(const std::string &k, const std::string &v) {
+void BaseKey::push(const std::string &k, const std::string &v) {
     keys_[k] = v;
     names_.push_back(k);
 }
 
-void Key::pop(const std::string &k) {
+void BaseKey::pop(const std::string &k) {
     keys_.erase(k);
     ASSERT(names_.back() == k);
     names_.pop_back();
 }
 
-const std::string &Key::get( const std::string &k ) const {
+const std::string &BaseKey::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
     if ( i == keys_.end() ) {
         std::ostringstream oss;
-        oss << "Key::get() failed for [" + k + "] in " << *this;
+        oss << "BaseKey::get() failed for [" + k + "] in " << *this;
         throw eckit::SeriousBug(oss.str(), Here());
     }
 
     return i->second;
 }
 
-bool Key::match(const Key& other) const {
+bool BaseKey::match(const BaseKey& other) const {
 
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
 
@@ -178,7 +178,7 @@ bool Key::match(const Key& other) const {
 }
 
 
-bool Key::match(const metkit::mars::MarsRequest& request) const {
+bool BaseKey::match(const metkit::mars::MarsRequest& request) const {
 
     for (const auto& k : request.params()) {
 
@@ -201,7 +201,7 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-// bool Key::match(const Key& other, const eckit::StringList& ignore) const {
+// bool BaseKey::match(const BaseKey& other, const eckit::StringList& ignore) const {
 
 //     for (const_iterator i = other.begin(); i != other.end(); ++i) {
 //         if (std::find(ignore.begin(), ignore.end(), i->first) != ignore.end())
@@ -220,7 +220,7 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
 //     return true;
 // }
 
-// bool Key::match(const std::string &key, const std::set<std::string> &values) const {
+// bool BaseKey::match(const std::string &key, const std::set<std::string> &values) const {
 
 //     eckit::StringDict::const_iterator i = find(key);
 //     if (i == end()) {
@@ -230,7 +230,7 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
 //     return values.find(canonicalise(key, i->second)) != values.end();
 // }
 
-bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
+bool BaseKey::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
 
     eckit::StringDict::const_iterator i = find(key);
     if (i == end()) {
@@ -241,7 +241,7 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
     return values.find(i->second) != values.end() || values.find(canonicalise(key, i->second)) != values.end();
 }
 
-bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
+bool BaseKey::partialMatch(const metkit::mars::MarsRequest& request) const {
 
     for (const auto& kv : *this) {
 
@@ -257,7 +257,7 @@ bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-std::string Key::canonicalValue(const std::string& keyword) const {
+std::string BaseKey::canonicalValue(const std::string& keyword) const {
 
     eckit::StringDict::const_iterator it = keys_.find(keyword);
     ASSERT(it != keys_.end());
@@ -265,7 +265,7 @@ std::string Key::canonicalValue(const std::string& keyword) const {
     return canonicalise(keyword, it->second);
 }
 
-std::string Key::valuesToString() const {
+std::string BaseKey::valuesToString() const {
 
     if(names_.size() != keys_.size()) {
         std::stringstream ss;
@@ -293,22 +293,22 @@ std::string Key::valuesToString() const {
 }
 
 
-const eckit::StringList& Key::names() const {
+const eckit::StringList& BaseKey::names() const {
     return names_;
 }
 
-std::string Key::value(const std::string& key) const {
+std::string BaseKey::value(const std::string& key) const {
 
     eckit::StringDict::const_iterator it = keys_.find(key);
     ASSERT(it != keys_.end());
     return it->second;
 }
 
-const eckit::StringDict &Key::keyDict() const {
+const eckit::StringDict &BaseKey::keyDict() const {
     return keys_;
 }
 
-metkit::mars::MarsRequest Key::request(std::string verb) const {
+metkit::mars::MarsRequest BaseKey::request(std::string verb) const {
     metkit::mars::MarsRequest req(verb);
 
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
@@ -319,12 +319,12 @@ metkit::mars::MarsRequest Key::request(std::string verb) const {
 }
 
 
-fdb5::Key::operator std::string() const {
+fdb5::BaseKey::operator std::string() const {
     ASSERT(names_.size() == keys_.size());
     return toString();
 }
 
-fdb5::Key::operator eckit::StringDict() const
+fdb5::BaseKey::operator eckit::StringDict() const
 {
     eckit::StringDict res;
 
@@ -343,7 +343,7 @@ fdb5::Key::operator eckit::StringDict() const
     return res;
 }
 
-void Key::print(std::ostream &out) const {
+void BaseKey::print(std::ostream &out) const {
     if (names_.size() == keys_.size()) {
         out << "{" << toString() << "}";
     } else {
@@ -351,7 +351,7 @@ void Key::print(std::ostream &out) const {
     }
 }
 
-std::string Key::toString() const {
+std::string BaseKey::toString() const {
     std::string res;
     const char *sep = "";
     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
@@ -368,19 +368,19 @@ std::string Key::toString() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CanonicalKey::CanonicalKey() :
-    Key() {}
+Key::Key() :
+    BaseKey() {}
 
-// CanonicalKey::CanonicalKey(const std::string &s) :
-//     Key({}) {
+// Key::Key(const std::string &s) :
+//     BaseKey({}) {
 
 //     eckit::Tokenizer parse(":", true);
 //     eckit::StringList values;
 //     parse(s, values);
 // }
 
-CanonicalKey::CanonicalKey(const eckit::StringDict &keys) :
-    Key(keys) {
+Key::Key(const eckit::StringDict &keys) :
+    BaseKey(keys) {
 
     eckit::StringDict::const_iterator it = keys.begin();
     eckit::StringDict::const_iterator end = keys.end();
@@ -389,20 +389,20 @@ CanonicalKey::CanonicalKey(const eckit::StringDict &keys) :
     }
 }
 
-CanonicalKey::CanonicalKey(eckit::Stream& s) :
-    Key() {
+Key::Key(eckit::Stream& s) :
+    BaseKey() {
     decode(s);
 }
 
-CanonicalKey::CanonicalKey(std::initializer_list<std::pair<const std::string, std::string>> l) :
-    Key(l) {
+Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l) :
+    BaseKey(l) {
 
     for (const auto& kv : keys_) {
         names_.emplace_back(kv.first);
     }
 }
 
-CanonicalKey CanonicalKey::parseString(const std::string& s) {
+Key Key::parseString(const std::string& s) {
 
     eckit::Tokenizer parse1(",");
     eckit::Tokenizer parse2("=");
@@ -417,10 +417,10 @@ CanonicalKey CanonicalKey::parseString(const std::string& s) {
         keys.emplace(std::move(kv[0]), std::move(kv[1]));
     }
 
-    return CanonicalKey{keys};
+    return Key{keys};
 }
 
-void TypedKey::validateKeys(const Key& other, bool checkAlsoValues) const
+void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const
 {
 
     // std::cout << "validateKeys " << (*this) << std::endl
@@ -430,9 +430,9 @@ void TypedKey::validateKeys(const Key& other, bool checkAlsoValues) const
 
     ASSERT(registry_);
 
-    for (Key::const_iterator j = other.begin(); j != other.end(); ++j) {
+    for (BaseKey::const_iterator j = other.begin(); j != other.end(); ++j) {
         const std::string& keyword = (*j).first;
-        Key::const_iterator k = find(keyword);
+        BaseKey::const_iterator k = find(keyword);
         if (k == keys_.end()) {
             missing.insert(keyword);
         }
@@ -460,27 +460,27 @@ void TypedKey::validateKeys(const Key& other, bool checkAlsoValues) const
     }
 }
 
-std::string CanonicalKey::canonicalise(const std::string& keyword, const std::string& value) const {
+std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
     return value;
 }
 
-std::string CanonicalKey::type(const std::string& keyword) const {
+std::string Key::type(const std::string& keyword) const {
     return "";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TypedKey::TypedKey(const CanonicalKey& key) : 
-//     Key(key), registry_(nullptr) {}
+// TypedKey::TypedKey(const Key& key) : 
+//     BaseKey(key), registry_(nullptr) {}
 
-TypedKey::TypedKey(const CanonicalKey& key, const std::shared_ptr<TypesRegistry> reg) : 
-    Key(key), registry_(reg) {}
+TypedKey::TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg) : 
+    BaseKey(key), registry_(reg) {}
 
 TypedKey::TypedKey(const std::shared_ptr<TypesRegistry> reg) :
-    Key({}), registry_(reg) {}
+    BaseKey({}), registry_(reg) {}
 
 TypedKey::TypedKey(const std::string &s, const Rule *rule) :
-    Key({}), registry_(rule ? rule->registry() : nullptr) {
+    BaseKey({}), registry_(rule ? rule->registry() : nullptr) {
 
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
@@ -491,7 +491,7 @@ TypedKey::TypedKey(const std::string &s, const Rule *rule) :
 }
 
 TypedKey::TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
-    Key(keys), registry_(reg) {
+    BaseKey(keys), registry_(reg) {
 
     eckit::StringDict::const_iterator it = keys.begin();
     eckit::StringDict::const_iterator end = keys.end();
@@ -501,12 +501,12 @@ TypedKey::TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesReg
 }
 
 TypedKey::TypedKey(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
-    Key({}), registry_(reg) {
+    BaseKey({}), registry_(reg) {
     decode(s);
 }
 
 TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
-    Key(l), registry_(reg) {
+    BaseKey(l), registry_(reg) {
 
     for (const auto& kv : keys_) {
         names_.emplace_back(kv.first);
@@ -548,7 +548,7 @@ void TypedKey::registry(const std::shared_ptr<TypesRegistry> reg) {
 const TypesRegistry& TypedKey::registry() const {
     if (!registry_) {
         std::stringstream ss;
-        ss << "TypesRegistry has not been set for Key " << (*this) << " prior to use";
+        ss << "TypesRegistry has not been set for BaseKey " << (*this) << " prior to use";
         throw eckit::SeriousBug(ss.str(), Here());
     }
 
@@ -571,8 +571,8 @@ std::string TypedKey::type(const std::string& keyword) const {
     return this->registry().lookupType(keyword).type();
 }
 
-CanonicalKey TypedKey::canonical() const {
-    CanonicalKey key{};
+Key TypedKey::canonical() const {
+    Key key{};
 
     for (const auto& name: names_) {
         auto m = keys_.find(name);

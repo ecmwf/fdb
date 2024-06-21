@@ -24,7 +24,7 @@ MatchAny::MatchAny(const std::set<std::string> &values) :
 MatchAny::~MatchAny() {
 }
 
-bool MatchAny::match(const std::string &keyword, const CanonicalKey& key) const {
+bool MatchAny::match(const std::string &keyword, const Key& key) const {
 
     auto i = key.find(keyword);
 

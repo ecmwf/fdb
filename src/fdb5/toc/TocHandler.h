@@ -38,7 +38,7 @@ class Configuration;
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class Index;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -102,19 +102,19 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const CanonicalKey& key, const Config& config);
+    TocHandler( const Key& key, const Config& config);
 
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const CanonicalKey& parentKey);
+    TocHandler(const eckit::PathName& path, const Key& parentKey);
 
     ~TocHandler() override;
 
     bool exists() const;
     void checkUID() const override;
 
-    void writeInitRecord(const CanonicalKey& tocKey);
+    void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index &);
     void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);
@@ -131,9 +131,9 @@ public: // methods
     std::vector<Index> loadIndexes(bool sorted=false,
                                    std::set<std::string>* subTocs = nullptr,
                                    std::vector<bool>* indexInSubtoc = nullptr,
-                                   std::vector<CanonicalKey>* remapKeys = nullptr) const;
+                                   std::vector<Key>* remapKeys = nullptr) const;
 
-    CanonicalKey databaseKey();
+    Key databaseKey();
     size_t numberOfRecords() const;
 
     const eckit::PathName& directory() const;
@@ -172,7 +172,7 @@ private: // methods
 
 protected: // members
 
-    mutable CanonicalKey parentKey_; // Contains the key of the first TOC explored in subtoc chain
+    mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
 
     uid_t dbUID() const override;
 
@@ -181,7 +181,7 @@ protected: // methods
     // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::PathName& currentDirectory() const;
     const eckit::PathName& currentTocPath() const;
-    const CanonicalKey& currentRemapKey() const;
+    const Key& currentRemapKey() const;
 
     // Build the record, and return the payload size
 
@@ -245,7 +245,7 @@ private: // members
 
     // If we have mounted another TocCatalogue internally, what is the current
     // remapping key?
-    CanonicalKey remapKey_;
+    Key remapKey_;
 
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 

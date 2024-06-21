@@ -40,7 +40,7 @@ std::string PMemEngine::dbType() const {
     return PMemEngine::typeName();
 }
 
-eckit::PathName PMemEngine::location(const CanonicalKey& key, const Config& config) const
+eckit::PathName PMemEngine::location(const Key& key, const Config& config) const
 {
     return PoolManager(config).pool(key);
 }
@@ -57,23 +57,23 @@ bool PMemEngine::canHandle(const eckit::PathName& path) const
 }
 
 
-static void matchKeyToDB(const CanonicalKey& key, std::set<CanonicalKey>& keys, const char* missing, const Config& config)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<CanonicalKey>& keys, const char* missing, const Config& config)
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const CanonicalKey& key,
+std::vector<eckit::PathName> PMemEngine::databases(const Key& key,
                                                    const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
-    std::set<CanonicalKey> keys;
+    std::set<Key> keys;
 
     const char* regexForMissingValues = "[^:/]*";
 
@@ -88,7 +88,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const metkit::mars::MarsReque
                                                    const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
-    std::set<CanonicalKey> keys;
+    std::set<Key> keys;
 
     const char* regexForMissingValues = "[^:/]*";
 
@@ -111,7 +111,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const metkit::mars::MarsReque
     return result;
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const std::set<CanonicalKey>& keys,
+std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
                                                    const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
@@ -127,7 +127,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<CanonicalKey>&
 
         LOG_DEBUG_LIB(LibFdb5) << "Subdirs " << subdirs << std::endl;
 
-        for (std::set<CanonicalKey>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
+        for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
             Regex re("^" + (*i).valuesToString() + "$");
 
@@ -156,12 +156,12 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<CanonicalKey>&
     return result;
 }
 
-// std::vector<eckit::PathName> PMemEngine::allLocations(const CanonicalKey& key, const Config& config) const
+// std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Config& config) const
 // {
 //     return databases(key, PoolManager(config).allPools(key), config);
 // }
 
-std::vector<eckit::PathName> PMemEngine::visitableLocations(const CanonicalKey& key, const Config& config) const
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, PoolManager(config).visitablePools(key), config);
 }
@@ -171,7 +171,7 @@ std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::mars::
     return databases(rq, PoolManager(config).visitablePools(rq), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::writableLocations(const CanonicalKey& key, const Config& config) const
+std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key, const Config& config) const
 {
     return databases(key, PoolManager(config).writablePools(key), config);
 }

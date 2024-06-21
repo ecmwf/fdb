@@ -421,7 +421,7 @@ uint64_t DaosKeyValue::get(const std::string& key, void* buf, const uint64_t& le
 
     DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), &res, buf, NULL));
 
-    if (res == 0) throw fdb5::DaosEntityNotFoundException("CanonicalKey '" + key + "' not found in KeyValue with OID " + oid_.asString());
+    if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
 
     return res;
 
@@ -471,7 +471,7 @@ std::vector<std::string> DaosKeyValue::keys() {
 eckit::MemoryStream DaosKeyValue::getMemoryStream(std::vector<char>& v, const std::string& key, const std::string& kvTitle) {
 
     uint64_t sz = size(key);
-    if (sz == 0) throw fdb5::DaosEntityNotFoundException(std::string("CanonicalKey '") + key + "' not found in " + kvTitle);
+    if (sz == 0) throw fdb5::DaosEntityNotFoundException(std::string("Key '") + key + "' not found in " + kvTitle);
     v.resize(sz);
     get(key, &v[0], sz);
 

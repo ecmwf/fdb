@@ -24,7 +24,7 @@ MatchAlways::MatchAlways() :
 MatchAlways::~MatchAlways() {
 }
 
-bool MatchAlways::match(const std::string&, const CanonicalKey&) const {
+bool MatchAlways::match(const std::string&, const Key&) const {
     return true;
 }
 

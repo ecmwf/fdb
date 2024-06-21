@@ -61,7 +61,7 @@ public: // types
 
 public: // methods
 
-    TocIndex(const CanonicalKey& key,
+    TocIndex(const Key& key,
              const eckit::PathName &path,
              off_t offset,
              Mode mode,
@@ -97,7 +97,7 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get( const TypedKey& key, const CanonicalKey& remapKey, Field &field ) const override;
+    bool get( const TypedKey& key, const Key& remapKey, Field &field ) const override;
     void add( const TypedKey& key, const Field &field ) override;
     void flush() override;
     void encode(eckit::Stream& s, const int version) const override;

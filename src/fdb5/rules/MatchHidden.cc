@@ -29,7 +29,7 @@ MatchHidden::MatchHidden(const std::string &def) :
 MatchHidden::~MatchHidden() {
 }
 
-bool MatchHidden::match(const std::string&, const CanonicalKey&) const {
+bool MatchHidden::match(const std::string&, const Key&) const {
     return true;
 }
 
@@ -37,7 +37,7 @@ bool MatchHidden::optional() const {
     return true;
 }
 
-const std::string &MatchHidden::value(const CanonicalKey&, const std::string&) const {
+const std::string &MatchHidden::value(const Key&, const std::string&) const {
     return default_[0];
 }
 

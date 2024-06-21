@@ -36,12 +36,12 @@ Archiver::~Archiver() {
     databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
 }
 
-void Archiver::archive(const CanonicalKey& key, const void* data, size_t len) {
+void Archiver::archive(const Key& key, const void* data, size_t len) {
     ArchiveVisitor visitor(*this, key, data, len);
     archive(key, visitor);
 }
 
-void Archiver::archive(const CanonicalKey& key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
     
@@ -64,7 +64,7 @@ void Archiver::flush() {
 }
 
 
-DB& Archiver::database(const CanonicalKey& key) {
+DB& Archiver::database(const Key& key) {
 
     store_t::iterator i = databases_.find(key);
 
@@ -79,7 +79,7 @@ DB& Archiver::database(const CanonicalKey& key) {
     if (databases_.size() >= fdbMaxNbDBsOpen) {
         bool found = false;
         time_t oldest = ::time(0) + 24 * 60 * 60;
-        CanonicalKey oldK;
+        Key oldK;
         for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
             if (i->second.first <= oldest) {
                 found = true;

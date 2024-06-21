@@ -36,7 +36,7 @@ public:
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual std::unique_ptr<FieldLocation> archive(const CanonicalKey& idxKey, const void *data, eckit::Length length) = 0;
+    virtual std::unique_ptr<FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) = 0;
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -52,9 +52,9 @@ public:
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
-    virtual bool canMoveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const { NOTIMP; }
-    virtual void remove(const CanonicalKey& key) const { NOTIMP; }
+    virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const { NOTIMP; }
+    virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
     virtual bool uriBelongs(const eckit::URI&) const = 0;
@@ -75,12 +75,12 @@ class StoreBuilderBase {
 public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
-    virtual std::unique_ptr<Store> make(const Schema& schema, const CanonicalKey& key, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Schema& schema, const CanonicalKey& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
+    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -101,7 +101,7 @@ public:
     /// @param key       the user-specified key
     /// @param config    the fdb config
     /// @returns         store built by specified builder
-    std::unique_ptr<Store> build(const Schema& schema, const CanonicalKey& key, const Config& config);
+    std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
 
 private:
     StoreFactory();

@@ -96,7 +96,7 @@ struct FixtureService {
 						 << std::endl;
 					std::string data_str = data.str();
 
-                    fdb5::CanonicalKey k{p};
+                    fdb5::Key k{p};
                     ArchiveVisitor visitor(fdb, k, static_cast<const void *>(data_str.c_str()), data_str.size());
                     fdb.archive(k, visitor);
 				}
@@ -113,7 +113,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 
 	fdb5::FDB fdb;
 
-	CanonicalKey key;
+	Key key;
 	key.set("class","od");
 	key.set("expver","0001");
 	key.set("type","fc");

@@ -101,7 +101,7 @@ void CatalogueFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Catalogue> CatalogueFactory::build(const CanonicalKey& dbKey, const Config& config, bool read) {
+std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& dbKey, const Config& config, bool read) {
     std::string name = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 

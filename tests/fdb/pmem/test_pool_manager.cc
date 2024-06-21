@@ -87,7 +87,7 @@ public:
 CASE( "test_fdb5_pmem_pool_manager_schema_create_pool" )
 {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
 
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
 
@@ -129,7 +129,7 @@ CASE( "test_fdb5_pmem_pool_manager_schema_create_pool" )
 CASE( "test_fdb5_pmem_pool_manager_print" )
 {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
 
     {
@@ -146,7 +146,7 @@ CASE( "test_fdb5_pmem_pool_manager_print" )
 CASE( "test_fdb5_pmem_pool_manager_pool_reopen" )
 {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
     uint64_t uuid = 0;
 
@@ -179,7 +179,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_reopen" )
 CASE( "test_fdb5_pmem_pool_manager_pool_invalidation" )
 {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
     uint64_t uuid = 0;
 
@@ -218,7 +218,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_invalidation" )
 CASE( "test_fdb5_pmem_pool_manager_pool_load_pool" )
 {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
     uint64_t uuid = 0;
 
@@ -255,7 +255,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_allocate" )
     // Perform two allocations, one which fits and the other which will overflow the buffer.
 
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
-    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::CanonicalKey(), "");
+    up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
 
     eckit::Buffer scratch_buf(6 * 1024 * 1024);

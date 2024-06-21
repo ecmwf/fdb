@@ -31,9 +31,9 @@ class TocFieldLocation : public FieldLocation {
 public:
 
     TocFieldLocation(const TocFieldLocation& rhs);
-    TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey);
+    TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const eckit::URI &uri);
-    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey);
+    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const UriStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 

@@ -29,13 +29,13 @@ class DaosCatalogue : public Catalogue, public DaosCommon {
 
 public: // methods
 
-    DaosCatalogue(const CanonicalKey& key, const fdb5::Config& config);
+    DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
     
     eckit::URI uri() const override;
-    const CanonicalKey& indexKey() const override { return currentIndexKey_; }
+    const Key& indexKey() const override { return currentIndexKey_; }
 
     static void remove(const fdb5::DaosNameBase&, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
@@ -65,7 +65,7 @@ public: // methods
 
 protected: // members
 
-    CanonicalKey currentIndexKey_;
+    Key currentIndexKey_;
 
 private: // members
 

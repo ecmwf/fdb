@@ -33,14 +33,14 @@ class PMemDBWriter : public PMemDB {
 
 public: // methods
 
-    PMemDBWriter(const CanonicalKey& key, const eckit::Configuration& config);
+    PMemDBWriter(const Key& key, const eckit::Configuration& config);
     PMemDBWriter(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual ~PMemDBWriter() override;
 
-    virtual bool selectIndex(const CanonicalKey& idxKey);
+    virtual bool selectIndex(const Key& idxKey);
     virtual void close();
-    virtual void archive(const CanonicalKey& key, const void *data, eckit::Length length);
+    virtual void archive(const Key& key, const void *data, eckit::Length length);
 
 private: // methods
 

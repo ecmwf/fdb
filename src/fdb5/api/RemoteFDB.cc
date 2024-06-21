@@ -757,7 +757,7 @@ MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& de
 // -----------------------------------------------------------------------------------------------------
 
 // Here we do archive/flush related stuff
-void RemoteFDB::archive(const CanonicalKey& key, const void* data, size_t length) {
+void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     connect();
 
@@ -836,9 +836,9 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
 
     // We can pop multiple elements off the archive queue simultaneously, if
     // configured
-    std::vector<std::pair<CanonicalKey, Buffer>> elements;
+    std::vector<std::pair<Key, Buffer>> elements;
     for (size_t i = 0; i < maxArchiveBatchSize_; ++i) {
-        elements.emplace_back(std::make_pair(CanonicalKey{}, Buffer{0}));
+        elements.emplace_back(std::make_pair(Key{}, Buffer{0}));
     }
 
     try {
@@ -876,7 +876,7 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
     // They will be released when flush() is called.
 }
 
-long RemoteFDB::sendArchiveData(uint32_t id, const std::vector<std::pair<CanonicalKey, Buffer>>& elements, size_t count) {
+long RemoteFDB::sendArchiveData(uint32_t id, const std::vector<std::pair<Key, Buffer>>& elements, size_t count) {
 
     if (count == 1) {
         sendArchiveData(id, elements[0].first, elements[0].second.data(), elements[0].second.size());
@@ -922,7 +922,7 @@ long RemoteFDB::sendArchiveData(uint32_t id, const std::vector<std::pair<Canonic
 }
 
 
-void RemoteFDB::sendArchiveData(uint32_t id, const CanonicalKey& key, const void* data, size_t length) {
+void RemoteFDB::sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length) {
 
     ASSERT(data);
     ASSERT(length != 0);
@@ -1094,10 +1094,10 @@ private: // members
 
 
 eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation) {
-    return dataHandle(fieldLocation, CanonicalKey());
+    return dataHandle(fieldLocation, Key());
 }
 
-eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const CanonicalKey& remapKey) {
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
     connect();
 

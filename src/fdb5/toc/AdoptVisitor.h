@@ -33,7 +33,7 @@ class AdoptVisitor : public BaseArchiveVisitor {
 public: // methods
 
     AdoptVisitor(Archiver &owner,
-                 const CanonicalKey& initialFieldKey,
+                 const Key& initialFieldKey,
                  const eckit::PathName &path,
                  eckit::Offset offset,
                  eckit::Length length);

@@ -32,7 +32,7 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
     return fdb_request_add(req, param, &value, 1);
 }
 
-void key_compare(const std::vector<fdb5::CanonicalKey>& keys, fdb_listiterator_t *it, bool checkLevel = true) {
+void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, bool checkLevel = true) {
     const char *k;
     const char *v;
     size_t l;
@@ -120,13 +120,13 @@ CASE( "fdb_c - archive & list" ) {
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::CanonicalKey> k1test {
+    std::vector<fdb5::Key> k1test {
         {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
     };
-//    std::vector<fdb5::CanonicalKey> k1test{fdb5::CanonicalKey{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
-//                                  fdb5::CanonicalKey{"type=an,levtype=pl"},fdb5::CanonicalKey{"step=0,levelist=300,param=138"}};
+//    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
     key_compare(k1test, it);
 
     err = fdb_listiterator_next(it);
@@ -168,13 +168,13 @@ CASE( "fdb_c - archive & list" ) {
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::CanonicalKey> k2test {
+    std::vector<fdb5::Key> k2test {
         {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
     };
-//    std::vector<fdb5::CanonicalKey> k2test{fdb5::CanonicalKey{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
-//                                  fdb5::CanonicalKey{"type=an,levtype=pl"},fdb5::CanonicalKey{"step=0,levelist=400,param=138"}};
+//    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
     key_compare(k2test, it, false);
     key_compare(k2test, it);
 
@@ -226,12 +226,12 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::vector<fdb5::CanonicalKey> k1 {
+    std::vector<fdb5::Key> k1 {
         {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
     };
-    std::vector<fdb5::CanonicalKey> k2 {
+    std::vector<fdb5::Key> k2 {
         {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},

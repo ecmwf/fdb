@@ -42,15 +42,15 @@ class DB final : public eckit::OwnedLock {
 
 public: // methods
 
-    static std::unique_ptr<DB> buildReader(const CanonicalKey& key, const fdb5::Config& config = fdb5::Config());
-    static std::unique_ptr<DB> buildWriter(const CanonicalKey& key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildReader(const Key& key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildWriter(const Key& key, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildReader(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildWriter(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
 
     std::string dbType() const;
 
-    const CanonicalKey& key() const;
-    const CanonicalKey& indexKey() const;
+    const Key& key() const;
+    const Key& indexKey() const;
     const Schema& schema() const;
 
     bool axis(const std::string &keyword, eckit::StringSet &s) const;
@@ -66,7 +66,7 @@ public: // methods
 
     void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const;
 
-    bool selectIndex(const CanonicalKey& idxKey);
+    bool selectIndex(const Key& idxKey);
     void deselectIndex();
 
     DbStats stats() const;
@@ -92,7 +92,7 @@ protected: // methods
 
 private: // members
 
-    DB(const CanonicalKey& key, const fdb5::Config& config, bool read);
+    DB(const Key& key, const fdb5::Config& config, bool read);
     DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
 
     Store& store() const;

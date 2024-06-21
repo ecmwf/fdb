@@ -26,7 +26,7 @@
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class TocAddIndex;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public: // methods
 
-    TocCatalogueWriter(const CanonicalKey& key, const fdb5::Config& config);
+    TocCatalogueWriter(const Key& key, const fdb5::Config& config);
     TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
     virtual ~TocCatalogueWriter() override;
@@ -62,7 +62,7 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectIndex(const CanonicalKey& idxKey) override;
+    virtual bool selectIndex(const Key& idxKey) override;
     virtual void deselectIndex() override;
 
     bool open() override;
@@ -81,13 +81,13 @@ private: // methods
     void flushIndexes();
     void compactSubTocIndexes();
 
-    eckit::PathName generateIndexPath(const CanonicalKey& key) const;
+    eckit::PathName generateIndexPath(const Key& key) const;
 
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< CanonicalKey, Index> IndexStore;
-    typedef std::map< CanonicalKey, std::string > PathStore;
+    typedef std::map< Key, Index> IndexStore;
+    typedef std::map< Key, std::string > PathStore;
 
 private: // members
 

@@ -33,7 +33,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 
 public: // methods
 
-    TocCatalogue(const CanonicalKey& key, const fdb5::Config& config);
+    TocCatalogue(const Key& key, const fdb5::Config& config);
     TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
@@ -41,7 +41,7 @@ public: // methods
     static const char* catalogueTypeName() { return TocEngine::typeName(); }
     const eckit::PathName& basePath() const override;
     eckit::URI uri() const override;
-    const CanonicalKey& indexKey() const override { return currentIndexKey_; }
+    const Key& indexKey() const override { return currentIndexKey_; }
 
     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
@@ -52,7 +52,7 @@ public: // constants
 
 protected: // methods
 
-    TocCatalogue(const CanonicalKey& key, const TocPath& tocPath, const fdb5::Config& config);
+    TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
@@ -80,7 +80,7 @@ protected: // methods
 
 protected: // members
 
-    CanonicalKey currentIndexKey_;
+    Key currentIndexKey_;
 
 private: // members
 

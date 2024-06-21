@@ -54,7 +54,7 @@ private: // types
         size_t move;
     };
 
-    using Archives = std::vector<std::tuple<fdb5::CanonicalKey, const void*, size_t>>;
+    using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
     using Retrieves = std::vector<metkit::mars::MarsRequest>;
 
     class FakeDataHandle : public eckit::DataHandle {
@@ -79,7 +79,7 @@ public: // methods
         knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this));
     }
 
-    void archive(const fdb5::CanonicalKey& key, const void* data, size_t length) override {
+    void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
         archives_.push_back(std::make_tuple(key, data, length));
     }

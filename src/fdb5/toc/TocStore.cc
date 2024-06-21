@@ -34,7 +34,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStore::TocStore(const Schema& schema, const CanonicalKey& key, const Config& config) :
+TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
 
 eckit::URI TocStore::uri() const {
@@ -106,7 +106,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const CanonicalKey& idxKey, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const Key& idxKey, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(idxKey);
@@ -119,7 +119,7 @@ std::unique_ptr<FieldLocation> TocStore::archive(const CanonicalKey& idxKey, con
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, CanonicalKey()));
+    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 void TocStore::flush() {
@@ -232,7 +232,7 @@ eckit::DataHandle& TocStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName TocStore::generateDataPath(const CanonicalKey& key) const {
+eckit::PathName TocStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
@@ -240,7 +240,7 @@ eckit::PathName TocStore::generateDataPath(const CanonicalKey& key) const {
     return dpath;
 }
 
-eckit::PathName TocStore::getDataPath(const CanonicalKey& key) const {
+eckit::PathName TocStore::getDataPath(const Key& key) const {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;
@@ -260,7 +260,7 @@ void TocStore::flushDataHandles() {
     }
 }
 
-bool TocStore::canMoveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest) const {
+bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
     if (dest.scheme().empty() || dest.scheme() == "toc" || dest.scheme() == "file" || dest.scheme() == "unix") {
         eckit::PathName destPath = dest.path();
         for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
@@ -284,7 +284,7 @@ bool TocStore::canMoveTo(const CanonicalKey& key, const Config& config, const ec
 //     src.copyTo(dest);
 // }
 
-void TocStore::moveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
@@ -312,7 +312,7 @@ void TocStore::moveTo(const CanonicalKey& key, const Config& config, const eckit
     }
 }
 
-void TocStore::remove(const CanonicalKey& key) const {
+void TocStore::remove(const Key& key) const {
 
     eckit::PathName src_db = directory_;
         

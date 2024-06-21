@@ -29,7 +29,7 @@ namespace fdb5 {
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
                                            InspectIterator& iterator,
-                                           eckit::CacheLRU<CanonicalKey,DB*>& databases,
+                                           eckit::CacheLRU<Key,DB*>& databases,
                                            const Config& config) :
     db_(nullptr),
     wind_(wind),
@@ -43,7 +43,7 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 // From Visitor
 
-bool MultiRetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) {
+bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
 
 	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey  << std::endl;
 
@@ -89,7 +89,7 @@ bool MultiRetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const Typed
     }
 }
 
-bool MultiRetrieveVisitor::selectIndex(const CanonicalKey& idxKey, const TypedKey&) {
+bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey&) {
     ASSERT(db_);
     LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
     return db_->selectIndex(idxKey);
@@ -102,7 +102,7 @@ bool MultiRetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&
     Field field;
     if (db_->inspect(datumKey, field)) {
 
-        CanonicalKey simplifiedKey;
+        Key simplifiedKey;
         for (auto k = datumKey.begin(); k != datumKey.end(); k++) {
             if (!k->second.empty())
                 simplifiedKey.set(k->first, k->second);

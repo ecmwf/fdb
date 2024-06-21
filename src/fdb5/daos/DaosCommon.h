@@ -28,7 +28,7 @@ class DaosCommon {
 
 public: // methods
 
-    DaosCommon(const fdb5::Config&, const std::string& component, const fdb5::CanonicalKey&);
+    DaosCommon(const fdb5::Config&, const std::string& component, const fdb5::Key&);
     DaosCommon(const fdb5::Config&, const std::string& component, const eckit::URI&);
 
     const fdb5::DaosKeyValueName& rootKeyValue() const { return root_kv_.value(); }

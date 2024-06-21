@@ -10,19 +10,19 @@
 
 namespace {
 
-fdb5::CanonicalKey EXAMPLE_K1{{
+fdb5::Key EXAMPLE_K1{{
     {"class", "od"},
     {"expver", "0001"},
     {"date", "20240223"}
 }};
 
-fdb5::CanonicalKey EXAMPLE_K2{{
+fdb5::Key EXAMPLE_K2{{
     {"class", "rd"},
     {"expver", "0001"},
     {"time", "1200"}
 }};
 
-fdb5::CanonicalKey EXAMPLE_K3{{
+fdb5::Key EXAMPLE_K3{{
     {"class", "rd"},
     {"expver", "gotx"},
     {"time", "0000"}
@@ -166,7 +166,7 @@ CASE("Copy internal map") {
     EXPECT(map["class"].contains("new1"));
     EXPECT(!ia.values("class").contains("new1"));
 
-    ia.insert(fdb5::CanonicalKey{{{"class", "new2"}}});
+    ia.insert(fdb5::Key{{{"class", "new2"}}});
     ia.sort();
     EXPECT(ia.values("class").contains("new2"));
     EXPECT(!map["class"].contains("new2"));

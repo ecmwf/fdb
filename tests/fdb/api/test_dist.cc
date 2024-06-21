@@ -90,7 +90,7 @@ CASE( "archives_distributed_according_to_dist" ) {
 
     for (int f = 0; f < nflush; f++) {
         for (int a = 0; a < narch; a++) {
-            fdb5::CanonicalKey k;
+            fdb5::Key k;
             k.set("class", "od");
             k.set("expver", "xxxx");
             k.set("f", eckit::Translator<int, std::string>()(f));

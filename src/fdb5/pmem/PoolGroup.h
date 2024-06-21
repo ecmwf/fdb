@@ -41,9 +41,9 @@ public: // methods
               const std::string& handler,
               const std::vector<PoolEntry>& pools);
 
-    /// Selects the pool where this CanonicalKey will be inserted
+    /// Selects the pool where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call
-    eckit::PathName pool(const CanonicalKey& key) const;
+    eckit::PathName pool(const Key& key) const;
 
     void all(eckit::StringSet&) const;
     void writable(eckit::StringSet&) const;

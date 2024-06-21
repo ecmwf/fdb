@@ -29,7 +29,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class TypedKey;
 class TypesRegistry;
 class Schema;
@@ -42,8 +42,8 @@ public: // methods
 
     virtual ~ReadVisitor();
 
-    virtual bool selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) = 0;
-    virtual bool selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) = 0;
+    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) = 0;
+    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) = 0;
     virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.

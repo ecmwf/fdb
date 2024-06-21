@@ -32,7 +32,7 @@ namespace fdb5 {
 
 class Key;
 class TypedKey;
-class CanonicalKey;
+class Key;
 class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,11 +47,11 @@ public: // methods
 
     virtual bool optional() const;
 
-    virtual const std::string &value(const CanonicalKey& , const std::string &keyword) const;
+    virtual const std::string &value(const Key& , const std::string &keyword) const;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
     virtual const std::string &defaultValue() const;
 
-    virtual bool match(const std::string &keyword, const CanonicalKey& key) const = 0;
+    virtual bool match(const std::string &keyword, const Key& key) const = 0;
     virtual void fill(TypedKey& key, const std::string &keyword, const std::string& value) const;
 
 

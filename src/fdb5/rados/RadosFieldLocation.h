@@ -41,7 +41,7 @@ public:
 //    const eckit::Offset&   offset() const { return offset_; }
 
     eckit::DataHandle* dataHandle() const override;
-    eckit::DataHandle* dataHandle(const CanonicalKey& remapKey) const override;
+    eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
     // eckit::URI uri() const override;
 

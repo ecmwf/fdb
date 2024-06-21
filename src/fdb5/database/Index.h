@@ -38,7 +38,7 @@ class Stream;
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class TypedKey;
 class Index;
 class IndexLocationVisitor;
@@ -54,7 +54,7 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const CanonicalKey& key, const std::string& type);
+    IndexBase(const Key& key, const std::string& type);
     IndexBase(eckit::Stream& s, const int version);
 
     virtual ~IndexBase() override;
@@ -77,11 +77,11 @@ public: // methods
     const std::string& type() const;
 
     const IndexAxis& axes() const;
-    const CanonicalKey& key() const;
+    const Key& key() const;
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const TypedKey& key, const CanonicalKey& remapKey, Field &field) const = 0;
+    virtual bool get(const TypedKey& key, const Key& remapKey, Field &field) const = 0;
     virtual void put(const TypedKey& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
@@ -117,7 +117,7 @@ protected: // members
 
     /// @note Order of members is important here ...
     IndexAxis      axes_;      ///< This Index spans along these axis
-    CanonicalKey   key_;       ///< key that selected this index
+    Key   key_;       ///< key that selected this index
     time_t         timestamp_; ///< timestamp when this Index was flushed
 
     Indexer        indexer_;
@@ -157,11 +157,11 @@ public: // methods
     const std::string& type() const { return content_->type(); }
 
     const IndexAxis& axes() const { return content_->axes(); }
-    const CanonicalKey& key() const { return content_->key(); }
+    const Key& key() const { return content_->key(); }
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const TypedKey& key, const CanonicalKey& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
+    bool get(const TypedKey& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
     void put(const TypedKey& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }

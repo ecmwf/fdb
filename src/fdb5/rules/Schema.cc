@@ -37,8 +37,8 @@ Schema::~Schema() {
     clear();
 }
 
-const Rule*  Schema::ruleFor(const CanonicalKey& dbKey, const CanonicalKey& idxKey) const {
-    std::vector<CanonicalKey> keys;
+const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
+    std::vector<Key> keys;
     keys.push_back(dbKey);
     keys.push_back(idxKey);
 
@@ -63,7 +63,7 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
     }
 }
 
-void Schema::expand(const CanonicalKey& field, WriteVisitor &visitor) const {
+void Schema::expand(const Key& field, WriteVisitor &visitor) const {
     TypedKey fullComputedKey{registry()};
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
@@ -74,7 +74,7 @@ void Schema::expand(const CanonicalKey& field, WriteVisitor &visitor) const {
     }
 }
 
-void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const CanonicalKey& dbKey) const {
+void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
     for (const Rule* r : rules_) {
@@ -93,7 +93,7 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     }
 }
 
-void Schema::expandSecond(const CanonicalKey& field, WriteVisitor& visitor, const CanonicalKey& dbKey) const {
+void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
     for (const Rule* r : rules_) {
@@ -112,7 +112,7 @@ void Schema::expandSecond(const CanonicalKey& field, WriteVisitor& visitor, cons
     }
 }
 
-// bool Schema::expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result) const {
+// bool Schema::expandFirstLevel(const Key& dbKey,  Key& result) const {
 //     bool found = false;
 //     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
 //         (*i)->expandFirstLevel(dbKey, result, found);
@@ -132,13 +132,13 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey
     return found;
 }
 
-void Schema::matchFirstLevel(const CanonicalKey& dbKey,  std::set<CanonicalKey> &result, const char* missing) const {
+void Schema::matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
-void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<CanonicalKey>& result, const char* missing) const {
+void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(request, result, missing);
     }

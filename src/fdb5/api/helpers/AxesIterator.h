@@ -30,11 +30,11 @@ class AxesElement {
 public: // methods
 
     AxesElement() = default;
-    AxesElement(CanonicalKey&& dbKey, IndexAxis&& axis);
+    AxesElement(Key&& dbKey, IndexAxis&& axis);
     explicit AxesElement(eckit::Stream& s);
 
     [[ nodiscard ]]
-    const CanonicalKey& key() const { return dbKey_; }
+    const Key& key() const { return dbKey_; }
 
     [[ nodiscard ]]
     const IndexAxis& axes() const { return axes_; }
@@ -57,7 +57,7 @@ private: // methods
 
 private: // members
 
-    CanonicalKey dbKey_;
+    Key dbKey_;
     IndexAxis axes_;
 };
 

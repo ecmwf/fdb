@@ -50,7 +50,7 @@ static std::string userName(long id) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PMemDB::PMemDB(const CanonicalKey& key, const Config& config) :
+PMemDB::PMemDB(const Key& key, const Config& config) :
     DB(key),
     poolDir_(PoolManager(config).pool(key)),
     dbConfig_(config),
@@ -63,7 +63,7 @@ PMemDB::PMemDB(const CanonicalKey& key, const Config& config) :
 
 
 PMemDB::PMemDB(const PathName& poolDir, const Config& config) :
-    DB(CanonicalKey()),
+    DB(Key()),
     poolDir_(poolDir),
     dbConfig_(config),
     init_(false)
@@ -111,7 +111,7 @@ bool PMemDB::exists() const {
     return Pool::exists(poolDir_);
 }
 
-void PMemDB::archive(const CanonicalKey& key, const void *data, Length length) {
+void PMemDB::archive(const Key& key, const void *data, Length length) {
     Log::error() << "archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -159,7 +159,7 @@ void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     NOTIMP;
 }
 
-bool PMemDB::selectIndex(const CanonicalKey& idxKey) {
+bool PMemDB::selectIndex(const Key& idxKey) {
     NOTIMP;
 }
 
@@ -182,7 +182,7 @@ void PMemDB::dump(std::ostream& out, bool simple) const {
         out << root_->uid();
     out << std::endl;
 
-    Log::info() << "  CanonicalKey: " << dbKey_ << std::endl << std::endl;
+    Log::info() << "  Key: " << dbKey_ << std::endl << std::endl;
 
     // And dump the rest of the stuff
 

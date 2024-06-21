@@ -16,7 +16,7 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const CanonicalKey& initialFieldKey, const void *data, size_t size) :
+ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key& initialFieldKey, const void *data, size_t size) :
     BaseArchiveVisitor(owner, initialFieldKey),
     data_(data),
     size_(size) {

@@ -57,13 +57,13 @@ public:
 
     /// Full match of the incomming key with the key regex
     /// but partial match for values
-    bool match(const CanonicalKey& k, const char* missing = 0) const {
+    bool match(const Key& k, const char* missing = 0) const {
 
 //        Log::debug<LibFDB>() << " Trying to key matching " << *this << " with key " << k << std::endl;
 
         if(k.size() != keyregex_.size()) return false;
 
-        for(CanonicalKey::const_iterator i = k.begin(); i != k.end(); ++i) {
+        for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
 //            Log::debug<LibFDB>() << "     Match " << i->first << " " << i->second << std::endl;
 
@@ -87,11 +87,11 @@ public:
         return true;
     }
 
-    std::string name(const CanonicalKey& key) const {
+    std::string name(const Key& key) const {
         return substituteVars(format_, key);
     }
 
-    std::string namePartial(const CanonicalKey& key, const char* missing) const {
+    std::string namePartial(const Key& key, const char* missing) const {
         return substituteVars(format_, key, missing);
     }
 
@@ -131,7 +131,7 @@ private: // methods
         }
     }
 
-    std::string substituteVars(const std::string& s, const CanonicalKey& k, const char * missing = 0) const
+    std::string substituteVars(const std::string& s, const Key& k, const char * missing = 0) const
     {
         std::string result;
         size_t len = s.length();
@@ -564,7 +564,7 @@ RootManager::RootManager(const Config& config) :
 }
 
 
-std::string RootManager::dbPathName(const CanonicalKey& key)
+std::string RootManager::dbPathName(const Key& key)
 {
     std::string dbpath;
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
@@ -581,7 +581,7 @@ std::string RootManager::dbPathName(const CanonicalKey& key)
     return dbpath;
 }
 
-std::vector<std::string> RootManager::possibleDbPathNames(const CanonicalKey& key, const char* missing)
+std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing)
 {
     std::vector<std::string> result;
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
@@ -611,7 +611,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const CanonicalKey& ke
 }
 
 
-TocPath RootManager::directory(const CanonicalKey& key) {
+TocPath RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
@@ -642,7 +642,7 @@ TocPath RootManager::directory(const CanonicalKey& key) {
     throw eckit::SeriousBug(oss.str());
 }
 
-// std::vector<PathName> RootManager::allRoots(const CanonicalKey& key)
+// std::vector<PathName> RootManager::allRoots(const Key& key)
 // {
 //     eckit::StringSet roots;
 
@@ -657,13 +657,13 @@ TocPath RootManager::directory(const CanonicalKey& key) {
 //     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 // }
 
-std::vector<PathName> RootManager::visitableRoots(const std::set<CanonicalKey>& keys) {
+std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
     std::vector<std::string> keystrings;
     std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
-                   [](const CanonicalKey& k) { return k.valuesToString(); });
+                   [](const Key& k) { return k.valuesToString(); });
 
     LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
@@ -688,21 +688,21 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<CanonicalKey>& 
 }
 
 
-std::vector<eckit::PathName> RootManager::visitableRoots(const CanonicalKey& key) {
-    return visitableRoots(std::set<CanonicalKey>{ key });
+std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
+    return visitableRoots(std::set<Key>{ key });
 }
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
-//    CanonicalKey key;
+//    Key key;
 //    config_.schema().expandFirstLevel(request, key);
-    std::set<CanonicalKey> keys;
+    std::set<Key> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitableRoots(keys);
 }
 
 
-std::vector<eckit::PathName> RootManager::canArchiveRoots(const CanonicalKey& key) {
+std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     eckit::StringSet roots;
 
@@ -720,7 +720,7 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const CanonicalKey& ke
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
-std::vector<eckit::PathName> RootManager::canMoveToRoots(const CanonicalKey& key) {
+std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
 
     eckit::StringSet roots;
 

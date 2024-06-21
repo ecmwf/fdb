@@ -50,7 +50,7 @@ PBranchingNode::PBranchingNode(const KeyType &key, const ValueType &value) :
 // -------------------------------------------------------------------------------------------------
 
 
-PBranchingNode& PBranchingNode::getCreateBranchingNode(const CanonicalKey& key) {
+PBranchingNode& PBranchingNode::getCreateBranchingNode(const Key& key) {
 
     // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
     // Order comes (originally) from the schema.
@@ -117,7 +117,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 }
 
 
-::pmem::PersistentPtr<PDataNode> PBranchingNode::getDataNode(const CanonicalKey& key, DataPoolManager& mgr) const {
+::pmem::PersistentPtr<PDataNode> PBranchingNode::getDataNode(const Key& key, DataPoolManager& mgr) const {
 
     // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
     // Order comes (originally) from the schema.
@@ -182,7 +182,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 }
 
 
-::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const CanonicalKey& key) const {
+::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) const {
 
     // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
     // Order comes (originally) from the schema.
@@ -238,7 +238,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 }
 
 
-void PBranchingNode::insertDataNode(const CanonicalKey& key, const PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr) {
+void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr) {
 
     // Obtain the _parent_ branching node - the final element in the chain identifies the
     // specific data node, and so should be excluded from this first operation.
@@ -292,7 +292,7 @@ void PBranchingNode::insertDataNode(const CanonicalKey& key, const PersistentPtr
 
 void PBranchingNode::visitLeaves(EntryVisitor &visitor,
                                  DataPoolManager& mgr,
-                                 std::vector<CanonicalKey>& keys,
+                                 std::vector<Key>& keys,
                                  size_t depth,
                                  Index index) {
 
@@ -305,7 +305,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
         if (isIndex()) {
 
             index = Index(new PMemIndex(keys.back(), *this, mgr));
-            keys.push_back(CanonicalKey());
+            keys.push_back(Key());
             depth++;
         }
     }
@@ -378,7 +378,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
 
 void PBranchingNode::visitLeaves(EntryVisitor &visitor,
                                  DataPoolManager& mgr,
-                                 std::vector<CanonicalKey>& keys,
+                                 std::vector<Key>& keys,
                                  size_t depth,
                                  Index index) {
 
@@ -401,7 +401,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
                 return;
             }
 
-            keys.push_back(CanonicalKey());
+            keys.push_back(Key());
             depth++;
         }
     }

@@ -42,11 +42,11 @@ class KeySetter : public eckit::message::MetadataGatherer {
     }
 
 protected:
-    CanonicalKey& key_;
+    Key& key_;
 
 public:
 
-    KeySetter(CanonicalKey& key): key_(key) {
+    KeySetter(Key& key): key_(key) {
         ASSERT(key_.empty());
     }
 };
@@ -61,14 +61,14 @@ MessageDecoder::MessageDecoder(bool checkDuplicates):
 
 MessageDecoder::~MessageDecoder() {}
 
-CanonicalKey MessageDecoder::messageToKey(const eckit::message::Message& msg) {
-    CanonicalKey key;
+Key MessageDecoder::messageToKey(const eckit::message::Message& msg) {
+    Key key;
     MessageDecoder::msgToKey(msg, key);
     return key;
 }
 
 
-void MessageDecoder::msgToKey(const eckit::message::Message& msg, CanonicalKey& key) {
+void MessageDecoder::msgToKey(const eckit::message::Message& msg, Key& key) {
 
     KeySetter setter(key);
     msg.getMetadata(setter);
@@ -76,7 +76,7 @@ void MessageDecoder::msgToKey(const eckit::message::Message& msg, CanonicalKey& 
     key.unset("stepunits");
 }
 
-void MessageDecoder::messageToKey(const eckit::message::Message& msg, CanonicalKey& key) {
+void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) {
 
     eckit::message::Message patched = patch(msg);
 
@@ -113,7 +113,7 @@ std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const e
 
     while ( (msg = reader.next()) ) {
 
-        CanonicalKey key;
+        Key key;
 
         messageToKey(msg, key);
 

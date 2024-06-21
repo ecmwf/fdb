@@ -33,7 +33,7 @@ public: // methods
 
     static const char* typeName() { return "pmem"; }
 
-    static std::vector<eckit::PathName> databases(const CanonicalKey& key,
+    static std::vector<eckit::PathName> databases(const Key& key,
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
@@ -43,7 +43,7 @@ public: // methods
 
 private: // methods
 
-    static std::vector<eckit::PathName> databases(const std::set<CanonicalKey>& keys,
+    static std::vector<eckit::PathName> databases(const std::set<Key>& keys,
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
@@ -53,16 +53,16 @@ protected: // methods
 
     virtual std::string dbType() const;
 
-    virtual eckit::PathName location(const CanonicalKey& key, const Config& config) const;
+    virtual eckit::PathName location(const Key& key, const Config& config) const;
 
     virtual bool canHandle(const eckit::PathName& path) const;
 
-    // virtual std::vector<eckit::PathName> allLocations(const CanonicalKey& key, const Config& config) const;
+    // virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> visitableLocations(const CanonicalKey& key, const Config& config) const;
+    virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
     virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> writableLocations(const CanonicalKey& key, const Config& config) const;
+    virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 
     virtual void print( std::ostream &out ) const override;
 

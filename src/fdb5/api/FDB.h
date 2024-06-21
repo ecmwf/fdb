@@ -48,7 +48,7 @@ namespace fdb5 {
 
 class FDBBase;
 class FDBToolRequest;
-class CanonicalKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ public: // methods
     // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
     // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
-    void archive(const CanonicalKey& key, const void* data, size_t length);
+    void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call

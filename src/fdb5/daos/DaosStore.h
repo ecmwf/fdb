@@ -26,7 +26,7 @@ class DaosStore : public Store, public DaosCommon {
 
 public: // methods
 
-    DaosStore(const Schema& schema, const CanonicalKey& key, const Config& config);
+    DaosStore(const Schema& schema, const Key& key, const Config& config);
 
     ~DaosStore() override {}
 
@@ -49,7 +49,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const CanonicalKey&, const void *data, eckit::Length length) override;
+    std::unique_ptr<FieldLocation> archive(const Key&, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

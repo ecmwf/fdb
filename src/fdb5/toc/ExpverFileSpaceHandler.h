@@ -39,7 +39,7 @@ public: // methods
 
     virtual ~ExpverFileSpaceHandler() override;
 
-    virtual eckit::PathName selectFileSystem(const CanonicalKey& key, const FileSpace& fs) const override;
+    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
 
 protected: // methods
 
@@ -47,7 +47,7 @@ protected: // methods
 
     eckit::PathName append(const std::string& expver, const eckit::PathName& path) const;
 
-    eckit::PathName select(const CanonicalKey& key, const FileSpace& fs) const;
+    eckit::PathName select(const Key& key, const FileSpace& fs) const;
 
     eckit::PathName fdbExpverFileSystems_;
 

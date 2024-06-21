@@ -30,7 +30,7 @@ class RadosStore : public Store {
 
 public: // methods
 
-    RadosStore(const Schema& schema, const CanonicalKey& key, const Config& config);
+    RadosStore(const Schema& schema, const Key& key, const Config& config);
 
     ~RadosStore() override {}
 
@@ -48,8 +48,8 @@ protected: // methods
 
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field, CanonicalKey& remapKey) const override;
-    FieldLocation* archive(const CanonicalKey& key, const void *data, eckit::Length length) override;
+    eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
+    FieldLocation* archive(const Key& key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -59,8 +59,8 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const CanonicalKey& key) const;
-    eckit::PathName getDataPath(const CanonicalKey& key);
+    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::PathName getDataPath(const Key& key);
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;
@@ -68,7 +68,7 @@ protected: // methods
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< CanonicalKey, std::string > PathStore;
+    typedef std::map< Key, std::string > PathStore;
 
 private: // members
 

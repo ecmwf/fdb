@@ -31,7 +31,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class FileSpace;
 class DbPathNamer;
 
@@ -45,24 +45,24 @@ public: // methods
 
     RootManager(const Config& config);
 
-    /// Uniquely selects a directory where the CanonicalKey will be put or already exists
-    TocPath directory(const CanonicalKey& key);
+    /// Uniquely selects a directory where the Key will be put or already exists
+    TocPath directory(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    // std::vector<eckit::PathName> allRoots(const CanonicalKey& key);
+    // std::vector<eckit::PathName> allRoots(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitableRoots(const CanonicalKey& key);
-    std::vector<eckit::PathName> visitableRoots(const std::set<CanonicalKey>& keys);
+    std::vector<eckit::PathName> visitableRoots(const Key& key);
+    std::vector<eckit::PathName> visitableRoots(const std::set<Key>& keys);
     std::vector<eckit::PathName> visitableRoots(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::PathName> canArchiveRoots(const CanonicalKey& key);
-    std::vector<eckit::PathName> canMoveToRoots(const CanonicalKey& key);
+    std::vector<eckit::PathName> canArchiveRoots(const Key& key);
+    std::vector<eckit::PathName> canMoveToRoots(const Key& key);
 
-    std::string dbPathName(const CanonicalKey& key);
+    std::string dbPathName(const Key& key);
 
-    std::vector<std::string> possibleDbPathNames(const CanonicalKey& key, const char* missing);
+    std::vector<std::string> possibleDbPathNames(const Key& key, const char* missing);
 
 protected: // methods
 

@@ -41,7 +41,7 @@ public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
                          InspectIterator& queue,
-                         eckit::CacheLRU<CanonicalKey,DB*>& databases,
+                         eckit::CacheLRU<Key,DB*>& databases,
                          const Config& config);
 
     ~MultiRetrieveVisitor();
@@ -50,9 +50,9 @@ private:  // methods
 
     // From Visitor
 
-    virtual bool selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) override;
+    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
 
-    virtual bool selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) override;
+    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
 
     virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 
@@ -71,7 +71,7 @@ private:
 
     const Notifier& wind_;
 
-    eckit::CacheLRU<CanonicalKey,DB*>& databases_;
+    eckit::CacheLRU<Key,DB*>& databases_;
 
     InspectIterator& iterator_;
 

@@ -128,7 +128,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
 
-    fdb5::MessageArchiver archiver(fdb5::CanonicalKey(), false, verbose_, config(args, userConfig));
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
     std::string expver = args.getString("expver");
     size = expver.length();

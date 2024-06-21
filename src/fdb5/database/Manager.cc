@@ -145,7 +145,7 @@ Manager::Manager(const Config& config) :
 Manager::~Manager() {}
 
 
-std::string Manager::engine(const CanonicalKey& key)
+std::string Manager::engine(const Key& key)
 {
     // If we have set the engine in the config, use that
     if (!explicitEngine_.empty()) return explicitEngine_;
@@ -174,7 +174,7 @@ std::string Manager::engine(const CanonicalKey& key)
     throw eckit::SeriousBug(oss.str());
 }
 
-std::set<std::string> Manager::engines(const CanonicalKey& key)
+std::set<std::string> Manager::engines(const Key& key)
 {
     std::set<std::string> s;
     std::string expanded;
@@ -222,7 +222,7 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
         } else {
 
             // Match all possible expansions of the first level according to the schema
-            std::set<CanonicalKey> keys;
+            std::set<Key> keys;
             config_.schema().matchFirstLevel(rq, keys, "");
 
             std::set<std::string> expandedKeys;
@@ -269,14 +269,14 @@ std::string Manager::engine(const URI& uri)
     throw eckit::BadParameter(oss.str(), Here());
 }
 
-eckit::URI Manager::location(const CanonicalKey& key) {
+eckit::URI Manager::location(const Key& key) {
 
     const std::string& name = Manager::engine(key);
 
     return Engine::backend(name).location(key, config_);
 }
 
-// std::vector<URI> Manager::allLocations(const CanonicalKey& key)
+// std::vector<URI> Manager::allLocations(const Key& key)
 // {
 //     std::set<std::string> engines = Manager::engines(key);
 
@@ -306,7 +306,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
         LOG_DEBUG_LIB(LibFdb5) << "Selected FDB engine " << *i << std::endl;
         std::vector<URI> p;
         if (all) {
-            p = Engine::backend(*i).visitableLocations(CanonicalKey(), config_);
+            p = Engine::backend(*i).visitableLocations(Key(), config_);
         } else {
             p = Engine::backend(*i).visitableLocations(rq, config_);
         }
@@ -318,7 +318,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
 
 }
 
-std::vector<eckit::URI> Manager::writableLocations(const CanonicalKey& key) {
+std::vector<eckit::URI> Manager::writableLocations(const Key& key) {
 
     std::set<std::string> engines = Manager::engines(key);
 

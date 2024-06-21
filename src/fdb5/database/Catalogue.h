@@ -39,24 +39,24 @@ namespace fdb5 {
 
 class Store;
 
-typedef std::map<CanonicalKey, Index> IndexStore;
+typedef std::map<Key, Index> IndexStore;
 
 class Catalogue {
 public:
 
-    Catalogue(const CanonicalKey& dbKey, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
+    Catalogue(const Key& dbKey, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
         : dbKey_(dbKey), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~Catalogue() {}
 
-    const CanonicalKey& key() const { return dbKey_; }
-    virtual const CanonicalKey& indexKey() const { NOTIMP; }
+    const Key& key() const { return dbKey_; }
+    virtual const Key& indexKey() const { NOTIMP; }
     const Config& config() const { return config_; }
 
     std::unique_ptr<Store> buildStore();
     virtual const Schema& schema() const = 0;
 
-    virtual bool selectIndex(const CanonicalKey& idxKey) = 0;
+    virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex() = 0;
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
@@ -105,7 +105,7 @@ protected: // methods
 
 protected: // members
 
-    CanonicalKey dbKey_;
+    Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
@@ -136,13 +136,13 @@ class CatalogueBuilderBase {
 public:
     CatalogueBuilderBase(const std::string&);
     virtual ~CatalogueBuilderBase();
-    virtual std::unique_ptr<Catalogue> make(const fdb5::CanonicalKey& key, const fdb5::Config& config) = 0;
+    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) = 0;
     virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) = 0;
 };
 
 template <class T>
 class CatalogueBuilder : public CatalogueBuilderBase {
-    virtual std::unique_ptr<Catalogue> make(const fdb5::CanonicalKey& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
+    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
     virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
 
 public:
@@ -162,7 +162,7 @@ public:
 
     /// @param db        the db using the required catalogue
     /// @returns         catalogue built by specified builder
-    std::unique_ptr<Catalogue> build(const CanonicalKey& key, const Config& config, bool read);
+    std::unique_ptr<Catalogue> build(const Key& key, const Config& config, bool read);
     std::unique_ptr<Catalogue> build(const eckit::URI& uri, const Config& config, bool read);
 
 private:

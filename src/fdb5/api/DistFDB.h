@@ -41,7 +41,7 @@ public: // method
     DistFDB(const Config& config, const std::string& name);
     ~DistFDB() override;
 
-    void archive(const CanonicalKey& key, const void* data, size_t length) override;
+    void archive(const Key& key, const void* data, size_t length) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 

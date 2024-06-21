@@ -30,7 +30,7 @@ class ArchiveVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    ArchiveVisitor(Archiver &owner, const CanonicalKey& field, const void *data, size_t size);
+    ArchiveVisitor(Archiver &owner, const Key& field, const void *data, size_t size);
 
 protected: // methods
 

@@ -42,31 +42,31 @@ class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Key {
+class BaseKey {
 
 public: // methods
 
-    // explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    // explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
-    // explicit Key(const std::string &keys, const Rule* rule);
-    // explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    // Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    // explicit BaseKey(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
+    // explicit BaseKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    // explicit BaseKey(const std::string &keys, const Rule* rule);
+    // explicit BaseKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    // BaseKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
 
-    Key() : keys_(), names_() {}
-    Key(const Key &key) : keys_(key.keys_), names_(key.names_) {}
+    BaseKey() : keys_(), names_() {}
+    BaseKey(const BaseKey &key) : keys_(key.keys_), names_(key.names_) {}
 
-    explicit Key(const eckit::StringDict &keys) : keys_(keys) {
+    explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
         for (const auto& k : keys) {
             names_.emplace_back(k.first);
         }
     }
-    Key(std::initializer_list<std::pair<const std::string, std::string>> l) : keys_(l) {
+    BaseKey(std::initializer_list<std::pair<const std::string, std::string>> l) : keys_(l) {
         for (const auto& k : l) {
             names_.emplace_back(k.first);
         }
     }
 
-    virtual ~Key();
+    virtual ~BaseKey();
 
     std::set<std::string> keys() const;
 
@@ -80,11 +80,11 @@ public: // methods
 
     void clear();
 
-    // std::vector<eckit::URI> TocEngine::databases(const CanonicalKey& key,
-    bool match(const Key& other) const;
+    // std::vector<eckit::URI> TocEngine::databases(const Key& key,
+    bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
 
-    // bool match(const Key& other, const eckit::StringList& ignore) const;
+    // bool match(const BaseKey& other, const eckit::StringList& ignore) const;
 
     // bool match(const std::string& key, const std::set<std::string>& values) const;
     bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
@@ -93,24 +93,24 @@ public: // methods
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key& other) const {
+    bool operator< (const BaseKey& other) const {
         return keys_ < other.keys_;
     }
 
-    bool operator!= (const Key& other) const {
+    bool operator!= (const BaseKey& other) const {
         return keys_ != other.keys_;
     }
 
-    bool operator== (const Key& other) const {
+    bool operator== (const BaseKey& other) const {
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key& x) {
+    friend std::ostream& operator<<(std::ostream &s, const BaseKey& x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key& x) {
+    friend eckit::Stream& operator<<(eckit::Stream &s, const BaseKey& x) {
         x.encode(s);
         return s;
     }
@@ -164,20 +164,20 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class CanonicalKey : public Key {
+class Key : public BaseKey {
 
 public: // methods
 
-    explicit CanonicalKey();
-    explicit CanonicalKey(eckit::Stream &);
-    // explicit CanonicalKey(const std::string &keys);
-    explicit CanonicalKey(const eckit::StringDict &keys);
-    CanonicalKey(std::initializer_list<std::pair<const std::string, std::string>>);
+    explicit Key();
+    explicit Key(eckit::Stream &);
+    // explicit Key(const std::string &keys);
+    explicit Key(const eckit::StringDict &keys);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>);
 
-    static CanonicalKey parseString(const std::string& s);
+    static Key parseString(const std::string& s);
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, CanonicalKey& x) {
-        x = CanonicalKey(s);
+    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
+        x = Key(s);
         return s;
     }
 
@@ -191,12 +191,12 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypedKey : public Key {
+class TypedKey : public BaseKey {
 
 public: // methods
 
-    // explicit TypedKey(const CanonicalKey& key);
-    explicit TypedKey(const CanonicalKey& key, const std::shared_ptr<TypesRegistry> reg);
+    // explicit TypedKey(const Key& key);
+    explicit TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg);
     explicit TypedKey(const std::shared_ptr<TypesRegistry> reg);
     explicit TypedKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg);
     explicit TypedKey(const std::string &keys, const Rule* rule);
@@ -206,10 +206,10 @@ public: // methods
     /// @todo - this functionality should not be supported any more.
     static TypedKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
 
-    CanonicalKey canonical() const;
+    Key canonical() const;
 
     /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeys(const Key& other, bool checkAlsoValues = false) const;
+    void validateKeys(const BaseKey& other, bool checkAlsoValues = false) const;
 
     friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x) {
         x = TypedKey(s, nullptr);
@@ -238,8 +238,8 @@ private: // members
 
 namespace std {
     template <>
-    struct hash<fdb5::CanonicalKey> {
-        size_t operator() (const fdb5::CanonicalKey& key) const {
+    struct hash<fdb5::Key> {
+        size_t operator() (const fdb5::Key& key) const {
             return std::hash<std::string>()(key.valuesToString());
         }
     };

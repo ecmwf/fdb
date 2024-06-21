@@ -48,11 +48,11 @@ public: // methods
               const std::string& handler,
               const std::vector<Root>& roots);
 
-    /// Selects the filesystem from where this CanonicalKey will be inserted
+    /// Selects the filesystem from where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call
     /// @param key is a complete identifier for the first level of the schema
     /// @param db part of the full path
-    TocPath filesystem(const CanonicalKey& key, const eckit::PathName& db) const;
+    TocPath filesystem(const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
     void enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet&) const;
@@ -69,7 +69,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const CanonicalKey& key, const eckit::PathName& db, TocPath& root) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const;
 
     void print( std::ostream &out ) const;
 

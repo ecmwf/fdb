@@ -31,7 +31,7 @@
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 class EntryVisitor;
 
 namespace pmem {

@@ -31,7 +31,7 @@ char data[4];
 
 CASE( "ClimateDaily - no expansion" ) {
 
-    fdb5::CanonicalKey key{};
+    fdb5::Key key{};
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -265,7 +265,7 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 
 }
 
-// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from CanonicalKey?
+// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from Key?
 CASE( "Date - string ctor - expansion" ) {
 
     fdb5::TypedKey key = fdb5::TypedKey::parseString(

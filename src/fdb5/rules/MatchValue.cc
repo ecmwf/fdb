@@ -24,7 +24,7 @@ MatchValue::MatchValue(const std::string &value) :
 MatchValue::~MatchValue() {
 }
 
-bool MatchValue::match(const std::string &keyword, const CanonicalKey& key) const {
+bool MatchValue::match(const std::string &keyword, const Key& key) const {
     auto i = key.find(keyword);
 
     if (i == key.end()) {

@@ -17,14 +17,14 @@
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const CanonicalKey& initialFieldKey) :
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey) :
     WriteVisitor(owner.prev_),
     owner_(owner),
     initialFieldKey_(initialFieldKey) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) {
+bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
     LOG_DEBUG_LIB(LibFdb5) << "BaseArchiveVisitor::selectDatabase " << dbKey << std::endl;
     owner_.current_ = &owner_.database(dbKey);
     owner_.current_->deselectIndex();
@@ -32,7 +32,7 @@ bool BaseArchiveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKe
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) {
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
     // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(idxKey);

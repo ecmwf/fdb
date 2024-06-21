@@ -44,7 +44,7 @@ public:
 
 private: // members
 
-    CanonicalKey dbKey_;
+    Key dbKey_;
     IndexAxis axes_;
     const Schema& schema_;
     int level_;

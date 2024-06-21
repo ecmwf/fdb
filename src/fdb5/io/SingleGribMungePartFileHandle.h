@@ -40,7 +40,7 @@ public:
     SingleGribMungePartFileHandle(const eckit::PathName&,
                                   const eckit::Offset&,
                                   const eckit::Length&,
-                                  const CanonicalKey& substitute);
+                                  const Key& substitute);
     SingleGribMungePartFileHandle(eckit::Stream&) { NOTIMP; }
     ~SingleGribMungePartFileHandle() override;
 
@@ -83,7 +83,7 @@ private: // members
     eckit::Offset   pos_;
     eckit::Offset   offset_;
     eckit::Length   length_;
-    CanonicalKey             substitute_;
+    Key             substitute_;
     std::unique_ptr<eckit::Buffer>  buffer_;
 
     // For Streamable

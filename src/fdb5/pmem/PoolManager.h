@@ -31,7 +31,7 @@ namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
-class CanonicalKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -41,19 +41,19 @@ public: // methods
 
     PoolManager(const Config& config=Config());
 
-    /// Uniquely selects a pool where the CanonicalKey will be put or already exists
-    eckit::PathName pool(const CanonicalKey& key);
+    /// Uniquely selects a pool where the Key will be put or already exists
+    eckit::PathName pool(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> allPools(const CanonicalKey& key);
+    std::vector<eckit::PathName> allPools(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitablePools(const CanonicalKey& key);
-    std::vector<eckit::PathName> visitablePools(const std::set<CanonicalKey>& keys);
+    std::vector<eckit::PathName> visitablePools(const Key& key);
+    std::vector<eckit::PathName> visitablePools(const std::set<Key>& keys);
     std::vector<eckit::PathName> visitablePools(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::PathName> writablePools(const CanonicalKey& key);
+    std::vector<eckit::PathName> writablePools(const Key& key);
 
 private: // members
 

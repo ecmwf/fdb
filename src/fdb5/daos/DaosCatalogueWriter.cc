@@ -30,7 +30,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCatalogueWriter::DaosCatalogueWriter(const CanonicalKey& key, const fdb5::Config& config) :
+DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& config) :
     DaosCatalogue(key, config), firstIndexWrite_(false) {
 
 
@@ -121,7 +121,7 @@ DaosCatalogueWriter::~DaosCatalogueWriter() {
 
 }
 
-bool DaosCatalogueWriter::selectIndex(const CanonicalKey& idxKey) {
+bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
 
     currentIndexKey_ = idxKey;
 
@@ -193,7 +193,7 @@ bool DaosCatalogueWriter::selectIndex(const CanonicalKey& idxKey) {
 void DaosCatalogueWriter::deselectIndex() {
 
     current_ = Index();
-    currentIndexKey_ = CanonicalKey();
+    currentIndexKey_ = Key();
     firstIndexWrite_ = false;
 
 }
@@ -226,7 +226,7 @@ const Index& DaosCatalogueWriter::currentIndex() {
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void DaosCatalogueWriter::archive(const CanonicalKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void DaosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -247,7 +247,7 @@ void DaosCatalogueWriter::archive(const CanonicalKey& key, std::unique_ptr<Field
     std::string axisNames = "";
     std::string sep = "";
 
-    for (CanonicalKey::const_iterator i = key.begin(); i != key.end(); ++i) {
+    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
 
         const std::string &keyword = i->first;
 

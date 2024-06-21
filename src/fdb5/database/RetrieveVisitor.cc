@@ -35,7 +35,7 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKey& fullComputedKey) {
+bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
 
     if(db_) {
         if(dbKey == db_->key()) {
@@ -64,7 +64,7 @@ bool RetrieveVisitor::selectDatabase(const CanonicalKey& dbKey, const TypedKey& 
     }
 }
 
-bool RetrieveVisitor::selectIndex(const CanonicalKey& idxKey, const TypedKey& fullComputedKey) {
+bool RetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
     ASSERT(db_);
     // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return db_->selectIndex(idxKey);

@@ -80,7 +80,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     std::vector<eckit::PathName> paths;
 
     if (all) {
-        CanonicalKey dbKey;
+        Key dbKey;
         LOG_DEBUG_LIB(LibFdb5) << "KEY =====> " << dbKey << std::endl;
         std::vector<eckit::PathName> dbs = Manager().visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {

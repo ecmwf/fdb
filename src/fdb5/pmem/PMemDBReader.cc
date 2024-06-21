@@ -26,7 +26,7 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBReader::PMemDBReader(const CanonicalKey& key, const eckit::Configuration& config) :
+PMemDBReader::PMemDBReader(const Key& key, const eckit::Configuration& config) :
     PMemDB(key, config) {}
 
 
@@ -48,7 +48,7 @@ bool PMemDBReader::open() {
 }
 
 
-bool PMemDBReader::selectIndex(const CanonicalKey& idxKey) {
+bool PMemDBReader::selectIndex(const Key& idxKey) {
 
     if (indexes_.find(idxKey) == indexes_.end()) {
 

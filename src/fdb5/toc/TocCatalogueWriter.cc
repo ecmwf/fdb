@@ -30,7 +30,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocCatalogueWriter::TocCatalogueWriter(const CanonicalKey& key, const fdb5::Config& config) :
+TocCatalogueWriter::TocCatalogueWriter(const Key& key, const fdb5::Config& config) :
     TocCatalogue(key, config),
     umask_(config.umask()) {
     writeInitRecord(key);
@@ -51,7 +51,7 @@ TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
-bool TocCatalogueWriter::selectIndex(const CanonicalKey& idxKey) {
+bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
 
     if (indexes_.find(idxKey) == indexes_.end()) {
@@ -98,7 +98,7 @@ bool TocCatalogueWriter::selectIndex(const CanonicalKey& idxKey) {
 void TocCatalogueWriter::deselectIndex() {
     current_ = Index();
     currentFull_ = Index();
-    currentIndexKey_ = CanonicalKey();
+    currentIndexKey_ = Key();
 }
 
 bool TocCatalogueWriter::open() {
@@ -129,7 +129,7 @@ void TocCatalogueWriter::index(const TypedKey& key, const eckit::URI &uri, eckit
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, CanonicalKey()), currentIndex().timestamp());
+    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -234,7 +234,7 @@ const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const 
 void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
 
     const TocCatalogue& otherCatalogue = dynamic_cast<const TocCatalogue&>(otherCat);
-    const CanonicalKey& otherKey(otherCatalogue.key());
+    const Key& otherKey(otherCatalogue.key());
 
     if (otherKey.size() != TocCatalogue::dbKey_.size()) {
         std::stringstream ss;
@@ -256,7 +256,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
                 std::stringstream ss;
-                ss << "CanonicalKey " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
+                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
                 throw UserError(ss.str(), Here());
             }
         }
@@ -322,7 +322,7 @@ void TocCatalogueWriter::flush() {
     currentFull_ = Index();
 }
 
-eckit::PathName TocCatalogueWriter::generateIndexPath(const CanonicalKey& key) const {
+eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
     eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";

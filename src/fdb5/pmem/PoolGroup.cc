@@ -36,7 +36,7 @@ PoolGroup::PoolGroup(const std::string& name,
     pools_(pools) {
 }
 
-eckit::PathName PoolGroup::pool(const CanonicalKey& key) const
+eckit::PathName PoolGroup::pool(const Key& key) const
 {
     /// TEMPORARY
     /// We return the first entry in the PoolGroup

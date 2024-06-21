@@ -23,7 +23,7 @@ namespace fdb5 {
 /// @note: as opposed to the TOC catalogue, the DAOS catalogue does not pre-load all indexes from storage.
 ///   Instead, it selects and loads only those indexes that are required to fulfil the request.
 
-DaosCatalogueReader::DaosCatalogueReader(const CanonicalKey& dbKey, const fdb5::Config& config) :
+DaosCatalogueReader::DaosCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
     DaosCatalogue(dbKey, config) {
 
     /// @todo: schema is being loaded at DaosCatalogueWriter creation for write, but being loaded
@@ -34,7 +34,7 @@ DaosCatalogueReader::DaosCatalogueReader(const CanonicalKey& dbKey, const fdb5::
 DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
     DaosCatalogue(uri, ControlIdentifiers{}, config) {}
 
-bool DaosCatalogueReader::selectIndex(const CanonicalKey& idxKey) {
+bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
 
     if (currentIndexKey_ == idxKey) {
         return true;
@@ -129,7 +129,7 @@ bool DaosCatalogueReader::retrieve(const TypedKey& key, Field& field) const {
 
     if (!current_.mayContain(key)) return false;
 
-    return current_.get(key, fdb5::CanonicalKey(), field);
+    return current_.get(key, fdb5::Key(), field);
 
 }
 

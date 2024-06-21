@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const CanonicalKey& key, const fdb5::Config& config) :
+TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
     TocCatalogue(key, config) {
     loadIndexesAndRemap();
 }
@@ -36,7 +36,7 @@ TocCatalogueReader::~TocCatalogueReader() {
 }
 
 void TocCatalogueReader::loadIndexesAndRemap() {
-    std::vector<CanonicalKey> remapKeys;
+    std::vector<Key> remapKeys;
     /// @todo: this should throw DatabaseNotFoundException if the toc file is not found
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
@@ -47,7 +47,7 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const CanonicalKey& idxKey) {
+bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
     if(currentIndexKey_ == idxKey) {
         return true;
@@ -110,7 +110,7 @@ bool TocCatalogueReader::retrieve(const TypedKey& key, Field& field) const {
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx((*m)->first);
-        CanonicalKey remapKey = (*m)->second;
+        Key remapKey = (*m)->second;
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();

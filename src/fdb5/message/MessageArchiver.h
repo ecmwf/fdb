@@ -39,7 +39,7 @@ class MessageArchiver : public MessageDecoder {
 
 public: // methods
 
-    MessageArchiver(const fdb5::CanonicalKey& key = CanonicalKey(),
+    MessageArchiver(const fdb5::Key& key = Key(),
                  bool completeTransfers = false,
                  bool verbose = false,
                  const Config& config = Config().expandConfig());
@@ -53,7 +53,7 @@ public: // methods
 
 private: // protected
 
-    bool filterOut(const CanonicalKey& k) const;
+    bool filterOut(const Key& k) const;
 
     eckit::message::Message transform(eckit::message::Message&);
 
@@ -61,7 +61,7 @@ private: // members
 
     FDB fdb_;
 
-    fdb5::CanonicalKey key_;
+    fdb5::Key key_;
 
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;

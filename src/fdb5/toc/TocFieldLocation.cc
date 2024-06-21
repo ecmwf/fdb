@@ -25,20 +25,20 @@ namespace fdb5 {
 
 //TocFieldLocation::TocFieldLocation() {}
 
-TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey) :
+TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const eckit::URI &uri) :
     FieldLocation(uri) {}
 
-TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey) :
+TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 TocFieldLocation::TocFieldLocation(const UriStore &store, const FieldRef &ref) :
-    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), CanonicalKey()) {}
+    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}

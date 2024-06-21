@@ -72,7 +72,7 @@ void DataPool::buildRoot() {
     ASSERT(rt.valid());
 
     // n.b. null arguments. Arguments only apply for index root.
-    rt->buildRoot(CanonicalKey(), "");
+    rt->buildRoot(Key(), "");
 }
 
 

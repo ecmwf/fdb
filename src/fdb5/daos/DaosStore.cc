@@ -23,7 +23,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosStore::DaosStore(const Schema& schema, const CanonicalKey& key, const Config& config) :
+DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), DaosCommon(config, "store", key), db_str_(db_cont_) {}
 
 eckit::URI DaosStore::uri() const {
@@ -105,7 +105,7 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 }
 
-std::unique_ptr<FieldLocation> DaosStore::archive(const CanonicalKey&, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> DaosStore::archive(const Key&, const void *data, eckit::Length length) {
 
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped as it is cached after selectDatabase.
@@ -132,7 +132,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const CanonicalKey&, const voi
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::CanonicalKey(nullptr, true));
+    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key(nullptr, true));
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed

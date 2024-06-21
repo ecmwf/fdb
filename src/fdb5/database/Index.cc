@@ -17,7 +17,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexBase::IndexBase(const CanonicalKey& key, const std::string& type) :
+IndexBase::IndexBase(const Key& key, const std::string& type) :
     type_(type),
     axes_(),
     key_(key)
@@ -146,7 +146,7 @@ bool IndexBase::mayContain(const TypedKey& key) const {
     return axes_.contains(key.canonical());
 }
 
-const CanonicalKey& IndexBase::key() const {
+const Key& IndexBase::key() const {
     return key_;
 }
 
@@ -170,8 +170,8 @@ const IndexAxis &IndexBase::axes() const {
 
     out_ << "ENTRY" << std::endl;
 
-    fdb5::CanonicalKey key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
-    out_ << "  CanonicalKey: " << dbKey_ << index.key() << key;
+    fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+    out_ << "  Key: " << dbKey_ << index.key() << key;
 
     FieldLocationPrinter printer(out_);
     field.location().visit(printer);
@@ -185,7 +185,7 @@ class NullIndex : public IndexBase {
 
 public: // methods
 
-    NullIndex() : IndexBase(CanonicalKey(), "null") {}
+    NullIndex() : IndexBase(Key(), "null") {}
 
 private: // methods
 
@@ -200,7 +200,7 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get( const TypedKey&, const CanonicalKey&, Field&) const override { NOTIMP; }
+    virtual bool get( const TypedKey&, const Key&, Field&) const override { NOTIMP; }
     virtual void add( const TypedKey&, const Field&) override { NOTIMP; }
     virtual void flush() override { NOTIMP; }
     virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }

@@ -19,7 +19,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesElement::AxesElement(CanonicalKey&& dbKey, IndexAxis&& axes) :
+AxesElement::AxesElement(Key&& dbKey, IndexAxis&& axes) :
         dbKey_(std::move(dbKey)), axes_(std::move(axes)) {}
 
 AxesElement::AxesElement(eckit::Stream& s) {

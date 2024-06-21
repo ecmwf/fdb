@@ -45,7 +45,7 @@ public: // types
 
     using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
     using MessageQueue = eckit::Queue<StoredMessage>;
-    using ArchiveQueue = eckit::Queue<std::pair<fdb5::CanonicalKey, eckit::Buffer>>;
+    using ArchiveQueue = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
 
 public: // method
 
@@ -55,10 +55,10 @@ public: // method
     ~RemoteFDB() override;
 
     /// Archive writes data into aggregation buffer
-    void archive(const CanonicalKey& key, const void* data, size_t length) override;
+    void archive(const Key& key, const void* data, size_t length) override;
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
-    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const CanonicalKey& remapKey);
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
@@ -123,8 +123,8 @@ private: // methods
 
     FDBStats archiveThreadLoop(uint32_t requestID);
 
-    void sendArchiveData(uint32_t id, const CanonicalKey& key, const void* data, size_t length);
-    long sendArchiveData(uint32_t id, const std::vector<std::pair<CanonicalKey, eckit::Buffer>>& elements, size_t count);
+    void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
+    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
 
     virtual void print(std::ostream& s) const override;
 

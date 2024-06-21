@@ -37,7 +37,7 @@ public: // methods
     using FDBBase::FDBBase;
     using FDBBase::stats;
 
-    void archive(const CanonicalKey& key, const void* data, size_t length) override;
+    void archive(const Key& key, const void* data, size_t length) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 

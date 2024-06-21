@@ -38,7 +38,7 @@ class PMemIndex : public IndexBase {
 
 public: // methods
 
-    PMemIndex(const CanonicalKey& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
+    PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
 
     virtual ~PMemIndex() override;
 
@@ -57,7 +57,7 @@ protected: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual bool get( const CanonicalKey& key, Field &field ) const;
+    virtual bool get( const Key& key, Field &field ) const;
     virtual void add( const TypedKey& key, const Field &field );
     virtual void flush();
     virtual void encode(eckit::Stream &s) const override;

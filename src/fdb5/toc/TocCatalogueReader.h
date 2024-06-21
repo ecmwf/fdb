@@ -28,7 +28,7 @@ class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 
 public: // methods
 
-    TocCatalogueReader(const CanonicalKey& key, const fdb5::Config& config);
+    TocCatalogueReader(const Key& key, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     ~TocCatalogueReader() override;
@@ -39,7 +39,7 @@ public: // methods
 private: // methods
 
     void loadIndexesAndRemap();
-    bool selectIndex(const CanonicalKey& idxKey) override;
+    bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;
@@ -57,11 +57,11 @@ private: // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
-    std::vector<std::pair<Index, CanonicalKey>*> matching_;
+    std::vector<std::pair<Index, Key>*> matching_;
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
-    std::vector<std::pair<Index, CanonicalKey>> indexes_;
+    std::vector<std::pair<Index, Key>> indexes_;
 
 };
 

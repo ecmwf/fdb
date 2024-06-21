@@ -28,7 +28,7 @@ Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
 Predicate::~Predicate() {
 }
 
-bool Predicate::match(const CanonicalKey& key) const {
+bool Predicate::match(const Key& key) const {
     return matcher_->match(keyword_, key);
 }
 
@@ -52,7 +52,7 @@ bool Predicate::optional() const {
 //     return matcher_->value(key, keyword_);
 // }
 
-const std::string &Predicate::value(const CanonicalKey& key) const {
+const std::string &Predicate::value(const Key& key) const {
     return matcher_->value(key, keyword_);
 }
 

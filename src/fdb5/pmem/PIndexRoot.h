@@ -53,7 +53,7 @@ public: // methods
                const ::pmem::PersistentPtr< ::pmem::PersistentString>& schema,
                const ::pmem::PersistentPtr<PBranchingNode>& rootNode);
 
-    static void build(::pmem::PersistentPtr<PIndexRoot>& ptr, const CanonicalKey& dbKey, const eckit::PathName& schema);
+    static void build(::pmem::PersistentPtr<PIndexRoot>& ptr, const Key& dbKey, const eckit::PathName& schema);
 
     bool valid() const;
 
@@ -61,8 +61,8 @@ public: // methods
     unsigned short int version() const;
     long uid() const;
 
-    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const CanonicalKey& key) const;
-    PBranchingNode& getCreateBranchingNode(const CanonicalKey& key);
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+    PBranchingNode& getCreateBranchingNode(const Key& key);
 
     void visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, const Schema& schema) const;
 
@@ -72,7 +72,7 @@ public: // methods
 
     const ::pmem::PersistentPODVector<uint64_t>& dataPoolUUIDs() const;
 
-    CanonicalKey databaseKey() const;
+    Key databaseKey() const;
 
 private: // members
 

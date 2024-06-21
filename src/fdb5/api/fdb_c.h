@@ -87,29 +87,29 @@ int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context);
 /** @} */
 
 
-/** \defgroup CanonicalKey */
+/** \defgroup Key */
 /** @{ */
 
 struct fdb_key_t;
-/** Opaque type for the CanonicalKey object. Holds the metadata of a CanonicalKey. */
+/** Opaque type for the Key object. Holds the metadata of a Key. */
 typedef struct fdb_key_t fdb_key_t;
 
-/** Creates a CanonicalKey instance.
- * \param key CanonicalKey instance. Returned instance must be deleted using #fdb_delete_key.
+/** Creates a Key instance.
+ * \param key Key instance. Returned instance must be deleted using #fdb_delete_key.
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_new_key(fdb_key_t** key);
 
-/** Adds a metadata pair to a CanonicalKey
- * \param key CanonicalKey instance
+/** Adds a metadata pair to a Key
+ * \param key Key instance
  * \param param Metadata name
  * \param value Metadata value
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
 
-/** Deallocates CanonicalKey object and associated resources.
- * \param key CanonicalKey instance
+/** Deallocates Key object and associated resources.
+ * \param key Key instance
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_delete_key(fdb_key_t* key);
@@ -179,9 +179,9 @@ int fdb_new_splitkey(fdb_split_key_t** key);
 /** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
  * Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
- * \param key CanonicalKey metadata name
- * \param value CanonicalKey metadata value
- * \param level level in the iondex of the current CanonicalKey
+ * \param key Key metadata name
+ * \param value Key metadata value
+ * \param level level in the iondex of the current Key
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
@@ -313,7 +313,7 @@ int fdb_new_handle(fdb_handle_t** fdb);
 /** Archives binary data to a FDB instance.
  * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
  * \param fdb FDB instance.
- * \param key CanonicalKey used for indexing and archiving the data
+ * \param key Key used for indexing and archiving the data
  * \param data Pointer to the binary data to archive
  * \param length Size of the data to archive with the given #key
  * \returns Return code (#FdbErrorValues)
