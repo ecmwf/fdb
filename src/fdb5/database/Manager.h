@@ -51,9 +51,6 @@ public: // methods
     eckit::URI location(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    // std::vector<eckit::URI> allLocations(const Key& key);
-
-    /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
 
     /// Lists the roots where a DB key would be able to be written

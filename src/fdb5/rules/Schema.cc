@@ -54,7 +54,6 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
     TypedKey fullComputedKey{registry()};
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
-    // for (auto& k : keys) k.registry(registry());
 
     for (Rule* r : rules_) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
@@ -111,14 +110,6 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
         (*i)->expand(field, visitor, 1, keys, fullComputedKey);
     }
 }
-
-// bool Schema::expandFirstLevel(const Key& dbKey,  Key& result) const {
-//     bool found = false;
-//     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-//         (*i)->expandFirstLevel(dbKey, result, found);
-//     }
-//     return found;
-// }
 
 bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result) const {
     bool found = false;

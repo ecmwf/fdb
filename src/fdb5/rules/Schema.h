@@ -58,7 +58,6 @@ public: // methods
     void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
     void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
 
-    // bool expandFirstLevel(const Key& dbKey,  Key& result) const ;
     bool expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result) const ;
     void matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;

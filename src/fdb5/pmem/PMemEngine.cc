@@ -156,11 +156,6 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
     return result;
 }
 
-// std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Config& config) const
-// {
-//     return databases(key, PoolManager(config).allPools(key), config);
-// }
-
 std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, PoolManager(config).visitablePools(key), config);

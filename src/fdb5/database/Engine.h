@@ -56,9 +56,6 @@ public: // methods
     virtual eckit::URI location(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
-    // virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const = 0;
-
-    /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const = 0;
 

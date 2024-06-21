@@ -104,8 +104,6 @@ private: // methods
                 TypedKey& fullComputedKey,
                 WriteVisitor &Visitor) const;
 
-    // void expandFirstLevel(const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    // void expandFirstLevel(const Key& dbKey,  Key& result, bool& done) const ;
     void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& done) const;
     void expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result, bool& done) const;
 
