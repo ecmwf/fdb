@@ -26,7 +26,6 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/PurgeVisitor.h"

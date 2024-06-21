@@ -185,9 +185,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 	{
 		metkit::mars::MarsExpension expand{false};
 
-		std::cout << req << endl;
 		metkit::mars::MarsRequest expandedRequests = expand.expand(req);
-		std::cout << expandedRequests << endl;
 		fdb5::FDBToolRequest r(expandedRequests);
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;

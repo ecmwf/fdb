@@ -292,7 +292,6 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& 
 
 void Rule::matchFirstLevel( const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
-    // std::cout << "Rule::matchFirstLevel  dbKey " << dbKey << "  tmp " << tmp << "  result.size() " << result.size() << std::endl;
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
             result.insert(tmp);

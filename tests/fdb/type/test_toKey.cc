@@ -132,8 +132,6 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "0427");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    std::cout << key.valuesToString() << std::endl;
-
     EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 
     key.set("step", "00");
@@ -220,7 +218,6 @@ CASE( "Levelist" ) {
     // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
     /// @note don't use to_string when canonicalising Keys
     key.set("levelist", std::to_string(double(1./3.)));
-//    std::cout << key.canonicalValue("levelist") << std::endl;
     EXPECT(key.canonicalValue("levelist") == "0.333333");
     EXPECT(key.match("levelist", values));
 }
@@ -258,8 +255,6 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
     config.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
-    std::cout << key.valuesToString() << std::endl;
-    std::cout << key.canonicalValue("date");
     EXPECT(key.canonicalValue("date") == "4");
     EXPECT(key.valuesToString() == "op:0001:mnth:g:cl:pl:4:0000:50:129.128");
 

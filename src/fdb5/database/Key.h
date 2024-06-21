@@ -46,12 +46,6 @@ class BaseKey {
 
 public: // methods
 
-    // explicit BaseKey(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    // explicit BaseKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
-    // explicit BaseKey(const std::string &keys, const Rule* rule);
-    // explicit BaseKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    // BaseKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
-
     BaseKey() : keys_(), names_() {}
     BaseKey(const BaseKey &key) : keys_(key.keys_), names_(key.names_) {}
 
@@ -170,7 +164,6 @@ public: // methods
 
     explicit Key();
     explicit Key(eckit::Stream &);
-    // explicit Key(const std::string &keys);
     explicit Key(const eckit::StringDict &keys);
     Key(std::initializer_list<std::pair<const std::string, std::string>>);
 
@@ -183,7 +176,6 @@ public: // methods
 
 private: // members
 
-    //TODO add unit test for each type
     std::string canonicalise(const std::string& keyword, const std::string& value) const override;
     std::string type(const std::string& keyword) const override;
 
@@ -195,7 +187,6 @@ class TypedKey : public BaseKey {
 
 public: // methods
 
-    // explicit TypedKey(const Key& key);
     explicit TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg);
     explicit TypedKey(const std::shared_ptr<TypesRegistry> reg);
     explicit TypedKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg);
@@ -203,7 +194,6 @@ public: // methods
     explicit TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg);
     TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg);
 
-    /// @todo - this functionality should not be supported any more.
     static TypedKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
 
     Key canonical() const;

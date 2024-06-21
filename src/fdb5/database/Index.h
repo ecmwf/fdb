@@ -116,11 +116,11 @@ protected: // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis      axes_;      ///< This Index spans along these axis
-    Key   key_;       ///< key that selected this index
-    time_t         timestamp_; ///< timestamp when this Index was flushed
+    IndexAxis axes_;      ///< This Index spans along these axis
+    Key       key_;       ///< key that selected this index
+    time_t    timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer        indexer_;
+    Indexer   indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;

@@ -420,11 +420,8 @@ Key Key::parseString(const std::string& s) {
     return Key{keys};
 }
 
-void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const
-{
+void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
 
-    // std::cout << "validateKeys " << (*this) << std::endl
-    //           << "             " << other << std::endl;
     eckit::StringSet missing;
     eckit::StringSet mismatch;
 
