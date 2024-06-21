@@ -23,6 +23,8 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
@@ -59,15 +61,15 @@ class FDBCompare : public FDBVisitTool {
 };
 
 
-std::string keySignature(const fdb5::Key& key) {
-    std::string signature;
-    std::string separator;
-    for (auto k : key.keys()) {
-        signature += separator+k;
-        separator=":";
-    }
-    return signature;
-}
+// std::string keySignature(const fdb5::Key& key) {
+//     std::string signature;
+//     std::string separator;
+//     for (auto k : key.keys()) {
+//         signature += separator+k;
+//         separator=":";
+//     }
+//     return signature;
+// }
 
 
 void FDBCompare::init(const CmdArgs& args) {
@@ -93,23 +95,11 @@ void FDBCompare::init(const CmdArgs& args) {
 
 
 }
-
+template <typename Map>
+constexpr bool compare_keys(Map const &ref, Map const &test){
+    return std::equal(ref.begin(),ref.end(),test.begin(),[] (auto a, auto b) {return a.first == b.first;});
+}
 void FDBCompare::execute(const CmdArgs& args) {
-
-
-    // PathName configPathtest(testConfig_);
-    // if (!configPathtest.exists()) {
-    //     std::ostringstream ss;
-    //     ss << "Path " << testConfig_ << " does not exist";
-    //     throw UserError(ss.str(), Here());
-    // }
-    // if (configPathtest.isDir()) {
-    //     std::ostringstream ss;
-    //     ss << "Path " << testConfig_ << " is a directory. Expecting a file";
-    //     throw UserError(ss.str(), Here());
-    // }
-   
-    // FDB fdbtest( Config::make(configPathtest));
 
     // std::cout<<"FDB test object"<<std::endl;
     PathName configPathref(referenceConfig_);
@@ -126,22 +116,90 @@ void FDBCompare::execute(const CmdArgs& args) {
     
     FDB fdbref( Config::make(configPathref));
 
-    std::cout<<"before for loop"<<std::endl;
-    for (const FDBToolRequest& request : requests()) {
-        auto listObject = fdbref.list(request);
-        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
-         
-        ListElement elem;
-        std::cout<<"before while loop"<<std::endl;
-    
-        while (listObject.next(elem)) {
+    PathName configPathtest(testConfig_);
+    if (!configPathtest.exists()) {
+        std::ostringstream ss;
+        ss << "Path " << testConfig_ << " does not exist";
+        throw UserError(ss.str(), Here());
+    }
+    if (configPathtest.isDir()) {
+        std::ostringstream ss;
+        ss << "Path " << testConfig_ << " is a directory. Expecting a file";
+        throw UserError(ss.str(), Here());
+    }
+   
+    FDB fdbtest( Config::make(configPathtest));
 
-            std::cout<<"in while loop"<<std::endl;
-            elem.print(Log::info(),true,true,true,",");
-            Log::info()<<std::endl;
+
+
+    for (const FDBToolRequest& request : requests()) {
+        //potentially sub std::vector<Key> with metkit::mars::MarsRequest or with string
+        std::unordered_map<std::string, std::tuple<eckit::URI,eckit::Offset,eckit::Length>> ref_map;
+        std::unordered_map<std::string, std::tuple<eckit::URI,eckit::Offset,eckit::Length>> test_map;
+
+        auto listObject = fdbref.list(request);
+        ListElement elem;    
+        while (listObject.next(elem)) {
+            std::string str;
+            for(const auto & bit : elem.key()) {
+                str.append(bit);
+                str.append(",");
+            }
+            ref_map.insert({str,{elem.location().uri(),elem.location().offset(),elem.location().length()}});
+        }
+        listObject = fdbtest.list(request);
+        while (listObject.next(elem)) {
+            std::string str;
+            for(const auto & bit : elem.key()) {
+                str.append(bit);
+                str.append(",");
+                //to corrupt and test: 
+                //str.append("...");
+            }
+            test_map.insert({str,{elem.location().uri(),elem.location().offset(),elem.location().length()}});
+            //test_map.insert({str,{elem.location().uri(),elem.location().offset(),1.0}}); //corrupted map for tests
+
+        }
+        //First compare that the number of entries matches. 
+        // -> potentially just an ASSERT is sufficient
+        //tested separately to avoid having this test done in each key compare, otherwise it could be added to the comparison function return (size_compare && key_compare)
+        if(test_map.size()!=ref_map.size()){
+            std::cout<<"Number of messages in Databases don't match"<<std::endl;
+            std::cout<<"Test FDB #entries in Toc: "<<test_map.size()<<" Reference FDB #entries in Toc: " << ref_map.size()<<std::endl;
+            return;
+        }
+      //  std::cout<<test_map.key_eq()<<std::endl;
+        //Chech that the keys match only continue with next comparison is this is the case
+        if(!(compare_keys(ref_map,test_map))){
+            std::cout<<"Mars Metadata Keys don't match"<<std::endl;
+            return;
         }
 
-        std::cout<<"after while loop"<<std::endl;
+        
+        //      GRIB_CHECK_NOLINE(grib_get_message_headers(h1, &msg1, &size1), 0);
+        // GRIB_CHECK_NOLINE(grib_get_message_headers(h2, &msg2, &size2), 0);
+        // if ( size1 == size2 && (0 == memcmp(msg1, msg2, size1)) ) {
+        //     return 0;
+        // }
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        // // 
+        // for(auto i = ref_map.begin(); i != ref_map.end(); i++ )
+        //     std::cout<<i->first<<std::endl;
+        // for(auto i = test_map.begin(); i != test_map.end(); i++ )
+        //     std::cout<<i->first<<std::endl;
+           
     }
     // std::unique_ptr<JSON> json;
     // if (json_) {
