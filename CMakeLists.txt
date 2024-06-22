@@ -122,7 +122,7 @@ ecbuild_add_option( FEATURE DAOSFDB
                     DESCRIPTION "DAOS support for FDB Store" )
 
 ecbuild_add_option( FEATURE DAOS_ADMIN
-                    DEFAULT OFF
+                    DEFAULT ${_default_dummy_daos}
                     CONDITION HAVE_DAOSFDB AND DAOS_TESTS_FOUND
                     DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
 
