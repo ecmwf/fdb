@@ -10,16 +10,11 @@
 
 #include <algorithm>
 
-#include "eckit/io/rados/RadosObject.h"
-// #include "eckit/io/s3/S3Bucket.h"
-// #include "eckit/io/s3/S3Credential.h"
-// #include "eckit/io/s3/S3Session.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/rados/RadosCommon.h"
-
-#include "eckit/exception/Exceptions.h"
-// #include "eckit/config/Resource.h"
-#include "eckit/utils/Tokenizer.h"
 
 namespace fdb5 {
 
@@ -30,37 +25,33 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
     std::vector<std::string> valid{"catalogue", "store"};
     ASSERT(std::find(valid.begin(), valid.end(), component) != valid.end());
 
-    parseConfig(config, component);
-
-    eckit::LocalConfiguration rados{}, comp_conf{};
-
-    if (config.has("rados")) {
-        rados = config.getSubConfiguration("rados");
-        if (rados.has(component)) comp_conf = rados.getSubConfiguration(component);
-    }
-
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
-
-    pool_ = rados.getString("pool", pool_);
-    pool_ = comp_conf.getString("pool", pool_);
-
-    // std::string first_cap{component};
-    // first_cap[0] = toupper(component[0]);
-    // std::string all_caps{component};
-    // for (auto & c: all_caps) c = toupper(c);
-    // bucket_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Pool;$FDB_RADOS_" + all_caps + "_POOL", pool_);
-
-    ASSERT_MSG(pool_.length() > 0, "No pool configured for Rados " + component);
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     db_namespace_ = key.valuesToString();
 
+    readConfig(config, component, true);
+
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+    root_kv_.emplace(pool_, root_namespace_, "main_kv", true);
+    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv", true);
+  #else
+    root_kv_.emplace(pool_, root_namespace_, "main_kv");
+    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
+  #endif
+
 #else
 
-    prefix_ = rados.getString("poolPrefix", prefix_);
-    prefix_ = comp_conf.getString("poolPrefix", prefix_);
-    ASSERT_MSG(prefix_.find("_") == std::string::npos, "The configured poolPrefix must not contain underscores.");
+    readConfig(config, component, true);
+
     db_pool_ = prefix_ + "_" + key.valuesToString();
-    namespace_ = "default";
+
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+    root_kv_.emplace(root_pool_, namespace_, "main_kv", true);
+    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv", true);
+  #else
+    root_kv_.emplace(root_pool_, namespace_, "main_kv");
+    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv");
+  #endif
 
 #endif
 
@@ -71,40 +62,101 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
     /// @note: validity of input URI is not checked here because this constructor is only triggered
     ///   by DB::buildReader in EntryVisitMechanism, where validity of URIs is ensured beforehand
 
-    parseConfig(config, component);
+    eckit::RadosKeyValue db_name{uri};
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
-    eckit::RadosObject o{uri};
-    pool_ = o.nspace().pool().name();
-    db_namespace_ = o.nspace().name();
+    pool_ = db_name.nspace().pool().name();
+    db_namespace_ = db_name.nspace().name();
+
+    readConfig(config, component, false);
+
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+    root_kv_.emplace(pool_, root_namespace_, "main_kv", true);
+    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv", true);
+  #else
+    root_kv_.emplace(pool_, root_namespace_, "main_kv");
+    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
+  #endif
 
 #else
 
-    eckit::RadosObject o{uri};
-    db_pool_ = o.nspace().pool().name();
-    namespace_ = o.nspace().name();
-    if (namespace_ != "default")
-        throw eckit::SeriousBug("Unexpected namespace name '" + namespace_ + "'. Expected 'default'.");
+    db_pool_ = db_name.nspace().pool().name();
+    namespace_ = db_name.nspace().name();
+
+    readConfig(config, component, false);
+
     const auto parts = eckit::Tokenizer("_").tokenize(db_pool_);
     const auto n = parts.size();
     ASSERT(n > 1);
     prefix_ = parts[0];
 
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+    root_kv_.emplace(root_pool_, namespace_, "main_kv", true);
+    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv", true);
+  #else
+    root_kv_.emplace(root_pool_, namespace_, "main_kv");
+    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv");
+  #endif
+
 #endif
 
 }
 
-void RadosCommon::parseConfig(const fdb5::Config& config, const std::string& component) {
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+void RadosCommon::readConfig(const fdb5::Config& config, const std::string& component, bool readPool) {
+#else
+void RadosCommon::readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace) {
+#endif
 
-    eckit::LocalConfiguration rados{}, comp_conf{};
+    eckit::LocalConfiguration c{};
 
-    if (config.has("rados")) {
-        rados = config.getSubConfiguration("rados");
-        if (rados.has(component)) comp_conf = rados.getSubConfiguration(component);
+    if (config.has("rados")) c = config.getSubConfiguration("rados");
+
+    maxObjectSize_ = c.getInt("maxObjectSize", 0);
+
+    std::string first_cap{component};
+    first_cap[0] = toupper(component[0]);
+
+    std::string all_caps{component};
+    for (auto & c: all_caps) c = toupper(c);
+
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+
+    if (readPool) pool_ = "default";
+    root_namespace_ = "root";
+
+    if (readPool) {
+        pool_ = c.getString("pool", pool_);
+        if (c.has(component)) pool_ = c.getSubConfiguration(component).getString("pool", pool_);
     }
+    if (c.has(component)) root_namespace_ = c.getSubConfiguration(component).getString("root_namespace", root_namespace_);
 
-    maxObjectSize_ = rados.getInt("maxObjectSize", 0);
+    if (readPool)
+        pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Pool;$FDB_RADOS_" + all_caps + "_POOL", pool_);
+    root_namespace_ = eckit::Resource<std::string>("fdbRados" + first_cap + "RootNamespace;$FDB_RADOS_" + all_caps + "_ROOT_NAMESPACE", root_namespace_);
+
+#else
+
+    if (readNamespace) namespace_ = "default";
+    root_pool_ = "root";
+
+    if (readNamespace)
+        if (c.has(component)) namespace_ = c.getSubConfiguration(component).getString("namespace", namespace_);
+    if (c.has(component)) root_pool_ = c.getSubConfiguration(component).getString("root_pool", root_pool_);
+
+    if (readNamespace)
+        namespace_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Namespace;$FDB_RADOS_" + all_caps + "_NAMESPACE", namespace_);
+    root_pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "RootPool;$FDB_RADOS_" + all_caps + "_ROOT_POOL", root_pool_);
+
+    prefix_ = c.getString("pool_prefix", prefix_);
+    if (c.has(component)) prefix_ = c.getSubconfiguration(component).getString("pool_prefix", prefix_);
+    ASSERT_MSG(prefix_.find("_") == std::string::npos, "The configured pool prefix must not contain underscores.");
+
+#endif
+
+    // if (c.has("client"))
+    //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
 }
 

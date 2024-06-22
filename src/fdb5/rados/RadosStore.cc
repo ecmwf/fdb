@@ -51,7 +51,7 @@ RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& confi
 
 eckit::URI RadosStore::uri() const {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     return eckit::RadosNamespace(pool_, db_namespace_).uri();
 
@@ -68,7 +68,7 @@ bool RadosStore::uriBelongs(const eckit::URI& uri) const {
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     ASSERT(n == 2 || n == 3);
     return (
@@ -97,7 +97,7 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
 
     ASSERT(uri.scheme() == type());
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     ASSERT(n == 2 || n == 3);
     ASSERT(parts[0] == pool_);
@@ -119,11 +119,11 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
 
 }
 
-std::vector<eckit::URI> RadosStore::storeUnitURIs() const {
+std::vector<eckit::URI> RadosStore::collocatedDataURIs() const {
 
     std::vector<eckit::URI> store_unit_uris;
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     eckit::RadosNamespace n{pool_, db_namespace_};
 
@@ -151,7 +151,7 @@ std::vector<eckit::URI> RadosStore::storeUnitURIs() const {
 
 }
 
-std::set<eckit::URI> RadosStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
@@ -166,7 +166,7 @@ std::set<eckit::URI> RadosStore::asStoreUnitURIs(const std::vector<eckit::URI>& 
 
 bool RadosStore::exists() const {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     return eckit::RadosNamespace(pool_, db_namespace_).exists();
 
@@ -196,7 +196,7 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
     /// @note: generate unique object name starting by indexkey_
     eckit::RadosObject o = generateDataObject(key);
 
-  #ifndef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+  #ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     /// @todo: ensure pool if not yet seen by this process
     static std::set<std::string> knownPools;
@@ -208,11 +208,11 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
 
   #endif
 
-  #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     eckit::DataHandle* h = o.persistentDataHandle();
     ASSERT(handles_.size() < maxHandleBuffSize_);
     handles_.push_back(h);
-  #elif fdb5_HAVE_RADOS_STORE_PERSIST_ON_WRITE
+  #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
     std::unique_ptr<eckit::DataHandle> h(o.persistentDataHandle(true));
   #else
     std::unique_ptr<eckit::DataHandle> h(o.dataHandle());
@@ -233,7 +233,7 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
     /// @note: get or generate unique key name
     const eckit::RadosObject& o = getDataObject(key);
 
-  #ifndef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+  #ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     /// @todo: ensure pool if not yet seen by this process
     static std::set<std::string> knownPools;
@@ -263,7 +263,7 @@ void RadosStore::flush() {
 
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 
-  #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     for (const auto& h : handles_) h->flush();
   #else
     // NOOP
@@ -273,14 +273,14 @@ void RadosStore::flush() {
 
   #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
 
-    #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+    #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     flushDataHandles();
     #endif
     closeDataHandles();
 
   #else
 
-    #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+    #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     flushDataHandles();
     #else
     // NOOP
@@ -296,7 +296,7 @@ void RadosStore::close() {
 
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 
-  #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     for (const auto& h : handles_) h->close();
   #else
     // NOOP
@@ -315,7 +315,7 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     ASSERT(n == 2 || n == 3);
     
@@ -380,7 +380,7 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
 
 void RadosStore::print(std::ostream& out) const {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
     out << "RadosStore(" << pool_ << "/" << db_namespace_ << ")";
 
@@ -417,7 +417,7 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 
     eckit::MD5 md5(name);
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
   #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
   
@@ -470,7 +470,7 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
 
   #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
 
-    #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+    #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     eckit::DataHandle *dh = name.persistentMultipartWriteHandle(maxObjectSize_, maxAioBuffSize_, maxPartHandleBuffSize_);
     #else
     eckit::DataHandle *dh = name.multipartWriteHandle(maxObjectSize_);
@@ -478,7 +478,7 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
 
   #else
 
-    #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+    #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     eckit::DataHandle *dh = name.persistentDataHandle(false, maxAioBuffSize_);
     #else
     eckit::DataHandle *dh = name.dataHandle();
@@ -550,11 +550,11 @@ void RadosStore::parseConfig(const fdb5::Config& config) {
         if (rados.has("store")) store_conf = rados.getSubConfiguration("store");
     }
 
-#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD) && defined(fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH)
+#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD) && defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
     maxHandleBuffSize_ = store_conf.getInt("maxHandleBuffSize", 1024 * 1024);
 #endif
 
-#if (!defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)) && defined(fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH)
+#if (!defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)) && defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
   #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
     maxAioBuffSize_ = store_conf.getInt("maxAioBuffSize", 1024);
     maxPartHandleBuffSize_ = store_conf.getInt("maxPartHandleBuffSize", 1024);

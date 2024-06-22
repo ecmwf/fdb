@@ -369,6 +369,18 @@ if( HAVE_RADOSFDB )
         rados/RadosStore.h
         rados/RadosCommon.cc
         rados/RadosCommon.h
+        rados/RadosCatalogue.cc
+        rados/RadosCatalogue.h
+        rados/RadosCatalogueWriter.cc
+        rados/RadosCatalogueWriter.h
+        rados/RadosCatalogueReader.cc
+        rados/RadosCatalogueReader.h
+        rados/RadosIndex.cc
+        rados/RadosIndex.h
+        rados/RadosIndexLocation.cc
+        rados/RadosIndexLocation.h
+        rados/RadosLazyFieldLocation.cc
+        rados/RadosLazyFieldLocation.h
     )
 endif()
 

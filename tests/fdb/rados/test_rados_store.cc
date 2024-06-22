@@ -158,7 +158,7 @@ CASE("RadosStore tests") {
 
     SECTION("archive and retrieve") {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string pool{"fdb-test1"};
 
         eckit::RadosPool{pool}.ensureDestroyed();
@@ -184,9 +184,9 @@ CASE("RadosStore tests") {
 
         fdb5::Schema schema{schema_file()};
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
-        fdb5::Key index_key{"c=3,d=4"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
 
@@ -211,7 +211,7 @@ CASE("RadosStore tests") {
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
         // remove
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         eckit::RadosObject field_name{field.location().uri()};
         eckit::RadosNamespace store_name = field_name.nspace();
         eckit::URI store_uri(store_name.uri());
@@ -237,7 +237,7 @@ CASE("RadosStore tests") {
 
     SECTION("with POSIX Catalogue") {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string pool{"fdb-test2"};
 
         eckit::RadosPool{pool}.ensureDestroyed();
@@ -269,10 +269,10 @@ CASE("RadosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
-        fdb5::Key index_key{"c=3,d=4"};
-        fdb5::Key field_key{"e=5,f=6"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
 
         // store data
 
@@ -320,7 +320,7 @@ CASE("RadosStore tests") {
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
         // remove data
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         eckit::RadosObject field_name{field.location().uri()};
         eckit::RadosNamespace store_name{field_name.nspace()};
         eckit::URI store_uri(store_name.uri());
@@ -356,7 +356,7 @@ CASE("RadosStore tests") {
 
     SECTION("VIA FDB API") {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string pool{"fdb-test3"};
 
         eckit::RadosPool{pool}.ensureDestroyed();
@@ -375,7 +375,7 @@ CASE("RadosStore tests") {
             "rados:\n"
         };
 
-#ifndef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         config_str += "  poolPrefix: " + prefix + "\n";
 #endif
 
@@ -385,11 +385,11 @@ CASE("RadosStore tests") {
 
         config_str += "  store:\n";
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         config_str += "    pool: " + pool + "\n";
 #endif
 
-#if defined(fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH)
+#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
   #if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "    maxHandleBuffSize: 100\n";
   #else
@@ -406,9 +406,9 @@ CASE("RadosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
@@ -453,7 +453,7 @@ CASE("RadosStore tests") {
         /// @note: maxObjectSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
         for (int i = 0; i < 4; i++) {
             std::cout << "Archive field " << i << std::endl;
-            fdb5::Key request_key_i{std::string("a=1,b=2,c=3,d=4,e=5,f=") + std::to_string(6 + i)};
+            fdb5::Key request_key_i({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
             fdb.archive(request_key_i, data, sizeof(data));
         }
 #else
@@ -467,7 +467,7 @@ CASE("RadosStore tests") {
 #if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         for (int i = 0; i < 4; i++) {
             std::cout << "Retrieve field " << i << std::endl;
-            fdb5::Key request_key_i{std::string("a=1,b=2,c=3,d=4,e=5,f=") + std::to_string(6 + i)};
+            fdb5::Key request_key_i({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
             metkit::mars::MarsRequest r_i = request_key_i.request("retrieve");
             std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r_i));
         
@@ -547,7 +547,7 @@ CASE("RadosStore tests") {
     // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
     SECTION("FDB API RE-STORE AND WIPE DB") {
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string pool{"fdb-test4"};
 
         eckit::RadosPool{pool}.ensureDestroyed();
@@ -566,7 +566,7 @@ CASE("RadosStore tests") {
             "rados:\n"
         };
 
-#ifndef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         config_str += "  poolPrefix: " + prefix + "\n";
 #endif
 
@@ -576,11 +576,11 @@ CASE("RadosStore tests") {
 
         config_str += "  store:\n";
 
-#ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         config_str += "    pool: " + pool + "\n";
 #endif
 
-#if defined(fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH)
+#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
   #if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "    maxHandleBuffSize: 100\n";
   #else
@@ -597,9 +597,9 @@ CASE("RadosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 

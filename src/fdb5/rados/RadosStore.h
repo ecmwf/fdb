@@ -40,8 +40,8 @@ public: // methods
     eckit::URI uri() const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> storeUnitURIs() const override;
-    std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;
@@ -85,14 +85,14 @@ private: // members
     // mutable bool dirty_;
 
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-  #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     std::vector<eckit::DataHandle*> handles_;
     size_t maxHandleBuffSize_;
   #endif
 #else
     HandleStore handles_;
     mutable ObjectStore dataObjects_;
-  #ifdef fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     size_t maxAioBuffSize_;
     #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
     size_t maxPartHandleBuffSize_;
