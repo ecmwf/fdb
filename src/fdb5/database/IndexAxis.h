@@ -36,6 +36,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -72,7 +73,7 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
-    bool partialMatch(const metkit::mars::MarsRequest& request) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const;
     bool contains(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to

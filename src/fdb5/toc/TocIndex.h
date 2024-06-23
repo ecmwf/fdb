@@ -62,12 +62,14 @@ public: // types
 public: // methods
 
     TocIndex(const Key& key,
+             const Catalogue* catalogue,
              const eckit::PathName &path,
              off_t offset,
              Mode mode,
              const std::string& type = defaulType());
 
     TocIndex(eckit::Stream &,
+             const Catalogue* catalogue,
              const int version,
              const eckit::PathName &directory,
              const eckit::PathName &path,

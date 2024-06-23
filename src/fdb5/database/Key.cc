@@ -380,14 +380,7 @@ Key::Key() :
 // }
 
 Key::Key(const eckit::StringDict &keys) :
-    BaseKey(keys) {
-
-    eckit::StringDict::const_iterator it = keys.begin();
-    eckit::StringDict::const_iterator end = keys.end();
-    for (; it != end; ++it) {
-        names_.emplace_back(it->first);
-    }
-}
+    BaseKey(keys) {}
 
 Key::Key(eckit::Stream& s) :
     BaseKey() {
@@ -395,12 +388,7 @@ Key::Key(eckit::Stream& s) :
 }
 
 Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l) :
-    BaseKey(l) {
-
-    for (const auto& kv : keys_) {
-        names_.emplace_back(kv.first);
-    }
-}
+    BaseKey(l) {}
 
 Key Key::parseString(const std::string& s) {
 
@@ -418,6 +406,86 @@ Key Key::parseString(const std::string& s) {
     }
 
     return Key{keys};
+}
+
+std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
+    return value;
+}
+
+std::string Key::type(const std::string& keyword) const {
+    return "";
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+// TypedKey::TypedKey(const Key& key) : 
+//     BaseKey(key), registry_(nullptr) {}
+
+TypedKey::TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg) : 
+    BaseKey(key), registry_(reg) {}
+
+TypedKey::TypedKey(const std::shared_ptr<TypesRegistry> reg) :
+    BaseKey({}), registry_(reg) {}
+
+TypedKey::TypedKey(const std::string &s, const Rule *rule) :
+    BaseKey({}), registry_(rule ? rule->registry() : nullptr) {
+
+    eckit::Tokenizer parse(":", true);
+    eckit::StringList values;
+    parse(s, values);
+
+    ASSERT(rule);
+    rule->fill(*this, values);
+}
+
+TypedKey::TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
+    BaseKey(keys), registry_(reg) {
+
+    // eckit::StringDict::const_iterator it = keys.begin();
+    // eckit::StringDict::const_iterator end = keys.end();
+    // for (; it != end; ++it) {
+    //     names_.emplace_back(it->first);
+    // }
+}
+
+TypedKey::TypedKey(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
+    BaseKey({}), registry_(reg) {
+    decode(s);
+}
+
+TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
+    BaseKey(l), registry_(reg) {
+
+    // for (const auto& kv : keys_) {
+    //     names_.emplace_back(kv.first);
+    // }
+}
+
+TypedKey TypedKey::parseString(const std::string &s, const std::shared_ptr<TypesRegistry> registry) {
+
+    eckit::Tokenizer parse1(",");
+    eckit::Tokenizer parse2("=");
+    TypedKey ret(registry);
+
+    eckit::StringList vals;
+    parse1(s, vals);
+
+    for (const auto& bit : vals) {
+        eckit::StringList kv;
+        parse2(bit, kv);
+        ASSERT(kv.size() == 2);
+
+        const Type &t = registry->lookupType(kv[0]);
+        std::string v = t.tidy(kv[0], kv[1]);
+
+        if (ret.find(kv[0]) == ret.end()) {
+            ret.push(kv[0], v);
+        } else {
+            ret.set(kv[0], v);
+        }
+    }
+
+    return ret;
 }
 
 void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
@@ -456,87 +524,6 @@ void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
         throw eckit::SeriousBug(oss.str());
     }
 }
-
-std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
-    return value;
-}
-
-std::string Key::type(const std::string& keyword) const {
-    return "";
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// TypedKey::TypedKey(const Key& key) : 
-//     BaseKey(key), registry_(nullptr) {}
-
-TypedKey::TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg) : 
-    BaseKey(key), registry_(reg) {}
-
-TypedKey::TypedKey(const std::shared_ptr<TypesRegistry> reg) :
-    BaseKey({}), registry_(reg) {}
-
-TypedKey::TypedKey(const std::string &s, const Rule *rule) :
-    BaseKey({}), registry_(rule ? rule->registry() : nullptr) {
-
-    eckit::Tokenizer parse(":", true);
-    eckit::StringList values;
-    parse(s, values);
-
-    ASSERT(rule);
-    rule->fill(*this, values);
-}
-
-TypedKey::TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
-    BaseKey(keys), registry_(reg) {
-
-    eckit::StringDict::const_iterator it = keys.begin();
-    eckit::StringDict::const_iterator end = keys.end();
-    for (; it != end; ++it) {
-        names_.emplace_back(it->first);
-    }
-}
-
-TypedKey::TypedKey(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
-    BaseKey({}), registry_(reg) {
-    decode(s);
-}
-
-TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
-    BaseKey(l), registry_(reg) {
-
-    for (const auto& kv : keys_) {
-        names_.emplace_back(kv.first);
-    }
-}
-
-TypedKey TypedKey::parseString(const std::string &s, const std::shared_ptr<TypesRegistry> registry) {
-
-    eckit::Tokenizer parse1(",");
-    eckit::Tokenizer parse2("=");
-    TypedKey ret(registry);
-
-    eckit::StringList vals;
-    parse1(s, vals);
-
-    for (const auto& bit : vals) {
-        eckit::StringList kv;
-        parse2(bit, kv);
-        ASSERT(kv.size() == 2);
-
-        const Type &t = registry->lookupType(kv[0]);
-        std::string v = t.tidy(kv[0], kv[1]);
-
-        if (ret.find(kv[0]) == ret.end()) {
-            ret.push(kv[0], v);
-        } else {
-            ret.set(kv[0], v);
-        }
-    }
-
-    return ret;
-}
-
 
 void TypedKey::registry(const std::shared_ptr<TypesRegistry> reg) {
     registry_ = reg;

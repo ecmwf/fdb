@@ -34,8 +34,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) : 
-    IndexBase(key, "daosKeyValue"), 
+DaosIndex::DaosIndex(const Key& key, const Catalogue* catalogue, const fdb5::DaosName& name) : 
+    IndexBase(key, "daosKeyValue", catalogue), 
     location_(buildIndexKvName(key, name), 0) {
 
     fdb5::DaosSession s{};
@@ -65,8 +65,8 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     
 }
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
-    IndexBase(key, "daosKeyValue"),
+DaosIndex::DaosIndex(const Key& key, const Catalogue* catalogue, const fdb5::DaosKeyValueName& name, bool readAxes) :
+    IndexBase(key, "daosKeyValue", catalogue),
     location_(name, 0) {
 
     if (readAxes) updateAxes();

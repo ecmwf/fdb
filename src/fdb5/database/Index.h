@@ -53,8 +53,8 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s, const int version);
+    IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue);
+    IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue);
 
     virtual ~IndexBase() override;
 
@@ -110,6 +110,8 @@ private: // methods
 
     virtual void add(const Key& key, const Field &field) = 0;
 
+    const TypesRegistry& registry() const;
+
 protected: // members
 
     std::string type_;
@@ -120,6 +122,9 @@ protected: // members
     time_t    timestamp_; ///< timestamp when this Index was flushed
 
     Indexer   indexer_;
+
+    const Catalogue* catalogue_;
+    mutable std::shared_ptr<TypesRegistry> registry_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;

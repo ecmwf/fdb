@@ -132,7 +132,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key&, const void *data, 
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key(nullptr, true));
+    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed

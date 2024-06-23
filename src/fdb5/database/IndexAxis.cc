@@ -221,7 +221,7 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
    // out << std::endl;
 }
 
-bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
+bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const {
 
     // We partially match on a request
     //
@@ -240,6 +240,11 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
                     found = true;
                     break;;
                 }
+                std::string canonical_rqval = registry.lookupType(kv.first).toKey(kv.first, rqval);
+                if (kv.second->contains(canonical_rqval)) {
+                    found = true;
+                    break;;
+                }
             }
 
             if (!found) return false;
@@ -252,6 +257,7 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
 bool IndexAxis::contains(const Key& key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+
         if (!key.match(i->first, *(i->second))) {
             return false;
         }
