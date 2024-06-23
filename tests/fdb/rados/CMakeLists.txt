@@ -11,7 +11,8 @@ if (HAVE_RADOSFDB)
     ecbuild_add_test( TARGET test_fdb5_rados_${_test}
                       SOURCES test_${_test}.cc
                       LIBS "${unit_test_libraries}"
-                      INCLUDES "${unit_test_include_dirs}" )
+                      INCLUDES "${unit_test_include_dirs}"
+                      ENVIRONMENT FDB_RADOS_TEST_POOL=${FDB_RADOS_TEST_POOL} )
 
   endforeach()
 

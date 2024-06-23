@@ -15,7 +15,7 @@
 
 #include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosPersistentKeyValue.h"
+#include "eckit/io/rados/RadosAsyncKeyValue.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/rados/RadosIndexLocation.h"
@@ -82,9 +82,9 @@ private: // members
 
     fdb5::RadosIndexLocation location_;
 
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    eckit::RadosPersistentKeyValue idx_kv_;
-    std::map<std::string, eckit::RadosPersistetKeyValue> axis_kvs_;
+#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
+    eckit::RadosAsyncKeyValue idx_kv_;
+    std::map<std::string, eckit::RadosAsyncKeyValue> axis_kvs_;
 #else
     eckit::RadosKeyValue idx_kv_;
     std::map<std::string, eckit::RadosKeyValue> axis_kvs_;

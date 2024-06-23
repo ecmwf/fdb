@@ -63,13 +63,11 @@ ecbuild_add_option( FEATURE RADOS_STORE_MULTIPART
 
 ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_FLUSH
                     DEFAULT OFF
-                    DESCRIPTION "Ensure writes are persisted in Rados storage on flush." )
+                    DESCRIPTION "Ensure writes/puts are persisted in Rados storage on flush rather than immediately." )
 
-ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_WRITE
-                    CONDITION NOT fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+ecbuild_add_option( FEATURE RADOS_ADMIN
                     DEFAULT OFF
-                    DESCRIPTION "Ensure every object write or kv put is persisted immediately." )
-
+                    DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the ECKIT_RADOS_TEST_POOL cmake variable." )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control

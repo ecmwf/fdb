@@ -209,11 +209,9 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
   #endif
 
   #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle* h = o.persistentDataHandle();
+    eckit::DataHandle* h = o.asyncDataHandle();
     ASSERT(handles_.size() < maxHandleBuffSize_);
     handles_.push_back(h);
-  #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    std::unique_ptr<eckit::DataHandle> h(o.persistentDataHandle(true));
   #else
     std::unique_ptr<eckit::DataHandle> h(o.dataHandle());
   #endif
@@ -471,7 +469,7 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
   #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
 
     #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle *dh = name.persistentMultipartWriteHandle(maxObjectSize_, maxAioBuffSize_, maxPartHandleBuffSize_);
+    eckit::DataHandle *dh = name.asyncMultipartWriteHandle(maxObjectSize_, maxAioBuffSize_, maxPartHandleBuffSize_);
     #else
     eckit::DataHandle *dh = name.multipartWriteHandle(maxObjectSize_);
     #endif
@@ -479,7 +477,7 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
   #else
 
     #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle *dh = name.persistentDataHandle(false, maxAioBuffSize_);
+    eckit::DataHandle *dh = name.asyncDataHandle(maxAioBuffSize_);
     #else
     eckit::DataHandle *dh = name.dataHandle();
     #endif

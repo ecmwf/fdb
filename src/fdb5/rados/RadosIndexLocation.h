@@ -15,7 +15,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosPersistentKeyValue.h"
+#include "eckit/io/rados/RadosAsyncKeyValue.h"
 
 #include "fdb5/database/IndexLocation.h"
 

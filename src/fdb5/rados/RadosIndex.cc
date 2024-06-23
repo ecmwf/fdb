@@ -46,11 +46,7 @@ namespace fdb5 {
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) : 
     IndexBase(key, "radosKeyValue"), 
     location_(eckit::RadosKeyValue{name.pool().name(), name.name(), key.valuesToString()}, 0),
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    idx_kv_(location_.radosName().uri(), true) {
-#else
     idx_kv_(location_.radosName().uri()) {
-#endif
 
     /// @note: performed RPCs:
     /// - generate index kv oid (daos_obj_generate_oid)
@@ -83,11 +79,7 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool re
 // #endif
     IndexBase(key, "radosKeyValue"),
     location_(name, 0),
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    idx_kv_(name.uri(), true) {
-#else
     idx_kv_(name.uri()) {
-#endif
 
     if (readAxes) updateAxes();
 
@@ -105,18 +97,6 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
 
     if (axis_kv == axis_kvs_.end()) {
         std::string kv_name = key().valuesToString() + std::string{"."} + axis;
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-        axis_kvs_.emplace(
-            std::piecewise_construct, 
-            std::forward_as_tuple(axis), 
-            std::forward_as_tuple(
-                location_.radosName().nspace().pool().name(),
-                location_.radosName().nspace().name(),
-                kv_name,
-                true
-            )
-        );
-#else
         axis_kvs_.emplace(
             std::piecewise_construct, 
             std::forward_as_tuple(axis), 
@@ -126,7 +106,6 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
                 kv_name
             )
         );
-#endif
 
         axis_kv = axis_kvs_.find(axis);
     }

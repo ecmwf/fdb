@@ -14,7 +14,7 @@
 #cmakedefine fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 #cmakedefine fdb5_HAVE_RADOS_STORE_MULTIPART
 #cmakedefine fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-#cmakedefine fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+#cmakedefine fdb5_HAVE_RADOS_ADMIN
 #cmakedefine fdb5_HAVE_TOCFDB
 #cmakedefine fdb5_HAVE_DUMMY_DAOS
 #cmakedefine fdb5_HAVE_DAOSFDB

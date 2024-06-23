@@ -16,7 +16,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/utils/Optional.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosPersistentKeyValue.h"
+#include "eckit/io/rados/RadosAsyncKeyValue.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/database/Key.h"
@@ -51,9 +51,9 @@ protected: // members
     std::string namespace_;
 #endif
 
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    eckit::Optional<eckit::RadosPersistentKeyValue> root_kv_;
-    eckit::Optional<eckit::RadosPersistentKeyValue> db_kv_;
+#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
+    eckit::Optional<eckit::RadosAsyncKeyValue> root_kv_;
+    eckit::Optional<eckit::RadosAsyncKeyValue> db_kv_;
 #else
     eckit::Optional<eckit::RadosKeyValue> root_kv_;
     eckit::Optional<eckit::RadosKeyValue> db_kv_;

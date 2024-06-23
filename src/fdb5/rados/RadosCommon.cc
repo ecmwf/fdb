@@ -31,13 +31,8 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 
     readConfig(config, component, true);
 
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    root_kv_.emplace(pool_, root_namespace_, "main_kv", true);
-    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv", true);
-  #else
     root_kv_.emplace(pool_, root_namespace_, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
-  #endif
 
 #else
 
@@ -45,13 +40,8 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 
     db_pool_ = prefix_ + "_" + key.valuesToString();
 
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    root_kv_.emplace(root_pool_, namespace_, "main_kv", true);
-    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv", true);
-  #else
     root_kv_.emplace(root_pool_, namespace_, "main_kv");
     db_kv_.emplace(db_pool_, namespace_, "catalogue_kv");
-  #endif
 
 #endif
 
@@ -71,13 +61,8 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 
     readConfig(config, component, false);
 
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    root_kv_.emplace(pool_, root_namespace_, "main_kv", true);
-    db_kv_.emplace(pool_, db_namespace_, "catalogue_kv", true);
-  #else
     root_kv_.emplace(pool_, root_namespace_, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
-  #endif
 
 #else
 
@@ -91,13 +76,8 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
     ASSERT(n > 1);
     prefix_ = parts[0];
 
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-    root_kv_.emplace(root_pool_, namespace_, "main_kv", true);
-    db_kv_.emplace(db_pool_, namespace_, "catalogue_kv", true);
-  #else
     root_kv_.emplace(root_pool_, namespace_, "main_kv");
     db_kv_.emplace(db_pool_, namespace_, "catalogue_kv");
-  #endif
 
 #endif
 
@@ -150,7 +130,7 @@ void RadosCommon::readConfig(const fdb5::Config& config, const std::string& comp
     root_pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "RootPool;$FDB_RADOS_" + all_caps + "_ROOT_POOL", root_pool_);
 
     prefix_ = c.getString("pool_prefix", prefix_);
-    if (c.has(component)) prefix_ = c.getSubconfiguration(component).getString("pool_prefix", prefix_);
+    if (c.has(component)) prefix_ = c.getSubConfiguration(component).getString("pool_prefix", prefix_);
     ASSERT_MSG(prefix_.find("_") == std::string::npos, "The configured pool prefix must not contain underscores.");
 
 #endif

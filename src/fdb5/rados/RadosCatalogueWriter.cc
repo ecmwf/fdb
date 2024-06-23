@@ -342,7 +342,6 @@ void RadosCatalogueWriter::flush() {
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
         j->second.flush();
-flush axis kvs if not done as part of RadosIndex::flush
     db_kv_->flush();
     root_kv_->flush();
 #endif
