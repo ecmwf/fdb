@@ -5,7 +5,8 @@ Two publications, co-authored by Simon D. Smart, Tiago Quintino, Baudouin Raoult
 describe fdb architecture and have been presented at PASC'17 `A Scalable Object Store for Meteorological and Climate Data`_ and PASC'19 `A High-Performance Distributed Object-Store for Exascale Numerical Weather Prediction and Climate`_
 
 In the following the two BibTeX snippets:
-::
+
+.. code-block:: latex
 
    @inproceedings{10.1145/3093172.3093238,
       author    = {Smart, Simon D. and Quintino, Tiago and Raoult, Baudouin},
@@ -22,8 +23,6 @@ In the following the two BibTeX snippets:
       location  = {Lugano, Switzerland},
       series    = {PASC ’17}
    }
-
-
 
    @inproceedings{10.1145/3324989.3325726,
       author    = {Smart, Simon D. and Quintino, Tiago and Raoult, Baudouin},

@@ -61,7 +61,8 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_tabs.tabs",
     "sphinxfortran.fortran_domain",
-    "breathe",
+    "sphinx_toolbox.collapse",
+    "breathe"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -70,7 +71,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "venv", "README.rst"]
 
 source_suffix = ".rst"
 master_doc = "index"
@@ -121,3 +122,6 @@ copybutton_selector = ".copybutton div.highlight pre"
 # -- Sphinx Tabs configuration -----------------------------------------------
 
 sphinx_tabs_disable_tab_closing = True
+
+# --- Enable figure numbering
+numfig = True

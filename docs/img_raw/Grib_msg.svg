@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="494.21112mm"
+   height="38.865974mm"
+   viewBox="0 0 494.21112 38.865974"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   sodipodi:docname="Grib_msg.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.8668254"
+     inkscape:cx="861.76524"
+     inkscape:cy="141.89709"
+     inkscape:window-width="2560"
+     inkscape:window-height="1387"
+     inkscape:window-x="1512"
+     inkscape:window-y="25"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(8.6413859,-1.7185513)">
+    <g
+       id="g5">
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.224817;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect2"
+         width="123.39235"
+         height="38.641159"
+         x="-8.5289774"
+         y="1.8309598" />
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.138;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect3"
+         width="29.410568"
+         height="21.640619"
+         x="-6.4144964"
+         y="10.072556" />
+      <rect
+         style="fill:#d6d6d6;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-miterlimit:3.8;stroke-dasharray:0.1, 0.3;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect5"
+         width="85.3125"
+         height="21.824127"
+         x="24.494913"
+         y="9.9963665" />
+      <path
+         id="rect4"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="m 24.476688,10.018777 h 39.665837 c 10.825763,7.577736 9.084146,14.770757 0,21.739006 H 24.476688 Z"
+         sodipodi:nodetypes="ccccc" />
+      <path
+         id="rect4-0"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="M 70.108408,10.018777 H 109.77421 V 31.757783 H 70.108408 c 7.838942,-6.216752 11.553243,-13.313853 0,-21.739006 z"
+         sodipodi:nodetypes="ccccc" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="-5.1570578"
+         y="15.787128"
+         id="text4"><tspan
+           sodipodi:role="line"
+           id="tspan4"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="-5.1570578"
+           y="15.787128">Header</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="-6.4645567"
+         y="7.8350267"
+         id="text4-1"><tspan
+           sodipodi:role="line"
+           id="tspan4-3"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="-6.4645567"
+           y="7.8350267"
+           dx="0"
+           dy="0"
+           rotate="0 0 0 0 0 0 0 0 0 0 0">GRIB Msg 1</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="26.108917"
+         y="15.787128"
+         id="text4-7"><tspan
+           sodipodi:role="line"
+           id="tspan4-9"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="26.108917"
+           y="15.787128">Body</tspan></text>
+    </g>
+    <g
+       id="g5-7"
+       transform="translate(123.62518)">
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.224817;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect2-5"
+         width="123.39235"
+         height="38.641159"
+         x="-8.5289774"
+         y="1.8309598" />
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.138;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect3-0"
+         width="29.410568"
+         height="21.640619"
+         x="-6.4144964"
+         y="10.072556" />
+      <rect
+         style="fill:#d6d6d6;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-miterlimit:3.8;stroke-dasharray:0.1, 0.3;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect5-6"
+         width="85.3125"
+         height="21.824127"
+         x="24.494913"
+         y="9.9963665" />
+      <path
+         id="rect4-4"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="m 24.476688,10.018777 h 39.665837 c 10.825763,7.577736 9.084146,14.770757 0,21.739006 H 24.476688 Z"
+         sodipodi:nodetypes="ccccc" />
+      <path
+         id="rect4-0-7"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="M 70.108408,10.018777 H 109.77421 V 31.757783 H 70.108408 c 7.838942,-6.216752 11.553243,-13.313853 0,-21.739006 z"
+         sodipodi:nodetypes="ccccc" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="-5.1570578"
+         y="15.787128"
+         id="text4-8"><tspan
+           sodipodi:role="line"
+           id="tspan4-4"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="-5.1570578"
+           y="15.787128">Header</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="-6.4645567"
+         y="7.8350267"
+         id="text4-1-0"><tspan
+           sodipodi:role="line"
+           id="tspan4-3-0"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="-6.4645567"
+           y="7.8350267"
+           dx="0"
+           dy="0"
+           rotate="0 0 0 0 0 0 0 0 0 0 0">GRIB Msg 2</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="26.108917"
+         y="15.787128"
+         id="text4-7-6"><tspan
+           sodipodi:role="line"
+           id="tspan4-9-2"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="26.108917"
+           y="15.787128">Body</tspan></text>
+      <g
+         id="g7"
+         transform="translate(-0.3815407)">
+        <g
+           id="g5-8"
+           transform="translate(123.87276)">
+          <rect
+             style="fill:#ffffff;stroke:#000000;stroke-width:0.224817;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+             id="rect2-9"
+             width="123.39235"
+             height="38.641159"
+             x="-8.5289774"
+             y="1.8309598" />
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+             x="-6.4645567"
+             y="7.8350267"
+             id="text4-1-5"><tspan
+               sodipodi:role="line"
+               id="tspan4-3-6"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+               x="-6.4645567"
+               y="7.8350267"
+               rotate="0" /></text>
+        </g>
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="174.31871"
+         y="21.431211"
+         id="text4-1-0-9"><tspan
+           sodipodi:role="line"
+           id="tspan4-3-0-6"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="174.31871"
+           y="21.431211"
+           rotate="0 0 0 0">...</tspan></text>
+      <g
+         id="g6"
+         transform="translate(-0.52916667)">
+        <rect
+           style="fill:#ffffff;stroke:#000000;stroke-width:0.224817;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+           id="rect2-5-0"
+           width="123.39235"
+           height="38.641159"
+           x="238.96896"
+           y="1.8309598" />
+      </g>
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.138;stroke-miterlimit:3.8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect3-0-6"
+         width="29.410568"
+         height="21.640619"
+         x="241.08345"
+         y="9.9632654" />
+      <rect
+         style="fill:#d6d6d6;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-miterlimit:3.8;stroke-dasharray:0.1, 0.3;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect5-6-0"
+         width="85.3125"
+         height="21.824127"
+         x="271.99286"
+         y="9.8870764" />
+      <path
+         id="rect4-4-4"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="m 271.97463,9.9094862 h 39.66584 c 10.82576,7.5777358 9.08414,14.7707568 0,21.7390058 h -39.66584 z"
+         sodipodi:nodetypes="ccccc" />
+      <path
+         id="rect4-0-7-0"
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.137535;stroke-miterlimit:3.8"
+         d="m 317.60635,9.9094862 h 39.6658 V 31.648492 h -39.6658 c 7.83894,-6.216752 11.55324,-13.313853 0,-21.7390058 z"
+         sodipodi:nodetypes="ccccc" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="242.34088"
+         y="15.677838"
+         id="text4-8-5"><tspan
+           sodipodi:role="line"
+           id="tspan4-4-6"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="242.34088"
+           y="15.677838">Header</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="241.03339"
+         y="7.7257357"
+         id="text4-1-0-8"><tspan
+           sodipodi:role="line"
+           id="tspan4-3-0-5"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="241.03339"
+           y="7.7257357"
+           dx="0"
+           dy="0"
+           rotate="0 0 0 0 0 0 0 0 0 0 0">GRIB Msg n</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.588px;line-height:0;font-family:Arial;-inkscape-font-specification:Arial;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.499999;stroke-miterlimit:3.8;stroke-opacity:1"
+         x="273.60687"
+         y="15.677838"
+         id="text4-7-6-3"><tspan
+           sodipodi:role="line"
+           id="tspan4-9-2-7"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.5"
+           x="273.60687"
+           y="15.677838">Body</tspan></text>
+    </g>
+  </g>
+</svg>
