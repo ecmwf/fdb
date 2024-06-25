@@ -19,7 +19,7 @@
 #include "fdb5/rados/RadosCatalogue.h"
 // #include "fdb5/daos/DaosName.h"
 // #include "fdb5/daos/DaosSession.h"
-// #include "fdb5/daos/DaosIndex.h"
+#include "fdb5/rados/RadosIndex.h"
 // #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
@@ -109,60 +109,53 @@ WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars:
 
 std::vector<Index> RadosCatalogue::indexes(bool) const {
 
-    NOTIMP;
+    /// @note: sorted is not implemented as is not necessary in this backend.
 
-//     /// @note: sorted is not implemented as is not necessary in this backend.
+    /// @note: performed RPCs:
+    /// - db kv open (daos_kv_open)
+    /// - db kv list keys (daos_kv_list)
 
-//     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
-//     fdb5::DaosSession s{};
+    std::vector<fdb5::Index> res;
 
-//     /// @note: performed RPCs:
-//     /// - db kv open (daos_kv_open)
-//     /// - db kv list keys (daos_kv_list)
-//     fdb5::DaosKeyValue catalogue_kv{s, catalogue_kv_name};  /// @note: throws if not exists
+    for (const auto& key : db_kv_->keys()) {
 
-//     std::vector<fdb5::Index> res;
+        /// @todo: document these well. Single source these reserved values.
+        ///    Ensure where appropriate that user-provided keys do not collide.
+        if (key == "schema" || key == "key") continue;
 
-//     for (const auto& key : catalogue_kv.keys()) {
+        /// @note: performed RPCs:
+        /// - db kv get index location size (daos_kv_get without a buffer)
+        /// - db kv get index location (daos_kv_get)
+        std::vector<char> v;
+        auto m = db_kv_->getMemoryStream(v, key, "DB kv");
 
-//         /// @todo: document these well. Single source these reserved values.
-//         ///    Ensure where appropriate that user-provided keys do not collide.
-//         if (key == "schema" || key == "key") continue;
+        eckit::URI uri(std::string(v.begin(), v.end()));
 
-//         /// @note: performed RPCs:
-//         /// - db kv get index location size (daos_kv_get without a buffer)
-//         /// - db kv get index location (daos_kv_get)
-//         uint64_t size{catalogue_kv.size(key)};
-//         std::vector<char> v(size);
-//         catalogue_kv.get(key, v.data(), size);
+        /// @note: performed RPCs:
+        /// - index kv open (daos_kv_open)
+        /// - index kv get size (daos_kv_get without a buffer)
+        /// - index kv get key (daos_kv_get)
+        /// @note: the following three lines intend to check whether the index kv exists 
+        ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
+        ///   so it is not useful on its own to check whether the index KV existed or not.
+        ///   Instead, presence of a "key" key in the KV is used to determine if the index 
+        ///   KV existed.
+        eckit::RadosKeyValue index_kv{uri};
+        std::optional<fdb5::Key> index_key;
+        try {
+            std::vector<char> data;
+            eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");
+            index_key.emplace(ms);
+        } catch (eckit::RadosEntityNotFoundException& e) {
+            continue; /// @note: the index_kv may not exist after a failed wipe
+            /// @todo: the index_kv may exist even if it does not have the "key" key
+        }
 
-//         fdb5::DaosKeyValueName index_kv_name{eckit::URI(std::string(v.begin(), v.end()))};
+        res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, false)));
 
-//         /// @note: performed RPCs:
-//         /// - index kv open (daos_kv_open)
-//         /// - index kv get size (daos_kv_get without a buffer)
-//         /// - index kv get key (daos_kv_get)
-//         /// @note: the following three lines intend to check whether the index kv exists 
-//         ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
-//         ///   so it is not useful on its own to check whether the index KV existed or not.
-//         ///   Instead, presence of a "key" key in the KV is used to determine if the index 
-//         ///   KV existed.
-//         fdb5::DaosKeyValue index_kv{s, index_kv_name};
-//         std::optional<fdb5::Key> index_key;
-//         try {
-//             std::vector<char> data;
-//             eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");
-//             index_key.emplace(ms);
-//         } catch (fdb5::DaosEntityNotFoundException& e) {
-//             continue; /// @note: the index_kv may not exist after a failed wipe
-//             /// @todo: the index_kv may exist even if it does not have the "key" key
-//         }
+    }
 
-//         res.push_back(Index(new fdb5::DaosIndex(index_key.value(), index_kv_name, false)));
-
-//     }
-
-//     return res;
+    return res;
     
 }
 

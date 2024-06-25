@@ -52,9 +52,13 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
 
     /// @note: performed RPCs:
     /// - check if main kv contains db key (daos_kv_get without a buffer)
+    root_kv_->ensureCreated();
     if (!root_kv_->has(db_name)) {
 
         /// create catalogue kv
+#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+        db_kv_->nspace().pool().ensureCreated();
+#endif
         db_kv_->ensureCreated();
 
         /// write schema under "schema"
@@ -68,7 +72,11 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
         eckit::FileHandle in(config_.schemaPath());
         std::vector<char> data;
         data.resize(in.size());
-        in.read(&data[0], in.size());
+        {
+            eckit::AutoClose ac{in};
+            in.openForRead();
+            in.read(&data[0], in.size());
+        }
         db_kv_->put("schema", &data[0], data.size());
 
         /// write dbKey under "key"

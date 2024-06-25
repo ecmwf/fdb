@@ -16,8 +16,6 @@
 
 #include "eckit/io/rados/RadosObject.h"
 
-#include "fdb5/fdb5_config.h"
-
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 

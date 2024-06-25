@@ -17,6 +17,7 @@
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/io/rados/RadosAsyncKeyValue.h"
 
+#include "fdb5/fdb5_config.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rados/RadosIndexLocation.h"
 

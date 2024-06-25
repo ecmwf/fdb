@@ -290,8 +290,8 @@ const std::vector<eckit::URI> RadosIndex::dataURIs() const {
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
 void RadosIndex::flush() {
 
-    for (auto axis : axis_kvs_) {
-        axis->second.flush();
+    for (auto& axis : axis_kvs_) {
+        axis.second.flush();
     }
 
     idx_kv_.flush();

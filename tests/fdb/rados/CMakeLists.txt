@@ -2,6 +2,7 @@ if (HAVE_RADOSFDB)
 
   list( APPEND rados_tests
     rados_store
+    rados_catalogue
   )
 
   list( APPEND unit_test_libraries fdb5 )

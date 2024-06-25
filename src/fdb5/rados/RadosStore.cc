@@ -224,7 +224,7 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
     h->write(data, length);
 
 
-    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), 0, length, fdb5::Key()));
+    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), 0, length, fdb5::Key(nullptr, true)));
 
 #else
 
@@ -251,7 +251,7 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void * 
 
     ASSERT(len == length);
 
-    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), offset, length, fdb5::Key()));
+    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), offset, length, fdb5::Key(nullptr, true)));
 
 #endif
 

@@ -61,10 +61,12 @@ protected: // members
 
     eckit::Length maxObjectSize_;
 
-#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 private: // members
 
-    std::string prefix_;
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+    std::string nspace_prefix_;
+#else
+    std::string pool_prefix_;
 #endif
 
 };
