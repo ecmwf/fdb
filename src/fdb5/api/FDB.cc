@@ -49,9 +49,9 @@ FDB::~FDB() {
     }
 }
 
-Key FDB::archive(eckit::message::Message msg) {
+void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
-    return archive(key, msg.data(), msg.length());
+    archive(key, msg.data(), msg.length());
 }
 void FDB::archive(eckit::DataHandle& handle) {
     eckit::message::Message msg;
@@ -97,7 +97,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     }
 }
 
-Key FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
@@ -123,7 +123,6 @@ Key FDB::archive(const Key& key, const void* data, size_t length) {
 
     timer.stop();
     stats_.addArchive(length, timer);
-    return keyInternal;
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {

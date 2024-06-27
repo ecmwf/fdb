@@ -23,20 +23,23 @@ CASE("Archive callback") {
     key.set("param","130");
 
     std::map<fdb5::Key, eckit::URI> map;
-    std::vector<Key> internalKeys;
+    std::vector<Key> keys;
 
-    fdb.registerCallback([&map] (const fdb5::Key& internalKey, const fdb5::FieldLocation& location) {
-        map[internalKey] = location.fullUri();
+    fdb.registerCallback([&map] (const fdb5::Key& key, const fdb5::FieldLocation& location) {
+        map[key] = location.fullUri();
     });
 
     key.set("step","1");
-    internalKeys.push_back(fdb.archive(key, data, length));
+    keys.push_back(key);
+    fdb.archive(key, data, length);
 
     key.set("date","20111213");
-    internalKeys.push_back(fdb.archive(key, data, length));
+    keys.push_back(key);
+    fdb.archive(key, data, length);
 
     key.set("type","pf");
-    internalKeys.push_back(fdb.archive(key, data, length));
+    keys.push_back(key);
+    fdb.archive(key, data, length);
     
     fdb.flush();
 
@@ -48,8 +51,8 @@ CASE("Archive callback") {
 
     for (const auto& [key, uri] : map) {
         bool found = false;
-        for (const auto& internalKey : internalKeys) {
-            if (key == internalKey){
+        for (const auto& originalKey : keys) {
+            if (key == originalKey){
                 found = true;
                 break;
             }

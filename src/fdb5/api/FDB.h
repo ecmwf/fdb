@@ -70,7 +70,7 @@ public: // methods
 
     // -------------- Primary API functions ----------------------------
 
-    Key archive(eckit::message::Message msg);
+    void archive(eckit::message::Message msg);
     void archive(eckit::DataHandle& handle);
     void archive(const void* data, size_t length);
     // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
@@ -78,7 +78,7 @@ public: // methods
 
     // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
     // Optional callback function is called upon receiving field location from the store.
-    Key archive(const Key& key, const void* data, size_t length);
+    void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
