@@ -27,6 +27,7 @@
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
@@ -111,6 +112,8 @@ public: // methods
                             ControlIdentifiers identifiers);
 
     IndexAxis axes(const FDBToolRequest& request, int level=3);
+
+    AxesIterator iterableAxes(const FDBToolRequest& request, int level=3);
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 

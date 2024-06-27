@@ -63,6 +63,8 @@ public: // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
 
+    AxesIterator axes(const FDBToolRequest& request, int level) override;
+
     void flush() override;
 
     FDBStats stats() const override;

@@ -77,6 +77,18 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     }
 };
 
+struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
+
+    explicit AxesHelper(int level) : level_(level) {}
+    void encodeExtra(eckit::Stream& s) const {
+        s << level_;
+    }
+
+private: // members
+
+    int level_;
+};
+
 class FDBEndpoint {
 public:
     eckit::net::Endpoint fieldLocationEndpoint_;
@@ -239,6 +251,10 @@ ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
+}
+
+AxesIterator RemoteFDB::axes(const fdb5::FDBToolRequest& request, int level) {
+    return forwardApiCall(AxesHelper(level), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

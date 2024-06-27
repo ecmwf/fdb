@@ -38,20 +38,18 @@ class ApiSpy : public fdb5::FDBBase {
 private: // types
 
     struct Counts {
-        Counts() :
-            archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
-            purge(0), stats(0), flush(0), control(0), move(0) {}
-        size_t archive;
-        size_t inspect;
-        size_t list;
-        size_t dump;
-        size_t status;
-        size_t wipe;
-        size_t purge;
-        size_t stats;
-        size_t flush;
-        size_t control;
-        size_t move;
+        size_t archive = 0;
+        size_t inspect = 0;
+        size_t list = 0;
+        size_t dump = 0;
+        size_t status = 0;
+        size_t wipe = 0;
+        size_t purge = 0;
+        size_t stats = 0;
+        size_t flush = 0;
+        size_t control = 0;
+        size_t move = 0;
+        size_t axes = 0;
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
@@ -123,6 +121,11 @@ public: // methods
     fdb5::MoveIterator move(const fdb5::FDBToolRequest& request, const eckit::URI& dest) override {
         counts_.move += 1;
         return fdb5::MoveIterator(0);
+    }
+
+    fdb5::AxesIterator axes(const fdb5::FDBToolRequest& request, int level) override {
+        counts_.axes += 1;
+        return fdb5::AxesIterator(0);
     }
 
     fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,

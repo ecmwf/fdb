@@ -57,7 +57,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 stores(clientID, requestID);
                 return Handled::Replied;
 
-
             case Message::Archive: // notification that the client is starting to send data locations for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
@@ -104,6 +103,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 
             case Message::Stats: // inspect request. Location are sent aynchronously over the data connection
                 stats(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::Axes:
+                axes(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::Flush: // flush catalogue
@@ -227,6 +230,16 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     }
 };
 
+struct AxesHelper : public BaseHelper<AxesElement> {
+    void extraDecode(eckit::Stream& s) { s >> level_; }
+    AxesIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.iterableAxes(request, level_);
+    }
+
+private: // members
+    int level_;
+};
+
 template <typename HelperClass>
 void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     HelperClass helper;
@@ -273,6 +286,10 @@ void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buf
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     forwardApiCall<StatsHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    forwardApiCall<AxesHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

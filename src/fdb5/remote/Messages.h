@@ -35,7 +35,7 @@ namespace fdb5::remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 12;
+constexpr uint16_t CurrentVersion = 13;
 
 enum class Message : uint16_t {
 
@@ -63,6 +63,7 @@ enum class Message : uint16_t {
     Read,
     Move,
     Store,
+    Axes,
 
     // Responses
     Received = 200,

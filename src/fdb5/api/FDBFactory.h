@@ -92,7 +92,7 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axes(const FDBToolRequest& request, int level) = 0;
 
     // -------------- API management ----------------------------
 

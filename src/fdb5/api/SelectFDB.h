@@ -68,6 +68,8 @@ public: // methods
     
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
+    AxesIterator axes(const FDBToolRequest& request, int level) override;
+
     void flush() override;
 
 private: // methods

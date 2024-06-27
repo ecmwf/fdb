@@ -64,6 +64,8 @@ public: // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
+    AxesIterator axes(const FDBToolRequest& request, int level) override;
+
     const eckit::net::Endpoint& storeEndpoint() const;
     const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
 

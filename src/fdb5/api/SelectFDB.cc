@@ -196,6 +196,14 @@ ControlIterator SelectFDB::control(const FDBToolRequest& request,
     });
 }
 
+AxesIterator SelectFDB::axes(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::axes() >> " << request << std::endl;
+    return queryInternal(request,
+                         [level](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.iterableAxes(request, level);
+    });
+}
+
 void SelectFDB::flush() {
     for (auto& iter : subFdbs_) {
         FDB& fdb(iter.second);

@@ -254,6 +254,15 @@ MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest
     });
 }
 
+AxesIterator DistFDB::axes(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::axes() >> " << request << std::endl;
+    return queryInternal(request,
+                         [level](FDB& fdb, const FDBToolRequest& request) {
+                             return fdb.iterableAxes(request, level);
+                         });
+}
+
+
 void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;
