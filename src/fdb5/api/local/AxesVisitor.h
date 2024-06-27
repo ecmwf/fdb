@@ -38,9 +38,9 @@ public:
     void catalogueComplete(const fdb5::Catalogue& catalogue) override;
 
 //    bool preVisitDatabase(const eckit::URI& uri) override;
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index&) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(const Field&, const InspectionKey&) override { NOTIMP; }
 
 private: // members
 

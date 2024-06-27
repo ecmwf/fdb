@@ -63,74 +63,10 @@ Key::Key(const eckit::StringDict &keys) :
     }
 }
 
-<<<<<<< HEAD
 Key::Key(eckit::Stream& s) {
     decode(s);
 }
 
-=======
-Key::Key(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
-    registry_(reg),
-    canonical_(reg == nullptr) {
-    decode(s);
-}
-
-Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
-    keys_(l),
-    registry_(reg),
-    canonical_(reg == nullptr) {
-
-    for (const auto& kv : keys_) {
-        names_.emplace_back(kv.first);
-    }
-}
-
-Key Key::parseStringUntyped(const std::string& s) {
-
-    eckit::Tokenizer parse1(",");
-    eckit::Tokenizer parse2("=");
-    eckit::StringDict keys;
-
-    eckit::StringList v;
-    parse1(s, v);
-    for (const auto& bit : v) {
-        eckit::StringList kv;
-        parse2(bit, kv);
-        ASSERT(kv.size() == 2);
-        keys.emplace(std::move(kv[0]), std::move(kv[1]));
-    }
-
-    return Key{keys};
-}
-
-Key Key::parseString(const std::string &s, const std::shared_ptr<TypesRegistry> registry) {
-
-    eckit::Tokenizer parse1(",");
-    eckit::Tokenizer parse2("=");
-    Key ret(registry);
-
-    eckit::StringList vals;
-    parse1(s, vals);
-
-    for (const auto& bit : vals) {
-        eckit::StringList kv;
-        parse2(bit, kv);
-        ASSERT(kv.size() == 2);
-
-        const Type &t = registry->lookupType(kv[0]);
-        std::string v = t.tidy(kv[0], kv[1]);
-
-        if (ret.find(kv[0]) == ret.end()) {
-            ret.push(kv[0], v);
-        } else {
-            ret.set(kv[0], v);
-        }
-    }
-
-    return ret;
-}
-
->>>>>>> ead8f24d (fix merge (axis test))
 void Key::decode(eckit::Stream& s) {
 
     keys_.clear();

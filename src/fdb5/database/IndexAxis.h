@@ -35,7 +35,7 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class InspectionKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ public: // methods
     bool operator==(const IndexAxis& rhs) const;
     bool operator!=(const IndexAxis& rhs) const;
 
-    void insert(const InspectionKey &key);
+    void insert(const Key& key);
     void encode(eckit::Stream &s, const int version) const;
     static int currentVersion() { return 3; }
 
@@ -71,7 +71,7 @@ public: // methods
     void dump(std::ostream &out, const char* indent) const;
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    bool contains(const InspectionKey& key) const;
+    bool contains(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.

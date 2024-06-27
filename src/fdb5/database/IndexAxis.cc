@@ -250,7 +250,7 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-bool IndexAxis::contains(const InspectionKey &key) const {
+bool IndexAxis::contains(const Key &key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         if (!key.match(i->first, *(i->second))) {
@@ -260,7 +260,7 @@ bool IndexAxis::contains(const InspectionKey &key) const {
     return true;
 }
 
-void IndexAxis::insert(const InspectionKey &key) {
+void IndexAxis::insert(const Key& key) {
     ASSERT(!readOnly_);
 
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
