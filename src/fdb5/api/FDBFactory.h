@@ -129,7 +129,7 @@ protected: // members
 
     bool disabled_;
 
-    ArchiveCallback callback_;
+    ArchiveCallback callback_ = CALLBACK_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, ArchiveCallback callback) :
+ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, const ArchiveCallback& callback) :
     BaseArchiveVisitor(owner, field),
     data_(data),
     size_(size),
@@ -30,7 +30,7 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 
     ASSERT(current());
 
-    current()->archive(key, data_, size_, field_, callback_); //field_ is the user key! (or rather, "internal key")
+    current()->archive(key, data_, size_, field_, callback_);
 
     return true;
 }

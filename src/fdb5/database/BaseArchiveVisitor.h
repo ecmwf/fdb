@@ -48,7 +48,7 @@ protected: // methods
 
 protected: // members
 
-    const Key &field_;
+    const Key& field_;
 
 private: // members
 
