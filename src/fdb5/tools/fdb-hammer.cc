@@ -36,7 +36,7 @@
 #include "fdb5/daos/DaosSession.h"
 
 // uncomment for rados runs
-#include "fdb5/rados/RadosCluster.h"
+// #include "fdb5/rados/RadosCluster.h"
 
 // uncomment for lustre runs
 //#include "fdb5/toc/TocSession.h"
