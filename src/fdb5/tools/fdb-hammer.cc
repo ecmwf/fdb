@@ -33,10 +33,10 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 // uncomment for daos runs
-#include "fdb5/daos/DaosSession.h"
+//#include "fdb5/daos/DaosSession.h"
 
 // uncomment for rados runs
-// #include "eckit/io/rados/RadosCluster.h"
+#include "eckit/io/rados/RadosCluster.h"
 
 // uncomment for lustre runs
 //#include "fdb5/toc/TocSession.h"
@@ -216,9 +216,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     codes_handle_delete(handle);
 
     // uncomment for daos runs
-    fdb5::DaosManager::instance().stats().report(std::cout);
+    //fdb5::DaosManager::instance().stats().report(std::cout);
     // uncomment for rados runs
-    // eckit::RadosCluster::instance().stats().report(std::cout);
+    eckit::RadosCluster::instance().stats().report(std::cout);
     // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
@@ -322,9 +322,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     timer.stop();
 
     // uncomment for daos runs
-    fdb5::DaosManager::instance().stats().report(std::cout);
+    //fdb5::DaosManager::instance().stats().report(std::cout);
     // uncomment for rados runs
-    // eckit::RadosCluster::instance().stats().report(std::cout);
+    eckit::RadosCluster::instance().stats().report(std::cout);
     // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
@@ -412,9 +412,9 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
     timer.stop();
 
     // uncomment for daos runs
-    fdb5::DaosManager::instance().stats().report(std::cout);
+    //fdb5::DaosManager::instance().stats().report(std::cout);
     // uncomment for rados runs
-    // eckit::RadosCluster::instance().stats().report(std::cout);
+    eckit::RadosCluster::instance().stats().report(std::cout);
     // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
