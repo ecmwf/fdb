@@ -97,7 +97,7 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 
     for(auto l: list) {
-        std::string v = registry.lookupType(keyword).toKey(keyword, l);
+        std::string v = registry.lookupType(keyword).toKey(l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);
         }

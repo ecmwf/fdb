@@ -112,7 +112,7 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
         if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
             auto step = keyInternal.find("step");
             if (step != keyInternal.end()) {
-                std::string canonicalStep = config().schema().registry()->lookupType("step").toKey("step", step->second + static_cast<char>(tolower(stepunit->second[0])));
+                std::string canonicalStep = config().schema().registry()->lookupType("step").toKey(step->second + static_cast<char>(tolower(stepunit->second[0])));
                 keyInternal.set("step", canonicalStep);
             }
         }

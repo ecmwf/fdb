@@ -476,7 +476,7 @@ TypedKey TypedKey::parseString(const std::string &s, const std::shared_ptr<Types
         ASSERT(kv.size() == 2);
 
         const Type &t = registry->lookupType(kv[0]);
-        std::string v = t.tidy(kv[0], kv[1]);
+        std::string v = t.tidy(kv[1]);
 
         if (ret.find(kv[0]) == ret.end()) {
             ret.push(kv[0], v);
@@ -547,7 +547,7 @@ std::string TypedKey::canonicalise(const std::string& keyword, const std::string
     if (value.empty()) {
         return value;
     } else {
-        return this->registry().lookupType(keyword).toKey(keyword, value);
+        return this->registry().lookupType(keyword).toKey(value);
     }
 }
 

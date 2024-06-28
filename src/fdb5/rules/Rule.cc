@@ -468,10 +468,10 @@ void Rule::check(const Key& key) const {
         if (k != key.end()) {
             const std::string& value = (*k).second;
             const Type& type = registry_->lookupType(pred->keyword());
-            if (value != type.tidy(pred->keyword(), value)) {
+            if (value != type.tidy(value)) {
                 std::stringstream ss;
                 ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(pred->keyword(), value) << std::endl;
+                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(value) << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
         }

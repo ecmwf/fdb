@@ -240,7 +240,7 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request, const Typ
                     found = true;
                     break;;
                 }
-                std::string canonical_rqval = registry.lookupType(kv.first).toKey(kv.first, rqval);
+                std::string canonical_rqval = registry.lookupType(kv.first).toKey(rqval);
                 if (kv.second->contains(canonical_rqval)) {
                     found = true;
                     break;;

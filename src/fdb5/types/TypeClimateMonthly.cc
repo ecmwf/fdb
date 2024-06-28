@@ -52,8 +52,7 @@ static int month(const std::string &value) {
     }
 }
 
-std::string TypeClimateMonthly::toKey(const std::string&,
-                                      const std::string &value) const {
+std::string TypeClimateMonthly::toKey(  const std::string &value) const {
 
     return std::to_string(month(value));
 }

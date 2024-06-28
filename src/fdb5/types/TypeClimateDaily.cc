@@ -59,8 +59,7 @@ static int month(const std::string &value) {
   }
 }
 
-std::string TypeClimateDaily::toKey(const std::string&,
-                                    const std::string &value) const {
+std::string TypeClimateDaily::toKey(const std::string &value) const {
   std::ostringstream out;
   char prev = out.fill ('0');
   out.width(4);
