@@ -155,7 +155,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
             /// @todo: the index_kv may exist even if it does not have the "key" key
         }
 
-        res.push_back(Index(new fdb5::DaosIndex(index_key.value(), index_kv_name, false)));
+        res.push_back(Index(new fdb5::DaosIndex(index_key.value(), this, index_kv_name, false)));
 
     }
 

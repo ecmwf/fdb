@@ -30,7 +30,7 @@ public: // methods
 
     DbStats stats() const override { NOTIMP; }
 
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;

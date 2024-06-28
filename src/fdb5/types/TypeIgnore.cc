@@ -25,8 +25,7 @@ TypeIgnore::~TypeIgnore() {
 }
 
 
-std::string TypeIgnore::toKey(const std::string&,
-                              const std::string&) const {
+std::string TypeIgnore::toKey(const std::string&) const {
     return "";
 }
 

@@ -30,8 +30,7 @@ public: // methods
 
     virtual ~TypeDate() override;
 
-    virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const override;
+    virtual std::string tidy(const std::string &value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,

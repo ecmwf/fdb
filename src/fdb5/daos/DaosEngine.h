@@ -37,11 +37,9 @@ protected: // methods
 
     virtual std::string dbType() const override { NOTIMP; };
 
-    virtual eckit::URI location(const Key &key, const Config& config) const override { NOTIMP; };
+    virtual eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
 
     virtual bool canHandle(const eckit::URI&, const Config&) const override;
-
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;

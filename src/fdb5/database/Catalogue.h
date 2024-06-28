@@ -43,8 +43,8 @@ typedef std::map<Key, Index> IndexStore;
 class Catalogue {
 public:
 
-    Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
+    Catalogue(const Key& dbKey, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
+        : dbKey_(dbKey), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~Catalogue() {}
 
@@ -55,7 +55,7 @@ public:
     std::unique_ptr<Store> buildStore();
     virtual const Schema& schema() const = 0;
 
-    virtual bool selectIndex(const Key& key) = 0;
+    virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex() = 0;
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;

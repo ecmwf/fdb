@@ -31,9 +31,7 @@ TypeExpver::~TypeExpver() {
 }
 
 
-std::string TypeExpver::tidy(const std::string&,
-                             const std::string& value) const {
-
+std::string TypeExpver::tidy(const std::string& value) const {
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(4) << eckit::StringTools::trim(value);

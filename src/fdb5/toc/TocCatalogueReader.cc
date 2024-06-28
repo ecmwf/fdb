@@ -47,22 +47,22 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
-    if(currentIndexKey_ == key) {
+    if(currentIndexKey_ == idxKey) {
         return true;
     }
 
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
     matching_.clear();
 
     for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
-        if (idx->first.key() == key) {
+        if (idx->first.key() == idxKey) {
             matching_.push_back(&(*idx));
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found "
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
@@ -108,9 +108,9 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 
-    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const Index& idx((*m)->first);
-        Key remapKey = (*m)->second;
+    for (const auto& m : matching_) {
+        const Index& idx(m->first);
+        Key remapKey = m->second;
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();

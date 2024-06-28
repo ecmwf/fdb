@@ -27,8 +27,7 @@ TypeGrid::TypeGrid(const std::string &name, const std::string &type) :
 TypeGrid::~TypeGrid() {
 }
 
-std::string TypeGrid::toKey(const std::string&,
-                            const std::string& value) const {
+std::string TypeGrid::toKey(const std::string& value) const {
 
     std::string s(value);
     std::replace( s.begin(), s.end(), '/', '+');

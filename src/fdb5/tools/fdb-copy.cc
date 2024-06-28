@@ -51,8 +51,6 @@ static std::vector<metkit::mars::MarsRequest> readRequest(const CmdArgs& args) {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        // std::cout << "Reading " << args(i) << std::endl;
-
         std::ifstream in(args(i).c_str());
         if (in.bad()) {
             std::ostringstream msg;
@@ -98,12 +96,7 @@ void FDBCopy::execute(const CmdArgs& args) {
 
     std::vector<metkit::mars::MarsRequest> requests = readRequest(args);
 
-    // std::cout << "REQUESTS: " << std::endl;
-    // for (auto r : requests)
-    //     std::cout << r << std::endl;
-
     // Evaluate the requests to obtain data handles
-
     const bool sort = args.getBool("sort", false);
     fdb5::HandleGatherer handles(sort);
 

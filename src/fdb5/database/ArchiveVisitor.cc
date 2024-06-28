@@ -16,21 +16,19 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size) :
-    BaseArchiveVisitor(owner, field),
+ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key& initialFieldKey, const void *data, size_t size) :
+    BaseArchiveVisitor(owner, initialFieldKey),
     data_(data),
     size_(size) {
 }
 
-bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
+bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
 
-    // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
-    checkMissingKeys(full);
+    checkMissingKeys(fullComputedKey);
 
     ASSERT(current());
 
-    current()->archive(key, data_, size_);
-
+    current()->archive(datumKey.canonical(), data_, size_);
 
     return true;
 }

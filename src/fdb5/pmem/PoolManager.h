@@ -42,7 +42,7 @@ public: // methods
     PoolManager(const Config& config=Config());
 
     /// Uniquely selects a pool where the Key will be put or already exists
-    eckit::PathName pool(const Key &key);
+    eckit::PathName pool(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allPools(const Key& key);

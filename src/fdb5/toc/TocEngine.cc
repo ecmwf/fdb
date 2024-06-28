@@ -250,11 +250,6 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::allLocations(const Key& key, const Config& config) const
-{
-    return databases(key, CatalogueRootManager(config).allRoots(key), config);
-}
-
 std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, CatalogueRootManager(config).visitableRoots(key), config);

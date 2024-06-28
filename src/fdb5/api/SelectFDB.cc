@@ -208,7 +208,7 @@ void SelectFDB::print(std::ostream &s) const {
     s << "SelectFDB()";
 }
 
-bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 

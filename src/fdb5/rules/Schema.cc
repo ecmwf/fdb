@@ -52,26 +52,24 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 }
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (Rule* r : rules_) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
 		// (*i)->dump(eckit::Log::info());
-		(*i)->expand(request, visitor, 0, keys, full);
+		r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
 
-void Schema::expand(const Key &field, WriteVisitor &visitor) const {
-    Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+void Schema::expand(const Key& field, WriteVisitor &visitor) const {
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(field, visitor, 0, keys, full);
+    for (Rule* r : rules_) {
+        r->expand(field, visitor, 0, keys, fullComputedKey);
     }
 }
 
@@ -86,14 +84,11 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
-    keys[1].registry(registry());
-    keys[2].registry(registry());
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(request, visitor, 1, keys, full);
+        (*i)->expand(request, visitor, 1, keys, fullComputedKey);
     }
 }
 
@@ -108,26 +103,15 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
-    keys[1].registry(registry());
-    keys[2].registry(registry());
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(field, visitor, 1, keys, full);
+        (*i)->expand(field, visitor, 1, keys, fullComputedKey);
     }
 }
 
-bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
-    bool found = false;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-        (*i)->expandFirstLevel(dbKey, result, found);
-    }
-    return found;
-}
-
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result) const {
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
@@ -139,15 +123,15 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
     return found;
 }
 
-void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(dbKey, result, missing);
+void Schema::matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const {
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
 void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(request, result, missing);
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(request, result, missing);
     }
 }
 

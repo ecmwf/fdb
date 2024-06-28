@@ -53,8 +53,8 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s, const int version);
+    IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue);
+    IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue);
 
     virtual ~IndexBase() override;
 
@@ -80,8 +80,8 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
-    virtual void put(const Key &key, const Field &field);
+    virtual bool get(const Key& key, const Key& remapKey, Field &field) const = 0;
+    virtual void put(const Key& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
@@ -108,7 +108,9 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const Key &key, const Field &field) = 0;
+    virtual void add(const Key& key, const Field &field) = 0;
+
+    const TypesRegistry& registry() const;
 
 protected: // members
 
@@ -120,6 +122,9 @@ protected: // members
     time_t    timestamp_; ///< timestamp when this Index was flushed
 
     Indexer   indexer_;
+
+    const Catalogue* catalogue_;
+    mutable std::shared_ptr<TypesRegistry> registry_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;

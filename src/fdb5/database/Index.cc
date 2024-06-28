@@ -11,16 +11,18 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/rules/Rule.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexBase::IndexBase(const Key& key, const std::string& type) :
+IndexBase::IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue) :
     type_(type),
     axes_(),
-    key_(key)
+    key_(key),
+    catalogue_(catalogue)
 {
 }
 
@@ -87,7 +89,8 @@ void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding 
 }
 
 
-IndexBase::IndexBase(eckit::Stream& s, const int version) {
+IndexBase::IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue) :
+    catalogue_(catalogue) {
     if (version >= 3)
         decodeCurrent(s, version);
     else
@@ -125,7 +128,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
     s << type_;
 }
 
-void IndexBase::put(const Key &key, const Field &field) {
+void IndexBase::put(const Key& key, const Field &field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
@@ -133,20 +136,30 @@ void IndexBase::put(const Key &key, const Field &field) {
     add(key, field);
 }
 
+const TypesRegistry& IndexBase::registry() const {
+    if (!registry_) {
+        ASSERT(catalogue_);
+        const Rule* rule = catalogue_->schema().ruleFor(catalogue_->key(), key_);
+        ASSERT(rule);
+        registry_ = rule->registry();
+    }
+    return *registry_;
+}
+
 bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
 
     if (!key_.partialMatch(request)) return false;
 
-    if (!axes_.partialMatch(request)) return false;
+    if (!axes_.partialMatch(request, registry())) return false;
 
     return true;
 }
 
-bool IndexBase::mayContain(const Key &key) const {
+bool IndexBase::mayContain(const Key& key) const {
     return axes_.contains(key);
 }
 
-const Key &IndexBase::key() const {
+const Key& IndexBase::key() const {
     return key_;
 }
 
@@ -185,7 +198,7 @@ class NullIndex : public IndexBase {
 
 public: // methods
 
-    NullIndex() : IndexBase(Key(), "null") {}
+    NullIndex() : IndexBase(Key(), "null", nullptr) {}
 
 private: // methods
 
@@ -200,8 +213,8 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get( const Key&, const Key&, Field&) const override { NOTIMP; }
-    virtual void add( const Key&, const Field&) override { NOTIMP; }
+    virtual bool get(const Key&, const Key&, Field&) const override { NOTIMP; }
+    virtual void add(const Key&, const Field&) override { NOTIMP; }
     virtual void flush() override { NOTIMP; }
     virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }
     virtual void entries(EntryVisitor&) const override { NOTIMP; }

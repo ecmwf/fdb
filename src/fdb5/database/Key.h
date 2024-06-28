@@ -42,19 +42,25 @@ class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Key {
+class BaseKey {
 
 public: // methods
 
-    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
-    explicit Key(const std::string &keys, const Rule* rule);
-    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    BaseKey() : keys_(), names_() {}
+    BaseKey(const BaseKey &key) : keys_(key.keys_), names_(key.names_) {}
 
-    static Key parseStringUntyped(const std::string& s);
-    /// @todo - this functionality should not be supported any more.
-    static Key parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+    explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
+        for (const auto& k : keys) {
+            names_.emplace_back(k.first);
+        }
+    }
+    BaseKey(std::initializer_list<std::pair<const std::string, std::string>> l) : keys_(l) {
+        for (const auto& k : l) {
+            names_.emplace_back(k.first);
+        }
+    }
+
+    virtual ~BaseKey();
 
     std::set<std::string> keys() const;
 
@@ -68,50 +74,40 @@ public: // methods
 
     void clear();
 
-    bool match(const Key& other) const;
+    // std::vector<eckit::URI> TocEngine::databases(const Key& key,
+    bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
 
-    bool match(const Key& other, const eckit::StringList& ignore) const;
+    // bool match(const BaseKey& other, const eckit::StringList& ignore) const;
 
-    bool match(const std::string& key, const std::set<std::string>& values) const;
+    // bool match(const std::string& key, const std::set<std::string>& values) const;
     bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key &other) const {
+    bool operator< (const BaseKey& other) const {
         return keys_ < other.keys_;
     }
 
-    bool operator!= (const Key &other) const {
+    bool operator!= (const BaseKey& other) const {
         return keys_ != other.keys_;
     }
 
-    bool operator== (const Key &other) const {
+    bool operator== (const BaseKey& other) const {
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
+    friend std::ostream& operator<<(std::ostream &s, const BaseKey& x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
+    friend eckit::Stream& operator<<(eckit::Stream &s, const BaseKey& x) {
         x.encode(s);
         return s;
     }
-
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
-        return s;
-    }
-
-    // Registry is needed before we can stringise/canonicalise.
-    void registry(const std::shared_ptr<TypesRegistry> reg);
-    [[ nodiscard ]]
-    const TypesRegistry& registry() const;
-    const void* reg() const;
 
     std::string valuesToString() const;
 
@@ -135,9 +131,6 @@ public: // methods
 
     bool empty() const { return keys_.empty(); }
 
-    /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
-
     const eckit::StringDict& keyDict() const;
 
     metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
@@ -146,10 +139,11 @@ public: // methods
 
     operator eckit::StringDict() const;
 
-private: // members
+protected: // members
 
     //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const;
+    virtual std::string canonicalise(const std::string& keyword, const std::string& value) const = 0;
+    virtual std::string type(const std::string& keyword) const = 0;
 
     void print( std::ostream &out ) const;
     void decode(eckit::Stream& s);
@@ -159,9 +153,73 @@ private: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Key : public BaseKey {
+
+public: // methods
+
+    explicit Key();
+    explicit Key(eckit::Stream &);
+    explicit Key(const eckit::StringDict &keys);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>);
+
+    static Key parseString(const std::string& s);
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
+        x = Key(s);
+        return s;
+    }
+
+private: // members
+
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+    std::string type(const std::string& keyword) const override;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class TypedKey : public BaseKey {
+
+public: // methods
+
+    explicit TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const std::string &keys, const Rule* rule);
+    explicit TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg);
+    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg);
+
+    static TypedKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+
+    Key canonical() const;
+
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeys(const BaseKey& other, bool checkAlsoValues = false) const;
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x) {
+        x = TypedKey(s, nullptr);
+        return s;
+    }
+
+    // Registry is needed before we can stringise/canonicalise.
+    void registry(const std::shared_ptr<TypesRegistry> reg);
+    [[ nodiscard ]]
+    const TypesRegistry& registry() const;
+    const void* reg() const;
+
+private: // members
+
+    //TODO add unit test for each type
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+    std::string type(const std::string& keyword) const override;
 
     std::shared_ptr<TypesRegistry> registry_;
-    bool canonical_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

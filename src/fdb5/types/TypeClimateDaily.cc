@@ -59,8 +59,7 @@ static int month(const std::string &value) {
   }
 }
 
-std::string TypeClimateDaily::toKey(const std::string&,
-                                    const std::string &value) const {
+std::string TypeClimateDaily::toKey(const std::string &value) const {
   std::ostringstream out;
   char prev = out.fill ('0');
   out.width(4);
@@ -90,7 +89,6 @@ void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,
 bool TypeClimateDaily::match(const std::string&,
                    const std::string& value1,
                    const std::string& value2) const {
-    // std::cout << value1 << " vs. " << value2 << " are " << (month(value1) == month(value2)) << std::endl;
 
     return month(value1) == month(value2);
 }

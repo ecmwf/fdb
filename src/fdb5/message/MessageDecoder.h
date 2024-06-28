@@ -49,7 +49,7 @@ public:
     virtual ~MessageDecoder();
 
     static Key messageToKey(const eckit::message::Message& msg);
-    void messageToKey(const eckit::message::Message& msg, Key &key);
+    void messageToKey(const eckit::message::Message& msg, Key& key);
     metkit::mars::MarsRequest messageToRequest(const eckit::PathName &path, const char *verb = "retrieve");
     std::vector<metkit::mars::MarsRequest> messageToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 

@@ -26,8 +26,7 @@ TypeAbbreviation::TypeAbbreviation(const std::string &name, const std::string &t
 TypeAbbreviation::~TypeAbbreviation() {
 }
 
-std::string TypeAbbreviation::toKey(const std::string&,
-                                    const std::string &value) const {
+std::string TypeAbbreviation::toKey(const std::string &value) const {
 
     return value.substr(0, count_);
 }

@@ -29,8 +29,7 @@ TypeTime::TypeTime(const std::string &name, const std::string &type) :
 TypeTime::~TypeTime() {
 }
 
-std::string TypeTime::tidy(const std::string&,
-                           const std::string& value) const {
+std::string TypeTime::tidy(const std::string& value) const {
 
     eckit::Translator<std::string, long> t;
 
@@ -44,8 +43,7 @@ std::string TypeTime::tidy(const std::string&,
     return oss.str();
 }
 
-std::string TypeTime::toKey(const std::string& keyword,
-                           const std::string& value) const {
+std::string TypeTime::toKey(const std::string& value) const {
 
     // if value just contains a digit, add a leading zero to be compliant with eckit::Time
     std::string t = value.size() < 2 ? "0"+value : value;
