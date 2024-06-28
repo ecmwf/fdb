@@ -32,10 +32,13 @@
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-// comment out for lustre runs
+// uncomment for daos runs
 #include "fdb5/daos/DaosSession.h"
 
-// comment out for daos runs
+// uncomment for rados runs
+#include "fdb5/rados/RadosCluster.h"
+
+// uncomment for lustre runs
 //#include "fdb5/toc/TocSession.h"
 //#include "fdb5/toc/TocIOStats.h"
 
@@ -212,9 +215,11 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
     codes_handle_delete(handle);
 
-    // comment out for lustre runs
+    // uncomment for daos runs
     fdb5::DaosManager::instance().stats().report(std::cout);
-    // comment out for daos runs
+    // uncomment for rados runs
+    // eckit::RadosCluster::instance().stats().report(std::cout);
+    // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "Fields written: " << writeCount << std::endl;
@@ -299,7 +304,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
         }
     }
 
-    // comment out for DAOS runs
+    // uncomment for lustre runs
     //using namespace std::placeholders;
     //eckit::Timer& t = fdb5::TocManager::instance().timer();
     //fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
@@ -311,14 +316,16 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     size_t total = dh->copyTo(nullOutputHandle);
     gettimeofday(&tval_after_io, NULL);
 
-    // comment out for DAOS runs
+    // uncomment for lustre runs
     //st.stop();
 
     timer.stop();
 
-    // comment out for lustre runs
+    // uncomment for daos runs
     fdb5::DaosManager::instance().stats().report(std::cout);
-    // comment out for daos runs
+    // uncomment for rados runs
+    // eckit::RadosCluster::instance().stats().report(std::cout);
+    // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields read: " << fieldsRead << std::endl;
@@ -404,9 +411,11 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
 
     timer.stop();
 
-    // comment out for lustre runs
+    // uncomment for daos runs
     fdb5::DaosManager::instance().stats().report(std::cout);
-    // comment out for daos runs
+    // uncomment for rados runs
+    // eckit::RadosCluster::instance().stats().report(std::cout);
+    // uncomment for lustre runs
     //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields listed: " << count << std::endl;

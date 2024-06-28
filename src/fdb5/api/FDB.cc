@@ -31,7 +31,7 @@
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
 
-// comment out for DAOS runs
+// uncomment for lustre runs
 //#include "fdb5/toc/TocSession.h"
 //#include "fdb5/toc/TocIOStats.h"
 
@@ -223,7 +223,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListIterator it = inspect(request);
 
-    // comment out for DAOS runs
+    // uncomment for lustre runs
     //using namespace std::placeholders;
     //eckit::Timer& timer = fdb5::TocManager::instance().timer();
     //fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
