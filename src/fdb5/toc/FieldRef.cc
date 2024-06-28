@@ -18,7 +18,6 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
 
-
 namespace fdb5 {
 
 

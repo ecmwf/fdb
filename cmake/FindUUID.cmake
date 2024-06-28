@@ -33,6 +33,8 @@ find_path(UUID_INCLUDE_DIR
     NO_DEFAULT_PATH
 )
 
+find_path(UUID_INCLUDE_DIR NAMES uuid/uuid.h PATH_SUFFIXES include include/uuid)
+
 find_library(UUID_LIBRARY
     NAMES uuid
     HINTS
@@ -44,6 +46,8 @@ find_library(UUID_LIBRARY
         ENV UUID_PATH
     PATH_SUFFIXES lib lib64
 )
+
+find_library(UUID_LIBRARY NAMES uuid PATH_SUFFIXES lib lib64)
 
 find_package_handle_standard_args(UUID DEFAULT_MSG UUID_LIBRARY UUID_INCLUDE_DIR)
 

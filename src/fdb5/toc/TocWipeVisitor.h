@@ -67,11 +67,12 @@ private: // members
     std::set<eckit::PathName> subtocPaths_;
     std::set<eckit::PathName> lockfilePaths_;
     std::set<eckit::PathName> indexPaths_;
-    std::set<eckit::PathName> dataPaths_;
+    std::set<eckit::URI> dataURIs_;
 
     std::set<eckit::PathName> safePaths_;
+    std::set<eckit::URI> safeURIs_;
     std::set<eckit::PathName> residualPaths_;
-    std::set<eckit::PathName> residualDataPaths_;
+    std::set<eckit::URI> residualDataURIs_;
 
     std::vector<Index> indexesToMask_;
 };

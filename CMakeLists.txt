@@ -43,10 +43,31 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 ### FDB backend in CEPH object store (using Rados)
 
 find_package( RADOS QUIET )
+
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION eckit_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
+
+ecbuild_add_option( FEATURE RADOS_BACKENDS_SINGLE_POOL
+                    DEFAULT ON
+                    DESCRIPTION "Use a single Rados pool with a namespace per database (ON) or a pool per database (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_OBJ_PER_FIELD
+                    DEFAULT OFF
+                    DESCRIPTION "Use a Rados object per archived field (ON) or per collocation key (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_MULTIPART
+                    DEFAULT ON
+                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=OFF and the maximum object size is exceeded, use multiple Rados objects per collocation key (ON) or throw an exception (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_FLUSH
+                    DEFAULT OFF
+                    DESCRIPTION "Ensure writes/puts are persisted in Rados storage on flush rather than immediately." )
+
+ecbuild_add_option( FEATURE RADOS_ADMIN
+                    DEFAULT OFF
+                    DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the ECKIT_RADOS_TEST_POOL cmake variable." )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
@@ -99,7 +120,7 @@ ecbuild_add_option( FEATURE DAOSFDB
                     DESCRIPTION "DAOS support for FDB Store" )
 
 ecbuild_add_option( FEATURE DAOS_ADMIN
-                    DEFAULT OFF
+                    DEFAULT ${_default_dummy_daos}
                     CONDITION HAVE_DAOSFDB AND DAOS_TESTS_FOUND
                     DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
 

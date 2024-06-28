@@ -8,10 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/rados/RadosReadHandle.h"
+#include "eckit/filesystem/URIManager.h"
+#include "eckit/io/rados/RadosObject.h"
+// #include "eckit/io/rados/RadosMultiObjReadHandle.h"
+
 #include "fdb5/rados/RadosFieldLocation.h"
-#include "fdb5/LibFdb5.h"
-#include "fdb5/io/SingleGribMungePartFileHandle.h"
+// #include "fdb5/LibFdb5.h"
+// #include "fdb5/io/SingleGribMungePartFileHandle.h"
 
 namespace fdb5 {
 
@@ -20,41 +23,47 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//RadosFieldLocation::RadosFieldLocation() {}
+static FieldLocationBuilder<RadosFieldLocation> builder("rados");
 
-RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length ) :
-        FieldLocation(eckit::URI("rados", path), offset, length) {}
-
-RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri) :
-        FieldLocation(uri) {}
-
-RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length ) :
-        FieldLocation(uri, offset, length) {
-}
+// RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length ) :
+//         FieldLocation(eckit::URI("rados", path), offset, length) {}
 
 RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
-    FieldLocation(rhs.uri_) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-RadosFieldLocation::RadosFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
+RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri) : FieldLocation(uri) {}
+
+/// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
+RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+    FieldLocation(uri, offset, length, remapKey) {}
+
+// RadosFieldLocation::RadosFieldLocation(const FileStore &store, const FieldRef &ref) :
+//     FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
-
 
 std::shared_ptr<FieldLocation> RadosFieldLocation::make_shared() const {
     return std::make_shared<RadosFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* RadosFieldLocation::dataHandle() const {
-    eckit::RadosReadHandle* g = new eckit::RadosReadHandle(uri_.name(), offset(), length());
 
-    return g;
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+
+    return eckit::RadosObject(uri_).multipartRangeReadHandle(offset(), length());
+
+#else
+
+    return eckit::RadosObject(uri_).rangeReadHandle(offset(), length());
+
+#endif
+
 }
 
-eckit::DataHandle *RadosFieldLocation::dataHandle(const Key& remapKey) const {
-    return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
-}
+// eckit::DataHandle *RadosFieldLocation::dataHandle(const Key& remapKey) const {
+//     return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
+// }
 
 void RadosFieldLocation::print(std::ostream &out) const {
     out << "RadosFieldLocation[uri=" << uri_ << "]";
@@ -64,11 +73,9 @@ void RadosFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-eckit::URI RadosFieldLocation::uri(const eckit::PathName &path) {
-    return eckit::URI("rados", path);
-}
-
-static FieldLocationBuilder<RadosFieldLocation> builder("rados");
+// eckit::URI RadosFieldLocation::uri(const eckit::PathName &path) {
+//     return eckit::URI("rados", path);
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -9,18 +9,19 @@
  */
 
 /// @author Emanuele Danovaro
-/// @date Jan 2020
+/// @author Nicolau Manubens
+/// @date Feb 2024
 
-#ifndef fdb5_RadosFieldLocation_H
-#define fdb5_RadosFieldLocation_H
+#pragma once
 
-#include "eckit/filesystem/PathName.h"
+// #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 
+#include "fdb5/fdb5_config.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/FileStore.h"
-#include "fdb5/toc/FieldRef.h"
+// #include "fdb5/database/FileStore.h"
+// #include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
 
@@ -29,21 +30,15 @@ namespace fdb5 {
 class RadosFieldLocation : public FieldLocation {
 public:
 
-    //RadosFieldLocation();
     RadosFieldLocation(const RadosFieldLocation& rhs);
-    RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
+    // RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     RadosFieldLocation(const eckit::URI &uri);
-    RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length);
-    RadosFieldLocation(const FileStore& store, const FieldRef& ref);
+    RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    // RadosFieldLocation(const FileStore& store, const FieldRef& ref);
     RadosFieldLocation(eckit::Stream&);
 
-//    const eckit::PathName path() const { return uri_.name(); }
-//    const eckit::Offset&   offset() const { return offset_; }
-
     eckit::DataHandle* dataHandle() const override;
-    eckit::DataHandle* dataHandle(const Key& remapKey) const override;
-
-    // eckit::URI uri() const override;
+    // eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
 
@@ -51,35 +46,24 @@ public:
 
 public: // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_;}
 
 protected: // For Streamable
 
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    //virtual void encode(eckit::Stream&) const override;
 
-    static eckit::ClassSpec                    classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RadosFieldLocation> reanimator_;
 
 private: // methods
 
-//    void dump(std::ostream &out) const override;
-
     void print(std::ostream &out) const override;
 
-    eckit::URI uri(const eckit::PathName &path);
+    // eckit::URI uri(const eckit::PathName &path);
 
-private: // members
-
-//    eckit::PathName path_;
-//    eckit::Offset offset_;
-
-    // For streamability
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif // fdb5_RadosFieldLocation_H
