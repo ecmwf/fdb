@@ -404,7 +404,7 @@ CASE("RadosStore tests") {
 #endif
 
 #if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        config_str += "  maxObjectSize: 16\n";
+        config_str += "  maxPartSize: 16\n";
 #endif
 
         config_str += "  store:\n";
@@ -476,7 +476,7 @@ CASE("RadosStore tests") {
         char data[] = "test123456";
 
 #if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        /// @note: maxObjectSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
+        /// @note: maxPartSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
         for (int i = 0; i < 4; i++) {
             std::cout << "Archive field " << i << std::endl;
             fdb5::Key request_key_i({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
@@ -610,7 +610,7 @@ CASE("RadosStore tests") {
 #endif
 
 #if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        config_str += "  maxObjectSize: 16\n";
+        config_str += "  maxPartSize: 16\n";
 #endif
 
         config_str += "  store:\n";
