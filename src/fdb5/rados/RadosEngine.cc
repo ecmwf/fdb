@@ -233,7 +233,7 @@ void RadosEngine::readConfig(const fdb5::Config& config, const std::string& comp
 
     if (config.has("rados")) c = config.getSubConfiguration("rados");
 
-    // maxObjectSize_ = c.getInt("maxObjectSize", 0);
+    // maxPartSize_ = c.getInt("maxPartSize", 0);
 
     std::string first_cap{component};
     first_cap[0] = toupper(component[0]);

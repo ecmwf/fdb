@@ -79,7 +79,7 @@ protected: // members
     // eckit::Optional<eckit::RadosKeyValue> db_kv_;
 #endif
 
-    // eckit::Length maxObjectSize_;
+    // eckit::Length maxPartSize_;
 
 private: // members
 
