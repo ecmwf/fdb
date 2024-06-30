@@ -271,11 +271,10 @@ void RadosStore::flush() {
 
   #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
 
-    #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+    /// @note: needs to be called even if PERSIST_ON_FLUSH=OFF, as the
+    ///   multipart handles need to persist the multipart attributes which
+    ///   is performed in the multihandle flush.
     flushDataHandles();
-    #else
-    // NOOP
-    #endif
 
   #else
 
