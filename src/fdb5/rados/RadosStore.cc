@@ -273,8 +273,9 @@ void RadosStore::flush() {
 
     #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     flushDataHandles();
+    #else
+    // NOOP
     #endif
-    closeDataHandles();
 
   #else
 
