@@ -59,7 +59,7 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dat
     ASSERT(buf.size() == 0);
 }
 
-std::future<eckit::Buffer> Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
@@ -69,7 +69,7 @@ std::future<eckit::Buffer> Client::controlWriteReadResponse(Message msg, uint32_
     if (payloadLength) {
         data.push_back(std::make_pair(payload, payloadLength));
     }
-    return connection_.controlWrite(*this, msg, requestID, false, data);
+    return eckit::Buffer{std::move(connection_.controlWrite(*this, msg, requestID, false, data).get())};
 }
 
 void Client::dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {

@@ -115,8 +115,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     LocalFDB(config, name),
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
 
-    uint32_t id = generateRequestID();
-    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Stores, id).get();
+    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Stores, generateRequestID());
     eckit::MemoryStream s(buf);
     size_t numStores;
     s >> numStores;
@@ -163,8 +162,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         fieldLocationEndpoints.push_back("");
     }
 
-    id = generateRequestID();
-    eckit::Buffer buf2 = controlWriteReadResponse(remote::Message::Schema, id).get();
+    eckit::Buffer buf2 = controlWriteReadResponse(remote::Message::Schema, generateRequestID());
     eckit::MemoryStream s2(buf2);
 
     fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s2);
@@ -193,7 +191,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // Ensure we have an entry in the message queue before we trigger anything that
     // will result in return messages
 
-    uint32_t id = connection_.generateRequestID();
+    uint32_t id = generateRequestID();
     auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
     ASSERT(entry.second);
     std::shared_ptr<MessageQueue> messageQueue(entry.first->second);

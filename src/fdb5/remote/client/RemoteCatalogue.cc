@@ -63,7 +63,7 @@ void RemoteCatalogue::archive(const Key& idxKey, const InspectionKey& key, std::
     ASSERT(!key.empty());
     ASSERT(fieldLocation);
 
-    uint32_t id = connection_.generateRequestID();
+    uint32_t id = generateRequestID();
     {
         std::lock_guard<std::mutex> lock(archiveMutex_);
         if (numLocations_ == 0) { // if this is the first archival request, notify the server
@@ -122,8 +122,7 @@ void RemoteCatalogue::flush(size_t archivedFields) {
         LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
 
         // The flush call is blocking
-        uint32_t id = generateRequestID();
-        controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
+        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 
         numLocations_ = 0;
     }
@@ -153,8 +152,7 @@ void RemoteCatalogue::loadSchema() {
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
         
-        uint32_t id = generateRequestID();
-        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, id, keyBuffer, keyStream.position()).get();
+        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, generateRequestID(), keyBuffer, keyStream.position());
 
         eckit::MemoryStream s(buf);
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));
@@ -162,7 +160,7 @@ void RemoteCatalogue::loadSchema() {
 }
 
 bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID) {
-    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+    Log::warning() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
     NOTIMP;
     return false;
 }

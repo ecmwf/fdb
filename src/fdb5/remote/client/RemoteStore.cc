@@ -239,8 +239,8 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     ASSERT(data);
     ASSERT(length != 0);
 
-    uint32_t id = connection_.generateRequestID();
-    {
+    uint32_t id = generateRequestID();
+    {   // send the archival request
         std::lock_guard<std::mutex> lock(archiveMutex_);
         if (fieldsArchived_ == 0) { // if this is the first archival request, notify the server
             ASSERT(locations_.size() == 0);
@@ -248,12 +248,12 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
             controlWriteCheckResponse(Message::Store, id, true);
         }
     }
-    fieldsArchived_++;
-
-    {
+    {   // store the callback, associated with the request id - to be done BEFORE sending the data
         std::lock_guard<std::mutex> lock(locationMutex_);
         locations_[id] = catalogue_archive;
     }
+    fieldsArchived_++;
+
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
@@ -310,8 +310,7 @@ size_t RemoteStore::flush() {
 
         LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
         // The flush call is blocking
-        uint32_t id = generateRequestID();
-        controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
+        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
     }
 
     fieldsArchived_ = 0;
@@ -450,7 +449,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     s << fieldLocation;
     s << remapKey;
 
-    uint32_t id = connection_.generateRequestID();
+    uint32_t id = generateRequestID();
     controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, fieldLocation.length(), retrieveMessageQueue_, controlEndpoint());

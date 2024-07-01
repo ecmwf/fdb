@@ -215,19 +215,23 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
-    if (!dataWriteFuture_.valid()) {
+    {
+        std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
 
-        {
-            // Reset the queue after previous done/errors
-            std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
-            ASSERT(!dataWriteQueue_);
+        if (!dataWriteFuture_.valid()) {
 
-            dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+            {
+                // Reset the queue after previous done/errors
+                // std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
+                // TODO
+                ASSERT(!dataWriteQueue_);
+
+                dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+            }
+
+            dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
         }
-
-        dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
     }
-
     uint32_t payloadLength = 0;
     for (auto d: data) {
         ASSERT(d.first);
