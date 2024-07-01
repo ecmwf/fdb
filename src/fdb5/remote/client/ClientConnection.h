@@ -104,6 +104,7 @@ private: // members
     bool controlStopping_; 
     bool dataStopping_; 
 
+    std::mutex promisesMutex_;
     std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
 
     std::mutex dataWriteQueueMutex_;
