@@ -54,8 +54,9 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, c
         remoteLocation.remapKey()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
-    FieldLocation(eckit::URI("fdb", uri)) {
-    NOTIMP;
+    FieldLocation(uri) {
+
+    ASSERT(uri.scheme() == "fdb");
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
