@@ -39,7 +39,6 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
-        return elem;
 
         eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
         elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
