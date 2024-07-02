@@ -237,14 +237,22 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
     helper.extraDecode(s);
 
     // Construct worker thread to feed responses back to client
-
     ASSERT(workerThreads_.find(requestID) == workerThreads_.end());
+
+    {
+        std::lock_guard<std::mutex> lock(fdbMutex_);
+        auto it = fdbs_.find(clientID);
+        if (it == fdbs_.end()) {
+            fdbs_[clientID];
+        }
+    }
 
     workerThreads_.emplace(
         requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
 
             try {
-                auto iterator = helper.apiCall(fdb_, request);
+                auto it = fdbs_.find(clientID);
+                auto iterator = helper.apiCall(it->second, request);
                 typename decltype(iterator)::value_type elem;
                 while (iterator.next(elem)) {
                     auto encoded(helper.encode(elem, *this));

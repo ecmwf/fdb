@@ -70,8 +70,10 @@ private:  // member
 
     // clientID --> <catalogue, locationsExpected, locationsArchived>
     std::map<uint32_t, CatalogueArchiver> catalogues_;
+    std::map<uint32_t, FDB> fdbs_;
 
-    FDB fdb_;
+    std::mutex fdbMutex_;
+
     uint32_t fdbId_;
     bool fdbControlConnection_;
     bool fdbDataConnection_;
