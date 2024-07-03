@@ -456,9 +456,11 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
+    static std::mutex storeMutex_;
     // we memoise one read store for each endpoint. Do not need to have one for each key
     static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
 
+    std::lock_guard<std::mutex> lock(storeMutex_);
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {

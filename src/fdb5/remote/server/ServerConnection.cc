@@ -527,11 +527,6 @@ void ServerConnection::handle() {
     } catch(...) {
         // if connection is already down, no need to escalate 
     }
-
-    // write(Message::Exit, true, 0, 0);
-    // if (!single_) {
-    //     write(Message::Exit, false, 0, 0);
-    // }
 }
 
 void ServerConnection::handleException(std::exception_ptr e) {
