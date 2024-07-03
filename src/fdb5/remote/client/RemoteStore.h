@@ -94,7 +94,8 @@ private: // members
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-    MessageQueue retrieveMessageQueue_;
+    std::map<uint32_t, std::shared_ptr<MessageQueue>> retrieveMessageQueues_;
+    // MessageQueue retrieveMessageQueue_;
 
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
