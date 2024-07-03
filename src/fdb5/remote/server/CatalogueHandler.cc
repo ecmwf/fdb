@@ -30,7 +30,7 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config), fdbId_(0), fdbControlConnection_(false), fdbDataConnection_(false) {}
+    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
 
 CatalogueHandler::~CatalogueHandler() {}
 
@@ -41,8 +41,9 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
             case Message::Schema: // request top-level schema
                 {
                     std::lock_guard<std::mutex> lock(handlerMutex_);
-                    if (fdbId_ == 0) {
-                        fdbId_ = clientID;
+                    auto it = fdbs_.find(clientID);
+                    if (it == fdbs_.end()) {
+                        fdbs_[clientID];
                         fdbControlConnection_ = true;
                         fdbDataConnection_ = !single_;
                         numControlConnection_++;
@@ -62,9 +63,9 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 archiver();
                 return Handled::YesAddArchiveListener;
 
-            case Message::Flush: // notification that the client has sent all data locations for archival
-                flush(clientID, requestID, eckit::Buffer{0});
-                return Handled::Yes;
+            // case Message::Flush: // notification that the client has sent all data locations for archival
+            //     flush(clientID, requestID, eckit::Buffer{0});
+            //     return Handled::Yes;
 
             default: {
                 std::stringstream ss;
@@ -251,8 +252,15 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
         requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
 
             try {
-                auto it = fdbs_.find(clientID);
-                auto iterator = helper.apiCall(it->second, request);
+                FDB* fdb = nullptr;
+                {
+                    std::lock_guard<std::mutex> lock(handlerMutex_);
+                    auto it = fdbs_.find(clientID);
+                    ASSERT(it != fdbs_.end());
+                    fdb = &it->second;
+                    ASSERT(fdb);
+                }
+                auto iterator = helper.apiCall(*fdb, request);
                 typename decltype(iterator)::value_type elem;
                 while (iterator.next(elem)) {
                     auto encoded(helper.encode(elem, *this));
@@ -375,24 +383,41 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    
+        
+    ASSERT(payload.size() > 0);
+
     size_t numArchived = 0;
-    
-    if (payload.size() > 0) {
-        MemoryStream s(payload);
-        s >> numArchived;
+    MemoryStream s(payload);
+    s >> numArchived;
+
+    if (numArchived == 0) {
+        return;
     }
 
     auto it = catalogues_.find(clientID);
     ASSERT(it != catalogues_.end());
 
-    it->second.locationsExpected = numArchived;
-    it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
+    // std::cout << "flush " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
 
-    if (it->second.locationsArchived < numArchived) {
-        it->second.archivalCompleted.wait();
-        it->second.fieldLocationsReceived = std::promise<size_t>{};
+    {
+        std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+        it->second.locationsExpected = numArchived;     // setting locationsExpected also means that a flush has been requested
+        it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
+        // std::cout << "flush post lock " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
+        if (it->second.locationsArchived == numArchived) {
+            it->second.fieldLocationsReceived.set_value(numArchived);
+        }
     }
+
+    // std::cout << "flush wait " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
+    it->second.archivalCompleted.wait();
+    {
+        std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+        it->second.fieldLocationsReceived = std::promise<size_t>{};
+        it->second.locationsExpected = 0;
+        it->second.locationsArchived = 0;
+    }
+    // std::cout << "flush post wait " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
 
     it->second.catalogue->flush(numArchived);
 
@@ -427,16 +452,25 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
 
     it->second.catalogue->selectIndex(idxKey);
     it->second.catalogue->archive(idxKey, key, std::move(location));
-    it->second.locationsArchived++;
-    if (it->second.archivalCompleted.valid() && it->second.locationsExpected == it->second.locationsArchived) {
-        it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
+    {
+        // std::cout << "archiveBlob " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
+        std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+        // std::cout << "archiveBlob post mutex " << std::endl;
+        it->second.locationsArchived++;
+        if (it->second.locationsExpected != 0 && it->second.archivalCompleted.valid() && it->second.locationsExpected == it->second.locationsArchived) {
+            // std::cout << "archiveBlob set_value " << std::endl;
+            it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
+        }
     }
 }
 
 bool CatalogueHandler::remove(bool control, uint32_t clientID) {
     
     std::lock_guard<std::mutex> lock(handlerMutex_);
-    if (clientID == fdbId_) {
+
+    // is the client an FDB
+    auto it = fdbs_.find(clientID);
+    if (it != fdbs_.end()) {
         if (control) {
             fdbControlConnection_ = false;
             numControlConnection_--;

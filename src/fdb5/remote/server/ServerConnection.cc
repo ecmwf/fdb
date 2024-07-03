@@ -560,6 +560,7 @@ void ServerConnection::waitForWorkers() {
         eckit::Log::error() << "Thread complete" << std::endl;
     }
 
+    std::lock_guard<std::mutex> lock(readLocationMutex_);
     if (readLocationWorker_.joinable()) {
         readLocationWorker_.join();
     }

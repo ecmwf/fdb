@@ -141,6 +141,7 @@ protected:
 
     eckit::SessionID sessionID_;
     eckit::LocalConfiguration agreedConf_;
+    std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
     
     std::map<uint32_t, std::future<void>> workerThreads_;

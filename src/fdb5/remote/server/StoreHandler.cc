@@ -86,8 +86,11 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
 void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
-    if (!readLocationWorker_.joinable()) {
-        readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
+    {
+        std::lock_guard<std::mutex> lock(readLocationMutex_);
+        if (!readLocationWorker_.joinable()) {
+            readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
+        }
     }
 
     MemoryStream s(payload);
@@ -188,6 +191,7 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 
     ASSERT(numArchived == 0 || archiveFuture_.valid());
 
+    std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     ASSERT(it != stores_.end());
     it->second.store->flush();
@@ -199,7 +203,6 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 bool StoreHandler::remove(bool control, uint32_t clientID) {
     
     std::lock_guard<std::mutex> lock(handlerMutex_);
-
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {
         if (control) {
@@ -222,6 +225,7 @@ Store& StoreHandler::store(uint32_t clientID) {
     auto it = stores_.find(clientID);
     if (it == stores_.end()) {
         std::string what("Requested Store has not been loaded id: " + std::to_string(clientID));
+        Log::error() << what << std::endl;
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw;
     }

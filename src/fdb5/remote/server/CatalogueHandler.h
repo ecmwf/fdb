@@ -73,8 +73,9 @@ private:  // member
     std::map<uint32_t, FDB> fdbs_;
 
     std::mutex fdbMutex_;
+    std::mutex fieldLocationsMutex_;
 
-    uint32_t fdbId_;
+    // uint32_t fdbId_;
     bool fdbControlConnection_;
     bool fdbDataConnection_;
 };

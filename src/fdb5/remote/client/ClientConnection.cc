@@ -65,8 +65,8 @@ ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, 
 
 void ClientConnection::add(Client& client) {
     std::lock_guard<std::mutex> lock(clientsMutex_);
-    auto it = clients_.find(client.id());
-    ASSERT(it == clients_.end());
+    // auto it = clients_.find(client.id());
+    // ASSERT(it == clients_.end());
 
     clients_[client.id()] = &client;
 }
@@ -197,10 +197,9 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    std::lock_guard<std::mutex> lock(clientsMutex_);
-
-    auto it = clients_.find(client.clientId());
-    ASSERT(it != clients_.end());
+    // std::lock_guard<std::mutex> lock(clientsMutex_);
+    // auto it = clients_.find(client.clientId());
+    // ASSERT(it != clients_.end());
 
     std::future<eckit::Buffer> f;
     {
@@ -381,23 +380,7 @@ void ClientConnection::listeningControlThreadLoop() {
             } else {
                 if (hdr.clientID()) {
                     bool handled = false;
-                    Client* client = nullptr;
-                    {
-                        std::lock_guard<std::mutex> lock(clientsMutex_);
 
-                        auto it = clients_.find(hdr.clientID());
-                        if (it == clients_.end()) {
-                            std::stringstream ss;
-                            ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
-                            eckit::Log::status() << ss.str() << std::endl;
-                            eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
-                            throw eckit::SeriousBug(ss.str(), Here());
-                        }
-                        client = it->second;
-                    }
-
-                    ASSERT(client);
                     ASSERT(hdr.control() || single_);
 
                     auto pp = promises_.find(hdr.requestID);
@@ -412,6 +395,23 @@ void ClientConnection::listeningControlThreadLoop() {
                         promises_.erase(pp);
                         handled = true;
                     } else {
+
+                        Client* client = nullptr;
+                        {
+                            std::lock_guard<std::mutex> lock(clientsMutex_);
+
+                            auto it = clients_.find(hdr.clientID());
+                            if (it == clients_.end()) {
+                                std::stringstream ss;
+                                ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                                ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
+                                eckit::Log::status() << ss.str() << std::endl;
+                                eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
+                                throw eckit::SeriousBug(ss.str(), Here());
+                            }
+                            client = it->second;
+                        }
+
                         if (hdr.payloadSize == 0) {
                             handled = client->handle(hdr.message, hdr.control(), hdr.requestID);
                         }

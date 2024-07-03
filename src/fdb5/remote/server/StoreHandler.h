@@ -49,7 +49,6 @@ private:  // methods
     void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     bool remove(bool control, uint32_t clientID) override;
-    // bool handlers() override;
 
     Store& store(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
