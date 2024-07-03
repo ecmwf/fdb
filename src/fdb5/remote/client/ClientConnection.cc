@@ -87,13 +87,20 @@ bool ClientConnection::remove(uint32_t clientID) {
     }
 
     if (clients_.empty()) {
-        Connection::write(Message::Exit, true, 0, 0);
         if (!single_) {
-        // if (!controlStopping_)
-        //     Connection::write(Message::Exit, true, 0, 0);
-        // if (!single_ && !dataStopping_) {
             // TODO make the data connection dying automatically, when there are no more async writes
-            Connection::write(Message::Exit, false, 0, 0);
+            try {
+                // all done - disconnecting
+                Connection::write(Message::Exit, false, 0, 0);
+            } catch(...) {
+                // if connection is already down, no need to escalate 
+            }
+        }
+        try {
+            // all done - disconnecting
+            Connection::write(Message::Exit, true, 0, 0);
+        } catch(...) {
+            // if connection is already down, no need to escalate 
         }
 
         ClientConnectionRouter::instance().deregister(*this);

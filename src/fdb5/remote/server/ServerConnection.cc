@@ -441,10 +441,20 @@ void ServerConnection::handle() {
             if (hdr.message == Message::Exit) {
                 ASSERT(hdr.clientID() == 0);
 
-                write(Message::Exit, true, 0, 0);
-                if (!single_) {
-                    write(Message::Exit, false, 0, 0);
-                }
+                // if (!single_) {
+                //     try {
+                //         // all done - disconnecting
+                //         Connection::write(Message::Exit, false, 0, 0);
+                //     } catch(...) {
+                //         // if connection is already down, no need to escalate 
+                //     }
+                // }
+                // try {
+                //     // all done - disconnecting
+                //     Connection::write(Message::Exit, true, 0, 0);
+                // } catch(...) {
+                //     // if connection is already down, no need to escalate 
+                // }
 
                 eckit::Log::status() << "Terminating CONTROL listener" << std::endl;
                 eckit::Log::info() << "Terminating CONTROL listener" << std::endl;
@@ -502,6 +512,26 @@ void ServerConnection::handle() {
     }
     ASSERT(archiveQueue_.empty());
     archiveQueue_.close();
+
+    if (!single_) {
+        try {
+            // all done - disconnecting
+            Connection::write(Message::Exit, false, 0, 0);
+        } catch(...) {
+            // if connection is already down, no need to escalate 
+        }
+    }
+    try {
+        // all done - disconnecting
+        Connection::write(Message::Exit, true, 0, 0);
+    } catch(...) {
+        // if connection is already down, no need to escalate 
+    }
+
+    // write(Message::Exit, true, 0, 0);
+    // if (!single_) {
+    //     write(Message::Exit, false, 0, 0);
+    // }
 }
 
 void ServerConnection::handleException(std::exception_ptr e) {
