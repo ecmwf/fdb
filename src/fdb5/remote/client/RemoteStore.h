@@ -97,6 +97,7 @@ private: // members
     std::map<uint32_t, std::shared_ptr<MessageQueue>> retrieveMessageQueues_;
     // MessageQueue retrieveMessageQueue_;
 
+    std::mutex retrieveMessageMutex_;
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
     size_t fieldsArchived_;

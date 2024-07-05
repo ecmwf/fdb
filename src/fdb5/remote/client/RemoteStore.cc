@@ -348,6 +348,7 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID) {
                 messageQueues_.erase(it);
 
             } else {
+                std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
                 auto id = retrieveMessageQueues_.find(requestID);
                 ASSERT (id != retrieveMessageQueues_.end());
 
@@ -408,6 +409,7 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
             if (it != messageQueues_.end()) {
                 it->second->emplace(message, std::move(payload));
             } else {
+                std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
                 auto id = retrieveMessageQueues_.find(requestID);
                 ASSERT (id != retrieveMessageQueues_.end());
                 id->second->emplace(std::make_pair(message, std::move(payload)));
@@ -463,12 +465,19 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
                 // ASSERT (it != retrieveMessageQueues_.end());
                 // it->second->emplace(std::make_pair(message, std::move(payload)));
 
-    auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
-    ASSERT(entry.second);
+    std::shared_ptr<MessageQueue> queue = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
+
+        auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
+        ASSERT(entry.second);
+
+        queue = entry.first->second;
+    }
 
     controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, fieldLocation.length(), entry.first->second, controlEndpoint());
+    return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
