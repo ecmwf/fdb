@@ -48,6 +48,7 @@ list( APPEND fdb5_srcs
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
     api/helpers/StatsIterator.h
+    api/helpers/ArchiveCallback.h
 
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
