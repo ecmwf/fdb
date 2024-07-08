@@ -10,7 +10,6 @@
 
 #include "eckit/exception/Exceptions.h"
 
-
 #include "fdb5/database/DB.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -29,7 +28,7 @@ bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullC
 
     ASSERT(current());
 
-    current()->archive(datumKey.canonical(), data_, size_, field_, callback_);
+    current()->archive(datumKey.canonical(), data_, size_, initialFieldKey_, callback_);
 
     return true;
 }

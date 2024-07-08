@@ -48,13 +48,11 @@ protected: // methods
 
 protected: // members
 
-    const Key& field_;
+    const Key& initialFieldKey_;
 
 private: // members
 
     Archiver &owner_;
-
-    const Key& initialFieldKey_;
 
     bool checkMissingKeysOnWrite_;
 };
