@@ -42,7 +42,7 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig());
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
 
     virtual ~Archiver();
 
@@ -77,6 +77,8 @@ private: // members
     std::vector<Key> prev_;
 
     DB* current_;
+
+    const ArchiveCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

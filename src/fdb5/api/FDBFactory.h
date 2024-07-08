@@ -37,6 +37,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/ArchiveCallback.h"
 
 namespace eckit {
 namespace message {
@@ -65,7 +66,7 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
-
+    
     virtual void flush() = 0;
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
@@ -89,6 +90,8 @@ public: // methods
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
     virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+
+    void registerCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
@@ -125,6 +128,8 @@ protected: // members
     ControlIdentifiers controlIdentifiers_;
 
     bool disabled_;
+
+    ArchiveCallback callback_ = CALLBACK_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

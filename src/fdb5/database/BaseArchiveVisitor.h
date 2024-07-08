@@ -46,6 +46,10 @@ protected: // methods
 
     fdb5::DB* current() const;
 
+protected: // members
+
+    const Key& field_;
+
 private: // members
 
     Archiver &owner_;

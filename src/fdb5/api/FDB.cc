@@ -322,6 +322,10 @@ bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
 }
 
+void FDB::registerCallback(ArchiveCallback callback) {
+    internal_->registerCallback(callback);
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
