@@ -82,6 +82,17 @@ Config::Config(const Configuration& config, const eckit::Configuration& userConf
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
+Config Config::fromString(const std::string& config_str) const {
+    Log::warning() << "Running Config::fromString" << std::endl;
+    std::string s(config_str);
+    Config cfg{YAMLConfiguration(s)};
+    cfg.set("configSource", "CFFI_string");
+    // if (!cfg.userConfig_) {
+    //     cfg.userConfig_ = userConfig_;
+    // }
+    return cfg;
+}
+
 Config Config::expandConfig() const {
     // stops recursion on loading configuration of sub-fdb's
     if (has("type"))

@@ -41,6 +41,9 @@ public:  // methods
     /// may involve loading a specific config.json
     Config expandConfig() const;
 
+    // Load a configuration from a yaml string
+    Config fromString(const std::string& config_str) const;
+
     virtual ~Config() override;
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
