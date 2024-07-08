@@ -13,12 +13,17 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include <dlfcn.h>
+
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+
+#include "eckit/system/Plugin.h"
+#include "eckit/system/LibraryManager.h"
 
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
@@ -38,7 +43,10 @@ namespace fdb5 {
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
+    reportStats_(config.getBool("statistics", false)) {
+    
+    initPlugins(config);
+}
 
 
 FDB::~FDB() {
@@ -123,6 +131,8 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
 
     timer.stop();
     stats_.addArchive(length, timer);
+
+    postArchiveCallback_(key, data, length);
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
@@ -283,6 +293,7 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
+        flushCallback_();
 
         eckit::Timer timer;
         timer.start();
@@ -325,6 +336,30 @@ void FDB::registerCallback(ArchiveCallback callback) {
     internal_->registerCallback(callback);
 }
 
+void FDB::registerCallback(FlushCallback callback) {
+    flushCallback_ = callback;
+}
+
+void FDB::registerCallback(PostArchiveCallback callback) {
+    postArchiveCallback_ = callback;
+}
+
+void FDB::initPlugins(const Config& config){
+    // TODO: from config, with env var to force it OFF.
+    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+    bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch, takes precendence.
+
+    /* Can we do this without dlsym and extern C shenanigans? Need to pass fdb to gribjump somehow... */
+    if (enableGribjump && !disableGribjump) {
+        eckit::system::Plugin& plugin = eckit::system::LibraryManager::loadPlugin("gribjump");
+        
+        using SetupFunction = void (*)(fdb5::FDB&);
+        SetupFunction setup = (SetupFunction) dlsym(plugin.handle(), "gribjump_plugin_setup");
+        ASSERT(setup);
+        setup(*this);
+    }
+
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

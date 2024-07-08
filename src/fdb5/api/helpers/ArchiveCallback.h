@@ -21,7 +21,12 @@
 namespace fdb5 {
 
 using ArchiveCallback = std::function<void(const Key&, const FieldLocation&)>;
+using FlushCallback = std::function<void()>;
+using PostArchiveCallback = std::function<void(const Key& key, const void* data, size_t length)>;
 
 static const ArchiveCallback CALLBACK_NOOP = [](const Key&, const FieldLocation&) {};
+static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
+static const PostArchiveCallback POST_ARCHIVE_NOOP = [](const Key&, const void*, size_t) {};
+
 
 } // namespace fdb5

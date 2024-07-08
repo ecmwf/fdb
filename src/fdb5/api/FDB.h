@@ -120,6 +120,8 @@ public: // methods
     bool dirty() const;
 
     void registerCallback(ArchiveCallback callback);
+    void registerCallback(FlushCallback callback);
+    void registerCallback(PostArchiveCallback callback);
 
     // -------------- API management ----------------------------
 
@@ -146,6 +148,8 @@ private: // methods
 
     bool sorted(const metkit::mars::MarsRequest &request);
 
+    void initPlugins(const Config& config);
+
 private: // members
 
     std::unique_ptr<FDBBase> internal_;
@@ -155,6 +159,8 @@ private: // members
 
     FDBStats stats_;
 
+    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
+    PostArchiveCallback postArchiveCallback_ = POST_ARCHIVE_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
