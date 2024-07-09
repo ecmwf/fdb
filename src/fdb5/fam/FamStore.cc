@@ -68,7 +68,7 @@ eckit::DataHandle* FamStore::retrieve(Field& field) const {
 std::unique_ptr<FieldLocation> FamStore::archive(const Key& key, const void* data, eckit::Length length) {
     auto object = makeObject(key);
 
-    LOG_DEBUG_LIB(LibFdb5) << "FamStore::archive() => " << object << '\n';
+    LOG_DEBUG_LIB(LibFdb5) << "FamStore archiving object: " << object << '\n';
 
     {
         auto handle = std::unique_ptr<eckit::DataHandle>(object.dataHandle());
@@ -88,6 +88,14 @@ void FamStore::flush() {
 
 void FamStore::close() {
     NOTIMP;
+}
+
+void FamStore::remove(const Key& key) const {
+    auto object = makeObject(key);
+
+    LOG_DEBUG_LIB(LibFdb5) << "FamStore removing object: " << object << '\n';
+
+    object.lookup().deallocate();
 }
 
 void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {

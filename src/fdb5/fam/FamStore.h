@@ -64,6 +64,8 @@ protected:  // methods
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
+    void remove(const Key& key) const override;
+
     void print(std::ostream& out) const override;
 
 private:  // members

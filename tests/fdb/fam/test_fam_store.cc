@@ -32,14 +32,30 @@ namespace fdb::test {
 
 namespace {
 
-const std::string testSchema =
-    "[ fam1a, fam1b, fam1c\n" "    [ fam2a, fam2b, fam2c\n" "       [ fam3a, fam3b, fam3c ]]]\n";
+const std::string testSchema = "[ fam1a, fam1b, fam1c\n"
+                               "    [ fam2a, fam2b, fam2c\n"
+                               "       [ fam3a, fam3b, fam3c ]]]\n";
 
-const std::string testConfig =
-    "---\n" "type: local\n" "schema: ./schema\n" "store: fam\n" "catalogue: toc\n" "spaces:\n" "- handler: Default\n" "  roots:\n" "  - path: ./root\n" "  - path: fam://endpoint/region\n" "  - path: ./backup\n" "    wipe: true\n" "    list: true\n" "    retrieve: false\n" "fam_roots:\n" "- uri: " +
-    TEST_FDB_FAM_URI + "\n" "  writable: true\n" "  visit: true\n";
-
-// std::unique_ptr<eckit::FamRegion> testRegion;
+const std::string testConfig = "---\n"
+                               "type: local\n"
+                               "schema: ./schema\n"
+                               "store: fam\n"
+                               "catalogue: toc\n"
+                               "spaces:\n"
+                               "- handler: Default\n"
+                               "  roots:\n"
+                               "  - path: ./root\n"
+                               "  - path: fam://endpoint/region\n"
+                               "  - path: ./backup\n"
+                               "    wipe: true\n"
+                               "    list: true\n"
+                               "    retrieve: false\n"
+                               "fam_roots:\n"
+                               "- uri: " +
+                               TEST_FDB_FAM_URI +
+                               "\n"
+                               "  writable: true\n"
+                               "  visit: true\n";
 
 }  // namespace
 
@@ -106,11 +122,11 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    //     TEST_LOG_INFO("REMOVE");
-    //
-    //     store.remove(key);
-    //
-    //     EXPECT_THROWS(fam::readAndValidate(handle.get(), value, length));
+    TEST_LOG_INFO("REMOVE");
+
+    store.remove(key);
+
+    EXPECT_THROWS(fam::readAndValidate(handle.get(), value, length));
 
     TEST_LOG_INFO("FINISHED!");
 }
