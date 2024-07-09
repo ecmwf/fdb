@@ -334,9 +334,9 @@ int fdb_new_handle(fdb_handle_t** fdb) {
 
 int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* yaml) {
     return wrapApiFunction([fdb, yaml] {
-        Log::warning() << "Running fdb_new_handle_from_yaml" << std::endl;
+        Log::warning() << "Running fdb_new_handle_from_yaml\n" << std::endl;
         std::string s(yaml);
-        Config cfg = Config().fromString(s);
+        Config cfg = Config().expandConfig(s);
         *fdb = new fdb_handle_t(cfg);
     });
 

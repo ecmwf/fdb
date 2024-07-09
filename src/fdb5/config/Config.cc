@@ -82,24 +82,34 @@ Config::Config(const Configuration& config, const eckit::Configuration& userConf
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
-Config Config::fromString(const std::string& config_str) const {
-    Log::warning() << "Running Config::fromString" << std::endl;
-    std::string s(config_str);
-    Config cfg{YAMLConfiguration(s)};
-    cfg.set("configSource", "CFFI_string");
-    // if (!cfg.userConfig_) {
-    //     cfg.userConfig_ = userConfig_;
-    // }
-    return cfg;
-}
+// Config Config::fromString(const std::string& config_str) const {
+//     Log::warning() << "Running Config::fromString" << std::endl;
+//     std::string s(config_str);
+//     Config cfg{YAMLConfiguration(s)};
+//     cfg.set("configSource", "CFFI_string");
+//     // if (!cfg.userConfig_) {
+//     //     cfg.userConfig_ = userConfig_;
+//     // }
+//     return cfg;
+// }
 
-Config Config::expandConfig() const {
+Config Config::expandConfig(const std::string& config) const {
     // stops recursion on loading configuration of sub-fdb's
     if (has("type"))
         return *this;
 
-    // If we have explicitly specified a config as an environment variable, use that
+    // If the config has been passed as a string
+    if (config.size() > 0) {
+        Log::debug() << "Running Config::expandConfig with string argument" << std::endl;
+        Config cfg{YAMLConfiguration(config)};
+        cfg.set("configSource", "string");
+        if (!cfg.userConfig_) {
+            cfg.userConfig_ = userConfig_;
+        }
+        return cfg;
+    }
 
+    // If we have explicitly specified a config as an environment variable, use that
     char* config_str = ::getenv("FDB5_CONFIG");
     if (config_str) {
         std::string s(config_str);

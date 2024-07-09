@@ -39,10 +39,10 @@ public:  // methods
 
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
-    Config expandConfig() const;
+    Config expandConfig(const std::string& config_str = "") const;
 
     // Load a configuration from a yaml string
-    Config fromString(const std::string& config_str) const;
+    // Config fromString(const std::string& config_str) const;
 
     virtual ~Config() override;
 
