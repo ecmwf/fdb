@@ -345,18 +345,12 @@ void FDB::registerCallback(PostArchiveCallback callback) {
 }
 
 void FDB::initPlugins(const Config& config){
-    // TODO: from config, with env var to force it OFF.
-    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); // TODO: Make this a config option.
     bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch, takes precendence.
 
-    /* Can we do this without dlsym and extern C shenanigans? Need to pass fdb to gribjump somehow... */
     if (enableGribjump && !disableGribjump) {
         eckit::system::Plugin& plugin = eckit::system::LibraryManager::loadPlugin("gribjump");
-        
-        using SetupFunction = void (*)(fdb5::FDB&);
-        SetupFunction setup = (SetupFunction) dlsym(plugin.handle(), "gribjump_plugin_setup");
-        ASSERT(setup);
-        setup(*this);
+        plugin.setup(this);
     }
 
 }
