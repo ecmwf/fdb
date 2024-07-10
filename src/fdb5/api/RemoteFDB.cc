@@ -24,7 +24,7 @@ struct BaseAPIHelper {
 
     typedef T ValueType;
 
-    static size_t bufferSize() { return 4096; }
+    static size_t bufferSize() { return 1024*1024; }
     static size_t queueSize() { return 100; }
     static fdb5::remote::Message message() { return msgID; }
 
