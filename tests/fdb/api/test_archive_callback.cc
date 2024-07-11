@@ -25,7 +25,7 @@ CASE("Archive callback") {
     std::map<fdb5::Key, eckit::URI> map;
     std::vector<Key> keys;
 
-    fdb.registerCallback([&map] (const fdb5::Key& key, const fdb5::FieldLocation& location) {
+    fdb.registerCallback([&map] (const Key& key, const void* data, size_t length, const FieldLocation& location) {
         map[key] = location.fullUri();
     });
 

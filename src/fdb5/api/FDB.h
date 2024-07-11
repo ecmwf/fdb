@@ -121,7 +121,6 @@ public: // methods
 
     void registerCallback(ArchiveCallback callback);
     void registerCallback(FlushCallback callback);
-    void registerCallback(PostArchiveCallback callback);
 
     // -------------- API management ----------------------------
 
@@ -160,7 +159,6 @@ private: // members
     FDBStats stats_;
 
     FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
-    PostArchiveCallback postArchiveCallback_ = POST_ARCHIVE_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

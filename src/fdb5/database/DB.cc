@@ -112,7 +112,7 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
     const Index& idx = cat->currentIndex();
     std::unique_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
 
-    callback(field, *location);
+    callback(field, data, length, *location);
 
     cat->archive(key, std::move(location));
 }

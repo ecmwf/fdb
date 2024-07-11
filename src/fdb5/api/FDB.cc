@@ -132,7 +132,6 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     timer.stop();
     stats_.addArchive(length, timer);
 
-    postArchiveCallback_(key, data, length);
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
@@ -338,10 +337,6 @@ void FDB::registerCallback(ArchiveCallback callback) {
 
 void FDB::registerCallback(FlushCallback callback) {
     flushCallback_ = callback;
-}
-
-void FDB::registerCallback(PostArchiveCallback callback) {
-    postArchiveCallback_ = callback;
 }
 
 void FDB::initPlugins(const Config& config){
