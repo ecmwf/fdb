@@ -102,7 +102,7 @@ public: // typedefs
 
 public: // methods
 
-    //TocHandler( const Key &key, const Config& config);
+    // TocHandler( const Key& key, const Config& config);
 
     TocHandler( const eckit::PathName &dir, const Config& config);
 
@@ -114,7 +114,7 @@ public: // methods
     bool exists() const;
     void checkUID() const override;
 
-    void writeInitRecord(const Key &tocKey);
+    void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index &);
     void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);

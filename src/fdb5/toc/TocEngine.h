@@ -29,7 +29,7 @@ public: // methods
     static const char* typeName() { return "toc"; }
 
 private:  // methods
-    std::set<eckit::PathName> databases(const std::set<InspectionKey>& keys, const std::vector<eckit::PathName>& dirs,
+    std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
                                         const Config& config) const;
 
     std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
@@ -45,9 +45,11 @@ protected: // methods
 
     virtual std::string dbType() const override;
 
-    virtual bool canHandle(const eckit::URI& path) const override;
+    virtual eckit::URI location(const Key& key, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> visitableLocations(const Config& config) const override;
+    virtual bool canHandle(const eckit::URI&, const Config& config) const override;
+
+    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
 
     virtual void print( std::ostream &out ) const override;

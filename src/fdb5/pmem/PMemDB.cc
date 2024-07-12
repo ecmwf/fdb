@@ -111,7 +111,7 @@ bool PMemDB::exists() const {
     return Pool::exists(poolDir_);
 }
 
-void PMemDB::archive(const InspectionKey &key, const void *data, Length length) {
+void PMemDB::archive(const Key& key, const void *data, Length length) {
     Log::error() << "archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -121,7 +121,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     // There is no meaningfully more-efficient way or sorting the indexes!
     (void) sorted;
 
-    Log::debug<LibFdb5>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
     visitor.visitDatabase(*this);
 
@@ -133,7 +133,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     visitor.databaseComplete(*this);
 }
 
-eckit::DataHandle * PMemDB::retrieve(const Key &key) const {
+eckit::DataHandle * PMemDB::retrieve(const Key& key) const {
     Log::error() << "retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -159,7 +159,7 @@ void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     NOTIMP;
 }
 
-bool PMemDB::selectIndex(const Key &key) {
+bool PMemDB::selectIndex(const Key& idxKey) {
     NOTIMP;
 }
 
@@ -188,9 +188,9 @@ void PMemDB::dump(std::ostream& out, bool simple) const {
 
     struct DumpVisitor : EntryVisitor {
         DumpVisitor(std::ostream& out) : out_(out) {}
-        void visitDatum(const Field& field, const InspectionKey& key) override {
+        void visitDatum(const Field& field, const TypedKey& datumKey) override {
             out_ << "ENTRY" << std::endl;
-            out_ << "  " << key << std::endl;
+            out_ << "  " << datumKey << std::endl;
             field.location().dump(out_);
         }
         std::ostream& out_;

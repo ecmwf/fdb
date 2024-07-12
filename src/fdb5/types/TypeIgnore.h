@@ -36,8 +36,7 @@ public: // methods
                            const Notifier &wind,
                            const CatalogueReader* cat) const override;
 
-    virtual std::string toKey(const std::string& keyword,
-                              const std::string& value) const override;
+    virtual std::string toKey(const std::string& value) const override;
 
 private: // methods
 

@@ -21,7 +21,7 @@
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/InspectionKey.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
@@ -82,7 +82,7 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const InspectionKey& datumKey) override {
+    void visitDatum(const Field& field, const TypedKey& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 

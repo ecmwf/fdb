@@ -35,9 +35,9 @@ public:
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-//    virtual void archive(const Key& key, const void *data, eckit::Length length, void(*catalogue_archive)(std::unique_ptr<FieldLocation> fieldLocation)) = 0;
-    virtual void archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive);
-    virtual std::unique_ptr<FieldLocation> archive(const Key& key, const void *data, eckit::Length length);
+    virtual void archive(const Key& idxKey, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive);
+    virtual std::unique_ptr<FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length);
+    // virtual std::unique_ptr<FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) = 0;
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -58,6 +58,10 @@ public:
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
+    virtual bool uriBelongs(const eckit::URI&) const = 0;
+    virtual bool uriExists(const eckit::URI& uri) const = 0;
+    virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
+    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
 };
 
@@ -71,13 +75,11 @@ public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
-    virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
     virtual std::unique_ptr<Store> make(const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
-    virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -98,11 +100,6 @@ public:
     /// @param config    the fdb config
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Key& key, const Config& config);
-
-    /// @param uri       search uri
-    /// @param config    the fdb config
-    /// @returns         store built by specified builder
-    std::unique_ptr<Store> build(const eckit::URI& uri, const Config& config);
 
 private:
     StoreFactory();

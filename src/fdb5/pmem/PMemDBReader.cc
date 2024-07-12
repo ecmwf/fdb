@@ -26,7 +26,7 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBReader::PMemDBReader(const Key &key, const eckit::Configuration& config) :
+PMemDBReader::PMemDBReader(const Key& key, const eckit::Configuration& config) :
     PMemDB(key, config) {}
 
 
@@ -48,20 +48,20 @@ bool PMemDBReader::open() {
 }
 
 
-bool PMemDBReader::selectIndex(const Key &key) {
+bool PMemDBReader::selectIndex(const Key& idxKey) {
 
-    if (indexes_.find(key) == indexes_.end()) {
+    if (indexes_.find(idxKey) == indexes_.end()) {
 
-        ::pmem::PersistentPtr<PBranchingNode> node = root_->getBranchingNode(key);
+        ::pmem::PersistentPtr<PBranchingNode> node = root_->getBranchingNode(idxKey);
         if (!node.null())
-            indexes_[key] = new PMemIndex(key, *node, *dataPoolMgr_);
+            indexes_[idxKey] = new PMemIndex(idxKey, *node, *dataPoolMgr_);
         else
             return false;
     }
 
-    currentIndex_ = indexes_[key];
+    currentIndex_ = indexes_[idxKey];
 
-    eckit::Log::debug<LibFdb5>() << "PMemDBReader::selectIndex " << key
+    LOG_DEBUG_LIB(LibFdb5) << "PMemDBReader::selectIndex " << idxKey
                                 << ", found match" << std::endl;
 
     return true;
@@ -73,10 +73,10 @@ void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 }
 
 
-eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
+eckit::DataHandle* PMemDBReader::retrieve(const Key& key) const {
 
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb5>() << "From index " << currentIndex_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "From index " << currentIndex_ << std::endl;
 
     Field field;
     if (currentIndex_.get(key, field))

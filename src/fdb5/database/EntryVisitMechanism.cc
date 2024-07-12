@@ -14,7 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
-#include "fdb5/database/InspectionKey.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/database/Store.h"
@@ -72,7 +72,7 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    InspectionKey key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    TypedKey key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
     visitDatum(field, key);
 }
 
@@ -103,7 +103,8 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     try {
 
-        std::vector<URI> uris(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
+        fdb5::Manager mg{dbConfig_};
+        std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
@@ -112,7 +113,17 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
             LOG_DEBUG_LIB(LibFdb5) << "FDB processing URI " << uri << std::endl;
 
-            std::unique_ptr<CatalogueReader> catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
+            std::unique_ptr<CatalogueReader> catalogue;
+            try {
+                
+                catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
+
+            } catch (fdb5::DatabaseNotFoundException& e) {
+
+                visitor.onDatabaseNotFound(e);
+
+            }
+
             ASSERT(catalogue->open());
 
             eckit::AutoCloser<Catalogue> closer(*catalogue);
@@ -126,10 +137,6 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         Log::warning() << e.what() << std::endl;
         if (fail_) throw;
     }
-
-
-
-
 
 }
 

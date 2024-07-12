@@ -30,18 +30,25 @@ class ArchiveVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *data, size_t size);
+    ArchiveVisitor(Archiver& owner, const Key& dataKey, const void* data, size_t size, const ArchiveCallback& callback = CALLBACK_NOOP);
 
 protected: // methods
 
-    virtual bool selectDatum(const InspectionKey &key, const Key &full) override;
+    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 
     virtual void print( std::ostream &out ) const override;
+
+private: // methods
+
+    void callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation);
 
 private: // members
 
     const void *data_;
     size_t size_;
+
+    const ArchiveCallback& callback_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

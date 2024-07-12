@@ -9,7 +9,6 @@
  */
 #include <functional>
 #include "eckit/exception/Exceptions.h"
-
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/Catalogue.h"
@@ -17,19 +16,25 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *data, size_t size) :
-    BaseArchiveVisitor(owner, dataKey),
+ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const void *data, size_t size, const ArchiveCallback& callback) :
+    BaseArchiveVisitor(owner, initialFieldKey),
     data_(data),
-    size_(size) {
+    size_(size),
+    callback_(callback){
 }
 
+void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation) {
+    callback_(data_, size_, *fieldLocation);
+    catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
+}
 
-bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
+bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
 
-    checkMissingKeys(full);
+    checkMissingKeys(fullComputedKey);
     const Key idxKey = catalogue()->currentIndexKey();
 
-    store()->archive(idxKey, data_, size_, std::bind(&CatalogueWriter::archive, catalogue(), idxKey, key, std::placeholders::_1));
+    store()->archive(idxKey, data_, size_,
+        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey.canonical(), std::placeholders::_1));
 
     return true;
 }

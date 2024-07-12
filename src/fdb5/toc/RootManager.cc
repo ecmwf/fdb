@@ -581,7 +581,7 @@ std::string RootManager::dbPathName(const Key& key)
     return dbpath;
 }
 
-std::vector<std::string> RootManager::possibleDbPathNames(const InspectionKey& key, const char* missing)
+std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing)
 {
     std::vector<std::string> result;
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
@@ -642,22 +642,22 @@ TocPath RootManager::directory(const Key& key) {
     throw eckit::SeriousBug(oss.str());
 }
 
-std::vector<PathName> RootManager::allRoots(const Key& key)
-{
-    eckit::StringSet roots;
+// std::vector<PathName> RootManager::allRoots(const Key& key)
+// {
+//     eckit::StringSet roots;
 
-    std::string k = key.valuesToString();
+//     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(k)) {
-            i->all(roots);
-        }
-    }
+//     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
+//         if(i->match(k)) {
+//             i->all(roots);
+//         }
+//     }
 
-    return std::vector<eckit::PathName>(roots.begin(), roots.end());
-}
+//     return std::vector<eckit::PathName>(roots.begin(), roots.end());
+// }
 
-std::vector<PathName> RootManager::visitableRoots(const std::set<InspectionKey>& keys) {
+std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
@@ -688,15 +688,15 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<InspectionKey>&
 }
 
 
-std::vector<eckit::PathName> RootManager::visitableRoots(const InspectionKey& key) {
-    return visitableRoots(std::set<InspectionKey>{ key });
+std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
+    return visitableRoots(std::set<Key>{ key });
 }
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
 //    Key key;
 //    config_.schema().expandFirstLevel(request, key);
-    std::set<InspectionKey> keys;
+    std::set<Key> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitableRoots(keys);
 }

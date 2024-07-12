@@ -48,8 +48,6 @@ void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     internalVisitor_->visitDatum(field, keyFingerprint);
 }
 
-void StatsVisitor::visitDatum(const Field&, const InspectionKey&) { NOTIMP; }
-
 void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);
 

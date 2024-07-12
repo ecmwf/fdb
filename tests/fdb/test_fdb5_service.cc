@@ -55,6 +55,7 @@ struct FixtureService {
 
     metkit::mars::MarsRequest env;
     StringDict p;
+    fdb5::Config config;
 
 	std::vector<std::string> modelParams_;
 
@@ -98,7 +99,7 @@ struct FixtureService {
 						 << std::endl;
 					std::string data_str = data.str();
 
-                    fdb5::Key k(p);
+                    fdb5::Key k{p};
                     ArchiveVisitor visitor(fdb, k, static_cast<const void *>(data_str.c_str()), data_str.size());
                     fdb.archive(k, visitor);
 				}
@@ -167,8 +168,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		EXPECT(!iter.next(el));
 	}
 
-// sub-hourly data are not yet supported in metkit
-/*	key.set("step","30");
+	key.set("step","30");
 	key.set("stepunits","m");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
 	fdb.flush();
@@ -183,9 +183,11 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		EXPECT(!iter.next(el));
 	}
 
-	req.setValue("step", "0/to/2/by/30m");
+	req.values("step", {"0","to","2","by","30m"});
+	req.unsetValues("param");
 	{
 		metkit::mars::MarsExpension expand{false};
+
 		metkit::mars::MarsRequest expandedRequests = expand.expand(req);
 		fdb5::FDBToolRequest r(expandedRequests);
 		fdb5::ListIterator iter = fdb.list(r, true);
@@ -195,10 +197,8 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		EXPECT(iter.next(el));
 		EXPECT(el.combinedKey().get("step") == "2");
 		EXPECT(!iter.next(el));
-	}*/
+	}
 }
-
-
 
 CASE ( "test_fdb_service" ) {
 
@@ -315,6 +315,9 @@ CASE ( "test_fdb_service" ) {
             	while ((dp = ::readdir(dirp)) != nullptr) {
                 	EXPECT_NOT(strstr( dp->d_name, "toc."));
 				}
+
+				// consuming the rest of the queue
+				while (iter.next(el));
 			}
         }
 
@@ -499,6 +502,9 @@ CASE ( "test_fdb_service_subtoc" ) {
 					}
 				}
 				EXPECT(subtoc);
+
+				// consuming the rest of the queue
+				while (iter.next(el));
 			}
         }
 

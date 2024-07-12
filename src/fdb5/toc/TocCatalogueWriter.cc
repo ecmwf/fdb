@@ -31,7 +31,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocCatalogueWriter::TocCatalogueWriter(const Key &dbKey, const fdb5::Config& config) :
+TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
     TocCatalogue(dbKey, config),
     umask_(config.umask()),
     archivedLocations_(0) {
@@ -66,7 +66,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
             fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
         }
 
-        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, this, indexPath, 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[idxKey];
@@ -88,7 +88,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
                 fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
             }
 
-            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, this, indexPath, 0, TocIndex::WRITE));
         }
 
         currentFull_ = fullIndexes_[idxKey];
@@ -125,7 +125,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const InspectionKey &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
     archivedLocations_++;
 
     if (current_.null()) {
@@ -155,11 +155,11 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
     private:
-        void visitDatum(const Field& field, const InspectionKey& key) override {
+        void visitDatum(const Field& field, const TypedKey& datumKey) override {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(key, location.uri(), location.offset(), location.length());
+            writer_.index(datumKey.canonical(), location.uri(), location.offset(), location.length());
 
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
@@ -303,7 +303,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
     archivedLocations_++;
 
     if (current_.null()) {
@@ -338,7 +338,7 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
     currentFull_ = Index();
 }
 
-eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
+eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
     eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";

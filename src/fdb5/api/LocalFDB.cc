@@ -29,6 +29,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
 
+#include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
@@ -45,11 +46,12 @@ using namespace eckit;
 
 
 namespace fdb5 {
+
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {
         LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_));
+        archiver_.reset(new Archiver(config_, callback_));
     }
 
     archiver_->archive(key, data, length);
@@ -121,6 +123,11 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
                                   ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::control() : " << request << std::endl;
     return queryInternal<ControlVisitor>(request, action, identifiers);
+}
+
+AxesIterator LocalFDB::axes(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axes() : " << request << std::endl;
+    return queryInternal<AxesVisitor>(request, config_, level);
 }
 
 void LocalFDB::flush() {

@@ -495,6 +495,19 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
 }
 
+    bool RemoteStore::uriBelongs(const eckit::URI&) const {
+        NOTIMP;
+    }
+    bool RemoteStore::uriExists(const eckit::URI&) const {
+        NOTIMP;
+    }
+    std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+        NOTIMP;
+    }
+    std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
+        NOTIMP;
+    }
+
 static StoreBuilder<RemoteStore> builder("remote");
 
 //----------------------------------------------------------------------------------------------------------------------

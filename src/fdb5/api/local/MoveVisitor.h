@@ -45,7 +45,7 @@ public: // methods
 //    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const InspectionKey&) override { NOTIMP; }
+    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
     void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
 
 private: // members

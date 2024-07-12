@@ -34,7 +34,7 @@ public: // methods
 
     virtual ~MatchOptional() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
+    virtual bool match(const std::string &keyword, const Key& key) const override;
 
     virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
@@ -46,11 +46,11 @@ private: // methods
     void encode(eckit::Stream&) const override;
 
     virtual bool optional() const override;
-    virtual const std::string &value(const Key &, const std::string &keyword) const override;
+    virtual const std::string &value(const Key& , const std::string &keyword) const override;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
     virtual void print( std::ostream &out ) const override;
     virtual const std::string &defaultValue() const override;
-    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const override;
+    virtual void fill(TypedKey& key, const std::string &keyword, const std::string& value) const override;
 
 private: // members
 

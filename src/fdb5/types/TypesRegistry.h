@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 
 #include "eckit/serialisation/Streamable.h"
 
@@ -39,7 +40,7 @@ public: // methods
     const Type &lookupType(const std::string &keyword) const;
 
     void addType(const std::string &, const std::string &);
-    void updateParent(const TypesRegistry *);
+    void updateParent(std::shared_ptr<TypesRegistry> parent);
     void dump( std::ostream &out ) const;
     void dump( std::ostream &out, const std::string &keyword ) const;
 
@@ -57,7 +58,7 @@ private: // members
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;
-    const TypesRegistry *parent_;
+    std::shared_ptr<TypesRegistry> parent_;
 
     friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
 

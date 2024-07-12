@@ -25,15 +25,19 @@ eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema
 
 eckit::Reanimator<Schema> Schema::reanimator_;
 
-Schema::Schema(const eckit::PathName &path) {
+Schema::Schema() : registry_(new TypesRegistry()) {
+
+}
+
+Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) {
+Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
     load(s);
 }
 Schema::Schema(eckit::Stream& s) :
-    registry_(s) {
+    registry_(new TypesRegistry(s)) {
 
     size_t numRules;
     s >> path_;
@@ -46,7 +50,7 @@ Schema::Schema(eckit::Stream& s) :
 }
 
 void Schema::encode(eckit::Stream& s) const {
-    registry_.encode(s);
+    registry_->encode(s);
     s << path_;
     s << rules_.size();
     for (const Rule* rule : rules_) {
@@ -73,24 +77,24 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 }
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full;
-    std::vector<InspectionKey> keys(3);
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
-    for (const Rule* rule : rules_) {
+    for (Rule* r : rules_) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// rule->dump(eckit::Log::info());
-		rule->expand(request, visitor, 0, keys, full);
+		// (*i)->dump(eckit::Log::info());
+		r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
 
-void Schema::expand(const Key &dataKey, WriteVisitor &visitor) const {
-    Key full;
-    std::vector<InspectionKey> keys(3);
+void Schema::expand(const Key& field, WriteVisitor &visitor) const {
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
-    for (const Rule* rule : rules_) {
-        rule->expand(dataKey, visitor, 0, keys, full);
+    for (Rule* r : rules_) {
+        r->expand(field, visitor, 0, keys, fullComputedKey);
     }
 }
 
@@ -105,12 +109,11 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<InspectionKey> keys(3);
-    keys[0] = InspectionKey(dbKey);
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
-    for (const Rule* rule : dbRule->rules_) {
-        rule->expand(request, visitor, 1, keys, full);
+    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+        (*i)->expand(request, visitor, 1, keys, fullComputedKey);
     }
 }
 
@@ -125,40 +128,33 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<InspectionKey> keys(3);
-    keys[0] = InspectionKey(dbKey);
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
-    for (const Rule* rule : dbRule->rules_) {
-        rule->expand(field, visitor, 1, keys, full);
+    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+        (*i)->expand(field, visitor, 1, keys, fullComputedKey);
     }
 }
 
-bool Schema::expandFirstLevel(const Key &dbKey,  InspectionKey &result) const {
-    bool found = false;
-    for (const Rule* rule : rules_) {
-        rule->expandFirstLevel(dbKey, result, found);
-        if (found) break;
-    }
-    return found;
-}
-
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, InspectionKey &result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result) const {
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
-        if (found) break;
+        if (found) {
+            result.registry(rule->registry());
+            break;
+        }
     }
     return found;
 }
 
-void Schema::matchFirstLevel(const Key &dbKey,  std::set<InspectionKey> &result, const char* missing) const {
+void Schema::matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
-void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<InspectionKey>& result, const char* missing) const {
+void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(request, result, missing);
     }
@@ -187,7 +183,7 @@ void Schema::load(std::istream& s, bool replace) {
 
     SchemaParser parser(s);
 
-    parser.parse(*this, rules_, registry_);
+    parser.parse(*this, rules_, *registry_);
 
     check();
 }
@@ -199,9 +195,9 @@ void Schema::clear() {
 }
 
 void Schema::dump(std::ostream &s) const {
-    registry_.dump(s);
-    for (const Rule* rule : rules_) {
-        rule->dump(s);
+    registry_->dump(s);
+    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->dump(s);
         s << std::endl;
     }
 }
@@ -210,8 +206,8 @@ void Schema::check() {
     for (Rule* rule : rules_) {
         /// @todo print offending rule in meaningful message
         ASSERT(rule->depth() == 3);
-        rule->registry_.updateParent(&registry_);
-        rule->updateParent(nullptr);
+        rule->registry_->updateParent(registry_);
+        rule->updateParent(0);
     }
 }
 
@@ -220,7 +216,7 @@ void Schema::print(std::ostream &out) const {
 }
 
 const Type &Schema::lookupType(const std::string &keyword) const {
-    return registry_.lookupType(keyword);
+    return registry_->lookupType(keyword);
 }
 
 
@@ -232,7 +228,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-const TypesRegistry& Schema::registry() const {
+const std::shared_ptr<TypesRegistry> Schema::registry() const {
     return registry_;
 }
 
@@ -240,6 +236,32 @@ const TypesRegistry& Schema::registry() const {
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);
     return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+SchemaRegistry& SchemaRegistry::instance() {
+    static SchemaRegistry me;
+    return me;
+}
+
+const Schema& SchemaRegistry::add(const eckit::PathName& path, Schema* schema) {
+    ASSERT(schema);
+    schemas_[path] = std::unique_ptr<Schema>(schema);
+    return *schemas_[path];
+}
+
+const Schema& SchemaRegistry::get(const eckit::PathName& path) {
+    std::lock_guard<std::mutex> lock(m_);
+    auto it = schemas_.find(path);
+    if (it != schemas_.end()) {
+        return *it->second;
+    }
+
+    Schema* p = new Schema(path);
+    ASSERT(p);
+    schemas_[path] = std::unique_ptr<Schema>(p);
+    return *schemas_[path];
 }
 
 //----------------------------------------------------------------------------------------------------------------------

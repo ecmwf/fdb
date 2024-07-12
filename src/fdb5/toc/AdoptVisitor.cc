@@ -21,8 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &path, Offset offset, Length length) :
-    BaseArchiveVisitor(owner, field),
+AdoptVisitor::AdoptVisitor(Archiver &owner, const Key& initialFieldKey, const PathName &path, Offset offset, Length length) :
+    BaseArchiveVisitor(owner, initialFieldKey),
     path_(path),
     offset_(offset),
     length_(length) {
@@ -30,16 +30,16 @@ AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &pa
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const InspectionKey &key, const Key &full) {
+bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
 
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
-    checkMissingKeys(full);
+    checkMissingKeys(fullComputedKey);
 
     CatalogueWriter* cat = catalogue();
     ASSERT(cat);
 
     if (cat->type() == TocEngine::typeName()) {
-        cat->index(key, eckit::URI("file", path_), offset_, length_);
+        cat->index(datumKey.canonical(), eckit::URI("file", path_), offset_, length_);
         return true;
     }
     return false;

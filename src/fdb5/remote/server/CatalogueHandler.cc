@@ -430,14 +430,12 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
 
     MemoryStream s(data, length);
 
-    // fdb5::Key dbKey(s);
     fdb5::Key idxKey(s);
-    fdb5::InspectionKey key;
-    s >> key; // xxx no stream constructor for inspection key?
+    fdb5::Key datumKey(s);
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
 
-    LOG_DEBUG_LIB(LibFdb5) << "CatalogueHandler::archiveBlob key: " << idxKey << key << "  location: " << location->uri() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "CatalogueHandler::archiveBlob key: " << idxKey << datumKey << "  location: " << location->uri() << std::endl;
 
     std::map<uint32_t, CatalogueArchiver>::iterator it;
     {
@@ -451,7 +449,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     }
 
     it->second.catalogue->selectIndex(idxKey);
-    it->second.catalogue->archive(idxKey, key, std::move(location));
+    it->second.catalogue->archive(idxKey, datumKey, std::move(location));
     {
         // std::cout << "archiveBlob " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);

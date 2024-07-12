@@ -36,8 +36,8 @@ RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& con
     NOTIMP;
 }
 
-RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    Store(), directory_("mars:"+uri.path().dirName()), archivedFields_(0) {}
+// RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
+//     Store(), directory_("mars:"+uri.path().dirName()), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
@@ -164,7 +164,7 @@ eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName RadosStore::generateDataPath(const Key &key) const {
+eckit::PathName RadosStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
@@ -172,7 +172,7 @@ eckit::PathName RadosStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName RadosStore::getDataPath(const Key &key) {
+eckit::PathName RadosStore::getDataPath(const Key& key) {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;

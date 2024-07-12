@@ -58,6 +58,10 @@ public: // methods
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
     void remove(const Key& key) const override;
+    bool uriBelongs(const eckit::URI&) const override;
+    bool uriExists(const eckit::URI&) const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
    const Config& config() { return config_; }
    

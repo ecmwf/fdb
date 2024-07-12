@@ -97,7 +97,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    dh->saveInto(out);
+    dh->copyTo(out);
 }
 
 

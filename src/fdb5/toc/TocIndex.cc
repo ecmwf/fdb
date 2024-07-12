@@ -41,15 +41,15 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note We use a FileStoreWrapper base that only exists to initialise the files_ member function
+/// @note We use a FileStoreWrapper base that only exists to initialise the uris_ member function
 ///       before the Index constructor is called. This is necessary as due to (preexisting)
-///       serialisation ordering, the files_ member needs to be initialised from a Stream
+///       serialisation ordering, the uris_ member needs to be initialised from a Stream
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+TocIndex::TocIndex(const Key& key, const Catalogue* catalogue, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     UriStoreWrapper(path.dirName()),
-    IndexBase(key, type),
+    IndexBase(key, type, catalogue),
     btree_(nullptr),
     dirty_(false),
     mode_(mode),
@@ -57,10 +57,10 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     preloadBTree_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path,
+TocIndex::TocIndex(eckit::Stream &s, const Catalogue* catalogue, const int version, const eckit::PathName &directory, const eckit::PathName &path,
                    off_t offset, bool preloadBTree):
     UriStoreWrapper(directory, s),
-    IndexBase(s, version),
+    IndexBase(s, version, catalogue),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
@@ -78,7 +78,7 @@ void TocIndex::encode(eckit::Stream& s, const int version) const {
 }
 
 
-bool TocIndex::get(const InspectionKey &key, const Key &remapKey, Field &field) const {
+bool TocIndex::get(const Key& key, const Key& remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
@@ -124,7 +124,7 @@ void TocIndex::close() {
     }
 }
 
-void TocIndex::add(const InspectionKey &key, const Field &field) {
+void TocIndex::add(const Key& key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == TocIndex::WRITE );
 
@@ -200,7 +200,7 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::URI> TocIndex::dataPaths() const {
+const std::vector<eckit::URI> TocIndex::dataURIs() const {
     return uris_.paths();
 }
 

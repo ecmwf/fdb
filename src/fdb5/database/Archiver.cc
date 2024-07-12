@@ -24,20 +24,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver(const Config& dbConfig) :
+Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
     dbConfig_(dbConfig),
-    db_(nullptr) {}
+    db_(nullptr),
+    callback_(callback) {}
 
 Archiver::~Archiver() {
     flush(); // certify that all sessions are flushed before closing them
 }
 
-void Archiver::archive(const Key &key, const void* data, size_t len) {
-    ArchiveVisitor visitor(*this, key, data, len);
+void Archiver::archive(const Key& key, const void* data, size_t len) {
+    ArchiveVisitor visitor(*this, key, data, len, callback_);
     archive(key, visitor);
 }
 
-void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
     
@@ -60,7 +61,7 @@ void Archiver::flush() {
     }
 }
 
-void Archiver::selectDatabase(const Key &dbKey) {
+void Archiver::selectDatabase(const Key& dbKey) {
 
     auto i = databases_.find(dbKey);
 

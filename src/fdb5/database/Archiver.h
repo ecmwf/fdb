@@ -21,8 +21,9 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/Catalogue.h"
+#include "fdb5/api/helpers/ArchiveCallback.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace eckit   {
 class DataHandle;
@@ -47,14 +48,14 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig());
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
 
     virtual ~Archiver();
 
     // uint32_t id() const { return id_; }
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
@@ -69,7 +70,7 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    void selectDatabase(const Key &key);
+    void selectDatabase(const Key& key);
 
 private: // members
     friend class BaseArchiveVisitor;
@@ -81,6 +82,8 @@ private: // members
     std::vector<Key> prev_;
 
     Database* db_;
+
+    const ArchiveCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

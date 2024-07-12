@@ -35,7 +35,8 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class InspectionKey;
+class Key;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,11 +46,22 @@ public: // methods
 
     IndexAxis();
     IndexAxis(eckit::Stream &s, const int version);
+    IndexAxis(IndexAxis&& rhs) noexcept;
+
+    IndexAxis& operator=(IndexAxis&& rhs) noexcept;
 
     ~IndexAxis();
 
-    void insert(const InspectionKey &key);
+    bool operator==(const IndexAxis& rhs) const;
+    bool operator!=(const IndexAxis& rhs) const;
+
+    void insert(const Key& key);
+    /// @note: the values are required to be cannonicalised
+    void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;
+    static int currentVersion() { return 3; }
+
+    void merge(const IndexAxis& other);
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s, const int version);
@@ -57,10 +69,12 @@ public: // methods
     bool has(const std::string &keyword) const;
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
 
+    std::map<std::string, eckit::DenseSet<std::string>> map() const;
+
     void dump(std::ostream &out, const char* indent) const;
 
-    bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    bool contains(const InspectionKey& key) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const;
+    bool contains(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.
@@ -78,6 +92,11 @@ public: // methods
         return s;
     }
 
+    friend eckit::JSON& operator<<(eckit::JSON& j, const IndexAxis& x) {
+        x.json(j);
+        return j;
+    }
+
 private: // methods
 
     void encodeCurrent(eckit::Stream &s, const int version) const;
@@ -87,7 +106,7 @@ private: // methods
     void decodeLegacy(eckit::Stream& s, const int version);
 
     void print(std::ostream &out) const;
-
+    void json(eckit::JSON& j) const;
 
 private: // members
 

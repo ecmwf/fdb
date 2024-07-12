@@ -30,12 +30,32 @@ std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
 }
 
 std::unique_ptr<Store> CatalogueImpl::buildStore() const {
-    if (buildByKey_){
-        return StoreFactory::instance().build(key(), config_);
-    } else {
-        std::string name = config_.getString("store", "file");
-        return StoreFactory::instance().build(eckit::URI(name, uri()), config_);
+    return StoreFactory::instance().build(key(), config_);
+}
+
+void Catalogue::visitEntries(EntryVisitor& visitor /*, const Store& store*/, bool sorted) {
+
+    std::vector<Index> all = indexes(sorted);
+
+    // Allow the visitor to selectively reject this DB.
+    if (visitor.visitDatabase(*this)) {
+        if (visitor.visitIndexes()) {
+            for (const Index& idx : all) {
+                if (visitor.visitEntries()) {
+                    idx.entries(visitor); // contains visitIndex
+                } else {
+                    visitor.visitIndex(idx);
+                }
+            }
+        }
     }
+
+    visitor.catalogueComplete(*this);
+
+}
+
+const Key CatalogueWriter::currentIndexKey() {
+    return currentIndex().key();
 }
 
 bool CatalogueImpl::enabled(const ControlIdentifier& controlIdentifier) const {

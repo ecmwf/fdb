@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/types/Type.h"
+#include "eckit/utils/StringTools.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
@@ -35,14 +36,12 @@ const std::string &Type::type() const {
     return type_;
 }
 
-std::string Type::tidy(const std::string&,
-                       const std::string &value) const  {
-    return value;
+std::string Type::tidy(const std::string &value) const  {
+    return eckit::StringTools::lower(value);
 }
 
-std::string Type::toKey(const std::string&,
-                        const std::string &value) const {
-    return value;
+std::string Type::toKey(const std::string &value) const {
+    return eckit::StringTools::lower(value);
 }
 
 std::ostream &operator<<(std::ostream &s, const Type &x) {

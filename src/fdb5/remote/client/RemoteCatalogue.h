@@ -23,15 +23,15 @@ public:
 
     // From CatalogueWriter
     const Index& currentIndex() override;
-    void archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
-    void index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
+    void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
     void reconsolidate() override;
 
     //From CatalogueReader
     DbStats stats() const override { return DbStats(); }
     bool axis(const std::string& keyword, eckit::StringSet& s) const override { return false; }
-    bool retrieve(const InspectionKey& key, Field& field) const override { return false; }
+    bool retrieve(const Key& key, Field& field) const override { return false; }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;

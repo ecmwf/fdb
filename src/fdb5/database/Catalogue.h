@@ -33,7 +33,6 @@
 #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/database/InspectionKey.h"
 
 namespace fdb5 {
 
@@ -59,7 +58,7 @@ public:
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
-    virtual void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted = false) = 0;
+    virtual void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted = false);
 
     virtual void hideContents() = 0;
 
@@ -107,7 +106,7 @@ class CatalogueImpl : virtual public Catalogue {
 public:
 
     CatalogueImpl(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers), buildByKey_(!key.empty()) {}
+        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~CatalogueImpl() {}
 
@@ -131,9 +130,6 @@ protected: // members
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
-private: // members
-
-    bool buildByKey_ = false;
 };
 
 class CatalogueReader : virtual public Catalogue {
@@ -148,7 +144,7 @@ public:
 
     virtual DbStats stats() const = 0;
     virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
-    virtual bool retrieve(const InspectionKey& key, Field& field) const = 0;
+    virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
 
@@ -163,10 +159,10 @@ public:
     virtual ~CatalogueWriter() {}
 
     virtual const Index& currentIndex() = 0;
-    virtual const Key currentIndexKey() = 0;
-    virtual void archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
+    virtual const Key currentIndexKey();
+    virtual void archive(const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
-    virtual void index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
+    virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
 };
 

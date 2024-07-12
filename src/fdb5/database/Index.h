@@ -30,7 +30,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Indexer.h"
-#include "fdb5/database/InspectionKey.h"
+
 
 namespace eckit {
 class Stream;
@@ -52,14 +52,14 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s, const int version);
+    IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue);
+    IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue);
 
     virtual ~IndexBase() override;
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual const std::vector<eckit::URI> dataPaths() const { NOTIMP; }
+    virtual const std::vector<eckit::URI> dataURIs() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
 
@@ -79,15 +79,15 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const InspectionKey &key, const Key &remapKey, Field &field) const = 0;
-    virtual void put(const InspectionKey &key, const Field &field);
+    virtual bool get(const Key& key, const Key& remapKey, Field &field) const = 0;
+    virtual void put(const Key& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    virtual bool mayContain(const InspectionKey& key) const;
+    virtual bool mayContain(const Key& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -107,7 +107,9 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const InspectionKey &key, const Field &field) = 0;
+    virtual void add(const Key& key, const Field &field) = 0;
+
+    const TypesRegistry& registry() const;
 
 protected: // members
 
@@ -118,7 +120,10 @@ protected: // members
     Key           key_;       ///< key that selected this index
     time_t        timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer       indexer_;
+    Indexer   indexer_;
+
+    const Catalogue* catalogue_;
+    mutable std::shared_ptr<TypesRegistry> registry_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
@@ -141,7 +146,7 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::URI> dataPaths() const { return content_->dataPaths(); }
+    const std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
 
     bool dirty() const { return content_->dirty(); }
 
@@ -159,8 +164,8 @@ public: // methods
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const InspectionKey& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
-    void put(const InspectionKey& key, const Field& field) { content_->put(key, field); }
+    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
+    void put(const Key& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
@@ -174,7 +179,7 @@ public: // methods
     const IndexBase* content() const { return content_; }
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
-    bool mayContain(const InspectionKey& key) const { return content_->mayContain(key); }
+    bool mayContain(const Key& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }
 

@@ -80,34 +80,35 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
     return paths;
 }
 
-void TocCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) {
+// void TocCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) {
 
-    std::vector<Index> all = indexes(sorted);
+//     std::vector<Index> all = indexes(sorted);
 
-    // Allow the visitor to selectively reject this DB.
-    if (visitor.visitDatabase(*this /*, store*/)) {
-        if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
-                if (visitor.visitEntries()) {
-                    idx.entries(visitor); // contains visitIndex
-                } else {
-                    visitor.visitIndex(idx);
-                }
-            }
-        }
+//     // Allow the visitor to selectively reject this DB.
+//     if (visitor.visitDatabase(*this /*, store*/)) {
+//         if (visitor.visitIndexes()) {
+//             for (const Index& idx : all) {
+//                 if (visitor.visitEntries()) {
+//                     idx.entries(visitor); // contains visitIndex
+//                 } else {
+//                     visitor.visitIndex(idx);
+//                 }
+//             }
+//         }
 
-        visitor.catalogueComplete(*this);
-    }
+//         visitor.catalogueComplete(*this);
+//     }
 
-}
+// }
 
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
-    if (schema_) {
-        schema_->load(schemaPath());
-    } else {
-        schema_.reset(new Schema(schemaPath()));
-    }
+    schema_ = &SchemaRegistry::instance().get(schemaPath());
+    // if (schema_) {
+    //     schema_->load(schemaPath());
+    // } else {
+    //     schema_.reset(new Schema(schemaPath()));
+    // }
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {

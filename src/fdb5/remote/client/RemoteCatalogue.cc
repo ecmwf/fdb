@@ -58,7 +58,7 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     dataWrite(Message::Blob, id, payloads);
 }
 
-void RemoteCatalogue::archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
     ASSERT(!key.empty());
     ASSERT(fieldLocation);
@@ -180,7 +180,7 @@ void RemoteCatalogue::handleException(std::exception_ptr e) {
 }
 
 void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
-void RemoteCatalogue::index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
+void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
 void RemoteCatalogue::reconsolidate(){NOTIMP;}
 std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {NOTIMP;}
 void RemoteCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) {NOTIMP;}

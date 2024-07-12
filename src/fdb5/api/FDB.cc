@@ -19,6 +19,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
@@ -30,6 +31,7 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/message/MessageDecoder.h"
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -101,24 +103,24 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    auto stepunit = key.find("stepunits");
-    if (stepunit != key.end()) {
-        Key k;
-        for (auto it : key) {
-            if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
-                // TODO - enable canonical representation of step (as soon as Metkit supports it)
-                std::string canonicalStep = it.second+stepunit->second; // k.registry().lookupType("step").toKey("step", it.second+stepunit->second);
-                k.set(it.first, canonicalStep);
-            } else {
-                if (it.first != "stepunits") {
-                    k.set(it.first, it.second);
-                }
+    // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
+    // serialisation won't work properly...)
+    Key keyInternal(key);
+
+    // step in archival requests from the model is just an integer. We need to include the stepunit
+    auto stepunit = keyInternal.find("stepunits");
+    if (stepunit != keyInternal.end()) {
+        if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
+            auto step = keyInternal.find("step");
+            if (step != keyInternal.end()) {
+                std::string canonicalStep = config().schema().registry()->lookupType("step").toKey(step->second + static_cast<char>(tolower(stepunit->second[0])));
+                keyInternal.set("step", canonicalStep);
             }
         }
-        internal_->archive(k, data, length);
-    } else {
-        internal_->archive(key, data, length);
+        keyInternal.unset("stepunits");
     }
+
+    internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
     timer.stop();
@@ -292,6 +294,16 @@ void FDB::flush() {
     }
 }
 
+IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
+    IndexAxis axes;
+    AxesElement elem;
+    auto it = internal_->axes(request, level);
+    while (it.next(elem)) {
+        axes.merge(elem.axes());
+    }
+    return axes;
+}
+
 bool FDB::dirty() const {
     return dirty_;
 }
@@ -306,6 +318,10 @@ bool FDB::disabled() const {
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
+}
+
+void FDB::registerCallback(ArchiveCallback callback) {
+    internal_->registerCallback(callback);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

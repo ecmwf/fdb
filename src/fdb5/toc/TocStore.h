@@ -34,12 +34,14 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Key& key, const Config& config);
-    TocStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
-    TocStore(const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
     eckit::URI uri() const override;
+    bool uriBelongs(const eckit::URI&) const override;
+    bool uriExists(const eckit::URI&) const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     size_t flush() override;
@@ -58,7 +60,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key& key, const void *data, eckit::Length length) override;
+    std::unique_ptr<FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -68,8 +70,8 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key) const;
+    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::PathName getDataPath(const Key& key) const;
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;

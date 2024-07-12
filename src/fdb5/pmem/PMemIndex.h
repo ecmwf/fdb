@@ -38,7 +38,7 @@ class PMemIndex : public IndexBase {
 
 public: // methods
 
-    PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
+    PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
 
     virtual ~PMemIndex() override;
 
@@ -49,7 +49,7 @@ public: // methods
 protected: // methods
 
     virtual const IndexLocation& location() const { return location_; }
-    virtual const std::vector<eckit::PathName> dataPaths() const override;
+    virtual const std::vector<eckit::URI> dataURIs() const override;
 
     virtual bool dirty() const;
 
@@ -57,8 +57,8 @@ protected: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual bool get( const Key &key, Field &field ) const;
-    virtual void add( const Key &key, const Field &field );
+    virtual bool get(const Key& key, Field &field ) const;
+    virtual void add(const Key& key, const Field &field );
     virtual void flush();
     virtual void encode(eckit::Stream &s) const override;
     virtual void entries(EntryVisitor &visitor) const;

@@ -18,6 +18,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
 
 namespace fdb5 {
 
@@ -25,7 +26,6 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
-class InspectionKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -46,6 +46,8 @@ public:  // methods
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
+    virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) {}
+
     time_t indexTimestamp() const;
 
 protected:
@@ -54,7 +56,7 @@ protected:
 
 private: // methods
 
-    virtual void visitDatum(const Field& field, const InspectionKey& key) = 0;
+    virtual void visitDatum(const Field& field, const TypedKey& datumKey) = 0;
 
 protected:  // members
 

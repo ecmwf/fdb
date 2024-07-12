@@ -27,7 +27,7 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBWriter::PMemDBWriter(const Key &key, const eckit::Configuration& config) :
+PMemDBWriter::PMemDBWriter(const Key& key, const eckit::Configuration& config) :
     PMemDB(key, config) {}
 
 
@@ -37,7 +37,7 @@ PMemDBWriter::PMemDBWriter(const PathName &directory, const eckit::Configuration
 PMemDBWriter::~PMemDBWriter() {
 }
 
-bool PMemDBWriter::selectIndex(const Key &key) {
+bool PMemDBWriter::selectIndex(const Key& idxKey) {
 
     if (indexes_.find(key) == indexes_.end()) {
         indexes_[key] = Index(new PMemIndex(key, root_->getCreateBranchingNode(key), *dataPoolMgr_));
@@ -45,7 +45,7 @@ bool PMemDBWriter::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::debug<LibFdb5>() << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
 
     return true;
 }
@@ -61,7 +61,7 @@ void PMemDBWriter::close() {
     indexes_.clear();
 }
 
-void PMemDBWriter::archive(const InspectionKey &key, const void *data, Length length) {
+void PMemDBWriter::archive(const Key& key, const void *data, Length length) {
 
     // Get the key:value identifier associated with this key
 

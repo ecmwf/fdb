@@ -30,9 +30,7 @@ class RadosStore : public Store {
 
 public: // methods
 
-    RadosStore(const Key& key, const Config& config);
-    RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
-    RadosStore(const eckit::URI& uri, const Config& config);
+    RadosStore(const Schema& schema, const Key& key, const Config& config);
 
     ~RadosStore() override {}
 
@@ -61,8 +59,8 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key);
+    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::PathName getDataPath(const Key& key);
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;

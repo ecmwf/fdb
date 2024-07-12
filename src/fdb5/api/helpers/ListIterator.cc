@@ -31,28 +31,28 @@ ListElement::ListElement(eckit::Stream &s) {
 }
 
 Key ListElement::combinedKey() const {
-    Key combined;
+    Key combined = keyParts_[2];
 
     for (const Key& partKey : keyParts_) {
         for (const auto& kv : partKey) {
             combined.set(kv.first, kv.second);
         }
     }
-
     return combined;
 }
 
-void ListElement::print(std::ostream &out, bool withLocation, bool withLength) const {
+void ListElement::print(std::ostream& out, bool withLocation, bool withLength, bool withTimestamp, const char* sep) const {
     for (const auto& bit : keyParts_) {
         out << bit;
     }
     if (location_) {
         if (withLocation) {
-            out << " " << *location_;
+            out << sep << *location_;
         } else if (withLength) {
-            out << ",length=" << location_->length();
+            out << sep << "length=" << location_->length();
         }
     }
+    if (withTimestamp) out << sep << "timestamp=" << timestamp_;
 }
 
 void ListElement::json(eckit::JSON& json) const {

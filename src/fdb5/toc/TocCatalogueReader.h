@@ -39,7 +39,7 @@ public: // methods
 private: // methods
 
     void loadIndexesAndRemap();
-    bool selectIndex(const Key &idxKey) override;
+    bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;
@@ -49,7 +49,7 @@ private: // methods
     
     bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    bool retrieve(const InspectionKey& key, Field& field) const override;
+    bool retrieve(const Key& key, Field& field) const override;
 
     void print( std::ostream &out ) const override;
 

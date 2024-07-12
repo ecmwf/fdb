@@ -44,11 +44,9 @@ public: // methods
 
     virtual ~Type();
 
-    virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const ;
+    virtual std::string tidy(const std::string &value) const ;
 
-    virtual std::string toKey(const std::string &keyword,
-                              const std::string &value) const ;
+    virtual std::string toKey(const std::string &value) const ;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,

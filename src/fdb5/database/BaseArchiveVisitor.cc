@@ -18,29 +18,29 @@
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &dataKey) :
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey) :
     WriteVisitor(owner.prev_),
-    owner_(owner),
-    dataKey_(dataKey) {
+    initialFieldKey_(initialFieldKey),
+    owner_(owner) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const Key &dbKey, const Key&) {
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << dbKey << std::endl;
+bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
+    LOG_DEBUG_LIB(LibFdb5) << "BaseArchiveVisitor::selectDatabase " << dbKey << std::endl;
     owner_.selectDatabase(dbKey);
     catalogue()->deselectIndex();
 
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key &idxKey, const Key&) {
-    // eckit::Log::info() << "selectIndex " << key << std::endl;
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
+    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return catalogue()->selectIndex(idxKey);
 }
 
-void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
+void BaseArchiveVisitor::checkMissingKeys(const TypedKey& fullComputedKey) {
     if (checkMissingKeysOnWrite_) {
-        dataKey_.validateKeysOf(full);
+        fullComputedKey.validateKeys(initialFieldKey_);
     }
 }
 

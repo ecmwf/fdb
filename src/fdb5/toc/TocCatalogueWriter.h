@@ -37,13 +37,13 @@ class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public: // methods
 
-    TocCatalogueWriter(const Key &dbKey, const fdb5::Config& config);
+    TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
     virtual ~TocCatalogueWriter() override;
 
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const InspectionKey &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override;
+    void index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override;
 
     void reconsolidate() override { reconsolidateIndexesAndTocs(); }
 
@@ -71,7 +71,7 @@ protected: // methods
     void clean() override;
     void close() override;
 
-    void archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
     void reconsolidateIndexesAndTocs();
 
     virtual void print( std::ostream &out ) const override;
@@ -82,7 +82,7 @@ private: // methods
     void flushIndexes();
     void compactSubTocIndexes();
 
-    eckit::PathName generateIndexPath(const Key &key) const;
+    eckit::PathName generateIndexPath(const Key& key) const;
 
 private: // types
 

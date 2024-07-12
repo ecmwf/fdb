@@ -40,10 +40,10 @@ LibFdb5& LibFdb5::instance() {
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig() { 
+const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) { 
     if(!config_) {
         Config cfg;
-        config_.reset( new Config( std::move(cfg.expandConfig()) ) );
+        config_.reset( new Config( std::move(cfg.expandConfig()), userConfig ) );
     }
     return *config_;
 }

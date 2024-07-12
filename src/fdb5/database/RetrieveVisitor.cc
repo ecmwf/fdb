@@ -34,16 +34,16 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
+bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
 
     if(catalogue_) {
-        if(key == catalogue_->key()) {
+        if(dbKey == catalogue_->key()) {
             return true;
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << key << std::endl;
-    catalogue_ = CatalogueReaderFactory::instance().build(key, fdb5::Config()).get();
+    LOG_DEBUG_LIB(LibFdb5) << "RetrieveVisitor::selectDatabase " << dbKey << std::endl;
+    catalogue_ = CatalogueReaderFactory::instance().build(dbKey, fdb5::Config()).get();
 
     // If this database is locked for retrieval then it "does not exist"
     if (!catalogue_->enabled(ControlIdentifier::Retrieve)) {
@@ -55,26 +55,26 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     }
 
     if (!catalogue_->open()) {
-        eckit::Log::info() << "Database does not exists " << key << std::endl;
+        eckit::Log::info() << "Database does not exists " << dbKey << std::endl;
         return false;
     } else {
         return true;
     }
 }
 
-bool RetrieveVisitor::selectIndex(const Key& key, const Key&) {
+bool RetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
     ASSERT(catalogue_);
-    // eckit::Log::info() << "selectIndex " << key << std::endl;
-    return catalogue_->selectIndex(key);
+    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
+    return catalogue_->selectIndex(idxKey);
 }
 
-bool RetrieveVisitor::selectDatum(const InspectionKey& key, const Key&) {
+bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
     ASSERT(catalogue_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
     eckit::DataHandle *dh = nullptr;
-    if (catalogue_->retrieve(key, field)) {
+    if (catalogue_->retrieve(datumKey.canonical(), field)) {
         dh = store().retrieve(field);
     }
 
@@ -99,7 +99,7 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 
     for(auto l: list) {
-        std::string v = registry.lookupType(keyword).toKey(keyword, l);
+        std::string v = registry.lookupType(keyword).toKey(l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);
         }

@@ -51,8 +51,10 @@ public: // methods
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
-    void visitDatum(const Field&, const InspectionKey&) override { NOTIMP; }
+    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
     void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
+
+    virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
 private: // members
 

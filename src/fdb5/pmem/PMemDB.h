@@ -77,8 +77,8 @@ protected: // methods
     std::vector<eckit::PathName> metadataPaths() const;
     const Schema& schema() const override;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const InspectionKey &key, const void *data, eckit::Length length);
+    virtual eckit::DataHandle *retrieve(const Key& key) const;
+    virtual void archive(const Key& key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
@@ -87,7 +87,7 @@ protected: // methods
 
     // void loadSchema();
 
-    virtual bool selectIndex(const Key &key);
+    virtual bool selectIndex(const Key& idxKey);
     virtual void deselectIndex();
 
     virtual DbStats statistics() const;

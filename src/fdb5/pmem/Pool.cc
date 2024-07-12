@@ -59,7 +59,7 @@ Pool::Pool(const PathName& path, const std::string& name) :
     ASSERT(baseRoot()->valid());
     ASSERT(root().valid());
 
-    Log::debug<LibFdb5>() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 
@@ -97,11 +97,11 @@ Pool* Pool::obtain(const PathName& poolDir, const size_t size, const Key& dbKey,
 
 
     if(exists(poolDir)) {
-        Log::debug<LibFdb5>() << "Opening FDB PMem master pool  " << poolDir << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Opening FDB PMem master pool  " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), "pmem-pool");
     }
     else {
-        Log::debug<LibFdb5>() << "Creating FDB PMem master pool " << poolDir << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Creating FDB PMem master pool " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
         pool->buildRoot(dbKey, schemaPath);
     }

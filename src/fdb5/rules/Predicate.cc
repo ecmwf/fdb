@@ -10,6 +10,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/database/Key.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Matcher.h"
 
@@ -41,7 +42,7 @@ void Predicate::encode(eckit::Stream& s) const {
 Predicate::~Predicate() {
 }
 
-bool Predicate::match(const Key &key) const {
+bool Predicate::match(const Key& key) const {
     return matcher_->match(keyword_, key);
 }
 
@@ -61,7 +62,11 @@ bool Predicate::optional() const {
     return matcher_->optional();
 }
 
-const std::string &Predicate::value(const Key &key) const {
+// const std::string &Predicate::value(const TypedKey& key) const {
+//     return matcher_->value(key, keyword_);
+// }
+
+const std::string &Predicate::value(const Key& key) const {
     return matcher_->value(key, keyword_);
 }
 
@@ -69,7 +74,7 @@ const std::vector<std::string>& Predicate::values(const metkit::mars::MarsReques
     return matcher_->values(rq, keyword_);
 }
 
-void Predicate::fill(Key &key, const std::string& value) const {
+void Predicate::fill(TypedKey& key, const std::string& value) const {
     matcher_->fill(key, keyword_, value);
 }
 
