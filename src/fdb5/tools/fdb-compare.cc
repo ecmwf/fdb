@@ -14,6 +14,7 @@
 #include <cstring>
 #include <ctime>
 #include <limits>
+#include <bitset>
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/Resource.h"
@@ -48,6 +49,7 @@ extern "C"
 {
     int grib_get_message_headers(const grib_handle* h, const void** msg, size_t* size);
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 //Reorganise. Ideally this should be encapsulated in a class or somewhere and not just here
 typedef std::tuple<std::string,long long int, long long int> GribLocation; //{Location,Offset,Length}
@@ -80,16 +82,6 @@ class FDBCompare : public FDBVisitTool {
 };
 
 
-// std::string keySignature(const fdb5::Key& key) {
-//     std::string signature;
-//     std::string separator;
-//     for (auto k : key.keys()) {
-//         signature += separator+k;
-//         separator=":";
-//     }
-//     return signature;
-// }
-
 
 void FDBCompare::init(const CmdArgs& args) {
 
@@ -117,54 +109,249 @@ void FDBCompare::init(const CmdArgs& args) {
 // only compare the key of each map. the tupel is expected to diverge.
 template <typename Map>
 constexpr bool compare_keys(Map const &ref, Map const &test){
-    return std::equal(ref.begin(),ref.end(),test.begin(),[] (auto a, auto b) {return a.first == b.first;});
+    //return std::equal(ref.begin(),ref.end(),test.begin(),[] (auto a, auto b) {return a.first == b.first;});
+    if(test.size() != ref.size())
+    {
+        std::cout<<"The number of messages within the FDBs doesn't match. "<<std::endl;
+    }
+    int count = 0;
+    std::cout<<"******* Checking that all Mars key entries from Test match entries in the reference FDB ****"<<std::endl;
+    for(const auto& pair: test){
+        if(ref.find(pair.first) == ref.end()){
+            ++count;
+            std::cout<<"TEST FDB message key not found in ref map: " <<pair.first<<std::endl;
+        }
+    }
+    if(count==0 && (test.size()==ref.size()))
+    {   
+        std::cout<<"Mars Keys match"<<std::endl;
+        return true; //works because it is assumed that both 
+    }
+    else{
+        std::cout<<"******* There was a mismatch in keys in the forward search: We are now searching the reference FDB to list all Keys that don't match entries in the test FDB ****"<<std::endl;
+        for(const auto& pair: ref){
+            if(test.find(pair.first) == test.end()){
+                ++count;
+                std::cout<<"REF FDB message key not found in test map: " <<pair.first<<std::endl;
+            }
+        }
+        std::cout<<"******* End of Mars Key Message comparison ********"<<std::endl;
+    }
+    return false;
 }
 
-void printInfo(codes_handle *h)
+void printInfo(codes_handle* h)
 {
     char shortName[254] = {0,};
     size_t len = 254;
     char endSec[254] = {0,};
     size_t lenEnd = 254;
   
-    codes_get_string(h,"shortName",shortName, &len);
+    CODES_CHECK(codes_get_string(h,"shortName",shortName, &len),0);
     std::cout<<"HANDLE short Name "<<shortName<<std::endl;
  
 
-    codes_get_string(h,"7777",endSec,&lenEnd);
+    CODES_CHECK(codes_get_string(h,"7777",endSec,&lenEnd),0);
     std::cout<<"HANDLE 7777 "<<endSec<<std::endl;
 
 }
+// Function to check endianness
+bool isLittleEndian() {
+    uint16_t test = 0x1;
+    return *((uint8_t*)&test) == 0x1;
+}
 
-void extractGribMessage(GribLocation GribLocTuple ,codes_handle** h, char** buffer){
+// Function to convert from little-endian to the host endianness if necessary
+//Grib seems to be written in big endian format -> if I'm on a little endian machine I need to convert my input
+uint64_t fromLittleEndian(uint64_t value) {
+    if (!isLittleEndian()) {
+        return value;  // No conversion needed
+    } else {
+        // Convert to big-endian 
+        uint64_t result = 0;
+        for (int i = 0; i < 8; ++i) {
+            result |= ((value >> (i * 8)) & 0xFF) << ((7 - i) * 8);
+        }
+        return result;
+    }
+}
+template <typename T>
+void printBits(T value) {
+    // Size of type T in bytes
+    constexpr size_t size = sizeof(T);
+
+    // Loop through each bit in reverse order for clarity
+    for (int i = size * 8 - 1; i >= 0; --i) {
+        std::cout << ((value >> i) & 1);
+        if (i % 8 == 0) std::cout << " ";  // Space between bytes for clarity
+    }
+    std::cout << std::endl;
+}
+
+template <typename T>
+T endianTest(const T& value) {
+    if (!isLittleEndian()) {
+        return value;  // No conversion needed
+    } else {
+        // Convert to big-endian
+        int size = sizeof(value);
+        T result = 0;
+        for (int i = 0; i < size; ++i) {
+            result |= ((value >> (i * 8)) & 0xFF) << ((size - 1 - i) * 8);
+        }
+        return result;
+    }
+}
+// Function to read 3-byte section length (for edition 2)
+uint32_t readValue3Byte(const char* buffer, std::size_t offset){
+    uint32_t result = (static_cast<unsigned char>(buffer[offset + 2]) << 16) |
+                      (static_cast<unsigned char>(buffer[offset + 1]) << 8) |
+                      static_cast<unsigned char>(buffer[offset ]);
+    return endianTest(result);
+}
+
+// Template function to read a value from a buffer using memcpy
+template <typename T>
+T readValue(const char* buffer, std::size_t offset) {
+    static_assert(std::is_integral<T>::value, "Integral type required.");
+    T value;
+    //std::cout<<"offset "<<offset<<"sizeof(T) " << sizeof(T)<<std::endl;
+    std::memcpy(&value, buffer + offset, sizeof(T));
+   // printBits(value);
+   // std::cout<<"value "<<value<<std::endl;
+    return endianTest(value);
+}
+bool memComparison(const char* bufferRef, const char* bufferTest,std::size_t offset,uint32_t length){
+    return std::memcmp(bufferRef+offset,bufferTest+offset,length) == 0;
+}
+/*bit_comparison 
+* Arguments 
+* const char* bufferRef - Grib message in bytes for the reference Grib message
+* const char* bufferTest - Grib message in bytes for the test Grib message
+* size_t length - sizeof(Buffer)
+* Bit comparison without using eccodes 
+* Return: Returns 10 if a bitexact comparison is true or the Integer number in which the comparison failed. If it fails in the data section a 9 is returned to distinguish 
+* and allow further tests based on a tolerance value in the data section.
+* Because 
+*/
+int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length){
+
+    //std::cout<<"BIT comparison"<<std::endl;
+    std::size_t offset = 0;
+    if(!bufferRef || !bufferTest){
+        throw BadValue("Buffer corrupted");
+    }
+    ASSERT(length>16); // Needs to be true because those bytes are read without further checking.
+    if( (static_cast<char>(bufferRef[0]) != 'G')||(static_cast<char>(bufferTest[0]) != 'G') ||
+        (static_cast<char>(bufferRef[1]) != 'R')||(static_cast<char>(bufferTest[1]) != 'R') ||
+        (static_cast<char>(bufferRef[2]) != 'I')||(static_cast<char>(bufferTest[2]) != 'I') ||
+        (static_cast<char>(bufferRef[3]) != 'B')||(static_cast<char>(bufferTest[3]) != 'B') )
+    {
+        std::cout<<"Message is not a Grib message: Comparing data formats other than Grib messages is currently not implemented"<<std::endl;
+        return 0;
+    }
+
+    //EditionNumber will is always the 8th Byte in a Grib message
+    int editionnumberRef = (int)bufferRef[7];
+    int editionnumberTest = (int)bufferRef[7];
+
+    if(editionnumberRef != editionnumberTest){
+        std::cout<<"Editionnumbers don't match -> cannot compare Grib message"<<std::endl;
+        return 0;
+    }
+    if(editionnumberRef == 2){
+        //Total Length Value starts at position 8 in the Grid2 header
+        uint64_t totalLength = readValue<uint64_t>(bufferRef,8);
+        if(length != totalLength){
+            std::cout<<" Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
+            return 0;
+        }
+        //GRIB2 Section 0 is always 16 Bytes long:
+        offset += 16;
+    }
+    else if(editionnumberRef == 1){
+        uint32_t totalLength = readValue3Byte(bufferRef,4);
+        if(length != totalLength){
+            std::cout<<" Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
+            return 0;
+        }
+        //Grib1 Section 0 is always 8 Bytes long:
+        offset += 8;
+    }else{
+        std::cout<<"Unknown Grib edition number "<< editionnumberRef<<std::endl;
+        return 0;
+    }
+    // Determine number of sections based on the edition number 1 or 2
+    int numSections = (editionnumberRef ==1) ? 4:7;
+    
+    // Process sections based on edition
+    for (int i = 0; i<numSections;++i){
+       // std::cout<<"offset " << offset<<std::endl;
+        // Read section length
+        uint32_t sectionLengthRef = 0;
+        uint32_t sectionLengthTest = 0;
+        if (editionnumberRef == 1){
+            // Grib 1 Read 3 byte section length at the beginning of each section
+            if (offset + 3 > length){
+                std::cerr <<"Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
+                return ((i+1)==numSections) ? 9:i+1;
+            }
+            sectionLengthRef = readValue3Byte(bufferRef,offset);
+            sectionLengthTest = readValue3Byte(bufferTest,offset);
+        }
+        else {
+            //Grib 2 stores a 4 byte section length value at the beginning of each section
+            if (offset + 4 > length){
+                std::cerr <<"Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
+                return ((i+1)==numSections) ? 9:i+1;
+            }
+            sectionLengthRef = readValue<uint32_t>(bufferRef,offset);
+            sectionLengthTest = readValue<uint32_t>(bufferTest,offset);
+        }
+        if(sectionLengthRef != sectionLengthTest){
+            std::cout<<"The section "<<i+1<<" length parameter differs between the grib messages "<<std::endl;
+            return ((i+1)==numSections) ? 9:i+1;
+        }
+        //Memory comparison for each section 
+        if(! memComparison(bufferRef, bufferTest,offset,sectionLengthRef)){
+            std::cout<<"Memorycomparison failed in section "<<i+1<<std::endl;
+            return ((i+1)==numSections) ? 9:i+1;
+        }
+        offset += sectionLengthRef;
+    }
+    //Test that the final bit of the message 7777 is present in both
+    while(offset<length){
+        if((static_cast<char>(bufferRef[offset]) != '7')||(static_cast<char>(bufferTest[offset]) != '7')){
+            std::cout<<"Message does not contain the correct section"<<std::endl;
+        }
+        ++offset;      
+    }
+
+
+    return 10;
+}
+//void extractGribMessage(GribLocation GribLocTuple ,std::unique_ptr<codes_handle,decltype(&codes_handle_delete)>& h, std::unique_ptr<char[]>& buffer,std::unique_ptr<codes_context,decltype(&codes_context_delete)>& context){
+void extractGribMessage(GribLocation GribLocTuple ,char* buffer){
+
     const auto [location,offset,length] = GribLocTuple;
-   //char* buffer = (char*)malloc(length);
     std::ifstream refFile(location,std::ios::binary);
     //get first message handle
-   // std::ifstream infile()
     if(refFile.is_open())
     {
         refFile.seekg(offset,std::ios::beg);
-        if(refFile.read(*buffer,length))
-        {
-            auto context = codes_context_get_default();
-            if(!context)
-            {
-                throw FailedLibraryCall("eccodes","codes_context_get_default","Default context could not be created",Here());
-                free(buffer);
-                
-            }
-            
-            *h= codes_handle_new_from_message(context,*buffer,length);
-            if (!h)
-            {
-                throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location = " + location + " offset = " + std::to_string(offset) + " length = " +std::to_string(length),Here());
-                free(buffer);
-                codes_context_delete(context);
-                
-            }
-           
-        }   
+        if(!refFile.read(buffer,length)) {
+            refFile.close();
+            throw Abort("Could not read the data from file",Here());
+        }
+        
+
+            // *h = codes_handle_new_from_message(NULL,buffer,length);
+            // if (!h)
+            // {
+            //     refFile.close();
+
+            //     throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location = " + location + " offset = " + std::to_string(offset) + " length = " +std::to_string(length),Here());   
+            // }
     }
     else{
         throw CantOpenFile("Data File can't be openeed at location="+location);
@@ -172,38 +359,41 @@ void extractGribMessage(GribLocation GribLocTuple ,codes_handle** h, char** buff
     //atm we will close the file here. This is inefficient and it would be benefitial to keep the file open longer
     // to extract all fields first. 
     refFile.close();
-    //free(buffer);
-    // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    // codes_dump_content(href, stdout, "wmo", dump_flags, NULL);
+
 }
-bool compare_header(codes_handle* hRef, codes_handle* hTest)
+
+bool compare_header(codes_handle * hRef, codes_handle * hTest)
 {
     size_t size1=0;
     size_t size2=0;
-    const void *msg1 = NULL;
+    const void *msg1 = NULL; //potential source of mem leak
     const void *msg2 = NULL;
 
+    if(!hRef || !hTest){
+        throw BadValue("codes_handle are corrupted");
+    }
     if(0!=grib_get_message_headers(hRef,&msg1,&size1)){
-        throw Abort("Grib Get message header failed");
+        throw FailedLibraryCall("internal grib api","grib_get_message_header","Potentially this is no longer supported as it was not the eccodes API",Here());
+    
     }
     if(0!=grib_get_message_headers(hTest,&msg2,&size2)){
-        throw Abort("Grib get message header failed");
+        throw FailedLibraryCall("internal grib api","grib_get_message_header","Potentially this is no longer supported as it was not the eccodes API",Here());
     }
-    std::cout<<"Header Size:"<<size1<<std::endl;
     if(size1==size2 && (0==memcmp(msg1,msg2,size1))){
         return true;
     }
-
-    //TODO check if it can be the case that they match but are not bitidentical? ASK someone
-    else
-    {
-        //TODO check why they don't match
-        return false;
-    }
+    std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+    int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+    std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+    dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+    std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+    return false;
 
 }
 
-bool compare_md5sums(codes_handle* hRef, codes_handle* hTest)
+bool compare_md5sums(codes_handle* hRef, codes_handle *hTest)
 {
     int err1,err2;
     int hashkeylength = 33;
@@ -221,45 +411,35 @@ bool compare_md5sums(codes_handle* hRef, codes_handle* hTest)
     long gribEditionRef = 0;
     long gribEditionTest = 0;
 
-    err1 = codes_get_long( hRef,"editionNumber", &gribEditionRef);
-    if(err1!=CODES_SUCCESS){
-        std::cout<<"Could not extract Grib edition number"<<std::endl;
-    }
-    err2 = codes_get_long( hTest,"editionNumber", &gribEditionTest);
-    if(err2 != CODES_SUCCESS){
-        //TODO exit
-    }
+    CODES_CHECK(codes_get_long( hRef,"editionNumber", &gribEditionRef),0);
+
+    CODES_CHECK(codes_get_long( hTest,"editionNumber", &gribEditionTest),0);
+    
     if(gribEditionRef != gribEditionTest)
     {
-        std::cout<<"Grib Editions don't match"<<std::endl;
-        //TODO exit
+        throw BadValue("The Grib edition numbers don't match Reference = Grib "+std::to_string(gribEditionRef)+" Test = "+std::to_string(gribEditionTest),Here());
+
     }
     if(!((gribEditionRef == 1) || (gribEditionRef == 2)))
     {
-        std::cout<<"Undefined Gribedition for Reference Grib message"<<gribEditionRef<<std::endl;
-        //TODO exit
+        throw BadValue("Currently only Grib 1 and Grib 2 are supported. The Gribnumber of these messages is: "+gribEditionRef,Here());
     }
-    if(!((gribEditionTest == 1) || (gribEditionTest == 2)))
-    {
-        std::cout<<"Undefined Gribedition for Test Grib message"<<gribEditionTest<<std::endl;
-        //TODO exit
-    }
+
     //Create a map with all relevant sections (TODO this was a map for development this can be a vector);
     std::map<std::string,std::string> grib_sections;
-    //grib_sections["md5Headers"] = "md5Headers"; This is possible to add but is already covered in memcmp the header message (But the header message does not contain section data 7 (or 4 in Grib1) bitmap 6 (or 3 in Grib1) and section DRS (only present in Grib2))
+    //"md5Headers"; This is possible to add but is already covered in memcmp the header message (But the header message does not contain section data 7 (or 4 in Grib1) bitmap 6 (or 3 in Grib1) and section DRS (only present in Grib2))
     if(gribEditionRef == 2)
     {
+        //check MD5sums for Grib2 section 5,6 and 7
         grib_sections["md5SectionData"] = "md5Section7";
-        //grib_sections["md5SectionData"] = "md5DataSection";
         grib_sections["md5SectionBitmap"] = "md5Section6";
         grib_sections["md5SectionDRS"] = "md5Section5";
-        //check MD5sums for Grib2 section 5,6 and 7
     }
     if(gribEditionRef ==1)
     {   
+        //compare MD5 Keys for Grib 1 bitmap and datasection 3 and 4
         grib_sections["md5SectionData"] = "md5Section4";
         grib_sections["md5SectionBitmap"] = "md5Section3";
-        //compare MD5 Keys for Grib 1 bitmap and datasection 3 and 4
     }
 
     //iterate over map and extract the string hash key 
@@ -267,77 +447,71 @@ bool compare_md5sums(codes_handle* hRef, codes_handle* hTest)
     {
         err1 = codes_get_string(hRef,value.c_str(),md5HashValueRef,&sizeHashValueRef);
         if(err1!= CODES_SUCCESS){
-            //TODO exit
-            std::cout<<"get_string failed hRef"<<std::endl;
+            throw FailedLibraryCall("eccodes","codes_get_string","could not retrieve hash key :"+value,Here()); 
         }
         err2 = codes_get_string(hTest,value.c_str(),md5HashValueTest,&sizeHashValueTest);
         if(err2 != CODES_SUCCESS){
-            //TODO exit
-            std::cout<<"get_string failed htest"<<std::endl;
+            
+            throw FailedLibraryCall("eccodes","codes_get_string","could not retrieve hash key :"+value,Here()); 
         }
         if((sizeHashValueRef != sizeHashValueTest))
         {
-            //Todo exit but probably this check is redundant
-            std::cout<<"sizes don't match"<<std::endl;
+            std::string errorMsg = std::string("Hashkeys need to have the same size Ref Hash ")+md5HashValueTest+" Test "+md5HashValueTest + "Section "+value;
+            throw BadValue(errorMsg,Here());
         }
 
         if(std::strcmp(md5HashValueRef,md5HashValueTest) != 0)
         {
-            std::cout<<key<<" MD5Hash don't match"<< std::endl;
-
+            std::cout<<"Hash keys don't match for section "<<value<<std::endl;
+            std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+            int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+            codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+            std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+            dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+            codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+            std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+            return false;
         }
         
     }
+    return true;
 }
 //std::tuple<relativeError,absoluteError>
-std::tuple<double,double> compare_DataSection(codes_handle* hRef, codes_handle* hTest)
+void compare_DataSection(codes_handle* hRef, codes_handle* hTest,double relativeError, double absoluteError)
 {
     size_t valuesLenRef = 0;
     size_t valuesLenTest = 0;
     double maxError = 0.;
-    double absoluteError=0.;
-    double relativeError=0.;
+    const double epsilon = std::numeric_limits<double>::epsilon();
+
+    //make sure that this is set to zero 
+    ASSERT(relativeError<=epsilon);
+    ASSERT(absoluteError<=epsilon);
     double *valuesRef;
     double *valuesTest;
     CODES_CHECK(codes_get_size(hRef,"values",&valuesLenRef),0);
     CODES_CHECK(codes_get_size(hTest,"values",&valuesLenTest),0);
     if(valuesLenRef != valuesLenTest)
     {
-        std::cout<<"cannot compare values as number of entries doesn't match"<<std::endl;
-        //todo exit
+        std::string errorMsg = std::string("Number of data entries does not match Reference number")+std::to_string(valuesLenRef)+" test Grib number "+std::to_string(valuesLenTest);
+        throw BadValue(errorMsg,Here());
     }
     valuesRef = (double*)malloc(valuesLenRef*sizeof(double));
     if(!valuesRef)
     {
-        std::cout<<"malloc failed"<<std::endl;
+        throw std::bad_alloc();
     }
     valuesTest = (double*)malloc(valuesLenTest*sizeof(double));
     if(!valuesTest)
     {
-        std::cout<<"malloc failed"<<std::endl;
         free(valuesRef);
+        throw std::bad_alloc();
     }
-    //const char dataSectionOffset[] = "offsetSection7";
-    //const char dataSectionLength[] = "section7Length";
-    //int typeRef;
-    //codes_get_native_type(hRef,"values",&typeRef);
-    //std::cout<<typeRef<<std::endl;//GRIB_TYPE_DOUBLE 2
-
 
     CODES_CHECK(codes_get_double_array(hTest,"values",valuesTest,&valuesLenTest),0);
     CODES_CHECK(codes_get_double_array(hRef,"values",valuesRef,&valuesLenRef),0);
 
-
-    //TODO Do this before extracting the handle
-    // if(memcmp(valuesRef,valuesTest,valuesLenRef*sizeof(double)))
-    // {
-    //     free(valuesTest);
-    //     free(valuesRef);
-    //     //set absolute and relative error to zero
-    //     return std::tuple<
-    // }
     double error = 0.0;
-    const double epsilon = std::numeric_limits<double>::epsilon();
     double denominator;
     for(size_t i = 0; i<valuesLenRef;++i){
         error = std::fabs(valuesRef[i]-valuesTest[i]);
@@ -345,101 +519,144 @@ std::tuple<double,double> compare_DataSection(codes_handle* hRef, codes_handle* 
         denominator = std::fabs(valuesRef[i]) > epsilon ? std::fabs(valuesRef[i]) : epsilon;
         relativeError = error/denominator;
     }
-    //TEST VALUES todo
 
 
     free(valuesTest);
     free(valuesRef);
-    return {relativeError,absoluteError};
+    return;
 }
 
 
-std::tuple<double,double> gribCompare(GribLocation gribLocRef, GribLocation gribLocTest)
+bool gribCompare(const GribLocation& gribLocRef,const GribLocation& gribLocTest, double relativeError, double absoluteError)
 {
     time_t start,stop;
     codes_handle* hRef;
     codes_handle* hTest;
-    char* bufferRef = (char*)malloc(std::get<2>(gribLocRef));
-    char* bufferTest = (char*)malloc(std::get<2>(gribLocTest));
-    extractGribMessage(gribLocRef,&hRef,&bufferRef);
-    if(hRef==NULL)
+    ASSERT(relativeError==0.0);
+    ASSERT(absoluteError==0.0);
+
+    bool datamatch = true;
+    char* bufferRef = (char*)malloc(std::get<2>(gribLocRef)*sizeof(char));
+    if(!bufferRef)
     {
-        throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+        std::cerr<<"Here()"<<std::endl;
+        throw std::bad_alloc();
     }
-    extractGribMessage(gribLocTest,&hTest,&bufferTest);
-    if(hTest==NULL)
+    char* bufferTest = (char*)malloc(std::get<2>(gribLocTest)*sizeof(char));
+    if(!bufferTest)
     {
-        throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
+        std::cerr<<Here()<<std::endl;
+        throw std::bad_alloc();
     }
-    // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
-    printInfo(hRef);
-    printInfo(hTest);
-    // std::cout<<check_message_complete(hRef)<<std::endl;
-    // std::cout<<check_message_complete(hTest)<<std::endl;
+    try{
+        extractGribMessage(gribLocRef,bufferRef);
+        if(bufferRef==NULL)
+        {
+            throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+        }
+        extractGribMessage(gribLocTest,bufferTest);
+        if(bufferTest==NULL)
+        {
+            throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
+        }
+        int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
+        if(i==10){
+            free(bufferRef);
+            free(bufferTest);
+            return true;
+        }
+        if(i<9 && i>=0){
+            std::cout<<"The Header Grib Header comparison failed  {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " + std::to_string(std::get<2>(gribLocTest)) <<std::endl;
+            free(bufferRef);
+            free(bufferTest);
+            return false;
+        }
+        if(i<0 && i>9){
+            std::string errorMsg = std::string(" Unknown return value");
+            free(bufferRef);
+            free(bufferTest);
+            throw BadValue(errorMsg,Here());
+        }
+        ASSERT(i==9); // Numerical check of the values stored in the data section
+        hRef = codes_handle_new_from_message(NULL,bufferRef,std::get<2>(gribLocRef));
+        if (!hRef)
+        {
+            throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)),Here());   
+        }
+        hTest = codes_handle_new_from_message(NULL,bufferTest,std::get<2>(gribLocTest));
+        if (!hTest)
+        {
+            throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = "  + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)),Here());   
+        }
 
-    // time(&start);
-    // auto errch = compare_header(hRef,hTest);
-    // time(&stop);
-    // std::cout<<difftime(stop,start)<<std::endl;
+        // // BitExactComparison with ECCODES begin
+        // //TODO DECIDE HOW THIS SECTION SHOULD STILL STAY IN HERE OR IF JUST BYTEEXACT HEADERS IS OKAY
+        // auto match = compare_header(hRef,hTest);
+        // if(!match){
+        //     free(bufferRef);
+        //     free(bufferTest);
+        
+        //     codes_handle_delete(hRef);
+        //     codes_handle_delete(hTest);
+        //     throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
+        // }
 
-    if(!compare_header(hRef,hTest)){
-        std::cout<<"Headers don't match"<<std::endl;
-        throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
-    }
+        // auto match_md5sums = compare_md5sums(hRef,hTest);
+        // if(match_md5sums){
+        //     free(bufferRef);
+        //     free(bufferTest);
+        
+        //     codes_handle_delete(hRef);
+        //     codes_handle_delete(hTest);
 
+        //     absoluteError = 0.0;
+        //     relativeError = 0.0;
+        //     return true;
+        // }
+        // ///std::cerr<<"should not reach"<<std::endl;
+        // //BITExact Comparison with ECCODES END
 
-    // //// Key interator investigation
-    // std::cout<<"this should only be done once"<<std::endl;
-    // auto kiter =codes_keys_iterator_new(hRef,CODES_KEYS_ITERATOR_ALL_KEYS,NULL);
-    // if(!kiter){
-    //     std::cout<<"TODO errormessage"<<std::endl;
-    // }
-    // int type;
-    // while(codes_keys_iterator_next(kiter))
-    // {
-    //     //char value[1024];//make it better
-    //     //size_t vlen=1024;
-    //     auto name = codes_keys_iterator_get_name(kiter);
-    //     codes_get_native_type(hRef,name,&type);
-    //     std::cout<<name<<" "<< type<<std::endl;
-    // }
-
-    // // //// end key iterator investigation
-    // time(&start);
-    
-    
-    
-    auto err = compare_md5sums(hRef,hTest);
-    
-    
-    //TODO check err
-
+   
+        compare_DataSection(hRef,hTest,relativeError,absoluteError);
 
     // time(&stop);
     // std::cout<<difftime(stop,start)<<std::endl;
     //auto err = compare_md5sums(hRef, hTest);
-    const auto [relativeError,absoluteError] = compare_DataSection(hRef,hTest);
+    
     //std::cout<< relativeError<<" "<<absoluteError<<std::endl;
-    double tolerance = std::numeric_limits<double>::epsilon();
-
-    if( relativeError>tolerance || absoluteError>tolerance)
-    {
-        std::cout<<"Differenene in Grib message Grib Message failed {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " << std::to_string(std::get<2>(gribLocTest))<<std::endl;
-        std::cout<<"Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<std::endl;
+        double tolerance = std::numeric_limits<double>::epsilon();
+        if( relativeError>tolerance || absoluteError>tolerance)
+        {
+            std::cerr<<"Differenene in Grib message Grib Message failed {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " << std::to_string(std::get<2>(gribLocTest))<<std::endl;
+            std::cerr<<"Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<std::endl;
+            datamatch=false;
+        }
+    //codes_handle_delete(hRef);
+    //codes_handle_delete(hTest);
+    //free(bufferRef);
+    //free(bufferTest);
     }
-    codes_handle_delete(hRef);
-    codes_handle_delete(hTest);
+    catch(...){
+        free(bufferRef);
+        free(bufferTest);
+    
+        codes_handle_delete(hRef);
+        codes_handle_delete(hTest);
+
+        throw;
+    }
     free(bufferRef);
     free(bufferTest);
-    return {relativeError,absoluteError};
-    //todo check err
-    //TODO free resources
+
+    codes_handle_delete(hRef);
+    codes_handle_delete(hTest);
+
+    return datamatch;
+
 }
 
 void FDBCompare::execute(const CmdArgs& args) {
 
-    // std::cout<<"FDB test object"<<std::endl;
     PathName configPathref(referenceConfig_);
     if (!configPathref.exists()) {
         std::ostringstream ss;
@@ -471,7 +688,6 @@ void FDBCompare::execute(const CmdArgs& args) {
 
 
     for (const FDBToolRequest& request : requests()) {
-        //potentially sub std::vector<Key> with metkit::mars::MarsRequest or with string
         std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
         std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
 
@@ -484,9 +700,7 @@ void FDBCompare::execute(const CmdArgs& args) {
                 str.append(",");
             }
             ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-            // std::cout<<elem.location().uri().path()<<std::endl;
-            // std::cout<<elem.location().offset()<<std::endl;
-            // std::cout<<elem.location().length()<<std::endl;
+
         }
         listObject = fdbtest.list(request);
         while (listObject.next(elem)) {
@@ -506,24 +720,19 @@ void FDBCompare::execute(const CmdArgs& args) {
         //First compare that the number of entries matches. 
         // -> potentially just an ASSERT is sufficient
         //tested separately to avoid having this test done in each key compare, otherwise it could be added to the comparison function return (size_compare && key_compare)
-        if(test_map.size()!=ref_map.size()){
-            std::cout<<"Number of messages in Databases don't match"<<std::endl;
-            std::cout<<"Test FDB #entries in Toc: "<<test_map.size()<<" Reference FDB #entries in Toc: " << ref_map.size()<<std::endl;
-            return;
-        }
+        // if(test_map.size()!=ref_map.size()){
+        //     std::cout<<"Number of messages in Databases don't match"<<std::endl;
+        //     std::cout<<"Test FDB #entries in Toc: "<<test_map.size()<<" Reference FDB #entries in Toc: " << ref_map.size()<<std::endl;
+        //     return;
+        // }
       //  std::cout<<test_map.key_eq()<<std::endl;
         //Chech that the keys match only continue with next comparison is this is the case
         if(!(compare_keys(ref_map,test_map))){
-            std::cout<<"Mars Metadata Keys don't match"<<std::endl;
+            std::cerr<<"Mars Metadata Keys don't match"<<std::endl;
             return;
         }
 
-        
-        //      GRIB_CHECK_NOLINE(grib_get_message_headers(h1, &msg1, &size1), 0);
-        // GRIB_CHECK_NOLINE(grib_get_message_headers(h2, &msg2, &size2), 0);
-        // if ( size1 == size2 && (0 == memcmp(msg1, msg2, size1)) ) {
-        //     return 0;
-        // }
+
         int counter = 0;
         double tolerance = std::numeric_limits<double>::epsilon();
 
@@ -537,13 +746,20 @@ void FDBCompare::execute(const CmdArgs& args) {
         double relativeErrorMax = 0.0;
         double relativeErrorMin = 0.0;
         size_t countValidErrorRelative = 0;
+        double absoluteError;
+        double relativeError;
+        bool datamatch;
         for (auto& [key, value]:ref_map)
         {
-            break;
+            std::cerr<<"|";
             counter++;
-            //wrap in exception block try catch
-            const auto [absoluteError, relativeError] = gribCompare(value,test_map[key]);
 
+            absoluteError=0.0;
+            relativeError=0.0;
+            //datamatch = gribCompare({"/home/ecm4053/tmp/test.grib",0,80599},{"/home/ecm4053/tmp/test.grib",0,80599},relativeError,absoluteError);
+            datamatch = gribCompare(value,test_map[key],relativeError,absoluteError);
+            
+            if(datamatch) continue;
             if(absoluteError > tolerance)
             {
                 if(countValidErrorAbs == 0){
@@ -574,10 +790,11 @@ void FDBCompare::execute(const CmdArgs& args) {
             //gribCompare("/lus/h2resw01/hpcperm/ecm4053/IFS/reference-fdb/climateDT/out/tco79l137/hz9m/hres/intel.hpcx/blq.intel.sp/h48.N4.T112xt4xh1+ioT8xt4xh0.nextgems_6h.i16r0w16.eORCA1_Z75.htco79-35661861/fdb/NATIVE_grids/root/d1:climate-dt:CMIP6:hist:1:IFS-NEMO:1:hz9m:clte:20200120/high:fc:sfc.20240611.145957.ac3-2065.bullx.384021615869965.data",138278,80599,"/lus/h2resw01/hpcperm/ecm4053/IFS/reference-fdb/climateDT/out/tco79l137/hz9m/hres/intel.hpcx/blq.intel.sp/h48.N4.T112xt4xh1+ioT8xt4xh0.nextgems_6h.i16r0w16.eORCA1_Z75.htco79-35661861/fdb/NATIVE_grids/root/d1:climate-dt:CMIP6:hist:1:IFS-NEMO:1:hz9m:clte:20200120/high:fc:sfc.20240611.145957.ac3-2065.bullx.384021615869965.data",138278,80599);
             
         }
+        //codes_context_delete(0);
         double relativeErrorAvg = (countValidErrorRelative > 0) ? (relativeErrorSum/countValidErrorRelative) : 0.0;
         double absoluteErrorAvg = (countValidErrorAbs > 0) ? (absoluteErrorSum/countValidErrorAbs) : 0.0;
         //gribCompare({"/lus/h2resw01/hpcperm/ecm4053/IFS/reference-fdb/climateDT/out/tco79l137/hz9m/hres/intel.hpcx/blq.intel.sp/h48.N4.T112xt4xh1+ioT8xt4xh0.nextgems_6h.i16r0w16.eORCA1_Z75.htco79-35661861/fdb/NATIVE_grids/root/d1:climate-dt:CMIP6:hist:1:IFS-NEMO:1:hz9m:clte:20200120/high:fc:sfc.20240611.145957.ac3-2065.bullx.384021615869965.data",138278,80599},{"/lus/h2resw01/hpcperm/ecm4053/IFS/reference-fdb/climateDT/out/tco79l137/hz9m/hres/intel.hpcx/blq.intel.sp/h48.N4.T112xt4xh1+ioT8xt4xh0.nextgems_6h.i16r0w16.eORCA1_Z75.htco79-35661861/fdb/NATIVE_grids/root/d1:climate-dt:CMIP6:hist:1:IFS-NEMO:1:hz9m:clte:20200120/high:fc:sfc.20240611.145957.ac3-2065.bullx.384021615869965.data",138278,80599});
-        gribCompare({"/home/ecm4053/tmp/test.grib",0,80599},{"/home/ecm4053/tmp/test.grib",0,80599});
+        //gribCompare({"/home/ecm4053/tmp/test.grib",0,80599},{"/home/ecm4053/tmp/test.grib",0,80599});
         //const auto [absoluteError, relativeError] = gribCompare({"/home/ecm4053/tmp/test.grib",0,80599},{"/home/ecm4053/tmp/test.grib",0,80599});
 
         std::cout<<"****************** SUMMARY **********************"<<std::endl;
@@ -591,100 +808,9 @@ void FDBCompare::execute(const CmdArgs& args) {
         std::cout<< "    Minimum Error: "<<absoluteErrorMin<<std::endl;
 
 
-
-
-
-
-
-        
-        // // 
-        // for(auto i = ref_map.begin(); i != ref_map.end(); i++ )
-        //     std::cout<<i->first<<std::endl;
-        // for(auto i = test_map.begin(); i != test_map.end(); i++ )
-        //     std::cout<<i->first<<std::endl;
            
     }
-    // std::unique_ptr<JSON> json;
-    // if (json_) {
-    //     json.reset(new JSON(Log::info()));
-    //     json->startList();
-    // }
-
-    // for (const FDBToolRequest& request : requests()) {
  
-    //     if (!porcelain_) {
-    //         Log::info() << "Listing for request" << std::endl;
-    //         request.print(Log::info());
-    //         Log::info() << std::endl;
-    //     }
-
-    //     // If --full is supplied, then include all entries including duplicates.
-    //     auto listObject = fdb.list(request, !full_ && !compact_);
-    //     std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
-
-    //     ListElement elem;
-    //     while (listObject.next(elem)) {
-
-    //         if (compact_) {
-    //             std::vector<Key> keys = elem.key();
-    //             ASSERT(keys.size() == 3);
-
-    //             std::string treeAxes = keys[0];
-    //             treeAxes += ",";
-    //             treeAxes += keys[1];
-
-    //             std::string signature=keySignature(keys[2]);  // i.e. step:levelist:param
-
-    //             auto it = requests.find(treeAxes);
-    //             if (it == requests.end()) {
-    //                 std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>> leaves;
-    //                 leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
-    //                 requests.emplace(treeAxes, leaves);
-    //             } else {
-    //                 auto h = it->second.find(signature);
-    //                 if (h != it->second.end()) { // the hypercube request is already there... adding the 3rd level key
-    //                     h->second.first.merge(keys[2].request());
-    //                     h->second.second.insert(keys[2]);
-    //                 } else {
-    //                     it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
-    //                 }
-    //             }
-    //         } else {
-    //             if (json_) {
-    //                 (*json) << elem;
-    //             } else {
-    //                 elem.print(Log::info(), location_, !porcelain_);
-    //                 Log::info() << std::endl;
-    //             }
-    //         }
-    //     }
-    //     if (compact_) {
-    //         for (const auto& tree: requests) {
-    //             for (const auto& leaf: tree.second) {
-    //                 metkit::hypercube::HyperCube h{leaf.second.first};
-    //                 if (h.size() == leaf.second.second.size()) {
-    //                     Log::info() << "retrieve," << tree.first << ",";
-    //                     leaf.second.first.dump(Log::info(), "", "", false);
-    //                     Log::info() << std::endl;
-    //                 } else {
-    //                     for (const auto& k: leaf.second.second) {
-    //                         h.clear(k.request());
-    //                     }
-    //                     for (const auto& r: h.requests()) {
-    //                         Log::info() << "retrieve," << tree.first << ",";
-    //                         r.dump(Log::info(), "", "", false);
-    //                         Log::info() << std::endl;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     // n.b. finding no data is not an error for fdb-list
-    // }
-
-    // if (json_) {
-    //     json->endList();
-    // }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -698,3 +824,161 @@ int main(int argc, char **argv) {
 }
 
 
+//   std::cerr<<"1"<<std::endl;
+//     try{
+//         extractGribMessage(gribLocRef,hRef,bufferRef,contextRef);
+//     }
+//     catch(FailedLibraryCall& e){
+//         std::cerr<<"Exception caught:"<<e.what()<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+//     }
+//     catch(CantOpenFile& e){
+//         std::cerr<<"Exception caught"<<e.what()<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+
+//     }
+//     catch(...){
+//         std::cerr<<"unknown exception caught"<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+//     }
+//     if(hRef==NULL)
+//     {
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+//     }
+//     std::cerr<<"2"<<std::endl;
+//     try{
+//         extractGribMessage(gribLocTest,hTest,bufferTest,contextTest);
+//     }
+//     catch(FailedLibraryCall& e){
+//         std::cerr<<"Exception caught:"<<e.what()<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+//     }
+//     catch(CantOpenFile& e){
+//         std::cerr<<"Exception caught"<<e.what()<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+
+//     }
+//     catch(...){
+//         std::cerr<<"unknown exception caught"<<std::endl;
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+//     }
+//     if(hTest==NULL)
+//     {
+//         throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
+//     }
+//     // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+//     // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+//     // printInfo(hRef);
+//     // printInfo(hTest);
+
+
+//     std::cerr<<"3"<<std::endl;
+//     try{
+//         auto match = compare_header(hRef,hTest);
+//         if(!match){
+//             //TODO call compare_header_detail();
+//             throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
+//         }
+//     }
+//     catch(FailedLibraryCall& e){
+//         std::cerr<<"Failed Library Exception was caught"<<e.what()<<std::endl;
+//         throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
+//     }
+
+
+//     // //// Key interator investigation
+//     // std::cerr<<"this should only be done once"<<std::endl;
+//     // auto kiter =codes_keys_iterator_new(hRef,CODES_KEYS_ITERATOR_ALL_KEYS,NULL);
+//     // if(!kiter){
+//     //     std::cerr<<"TODO errormessage"<<std::endl;
+//     // }
+//     // int type;
+//     // while(codes_keys_iterator_next(kiter))
+//     // {
+//     //     //char value[1024];//make it better
+//     //     //size_t vlen=1024;
+//     //     auto name = codes_keys_iterator_get_name(kiter);
+//     //     codes_get_native_type(hRef,name,&type);
+//     //     std::cerr<<name<<" "<< type<<std::endl;
+//     // }
+
+//     // // //// end key iterator investigation
+
+//     std::cerr<<"4"<<std::endl;
+//     try{
+//         auto match_md5sums = compare_md5sums(hRef,hTest);
+//         std::cerr<<"4a"<<std::endl;
+//         if(match_md5sums){
+//             std::cerr<<"4b"<<std::endl;
+//             contextRef.reset();
+//             contextTest.reset();
+//             bufferRef.reset();
+//             bufferTest.reset();
+//             hRef.reset();
+//             hTest.reset();
+//             return {0.0,0.0};
+//         }
+//         std::cerr<<"should not reach"<<std::endl;
+//     }
+//     catch(BadValue& e){
+//         std::cerr<<"Bad Value Exception C"<<e.what()<<std::endl;
+//         throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
+//     }
+
+//     // todo call header check in detail
+
+//     std::cerr<<"5"<<std::endl;
+//     const auto [relativeError,absoluteError] = compare_DataSection(hRef,hTest);
+
+//     // time(&stop);
+//     // std::cout<<difftime(stop,start)<<std::endl;
+//     //auto err = compare_md5sums(hRef, hTest);
+    
+//     //std::cout<< relativeError<<" "<<absoluteError<<std::endl;
+//     double tolerance = std::numeric_limits<double>::epsilon();
+
+//     if( relativeError>tolerance || absoluteError>tolerance)
+//     {
+//         std::cerr<<"Differenene in Grib message Grib Message failed {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " << std::to_string(std::get<2>(gribLocTest))<<std::endl;
+//         std::cerr<<"Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<std::endl;
+//     }
+//     //codes_handle_delete(hRef);
+//     //codes_handle_delete(hTest);
+//     //free(bufferRef);
+//     //free(bufferTest);
+//     contextRef.reset();
+//     contextTest.reset();
+//     bufferRef.reset();
+//     bufferTest.reset();
+    
+//     hRef.reset();
+//     hTest.reset();
+//     return {relativeError,absoluteError};
+//     //return {2.0,2.0};
+    
+//     //todo check err
+//     //TODO free resources
+// }
+
+
+
+
+
+    
+    // //// Key interator investigation
+    // std::cerr<<"this should only be done once"<<std::endl;
+    // auto kiter =codes_keys_iterator_new(hRef,CODES_KEYS_ITERATOR_ALL_KEYS,NULL);
+    // if(!kiter){
+    //     std::cerr<<"TODO errormessage"<<std::endl;
+    // }
+    // int type;
+    // while(codes_keys_iterator_next(kiter))
+    // {
+    //     //char value[1024];//make it better
+    //     //size_t vlen=1024;
+    //     auto name = codes_keys_iterator_get_name(kiter);
+    //     codes_get_native_type(hRef,name,&type);
+    //     std::cerr<<name<<" "<< type<<std::endl;
+    // }
+
+    // // //// end key iterator investigation
