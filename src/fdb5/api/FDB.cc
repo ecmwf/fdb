@@ -13,8 +13,6 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include <dlfcn.h>
-
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
@@ -44,7 +42,6 @@ FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)) {
-    
     initPlugins(config);
 }
 
@@ -131,7 +128,6 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
 
     timer.stop();
     stats_.addArchive(length, timer);
-
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
@@ -340,14 +336,13 @@ void FDB::registerCallback(FlushCallback callback) {
 }
 
 void FDB::initPlugins(const Config& config){
-    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); // TODO: Make this a config option.
-    bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch, takes precendence.
+    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+    bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
 
     if (enableGribjump && !disableGribjump) {
         eckit::system::Plugin& plugin = eckit::system::LibraryManager::loadPlugin("gribjump");
         plugin.setup(this);
     }
-
 }
 //----------------------------------------------------------------------------------------------------------------------
 

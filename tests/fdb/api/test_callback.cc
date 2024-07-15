@@ -4,7 +4,7 @@
 namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
-CASE("Archive callback") {
+CASE("Archive and flush callback") {
     FDB fdb;
 
     std::string data_str = "Raining cats and dogs";
@@ -24,9 +24,14 @@ CASE("Archive callback") {
 
     std::map<fdb5::Key, eckit::URI> map;
     std::vector<Key> keys;
+    bool flushCalled = false;
 
     fdb.registerCallback([&map] (const Key& key, const void* data, size_t length, const FieldLocation& location) {
         map[key] = location.fullUri();
+    });
+
+    fdb.registerCallback([&flushCalled] () {
+        flushCalled = true;
     });
 
     key.set("step","1");
@@ -42,6 +47,8 @@ CASE("Archive callback") {
     fdb.archive(key, data, length);
     
     fdb.flush();
+
+    EXPECT(flushCalled);
 
     EXPECT(map.size() == 3);
 
