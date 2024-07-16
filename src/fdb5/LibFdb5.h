@@ -21,6 +21,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/types/TypesRegistry.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace fdb5 {
 
@@ -75,6 +76,10 @@ public:
 
     bool dontDeregisterFactories() const;
 
+    void registerConstructorCallback(ConstructorCallback cb);
+
+    ConstructorCallback constructorCallback();
+
 protected:
     virtual std::string version() const;
 
@@ -82,6 +87,7 @@ protected:
 
 private:
     std::unique_ptr<Config> config_;
+    ConstructorCallback constructorCallback_ = CALLBACK_CONSTRUCTOR_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -42,7 +42,8 @@ FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)) {
-    initPlugins(config);
+    eckit::system::LibraryManager::autoLoadPlugins({});
+    LibFdb5::instance().constructorCallback()(*this);
 }
 
 
@@ -288,12 +289,11 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
-        flushCallback_();
-
         eckit::Timer timer;
         timer.start();
 
         internal_->flush();
+        flushCallback_();
         dirty_ = false;
 
         timer.stop();
@@ -327,23 +327,14 @@ bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
 }
 
-void FDB::registerCallback(ArchiveCallback callback) {
-    internal_->registerCallback(callback);
+void FDB::registerArchiveCallback(ArchiveCallback callback) { // todo rename
+    internal_->registerArchiveCallback(callback);
 }
 
-void FDB::registerCallback(FlushCallback callback) {
+void FDB::registerFlushCallback(FlushCallback callback) { // todo rename
     flushCallback_ = callback;
 }
 
-void FDB::initPlugins(const Config& config){
-    bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
-    bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
-
-    if (enableGribjump && !disableGribjump) {
-        eckit::system::Plugin& plugin = eckit::system::LibraryManager::loadPlugin("gribjump");
-        plugin.setup(this);
-    }
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

@@ -26,11 +26,12 @@ CASE("Archive and flush callback") {
     std::vector<Key> keys;
     bool flushCalled = false;
 
-    fdb.registerCallback([&map] (const Key& key, const void* data, size_t length, const FieldLocation& location) {
-        map[key] = location.fullUri();
+    fdb.registerArchiveCallback([&map] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>> future) {
+        std::shared_ptr<FieldLocation> location = future.get();
+        map[key] = location->fullUri();
     });
 
-    fdb.registerCallback([&flushCalled] () {
+    fdb.registerFlushCallback([&flushCalled] () {
         flushCalled = true;
     });
 

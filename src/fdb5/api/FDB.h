@@ -34,7 +34,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -119,8 +119,8 @@ public: // methods
 
     bool dirty() const;
 
-    void registerCallback(ArchiveCallback callback);
-    void registerCallback(FlushCallback callback);
+    void registerArchiveCallback(ArchiveCallback callback);
+    void registerFlushCallback(FlushCallback callback);
 
     // -------------- API management ----------------------------
 
@@ -146,8 +146,6 @@ private: // methods
     }
 
     bool sorted(const metkit::mars::MarsRequest &request);
-
-    void initPlugins(const Config& config);
 
 private: // members
 
