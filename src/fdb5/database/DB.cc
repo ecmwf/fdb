@@ -14,7 +14,6 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
 
 using eckit::Log;
 
@@ -110,9 +109,14 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
     ASSERT(cat);
 
     const Index& idx = cat->currentIndex();
-    std::unique_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
 
-    callback(field, *location);
+    std::shared_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
+
+    // In anticipaton of store().archive() working asynchronously in later FDB versions.
+    std::promise<std::shared_ptr<FieldLocation>> promise;
+    promise.set_value(location);
+
+    callback(field, data, length, promise.get_future());
 
     cat->archive(key, std::move(location));
 }

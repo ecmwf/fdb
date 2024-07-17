@@ -27,7 +27,7 @@ list( APPEND api_tests
     select
     dist
     fdb_c
-    archive_callback
+    callback
 )
 
 foreach( _test ${api_tests} )
