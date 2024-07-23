@@ -49,10 +49,72 @@ extern "C"
 {
     int grib_get_message_headers(const grib_handle* h, const void** msg, size_t* size);
 }
-
 //----------------------------------------------------------------------------------------------------------------------
 //Reorganise. Ideally this should be encapsulated in a class or somewhere and not just here
 typedef std::tuple<std::string,long long int, long long int> GribLocation; //{Location,Offset,Length}
+
+/* Utility function to long string of key value pairs and save in an std::map<*/
+void appendKeyValuePairs(std::map<std::string, std::string>& existingMap, const std::string& keyValueStr) {
+    std::istringstream stream(keyValueStr);
+    std::string pair;
+
+    while (std::getline(stream, pair, ',')) {
+        std::istringstream pairStream(pair);
+        std::string key, value;
+
+        if (std::getline(pairStream, key, '=') && std::getline(pairStream, value)) {
+            existingMap[key] = value;  // Update or insert key-value pair
+        } else {
+            std::cerr << "Invalid key-value pair: " << pair << std::endl;
+        }
+    }
+}
+
+// Custom hash function for std::map<std::string, std::string>
+struct MapHash {
+    std::size_t operator()(const std::map<std::string, std::string>& m) const {
+        std::size_t seed = 0; // Initial seed value
+        for (const auto& pair : m) {
+            // Combine the hash of each element pair into the seed using a simple hash combine algorithm
+            seed ^= std::hash<std::string>()(pair.first) // Hash the key
+                   + 0x9e3779b9                          // Add the golden ratio prime constant
+                   + (seed << 6)                         // Mix the bits of the seed (left shift)
+                   + (seed >> 2);                        // Mix the bits of the seed (right shift)
+            seed ^= std::hash<std::string>()(pair.second) // Hash the value
+                   + 0x9e3779b9                           // Add the golden ratio prime constant
+                   + (seed << 6)                          // Mix the bits of the seed (left shift)
+                   + (seed >> 2);                         // Mix the bits of the seed (right shift)
+        }
+        return seed;
+    }
+};
+// Custom equality operator for std::map<std::string, std::string>
+struct MapEqual {
+    bool operator()(const std::map<std::string, std::string>& lhs, const std::map<std::string, std::string>& rhs) const {
+        return lhs == rhs;
+    }
+};
+std::ostream& operator<<(std::ostream& os, const std::unordered_map<
+    std::map<std::string, std::string>,
+    GribLocation,
+    MapHash,
+    MapEqual>& umap) {
+    for (const auto& entry : umap) {
+        const auto& keyMap = entry.first;
+        const auto& valueTuple = entry.second;
+
+        os << "Key: {";
+        for (const auto& pair : keyMap) {
+            os << pair.first << "=" << pair.second << ", ";
+        }
+        os << "} -> Value: ("
+           << std::get<0>(valueTuple) << ", "
+           << std::get<1>(valueTuple) << ", "
+           << std::get<2>(valueTuple) << ")\n";
+    }
+    return os;
+}
+
 
 class FDBCompare : public FDBVisitTool {
 
@@ -65,7 +127,8 @@ class FDBCompare : public FDBVisitTool {
         options_.push_back(new SimpleOption<std::string>("referenceConfig", "Path to a second FDB config"));
         options_.push_back(new SimpleOption<std::size_t>("level", "The difference can be evaluated at different levels, 1) Mars Metadata , 2) Mars and Grib Metadata and data up to a defined tolerance (default) "));
         options_.push_back(new SimpleOption<std::string>("gribcomparison", "Comparing two Grib messages can be done via eccode (gribcomparison=eccodes (default)) or directly by directly by comparing for bitexact memory (gribcomparison=direct)" ));
-        options_.push_back(new SimpleOption<double>("tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=3 is set otherwise tolerance will have no effect"));
+        options_.push_back(new SimpleOption<double>("tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
+        options_.push_back(new SimpleOption<std::string>("mars_keys_ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
     }
 
   private: // methods
@@ -81,7 +144,7 @@ class FDBCompare : public FDBVisitTool {
     int level_;
     double tolerance_;
     bool detail_; // this parameter should be used to determine if an additional information is required why a two FDBs don't match. 
-    
+    std::map<std::string,std::string> mars_keys_ignore_;
 };
 
 
@@ -103,7 +166,7 @@ void FDBCompare::init(const CmdArgs& args) {
     }
 
     level_ = args.getInt("level",2);
-    if(level_<0 || level_ >3){
+    if(level_<=0 || level_ >3){
         throw UserError("Unknown comparison level "+level_,Here());
     }
 
@@ -116,8 +179,10 @@ void FDBCompare::init(const CmdArgs& args) {
     if(tolerance_<std::numeric_limits<double>::epsilon()){
         throw UserError("The tolerance should be at least machine epsilon to compare floating point values.",Here());
     }
-
-
+    std::string tmp = args.getString("mars_keys_ignore","");
+    if(!tmp.empty()){
+        appendKeyValuePairs(mars_keys_ignore_, tmp);
+    }
 }
 // only compare the key of each map. the tupel is expected to diverge.
 template <typename Map>
@@ -352,6 +417,7 @@ void extractGribMessage(GribLocation GribLocTuple ,char* buffer){
     if(refFile.is_open())
     {
         refFile.seekg(offset,std::ios::beg);
+        //For a tco79 this seems to be the bottleneck: Optimisation suggestions: would be to keep the files open in a  Filestream cache. Potentially with an option to only store a certain amount of filestreams to avoid memory of open file distriptor issues.
         if(!refFile.read(buffer,length)) {
             refFile.close();
             throw Abort("Could not read the data from file",Here());
@@ -514,6 +580,7 @@ void compare_DataSection(codes_handle* hRef, codes_handle* hTest,double relative
     double denominator;
     for(size_t i = 0; i<valuesLenRef;++i){
         error = std::fabs(valuesRef[i]-valuesTest[i]);
+        std::cout<<error<<std::endl;
         if(error<=tolerance) continue;
         absoluteError += error;
         denominator = std::fabs(valuesRef[i]) > tolerance ? std::fabs(valuesRef[i]) : tolerance;
@@ -560,6 +627,7 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
         }
         if(gribcomparison_ == "direct"){
+            std::cout<<"direct comparison"<<std::endl;
             //Bitexact comparison directly on the Bytestream begin
             int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
             if(i==10){
@@ -593,6 +661,7 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         }
         if(gribcomparison_ == "eccodes"){
             // BitExactComparison with ECCODES begin
+            //std::cout<<"eccodes comparison"<<std::endl;
             auto match = compare_header(hRef,hTest);
             if(!match){
                 free(bufferRef);
@@ -600,7 +669,9 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             
                 codes_handle_delete(hRef);
                 codes_handle_delete(hTest);
-                throw Abort("Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest)));
+                std::string msg = "Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest));
+                std::cout<<msg<<std::endl;
+                return false;
             }
         
             //Return 2 if Data section fails, Return 1 if all sections match, return 0 if any other section does not match
@@ -660,6 +731,37 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
     return datamatch;
 
 }
+// Function to check if map1 is a subset of map2
+template <typename Map>
+bool isSubset(const Map& map1, const Map& map2) {
+    return std::any_of(map1.begin(), map1.end(), [&map2](const auto& pair) {
+        auto it = map2.find(pair.first);
+        return it != map2.end() && it->second == pair.second;
+    });
+}
+
+void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual>& umap,const FDBToolRequest& request,const std::map<std::string,std::string>& ignore_keys){
+        auto listObject = localFDB.list(request);
+        ListElement elem;    
+        while (listObject.next(elem)) {
+            std::map<std::string,std::string> tmp;
+            for(const auto & bit : elem.key()) {
+                //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
+               // std::cout<<bit<<std::endl;
+                auto keydict = bit.keyDict();
+                tmp.insert(keydict.begin(),keydict.end());
+            }
+            // if the ignore_keys are a subset of the Mars keys then the entry is ignored and not furhter tested.
+            if(ignore_keys.size()==0|| !isSubset(ignore_keys,tmp))
+            {
+                umap.insert({tmp,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+            }
+            //else{
+            //    std::cout<<"Entry: "<<tmp<<std::endl;
+            //    std::cout<<"Was ignored because it matched "<<ignore_keys<<std::endl;
+           // }
+        }
+}
 
 void FDBCompare::execute(const CmdArgs& args) {
 
@@ -692,32 +794,51 @@ void FDBCompare::execute(const CmdArgs& args) {
     FDB fdbtest( Config::make(configPathtest));
 
 
-
+    //FDBToolRequest is possible by using the known syntax on the command line and restrict the amount of data that is 
+    //retrieved by fdb.list. But in develop we might also want to request individual param ID. that currently results in a
+    //Serious bug exception. So even tough the filter is possible we will be able to reduce it further.  
     for (const FDBToolRequest& request : requests()) {
-        std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
-        std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
+        //Probalby a little bit faster but more error prone with the string assembling
+        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
+        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
 
-        auto listObject = fdbref.list(request);
-        ListElement elem;    
-        while (listObject.next(elem)) {
-            std::string str;
-            for(const auto & bit : elem.key()) {
-                str.append(bit);
-                str.append(",");
-            }
-            ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+        // auto listObject = fdbref.list(request);
+        // ListElement elem;    
+        // while (listObject.next(elem)) {
+        //     std::string str;
+        //     for(const auto & bit : elem.key()) {
+        //         //std::cout<<bit<<" "<<std::endl;
+        //         str.append(bit);
+        //         str.append(",");
+        //     }
+        //     //ßstd::cout<<"-----------------"<<std::endl;
+        //     ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
 
-        }
-        listObject = fdbtest.list(request);
-        while (listObject.next(elem)) {
-            std::string str;
-            for(const auto & bit : elem.key()) {
-                str.append(bit);
-                str.append(",");
-            }
-            test_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+        // }
+        // listObject = fdbtest.list(request);
+        // while (listObject.next(elem)) {
+        //     std::string str;
+        //     for(const auto & bit : elem.key()) {
+        //         str.append(bit);
+        //         str.append(",");
+        //     }
+        //     test_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
         
-        }
+        // }
+
+
+        std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> ref_map;
+        std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> test_map;
+
+        assemble_compare_map(fdbref,ref_map,request,mars_keys_ignore_);
+        assemble_compare_map(fdbtest,test_map,request,mars_keys_ignore_);
+        // std::cout<<"ref map"<<std::endl;
+        // std::cout<<ref_map<<std::endl;
+        // std::cout<<ref_map.size()<<std::endl;
+        // std::cout<<"TEst map"<<std::endl;
+        // std::cout<<test_map<<std::endl;
+        // std::cout<<test_map.size()<<std::endl;
+
 
         //Check that the keys match only continue with next comparison is this is the case
         if(!(compare_keys(ref_map,test_map))){
@@ -748,12 +869,19 @@ void FDBCompare::execute(const CmdArgs& args) {
 
             absoluteError=0.0;
             relativeError=0.0;
-            datamatch = gribCompare(value,test_map[key],relativeError,absoluteError);
-            
-            if(datamatch) continue;
-            std::cout<<"Numerical differences in the data values of Grib message: "<<key<<std::endl;
-            std::cout<<"relative Error = "<<relativeError<<std::endl;
-            std::cout<<"absolute Error = "<<absoluteError<<std::endl;
+            try{
+                datamatch = gribCompare(value,test_map[key],relativeError,absoluteError);
+            }
+            catch(...){
+                std::cout<<"Grib Comparison failed Mars Key"<<key<<std::endl;
+                throw;
+            }
+            if(!datamatch){
+                std::cout<<"Grib Comaprison failed! Mars Key"<<key<<std::endl;
+                return;
+            } 
+            //std::cout<<"Numerical differences in the data values of Grib message: "<<key<<std::endl;
+           
             if(absoluteError > tolerance_)
             {
                 if(countValidErrorAbs == 0){
