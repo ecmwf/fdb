@@ -136,24 +136,21 @@ bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     return found;
 }
 
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result) const {
     std::vector<Key> results;
-    bool found = expandFirstLevel(request, results);
-    if (found) {
-        ASSERT(found);
-        result = results.front();
-    }
+
+    const bool found = expandFirstLevel(request, results);
+
+    if (found) { result = results.front(); }
+
     return found;
 }
 
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results) const {
     bool found = false;
     for (const Rule* rule : rules_) {
-        rule->expandFirstLevel(request, result, found);
-        if (found) {
-            result.registry(rule->registry());
-            break;
-        }
+        rule->expandFirstLevel(request, results, found);
+        if (found) { break; }
     }
     return found;
 }
