@@ -486,7 +486,6 @@ list( APPEND fdb5_tools
     fdb-status
     fdb-lock
     fdb-unlock
-    fdb-axes
     fdb-inspect-test
 )
 
