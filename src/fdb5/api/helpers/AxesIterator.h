@@ -40,7 +40,7 @@ public: // methods
     [[ nodiscard ]]
     const IndexAxis& axes() const { return axes_; }
 
-    void print(std::ostream& out, bool withLocation=false, bool withLength=false) const;
+    void print(std::ostream& out) const;
 
 private: // methods
 
