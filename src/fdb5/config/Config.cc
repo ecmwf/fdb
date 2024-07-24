@@ -161,7 +161,6 @@ void Config::initializeSchemaPath() const {
         //       N.B. this uses Config expandPath()
         static std::string fdbSchemaFile =
             Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
-        eckit::Log::info() << "schemafile: " << fdbSchemaFile << std::endl;
 
         schemaPath_ = expandPath(fdbSchemaFile);
     }
