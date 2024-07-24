@@ -60,13 +60,14 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
 	ASSERT(depth < 3);
 
-//    eckit::Log::info() << "depth: " << depth << " - predicates: " << predicates_.size() << " cur " << (cur - predicates_.begin()) << std::endl;
+    // eckit::Log::info() << "depth: " << depth << " - predicates: " << predicates_.size() << " cur "
+    //                    << (cur - predicates_.begin()) << std::endl;
 
     if (cur == predicates_.end()) {
 
         keys[depth].registry(registry());
 
-//        eckit::Log::info() << "RQ Setting rule, level: " << depth << " : " << this << std::endl;
+        // eckit::Log::info() << "RQ Setting rule, level: " << depth << " : " << this << std::endl;
 
         // TODO: join these 2 methods
         if (rules_.empty()) {
@@ -269,7 +270,7 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq,
 
     if (cur == predicates_.end()) {
         found = true;
-        working.rule(this);
+        working.registry(registry());
         result.push_back(working);
         return;
     }
