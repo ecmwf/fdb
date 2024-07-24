@@ -44,6 +44,7 @@ const std::vector<std::pair<Index, Key>>& TocCatalogueReader::mappedIndexes() co
 
 void TocCatalogueReader::loadIndexesAndRemap() const {
     std::vector<Key> remapKeys;
+    /// @todo: this should throw DatabaseNotFoundException if the toc file is not found
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
     ASSERT(remapKeys.size() == indexes.size());

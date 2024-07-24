@@ -70,6 +70,45 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
+find_package(UUID QUIET)
+
+find_package(DAOS QUIET)
+
+set(_default_dummy_daos ON)
+if(DAOS_FOUND)
+    set(_default_dummy_daos OFF)
+endif()
+
+ecbuild_add_option( FEATURE DUMMY_DAOS
+                    DEFAULT ${_default_dummy_daos}
+                    CONDITION UUID_FOUND
+                    DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
+
+if(HAVE_DUMMY_DAOS)
+    set(DAOS_LIBRARIES dummy_daos)
+    set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+    set(DAOS_FOUND TRUE)
+    set(DAOS_TESTS_LIBRARIES dummy_daos_tests)
+    set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+    set(DAOS_TESTS_FOUND TRUE)
+endif()
+
+ecbuild_add_option( FEATURE DAOSFDB
+                    CONDITION DAOS_FOUND AND UUID_FOUND 
+                    DEFAULT ON
+                    DESCRIPTION "DAOS support for FDB Store" )
+
+ecbuild_add_option( FEATURE DAOS_ADMIN
+                    DEFAULT OFF
+                    CONDITION HAVE_DAOSFDB AND DAOS_TESTS_FOUND
+                    DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
+
+# DAOS_TESTS is a daos admin library, usually not present
+if(NOT HAVE_DAOS_ADMIN)
+    set( DAOS_TESTS_LIBRARIES "" )
+    set( DAOS_TESTS_INCLUDE_DIRS "" )
+endif()
+
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )

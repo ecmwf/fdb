@@ -21,6 +21,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/types/TypesRegistry.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace fdb5 {
 
@@ -71,9 +72,13 @@ public:
     RemoteProtocolVersion remoteProtocolVersion() const;
 
     /// Returns the default configuration according to the rules of FDB configuration search
-    const Config& defaultConfig();
+    const Config& defaultConfig(const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
     bool dontDeregisterFactories() const;
+
+    void registerConstructorCallback(ConstructorCallback cb);
+
+    ConstructorCallback constructorCallback();
 
 protected:
     virtual std::string version() const;
@@ -82,6 +87,7 @@ protected:
 
 private:
     std::unique_ptr<Config> config_;
+    ConstructorCallback constructorCallback_ = CALLBACK_CONSTRUCTOR_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

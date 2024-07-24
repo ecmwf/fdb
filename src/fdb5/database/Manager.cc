@@ -259,7 +259,7 @@ std::string Manager::engine(const URI& uri)
     for(std::vector<Engine*>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         ASSERT(*i);
         const Engine& e = **i;
-        if(e.canHandle(uri)) {
+        if(e.canHandle(uri, config_)) {
             return e.dbType();
         }
     }
@@ -310,6 +310,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
         } else {
             p = Engine::backend(*i).visitableLocations(rq, config_);
         }
+
         r.insert(r.end(), p.begin(), p.end());
     }
 

@@ -40,18 +40,24 @@ LibFdb5& LibFdb5::instance() {
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig() { 
+const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) { 
     if(!config_) {
         static std::mutex m;
         {
             std::lock_guard<std::mutex> lock(m);
-            if (!config_) {
-                Config cfg;
-                config_.reset(new Config(std::move(cfg.expandConfig())));
-            }
+            Config cfg;
+            config_.reset(new Config(std::move(cfg.expandConfig()), userConfig));
         }
     }
     return *config_;
+}
+
+ConstructorCallback LibFdb5::constructorCallback() {
+    return constructorCallback_;
+}
+
+void LibFdb5::registerConstructorCallback(ConstructorCallback cb) {
+    constructorCallback_ = cb;
 }
 
 bool LibFdb5::dontDeregisterFactories() const {

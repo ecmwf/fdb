@@ -22,16 +22,16 @@ namespace fdb5 {
 AxesElement::AxesElement(Key&& dbKey, IndexAxis&& axes) :
         dbKey_(std::move(dbKey)), axes_(std::move(axes)) {}
 
-AxesElement::AxesElement(eckit::Stream &s) {
+AxesElement::AxesElement(eckit::Stream& s) {
     s >> dbKey_;
     axes_ = IndexAxis(s, IndexAxis::currentVersion());
 }
 
-void AxesElement::print(std::ostream &out, bool withLocation, bool withLength) const {
+void AxesElement::print(std::ostream& out) const {
     out << "Axes(db=" << dbKey_ << ", axes=" << axes_ << ")";
 }
 
-void AxesElement::encode(eckit::Stream &s) const {
+void AxesElement::encode(eckit::Stream& s) const {
     s << dbKey_;
     axes_.encode(s, IndexAxis::currentVersion());
 }

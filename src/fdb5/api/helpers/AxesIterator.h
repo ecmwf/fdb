@@ -31,9 +31,13 @@ public: // methods
 
     AxesElement() = default;
     AxesElement(Key&& dbKey, IndexAxis&& axis);
-    AxesElement(eckit::Stream& s);
 
+    explicit AxesElement(eckit::Stream& s);
+
+    [[ nodiscard ]]
     const Key& key() const { return dbKey_; }
+
+    [[ nodiscard ]]
     const IndexAxis& axes() const { return axes_; }
 
     void print(std::ostream& out, bool withLocation=false, bool withLength=false) const;

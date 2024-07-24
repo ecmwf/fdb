@@ -89,7 +89,7 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
 
     if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
 
-    std::set<std::string> keys = fdb5::Key(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys(); //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -161,10 +161,6 @@ bool MessageArchiver::filterOut(const Key& k) const {
     return !out;
 }
 
-eckit::Channel& MessageArchiver::logVerbose() const {
-    return verbose_ ? Log::info() : Log::debug<LibFdb5>();
-}
-
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
@@ -209,7 +205,11 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
                 messageToKey(msg, key);  // re-build the key, as it may have changed
             }
 
-            logVerbose() << "Archiving " << key << std::endl;
+            if (verbose_) {
+                Log::info() << "Archiving " << key << std::endl;
+            } else {
+                LOG_DEBUG_LIB(LibFdb5) << "Archiving " << key << std::endl;
+            }
 
             fdb_.archive(key, msg.data(), msg.length());
 

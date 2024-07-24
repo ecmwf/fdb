@@ -27,6 +27,7 @@ list( APPEND api_tests
     select
     dist
     fdb_c
+    callback
 )
 
 foreach( _test ${api_tests} )

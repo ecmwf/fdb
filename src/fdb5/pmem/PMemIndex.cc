@@ -141,10 +141,15 @@ std::string PMemIndex::defaulType() {
     return "PMemIndex";
 }
 
-const std::vector<PathName> PMemIndex::dataPaths() const {
+const std::vector<eckit::URI> PMemIndex::dataURIs() const {
     // n.b. this lists the pools that _could_ be referenced, not those that
     // necessarily are. That would need proper enumeration of all contents.
-    return location_.pool_manager().dataPoolPaths();
+
+    std::vector<eckit::URI> result;
+    for (auto path : location_.pool_manager().dataPoolPaths())
+        result.push_back(eckit::URI{"pmem", path});
+
+    return result;
 }
 
 void PMemIndex::dump(std::ostream& out, const char* indent, bool simple, bool dumpFields) const {

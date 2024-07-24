@@ -47,11 +47,11 @@ IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
 }
 
 IndexAxis::IndexAxis(IndexAxis&& rhs) noexcept :
-    axis_(std::move(rhs.axis_)),
-    readOnly_(rhs.readOnly_),
-    dirty_(rhs.dirty_) {}
+        axis_(std::move(rhs.axis_)),
+        readOnly_(rhs.readOnly_),
+        dirty_(rhs.dirty_) {}
 
-IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) {
+IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) noexcept {
     axis_ = std::move(rhs.axis_);
     readOnly_ = rhs.readOnly_;
     dirty_ = rhs.dirty_;
@@ -73,6 +73,21 @@ IndexAxis IndexAxis::copy() const {
         }
     }
     return result;
+bool IndexAxis::operator==(const IndexAxis& rhs) const {
+
+    if (axis_.size() != rhs.axis_.size()) return false;
+
+    for (const auto& kv : axis_) {
+        auto it = rhs.axis_.find(kv.first);
+        if (it == rhs.axis_.end()) return false;
+        if (*kv.second != *it->second) return false;
+    }
+
+    return true;
+}
+
+bool IndexAxis::operator!=(const IndexAxis& rhs) const {
+    return !(*this == rhs);
 }
 
 void IndexAxis::encode(eckit::Stream &s, const int version) const {
@@ -296,6 +311,22 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
+/// @note: this method inserts key-value pairs into an axis in memory. 
+///   Intended for importing axis information from storage in the DAOS backend.
+///   Input values are required to be cannoicalised.
+void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
+    ASSERT(!readOnly_);
+
+    std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[axis];
+
+    if (!axis_set)
+        axis_set.reset(new eckit::DenseSet<std::string>());
+
+    for (const auto& value : values) axis_set->insert(value);
+
+    dirty_ = true;
+
+}
 
 bool IndexAxis::dirty() const {
     return dirty_;
@@ -355,6 +386,15 @@ const std::map<std::string, std::unordered_set<std::string>> IndexAxis::copyAxes
         axes[kv.first] = std::unordered_set<std::string>(kv.second->begin(), kv.second->end());
     }
     return axes;
+std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
+
+    // Make a copy of the axis map
+    std::map<std::string, eckit::DenseSet<std::string>> result;
+
+    for (const auto& kv : axis_) {
+        result.emplace(kv.first, *kv.second);
+    }
+    return result;
 }
 
 void IndexAxis::print(std::ostream &out) const {

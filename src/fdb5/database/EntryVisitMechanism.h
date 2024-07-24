@@ -18,6 +18,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
 
 namespace eckit {
 class URI;
@@ -49,6 +50,8 @@ public:  // methods
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
+
+    virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) {}
 
     time_t indexTimestamp() const;
 

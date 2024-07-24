@@ -49,14 +49,19 @@ public: // methods
     IndexAxis(eckit::Stream &s, const int version);
     IndexAxis(IndexAxis&& rhs) noexcept;
 
-    IndexAxis& operator=(IndexAxis&& rhs);
+    IndexAxis& operator=(IndexAxis&& rhs) noexcept;
 
     // Explicit copy. n.b. uses move constructor
     IndexAxis copy() const;
 
     ~IndexAxis();
 
+    bool operator==(const IndexAxis& rhs) const;
+    bool operator!=(const IndexAxis& rhs) const;
+
     void insert(const Key &key);
+    /// @note: the values are required to be cannonicalised
+    void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;
     static int currentVersion() { return 3; }
 
@@ -69,6 +74,8 @@ public: // methods
     const eckit::DenseSet<std::string>& values(const std::string &keyword) const;
 
     const std::map<std::string, std::unordered_set<std::string>> copyAxesMap() const;
+
+    std::map<std::string, eckit::DenseSet<std::string>> map() const;
 
     void dump(std::ostream &out, const char* indent) const;
 

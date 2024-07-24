@@ -162,7 +162,6 @@ const IndexAxis &IndexBase::axes() const {
     return axes_;
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -243,17 +242,6 @@ Index::~Index() {
 Index::Index(const Index& s) : content_(s.content_), null_(s.null_) {
     content_->attach();
 }
-
-/*const std::vector<eckit::PathName> Index::dataPaths() const {
-    std::vector<eckit::URI> uris = dataUris();
-    std::vector<eckit::PathName> paths;
-    paths.reserve(uris.size());
-
-    for (eckit::URI& uri: uris) {
-        paths.emplace_back(uri.path());
-    }
-    return paths;
-}*/
 
 Index& Index::operator=(const Index& s) {
     content_->detach();

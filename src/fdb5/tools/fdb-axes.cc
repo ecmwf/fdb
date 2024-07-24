@@ -20,8 +20,7 @@ using namespace eckit;
 using namespace option;
 
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -39,8 +38,8 @@ public: // methods
 
 private: // methods
 
-    virtual void execute(const CmdArgs& args);
-    virtual void init(const CmdArgs &args);
+    void execute(const CmdArgs& args) final;
+    void init(const CmdArgs &args) final;
 
 private: // members
 
@@ -67,15 +66,15 @@ void FDBAxisTest::execute(const CmdArgs& args) {
             JSON json(Log::info());
             json << r;
         } else {
-            Log::info() << r << std::endl;
+            Log::info() << r;
         }
+        Log::info() << std::endl;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+} // namespace fdb5::tools
 
 int main(int argc, char **argv) {
     fdb5::tools::FDBAxisTest app(argc, argv);

@@ -20,6 +20,9 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
+#include "eckit/system/Plugin.h"
+#include "eckit/system/LibraryManager.h"
+
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
@@ -29,6 +32,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -37,7 +41,10 @@ namespace fdb5 {
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
+    reportStats_(config.getBool("statistics", false)) {
+    eckit::system::LibraryManager::autoLoadPlugins({});
+    LibFdb5::instance().constructorCallback()(*this);
+}
 
 
 FDB::~FDB() {
@@ -100,24 +107,24 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    auto stepunit = key.find("stepunits");
-    if (stepunit != key.end()) {
-        Key k;
-        for (auto it : key) {
-            if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
-                // TODO - enable canonical representation of step (as soon as Metkit supports it)
-                std::string canonicalStep = it.second+stepunit->second; // k.registry().lookupType("step").toKey("step", it.second+stepunit->second);
-                k.set(it.first, canonicalStep);
-            } else {
-                if (it.first != "stepunits") {
-                    k.set(it.first, it.second);
-                }
+    // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
+    // serialisation won't work properly...)
+    Key keyInternal(key);
+    keyInternal.registry(config().schema().registry());
+
+    // step in archival requests from the model is just an integer. We need to include the stepunit
+    auto stepunit = keyInternal.find("stepunits");
+    if (stepunit != keyInternal.end()) {
+        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+            auto step = keyInternal.find("step");
+            if (step != keyInternal.end()) {
+                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
             }
         }
-        internal_->archive(k, data, length);
-    } else {
-        internal_->archive(key, data, length);
+        keyInternal.unset("stepunits");
     }
+
+    internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
     timer.stop();
@@ -282,11 +289,11 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
-
         eckit::Timer timer;
         timer.start();
 
         internal_->flush();
+        flushCallback_();
         dirty_ = false;
 
         timer.stop();
@@ -318,6 +325,14 @@ bool FDB::disabled() const {
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
+}
+
+void FDB::registerArchiveCallback(ArchiveCallback callback) { // todo rename
+    internal_->registerArchiveCallback(callback);
+}
+
+void FDB::registerFlushCallback(FlushCallback callback) { // todo rename
+    flushCallback_ = callback;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

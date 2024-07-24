@@ -1581,8 +1581,8 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
                     metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
-                    for (const auto& dataPath : i.dataPaths()) {
-                        data.insert(dataPath);
+                    for (const auto& dataURI : i.dataURIs()) {
+                        data.insert(dataURI);
                     }
                 }
             }
@@ -1617,7 +1617,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
                 if (absPath.exists()) {
                     Index index(new TocIndex(s, r->header_.serialisationVersion_, directory_, absPath, offset));
-                    for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
+                    for (const auto& dataURI : index.dataURIs()) data.insert(dataURI);
                 }
             }
         }

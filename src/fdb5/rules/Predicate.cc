@@ -21,7 +21,7 @@ namespace fdb5 {
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
     keyword_(keyword) {
-    //    dump(eckit::Log::debug());
+    //    dump(LOG_DEBUG_LIB(LibFdb5));
     //    LOG_DEBUG_LIB(LibFdb5) << std::endl;
 }
 
