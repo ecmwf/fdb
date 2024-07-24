@@ -73,6 +73,8 @@ IndexAxis IndexAxis::copy() const {
         }
     }
     return result;
+}
+
 bool IndexAxis::operator==(const IndexAxis& rhs) const {
 
     if (axis_.size() != rhs.axis_.size()) return false;
@@ -153,7 +155,7 @@ IndexAxisStreamKeys indexAxiskeyId(const std::string& s) {
     if( it != keys.end() ) {
         return it->second;
     }
-    return IndexAxisKeyUnrecognised; 
+    return IndexAxisKeyUnrecognised;
 }
 
 void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
@@ -311,7 +313,7 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
-/// @note: this method inserts key-value pairs into an axis in memory. 
+/// @note: this method inserts key-value pairs into an axis in memory.
 ///   Intended for importing axis information from storage in the DAOS backend.
 ///   Input values are required to be cannoicalised.
 void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
@@ -386,6 +388,8 @@ const std::map<std::string, std::unordered_set<std::string>> IndexAxis::copyAxes
         axes[kv.first] = std::unordered_set<std::string>(kv.second->begin(), kv.second->end());
     }
     return axes;
+}
+
 std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
 
     // Make a copy of the axis map
