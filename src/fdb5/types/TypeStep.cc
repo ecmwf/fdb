@@ -33,12 +33,9 @@ TypeStep::TypeStep(const std::string &name, const std::string &type) :
 TypeStep::~TypeStep() {
 }
 
-
-std::string TypeStep::toKey(const std::string&,
-                            const std::string& value) const {
-//    eckit::Log::info() << "to canonicalise: " << value << std::endl;
-//    return StepRange(value);
-    return value;
+std::string TypeStep::toKey(const std::string& /* keyword */, const std::string& value) const {
+    /// @attention performance critical
+    return StepRange(value);
 }
 
 bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const
