@@ -46,6 +46,8 @@ Schema::~Schema() {
     clear();
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     std::vector<Key> keys;
     keys.push_back(dbKey);
@@ -59,6 +61,9 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     }
     return 0;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+// EXPAND
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
     Key full(registry());
@@ -155,6 +160,9 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vec
     return found;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// MATCH
+
 void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->matchFirstLevel(dbKey, result, missing);
@@ -187,6 +195,8 @@ bool Schema::matchFirstLevel(const std::string& fingerprint, Key& key) const {
 
     return false;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 namespace {
 struct LevelVisitor : public RetrieveVisitor {
@@ -234,6 +244,7 @@ struct LevelVisitor : public RetrieveVisitor {
         } else {
             // FIXME: If DB not found, not invalid for testing this. We just need to
             //        use the primary schema
+            eckit::Log::warning() << "Database not found: " << key << std::endl;
         }
         return false;
     }
@@ -299,6 +310,8 @@ private:
 };
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
                                 std::vector<Key>& requestBits,
                                 std::vector<std::string>* nextKeys) const {
@@ -313,6 +326,7 @@ int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
         //       we don't match a level... we sholud just not match. This exception is being thrown
         //       in the wrong place...
         // FIXME: FIX ME
+        eckit::Log::warning() << "Schema::fullyExpandedLevels: No match for request: " << request << std::endl;
     }
 
     Key residual;
@@ -356,6 +370,8 @@ int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
     return visitor.level();
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 void Schema::load(const eckit::PathName &path, bool replace) {
 
     path_ = path;
@@ -382,6 +398,8 @@ void Schema::load(std::istream& s, bool replace) {
     check();
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 void Schema::clear() {
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         delete *i;
@@ -405,6 +423,8 @@ void Schema::check() {
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 void Schema::print(std::ostream &out) const {
     out << "Schema[path=" << path_ << "]";
 }
@@ -412,7 +432,6 @@ void Schema::print(std::ostream &out) const {
 const Type &Schema::lookupType(const std::string &keyword) const {
     return registry_->lookupType(keyword);
 }
-
 
 bool Schema::empty() const {
     return rules_.empty();
@@ -426,13 +445,13 @@ const std::shared_ptr<TypesRegistry> Schema::registry() const {
     return registry_;
 }
 
-
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);
     return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// REGISTRY
 
 SchemaRegistry& SchemaRegistry::instance() {
     static SchemaRegistry me;
@@ -454,4 +473,4 @@ const Schema& SchemaRegistry::get(const eckit::PathName& path) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
