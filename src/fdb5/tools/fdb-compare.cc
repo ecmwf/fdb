@@ -15,6 +15,8 @@
 #include <ctime>
 #include <limits>
 #include <bitset>
+#include <typeinfo>
+#include <typeindex>
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/Resource.h"
@@ -52,24 +54,31 @@ extern "C"
 //----------------------------------------------------------------------------------------------------------------------
 //Reorganise. Ideally this should be encapsulated in a class or somewhere and not just here
 typedef std::tuple<std::string,long long int, long long int> GribLocation; //{Location,Offset,Length}
-
-/* Utility function to long string of key value pairs and save in an std::map<*/
-void appendKeyValuePairs(std::map<std::string, std::string>& existingMap, const std::string& keyValueStr) {
+// Utility function to append key-value pairs to std::map
+void appendKeys(std::map<std::string, std::string>& container, const std::string& keyValueStr) {
     std::istringstream stream(keyValueStr);
-    std::string pair;
+    std::string entry;
 
-    while (std::getline(stream, pair, ',')) {
-        std::istringstream pairStream(pair);
+    while (std::getline(stream, entry, ',')) {
+        std::istringstream pairStream(entry);
         std::string key, value;
-
         if (std::getline(pairStream, key, '=') && std::getline(pairStream, value)) {
-            existingMap[key] = value;  // Update or insert key-value pair
+            container[key] = value;  // Update or insert key-value pair
         } else {
-            std::cerr << "Invalid key-value pair: " << pair << std::endl;
+            std::cerr << "Invalid key-value pair: " << entry << std::endl;
         }
     }
 }
 
+// Utility function to append entries to std::unordered_set
+void appendKeys(std::unordered_set<std::string>& container, const std::string& keyValueStr) {
+    std::istringstream stream(keyValueStr);
+    std::string entry;
+
+    while (std::getline(stream, entry, ',')) {
+        container.insert(entry);  // Insert the whole entry as a single string
+    }
+}
 // Custom hash function for std::map<std::string, std::string>
 struct MapHash {
     std::size_t operator()(const std::map<std::string, std::string>& m) const {
@@ -115,7 +124,20 @@ std::ostream& operator<<(std::ostream& os, const std::unordered_map<
     return os;
 }
 
+template <typename T>
+std::string createStringFromArray(const std::vector<T>& array, size_t length) {
+    std::ostringstream oss;
+    size_t numElements = std::min(length, array.size());
 
+    for (size_t i = 0; i < numElements; ++i) {
+        oss << array[i];
+        if (i != numElements - 1) {
+            oss << ", ";
+        }
+    }
+
+    return oss.str();
+}
 class FDBCompare : public FDBVisitTool {
 
   public: // methods
@@ -129,6 +151,8 @@ class FDBCompare : public FDBVisitTool {
         options_.push_back(new SimpleOption<std::string>("gribcomparison", "Comparing two Grib messages can be done via eccode (gribcomparison=eccodes (default)) or directly by directly by comparing for bitexact memory (gribcomparison=direct)" ));
         options_.push_back(new SimpleOption<double>("tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
         options_.push_back(new SimpleOption<std::string>("mars_keys_ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
+        options_.push_back(new SimpleOption<std::string>("eccodes_keys_select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified eccodes/grib keys will be compared" ));
+        options_.push_back(new SimpleOption<std::string>("eccodes_keys_ignore", "Format: \" \" The specified key words will be ignored"));
     }
 
   private: // methods
@@ -145,6 +169,8 @@ class FDBCompare : public FDBVisitTool {
     double tolerance_;
     bool detail_; // this parameter should be used to determine if an additional information is required why a two FDBs don't match. 
     std::map<std::string,std::string> mars_keys_ignore_;
+    std::unordered_set<std::string> eccodes_keys_select_;
+    std::unordered_set<std::string> eccodes_keys_ignore_;
 };
 
 
@@ -181,7 +207,15 @@ void FDBCompare::init(const CmdArgs& args) {
     }
     std::string tmp = args.getString("mars_keys_ignore","");
     if(!tmp.empty()){
-        appendKeyValuePairs(mars_keys_ignore_, tmp);
+        appendKeys(mars_keys_ignore_, tmp);
+    }
+    tmp = args.getString("eccodes_keys_select","");
+    if(!tmp.empty()){
+        appendKeys(eccodes_keys_select_,tmp);
+    }
+    tmp = args.getString("eccodes_keys_ignore","");
+    if(!tmp.empty()){
+        appendKeys(eccodes_keys_ignore_,tmp);
     }
 }
 // only compare the key of each map. the tupel is expected to diverge.
@@ -462,6 +496,36 @@ bool compare_header(codes_handle * hRef, codes_handle * hTest)
     return false;
 
 }
+bool compare_header_keys(codes_handle * hRef, codes_handle * hTest)
+{
+    size_t size1=0;
+    size_t size2=0;
+    const void *msg1 = NULL; //potential source of mem leak
+    const void *msg2 = NULL;
+
+    if(!hRef || !hTest){
+        throw BadValue("codes_handle are corrupted");
+    }
+    if(0!=grib_get_message_headers(hRef,&msg1,&size1)){
+        throw FailedLibraryCall("internal grib api","grib_get_message_header","Potentially this is no longer supported as it was not the eccodes API",Here());
+    
+    }
+    if(0!=grib_get_message_headers(hTest,&msg2,&size2)){
+        throw FailedLibraryCall("internal grib api","grib_get_message_header","Potentially this is no longer supported as it was not the eccodes API",Here());
+    }
+    if(size1==size2 && (0==memcmp(msg1,msg2,size1))){
+        return true;
+    }
+    std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+    int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+    std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+    dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+    std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+    return false;
+
+}
 //Return 2 if Data section fails, Return 1 if all sections match return 0 if any other section does not match
 int compare_md5sums(codes_handle* hRef, codes_handle *hTest)
 {
@@ -592,6 +656,194 @@ void compare_DataSection(codes_handle* hRef, codes_handle* hTest,double relative
     free(valuesRef);
     return;
 }
+std::string value_to_string(codes_handle* h, const char* name, int codes_data_type, size_t length){
+       
+    std::ostringstream oss;
+    switch(codes_data_type){
+        case CODES_TYPE_STRING:{
+            std::vector<char> val(length);
+            CODES_CHECK(codes_get_string(h,name,val.data(),&length),CODES_SUCCESS);
+            oss.write(val.data(),length);
+            break;
+        }
+        case CODES_TYPE_LONG:{
+            std::vector<long> val(length);
+            CODES_CHECK(codes_get_long_array(h,name,val.data(),&length),CODES_SUCCESS);
+            oss<<createStringFromArray(val,100);
+            break;
+        }
+        case CODES_TYPE_DOUBLE:{
+            std::vector<double> val(length);
+            CODES_CHECK(codes_get_double_array(h,name,val.data(),&length),CODES_SUCCESS);
+            oss<<createStringFromArray(val,100);
+            break;
+        }
+        case CODES_TYPE_BYTES:{
+            std::vector<unsigned char> val(length);
+            CODES_CHECK(codes_get_bytes(h,name,val.data(),&length),CODES_SUCCESS);
+            for(auto c: val)
+                oss<<static_cast<int>(c)<<" ";
+            break;
+        }
+        default:
+            throw Abort("ECCODES unsupported type "+codes_data_type);
+    }
+    return oss.str();
+}
+// only compare the key of each map. the tupel is expected to diverge. first as bytestreams and only if they don't match get more details
+//swapped means that the codes handles were swapped so that 
+std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, const char* name){
+    size_t lenRef;
+    size_t lenTest;
+    size_t length=0;
+    int err;
+    std::string ref = "Reference FDB";
+    std::string test=  "Test FDBf";
+    bool isMissingRef,isMissingTest;
+    int typeRef,typeTest;
+    unsigned char* uvalRef;
+    unsigned char* uvalTest;
+    bool dataSectionMatch = true;
+    // size_t lengthT;
+    // int typeT;
+    // codes_get_native_type(hRef,"bitmapPresent",&typeT);
+    // codes_get_size(hRef,"bitmapPresent",&lengthT);
+    // std::cout<<"Values: "<<typeT<<" "<<lengthT<<std::endl;
+    // codes_get_native_type(hRef,"codedValues",&typeT);
+    // codes_get_size(hRef,"codedValues",&lengthT);
+    // std::cout<<"codedValues: "<<typeT<<" "<<lengthT<<std::endl;
+
+    std::cout<<name<<std::endl;
+    CODES_CHECK(codes_get_native_type(hRef,name,&typeRef),CODES_SUCCESS);
+    CODES_CHECK(codes_get_native_type(hTest,name,&typeTest),CODES_SUCCESS);
+    if(typeRef != typeTest) {
+        std::cout<< std::string(name)<<"Type mismatch: Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" CODES_TYPE " << typeRef<<"\nTest value: "<<value_to_string(hTest,name, typeTest,lenTest)<<" CODES_TYPE " << typeTest<<std::endl;
+        return {false,dataSectionMatch}; //DataSectionMismatch is always false unless the difference is cause by the actual values
+    }
+    if((err=codes_get_size(hRef,name,&lenRef))!=CODES_SUCCESS){
+        throw Abort("Error: Cannot get size of "+std::string(name)+"Error message "+std::string(codes_get_error_message(err)));
+    }
+    if((err=codes_get_size(hTest,name,&lenTest))!=CODES_SUCCESS){
+        if(err==CODES_NOT_FOUND){
+                 
+            std::cout<<name<<" not found in test FDB but found in reference FDB"<<std::endl;
+        }
+        throw Abort("Error: Cannot get size of "+std::string(name)+"Error message "+std::string(codes_get_error_message(err)));
+    }
+    if(lenRef != lenTest) {
+        std::cout<< std::string(name)<<" Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
+        return {false,dataSectionMatch};
+    }
+
+    switch(typeRef){
+        case CODES_TYPE_STRING:
+            CODES_CHECK(codes_get_length(hRef,name,&lenRef),CODES_SUCCESS);
+            CODES_CHECK(codes_get_length(hTest,name,&lenTest),CODES_SUCCESS);
+            ASSERT(lenRef==lenTest);
+            length = lenRef*sizeof(char);
+            break;
+        case CODES_TYPE_LONG:
+            length = lenRef*sizeof(long);
+            break;
+        case CODES_TYPE_DOUBLE:
+            length = lenRef*sizeof(double);
+            break;
+        case CODES_TYPE_BYTES:
+            length = lenRef*sizeof(unsigned char);
+            break;
+        default:
+            length = 0;
+            throw Abort("ECCODES unsupported type "+typeRef);
+    }
+        
+    isMissingRef = ((codes_is_missing(hRef, name, &err) == 1) && (err == 0)) ? true : false;
+    isMissingTest = ((codes_is_missing(hTest, name, &err) == 1) && (err == 0)) ? true : false;
+
+    if (isMissingRef && isMissingTest) return {true,dataSectionMatch};
+    
+    if (isMissingRef) {
+        std::cout<<name<<" is set to missing in reference FDB but is not missing in test FDB"<<std::endl;
+        return {false,dataSectionMatch};
+    }
+
+    if (isMissingTest) {
+        std::cout<<name<<" is set to missing in test FDB but is not missing in reference FDB"<<std::endl;
+        return {false,dataSectionMatch};
+    }
+
+    uvalRef = (unsigned char*)malloc(length);
+    uvalTest = (unsigned char*)malloc(length);
+
+    if ((err = grib_get_bytes(hRef, name, uvalRef, &length)) != GRIB_SUCCESS) {
+        free(uvalRef);
+        free(uvalTest);
+        throw Abort("Error Cannot get bytes value of "+std::string(name)+" in reference FDB");
+    }
+
+    if ((err = grib_get_bytes(hTest, name, uvalTest, &length)) != GRIB_SUCCESS) {
+        free(uvalRef);
+        free(uvalTest);
+        throw Abort("Error Cannot get bytes value of "+std::string(name)+" in test FDB");
+    }
+    bool match = true;
+    if (memcmp(uvalRef, uvalTest, length) != 0) {
+        if(!((std::string(name)=="values")||(std::string(name)=="packedValues")||(std::string(name)=="codedValues")))
+        {    
+            std::cout<< std::string(name)<<" Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
+            dataSectionMatch=false;
+            match=false;
+            
+        }
+        else{
+            dataSectionMatch = true;
+            match=true; //set to true so that the Data Values can be checked numerically
+        }
+    }
+    free(uvalRef);
+    free(uvalTest);
+    return {match,dataSectionMatch};
+
+}
+template<typename T>
+std::tuple<bool,bool> compare_eccodes(codes_handle* hRef, codes_handle* hTest,T& ignore_list,T& match_list){
+    
+    bool matchreturn = true;
+    bool dataSectionreturn = true;
+    if(match_list.size() != 0){
+        for(auto key: match_list){
+            auto [match, dataValuesMatch]  = compare_values(hRef,hTest,key.c_str());
+            if(!match) matchreturn = match;
+
+            if(!dataValuesMatch) dataSectionreturn=dataValuesMatch;
+        }
+
+    }
+    else{
+        const char * name;
+        bool dataValuesMismatch=false;
+        codes_keys_iterator* key_iter = codes_keys_iterator_new(hRef,CODES_KEYS_ITERATOR_SKIP_COMPUTED,NULL);
+        if(!key_iter){
+            throw Abort("Error: Eccodes Could not create Iterator",Here());
+        }
+
+        while(codes_keys_iterator_next(key_iter)){
+            name = codes_keys_iterator_get_name(key_iter);
+            if(!name){
+                throw Abort("Error: Eccodes could not retrieve name from Key iterator",Here());
+            }
+            if(ignore_list.find(std::string(name))!=ignore_list.end()) continue;
+            auto [match, dataValuesMatch]  = compare_values(hRef,hTest,name);
+            if(!match) matchreturn = match;
+
+            if(!dataValuesMatch) dataSectionreturn=dataValuesMatch;
+        }
+
+    }
+    return {matchreturn,dataSectionreturn};
+    
+    
+
+}
 
 
 bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& gribLocTest, double relativeError, double absoluteError)
@@ -664,13 +916,16 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             //std::cout<<"eccodes comparison"<<std::endl;
             auto match = compare_header(hRef,hTest);
             if(!match){
+                //just called to give a more specific output if the comparison failed
+                compare_eccodes(hRef,hTest,eccodes_keys_ignore_,eccodes_keys_select_);
                 free(bufferRef);
                 free(bufferTest);
             
                 codes_handle_delete(hRef);
                 codes_handle_delete(hTest);
-                std::string msg = "Headers don't match Location 1 = " + std::get<0>(gribLocRef) + " offset 1 = " + std::to_string(std::get<1>(gribLocRef)) + " length 1 = " +std::to_string(std::get<2>(gribLocRef))+" Location 2 = " + std::get<0>(gribLocTest) + " offset 2 = " + std::to_string(std::get<1>(gribLocTest)) + " length 2 = " +std::to_string(std::get<2>(gribLocTest));
+                std::string msg = "Headers don't match Location reference = " + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
                 std::cout<<msg<<std::endl;
+                
                 return false;
             }
         
@@ -700,6 +955,13 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
                 return false;
             }
             ASSERT(match_md5sums == 2);
+        }
+        if(gribcomparison_ == "eccodes_detail"){
+            auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,eccodes_keys_ignore_,eccodes_keys_select_);
+            if(!match) return false;
+            else if(datasectionMatch && match) return true;
+            ASSERT((datasectionMatch==false) && (match==true));
+            //else continue as we have a Mismatch in the data section but all other sections had a match compare the data section numerically 
         }
 
    
