@@ -148,11 +148,11 @@ class FDBCompare : public FDBVisitTool {
         options_.push_back(new SimpleOption<std::string>("testConfig", "Path to a FDB config"));
         options_.push_back(new SimpleOption<std::string>("referenceConfig", "Path to a second FDB config"));
         options_.push_back(new SimpleOption<std::size_t>("level", "The difference can be evaluated at different levels, 1) Mars Metadata , 2) Mars and Grib Metadata and data up to a defined tolerance (default) "));
-        options_.push_back(new SimpleOption<std::string>("gribcomparison", "Comparing two Grib messages can be done via eccode (gribcomparison=eccodes (default)) or directly by directly by comparing for bitexact memory (gribcomparison=direct)" ));
+        options_.push_back(new SimpleOption<std::string>("gribcomparison", " [eccodes|eccodes_detail|direct] Comparing two Grib messages can be done via eccode (gribcomparison=eccodes (default)) in a bitexact(hashkeys for sections) way, via eccodes keys in the reference FDB (gribcomparison=eccodes_detail)  or directly by directly by comparing for bitexact memory (gribcomparison=direct)" ));
         options_.push_back(new SimpleOption<double>("tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
         options_.push_back(new SimpleOption<std::string>("mars_keys_ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
-        options_.push_back(new SimpleOption<std::string>("eccodes_keys_select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified eccodes/grib keys will be compared" ));
-        options_.push_back(new SimpleOption<std::string>("eccodes_keys_ignore", "Format: \" \" The specified key words will be ignored"));
+        options_.push_back(new SimpleOption<std::string>("eccodes_keys_select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified eccodes/grib keys will be compared (Only effective with gribcompare=eccodes_detail)" ));
+        options_.push_back(new SimpleOption<std::string>("eccodes_keys_ignore", "Format: \" \" The specified key words will be ignored (only effective with gribcomparison=eccodes_detail)"));
     }
 
   private: // methods
@@ -197,7 +197,7 @@ void FDBCompare::init(const CmdArgs& args) {
     }
 
     gribcomparison_ = args.getString("gribcomparison","eccodes");
-    if(gribcomparison_ != "eccodes" && gribcomparison_ != "direct"){
+    if(gribcomparison_ != "eccodes" && gribcomparison_ != "direct" && gribcomparison_ != "eccodes_detail"){
         throw UserError("Unknown Grib comparison method "+gribcomparison_, Here());
     }
 
@@ -211,12 +211,22 @@ void FDBCompare::init(const CmdArgs& args) {
     }
     tmp = args.getString("eccodes_keys_select","");
     if(!tmp.empty()){
-        appendKeys(eccodes_keys_select_,tmp);
-    }
+        if(gribcomparison_ != "eccodes_detail"){
+            std::cout<<"The specified eccode select keys will have no effect because gribcomparison = "<<gribcomparison_<<" and would need to be eccodes_detail"<<std::endl;
+        }
+        else{
+            appendKeys(eccodes_keys_select_,tmp);
+        }    }
     tmp = args.getString("eccodes_keys_ignore","");
     if(!tmp.empty()){
-        appendKeys(eccodes_keys_ignore_,tmp);
+        if(gribcomparison_ != "eccodes_detail"){
+            std::cout<<"The specified eccode ignore keys will have no effect because gribcomparison = "<<gribcomparison_<<" and would need to be eccodes_detail"<<std::endl;
+        }
+        else{
+            appendKeys(eccodes_keys_ignore_,tmp);
+        }
     }
+    
 }
 // only compare the key of each map. the tupel is expected to diverge.
 template <typename Map>
