@@ -723,7 +723,7 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
     // codes_get_size(hRef,"codedValues",&lengthT);
     // std::cout<<"codedValues: "<<typeT<<" "<<lengthT<<std::endl;
 
-    std::cout<<name<<std::endl;
+    //std::cout<<name<<std::endl;
     CODES_CHECK(codes_get_native_type(hRef,name,&typeRef),CODES_SUCCESS);
     CODES_CHECK(codes_get_native_type(hTest,name,&typeTest),CODES_SUCCESS);
     if(typeRef != typeTest) {
