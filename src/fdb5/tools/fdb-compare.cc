@@ -723,7 +723,6 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
     // codes_get_size(hRef,"codedValues",&lengthT);
     // std::cout<<"codedValues: "<<typeT<<" "<<lengthT<<std::endl;
 
-    //std::cout<<name<<std::endl;
     CODES_CHECK(codes_get_native_type(hRef,name,&typeRef),CODES_SUCCESS);
     CODES_CHECK(codes_get_native_type(hTest,name,&typeTest),CODES_SUCCESS);
     if(typeRef != typeTest) {
@@ -744,7 +743,7 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
         std::cout<< std::string(name)<<" Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
         return {false,dataSectionMatch};
     }
-
+    //Only using lenRef and typeRef from here on because they are the same
     switch(typeRef){
         case CODES_TYPE_STRING:
             CODES_CHECK(codes_get_length(hRef,name,&lenRef),CODES_SUCCESS);
@@ -759,13 +758,17 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
             length = lenRef*sizeof(double);
             break;
         case CODES_TYPE_BYTES:
+            if(lenRef == 1){
+                lenRef = 512;
+            } //HACK USED IN ECCODES GRIB_COMPARE. For some messages it seems to be necessary.
             length = lenRef*sizeof(unsigned char);
             break;
         default:
             length = 0;
             throw Abort("ECCODES unsupported type "+typeRef);
     }
-        
+    //std::cout<<"name = "<<name<<" lenRef "<<lenRef<<" type "<<typeRef<<" lenghth "<<length<<std::endl;
+
     isMissingRef = ((codes_is_missing(hRef, name, &err) == 1) && (err == 0)) ? true : false;
     isMissingTest = ((codes_is_missing(hTest, name, &err) == 1) && (err == 0)) ? true : false;
 
@@ -787,9 +790,18 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
     if ((err = grib_get_bytes(hRef, name, uvalRef, &length)) != GRIB_SUCCESS) {
         free(uvalRef);
         free(uvalTest);
+        // std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+        // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+        // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+        // std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+        // dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+        // codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+        // std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+   
+        // std::cout<<"Name "<<name<<" type "<< typeRef<<" lenRef "<<lenRef<<" length "<<length<<std::endl;
         throw Abort("Error Cannot get bytes value of "+std::string(name)+" in reference FDB");
     }
-
+    //std::cout<<"ireturn length = "<<length<<std::endl;
     if ((err = grib_get_bytes(hTest, name, uvalTest, &length)) != GRIB_SUCCESS) {
         free(uvalRef);
         free(uvalTest);
@@ -968,7 +980,12 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         }
         if(gribcomparison_ == "eccodes_detail"){
             auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,eccodes_keys_ignore_,eccodes_keys_select_);
-            if(!match) return false;
+            if(!match){
+                std::cout<<"Grib Message REF at {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<std::endl;
+
+                std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
+                return false;
+            }
             else if(datasectionMatch && match) return true;
             ASSERT((datasectionMatch==false) && (match==true));
             //else continue as we have a Mismatch in the data section but all other sections had a match compare the data section numerically 
