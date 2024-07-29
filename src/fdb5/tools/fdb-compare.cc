@@ -726,7 +726,7 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
     CODES_CHECK(codes_get_native_type(hRef,name,&typeRef),CODES_SUCCESS);
     CODES_CHECK(codes_get_native_type(hTest,name,&typeTest),CODES_SUCCESS);
     if(typeRef != typeTest) {
-        std::cout<< std::string(name)<<"Type mismatch: Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" CODES_TYPE " << typeRef<<"\nTest value: "<<value_to_string(hTest,name, typeTest,lenTest)<<" CODES_TYPE " << typeTest<<std::endl;
+        std::cout<< std::string(name)<<"Type mismatch: Reference Value "<<value_to_string(hRef,name, typeRef,lenRef)<<" CODES_TYPE " << typeRef<<"\nTest value: "<<value_to_string(hTest,name, typeTest,lenTest)<<" CODES_TYPE " << typeTest<<std::endl;
         return {false,dataSectionMatch}; //DataSectionMismatch is always false unless the difference is cause by the actual values
     }
     if((err=codes_get_size(hRef,name,&lenRef))!=CODES_SUCCESS){
@@ -740,7 +740,7 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
         throw Abort("Error: Cannot get size of "+std::string(name)+"Error message "+std::string(codes_get_error_message(err)));
     }
     if(lenRef != lenTest) {
-        std::cout<< std::string(name)<<" Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
+        std::cout<< std::string(name)<<" Reference Value "<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
         return {false,dataSectionMatch};
     }
     //Only using lenRef and typeRef from here on because they are the same
@@ -758,9 +758,12 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
             length = lenRef*sizeof(double);
             break;
         case CODES_TYPE_BYTES:
-            if(lenRef == 1){
-                lenRef = 512;
-            } //HACK USED IN ECCODES GRIB_COMPARE. For some messages it seems to be necessary.
+            CODES_CHECK(codes_get_length(hRef,name,&lenRef),CODES_SUCCESS);
+            CODES_CHECK(codes_get_length(hTest,name,&lenTest),CODES_SUCCESS);
+            ASSERT(lenRef==lenTest);
+            // if(lenRef == 1){
+            //     lenRef = 512;
+            // } //HACK USED IN ECCODES GRIB_COMPARE. For some messages it seems to be necessary.
             length = lenRef*sizeof(unsigned char);
             break;
         default:
@@ -811,7 +814,7 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
     if (memcmp(uvalRef, uvalTest, length) != 0) {
         if(!((std::string(name)=="values")||(std::string(name)=="packedValues")||(std::string(name)=="codedValues")))
         {    
-            std::cout<< std::string(name)<<" Reference Value"<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value: "<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
+            std::cout<<"MISMATCH: Key="<<std::string(name)<<" Reference Value="<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value:=ß"<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
             dataSectionMatch=false;
             match=false;
             
