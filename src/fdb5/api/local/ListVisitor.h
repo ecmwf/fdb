@@ -23,6 +23,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "eckit/os/BackTrace.h"
 
 namespace fdb5 {
 namespace api {
@@ -35,7 +36,8 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    using QueryVisitor<ListElement>::QueryVisitor;
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
+        QueryVisitor<ListElement>(queue, request), level_(level) { }
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
@@ -53,6 +55,12 @@ public:
         indexRequest_ = request_;
         for (const auto& kv : catalogue.key()) {
             indexRequest_.unsetValues(kv.first);
+        }
+
+        if (level_ == 1) {
+            eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
+            queue_.emplace(ListElement({currentCatalogue_->key(), Key(), Key()}, FieldLocation::nullLocation(), 0));
+            ret = false;
         }
 
         return ret;
@@ -73,9 +81,15 @@ public:
         }
 
         if (index.partialMatch(request_)) {
-            return true; // Explore contained entries
+            if (level_ == 2) {
+                const auto keyParts = std::vector<Key> {currentCatalogue_->key(), currentIndex_->key(), Key()};
+                queue_.emplace(ListElement(keyParts, FieldLocation::nullLocation(), 0));
+                return false;
+            }
+            return true;  // Explore contained entries
         }
-        return false; // Skip contained entries
+
+        return false;  // Skip contained entries
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
@@ -96,6 +110,7 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
+    const int level_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -37,6 +37,8 @@ namespace fdb5 {
 class FieldLocationVisitor;
 
 class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
+public:  // factory
+    static std::shared_ptr<FieldLocation> nullLocation();
 
 public: // methods
 
