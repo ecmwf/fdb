@@ -298,7 +298,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
 
     std::set<std::string> engines = Manager::engines(rq, all);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << " -> " << engines << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << (all ? " ALL" : "") << " -> " << engines << std::endl;
 
     std::vector<URI> r; // union of all locations
 

@@ -62,7 +62,7 @@ public:
     ConnectionError(const int);
     ConnectionError(const int, const eckit::net::Endpoint&);
 
-    bool retryOnClient() const override { return true; } 
+    bool retryOnClient() const override { return true; }
 };
 
 ConnectionError::ConnectionError(const int retries) {
@@ -549,7 +549,14 @@ struct BaseAPIHelper {
     static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
 };
 
-using ListHelper = BaseAPIHelper<ListElement, fdb5::remote::Message::List>;
+struct ListHelper : public BaseAPIHelper<ListElement, fdb5::remote::Message::List> {
+
+    ListHelper(int level) : level_(level) {}
+    void encodeExtra(eckit::Stream& s) const { s << level_; }
+
+private:
+    int level_;
+};
 
 struct InspectHelper : BaseAPIHelper<ListElement, fdb5::remote::Message::Inspect> {
 
@@ -625,7 +632,7 @@ private:
 
 struct MoveHelper : BaseAPIHelper<MoveElement, fdb5::remote::Message::Move> {
 
-    
+
     MoveHelper(const eckit::URI& dest) :
         dest_(dest) {}
 
@@ -715,8 +722,8 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
            );
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
-    return forwardApiCall(ListHelper(), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const int level) {
+    return forwardApiCall(ListHelper(level), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
