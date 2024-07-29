@@ -54,6 +54,7 @@ class FDBList : public FDBVisitTool {
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
+        options_.push_back(new SimpleOption<long>("max-level", "Maximum (key) level to be searched"));
     }
 
   private: // methods
@@ -68,8 +69,10 @@ class FDBList : public FDBVisitTool {
     bool porcelain_;
     bool json_;
     bool compact_;
+    int  level_ {3};
 };
 
+//----------------------------------------------------------------------------------------------------------------------
 
 std::string keySignature(const fdb5::Key& key) {
     std::string signature;
@@ -93,6 +96,7 @@ void FDBList::init(const CmdArgs& args) {
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
     compact_ = args.getBool("compact", false);
+    level_ = args.getInt("level", 3);
 
     if (json_) {
         porcelain_ = true;
@@ -104,13 +108,13 @@ void FDBList::init(const CmdArgs& args) {
     if (compact_) {
         if (location_) {
             throw UserError("--compact and --location are not compatible", Here());
-        } 
+        }
         if (full_) {
             throw UserError("--compact and --full are not compatible", Here());
-        } 
+        }
         if (porcelain_) {
             throw UserError("--compact and --porcelain are not compatible", Here());
-        } 
+        }
     }
 
     /// @todo option ignore-errors
@@ -135,7 +139,7 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_ && !compact_);
+        auto listObject = fdb.list(request, !full_ && !compact_, level_);
         std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
 
         ListElement elem;
@@ -216,4 +220,3 @@ int main(int argc, char **argv) {
     fdb5::tools::FDBList app(argc, argv);
     return app.start();
 }
-

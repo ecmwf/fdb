@@ -107,6 +107,32 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+struct NullFieldLocation: public FieldLocation {
+    eckit::DataHandle* dataHandle() const override { NOTIMP; }
+
+    std::shared_ptr<FieldLocation> make_shared() const override;
+
+    void visit(FieldLocationVisitor&) const override { NOTIMP; }
+
+    void print(std::ostream& out) const override { out << "NullFieldLocation"; }
+};
+
+static auto emptyLocation = std::make_shared<NullFieldLocation>();
+
+std::shared_ptr<FieldLocation> NullFieldLocation::make_shared() const {
+    return emptyLocation;
+}
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+std::shared_ptr<FieldLocation> FieldLocation::nullLocation() {
+    return emptyLocation;
+}
+
 FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
     try {
         offset_ = eckit::Offset(std::stoll(uri.fragment()));

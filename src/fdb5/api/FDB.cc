@@ -168,7 +168,7 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     }
     return result.dataHandle();
 }
-    
+
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
@@ -230,8 +230,8 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
-ListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
-    return ListIterator(internal_->list(request), deduplicate);
+ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
+    return {internal_->list(request, level), deduplicate};
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
