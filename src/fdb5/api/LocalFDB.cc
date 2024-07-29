@@ -83,9 +83,9 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     return QueryIterator(new AsyncIterator(async_worker));
 }
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request);
+    return queryInternal<ListVisitor>(request, level);
 }
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
