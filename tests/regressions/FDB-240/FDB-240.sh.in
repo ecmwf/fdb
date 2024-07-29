@@ -1,459 +1,243 @@
 #!/usr/bin/env bash
 
-set -eux
+set -eu
+
+yell() { echo "$(basename "$0"): $*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "error here => '$*'"; }
+
+function request() {
+  echo "RETRIEVE,CLASS=OD,TYPE=CF,STREAM=ENFO,EXPVER=0001,LEVTYPE=PL,DATE=20201106,TIME=1200,STEP=00,DOMAIN=G,$1" > req;
+}
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
-fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
-
-function post_process {
-  num=0
-  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
-}
-
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
+export FDB5_CONFIG_FILE=local.yaml
+
+########################################################################################################################
 ### cleanup and prepare test
 
-cd $bindir
+try cd $bindir
 
 rm -rf root
-mkdir  root
+mkdir root
 
-for f in local.yaml schema 
-do
-    cp $srcdir/$f $bindir
+for f in local.yaml schema; do
+  try cp $srcdir/$f $bindir
 done
 
 ### populate fdb with t/vo/d/z
 
-export FDB5_CONFIG_FILE=local.yaml
-
 $gribset -s level=400 sh.300.grib sh.400.grib
 $gribset -s level=500 sh.300.grib sh.500.grib
 
-cat sh.300.grib sh.400.grib sh.500.grib > all.grib
+try cat sh.300.grib sh.400.grib sh.500.grib > all.grib
 
 $fdbwrite all.grib
 
 ########################################################################################################################
-echo "retrieve t/vo/d/z (param=130/138/155/129)"
-
-cat > req <<EOF
-RETRIEVE,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 300/400/500,
- PARAM = 130/138/155/129,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
-
-$fdbread req out.grib
-
-cat > listall <<EOF
-{ "messages" : [
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  }
-]}
-EOF
-
-
-cat > listallUV <<EOF
-{ "messages" : [
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 500,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 400,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 130.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 129.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 138.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  },
-  {
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": 300,
-    "date": 20201106,
-    "time": 1200,
-    "step": 0,
-    "param": 155.128,
-    "class": "od",
-    "type": "cf",
-    "stream": "enfo",
-    "expver": "0001",
-    "_leg_number": 1
-  }
-]}
-EOF
-
-$gribls -jm out.grib           | post_process | tee out
-cat listall                    | post_process | tee list
-diff out list
+# PARAMETER TABLE
+# 129: z
+# 130: t
+# 131: u
+# 132: v
+# 138: vo
+# 155: d
 
 ########################################################################################################################
-echo "retrieve t/u/v/z (param=130/131/132/129)"
+echo "retrieve t/vo/d/z (param=130/138/155/129)"
 
-cat > req <<EOF
-RETRIEVE,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 500/400/300,
- PARAM = 130/131/132/129,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=300/400/500,PARAM=130/138/155/129"
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat listallUV                  | post_process | tee list2
-diff out list2
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}' > listall
+
+try diff listall out
 
 ########################################################################################################################
 echo "retrieve u (param=131) should return 138/155 (vo/d)"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 400,
- PARAM = 131,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=400,PARAM=131"
 
-cat > list400 <<EOF
-{ "messages" : [
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
   {
     "domain": "g",
     "levtype": "pl",
@@ -482,59 +266,29 @@ cat > list400 <<EOF
     "expver": "0001",
     "_leg_number": 1
   }
-]}
-EOF
+]}' > list400vod
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list400                    | post_process | tee list
-diff out list
-
+try diff list400vod out
 
 ########################################################################################################################
 echo "retrieve v (param=132) should return 138/155 (vo/d)"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 400,
- PARAM = 132,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=400,PARAM=132"
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-diff out list
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+try diff list400vod out
 
 ########################################################################################################################
 echo "retrieve vo (param=138) should return 138 (vo)"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 400,
- PARAM = 138,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=400,PARAM=138"
 
-cat > list400vo <<EOF
-{ "messages" : [
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
   {
     "domain": "g",
     "levtype": "pl",
@@ -549,36 +303,19 @@ cat > list400vo <<EOF
     "expver": "0001",
     "_leg_number": 1
   }
-]}
-EOF
+]}' > list400vo
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list400vo                  | post_process | tee list
-diff out list
-
+try diff list400vo out
 
 ########################################################################################################################
 echo "retrieve d (param=155) should return 155 (d)"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 400,
- PARAM = 155,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=400,PARAM=155"
 
-cat > list400d <<EOF
-{ "messages" : [
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
   {
     "domain": "g",
     "levtype": "pl",
@@ -593,60 +330,208 @@ cat > list400d <<EOF
     "expver": "0001",
     "_leg_number": 1
   }
-]}
-EOF
+]}' > list400d
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list400d                   | post_process | tee list
-diff out list
+try diff list400d out
 
+########################################################################################################################
+echo "retrieve t/u/v/z (param=130/131/132/129)"
+
+request "LEVELIST=500/400/300,PARAM=130/131/132/129"
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}' > list300400500zdvo
+
+try diff out list300400500zdvo
 
 ########################################################################################################################
 echo "retrieve vo/u/d should return (vo/d)"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 400,
- PARAM = 138/131/155,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=400,PARAM=138/131/155"
 
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list400                    | post_process | tee list
-diff out list
+$fdbread req out.grib && $gribls -jm out.grib > out
 
+try diff out list400vod
 
 ########################################################################################################################
 echo "retrieve t/u/v/d should return t/d/vo"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 300/400,
- PARAM = 130/131/132/155,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=300/400,PARAM=130/131/132/155"
 
-cat > list300400 <<EOF
-{ "messages" : [
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
   {
     "domain": "g",
     "levtype": "pl",
@@ -731,34 +616,18 @@ cat > list300400 <<EOF
     "expver": "0001",
     "_leg_number": 1
   }
-]}
-EOF
+]}' > list300400tdvo
 
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list300400                 | post_process | tee list
-diff out list
+try diff out list300400tdvo
 
 ########################################################################################################################
 echo "retrieve t/u/z/d (130/131/129/155) should return t/z/d/vo"
 
-cat > req <<EOF
-retrieve,
- CLASS = OD,
- TYPE = CF,
- STREAM = ENFO,
- EXPVER = 0001,
- LEVTYPE = PL,
- LEVELIST = 300/400,
- PARAM = 130/131/129/155,
- DATE = 20201106,
- TIME = 1200,
- STEP = 00,
- DOMAIN = G
-EOF
+request "LEVELIST=300/400,PARAM=130/131/129/155"
 
-cat > list300400z <<EOF
-{ "messages" : [
+$fdbread req out.grib && $gribls -jm out.grib > out
+
+echo '{ "messages" : [ ''
   {
     "domain": "g",
     "levtype": "pl",
@@ -871,10 +740,6 @@ cat > list300400z <<EOF
     "expver": "0001",
     "_leg_number": 1
   }
-]}
-EOF
+]}' > list300400tzvod
 
-$fdbread req out.grib
-$gribls -jm out.grib           | post_process | tee out
-cat list300400z                | post_process | tee list
-diff out list
+try diff out list300400tzvod
