@@ -29,47 +29,37 @@
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList : public FDBVisitTool {
-
-  public: // methods
-
-    FDBList(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver"),
-        location_(false),
-        timestamp_(false),
-        length_(false),
-        full_(false),
-        porcelain_(false),
-        json_(false) {
-
+class FDBList: public FDBVisitTool {
+public:  // methods
+    FDBList(int argc, char** argv): FDBVisitTool(argc, argv, "class,expver") {
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
-        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
+        options_.push_back(new SimpleOption<bool>("porcelain",
+                                                  "Streamlined and stable output. "
+                                                  "Useful as input for other tools or scripts"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
-        options_.push_back(new SimpleOption<long>("max-level", "Maximum (key) level to be searched"));
+        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep"));
     }
 
-  private: // methods
-
-
-    bool location_;
-    bool timestamp_;
-    bool length_;
-    bool full_;
-    bool porcelain_;
-    bool json_;
-    int  level_ {3};
-      bool compact_ {false};
+private:  // methods
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
+
+    bool location_ {false};
+    bool timestamp_ {false};
+    bool length_ {false};
+    bool full_ {false};
+    bool porcelain_ {false};
+    bool json_ {false};
+    bool compact_ {false};
+    int  depth_ {3};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -96,7 +86,7 @@ void FDBList::init(const CmdArgs& args) {
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
     compact_ = args.getBool("compact", false);
-    level_ = args.getInt("level", 3);
+    depth_     = args.getInt("depth", 3);
 
     if (json_) {
         porcelain_ = true;
@@ -139,7 +129,7 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_ && !compact_, level_);
+        auto listObject = fdb.list(request, !full_ && !compact_, depth_);
         std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
 
         ListElement elem;
@@ -213,8 +203,7 @@ void FDBList::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace fdb5::tools
 
 int main(int argc, char **argv) {
     fdb5::tools::FDBList app(argc, argv);
