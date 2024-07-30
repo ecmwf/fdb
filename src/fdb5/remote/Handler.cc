@@ -88,7 +88,10 @@ struct BaseHelper {
 };
 
 struct ListHelper : public BaseHelper<ListElement> {
+    // void extraDecode(eckit::Stream& s) { s >> level_; }
+
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        /// @todo return fdb.list(request, level_);
         return fdb.list(request);
     }
 };
