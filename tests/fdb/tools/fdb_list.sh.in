@@ -28,7 +28,7 @@ mkdir -p $tname/localroot
 try cd $tname
 
 for f in local.yaml x.grib; do
-  cp $srcdir/$f ./
+  cp "$srcdir/$f" ./
 done
 
 ########################################################################################################################
@@ -37,6 +37,13 @@ done
 try grib_set -s step=0 x.grib 0.grib
 try grib_set -s step=6 x.grib 6.grib
 try grib_set -s step=9 x.grib 9.grib
-try cat 0.grib 6.grib 9.grib x.grib > "$tname.grib"
+
+for f in *.grib; do
+  try grib_set -s type=cf "$f" "cf.$f"
+done
+
+for f in *.grib; do
+  try cat "$f" >> "$tname.grib"
+done
 
 try fdb-write "$tname.grib"
