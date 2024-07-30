@@ -59,8 +59,6 @@ class FDBList : public FDBVisitTool {
 
   private: // methods
 
-    virtual void execute(const CmdArgs& args);
-    virtual void init(const CmdArgs &args);
 
     bool location_;
     bool timestamp_;
@@ -70,6 +68,8 @@ class FDBList : public FDBVisitTool {
     bool json_;
     int  level_ {3};
       bool compact_ {false};
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs& args) override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
