@@ -14,7 +14,6 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/AuxRegistry.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocWipeVisitor.h"
@@ -186,12 +185,10 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 }
 
 std::vector<eckit::PathName> TocWipeVisitor::getAuxiliaryPaths(const eckit::URI& dataURI) {
+    // todo: in future, we should be using URIs, not paths.
     std::vector<eckit::PathName> paths;
-    for (const auto& ext : AuxRegistry::instance().list()) {
-        eckit::URI auxURI = store_.getAuxiliaryURI(dataURI, ext);
-        // todo: in future, we should be using URIs, not paths.
-        eckit::PathName path(auxURI.path());
-        if (path.exists()) paths.push_back(path);
+    for (const auto& auxURI : store_.getAuxiliaryURIs(eckit::URI(store_.type(), dataURI))) {
+        if (store_.auxiliaryURIExists(auxURI)) paths.push_back(auxURI.path());
     }
     return paths;
 }

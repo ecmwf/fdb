@@ -7,7 +7,7 @@ namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::vector<std::string> extensions = {"foo", "bar"};
+std::set<std::string> extensions = {"foo", "bar"};
 
 eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::string ext) {
     eckit::PathName auxpath(datapath + "." + ext);
@@ -21,12 +21,13 @@ eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::st
     return auxpath;
 }
 
-void setup(FDB& fdb) {
+std::set<eckit::PathName> setup(FDB& fdb) {
     // Setup: Write data, generating auxiliary files using the archive callback
-    fdb.registerArchiveCallback([] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>> future) {
+    std::set<eckit::PathName> auxPaths;
+    fdb.registerArchiveCallback([&auxPaths] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>> future) {
         std::shared_ptr<FieldLocation> location = future.get();
         for (const auto& ext : extensions) {
-            writeAuxiliaryData(location->uri().path(), ext);
+            auxPaths.insert(writeAuxiliaryData(location->uri().path(), ext));
         }
     });
 
@@ -56,6 +57,7 @@ void setup(FDB& fdb) {
  
     fdb.flush();
 
+    return auxPaths;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -65,7 +67,8 @@ CASE("Wipe with extensions") {
     ::setenv("FDB_AUX_EXTENSIONS", "foo,bar", 1);
 
     FDB fdb;
-    setup(fdb);
+    std::set<eckit::PathName> auxPaths = setup(fdb);
+    EXPECT(auxPaths.size() == 6);
     
     // call wipe
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
@@ -75,6 +78,50 @@ CASE("Wipe with extensions") {
     WipeElement elem;
     while (listObject.next(elem)) {
         eckit::Log::info() << elem << std::endl;
+    }
+
+    // Check that the auxiliary files have been removed
+    for (const auto& auxPath : auxPaths) {
+        EXPECT(!auxPath.exists());
+    }
+}
+
+CASE("Purge with extensions") {
+
+    ::setenv("FDB_AUX_EXTENSIONS", "foo,bar", 1);
+
+    std::set<eckit::PathName> auxPathsDelete;
+
+    // Archive the same data three times
+    for (int i = 0; i < 2; i++) {
+        FDB fdb;
+        auto aux = setup(fdb);
+        auxPathsDelete.insert(aux.begin(), aux.end());
+    }
+    FDB fdb;
+    auto auxPathsKeep = setup(fdb);
+
+    EXPECT(auxPathsDelete.size() == 12);
+    EXPECT(auxPathsKeep.size() == 6);
+    
+    // call purge
+    FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
+    bool doit = true;
+    auto listObject = fdb.purge(request, doit, false);
+
+    PurgeElement elem;
+    while (listObject.next(elem)) {
+        eckit::Log::info () << elem << std::endl;
+    }
+
+    // Check that the masked auxiliary files have been removed
+    for (const auto& auxPath : auxPathsDelete) {
+        EXPECT(!auxPath.exists());
+    }
+
+    // Check that the unmasked auxiliary files have not been removed
+    for (const auto& auxPath : auxPathsKeep) {
+        EXPECT(auxPath.exists());
     }
 }
 

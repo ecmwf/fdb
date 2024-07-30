@@ -299,6 +299,15 @@ eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& e
     return eckit::URI(type(), path);
 }
 
+std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const {
+    ASSERT(uri.scheme() == type());
+    std::vector<eckit::URI> uris;
+    for (const auto& e : AuxRegistry::instance().list()) {
+        uris.push_back(getAuxiliaryURI(uri, e));
+    }
+    return uris;
+}
+
 std::set<std::string> TocStore::auxFileExtensions() const {
     std::set<std::string> extensions;
     for (const auto& e : AuxRegistry::instance().list()) {

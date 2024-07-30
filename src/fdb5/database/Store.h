@@ -63,6 +63,7 @@ public:
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
     virtual eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const { NOTIMP; }
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
     virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
 
 protected: // members

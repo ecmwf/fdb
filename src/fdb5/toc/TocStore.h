@@ -54,6 +54,7 @@ public: // methods
     void remove(const Key& key) const override;
 
     eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const override;
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override;
     bool auxiliaryURIExists(const eckit::URI&) const override;
     std::set<std::string> auxFileExtensions() const;
 

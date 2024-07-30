@@ -36,9 +36,13 @@ public:
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool porcelain, bool doit) const override;
 
+    void gatherAuxiliary() override;
+
 private: // members
 
     const Store& store_;
+    std::set<eckit::PathName> deleteAuxFiles_;
+    std::set<eckit::PathName> keepAuxFiles_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

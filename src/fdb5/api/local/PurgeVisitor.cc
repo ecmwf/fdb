@@ -87,6 +87,8 @@ void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);
 
+    internalVisitor_->gatherAuxiliary();
+
     if (!porcelain_) {
         internalVisitor_->report(out_);
     }
