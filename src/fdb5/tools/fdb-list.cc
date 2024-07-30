@@ -126,7 +126,7 @@ void FDBList::execute(const CmdArgs& args) {
 
     std::unique_ptr<JSON> json;
     if (json_) {
-        json.reset(new JSON(Log::info()));
+        json = std::make_unique<JSON>(Log::info());
         json->startList();
     }
 
