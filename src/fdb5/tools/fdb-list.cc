@@ -159,19 +159,20 @@ void FDBList::execute(const CmdArgs& args) {
                         it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     }
                 }
-            } else {
-                if (json_) {
-                    (*json) << elem;
-                } else {
-                    if (porcelain_) {
-                        elem.print(Log::info(), location_, false, false);
-                    } else {
-                        elem.print(Log::info(), location_, length_, timestamp_, ", ");
-                    }
-                    Log::info() << std::endl;
-                }
+                continue;
             }
-        }
+
+            // JSON output
+            if (json) {
+                *json << elem;
+                continue;
+            }
+
+            elem.print(Log::info(), location_, length_, timestamp_, ", ");
+            Log::info() << std::endl;
+
+        }  // while
+
         if (compact_) {
             for (const auto& tree: requests) {
                 for (const auto& leaf: tree.second) {
@@ -194,11 +195,10 @@ void FDBList::execute(const CmdArgs& args) {
             }
         }
         // n.b. finding no data is not an error for fdb-list
-    }
 
-    if (json_) {
-        json->endList();
-    }
+    }  // requests
+
+    if (json) { json->endList(); }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
