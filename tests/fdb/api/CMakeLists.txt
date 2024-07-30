@@ -28,7 +28,7 @@ list( APPEND api_tests
     dist
     fdb_c
     callback
-    extensions
+    auxiliary
 )
 
 foreach( _test ${api_tests} )

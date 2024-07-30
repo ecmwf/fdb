@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbmove="$<TARGET_FILE:fdb-move>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB5_HOME=$bindir
+export FDB5_CONFIG_FILE=${bindir}/aux_config.yaml
+export FDB_AUX_EXTENSIONS="foo,bar"
+
+cd $bindir
+
+### cleanup and prepare test
+root1=${bindir}/aux_root1
+root2=${bindir}/aux_root2
+rm -rf ${root1} ${root2}
+mkdir -p ${root1} ${root2}
+
+cp ${srcdir}/schema $bindir
+
+cat <<EOF > ${bindir}/aux_config.yaml
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+- handler: Default
+  roots:
+  - path: ${root1}
+  - path: ${root2}
+EOF
+
+# Write some test data
+$fdbwrite ${srcdir}/x.grib
+
+# Write aux data manually
+dbname="mc:0001:oper:20211015:0000:g"
+for f in $(find ${root1}/${dbname} -name "*.data"); do
+    echo "aux data" > ${f}.foo
+    echo "aux data" > ${f}.bar
+
+done
+
+# Call fdb move
+req="class=mc,expver=0001,stream=oper,date=20211015,time=0000,domain=g"
+$fdbmove --dest=${bindir}/aux_root2 --keep=1 $req
+
+# Check that the aux files have been moved
+for f in $(find ${root2}/${dbname} -name "*.data"); do
+    [ -f ${f}.foo ]
+    [ -f ${f}.bar ]
+done
+
+echo "Passed"
