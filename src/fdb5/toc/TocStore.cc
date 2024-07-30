@@ -19,6 +19,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/database/AuxRegistry.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/RootManager.h"
@@ -62,6 +63,13 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
 
     return p.exists();
 
+}
+
+bool TocStore::auxiliaryURIExists(const eckit::URI& uri) const  {
+    ASSERT(uri.scheme() == type());
+    eckit::PathName p(uri.path());
+    ASSERT(p.dirName().sameAs(directory_));
+    return p.exists();
 }
 
 std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
@@ -284,8 +292,25 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
 //     src.copyTo(dest);
 // }
 
+eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const {
+    // Filebackend: ext is a suffix to append to the file name
+    ASSERT(uri.scheme() == type());
+    eckit::PathName path = uri.path() + "." + ext;
+    return eckit::URI(type(), path);
+}
+
+std::set<std::string> TocStore::auxFileExtensions() const {
+    std::set<std::string> extensions;
+    for (const auto& e : AuxRegistry::instance().list()) {
+        extensions.insert("." + e);
+    }
+    return extensions;
+}
+
 void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
+    std::set<std::string> auxExtensions = auxFileExtensions();
+
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
             eckit::PathName src_db = directory_;
@@ -298,9 +323,11 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".data")) {
                     eckit::PathName file(src_db / dp->d_name);
-                    struct stat fileStat;
-                    ::stat(file.asString().c_str(), &fileStat);
-                    files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    if ((file.extension() == ".data") || auxExtensions.find(file.extension()) != auxExtensions.end()) {
+                        struct stat fileStat;
+                        ::stat(file.asString().c_str(), &fileStat);
+                        files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    }
                 }
             }
             closedir(dirp);

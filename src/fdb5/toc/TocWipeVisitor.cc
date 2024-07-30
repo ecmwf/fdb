@@ -14,6 +14,7 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/AuxRegistry.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocWipeVisitor.h"
@@ -115,6 +116,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
     ASSERT(lockfilePaths_.empty());
     ASSERT(indexPaths_.empty());
     ASSERT(dataPaths_.empty());
+    ASSERT(auxiliaryDataPaths_.empty());
     ASSERT(safePaths_.empty());
     ASSERT(indexesToMask_.empty());
 
@@ -163,6 +165,7 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     std::vector<eckit::URI> indexDataPaths(index.dataURIs());
     for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataPaths)) {
+        auto auxPaths = getAuxiliaryPaths(uri);
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
@@ -172,12 +175,25 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
                 NOTIMP;
             }
             dataPaths_.insert(eckit::PathName(uri.path()));
+            auxiliaryDataPaths_.insert(auxPaths.begin(), auxPaths.end());
         } else {
             safePaths_.insert(eckit::PathName(uri.path()));
+            safePaths_.insert(auxPaths.begin(), auxPaths.end());
         }
     }
 
     return true; // Explore contained entries
+}
+
+std::vector<eckit::PathName> TocWipeVisitor::getAuxiliaryPaths(const eckit::URI& dataURI) {
+    std::vector<eckit::PathName> paths;
+    for (const auto& ext : AuxRegistry::instance().list()) {
+        eckit::URI auxURI = store_.getAuxiliaryURI(dataURI, ext);
+        // todo: in future, we should be using URIs, not paths.
+        eckit::PathName path(auxURI.path());
+        if (path.exists()) paths.push_back(path);
+    }
+    return paths;
 }
 
 void TocWipeVisitor::addMaskedPaths() {
@@ -198,7 +214,11 @@ void TocWipeVisitor::addMaskedPaths() {
         }
     }
     for (const auto& uri : data) {
-        if (store_.uriBelongs(uri)) dataPaths_.insert(eckit::PathName(uri.path()));
+        if (store_.uriBelongs(uri)) {
+            dataPaths_.insert(uri.path());
+            auto auxPaths = getAuxiliaryPaths(uri);
+            auxiliaryDataPaths_.insert(auxPaths.begin(), auxPaths.end());
+        }
     }
 }
 
@@ -228,7 +248,7 @@ void TocWipeVisitor::ensureSafePaths() {
     if (safePaths_.find(schemaPath_) != safePaths_.end()) schemaPath_ = "";
 
     for (const auto& p : safePaths_) {
-        for (std::set<PathName>* s : {&subtocPaths_, &lockfilePaths_, &indexPaths_, &dataPaths_}) {
+        for (std::set<PathName>* s : {&subtocPaths_, &lockfilePaths_, &indexPaths_, &dataPaths_, &auxiliaryDataPaths_}) {
             s->erase(p);
         }
     }
@@ -237,6 +257,7 @@ void TocWipeVisitor::calculateResidualPaths() {
 
     // Remove paths to non-existant files. This is reasonable as we may be recovering from a
     // previous failed, partial wipe. As such, referenced files may not exist any more.
+    // NB: Not needed for auxiliaryDataPaths_ as their existence is checked in getAuxiliaryPaths()
 
     for (std::set<PathName>* fileset : {&subtocPaths_, &lockfilePaths_, &indexPaths_}) {
         for (std::set<PathName>::iterator it = fileset->begin(); it != fileset->end(); ) {
@@ -279,6 +300,7 @@ void TocWipeVisitor::calculateResidualPaths() {
     if (schemaPath_.asString().size())
         deletePaths.insert(schemaPath_);
 
+    deletePaths.insert(auxiliaryDataPaths_.begin(), auxiliaryDataPaths_.end());
     std::vector<eckit::PathName> allPathsVector;
     StdDir(catalogue_.basePath()).children(allPathsVector);
     std::set<eckit::PathName> allPaths(allPathsVector.begin(), allPathsVector.end());
@@ -389,6 +411,13 @@ void TocWipeVisitor::report(bool wipeAll) {
     }
     out_ << std::endl;
 
+    out_ << "Auxiliary files to delete: " << std::endl;
+    if (auxiliaryDataPaths_.empty()) out_ << " - NONE -" << std::endl;
+    for (const auto& f : auxiliaryDataPaths_) {
+        out_ << "    " << f << std::endl;
+    }
+    out_ << std::endl;
+
     if (store_.type() != "file") {
         out_ << "Store URI to delete:" << std::endl;
         if (wipeAll) {
@@ -475,6 +504,13 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     for (const PathName& path : dataPaths_) {
         eckit::URI uri(store_.type(), path);
         if (store_.uriExists(uri)) {
+            store_.remove(uri, logAlways, logVerbose, doit_);
+        }
+    }
+
+    for (const PathName& path : auxiliaryDataPaths_) {
+        eckit::URI uri(store_.type(), path);
+        if (store_.auxiliaryURIExists(uri)) {
             store_.remove(uri, logAlways, logVerbose, doit_);
         }
     }
