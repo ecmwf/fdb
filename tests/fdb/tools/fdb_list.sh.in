@@ -47,3 +47,45 @@ for f in *.grib; do
 done
 
 try fdb-write "$tname.grib"
+
+########################################################################################################################
+# test all
+out=$(fdb-list --all --minimum-keys="" --porcelain)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=9,param=166}"
+try test "$exp" = "$out"
+
+# test date depth=1
+out=$(fdb-list date=20201102 --minimum-keys="" --porcelain --depth=1)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{}{}"
+try test "$exp" = "$out"
+
+# test date depth=2
+out=$(fdb-list date=20201102 --minimum-keys="" --porcelain --depth=2)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{}"
+try test "$exp" = "$out"
+
+# test cf depth=1
+out=$(fdb-list type=cf --minimum-keys="" --porcelain --depth=1)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{}{}"
+try test "$exp" = "$out"
+
+# test cf depth=2
+out=$(fdb-list type=cf --minimum-keys="" --porcelain --depth=2)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{}"
+try test "$exp" = "$out"
+
+# test cf depth=3
+out=$(fdb-list type=cf --minimum-keys="" --porcelain --depth=3)
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=cf,levtype=sfc}{step=9,param=166}"
+try test "$exp" = "$out"
