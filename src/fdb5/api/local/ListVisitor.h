@@ -25,9 +25,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "eckit/os/BackTrace.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -58,8 +56,9 @@ public:
         }
 
         if (level_ == 1) {
-            eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
-            queue_.emplace(ListElement({currentCatalogue_->key(), Key(), Key()}, FieldLocation::nullLocation(), 0));
+            /// @todo fix this so that we don't need to create an empty key
+            const auto emptyKey = Key {currentCatalogue_->schema().registry()};
+            queue_.emplace(ListElement({currentCatalogue_->key(), emptyKey, emptyKey}, FieldLocation::nullLocation(), 0));
             ret = false;
         }
 
@@ -82,7 +81,9 @@ public:
 
         if (index.partialMatch(request_)) {
             if (level_ == 2) {
-                const auto keyParts = std::vector<Key> {currentCatalogue_->key(), currentIndex_->key(), Key()};
+                /// @todo fix this so that we don't need to create an empty key
+                const auto emptyKey = Key {currentCatalogue_->schema().registry()};
+                const auto keyParts = std::vector<Key> {currentCatalogue_->key(), currentIndex_->key(), emptyKey};
                 queue_.emplace(ListElement(keyParts, FieldLocation::nullLocation(), 0));
                 return false;
             }
@@ -115,8 +116,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace fdb5::api::local
 
 #endif
