@@ -77,9 +77,9 @@ class FDBList : public FDBVisitTool {
 std::string keySignature(const fdb5::Key& key) {
     std::string signature;
     std::string separator;
-    for (auto k : key.keys()) {
-        signature += separator+k;
-        separator=":";
+    for (auto&& k : key.keys()) {
+        signature += separator + k;
+        separator  = ":";
     }
     return signature;
 }
