@@ -68,8 +68,8 @@ class FDBList : public FDBVisitTool {
     bool full_;
     bool porcelain_;
     bool json_;
-    bool compact_;
     int  level_ {3};
+      bool compact_ {false};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
