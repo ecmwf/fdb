@@ -88,23 +88,18 @@ void FDBList::init(const CmdArgs& args) {
     compact_ = args.getBool("compact", false);
     depth_     = args.getInt("depth", 3);
 
-    if (json_) {
-        porcelain_ = true;
-        if (location_ || timestamp_ || length_) {
-            throw UserError("--json and --location/--timestamp/--length not compatible", Here());
-        }
+    if (json_) { porcelain_ = true; }
+
+    if (porcelain_) {
+        location_  = false;
+        timestamp_ = false;
+        length_    = false;
+        compact_   = false;
     }
 
     if (compact_) {
-        if (location_) {
-            throw UserError("--compact and --location are not compatible", Here());
-        }
-        if (full_) {
-            throw UserError("--compact and --full are not compatible", Here());
-        }
-        if (porcelain_) {
-            throw UserError("--compact and --porcelain are not compatible", Here());
-        }
+        if (location_) { throw UserError("--compact and --location are not compatible", Here()); }
+        if (full_) { throw UserError("--compact and --full are not compatible", Here()); }
     }
 
     /// @todo option ignore-errors
