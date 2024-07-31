@@ -19,7 +19,6 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/database/AuxRegistry.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/RootManager.h"
@@ -302,7 +301,7 @@ eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& e
 std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const {
     ASSERT(uri.scheme() == type());
     std::vector<eckit::URI> uris;
-    for (const auto& e : AuxRegistry::instance().list()) {
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
         uris.push_back(getAuxiliaryURI(uri, e));
     }
     return uris;
@@ -310,7 +309,7 @@ std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const 
 
 std::set<std::string> TocStore::auxFileExtensions() const {
     std::set<std::string> extensions;
-    for (const auto& e : AuxRegistry::instance().list()) {
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
         extensions.insert("." + e);
     }
     return extensions;

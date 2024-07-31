@@ -187,7 +187,7 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 std::vector<eckit::PathName> TocWipeVisitor::getAuxiliaryPaths(const eckit::URI& dataURI) {
     // todo: in future, we should be using URIs, not paths.
     std::vector<eckit::PathName> paths;
-    for (const auto& auxURI : store_.getAuxiliaryURIs(eckit::URI(store_.type(), dataURI))) {
+    for (const auto& auxURI : store_.getAuxiliaryURIs(dataURI)) {
         if (store_.auxiliaryURIExists(auxURI)) paths.push_back(auxURI.path());
     }
     return paths;

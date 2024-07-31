@@ -68,7 +68,11 @@ void TocPurgeVisitor::gatherAuxiliary() {
             if (!store_.auxiliaryURIExists(auxURI)) continue;
             // Todo: in future can we just use URIs, not paths?
             eckit::PathName auxPath = auxURI.path();
-            (deletable) ? deleteAuxFiles_.insert(auxPath) : keepAuxFiles_.insert(auxPath);
+            if (deletable) {
+                deleteAuxFiles_.insert(auxPath);
+            } else {
+                keepAuxFiles_.insert(auxPath);
+            }
         }
     }
 }
