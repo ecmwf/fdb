@@ -42,6 +42,10 @@ public: // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    // DAOS store does not support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
+    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+
 protected: // methods
 
     std::string type() const override { return "daos"; }
