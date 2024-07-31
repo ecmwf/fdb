@@ -244,7 +244,7 @@ constexpr bool compare_keys(Map const &ref, Map const &test){
             std::cout<<"TEST FDB message key not found in ref map: " <<pair.first<<std::endl;
         }
     }
-    if(count==0 && (test.size()==ref.size()))
+    if(count==0 && (test.size()==ref.size()))//remove second comp size--size
     {   
         std::cout<<"Mars Keys match"<<std::endl;
         return true; //works because it is assumed that both 
@@ -705,7 +705,8 @@ std::string value_to_string(codes_handle* h, const char* name, int codes_data_ty
 std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, const char* name){
     size_t lenRef;
     size_t lenTest;
-    size_t length=0;
+    size_t lengthT=0; //number of bytes (lenRef *sizeof(Datatype))
+    size_t lengthR=0; //number of bytes (lenRef * sizeof(Datatype))
     int err;
     std::string ref = "Reference FDB";
     std::string test=  "Test FDBf";
@@ -748,29 +749,30 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
         case CODES_TYPE_STRING:
             CODES_CHECK(codes_get_length(hRef,name,&lenRef),CODES_SUCCESS);
             CODES_CHECK(codes_get_length(hTest,name,&lenTest),CODES_SUCCESS);
-            ASSERT(lenRef==lenTest);
-            length = lenRef*sizeof(char);
+            lengthR = lenRef*sizeof(char);
+            lengthT = lenTest*sizeof(char);
             break;
         case CODES_TYPE_LONG:
-            length = lenRef*sizeof(long);
+            lengthR = lenRef*sizeof(long);
+            lengthT = lenTest*sizeof(long);
             break;
         case CODES_TYPE_DOUBLE:
-            length = lenRef*sizeof(double);
+            lengthR = lenRef*sizeof(double);
+            lengthT = lenTest*sizeof(double);
             break;
         case CODES_TYPE_BYTES:
             CODES_CHECK(codes_get_length(hRef,name,&lenRef),CODES_SUCCESS);
             CODES_CHECK(codes_get_length(hTest,name,&lenTest),CODES_SUCCESS);
-            ASSERT(lenRef==lenTest);
             // if(lenRef == 1){
             //     lenRef = 512;
             // } //HACK USED IN ECCODES GRIB_COMPARE. For some messages it seems to be necessary.
-            length = lenRef*sizeof(unsigned char);
+            lengthR = lenRef*sizeof(unsigned char);
+            lengthT = lenTest*sizeof(unsigned char);
             break;
         default:
-            length = 0;
             throw Abort("ECCODES unsupported type "+typeRef);
     }
-    //std::cout<<"name = "<<name<<" lenRef "<<lenRef<<" type "<<typeRef<<" lenghth "<<length<<std::endl;
+   // std::cout<<"name = "<<name<<" lenRef "<<lenRef<<" type "<<typeRef<<" lenTest "<<lenTest<<" typeTest " << typeTest<<" lenghth "<<length<<std::endl;
 
     isMissingRef = ((codes_is_missing(hRef, name, &err) == 1) && (err == 0)) ? true : false;
     isMissingTest = ((codes_is_missing(hTest, name, &err) == 1) && (err == 0)) ? true : false;
@@ -787,10 +789,10 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
         return {false,dataSectionMatch};
     }
 
-    uvalRef = (unsigned char*)malloc(length);
-    uvalTest = (unsigned char*)malloc(length);
+    uvalRef = (unsigned char*)malloc(lengthR);
+    uvalTest = (unsigned char*)malloc(lengthT);
 
-    if ((err = grib_get_bytes(hRef, name, uvalRef, &length)) != GRIB_SUCCESS) {
+    if ((err = grib_get_bytes(hRef, name, uvalRef, &lengthR)) != GRIB_SUCCESS) {
         free(uvalRef);
         free(uvalTest);
         // std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
@@ -805,16 +807,22 @@ std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, co
         throw Abort("Error Cannot get bytes value of "+std::string(name)+" in reference FDB");
     }
     //std::cout<<"ireturn length = "<<length<<std::endl;
-    if ((err = grib_get_bytes(hTest, name, uvalTest, &length)) != GRIB_SUCCESS) {
+    if ((err = grib_get_bytes(hTest, name, uvalTest, &lengthT)) != GRIB_SUCCESS) {
         free(uvalRef);
         free(uvalTest);
         throw Abort("Error Cannot get bytes value of "+std::string(name)+" in test FDB");
     }
+
+    if(lengthT != lengthR){
+        std::cout<<"Key" << std::string(name)<<"can't compare retrieved data bitexact because of a bytelength mismatch "<<" lengthR= "<<lengthR<<"lengthT= "<<lengthT<<std::endl;
+        std::cout<<"this could be because of encoding " <<std::endl;
+        return {false,false};
+    }
     bool match = true;
-    if (memcmp(uvalRef, uvalTest, length) != 0) {
+    if (memcmp(uvalRef, uvalTest, lengthR) != 0) {
         if(!((std::string(name)=="values")||(std::string(name)=="packedValues")||(std::string(name)=="codedValues")))
         {    
-            std::cout<<"MISMATCH: Key="<<std::string(name)<<" Reference Value="<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value:=ß"<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
+            std::cout<<"MISMATCH: Key="<<std::string(name)<<" Reference Value="<<value_to_string(hRef,name, typeRef,lenRef)<<" Test value:="<<value_to_string(hTest,name, typeTest,lenTest)<<std::endl;
             dataSectionMatch=false;
             match=false;
             
@@ -987,13 +995,30 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
                 std::cout<<"Grib Message REF at {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<std::endl;
 
                 std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
+                free(bufferRef);
+                free(bufferTest);
+            
+                codes_handle_delete(hRef);
+                codes_handle_delete(hTest);
+
+                absoluteError = 0.0;
+                relativeError = 0.0;
                 return false;
             }
-            else if(datasectionMatch && match) return true;
+            else if(datasectionMatch && match){
+                free(bufferRef);
+                free(bufferTest);
+            
+                codes_handle_delete(hRef);
+                codes_handle_delete(hTest);
+
+                absoluteError = 0.0;
+                relativeError = 0.0;
+                return true;
+            };
             ASSERT((datasectionMatch==false) && (match==true));
             //else continue as we have a Mismatch in the data section but all other sections had a match compare the data section numerically 
         }
-
    
         compare_DataSection(hRef,hTest,relativeError,absoluteError,tolerance_);
 
@@ -1169,8 +1194,8 @@ void FDBCompare::execute(const CmdArgs& args) {
                 throw;
             }
             if(!datamatch){
-                std::cout<<"Grib Comaprison failed! Mars Key"<<key<<std::endl;
-                return;
+                std::cout<<"Grib Comaprison failed! Mars Key\n"<<key<<std::endl;
+                // return;
             } 
             //std::cout<<"Numerical differences in the data values of Grib message: "<<key<<std::endl;
            
