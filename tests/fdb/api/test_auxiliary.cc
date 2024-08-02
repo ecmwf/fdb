@@ -69,6 +69,9 @@ CASE("Wipe with extensions") {
     FDB fdb;
     std::set<eckit::PathName> auxPaths = setup(fdb);
     EXPECT(auxPaths.size() == 6);
+    for (const auto& auxPath : auxPaths) {
+        EXPECT(auxPath.exists());
+    }
     
     // call wipe
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
@@ -103,7 +106,14 @@ CASE("Purge with extensions") {
 
     EXPECT(auxPathsDelete.size() == 12);
     EXPECT(auxPathsKeep.size() == 6);
-    
+
+    for (const auto& auxPath : auxPathsDelete) {
+        EXPECT(auxPath.exists());
+    }
+    for (const auto& auxPath : auxPathsKeep) {
+        EXPECT(auxPath.exists());
+    }
+
     // call purge
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
     bool doit = true;

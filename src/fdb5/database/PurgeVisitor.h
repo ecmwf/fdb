@@ -30,7 +30,7 @@ public: // methods
 
     virtual void purge(std::ostream& out, bool porcelain, bool doit) const = 0;
 
-    virtual void gatherAuxiliary() {} // NOOP by default
+    virtual void gatherAuxiliaryURIs() {} // NOOP by default
 };
 
 //----------------------------------------------------------------------------------------------------------------------

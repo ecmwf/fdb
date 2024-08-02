@@ -94,6 +94,8 @@ private: // members
 
     mutable PathStore   dataPaths_;
 
+    std::set<std::string> auxFileExtensions_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

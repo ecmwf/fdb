@@ -35,7 +35,9 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
+    Store(schema),
+    TocCommon(StoreRootManager(config).directory(key).directory_),
+    auxFileExtensions_{auxFileExtensions()} {}
 
 eckit::URI TocStore::uri() const {
 
@@ -317,7 +319,6 @@ std::set<std::string> TocStore::auxFileExtensions() const {
 
 void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
-    std::set<std::string> auxExtensions = auxFileExtensions();
 
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
@@ -331,9 +332,9 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".data")) {
                     eckit::PathName file(src_db / dp->d_name);
-                    if ((file.extension() == ".data") || auxExtensions.find(file.extension()) != auxExtensions.end()) {
+                    if ((file.extension() == ".data") || auxFileExtensions_.find(file.extension()) != auxFileExtensions_.end()) {
                         struct stat fileStat;
-                        ::stat(file.asString().c_str(), &fileStat);
+                        SYSCALL(::stat(file.asString().c_str(), &fileStat));
                         files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
                     }
                 }

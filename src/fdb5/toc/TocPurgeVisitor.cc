@@ -51,7 +51,7 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
     return true;
 }
 
-void TocPurgeVisitor::gatherAuxiliary() {
+void TocPurgeVisitor::gatherAuxiliaryURIs() {
     for (const auto& it : dataUsage_) { // <std::string, size_t>
 
         // Check if .data file is deletable
@@ -208,7 +208,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
     }
 
     for (const auto& path : deleteAuxFiles_) {
-        if (doit && path.dirName().sameAs(directory)) {
+        if (path.dirName().sameAs(directory) && keepAuxFiles_.find(path) == keepAuxFiles_.end()) {
             store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit);
         }
     }
