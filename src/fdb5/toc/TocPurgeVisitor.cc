@@ -64,7 +64,8 @@ void TocPurgeVisitor::gatherAuxiliaryURIs() {
         }
         
         // Add auxiliary files to the corresponding set
-        for (const auto& auxURI : store_.getAuxiliaryURIs(eckit::URI(store_.type(), it.first))) {
+        eckit::URI uri(store_.type(), eckit::PathName(it.first));
+        for (const auto& auxURI : store_.getAuxiliaryURIs(uri)) {
             if (!store_.auxiliaryURIExists(auxURI)) continue;
             // Todo: in future can we just use URIs, not paths?
             eckit::PathName auxPath = auxURI.path();
