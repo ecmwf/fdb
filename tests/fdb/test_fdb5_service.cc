@@ -134,7 +134,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "60");
+		EXPECT(el.key().get("step") == "60");
 		EXPECT(!iter.next(el));
 	}
 
@@ -149,7 +149,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(el.key().get("step") == "2");
 		EXPECT(!iter.next(el));
 	}
 
@@ -159,9 +159,9 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(el.key().get("step") == "2");
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "60");
+		EXPECT(el.key().get("step") == "60");
 		EXPECT(!iter.next(el));
 	}
 
@@ -177,7 +177,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "30m");
+		EXPECT(el.key().get("step") == "30m");
 		EXPECT(!iter.next(el));
 	}
 
@@ -189,9 +189,9 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "30m");
+		EXPECT(el.key().get("step") == "30m");
 		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(el.key().get("step") == "2");
 		EXPECT(!iter.next(el));
 	}*/
 }
@@ -306,7 +306,7 @@ CASE ( "test_fdb_service" ) {
 				fdb5::ListElement el;
 				EXPECT(iter.next(el));
 
-				eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.attributes().uri.path().dirName();
 
 				DIR* dirp = ::opendir(path.asString().c_str());
             	struct dirent* dp;
@@ -489,7 +489,7 @@ CASE ( "test_fdb_service_subtoc" ) {
 				fdb5::ListElement el;
 				EXPECT(iter.next(el));
 
-				eckit::PathName path = el.location().uri().path().dirName();
+				eckit::PathName path = el.attributes().uri.path().dirName();
 
 				DIR* dirp = ::opendir(path.asString().c_str());
             	struct dirent* dp;
