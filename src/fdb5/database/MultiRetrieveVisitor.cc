@@ -11,17 +11,18 @@
 #include "fdb5/database/MultiRetrieveVisitor.h"
 
 #include <memory>
+#include <ostream>
+#include <sstream>
+#include <string>
 
-#include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
-
-
 
 namespace fdb5 {
 
@@ -108,7 +109,7 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
                 simplifiedKey.set(k->first, k->second);
         }
 
-        iterator_.emplace(ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
+        iterator_.emplace({KeyChain<3> {db_->key(), db_->indexKey(), simplifiedKey}, field.location(), field.timestamp()});
         return true;
     }
 
