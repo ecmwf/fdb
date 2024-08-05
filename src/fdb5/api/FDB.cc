@@ -13,22 +13,30 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include <cstddef>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "eckit/system/Plugin.h"
 #include "eckit/system/LibraryManager.h"
 
+#include "metkit/hypercube/HyperCube.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
