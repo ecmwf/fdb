@@ -19,11 +19,19 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ListIterator.h"
-#include "eckit/os/BackTrace.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "metkit/mars/MarsRequest.h"
+
+#include <string>
 
 namespace fdb5::api::local {
 
@@ -56,9 +64,7 @@ public:
         }
 
         if (level_ == 1) {
-            /// @todo fix this so that we don't need to create an empty key
-            const auto emptyKey = Key {currentCatalogue_->schema().registry()};
-            queue_.emplace(ListElement({currentCatalogue_->key(), emptyKey, emptyKey}, FieldLocation::nullLocation(), 0));
+            queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
             ret = false;
         }
 
@@ -81,10 +87,7 @@ public:
 
         if (index.partialMatch(request_)) {
             if (level_ == 2) {
-                /// @todo fix this so that we don't need to create an empty key
-                const auto emptyKey = Key {currentCatalogue_->schema().registry()};
-                const auto keyParts = std::vector<Key> {currentCatalogue_->key(), currentIndex_->key(), emptyKey};
-                queue_.emplace(ListElement(keyParts, FieldLocation::nullLocation(), 0));
+                queue_.emplace(KeyChain<2> {currentCatalogue_->key(), currentIndex_->key()}, eckit::URI {}, 0);
                 return false;
             }
             return true;  // Explore contained entries
@@ -99,7 +102,9 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
+            queue_.emplace(KeyChain<3> {currentCatalogue_->key(), currentIndex_->key(), key},
+                           field.location(),
+                           field.timestamp());
         }
     }
 
