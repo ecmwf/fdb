@@ -15,7 +15,6 @@
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -34,7 +33,6 @@
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
