@@ -50,7 +50,7 @@ int fdb_version(const char** version);
  * \param version Return variable for version control checksum. Returned pointer valid throughout program lifetime.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_vcs_version(const char** version);
+int fdb_vcs_version(const char** sha1);
 
 ///@}
 
