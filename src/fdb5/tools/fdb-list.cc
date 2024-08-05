@@ -50,7 +50,7 @@ public:  // methods
                                                   "Useful as input for other tools or scripts"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
-        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep"));
+        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-3]"));
     }
 
 private:  // methods
@@ -92,6 +92,8 @@ void FDBList::init(const CmdArgs& args) {
     json_ = args.getBool("json", false);
     compact_ = args.getBool("compact", false);
     depth_     = args.getInt("depth", 3);
+
+    ASSERT(depth_ > 0 && depth_ <= 3);
 
     if (json_) { porcelain_ = true; }
 
