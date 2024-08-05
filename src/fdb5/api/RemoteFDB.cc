@@ -567,7 +567,7 @@ struct InspectHelper : BaseAPIHelper<ListElement, fdb5::remote::Message::Inspect
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
-        return ListElement(elem.key(), RemoteFieldLocation(fdb, elem.location()).make_shared(), elem.timestamp());
+        return {elem.keys(), RemoteFieldLocation(fdb, elem.location()), elem.attributes().timestamp};
     }
 };
 
