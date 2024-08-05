@@ -192,7 +192,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
             // checking all retrieved fields against the hypercube, to remove duplicates
             ListElementDeduplicator deduplicator;
             metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, deduplicator);
-            for(auto elem: elements) {
+            for(const auto& elem: elements) {
                 cube.add(elem.combinedKey().request(), el);
             }
 
