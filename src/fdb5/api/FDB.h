@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <iosfwd>
+#include <string>
 
 #include "eckit/distributed/Transport.h"
 
