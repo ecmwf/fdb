@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 
@@ -20,6 +21,7 @@
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
@@ -88,50 +90,44 @@ private:
 };
 
 struct fdb_split_key_t {
-public:
-    fdb_split_key_t() : key_(nullptr), level_(-1) {}
+    using value_type = typename ListElement::DatumKeys;
 
-    void set(const std::vector<Key>& key) {
-        key_ = &key;
-        level_ = -1;
+    auto operator=(const value_type& keys) -> fdb_split_key_t& {
+        keys_  = &keys;
+        level_ = keys_->begin();
+        curr_  = level_->begin();
+        return *this;
     }
 
-    int next_metadata(const char** k, const char** v, size_t* level) {
-        if (key_ == nullptr) {
-            std::stringstream ss;
-            ss << "fdb_split_key_t not valid. Key not configured";
-            throw eckit::UserError(ss.str(), Here());
+    auto operator++() -> fdb_split_key_t& {
+        if (curr_ != level_->end()) {
+            ++curr_;
+            if (curr_ == level_->end() && level_ != keys_->end() - 1) { curr_ = (++level_)->begin(); }
         }
-        if (level_ == -1) {
-            if (0 < key_->size()) {
-                level_ = 0;
-                it_ = key_->at(0).begin();
-            } else {
-                return FDB_ITERATION_COMPLETE;
-            }
-        } 
-        while (it_ == key_->at(level_).end()) {
-            if (level_<key_->size()-1) {
-                level_++;
-                it_ = key_->at(level_).begin();
-            } else {
-                return FDB_ITERATION_COMPLETE;
-            }
-        }
+        return *this;
+    }
 
-        *k = it_->first.c_str();
-        *v = it_->second.c_str();
-        if (level != nullptr) {
-            *level = level_;
-        }
-        it_++;
+    int metadata(const char** k, const char** v, size_t* level) const {
+        ASSERT_MSG(keys_, "keys are missing!");
+
+        if (curr_ == level_->end()) { return FDB_ITERATION_COMPLETE; }
+
+        const auto& [key, val] = *curr_;
+
+        *k = key.c_str();
+        *v = val.c_str();
+
+        if (level) { *level = std::find(keys_->begin(), keys_->end(), *level_) - keys_->begin(); }
+
         return FDB_SUCCESS;
     }
 
-private:
-    const std::vector<Key>* key_;
-    int level_;
-    Key::const_iterator it_;
+private:  // members
+    const value_type* keys_ {nullptr};
+
+    value_type::const_iterator level_;
+
+    value_type::value_type::const_iterator curr_;
 };
 
 struct fdb_listiterator_t {
@@ -147,17 +143,18 @@ public:
     void attrs(const char** uri, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
-        const FieldLocation& loc = el_.location();
-        *uri = loc.uri().name().c_str();
-        *off = loc.offset();
-        *len = loc.length();
+        const auto& attrs = el_.attributes();
+
+        *uri = attrs.uri.name().c_str();
+        *off = attrs.offset;
+        *len = attrs.length;
     }
 
     void key(fdb_split_key_t* key) {
         ASSERT(validEl_);
         ASSERT(key);
 
-        key->set(el_.key());
+        *key = el_.keys();
     }
 
 private:
@@ -197,7 +194,7 @@ public:
             delete dh_;
         dh_ = dh;
     }
-    
+
 private:
     DataHandle* dh_;
 };
@@ -481,12 +478,19 @@ int fdb_new_splitkey(fdb_split_key_t** key) {
     });
 }
 
-int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
+int fdb_splitkey_next(fdb_split_key_t* it) {
+    return wrapApiFunction([it] {
+        ASSERT(it);
+        ++(*it);
+    });
+}
+
+int fdb_splitkey_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
     return wrapApiFunction(std::function<int()> {[it, key, value, level] {
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->next_metadata(key, value, level);
+        return it->metadata(key, value, level);
     }});
 }
 int fdb_delete_splitkey(fdb_split_key_t* key) {

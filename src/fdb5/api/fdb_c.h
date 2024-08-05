@@ -176,6 +176,13 @@ typedef struct fdb_split_key_t fdb_split_key_t;
  */
 int fdb_new_splitkey(fdb_split_key_t** key);
 
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys
+ * associated with each level of the FDB Key.
+ * \param it SplitKey instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_splitkey_next(fdb_split_key_t* it);
+
 /** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
  * Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
@@ -184,7 +191,7 @@ int fdb_new_splitkey(fdb_split_key_t** key);
  * \param level level in the iondex of the current Key
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
+int fdb_splitkey_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
 
 /** Deallocates SplitKey object and associated resources.
  * \param key SplitKey instance
