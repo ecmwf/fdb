@@ -138,7 +138,7 @@ void FDBList::execute(const CmdArgs& args) {
         while (listObject.next(elem)) {
 
             if (compact_) {
-                std::vector<Key> keys = elem.key();
+                const auto& keys = elem.keys();
                 ASSERT(keys.size() == 3);
 
                 std::string treeAxes = keys[0];
