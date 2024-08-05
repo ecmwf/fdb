@@ -144,7 +144,7 @@ void FDBPatch::execute(const CmdArgs& args) {
             //    (n.b. listed key is broken down as-per the schema)
 
             Key key;
-            for (const Key& k : elem.keyParts_) {
+            for (const Key& k : elem.keys()) {
                 for (const auto& kv : k) {
                     key.set(kv.first, kv.second);
                 }
