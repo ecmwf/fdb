@@ -29,6 +29,8 @@ public: // methods
     virtual void report(std::ostream& out) const = 0;
 
     virtual void purge(std::ostream& out, bool porcelain, bool doit) const = 0;
+
+    virtual void gatherAuxiliaryURIs() {} // NOOP by default
 };
 
 //----------------------------------------------------------------------------------------------------------------------

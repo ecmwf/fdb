@@ -80,6 +80,8 @@ public:
 
     ConstructorCallback constructorCallback();
 
+    static const std::set<std::string>& auxiliaryRegistry();
+
 protected:
     virtual std::string version() const;
 

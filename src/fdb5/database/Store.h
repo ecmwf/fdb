@@ -62,6 +62,9 @@ public:
     virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
+    virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
+
 protected: // members
     const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
 };

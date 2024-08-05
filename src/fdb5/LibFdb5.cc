@@ -82,6 +82,10 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
 }
 
 
+const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
+    static std::set<std::string> auxiliaryRegistry(eckit::Resource<std::set<std::string>>("$FDB_AUX_EXTENSIONS;fdbAuxExtensions", {"gribjump"}));
+    return auxiliaryRegistry;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 static unsigned getUserEnvRemoteProtocol() {
