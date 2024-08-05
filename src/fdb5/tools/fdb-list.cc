@@ -8,21 +8,26 @@
  * does it submit to any jurisdiction.
  */
 
+#include <map>
+#include <memory>
+#include <string>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
-#include "eckit/option/CmdArgs.h"
-#include "eckit/config/Resource.h"
-#include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
-#include "eckit/option/CmdArgs.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/JSON.h"
+#include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "metkit/hypercube/HyperCube.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
