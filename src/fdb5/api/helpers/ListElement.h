@@ -54,8 +54,8 @@ public:  // types
     struct Attributes {
         eckit::URI    uri;
         TimeStamp     timestamp {0};
-        eckit::Offset offset {-1};
-        eckit::Length length {-1};
+        eckit::Offset offset {0};
+        eckit::Length length {0};
 
         friend void operator>>(eckit::Stream& stream, Attributes& attrs);
         friend auto operator<<(eckit::Stream& stream, const Attributes& attrs) -> eckit::Stream&;
