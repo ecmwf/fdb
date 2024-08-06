@@ -62,6 +62,7 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
 }
 
 CASE( "fdb_c - archive & list" ) {
+    const int depth = 3;
     size_t length;
     DataHandle *dh;
 
@@ -109,7 +110,7 @@ CASE( "fdb_c - archive & list" ) {
 
     const char **item= new const char*;
     fdb_listiterator_t* it;
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -134,7 +135,7 @@ CASE( "fdb_c - archive & list" ) {
 
 
     fdb_request_add1(request, "param", "139");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
@@ -153,14 +154,14 @@ CASE( "fdb_c - archive & list" ) {
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
 
     fdb_request_add1(request, "param", "138");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -183,7 +184,7 @@ CASE( "fdb_c - archive & list" ) {
 
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -219,6 +220,7 @@ CASE( "fdb_c - archive & list" ) {
 
 #if fdb5_HAVE_GRIB
 CASE( "fdb_c - multiple archive & list" ) {
+    const int depth = 3;
     size_t length1, length2, length3;
     DataHandle *dh;
 
@@ -319,7 +321,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     const char **item= new const char*;
     bool exist;
     fdb_listiterator_t* it;
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -330,7 +332,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "1");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
@@ -338,7 +340,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add1(request, "step", "0");
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
