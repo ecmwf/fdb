@@ -27,7 +27,7 @@ jobs:
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov_upload: true
+      pyfdb: ecmwf/pyfdb@fix/splitkey-iterator
     secrets: inherit
 
   # Run CI of private downstream packages on self-hosted runners
@@ -46,7 +46,7 @@ jobs:
           owner: ecmwf-actions
           repository: private-downstream-ci
           event_type: downstream-ci
-          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
+          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}", "pyfdb": "ecmwf/pyfdb@fix/splitkey-iterator"}'
 
   # Build downstream packages on HPC
   downstream-ci-hpc:
@@ -55,6 +55,7 @@ jobs:
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
     with:
       fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
+      pyfdb: ecmwf/pyfdb@fix/splitkey-iterator
     secrets: inherit
 
   # Run CI of private downstream packages on HPC
@@ -73,4 +74,4 @@ jobs:
           owner: ecmwf-actions
           repository: private-downstream-ci
           event_type: downstream-ci-hpc
-          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
+          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}", "pyfdb": "ecmwf/pyfdb@fix/splitkey-iterator"}'
