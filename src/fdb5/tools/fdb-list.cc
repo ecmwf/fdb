@@ -46,8 +46,8 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain",
-                                                  "Streamlined and stable output. "
-                                                  "Useful as input for other tools or scripts"));
+                                   "Streamlined and stable output. Useful as input for other tools or scripts."
+                                   "Equivalent to compact=false, location=false, timestamp=false, length=false"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
         options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-3]"));
