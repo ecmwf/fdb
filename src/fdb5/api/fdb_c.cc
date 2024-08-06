@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
@@ -144,6 +145,10 @@ public:
         ASSERT(validEl_);
 
         const auto& attrs = el_.attributes();
+
+        // guard against negative values
+        ASSERT(0 <= attrs.offset);
+        ASSERT(0 <= attrs.length);
 
         *uri = attrs.uri.name().c_str();
         *off = attrs.offset;
