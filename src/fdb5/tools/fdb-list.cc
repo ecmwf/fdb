@@ -50,7 +50,7 @@ public:  // methods
                                    "Equivalent to compact=false, location=false, timestamp=false, length=false"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
-        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-3]"));
+        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-2]"));
     }
 
 private:  // methods
