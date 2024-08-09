@@ -485,6 +485,7 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-info
+    fdb-inspect
     fdb-status
     fdb-lock
     fdb-unlock
