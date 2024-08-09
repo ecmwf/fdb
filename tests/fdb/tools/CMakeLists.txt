@@ -1,6 +1,5 @@
 list( APPEND fdb_tools_tests
     fdb_info
-    fdb_list
     fdb_axes )
 
 foreach( _t ${fdb_tools_tests} )
@@ -15,3 +14,5 @@ foreach( _t ${fdb_tools_tests} )
 endforeach()
 
 add_subdirectory( auxiliary )
+
+add_subdirectory( list )
