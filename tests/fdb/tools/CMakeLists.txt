@@ -16,3 +16,6 @@ endforeach()
 add_subdirectory( auxiliary )
 
 add_subdirectory( list )
+
+add_subdirectory( inspect )
+
