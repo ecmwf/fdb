@@ -36,6 +36,10 @@ EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr
 
 EntryVisitor::~EntryVisitor() {}
 
+bool EntryVisitor::preVisitDatabase(const eckit::URI& uri) {
+    return true;
+}
+
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
     currentStore_ = &store;
@@ -98,8 +102,11 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
         // And do the visitation
 
+        /// @todo uri in for
         for (URI uri : uris) {
-            /// @note: the schema of a URI returned by visitableLocations 
+            if (!visitor.preVisitDatabase(uri)) { continue; }
+
+            /// @note: the schema of a URI returned by visitableLocations
             ///   matches the corresponding Engine type name
             // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 

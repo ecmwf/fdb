@@ -20,6 +20,10 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 
+namespace eckit {
+class URI;
+}
+
 namespace fdb5 {
 
 class Catalogue;
@@ -41,6 +45,7 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
+    virtual bool preVisitDatabase(const eckit::URI& uri);
     virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
