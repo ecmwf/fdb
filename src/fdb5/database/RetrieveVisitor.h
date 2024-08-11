@@ -37,9 +37,7 @@ public: // methods
 
     ~RetrieveVisitor();
 
-
-private:  // methods
-
+protected:  // methods
     // From Visitor
 
     virtual bool selectDatabase(const Key &key, const Key &full) override;
@@ -57,8 +55,7 @@ private:  // methods
 
     virtual const Schema& databaseSchema() const override;
 
-private:
-
+protected:
     const Notifier &wind_;
 
     std::unique_ptr<DB> db_;
