@@ -19,6 +19,7 @@
 #include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
+#include <vector>
 
 using namespace eckit;
 
@@ -105,7 +106,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // And do the visitation
 
         /// @todo uri in for
-        for (URI uri : uris) {
+        for (const URI& uri : uris) {
             if (!visitor.preVisitDatabase(uri, dbConfig_.schema())) { continue; }
 
             /// @note: the schema of a URI returned by visitableLocations
@@ -123,7 +124,6 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
             eckit::AutoCloser<DB> closer(*db);
 
             db->visitEntries(visitor, false);
-
         }
 
     } catch (eckit::UserError&) {
