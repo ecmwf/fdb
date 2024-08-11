@@ -31,7 +31,7 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
             axes_.wipe();
             axes_.insert(dbKey_);
             axes_.sort();
-            queue_.emplace(AxesElement{std::move(dbKey_), std::move(axes_)});
+            queue_.emplace(std::move(dbKey_), std::move(axes_));
         }
         return false;
     }
