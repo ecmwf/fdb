@@ -73,6 +73,7 @@ public: // methods
                 Key &full) const;
 
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
+    bool        tryFill(Key& key, const eckit::StringList& values) const;
     void fill(Key& key, const eckit::StringList& values) const;
 
 
@@ -85,6 +86,9 @@ public: // methods
     const std::shared_ptr<TypesRegistry> registry() const;
 
     void check(const Key& key) const;
+
+    const std::vector<Rule*>&      subRules() const;
+    const std::vector<Predicate*>& predicates() const;
 
 private: // methods
 
@@ -104,8 +108,12 @@ private: // methods
 
     void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
     void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest&        request,
+                          std::vector<Predicate*>::const_iterator cur,
+                          std::vector<Key>&                       results,
+                          Key&                                    working,
+                          bool&                                   found) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results, bool& found) const;
 
     void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
     void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;

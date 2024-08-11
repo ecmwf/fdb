@@ -11,6 +11,7 @@
 #include "fdb5/rules/Rule.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "eckit/config/Resource.h"
 
@@ -39,6 +40,8 @@ Rule::Rule(const Schema &schema,
 }
 
 Rule::~Rule() {
+    //    eckit::Log::info() << " === Deleting rule " << this << std::endl;
+    //    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
     for (std::vector<Predicate *>::iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         delete *i;
     }
@@ -57,9 +60,14 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
 	ASSERT(depth < 3);
 
+    //    eckit::Log::info() << "depth: " << depth << " - predicates: " << predicates_.size() << " cur " << (cur -
+    //    predicates_.begin()) << std::endl;
+
     if (cur == predicates_.end()) {
 
         keys[depth].registry(registry());
+
+        // eckit::Log::info() << "RQ Setting rule, level: " << depth << " : " << this << std::endl;
 
         // TODO: join these 2 methods
         if (rules_.empty()) {
@@ -230,6 +238,7 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
 
     if (cur == predicates_.end()) {
         found = true;
+        result.registry(registry());
         return;
     }
 
@@ -254,10 +263,15 @@ void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
-
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest&        rq,
+                            std::vector<Predicate*>::const_iterator cur,
+                            std::vector<Key>&                       results,
+                            Key&                                    working,
+                            bool&                                   found) const {
     if (cur == predicates_.end()) {
         found = true;
+        working.registry(registry());
+        results.push_back(working);
         return;
     }
 
@@ -271,25 +285,22 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
     // TODO: Consider the broader case.
 
     for (const std::string& value : values) {
+        working.push(keyword, value);
 
-        result.push(keyword, value);
-
-        if ((*cur)->match(result)) {
-            expandFirstLevel(rq, next, result, found);
-        }
+        if ((*cur)->match(working)) { expandFirstLevel(rq, next, results, working, found); }
 
         if (!found) {
-            result.pop(keyword);
+            working.pop(keyword);
         } else {
             return;
         }
     }
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result, bool& done) const {
-    expandFirstLevel(request, predicates_.begin(), result, done);
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results, bool& done) const {
+    Key working;
+    expandFirstLevel(request, predicates_.begin(), results, working, done);
 }
-
 
 void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
@@ -323,6 +334,7 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
 }
 
 void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
+    /// @todo check Key tmp(registry());
     Key tmp;
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
@@ -394,8 +406,7 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
     return 0;
 }
 
-void Rule::fill(Key& key, const eckit::StringList& values) const {
-
+bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     // See FDB-103. This is a hack to work around the indexing abstraction
     // being leaky.
     //
@@ -424,7 +435,7 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
         if (values.size() == (predicates_.size() + 1) && (*it_pred)->keyword() == "quantile") {
             std::string actualQuantile = *it_value;
             ++it_value;
-            ASSERT(it_value != values.end());
+            if (it_value == values.end()) { return false; }
             actualQuantile += std::string(":") + (*it_value);
             (*it_pred)->fill(key, actualQuantile);
         } else {
@@ -433,8 +444,17 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     }
 
     // Check that everything is exactly consumed
-    ASSERT(it_value == values.end());
-    ASSERT(it_pred == predicates_.end());
+    if (it_value != values.end()) { return false; }
+    if (it_pred != predicates_.end()) { return false; }
+    return true;
+}
+
+void Rule::fill(Key& key, const eckit::StringList& values) const {
+    // FDB-103 - see comment in fill re quantile
+
+    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() <= predicates_.size() + 1);
+    ASSERT(tryFill(key, values));
 }
 
 void Rule::dump(std::ostream &s, size_t depth) const {
@@ -508,6 +528,14 @@ void Rule::check(const Key& key) const {
     if (parent_ != nullptr) {
         parent_->check(key);
     }
+}
+
+const std::vector<Predicate*>& Rule::predicates() const {
+    return predicates_;
+}
+
+const std::vector<Rule*>& Rule::subRules() const {
+    return rules_;
 }
 
 std::ostream &operator<<(std::ostream &s, const Rule &x) {
