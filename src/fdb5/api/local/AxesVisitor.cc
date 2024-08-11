@@ -26,11 +26,6 @@ AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue,
         schema_(config.schema()),
         level_(level) {}
 
-#if 0
-
-// TODO: Here we can do nice tricks to make things go muuuuuuuuuuuuuch faster...
-//       See improvements to the EntryVisitMechanism... & the schema
-
 bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
 
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
@@ -47,7 +42,6 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
 
     return true;
 }
-#endif
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     dbKey_ = catalogue.key();
