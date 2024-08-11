@@ -274,7 +274,7 @@ struct LevelVisitor: public RetrieveVisitor {
     void values(const metkit::mars::MarsRequest& request,
                 const std::string&               keyword,
                 const TypesRegistry&             registry,
-                eckit::StringList&               values) {
+                eckit::StringList&               values) override {
         eckit::StringList list;
         registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
 
