@@ -11,6 +11,8 @@
 #include "fdb5/api/local/AxesVisitor.h"
 
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 namespace api {
@@ -18,20 +20,14 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue,
-                         const metkit::mars::MarsRequest& request,
-                         const Config& config,
-                         int level) :
-        QueryVisitor<AxesElement>(queue, request),
-        schema_(config.schema()),
-        level_(level) {}
+AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level):
+    QueryVisitor<AxesElement>(queue, request), level_(level) { }
 
-bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
-
+bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) {
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
     if (level_ == 1 && uri.scheme() == "toc") {
         // TODO: This is hacky, only works with the toc backend...
-        if (schema_.matchFirstLevel(uri.path().baseName(), dbKey_)) {
+        if (schema.matchFirstLevel(uri.path().baseName(), dbKey_)) {
             axes_.wipe();
             axes_.insert(dbKey_);
             axes_.sort();

@@ -45,15 +45,12 @@ public:
     ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
         QueryVisitor<ListElement>(queue, request), level_(level) { }
 
-    bool preVisitDatabase(const eckit::URI& uri) override {
+    bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
             Key dbKey;
-
-            if (currentCatalogue_->schema().matchFirstLevel(uri.path().baseName(), dbKey)) {
-                queue_.emplace(dbKey, eckit::URI {}, 0);
-            }
+            if (schema.matchFirstLevel(uri.path().baseName(), dbKey)) { queue_.emplace(dbKey, eckit::URI {}, 0); }
             return false;
         }
         return true;

@@ -10,8 +10,10 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
 
+#include "eckit/log/Log.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/database/Engine.h"
@@ -36,7 +38,7 @@ EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr
 
 EntryVisitor::~EntryVisitor() {}
 
-bool EntryVisitor::preVisitDatabase(const eckit::URI& uri) {
+bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
     return true;
 }
 
@@ -104,7 +106,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
         /// @todo uri in for
         for (URI uri : uris) {
-            if (!visitor.preVisitDatabase(uri)) { continue; }
+            if (!visitor.preVisitDatabase(uri, dbConfig_.schema())) { continue; }
 
             /// @note: the schema of a URI returned by visitableLocations
             ///   matches the corresponding Engine type name
@@ -113,14 +115,9 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
             std::unique_ptr<DB> db;
 
             try {
-                
                 db = DB::buildReader(uri, dbConfig_);
 
-            } catch (fdb5::DatabaseNotFoundException& e) {
-
-                visitor.onDatabaseNotFound(e);
-
-            }
+            } catch (fdb5::DatabaseNotFoundException& e) { visitor.onDatabaseNotFound(e); }
 
             ASSERT(db->open());
             eckit::AutoCloser<DB> closer(*db);

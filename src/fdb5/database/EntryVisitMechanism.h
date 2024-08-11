@@ -45,7 +45,7 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual bool preVisitDatabase(const eckit::URI& uri);
+    virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
     virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
