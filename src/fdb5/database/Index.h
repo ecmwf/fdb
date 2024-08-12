@@ -60,7 +60,7 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual const std::vector<eckit::URI> dataPaths() const { NOTIMP; }
+    virtual const std::vector<eckit::URI> dataURIs() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
 
@@ -142,7 +142,7 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::URI> dataPaths() const { return content_->dataPaths(); }
+    const std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
 
     bool dirty() const { return content_->dirty(); }
 

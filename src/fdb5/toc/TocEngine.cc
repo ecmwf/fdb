@@ -121,7 +121,7 @@ eckit::URI TocEngine::location(const Key& key, const Config& config) const
     return URI("toc", CatalogueRootManager(config).directory(key).directory_);
 }
 
-bool TocEngine::canHandle(const eckit::URI& uri) const
+bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const
 {
     if (uri.scheme() != "toc")
         return false;
@@ -209,7 +209,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
             TocHandler toc(path, config);
             if (toc.databaseKey().match(key)) {
                 LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;
-                result.push_back(eckit::URI("toc", path));
+                result.push_back(eckit::URI(typeName(), path));
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;

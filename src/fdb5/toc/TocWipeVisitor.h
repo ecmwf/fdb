@@ -45,10 +45,11 @@ private: // methods
     void addMetadataPaths();
     void ensureSafePaths();
     void calculateResidualPaths();
+    std::vector<eckit::PathName> getAuxiliaryPaths(const eckit::URI& uri);
 
     bool anythingToWipe() const;
 
-    void report();
+    void report(bool wipeAll);
     void wipe(bool wipeAll);
 
 private: // members
@@ -68,9 +69,11 @@ private: // members
     std::set<eckit::PathName> lockfilePaths_;
     std::set<eckit::PathName> indexPaths_;
     std::set<eckit::PathName> dataPaths_;
+    std::set<eckit::PathName> auxiliaryDataPaths_;
 
     std::set<eckit::PathName> safePaths_;
     std::set<eckit::PathName> residualPaths_;
+    std::set<eckit::PathName> residualDataPaths_;
 
     std::vector<Index> indexesToMask_;
 };

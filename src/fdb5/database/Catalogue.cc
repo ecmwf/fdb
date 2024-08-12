@@ -25,13 +25,29 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
-    if (buildByKey_)
-        return StoreFactory::instance().build(schema(), key(), config_);
-    else {
-        std::string name = config_.getString("store", "file");
+    return StoreFactory::instance().build(schema(), key(), config_);
+}
 
-        return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config_);
+void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
+
+    std::vector<Index> all = indexes(sorted);
+
+    // Allow the visitor to selectively reject this DB.
+    if (visitor.visitDatabase(*this, store)) {
+        if (visitor.visitIndexes()) {
+            for (const Index& idx : all) {
+                if (visitor.visitEntries()) {
+                    idx.entries(visitor); // contains visitIndex
+                } else {
+                    visitor.visitIndex(idx);
+                }
+            }
+        }
+
     }
+
+    visitor.catalogueComplete(*this);
+
 }
 
 bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {

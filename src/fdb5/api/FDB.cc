@@ -20,6 +20,9 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
+#include "eckit/system/Plugin.h"
+#include "eckit/system/LibraryManager.h"
+
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
@@ -38,7 +41,9 @@ namespace fdb5 {
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
+    reportStats_(config.getBool("statistics", false)) {
+    LibFdb5::instance().constructorCallback()(*this);
+}
 
 
 FDB::~FDB() {
@@ -283,11 +288,11 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
-
         eckit::Timer timer;
         timer.start();
 
         internal_->flush();
+        flushCallback_();
         dirty_ = false;
 
         timer.stop();
@@ -319,6 +324,14 @@ bool FDB::disabled() const {
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
+}
+
+void FDB::registerArchiveCallback(ArchiveCallback callback) { // todo rename
+    internal_->registerArchiveCallback(callback);
+}
+
+void FDB::registerFlushCallback(FlushCallback callback) { // todo rename
+    flushCallback_ = callback;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

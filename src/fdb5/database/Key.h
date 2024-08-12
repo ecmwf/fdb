@@ -46,7 +46,7 @@ class Key {
 
 public: // methods
 
-    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
     explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
     explicit Key(const std::string &keys, const Rule* rule);
     explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);

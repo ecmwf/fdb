@@ -23,6 +23,7 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 class DataHandle;
@@ -56,7 +57,7 @@ public: // methods
     bool axis(const std::string &keyword, eckit::StringSet &s) const;
     bool inspect(const Key& key, Field& field);
     eckit::DataHandle *retrieve(const Key &key);
-    void archive(const Key &key, const void *data, eckit::Length length);
+    void archive(const Key &key, const void *data, eckit::Length length, const Key &field, const ArchiveCallback& callback = CALLBACK_NOOP);
 
     bool open();
     void flush();

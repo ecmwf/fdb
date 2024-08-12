@@ -34,6 +34,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -74,7 +75,9 @@ public: // methods
     void archive(const void* data, size_t length);
     // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
+
     // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
+    // Optional callback function is called upon receiving field location from the store.
     void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
@@ -116,6 +119,9 @@ public: // methods
 
     bool dirty() const;
 
+    void registerArchiveCallback(ArchiveCallback callback);
+    void registerFlushCallback(FlushCallback callback);
+
     // -------------- API management ----------------------------
 
     /// ID used for hashing in the Rendezvous hash. Should be unique.
@@ -149,6 +155,8 @@ private: // members
     bool reportStats_;
 
     FDBStats stats_;
+
+    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

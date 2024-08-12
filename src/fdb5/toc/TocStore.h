@@ -34,11 +34,14 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Schema& schema, const Key& key, const Config& config);
-    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
     eckit::URI uri() const override;
+    bool uriBelongs(const eckit::URI&) const override;
+    bool uriExists(const eckit::URI&) const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;
@@ -49,6 +52,10 @@ public: // methods
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override;
+    bool auxiliaryURIExists(const eckit::URI&) const override;
+    std::set<std::string> auxFileExtensions() const;
 
 protected: // methods
 
@@ -73,6 +80,9 @@ protected: // methods
 
     void print( std::ostream &out ) const override;
 
+private: // methods
+    eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
+
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
@@ -83,6 +93,8 @@ private: // members
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     mutable PathStore   dataPaths_;
+
+    std::set<std::string> auxFileExtensions_;
 
 };
 

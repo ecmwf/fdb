@@ -44,7 +44,7 @@ class Catalogue {
 public:
 
     Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers), buildByKey_(!key.empty()) {}
+        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~Catalogue() {}
 
@@ -60,7 +60,7 @@ public:
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
-    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false) = 0;
+    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false);
 
     virtual void hideContents() { NOTIMP; }
 
@@ -108,10 +108,6 @@ protected: // members
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
-
-private: // members
-
-    bool buildByKey_ = false;
 };
 
 class CatalogueReader {
@@ -125,7 +121,7 @@ public:
 class CatalogueWriter {
 public:
     virtual const Index& currentIndex() = 0;
-    virtual void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
+    virtual void archive(const Key& key, std::shared_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;

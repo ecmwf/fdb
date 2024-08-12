@@ -14,10 +14,9 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Stream.h"
 
+#include "fdb5/fdb5_config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
-
-#include "fdb5/toc/TocFieldLocation.h"
 
 
 namespace fdb5 {
@@ -33,14 +32,11 @@ FieldRefLocation::FieldRefLocation() {
 FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    if(!tocfloc) {
-        throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
-    }
 
-    uriId_ = store.insert(tocfloc->uri());
-    length_ = tocfloc->length();
-    offset_ = tocfloc->offset();
+    uriId_ = store.insert(loc.uri());
+    length_ = loc.length();
+    offset_ = loc.offset();
+
 }
 
 void FieldRefLocation::print(std::ostream &s) const {

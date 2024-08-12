@@ -103,13 +103,22 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length) {
+void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& field, const ArchiveCallback& callback) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
 
     const Index& idx = cat->currentIndex();
-    cat->archive(key, store().archive(idx.key(), data, length));
+
+    std::shared_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
+
+    // In anticipaton of store().archive() working asynchronously in later FDB versions.
+    std::promise<std::shared_ptr<FieldLocation>> promise;
+    promise.set_value(location);
+
+    callback(field, data, length, promise.get_future());
+
+    cat->archive(key, std::move(location));
 }
 
 bool DB::open() {

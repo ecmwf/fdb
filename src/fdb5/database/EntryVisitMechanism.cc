@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 
@@ -90,28 +91,35 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     try {
 
-        std::vector<URI> uris(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
+        fdb5::Manager mg{dbConfig_};
+        std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
 
         for (URI uri : uris) {
+            /// @note: the schema of a URI returned by visitableLocations 
+            ///   matches the corresponding Engine type name
+            // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 
-            PathName path(uri.path());
-            if (path.exists()) {
-                if (!path.isDir())
-                    path = path.dirName();
-                path = path.realName();
+            std::unique_ptr<DB> db;
 
-                LOG_DEBUG_LIB(LibFdb5) << "FDB processing Path " << path << std::endl;
+            try {
+                
+                db = DB::buildReader(uri, dbConfig_);
 
-                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path), dbConfig_);
-                ASSERT(db->open());
-                eckit::AutoCloser<DB> closer(*db);
+            } catch (fdb5::DatabaseNotFoundException& e) {
 
-                db->visitEntries(visitor, false);
+                visitor.onDatabaseNotFound(e);
+
             }
+
+            ASSERT(db->open());
+            eckit::AutoCloser<DB> closer(*db);
+
+            db->visitEntries(visitor, false);
+
         }
 
     } catch (eckit::UserError&) {
@@ -120,10 +128,6 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         Log::warning() << e.what() << std::endl;
         if (fail_) throw;
     }
-
-
-
-
 
 }
 
