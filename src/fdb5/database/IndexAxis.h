@@ -73,6 +73,7 @@ public: // methods
     void dump(std::ostream &out, const char* indent) const;
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
+    bool containsPartial(const Key& key) const;
     bool contains(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to

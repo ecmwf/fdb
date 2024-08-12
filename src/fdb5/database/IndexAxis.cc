@@ -137,7 +137,7 @@ IndexAxisStreamKeys indexAxiskeyId(const std::string& s) {
     if( it != keys.end() ) {
         return it->second;
     }
-    return IndexAxisKeyUnrecognised; 
+    return IndexAxisKeyUnrecognised;
 }
 
 void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
@@ -259,6 +259,18 @@ bool IndexAxis::contains(const Key &key) const {
     return true;
 }
 
+bool IndexAxis::containsPartial(const Key& key) const {
+    for (const auto& kv : key) {
+        auto it = axis_.find(kv.first);
+        if (it == axis_.end()) {
+            return false;
+        } else {
+            if (!it->second->contains(kv.second)) { return false; }
+        }
+    }
+    return true;
+}
+
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
@@ -275,7 +287,7 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
-/// @note: this method inserts key-value pairs into an axis in memory. 
+/// @note: this method inserts key-value pairs into an axis in memory.
 ///   Intended for importing axis information from storage in the DAOS backend.
 ///   Input values are required to be cannoicalised.
 void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
