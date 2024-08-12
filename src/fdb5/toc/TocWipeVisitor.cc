@@ -164,7 +164,6 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     std::vector<eckit::URI> indexDataPaths(index.dataURIs());
     for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataPaths)) {
-        auto auxPaths = getAuxiliaryPaths(uri);
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
@@ -174,10 +173,14 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
                 NOTIMP;
             }
             dataPaths_.insert(eckit::PathName(uri.path()));
+            auto auxPaths = getAuxiliaryPaths(uri);
             auxiliaryDataPaths_.insert(auxPaths.begin(), auxPaths.end());
         } else {
             safePaths_.insert(eckit::PathName(uri.path()));
-            safePaths_.insert(auxPaths.begin(), auxPaths.end());
+            if (store_.uriBelongs(uri)) {
+                auto auxPaths = getAuxiliaryPaths(uri);
+                safePaths_.insert(auxPaths.begin(), auxPaths.end());
+            }
         }
     }
 
