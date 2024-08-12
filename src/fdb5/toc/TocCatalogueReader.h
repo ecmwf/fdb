@@ -16,6 +16,16 @@
 #ifndef fdb5_TocCatalogueReader_H
 #define fdb5_TocCatalogueReader_H
 
+#include <iosfwd>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {

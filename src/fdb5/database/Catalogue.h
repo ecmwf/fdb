@@ -14,10 +14,16 @@
 
 #pragma once
 
+#include <iosfwd>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
-#include "eckit/types/Types.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
