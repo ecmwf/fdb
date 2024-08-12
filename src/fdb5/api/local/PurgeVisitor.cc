@@ -86,6 +86,8 @@ void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
 void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);
 
+    internalVisitor_->gatherAuxiliaryURIs();
+
     if (!porcelain_) {
         internalVisitor_->report(out_);
     }

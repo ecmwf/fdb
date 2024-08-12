@@ -4,7 +4,7 @@
 namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
-CASE("Archive callback") {
+CASE("Archive and flush callback") {
     FDB fdb;
 
     std::string data_str = "Raining cats and dogs";
@@ -22,39 +22,51 @@ CASE("Archive callback") {
     key.set("levtype","sfc");
     key.set("param","130");
 
-    std::set<eckit::URI> uris;
+    std::map<fdb5::Key, eckit::URI> map;
+    std::vector<Key> keys;
+    bool flushCalled = false;
 
-    fdb.registerCallback([&uris] (const void* data, size_t length, const fdb5::FieldLocation& location) {
-        uris.insert(location.fullUri());
+    fdb.registerArchiveCallback([&map] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>> future) {
+        std::shared_ptr<FieldLocation> location = future.get();
+        map[key] = location->fullUri();
+    });
+
+    fdb.registerFlushCallback([&flushCalled] () {
+        flushCalled = true;
     });
 
     key.set("step","1");
+    keys.push_back(key);
     fdb.archive(key, data, length);
 
     key.set("date","20111213");
+    keys.push_back(key);
     fdb.archive(key, data, length);
 
     key.set("type","pf");
+    keys.push_back(key);
     fdb.archive(key, data, length);
     
     fdb.flush();
 
-    EXPECT(uris.size() == 3);
+    EXPECT(flushCalled);
+
+    EXPECT(map.size() == 3);
 
     // for (const auto& [key, uri] : map) {
     //     std::cout << key << " -> " << uri << std::endl;
     // }
 
-    // for (const auto& [key, uri] : map) {
-    //     bool found = false;
-    //     for (const auto& originalKey : keys) {
-    //         if (key == originalKey){
-    //             found = true;
-    //             break;
-    //         }
-    //     }
-    //     EXPECT(found);
-    // }
+    for (const auto& [key, uri] : map) {
+        bool found = false;
+        for (const auto& originalKey : keys) {
+            if (key == originalKey){
+                found = true;
+                break;
+            }
+        }
+        EXPECT(found);
+    }
     
 }
 //----------------------------------------------------------------------------------------------------------------------

@@ -14,14 +14,20 @@
  */
 
 #pragma once
-
+#include <future>
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
 
-using ArchiveCallback = std::function<void(const void* data, size_t size, const FieldLocation&)>;
+class FDB;
 
-static const ArchiveCallback CALLBACK_NOOP = [](const void* data, size_t size, const FieldLocation&) {};
+using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>)>;
+using FlushCallback = std::function<void()>;
+using ConstructorCallback = std::function<void(FDB&)>;
+
+static const ArchiveCallback CALLBACK_NOOP = [](const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>) {};
+static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
+static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](FDB&) {};
 
 } // namespace fdb5

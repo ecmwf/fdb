@@ -52,6 +52,32 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;
 }
 
+void TocPurgeVisitor::gatherAuxiliaryURIs() {
+    for (const auto& it : dataUsage_) { // <std::string, size_t>
+
+        // Check if .data file is deletable
+        bool deletable = false;
+        if (it.second == 0) {
+            eckit::PathName path(it.first);
+            if (store_.uriBelongs(eckit::URI(store_.type(), path))) {
+                deletable = true;
+            }
+        }
+        
+        // Add auxiliary files to the corresponding set
+        eckit::URI uri(store_.type(), eckit::PathName(it.first));
+        for (const auto& auxURI : store_.getAuxiliaryURIs(uri)) {
+            if (!store_.auxiliaryURIExists(auxURI)) continue;
+            // Todo: in future can we just use URIs, not paths?
+            eckit::PathName auxPath = auxURI.path();
+            if (deletable) {
+                deleteAuxFiles_.insert(auxPath);
+            } else {
+                keepAuxFiles_.insert(auxPath);
+            }
+        }
+    }
+}
 
 void TocPurgeVisitor::report(std::ostream& out) const {
     const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
@@ -113,8 +139,27 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     if (!cnt2) {
         out << "    - NONE -" << std::endl;
     }
-
     out << std::endl;
+
+    // Auxiliary files
+    out << "Auxiliary files to be deleted:" << std::endl;
+    for (const auto& it : deleteAuxFiles_) {
+        out << "    " << it << std::endl;
+    }
+    if (deleteAuxFiles_.empty()) {
+        out << "    - NONE -" << std::endl;
+    }
+    out << std::endl;
+
+    out << "Auxiliary files to be kept:" << std::endl;
+    for (const auto& it : keepAuxFiles_) {
+        out << "    " << it << std::endl;
+    }
+    if (keepAuxFiles_.empty()) {
+        out << "    - NONE -" << std::endl;
+    }
+    out << std::endl;
+
     size_t cnt3 = 0;
     out << "Index files to be deleted:" << std::endl;
     for (const auto& it : indexUsage_) { // <std::string, size_t>
@@ -161,6 +206,12 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
             if (path.dirName().sameAs(directory)) {
                 store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit);
             }
+        }
+    }
+
+    for (const auto& path : deleteAuxFiles_) {
+        if (path.dirName().sameAs(directory) && keepAuxFiles_.find(path) == keepAuxFiles_.end()) {
+            store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit);
         }
     }
 

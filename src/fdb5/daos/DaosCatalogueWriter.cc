@@ -228,8 +228,7 @@ const Index& DaosCatalogueWriter::currentIndex() {
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void DaosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation) {
-    // const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void DaosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());

@@ -35,10 +35,9 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStore::TocStore(const Key& key, const Config& config) :
-    Store(), TocCommon(StoreRootManager(config).directory(key).directory_), archivedFields_(0) {}
-
-// TocStore::TocStore(const eckit::URI& uri, const Config& config) :
-//     Store(), TocCommon(uri.path().dirName()), archivedFields_(0) {}
+    Store(),
+    TocCommon(StoreRootManager(config).directory(key).directory_),
+    archivedFields_(0), auxFileExtensions_{auxFileExtensions()} {}
 
 eckit::URI TocStore::uri() const {
 
@@ -65,6 +64,13 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
 
     return p.exists();
 
+}
+
+bool TocStore::auxiliaryURIExists(const eckit::URI& uri) const  {
+    ASSERT(uri.scheme() == type());
+    eckit::PathName p(uri.path());
+    ASSERT(p.dirName().sameAs(directory_));
+    return p.exists();
 }
 
 std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
@@ -289,8 +295,33 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
 //     src.copyTo(dest);
 // }
 
+eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const {
+    // Filebackend: ext is a suffix to append to the file name
+    ASSERT(uri.scheme() == type());
+    eckit::PathName path = uri.path() + "." + ext;
+    return eckit::URI(type(), path);
+}
+
+std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const {
+    ASSERT(uri.scheme() == type());
+    std::vector<eckit::URI> uris;
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
+        uris.push_back(getAuxiliaryURI(uri, e));
+    }
+    return uris;
+}
+
+std::set<std::string> TocStore::auxFileExtensions() const {
+    std::set<std::string> extensions;
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
+        extensions.insert("." + e);
+    }
+    return extensions;
+}
+
 void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
+
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
             eckit::PathName src_db = directory_;
@@ -303,9 +334,11 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".data")) {
                     eckit::PathName file(src_db / dp->d_name);
-                    struct stat fileStat;
-                    ::stat(file.asString().c_str(), &fileStat);
-                    files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    if ((file.extension() == ".data") || auxFileExtensions_.find(file.extension()) != auxFileExtensions_.end()) {
+                        struct stat fileStat;
+                        SYSCALL(::stat(file.asString().c_str(), &fileStat));
+                        files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    }
                 }
             }
             closedir(dirp);

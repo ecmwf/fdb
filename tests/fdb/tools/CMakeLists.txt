@@ -12,3 +12,5 @@ foreach( _t ${fdb_tools_tests} )
         COMMAND ${_t}.sh)
 
 endforeach()
+
+add_subdirectory( auxiliary )
