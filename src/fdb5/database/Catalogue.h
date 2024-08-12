@@ -117,6 +117,8 @@ protected: // members
 
 class CatalogueReader {
 public:
+    virtual ~CatalogueReader() = default;
+
     virtual DbStats stats() const = 0;
     virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
@@ -125,6 +127,8 @@ public:
 
 class CatalogueWriter {
 public:
+    virtual ~CatalogueWriter() = default;
+
     virtual const Index& currentIndex() = 0;
     virtual void archive(const Key& key, std::shared_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
