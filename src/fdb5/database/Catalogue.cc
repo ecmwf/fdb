@@ -13,7 +13,6 @@
 
 #include "fdb5/database/Catalogue.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
@@ -29,12 +28,10 @@ std::unique_ptr<Store> Catalogue::buildStore() {
 }
 
 void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
-
-    std::vector<Index> all = indexes(sorted);
-
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
+            const auto& all = indexes(sorted);  // Deferred reading indexes.
             for (const Index& idx : all) {
                 if (visitor.visitEntries()) {
                     idx.entries(visitor); // contains visitIndex
@@ -47,7 +44,6 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
     }
 
     visitor.catalogueComplete(*this);
-
 }
 
 bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {
