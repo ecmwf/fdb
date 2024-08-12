@@ -146,6 +146,10 @@ bool IndexBase::mayContain(const Key &key) const {
     return axes_.contains(key);
 }
 
+bool IndexBase::mayContainPartial(const Key& key) const {
+    return axes_.containsPartial(key);
+}
+
 const Key &IndexBase::key() const {
     return key_;
 }
