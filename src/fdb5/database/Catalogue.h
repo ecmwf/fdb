@@ -119,7 +119,7 @@ public:
     virtual ~CatalogueReader() = default;
 
     virtual DbStats stats() const = 0;
-    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 

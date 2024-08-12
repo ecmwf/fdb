@@ -86,13 +86,13 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool TocCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {
             found = true;
             const eckit::DenseSet<std::string>& a = (*m)->first.axes().values(keyword);
-            s.insert(a.begin(), a.end());
+            s.merge(a);
         }
     }
     return found;

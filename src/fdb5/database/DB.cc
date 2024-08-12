@@ -76,8 +76,7 @@ void DB::visitEntries(EntryVisitor& visitor, bool sorted) {
     catalogue_->visitEntries(visitor, store(), sorted);
 }
 
-
-bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool DB::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);
     return cat->axis(keyword, s);
