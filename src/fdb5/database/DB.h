@@ -23,7 +23,7 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 class DataHandle;

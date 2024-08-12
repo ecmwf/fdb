@@ -37,7 +37,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -91,7 +91,7 @@ public: // methods
 
     virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
 
-    void registerCallback(ArchiveCallback callback) {callback_ = callback;}
+    void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
