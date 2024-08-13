@@ -40,7 +40,7 @@ protected: // methods
 
 private: // methods
 
-    void callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation);
+    void callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation);
 
 private: // members
 

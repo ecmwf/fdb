@@ -23,8 +23,10 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, cons
     callback_(callback){
 }
 
-void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::unique_ptr<FieldLocation> fieldLocation) {
-    callback_(data_, size_, *fieldLocation);
+void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) {
+    std::promise<std::shared_ptr<FieldLocation>> p;
+    callback_(initialFieldKey_, data_, size_, p.get_future());
+    p.set_value(fieldLocation);
     catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
 }
 

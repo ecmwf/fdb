@@ -58,9 +58,9 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     dataWrite(Message::Blob, id, payloads);
 }
 
-void RemoteCatalogue::archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) {
 
-    ASSERT(!key.empty());
+    ASSERT(!datumKey.empty());
     ASSERT(fieldLocation);
 
     uint32_t id = generateRequestID();
@@ -75,7 +75,7 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& key, std::unique_ptr
     Buffer buffer(8192);
     MemoryStream stream(buffer);
     stream << idxKey;
-    stream << key;
+    stream << datumKey;
     stream << *fieldLocation;
 
     std::vector<std::pair<const void*, uint32_t>> payloads;

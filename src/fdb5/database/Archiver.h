@@ -21,7 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 

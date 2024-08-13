@@ -23,7 +23,7 @@ public:
 
     // From CatalogueWriter
     const Index& currentIndex() override;
-    void archive(const Key& idxKey, const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) override;
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
     void reconsolidate() override;
