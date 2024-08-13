@@ -43,9 +43,16 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
         indexUsage_[path] += 0;
     }
 
-    for (const auto& path : data) {
-        allDataFiles_.insert(path.path());
-        dataUsage_[path.path()] += 0;
+    for (const auto& uri : data) {
+        if (!store.uriBelongs(uri)) {
+            Log::error() << "Catalogue is pointing to data files that do not belong to the store." << std::endl;
+            Log::error() << "Configured Store URI: " << store.uri().asString() << std::endl;
+            Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
+            Log::error() << "This may occur when purging an overlayed FDB, which is not supported." << std::endl;
+            NOTIMP;
+        }
+        allDataFiles_.insert(uri.path());
+        dataUsage_[uri.path()] += 0;
     }
 
     return true;
