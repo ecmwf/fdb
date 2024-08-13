@@ -95,12 +95,17 @@ struct fdb_split_key_t {
 
     auto operator=(const value_type& keys) -> fdb_split_key_t& {
         keys_  = &keys;
-        level_ = keys_->begin();
-        curr_  = level_->begin();
+        level_ = keys_->end();
         return *this;
     }
 
     auto operator++() -> fdb_split_key_t& {
+        /// @todo the following "if" is an unfortuante consequense of a flaw in this iterator
+        if (level_ == keys_->end()) {
+            level_ = keys_->begin();
+            curr_  = level_->begin();
+            return *this;
+        }
         if (curr_ != level_->end()) {
             ++curr_;
             if (curr_ == level_->end() && level_ != keys_->end() - 1) { curr_ = (++level_)->begin(); }
@@ -108,10 +113,14 @@ struct fdb_split_key_t {
         return *this;
     }
 
-    int metadata(const char** k, const char** v, size_t* level) const {
-        ASSERT_MSG(keys_, "keys are missing!");
-
+    int next() {
+        ++(*this);
         if (curr_ == level_->end()) { return FDB_ITERATION_COMPLETE; }
+        return FDB_SUCCESS;
+    }
+
+    void metadata(const char** k, const char** v, size_t* level) const {
+        ASSERT_MSG(keys_, "keys are missing!");
 
         const auto& [key, val] = *curr_;
 
@@ -119,8 +128,6 @@ struct fdb_split_key_t {
         *v = val.c_str();
 
         if (level) { *level = std::find(keys_->begin(), keys_->end(), *level_) - keys_->begin(); }
-
-        return FDB_SUCCESS;
     }
 
 private:  // members
@@ -128,7 +135,7 @@ private:  // members
 
     value_type::const_iterator level_;
 
-    value_type::value_type::const_iterator curr_;
+    Key::const_iterator curr_;
 };
 
 struct fdb_listiterator_t {
@@ -489,7 +496,9 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->next_metadata(key, value, level);
+        const auto stat = it->next();
+        it->metadata(key, value, level);
+        return stat;
     }});
 }
 int fdb_delete_splitkey(fdb_split_key_t* key) {
