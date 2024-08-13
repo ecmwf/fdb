@@ -157,7 +157,7 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
 public:
     bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.attributes().timestamp < replacement.attributes().timestamp;
+        return existing.timestamp() < replacement.timestamp();
     }
 };
 
@@ -189,18 +189,18 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     if (dedup) {
         if (it.next(el)) {
             // build the request representing the tensor-product of all retrieved fields
-            metkit::mars::MarsRequest cubeRequest = el.key().request();
+            metkit::mars::MarsRequest cubeRequest = el.keys().combine().request();
             std::vector<ListElement>  elements {el};
 
             while (it.next(el)) {
-                cubeRequest.merge(el.key().request());
+                cubeRequest.merge(el.keys().combine().request());
                 elements.push_back(el);
             }
 
             // checking all retrieved fields against the hypercube, to remove duplicates
             ListElementDeduplicator deduplicator;
             metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, deduplicator);
-            for (const auto& elem : elements) { cube.add(elem.key().request(), el); }
+            for (const auto& elem : elements) { cube.add(elem.keys().combine().request(), el); }
 
             if (cube.countVacant() > 0) {
                 std::stringstream ss;

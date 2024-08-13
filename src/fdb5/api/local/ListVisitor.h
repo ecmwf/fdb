@@ -87,7 +87,7 @@ public:
 
         if (index.partialMatch(request_)) {
             if (level_ == 2) {
-                queue_.emplace(KeyChain<2> {currentCatalogue_->key(), currentIndex_->key()}, eckit::URI {}, 0);
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
                 return false;
             }
             return true;  // Explore contained entries
@@ -102,9 +102,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(KeyChain<3> {currentCatalogue_->key(), currentIndex_->key(), key},
-                           field.location(),
-                           field.timestamp());
+            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.location(), field.timestamp());
         }
     }
 

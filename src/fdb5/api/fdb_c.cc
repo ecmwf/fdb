@@ -8,23 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsExpension.h"
-#include "eckit/utils/Tokenizer.h"
 
-#include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/KeyChain.h"
+#include "fdb5/fdb5_version.h"
 
 #include "fdb5/api/fdb_c.h"
 
@@ -91,7 +90,7 @@ private:
 };
 
 struct fdb_split_key_t {
-    using value_type = typename ListElement::DatumKeys;
+    using value_type = KeyChain;
 
     auto operator=(const value_type& keys) -> fdb_split_key_t& {
         keys_  = &keys;
@@ -151,15 +150,13 @@ public:
     void attrs(const char** uri, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
-        const auto& attrs = el_.attributes();
-
         // guard against negative values
-        ASSERT(0 <= attrs.offset);
-        ASSERT(0 <= attrs.length);
+        ASSERT(0 <= el_.offset());
+        ASSERT(0 <= el_.length());
 
-        *uri = attrs.uri.name().c_str();
-        *off = attrs.offset;
-        *len = attrs.length;
+        *uri = el_.uri().name().c_str();
+        *off = el_.offset();
+        *len = el_.length();
     }
 
     void key(fdb_split_key_t* key) {

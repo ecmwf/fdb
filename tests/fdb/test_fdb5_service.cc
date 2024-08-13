@@ -18,15 +18,12 @@
 #include <fcntl.h>
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/MultiHandle.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/database/Key.h"
@@ -134,9 +131,9 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "60");
-		EXPECT(!iter.next(el));
-	}
+        EXPECT(el.keys().combine().get("step") == "60");
+        EXPECT(!iter.next(el));
+    }
 
 	key.set("step","2");
 	key.set("stepunits","h");
@@ -149,8 +146,8 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "2");
-		EXPECT(!iter.next(el));
+        EXPECT(el.keys().combine().get("step") == "2");
+        EXPECT(!iter.next(el));
 	}
 
 	req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2","60"});
@@ -159,11 +156,11 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "2");
-		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "60");
-		EXPECT(!iter.next(el));
-	}
+        EXPECT(el.keys().combine().get("step") == "2");
+        EXPECT(iter.next(el));
+        EXPECT(el.keys().combine().get("step") == "60");
+        EXPECT(!iter.next(el));
+    }
 
 // sub-hourly data are not yet supported in metkit
 /*	key.set("step","30");
@@ -306,7 +303,7 @@ CASE ( "test_fdb_service" ) {
 				fdb5::ListElement el;
 				EXPECT(iter.next(el));
 
-                eckit::PathName path = el.attributes().uri.path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
 				DIR* dirp = ::opendir(path.asString().c_str());
             	struct dirent* dp;
@@ -489,7 +486,7 @@ CASE ( "test_fdb_service_subtoc" ) {
 				fdb5::ListElement el;
 				EXPECT(iter.next(el));
 
-				eckit::PathName path = el.attributes().uri.path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
 				DIR* dirp = ::opendir(path.asString().c_str());
             	struct dirent* dp;

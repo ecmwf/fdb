@@ -109,7 +109,7 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
                 simplifiedKey.set(k->first, k->second);
         }
 
-        iterator_.emplace({KeyChain<3> {db_->key(), db_->indexKey(), simplifiedKey}, field.location(), field.timestamp()});
+        iterator_.emplace({db_->key(), db_->indexKey(), simplifiedKey, field.location(), field.timestamp()});
         return true;
     }
 

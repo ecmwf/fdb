@@ -18,12 +18,10 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "fdb5/database/Key.h"
+#include "fdb5/database/KeyChain.h"
 
-#include <array>
-#include <cstddef>  // std::size_t
-#include <ctime>    // std::time_t
-#include <iosfwd>   // std::ostream
+#include <ctime>
+#include <iosfwd>
 #include <memory>
 
 namespace eckit {
@@ -33,12 +31,7 @@ class Stream;
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
-
 class FieldLocation;
-
-template<std::size_t N>
-using KeyChain = std::array<Key, N>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -47,40 +40,32 @@ using KeyChain = std::array<Key, N>;
 
 class ListElement {
 public:  // types
-    using IndexKeys = KeyChain<2>;
-    using DatumKeys = KeyChain<3>;
     using TimeStamp = std::time_t;
 
-    struct Attributes {
-        eckit::URI    uri;
-        TimeStamp     timestamp {0};
-        eckit::Offset offset {0};
-        eckit::Length length {0};
-
-        friend void operator>>(eckit::Stream& stream, Attributes& attrs);
-        friend auto operator<<(eckit::Stream& stream, const Attributes& attrs) -> eckit::Stream&;
-    };
-
 public:  // methods
-    ListElement(Key key, const eckit::URI& uri, TimeStamp timestamp);
+    ListElement(Key dbKey, const eckit::URI& uri, const TimeStamp& timestamp);
 
-    ListElement(IndexKeys&& keys, const eckit::URI& uri, TimeStamp timestamp);
+    ListElement(Key dbKey, Key indexKey, const eckit::URI& uri, const TimeStamp& timestamp);
 
-    ListElement(DatumKeys&& keys, const FieldLocation& location, TimeStamp timestamp);
+    ListElement(Key dbKey, Key indexKey, Key datumKey, const FieldLocation& location, const TimeStamp& timestamp);
 
-    ListElement(const DatumKeys& keys, const FieldLocation& location, TimeStamp timestamp);
+    ListElement(const KeyChain& keys, const FieldLocation& location, const TimeStamp& timestamp);
 
     explicit ListElement(eckit::Stream& stream);
 
     ListElement() = default;
 
-    auto key() const -> const Key& { return key_; }
+    auto keys() const -> const KeyChain& { return keys_; }
 
-    auto keys() const -> const DatumKeys& { return keys_; }
+    auto uri() const -> const eckit::URI& { return uri_; }
 
-    auto attributes() const -> const Attributes& { return attributes_; }
+    auto timestamp() const -> const TimeStamp& { return timestamp_; }
 
     auto location() const -> const FieldLocation&;
+
+    auto offset() const -> eckit::Offset;
+
+    auto length() const -> eckit::Length;
 
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
@@ -96,13 +81,13 @@ private:  // methods
     friend eckit::JSON& operator<<(eckit::JSON& json, const ListElement& elem);
 
 private:  // members
-    Key key_;
+    KeyChain keys_;
 
-    DatumKeys keys_;
-
-    Attributes attributes_;
+    eckit::URI uri_;
 
     std::shared_ptr<const FieldLocation> loc_;
+
+    TimeStamp timestamp_ {0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
