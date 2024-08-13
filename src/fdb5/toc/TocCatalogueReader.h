@@ -35,6 +35,10 @@ namespace fdb5 {
 /// DB that implements the FDB on POSIX filesystems
 
 class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
+private:  // types
+    using IndexKey  = std::pair<Index, Key>;
+    using MapList   = std::vector<IndexKey>;
+    using MatchList = std::vector<const IndexKey*>;
 
 public: // methods
 
@@ -46,9 +50,8 @@ public: // methods
     std::vector<Index> indexes(bool sorted) const override;
     DbStats stats() const override { return TocHandler::stats(); }
 
-private: // methods
-
-    void loadIndexesAndRemap();
+private:  // methods
+    void loadIndexesAndRemap() const;
     bool selectIndex(const Key &key) override;
     void deselectIndex() override;
 
@@ -63,16 +66,28 @@ private: // methods
 
     void print( std::ostream &out ) const override;
 
+    template<class T>
+    static auto& getOrMapIndexes(T& toc) {
+        if (toc.indexes_.empty()) { toc.loadIndexesAndRemap(); }
+        return toc.indexes_;
+    }
+
+    auto mappedIndexes() -> MapList& { return getOrMapIndexes(*this); }
+
+    auto mappedIndexes() const -> const MapList& { return getOrMapIndexes(*this); }
+
 private: // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
-    std::vector<std::pair<Index, Key>*> matching_;
+    MatchList matching_;
+
+    // A lookup for further refined details, if we can go beyond the current set of matching indexes
+    mutable std::map<Key, MatchList> keyMatching_;
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
-    std::vector<std::pair<Index, Key>> indexes_;
-
+    mutable MapList indexes_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
