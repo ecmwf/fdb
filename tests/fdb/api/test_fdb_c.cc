@@ -40,24 +40,25 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
 
     fdb_split_key_t* sk = nullptr;
     fdb_new_splitkey(&sk);
-    EXPECT_EQUAL(fdb_listiterator_splitkey(it, sk), FDB_SUCCESS);
+    err = fdb_listiterator_splitkey(it, sk);
+    EXPECT(err == FDB_SUCCESS);
 
     size_t level = 0;
-    for (const auto& key : keys) {
+    for (auto key: keys) {
         for (auto k1: key) {
-            err = fdb_splitkey_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
-            EXPECT_EQUAL(err, FDB_SUCCESS);
-            EXPECT_EQUAL(k1.first, k);
-            EXPECT_EQUAL(k1.second, v);
-            if (checkLevel) { EXPECT_EQUAL(level, l); }
-            fdb_splitkey_next(sk);
+            int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            EXPECT(err == FDB_SUCCESS);
+            EXPECT(k1.first == k);
+            EXPECT(k1.second == v);
+            if (checkLevel) {
+                EXPECT(level == l);
+            }
         }
         level++;
     }
-
-    fdb_splitkey_next(sk);
-    EXPECT_EQUAL(fdb_splitkey_metadata(sk, &k, &v, &l), FDB_ITERATION_COMPLETE);
-
+    err = fdb_splitkey_next_metadata(sk, &k, &v, &l);
+    EXPECT(err == FDB_ITERATION_COMPLETE);
+    
     err = fdb_delete_splitkey(sk);
 }
 
@@ -113,7 +114,7 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-
+    
     const char *uri;
     size_t off, attr_len;
 
@@ -164,7 +165,7 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-
+    
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
@@ -271,21 +272,21 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add1(req, "type", "an");
     fdb_request_add1(req, "expver", "xxxx");
 
-    EXPECT_EQUAL(FDB_ERROR_GENERAL_EXCEPTION, fdb_archive_multiple(fdb, req, buf, length1));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_archive_multiple(fdb, req, buf, length1 + length2));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(req, "levelist", "300");
 
-    EXPECT_EQUAL(FDB_ERROR_GENERAL_EXCEPTION, fdb_archive_multiple(fdb, req, buf, length1 + length2));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add(req, "levelist", levels, 2);
 
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_archive_multiple(fdb, req, buf, length1 + length2));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     dh = grib3.fileHandle();
     dh->openForRead();
@@ -298,11 +299,11 @@ CASE( "fdb_c - multiple archive & list" ) {
     const char* levels3[] = {"300", "400", "500"};
     fdb_request_add(req, "levelist", levels3, 3);
 
-    EXPECT_EQUAL(FDB_ERROR_GENERAL_EXCEPTION, fdb_archive_multiple(fdb, req, buf, length1 + length2 + length3));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_archive_multiple(fdb, nullptr, buf, length1 + length2 + length3));
-    EXPECT_EQUAL(FDB_SUCCESS, fdb_flush(fdb));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, nullptr, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);
@@ -343,12 +344,12 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-
+    
     key_compare(k1, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-
+    
     key_compare(k2, it);
 
     err = fdb_listiterator_next(it);
@@ -481,7 +482,7 @@ CASE( "fdb_c - expand" ) {
 
     size_t numValues;
     char** values;
-
+    
     fdb_request_get(request, "date", &values, &numValues);
     EXPECT_EQUAL(numValues, 2);
     EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));

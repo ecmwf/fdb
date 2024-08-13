@@ -484,19 +484,12 @@ int fdb_new_splitkey(fdb_split_key_t** key) {
     });
 }
 
-int fdb_splitkey_next(fdb_split_key_t* it) {
-    return wrapApiFunction([it] {
-        ASSERT(it);
-        ++(*it);
-    });
-}
-
-int fdb_splitkey_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
     return wrapApiFunction(std::function<int()> {[it, key, value, level] {
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->metadata(key, value, level);
+        return it->next_metadata(key, value, level);
     }});
 }
 int fdb_delete_splitkey(fdb_split_key_t* key) {
