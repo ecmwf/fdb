@@ -100,7 +100,7 @@ struct fdb_split_key_t {
     }
 
     auto operator++() -> fdb_split_key_t& {
-        /// @todo the following "if" is an unfortunate consequense of a flaw in this iterator
+        /// @todo the following "if" is an unfortunate consequence of a flaw in this iterator
         if (level_ == keys_->end()) {
             level_ = keys_->begin();
             curr_  = level_->begin();
