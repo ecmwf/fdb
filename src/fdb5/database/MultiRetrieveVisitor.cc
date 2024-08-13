@@ -101,7 +101,6 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
 
     Field field;
     if (db_->inspect(key, field)) {
-
         Key simplifiedKey;
         for (auto k = key.begin(); k != key.end(); k++) {
             if (!k->second.empty())

@@ -108,9 +108,12 @@ private: // methods
     void print(std::ostream &out) const;
     void json(eckit::JSON& j) const;
 
-private: // members
+public:
 
     typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
+
+private: // members
+
     AxisMap axis_;
 
     bool readOnly_;

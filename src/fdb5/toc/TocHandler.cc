@@ -171,7 +171,6 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     numSubtocsRaw_(0),
     writeMode_(false)
 {
-//    eckit::Log::info() << "------ TocHandler(" << path << std::endl;
 
     if (cachedToc_) {
         cachedToc_->openForRead();
@@ -409,7 +408,6 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     while (true) {
 
         if (subTocRead_) {
-//            eckit::Log::info() << "SUBTOC: " << subTocRead_ << std::endl;
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
                 subTocRead_ = nullptr;
@@ -765,7 +763,6 @@ public:
 
                 errno = 0;
                 while (::aio_suspend(aiocbPtrs.data(), aiocbs.size(), nullptr) < 0) {
-                    eckit::Log::info() << "errno: " << errno << " (" << EINTR << ")" << std::endl;
                     if (errno != EINTR) {
                         throw FailedSystemCall("aio_suspend", Here(), errno);
                     }
@@ -833,6 +830,8 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
         std::unique_ptr<TocRecord> r(
                 new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
+        // n.b. we call databaseKey() directly, as this preload will normally be called before we have walked
+        //      the toc at all --> TOC_INIT not yet read --> parentKey_ not yet set.
         SubtocPreloader preloader(parentKey_);
 
         while (readNextInternal(*r)) {
@@ -857,7 +856,6 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
                 }
             }
         }
-//        eckit::Log::info() << "========================================================+" << std::endl;
 
         Offset ret = proxy.seek(startPosition);
         ASSERT(ret == startPosition);
@@ -865,13 +863,9 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
         subTocReadCache_ = std::move(preloader.cache());
     }
     preloadTimer.stop();
-//    eckit::Log::info() << "SubTocReadCache: " << subTocReadCache_.size() << std::endl;
 }
 
 void TocHandler::populateMaskedEntriesList() const {
-
-//    eckit::Log::info() << "POPULATE MASKED" << std::endl;
-//    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
 
     ASSERT(fd_ != -1 || cachedToc_);
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
@@ -1088,7 +1082,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
     if (useSubToc_) {
 
-        // Create the sub toc, and insert the redirection record into the the master toc.
+        // Create the sub toc, and insert the redirection record into the master toc.
 
         if (!subTocWrite_) {
 
@@ -1233,6 +1227,13 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         return indexes;
     }
 
+    // If we haven't yet read the TOC_INIT record to extract the parentKey, it may be needed for
+    // subtoc handling...
+    if (parentKey_.empty() && remapKeys && !isSubToc_) {
+        const auto& k = const_cast<TocHandler&>(*this).databaseKey();
+        parentKey_ = k;
+    }
+
     openForRead();
     TocHandlerCloser close(*this);
 
@@ -1245,6 +1246,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         size_t seqNo;
         const TocRecord* datap;
         size_t dataLen;
+        eckit::PathName tocDirectoryName; // May differ if using the overlay
     };
     std::vector<IndexEntry> indexEntries;
 
@@ -1275,7 +1277,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         case TocRecord::TOC_INDEX:
-            indexEntries.emplace_back(IndexEntry{indexEntries.size(), pdata, dataLength});
+            indexEntries.emplace_back(IndexEntry{indexEntries.size(), pdata, dataLength, currentDirectory()});
 
             if (subTocs && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());
@@ -1333,7 +1335,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         tocindexes.resize(indexEntries.size());
 
         for (int i = 0; i < nthreads; ++i) {
-            threads.emplace_back(std::async(std::launch::async, [i, &indexEntries, &tocindexes, &nthreads, debug, this] {
+            threads.emplace_back(std::async(std::launch::async, [i, &indexEntries, &tocindexes, nthreads, debug, this] {
                 for (int idx = i; idx < indexEntries.size(); idx+=nthreads) {
 
                     const IndexEntry& entry = indexEntries[idx];
@@ -1346,8 +1348,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
                     s >> type;
                     LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
                     tocindexes[entry.seqNo] = new TocIndex(s, entry.datap->header_.serialisationVersion_,
-                                                              currentDirectory(), currentDirectory() / path, offset,
-                                                              preloadBTree_);
+                                                              entry.tocDirectoryName,
+                                                              entry.tocDirectoryName / path,
+                                                              offset, preloadBTree_);
                 }
             }));
         }
@@ -1396,7 +1399,6 @@ void TocHandler::selectSubTocRead(const eckit::PathName& path) const {
     }
 
     subTocRead_ = it->second.get();
-//    eckit::Log::info() << "Selected: " << subTocRead_ << std::endl;
     subTocRead_->openForRead();
 }
 
@@ -1652,7 +1654,7 @@ std::string TocHandler::userName(long id) const {
   }
 }
 
-const Key &TocHandler::currentRemapKey() const {
+const Key& TocHandler::currentRemapKey() const {
     if (subTocRead_) {
         return subTocRead_->currentRemapKey();
     } else {

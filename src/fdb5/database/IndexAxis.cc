@@ -67,7 +67,6 @@ IndexAxis IndexAxis::copy() const {
     } else {
         for (const auto& kv : axis_) {
             eckit::DenseSet<std::string>& s(*result.axis_[kv.first]);
-            eckit::Log::info() << "CReating copy: " << kv.second->size() << std::endl;
             s.reserve(kv.second->size());
             for (const auto& v : *kv.second) s.insert(v);
         }
@@ -255,6 +254,21 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
+std::ostream& operator<<(std::ostream& s, const IndexAxis::AxisMap& am) {
+    s << "AM{";
+    for (const auto& kv : am) {
+        s << kv.first << "=";
+        const char* sep = "";
+        for (const auto& v : *kv.second) {
+            s << sep << v;
+            sep = "/";
+        }
+        s << ",";
+    }
+    s << "}";
+    return s;
+}
+
 bool IndexAxis::contains(const Key &key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
@@ -272,7 +286,8 @@ bool IndexAxis::containsPartial(const Key &key) const {
         if (it == axis_.end()) {
             return false;
         } else {
-            if (!it->second->contains(kv.second)) {
+            if (!key.match(kv.first, *(it->second))) {
+//            if (!it->second->contains(kv.second)) {
                 return false;
             }
         }

@@ -176,6 +176,7 @@ void Rule::expand(const metkit::mars::MarsRequest& request,
                   Key& full) const {
 
     // TODO: Stop walking the schema once we have found the matching rule...
+    // TODO: Canonicalise the MarsRequest in here, rather than further down in the expression --> CanonicalMarsRequest???
 
     ASSERT(keys.size() == 3);
 
@@ -225,7 +226,8 @@ void Rule::expand(const metkit::mars::MarsRequest& request,
     // Iterate through the permutations possible from the available keys
 
     // TODO: short circuit this stuff once everything has been matched...
-    keys[level_].rule(this);
+    // TODO: Ensure that the key is fully consumed
+    ruleKey.rule(this);
     while(product.next()) {
         for (const auto& kv : ruleKey) full.set(kv.first, kv.second);
         walkNextLevel(request, visitor, keys, full);
@@ -241,6 +243,7 @@ void Rule::expand(const Key &field,
 
     // This ensures we skip all rules after the first matching one.
     // TODO: implement this by changing the return type of expand
+    // TODO: Canonicalise the key in this function, rather than further down in the expression --> CanonicalKey???
     if (visitor.rule()) return;
 
     ASSERT(keys.size() == 3);
@@ -274,6 +277,7 @@ void Rule::expand(const Key &field,
     // n.b. nothing to do if archiving - as only one KEY
 
     // Before calling the next level in the rules
+    // TODO: Ensure that the key is fully consumed
     for (const auto& kv : ruleKey) full.push(kv.first, kv.second);
     keys[level_] = std::move(ruleKey);
     keys[level_].rule(this);
