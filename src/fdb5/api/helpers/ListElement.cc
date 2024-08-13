@@ -72,7 +72,7 @@ ListElement::ListElement(eckit::Stream& stream) {
 }
 
 auto ListElement::location() const -> const FieldLocation& {
-    ASSERT(loc_);
+    if (!loc_) { throw eckit::SeriousBug("Only datum (3-level) elements have FieldLocation.", Here()); }
     return *loc_;
 }
 
