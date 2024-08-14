@@ -58,6 +58,7 @@ class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtyp
 
 out=$(fdb-inspect $requests)
 
-exp="Total number of elements: 8"
+exp="Number of requests: 8
+Number of elements: 8"
 
 try test "$exp" = "$out"
