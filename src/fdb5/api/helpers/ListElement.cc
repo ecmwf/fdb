@@ -50,16 +50,16 @@ ListElement::ListElement(eckit::Stream& stream) {
     stream >> timestamp_;
 }
 
-auto ListElement::location() const -> const FieldLocation& {
+const FieldLocation& ListElement::location() const {
     if (!loc_) { throw eckit::SeriousBug("Only datum (3-level) elements have FieldLocation.", Here()); }
     return *loc_;
 }
 
-auto ListElement::offset() const -> eckit::Offset {
+eckit::Offset ListElement::offset() const {
     return location().offset();
 }
 
-auto ListElement::length() const -> eckit::Length {
+eckit::Length ListElement::length() const {
     return location().length();
 }
 

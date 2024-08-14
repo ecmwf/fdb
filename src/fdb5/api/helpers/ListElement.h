@@ -56,19 +56,19 @@ public:  // methods
 
     ListElement() = default;
 
-    auto keys() const -> const KeyChain& { return keys_; }
+    const KeyChain& keys() const { return keys_; }
 
-    auto combinedKey() const -> const Key& { return keys_.combine(); }
+    const Key& combinedKey() const { return keys_.combine(); }
 
-    auto uri() const -> const eckit::URI& { return uri_; }
+    const eckit::URI& uri() const { return uri_; }
 
-    auto timestamp() const -> const TimeStamp& { return timestamp_; }
+    const TimeStamp& timestamp() const { return timestamp_; }
 
-    auto location() const -> const FieldLocation&;
+    const FieldLocation& location() const;
 
-    auto offset() const -> eckit::Offset;
+    eckit::Offset offset() const;
 
-    auto length() const -> eckit::Length;
+    eckit::Length length() const;
 
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
