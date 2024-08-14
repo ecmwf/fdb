@@ -131,7 +131,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-        EXPECT(el.keys().combine().get("step") == "60");
+        EXPECT(el.combinedKey().get("step") == "60");
         EXPECT(!iter.next(el));
     }
 
@@ -146,7 +146,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-        EXPECT(el.keys().combine().get("step") == "2");
+        EXPECT(el.combinedKey().get("step") == "2");
         EXPECT(!iter.next(el));
 	}
 
@@ -156,9 +156,9 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-        EXPECT(el.keys().combine().get("step") == "2");
+        EXPECT(el.combinedKey().get("step") == "2");
         EXPECT(iter.next(el));
-        EXPECT(el.keys().combine().get("step") == "60");
+        EXPECT(el.combinedKey().get("step") == "60");
         EXPECT(!iter.next(el));
     }
 
@@ -374,8 +374,8 @@ CASE ( "test_fdb_service_subtoc" ) {
 
 		eckit::LocalConfiguration userConf;
     	userConf.set("useSubToc", true);
-		
-		fdb5::Config expanded = fdb5::Config().expandConfig();
+
+        fdb5::Config expanded = fdb5::Config().expandConfig();
 
 		fdb5::Config config(expanded, userConf);
 

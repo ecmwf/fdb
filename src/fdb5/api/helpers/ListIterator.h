@@ -55,7 +55,7 @@ public:
         ListElement tmp;
         while (APIIterator<ListElement>::next(tmp)) {
             if(deduplicate_) {
-                if (const auto& [iter, success] = seenKeys_.insert(tmp.keys().combine()); !success) { continue; }
+                if (const auto& [iter, success] = seenKeys_.insert(tmp.combinedKey()); !success) { continue; }
             }
             std::swap(elem, tmp);
             return true;

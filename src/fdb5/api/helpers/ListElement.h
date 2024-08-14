@@ -18,6 +18,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/KeyChain.h"
 
 #include <ctime>
@@ -56,6 +57,8 @@ public:  // methods
     ListElement() = default;
 
     auto keys() const -> const KeyChain& { return keys_; }
+
+    auto combinedKey() const -> const Key& { return keys_.combine(); }
 
     auto uri() const -> const eckit::URI& { return uri_; }
 

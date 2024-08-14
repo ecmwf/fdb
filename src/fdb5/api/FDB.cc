@@ -23,10 +23,9 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-
-#include "eckit/system/LibraryManager.h"
 
 #include "metkit/hypercube/HyperCube.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
@@ -35,6 +34,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
@@ -189,18 +189,18 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     if (dedup) {
         if (it.next(el)) {
             // build the request representing the tensor-product of all retrieved fields
-            metkit::mars::MarsRequest cubeRequest = el.keys().combine().request();
+            metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
             std::vector<ListElement>  elements {el};
 
             while (it.next(el)) {
-                cubeRequest.merge(el.keys().combine().request());
+                cubeRequest.merge(el.combinedKey().request());
                 elements.push_back(el);
             }
 
             // checking all retrieved fields against the hypercube, to remove duplicates
             ListElementDeduplicator deduplicator;
             metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, deduplicator);
-            for (const auto& elem : elements) { cube.add(elem.keys().combine().request(), el); }
+            for (const auto& elem : elements) { cube.add(elem.combinedKey().request(), el); }
 
             if (cube.countVacant() > 0) {
                 std::stringstream ss;
