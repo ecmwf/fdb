@@ -56,11 +56,11 @@ const FieldLocation& ListElement::location() const {
 }
 
 eckit::Offset ListElement::offset() const {
-    return location().offset();
+    return loc_ ? loc_->offset() : eckit::Offset(0);
 }
 
 eckit::Length ListElement::length() const {
-    return location().length();
+    return loc_ ? loc_->length() : eckit::Length(0);
 }
 
 void ListElement::print(std::ostream& out, const bool location, const bool length, const bool timestamp, const char* sep) const {
