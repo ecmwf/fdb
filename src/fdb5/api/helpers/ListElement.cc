@@ -73,7 +73,7 @@ void ListElement::print(std::ostream& out, const bool location, const bool lengt
             out << "host=" << (uri_.host().empty() ? "empty" : uri_.host());
         }
     }
-    if (length && loc_) { out << sep << "length=" << loc_->length(); }
+    if (length) { out << sep << "length=" << this->length(); }
     if (timestamp) { out << sep << "timestamp=" << timestamp_; }
 }
 
