@@ -21,6 +21,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
+#include "fdb5/LibFdb5.h"
 #include "metkit/hypercube/HyperCube.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -45,9 +46,10 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
-        options_.push_back(new SimpleOption<bool>("porcelain",
+        options_.push_back(
+            new SimpleOption<bool>("porcelain",
                                    "Streamlined and stable output. Useful as input for other tools or scripts."
-                                   "Equivalent to compact=false, location=false, timestamp=false, length=false"));
+                                   "Incompatible with options: location, timestamp, and length"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
         options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-2]"));
@@ -84,24 +86,27 @@ void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    location_ = args.getBool("location", false);
-    timestamp_ = args.getBool("timestamp", false);
-    length_ = args.getBool("length", false);
-    full_ = args.getBool("full", false);
-    porcelain_ = args.getBool("porcelain", false);
-    json_ = args.getBool("json", false);
-    compact_ = args.getBool("compact", false);
-    depth_     = args.getInt("depth", 3);
+    location_  = args.getBool("location", location_);
+    timestamp_ = args.getBool("timestamp", timestamp_);
+    length_    = args.getBool("length", length_);
+    full_      = args.getBool("full", full_);
+    porcelain_ = args.getBool("porcelain", porcelain_);
+    json_      = args.getBool("json", json_);
+    compact_   = args.getBool("compact", compact_);
+    depth_     = args.getInt("depth", depth_);
 
-    ASSERT(depth_ > 0 && depth_ <= 3);
+    ASSERT(depth_ > 0 && depth_ < 4);
 
-    if (json_) { porcelain_ = true; }
+    if (json_) {
+        eckit::Log::debug<LibFdb5>() << "Setting porcelain=true" << '\n';
+        porcelain_ = true;
+    }
 
     if (porcelain_) {
-        location_  = false;
-        timestamp_ = false;
-        length_    = false;
-        compact_   = false;
+        if (location_) { throw UserError("--porcelain and --location are not compatible", Here()); }
+        if (timestamp_) { throw UserError("--porcelain and --timestamp are not compatible", Here()); }
+        if (length_) { throw UserError("--porcelain and --length are not compatible", Here()); }
+        if (compact_) { throw UserError("--porcelain and --compact are not compatible", Here()); }
     }
 
     if (compact_) {
