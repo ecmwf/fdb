@@ -365,7 +365,7 @@ int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** i
     return wrapApiFunction([fdb, req, it, duplicates, depth] {
         ASSERT(fdb);
         ASSERT(it);
-        ASSERT(depth >= 0 && depth <= 3);
+        ASSERT(depth >= 1 && depth <= 3);
 
         std::vector<std::string> minKeySet; // we consider an empty set
         const FDBToolRequest toolRequest(
