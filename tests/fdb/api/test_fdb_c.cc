@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include <string.h>
+#include <cstring>
+#include <iostream>
+#include <vector>
 
-#include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
@@ -44,9 +45,10 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
     EXPECT(err == FDB_SUCCESS);
 
     size_t level = 0;
-    for (auto key: keys) {
-        for (auto k1: key) {
+    for (const auto& key : keys) {
+        for (const auto& k1 : key) {
             int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            std::cerr << "k=" << k << " v=" << v << " l=" << l << std::endl;
             EXPECT(err == FDB_SUCCESS);
             EXPECT(k1.first == k);
             EXPECT(k1.second == v);
@@ -58,7 +60,7 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
     }
     err = fdb_splitkey_next_metadata(sk, &k, &v, &l);
     EXPECT(err == FDB_ITERATION_COMPLETE);
-    
+
     err = fdb_delete_splitkey(sk);
 }
 
@@ -114,7 +116,7 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     const char *uri;
     size_t off, attr_len;
 
@@ -165,7 +167,7 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
@@ -344,17 +346,90 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     key_compare(k1, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     key_compare(k2, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
+}
+
+CASE("fdb_c - list depth=1,2,3") {
+    fdb_handle_t* fdb = nullptr;
+    fdb_new_handle(&fdb);
+
+    std::vector<fdb5::Key> key300d1 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+    };
+
+    std::vector<fdb5::Key> key300d2 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+    };
+
+    std::vector<fdb5::Key> key300d3 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
+    };
+
+    fdb_request_t* request = nullptr;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    {  // depth=1
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 1);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d1, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
+
+    {  // depth=2
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 2);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d2, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
+
+    {  // depth=3
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 3);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d3, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
 }
 #endif
 
@@ -482,7 +557,7 @@ CASE( "fdb_c - expand" ) {
 
     size_t numValues;
     char** values;
-    
+
     fdb_request_get(request, "date", &values, &numValues);
     EXPECT_EQUAL(numValues, 2);
     EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
