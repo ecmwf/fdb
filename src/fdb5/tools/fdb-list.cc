@@ -52,7 +52,7 @@ public:  // methods
                                    "Incompatible with options: location, timestamp, and length"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
-        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [0-2]"));
+        options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [1-3]"));
     }
 
 private:  // methods
