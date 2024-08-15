@@ -19,6 +19,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URIManager.h"
 
+#include <utility>
+
 namespace fdb5 {
 namespace remote {
 
@@ -27,12 +29,13 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI("fdb", remoteFDB->controlEndpoint().host(),  remoteFDB->controlEndpoint().port())),
+RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, std::shared_ptr<const FieldLocation> remoteLocation):
+    FieldLocation(eckit::URI("fdb", remoteFDB->controlEndpoint().host(), remoteFDB->controlEndpoint().port())),
     remoteFDB_(remoteFDB),
-    internal_(remoteLocation.make_shared()) {
+    internal_(std::move(remoteLocation)) {
     ASSERT(remoteFDB);
-    ASSERT(remoteLocation.uri().scheme() != "fdb");
+    ASSERT(remoteLocation);
+    ASSERT(remoteLocation->uri().scheme() != "fdb");
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
@@ -51,11 +54,6 @@ RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_),
     remoteFDB_(rhs.remoteFDB_),
     internal_(rhs.internal_) {}
-
-
-std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
-    return std::make_shared<RemoteFieldLocation>(std::move(*this));
-}
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     ASSERT(remoteFDB_);
