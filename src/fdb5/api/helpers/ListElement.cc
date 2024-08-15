@@ -34,14 +34,14 @@ ListElement::ListElement(Key dbKey, const eckit::URI& uri, const TimeStamp& time
 ListElement::ListElement(Key dbKey, Key indexKey, const eckit::URI& uri, const TimeStamp& timestamp):
     keys_ {std::move(dbKey), std::move(indexKey)}, uri_ {uri}, timestamp_ {timestamp} { }
 
-ListElement::ListElement(Key dbKey, Key indexKey, Key datumKey, const FieldLocation& location, const TimeStamp& timestamp):
+ListElement::ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
+                         const TimeStamp& timestamp):
     keys_ {std::move(dbKey), std::move(indexKey), std::move(datumKey)},
-    uri_ {location.uri()},
-    loc_ {location.make_shared()},
+    loc_ {std::move(location)},
     timestamp_ {timestamp} { }
 
-ListElement::ListElement(const KeyChain& keys, const FieldLocation& location, const TimeStamp& timestamp):
-    ListElement(keys[0], keys[1], keys[2], location, timestamp) { }
+ListElement::ListElement(const KeyChain& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp):
+    ListElement(keys[0], keys[1], keys[2], std::move(location), timestamp) { }
 
 ListElement::ListElement(eckit::Stream& stream) {
     stream >> keys_;
@@ -53,6 +53,11 @@ ListElement::ListElement(eckit::Stream& stream) {
 const FieldLocation& ListElement::location() const {
     if (!loc_) { throw eckit::SeriousBug("Only datum (3-level) elements have FieldLocation.", Here()); }
     return *loc_;
+}
+
+const eckit::URI& ListElement::uri() const {
+    if (loc_) { return loc_->uri(); }
+    return uri_;
 }
 
 eckit::Offset ListElement::offset() const {

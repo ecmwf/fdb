@@ -102,7 +102,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.location(), field.timestamp());
+            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.stableLocation(), field.timestamp());
         }
     }
 

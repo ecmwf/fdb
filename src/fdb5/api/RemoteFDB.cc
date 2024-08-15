@@ -15,6 +15,7 @@
 
 #include <unistd.h>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -567,7 +568,7 @@ struct InspectHelper : BaseAPIHelper<ListElement, fdb5::remote::Message::Inspect
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
-        return {elem.keys(), RemoteFieldLocation(fdb, elem.location()), elem.timestamp()};
+        return {elem.keys(), std::make_shared<RemoteFieldLocation>(fdb, elem.location()), elem.timestamp()};
     }
 };
 

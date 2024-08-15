@@ -48,9 +48,10 @@ public:  // methods
 
     ListElement(Key dbKey, Key indexKey, const eckit::URI& uri, const TimeStamp& timestamp);
 
-    ListElement(Key dbKey, Key indexKey, Key datumKey, const FieldLocation& location, const TimeStamp& timestamp);
+    ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
+                const TimeStamp& timestamp);
 
-    ListElement(const KeyChain& keys, const FieldLocation& location, const TimeStamp& timestamp);
+    ListElement(const KeyChain& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp);
 
     explicit ListElement(eckit::Stream& stream);
 
@@ -60,9 +61,11 @@ public:  // methods
 
     const Key& combinedKey() const { return keys_.combine(); }
 
-    const eckit::URI& uri() const { return uri_; }
+    const eckit::URI& uri() const;
 
     const TimeStamp& timestamp() const { return timestamp_; }
+
+    std::shared_ptr<const FieldLocation> sharedLocation() const { return loc_; }
 
     const FieldLocation& location() const;
 
