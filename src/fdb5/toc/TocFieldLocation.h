@@ -39,8 +39,6 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
-
     virtual void visit(FieldLocationVisitor& visitor) const override;
 
 public: // For Streamable
