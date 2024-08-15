@@ -43,8 +43,7 @@ public: // methods
 
     Field();
 
-    Field(std::shared_ptr<FieldLocation> location, time_t timestamp, const FieldDetails& details = FieldDetails());
-    Field(const FieldLocation&& location, time_t timestamp, const FieldDetails& details = FieldDetails());
+    Field(std::shared_ptr<FieldLocation> location, time_t timestamp, FieldDetails details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
 
@@ -63,7 +62,7 @@ private: // members
 
    std::shared_ptr<FieldLocation> location_;
 
-    time_t timestamp_;
+   time_t timestamp_ {0};
 
     FieldDetails details_;
 

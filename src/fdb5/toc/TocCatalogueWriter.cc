@@ -22,6 +22,7 @@
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/io/LustreSettings.h"
+#include <memory>
 
 using namespace eckit;
 
@@ -129,7 +130,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
+    Field field(std::make_shared<TocFieldLocation>(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 

@@ -49,6 +49,9 @@ public: // methods
     ListElement(eckit::Stream& s);
 
     const std::vector<Key>& key() const { return keyParts_; }
+
+    std::shared_ptr<const FieldLocation> sharedLocation() { return location_; }
+
     const FieldLocation& location() const { return *location_; }
     const time_t& timestamp() const { return timestamp_; }
 

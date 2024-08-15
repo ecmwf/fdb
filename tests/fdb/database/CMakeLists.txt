@@ -7,3 +7,8 @@ ecbuild_add_test( TARGET test_fdb5_database_indexaxis
     INCLUDES ${PMEM_INCLUDE_DIRS}
     LIBS fdb5
     ENVIRONMENT "${_test_environment}")
+
+ecbuild_add_test( TARGET test_fdb5_fieldlocation
+    SOURCES test_fieldlocation.cc
+    LIBS fdb5
+    ENVIRONMENT "${_test_environment}")

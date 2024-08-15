@@ -21,6 +21,8 @@
 
 #include "fdb5/database/FieldLocation.h"
 
+#include <memory>
+
 namespace fdb5 {
 
 class RemoteFDB;
@@ -31,8 +33,7 @@ namespace remote {
 
 class RemoteFieldLocation : public FieldLocation {
 public:
-
-    RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(RemoteFDB* remoteFDB, std::shared_ptr<const FieldLocation> remoteLocation);
     RemoteFieldLocation(const eckit::URI &uri);
     RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
@@ -43,7 +44,6 @@ public:
 
     virtual eckit::DataHandle *dataHandle() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
     virtual void visit(FieldLocationVisitor& visitor) const override;
 
 public: // For Streamable

@@ -17,6 +17,7 @@
 #define fdb5_FieldLocation_H
 
 #include <memory>
+
 #include <eckit/filesystem/URI.h>
 
 #include "eckit/filesystem/PathName.h"
@@ -36,8 +37,7 @@ namespace fdb5 {
 
 class FieldLocationVisitor;
 
-class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
-
+class FieldLocation: public eckit::OwnedLock, public eckit::Streamable, public std::enable_shared_from_this<FieldLocation> {
 public: // methods
 
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
@@ -57,10 +57,13 @@ public: // methods
 
     virtual eckit::DataHandle *dataHandle() const = 0;
 
-    /// Create a (shared) copy of the current object, for storage in a general container.
-    virtual std::shared_ptr<FieldLocation> make_shared() const = 0;
+    std::shared_ptr<FieldLocation> sharedPtr() { return shared_from_this(); }
 
-    virtual std::shared_ptr<FieldLocation> stableLocation() const { return make_shared(); }
+    std::shared_ptr<const FieldLocation> sharedPtr() const { return shared_from_this(); }
+
+    virtual std::shared_ptr<FieldLocation> stableLocation() { return shared_from_this(); }
+
+    virtual std::shared_ptr<const FieldLocation> stableLocation() const { return shared_from_this(); }
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
