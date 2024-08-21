@@ -54,6 +54,7 @@ public: // methods
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+    eckit::DataHandle* sparseHandle(eckit::URI, eckit::OffsetList, eckit::LengthList);
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
@@ -61,7 +62,6 @@ public: // methods
 
    const Config& config() { return config_; }
    
-
 protected: // methods
 
     std::string type() const override { return "remote"; }

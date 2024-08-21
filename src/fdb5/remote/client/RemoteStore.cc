@@ -16,6 +16,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
+#include "eckit/io/SparseHandle.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 
@@ -478,6 +479,36 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
+}
+
+eckit::DataHandle* RemoteStore::sparseHandle(eckit::URI uri, eckit::OffsetList ol, eckit::LengthList ll){
+
+    Buffer encodeBuffer(1024 * 1024);
+    MemoryStream s(encodeBuffer);
+    s << uri;
+    s << ol;
+    s << ll;
+
+    // copy paste yuck
+    uint32_t id = generateRequestID();
+
+    static size_t queueSize = eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200);
+
+    std::shared_ptr<MessageQueue> queue = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
+
+        auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
+        ASSERT(entry.second);
+
+        queue = entry.first->second;
+    }
+
+    controlWriteCheckResponse(fdb5::remote::Message::SparseRead, id, true, encodeBuffer, s.position());
+
+    eckit::Length len = ll.back();
+    std::unique_ptr<DataHandle> dh(new FDBRemoteDataHandle(id, len, queue, controlEndpoint()));
+    return new SparseHandle(std::move(dh), ol, ll); // maybe we could change signature to return unique ptr?
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {

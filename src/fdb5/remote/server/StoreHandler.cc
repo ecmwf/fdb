@@ -61,6 +61,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 read(clientID, requestID, payload);
                 return Handled::YesAddReadListener;
 
+            case Message::SparseRead: // notification that the client is starting a sparse read
+                sparseRead(clientID, requestID, payload);
+                return Handled::YesAddReadListener;
+
             case Message::Flush: // flush store
                 flush(clientID, requestID, payload);
                 return Handled::Yes;
@@ -105,6 +109,29 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
     readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
 }
 
+void StoreHandler::sparseRead(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
+
+    {
+        std::lock_guard<std::mutex> lock(readLocationMutex_);
+        if (!readLocationWorker_.joinable()) {
+            readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
+        }
+    }
+    MemoryStream s(payload);
+    eckit::URI uri;
+    eckit::OffsetList ol;
+    eckit::LengthList ll;
+    s >> uri; // could do a pathname instead of uri? Might be better since strictly speaking, the scheme should swap to local now.
+    s >> ol;
+    s >> ll;
+
+    std::unique_ptr<eckit::DataHandle> dh(uri.newReadHandle(ol, ll));
+
+    // emplace the handle. Might actually be able to use the same as above? Doesnt actually use "location", it uses datahandle.
+    // If it works, consider changing it to readQueue o.e.
+    readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
+}
+
 void StoreHandler::readLocationThreadLoop() {
     readLocationElem elem;
 
@@ -129,6 +156,9 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
         LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
                               << std::endl;
 
+        // For spare handle, could we do exactly as written here, but use the PART file handle
+        // so that we always write the bits we want (and nothing else.)
+        // In which case, we dont even change this function, we change the datahandle we pass.
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
             write(Message::Blob, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{writeBuffer, dataRead}});
         }

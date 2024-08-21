@@ -31,6 +31,8 @@
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/message/MessageDecoder.h"
 
+#include "fdb5/remote/client/RemoteStore.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -144,6 +146,41 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
     FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
     return loc->dataHandle();
+}
+
+
+// Create a sparse handle from a URI and a list of byte ranges.
+eckit::DataHandle* FDB::read(const eckit::URI& uri, std::vector<Range>& ranges) {
+    // NB: This needs to use URI only for the filename, and the offsets from the ranges.
+    // i.e. ignore the fragment of the uri
+    // eckit::DataHandle* sparse_dh = SparseHandleFactory::instance().build(uri, ranges); // just do the logic here for now.
+    // SparseHandleFactory will build remote or file based on uri.scheme()
+    // How this works for location factory:
+    //  -- for remote: RemoteStore& store = RemoteStore::get(uri_); then store.dataHandle(*loc);
+    //                  Fairly involved
+    //  -- for toc: uri_.path().partHandle(offset(), length()); (ignore store)
+    //                We can do something very similar, I think. Lets impl this first.
+
+    eckit::OffsetList offsets;
+    eckit::LengthList lengths;
+    for (const auto& range : ranges) {
+        offsets.push_back(range.first);
+        lengths.push_back(range.second);
+    }
+
+    if (uri.scheme() == "file") {
+        // local
+        // return uri.newSparseHandle(offsets, lengths); // maybe just return a uri.readhandle, and then wrap that in a sparse handle?
+        NOTIMP;
+    }
+    else if (uri.scheme() == "fdb") { // we dont have a uri manager for these? the registry seems to suggest yes, but it looks all like local path stuff......
+        // remote
+        remote::RemoteStore& store = remote::RemoteStore::get(uri); // and we dont have a local equivalent of this either?
+        return store.sparseHandle(uri, offsets, lengths);
+    }   
+    else {
+        NOTIMP;
+    }
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {

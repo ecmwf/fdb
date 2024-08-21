@@ -42,6 +42,7 @@ private:  // methods
 
     void flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
     void read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
+    void sparseRead(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 

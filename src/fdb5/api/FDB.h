@@ -87,6 +87,9 @@ public: // methods
 
     eckit::DataHandle* read(bool seekable, ListIterator& it, bool sorted = false);
 
+    using Range = std::pair<size_t, size_t>; // eckit offset, length?
+    eckit::DataHandle* read(const eckit::URI& uri, std::vector<Range>& ranges);
+
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, bool seekable = false);
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
