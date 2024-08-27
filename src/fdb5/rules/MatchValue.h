@@ -28,23 +28,19 @@ namespace fdb5 {
 class MatchValue : public Matcher {
 
 public: // methods
+    MatchValue(std::string value);
 
-    MatchValue(const std::string &value);
+    bool match(const std::string& value) const override;
 
-    virtual ~MatchValue() override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+private:  // methods
+    void print(std::ostream& out) const override;
 
-private: // methods
-
-    virtual void print( std::ostream &out ) const override;
-
-private: // members
-
+private:  // members
     std::string value_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

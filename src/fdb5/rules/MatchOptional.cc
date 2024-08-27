@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rules/MatchOptional.h"
+#include <string>
+#include <utility>
 
-#include "eckit/log/Log.h"
-#include "eckit/types/Types.h"
+#include "fdb5/rules/MatchOptional.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -20,16 +20,12 @@
 
 namespace fdb5 {
 
-static std::string empty;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchOptional::MatchOptional(const std::string &def) :
-    Matcher() {
-    default_.push_back(def);
-}
+MatchOptional::MatchOptional(std::string def): default_ {std::move(def)} { }
 
-MatchOptional::~MatchOptional() {
+bool MatchOptional::match(const std::string& /*value*/) const {
+    return true;
 }
 
 bool MatchOptional::match(const std::string&, const Key&) const {

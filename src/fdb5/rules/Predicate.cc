@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+#include <string>
+
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/rules/Predicate.h"
@@ -31,6 +34,10 @@ bool Predicate::match(const Key &key) const {
     return matcher_->match(keyword_, key);
 }
 
+bool Predicate::match(const std::string& value) const {
+    return matcher_->match(value);
+}
+
 void Predicate::dump(std::ostream &s, const TypesRegistry &registry) const {
     matcher_->dump(s, keyword_, registry);
 }
@@ -39,7 +46,7 @@ void Predicate::print(std::ostream &out) const {
     out << "Predicate[keyword=" << keyword_ << ",matcher=" << *matcher_ << "]";
 }
 
-std::string Predicate::keyword() const {
+const std::string& Predicate::keyword() const {
     return keyword_;
 }
 

@@ -17,12 +17,15 @@
 #define fdb5_Predicate_H
 
 #include <iosfwd>
-#include <vector>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -41,6 +44,7 @@ public: // methods
     ~Predicate();
 
     bool match(const Key &key) const;
+    bool match(const std::string& value) const;
 
     void dump( std::ostream &s, const TypesRegistry &registry ) const;
     void fill(Key &key, const std::string& value) const;
@@ -51,7 +55,7 @@ public: // methods
 
     bool optional() const;
 
-    std::string keyword() const;
+    const std::string& keyword() const;
 
 private: // methods
 

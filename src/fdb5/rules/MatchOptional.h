@@ -28,24 +28,21 @@ namespace fdb5 {
 class MatchOptional : public Matcher {
 
 public: // methods
+    MatchOptional(std::string def);
 
-    MatchOptional(const std::string &def);
+    bool match(const std::string& value) const override;
 
-    virtual ~MatchOptional() override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
-
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
 private: // methods
-
-    virtual bool optional() const override;
-    virtual const std::string &value(const Key &, const std::string &keyword) const override;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    virtual void print( std::ostream &out ) const override;
-    virtual const std::string &defaultValue() const override;
-    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const override;
-
+    bool optional() const override;
+    const std::string& value(const Key&, const std::string& keyword) const override;
+    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
+    void print(std::ostream& out) const override;
+    const std::string& defaultValue() const override;
+    void fill(Key& key, const std::string& keyword, const std::string& value) const override;
 
     std::vector<std::string> default_;
 

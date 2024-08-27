@@ -49,6 +49,7 @@ public: // methods
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
     virtual const std::string &defaultValue() const;
 
+    virtual bool match(const std::string& value) const = 0;
     virtual bool match(const std::string &keyword, const Key &key) const = 0;
     virtual void fill(Key &key, const std::string &keyword, const std::string& value) const;
 

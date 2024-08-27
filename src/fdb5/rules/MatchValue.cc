@@ -8,6 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+#include <string>
+#include <utility>
+
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -16,12 +20,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string &value) :
-    Matcher(),
-    value_(value) {
-}
+MatchValue::MatchValue(std::string value): value_ {std::move(value)} { }
 
-MatchValue::~MatchValue() {
+bool MatchValue::match(const std::string& value) const {
+    return value == value_;
 }
 
 bool MatchValue::match(const std::string &keyword, const Key &key) const {
@@ -31,7 +33,7 @@ bool MatchValue::match(const std::string &keyword, const Key &key) const {
         return false;
     }
 
-    return ( i->second == value_ );
+    return match(i->second);
 }
 
 void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {

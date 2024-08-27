@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -16,13 +18,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchAny::MatchAny(const std::set<std::string> &values) :
-    Matcher(),
-    values_(values) {
-}
-
-MatchAny::~MatchAny() {
-}
+MatchAny::MatchAny(const std::set<std::string>& values): values_(values) { }
 
 bool MatchAny::match(const std::string &keyword, const Key &key) const {
 
@@ -32,7 +28,11 @@ bool MatchAny::match(const std::string &keyword, const Key &key) const {
         return false;
     }
 
-    return (values_.find(i->second) != values_.end());
+    return match(i->second);
+}
+
+bool MatchAny::match(const std::string& value) const {
+    return (values_.find(value) != values_.end());
 }
 
 void MatchAny::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {

@@ -18,6 +18,7 @@
 
 #include <iosfwd>
 #include <string>
+#include <vector>
 
 #include "fdb5/rules/Matcher.h"
 
@@ -28,23 +29,20 @@ namespace fdb5 {
 class MatchHidden : public Matcher {
 
 public: // methods
+    MatchHidden(std::string def);
 
-    MatchHidden(const std::string &def);
+    bool match(const std::string& value) const override;
 
-    virtual ~MatchHidden() override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
-
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
 private: // methods
-
-    virtual bool optional() const override;
-    virtual const std::string &value(const Key &, const std::string &keyword) const override;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    virtual void print( std::ostream &out ) const override;
-    virtual const std::string &defaultValue() const override;
-
+    bool optional() const override;
+    const std::string& value(const Key&, const std::string& keyword) const override;
+    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
+    void print(std::ostream& out) const override;
+    const std::string& defaultValue() const override;
 
     std::vector<std::string> default_;
 

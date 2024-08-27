@@ -17,6 +17,7 @@
 #define fdb5_MatchAlways_H
 
 #include <iosfwd>
+#include <string>
 
 #include "fdb5/rules/Matcher.h"
 
@@ -27,19 +28,16 @@ namespace fdb5 {
 class MatchAlways : public Matcher {
 
 public: // methods
+    MatchAlways() = default;
 
-    MatchAlways();
+    bool match(const std::string& /*keyword*/, const Key& /*key*/) const override { return true; }
 
-    virtual ~MatchAlways() override;
+    bool match(const std::string& /*value*/) const override { return true; }
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
-
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
 private: // methods
-
-    virtual void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -8,25 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+#include <ostream>
+#include <string>
+#include <utility>
 
 #include "fdb5/rules/MatchHidden.h"
 #include "fdb5/database/Key.h"
-#include "eckit/types/Types.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
-static std::string empty;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchHidden::MatchHidden(const std::string &def) :
-    Matcher() {
-    default_.push_back(def);
-}
+MatchHidden::MatchHidden(std::string def): default_ {std::move(def)} { }
 
-MatchHidden::~MatchHidden() {
+bool MatchHidden::match(const std::string& /*value*/) const {
+    return true;
 }
 
 bool MatchHidden::match(const std::string&, const Key&) const {
