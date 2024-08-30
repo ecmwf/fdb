@@ -18,6 +18,7 @@
 #include "fdb5/database/Key.h"
 
 #include <array>
+#include <memory>
 #include <optional>
 #include <ostream>
 #include <utility>
@@ -29,15 +30,27 @@ namespace fdb5 {
 /// Level 1 is the database key, level 2 is the index key, and level 3 is the datum key.
 
 class KeyChain: public std::array<Key, 3> {
+    using ParentType = std::array<Key, 3>;
+
 public:  // methods
     KeyChain() = default;
 
     KeyChain(Key&& dbKey, Key&& indexKey, Key&& datumKey):
-        std::array<Key, 3> {std::move(dbKey), std::move(indexKey), std::move(datumKey)} { }
+        ParentType {std::move(dbKey), std::move(indexKey), std::move(datumKey)} { }
 
-    KeyChain(Key&& dbKey, Key&& indexKey): KeyChain(std::move(dbKey), std::move(indexKey), Key {}) { }
+    KeyChain(const Key& dbKey, const Key& indexKey, const Key& datumKey): ParentType {dbKey, indexKey, datumKey} { }
 
-    explicit KeyChain(Key&& dbKey): KeyChain(std::move(dbKey), Key {}, Key {}) { }
+    KeyChain(Key&& dbKey, Key&& indexKey): ParentType {std::move(dbKey), std::move(indexKey), Key {}} { }
+
+    KeyChain(const Key& dbKey, const Key& indexKey): ParentType {dbKey, indexKey, Key {}} { }
+
+    explicit KeyChain(Key&& dbKey): ParentType {std::move(dbKey), Key {}, Key {}} { }
+
+    explicit KeyChain(const Key& dbKey): ParentType {dbKey, Key {}, Key {}} { }
+
+    void registry(const std::shared_ptr<TypesRegistry>& registry) {
+        for (auto& key : *this) { key.registry(registry); }
+    }
 
     auto combine() const -> const Key& {
         if (!key_) {

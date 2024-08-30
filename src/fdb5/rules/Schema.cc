@@ -23,6 +23,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/KeyChain.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
@@ -54,9 +55,7 @@ Schema::~Schema() {
 }
 
 const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
-    std::vector<Key> keys;
-    keys.push_back(dbKey);
-    keys.push_back(idxKey);
+    KeyChain keys {dbKey, idxKey};
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         const Rule* r = (*i)->ruleFor(keys , 0);
@@ -69,8 +68,8 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
     Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+    KeyChain keys;
+    keys.registry(registry());
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
@@ -81,8 +80,8 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
 
 void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+    KeyChain keys;
+    keys.registry(registry());
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
@@ -103,8 +102,7 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     ASSERT(dbRule);
 
     Key full = dbKey;
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
+    KeyChain keys {dbKey};
     keys[1].registry(registry());
     keys[2].registry(registry());
 
@@ -125,9 +123,7 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     ASSERT(dbRule);
 
     Key full = dbKey;
-    /// @todo keychain
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
+    KeyChain keys {dbKey};
     keys[1].registry(registry());
     keys[2].registry(registry());
 
