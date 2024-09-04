@@ -230,12 +230,18 @@ void ServerConnection::initialiseConnections() {
     //               server has multiple, then we use that on, whilst retaining
     //               the capacity in the protocol for the server to make a choice.
 
+    std::future<void> accepted;
     eckit::net::Endpoint dataEndpoint;
     if (single_) {
         dataEndpoint = endpointFromClient;
     } else {
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
+
+        auto socket = dataSocket_.get();
+        accepted = std::async(std::launch::async, [&socket] {
+            socket->accept();
+        });
     }
 
     eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
@@ -260,7 +266,7 @@ void ServerConnection::initialiseConnections() {
     }
 
     if (!single_) {
-        dataSocket_->accept();
+        accepted.wait();
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
