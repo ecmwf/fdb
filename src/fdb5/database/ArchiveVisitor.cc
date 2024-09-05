@@ -23,10 +23,8 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, cons
     callback_(callback){
 }
 
-void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) {
-    std::promise<std::shared_ptr<FieldLocation>> p;
-    callback_(initialFieldKey_, data_, size_, p.get_future());
-    p.set_value(fieldLocation);
+void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::promise<std::shared_ptr<const FieldLocation>>* p, std::shared_ptr<const FieldLocation> fieldLocation) {
+    p->set_value(fieldLocation);
     catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
 }
 
@@ -35,8 +33,10 @@ bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullC
     checkMissingKeys(fullComputedKey);
     const Key idxKey = catalogue()->currentIndexKey();
 
+    std::promise<std::shared_ptr<const FieldLocation>> p;
     store()->archive(idxKey, data_, size_,
-        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey.canonical(), std::placeholders::_1));
+        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey.canonical(), &p, std::placeholders::_1));
+    callback_(initialFieldKey_, data_, size_, p.get_future());
 
     return true;
 }

@@ -58,7 +58,7 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     dataWrite(Message::Blob, id, payloads);
 }
 
-void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
 
     ASSERT(!datumKey.empty());
     ASSERT(fieldLocation);

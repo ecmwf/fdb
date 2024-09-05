@@ -160,7 +160,7 @@ public:
 
     virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();
-    virtual void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<FieldLocation> fieldLocation) = 0;
+    virtual void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;

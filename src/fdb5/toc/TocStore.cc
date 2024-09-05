@@ -115,7 +115,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const Key& idxKey, const void *data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void *data, eckit::Length length) {
     archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(idxKey);
@@ -128,7 +128,7 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key& idxKey, const void *
 
     ASSERT(len == length);
 
-    return std::unique_ptr<FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    return std::unique_ptr<const FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 size_t TocStore::flush() {

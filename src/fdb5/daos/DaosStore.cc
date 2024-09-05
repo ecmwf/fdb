@@ -105,7 +105,7 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 }
 
-std::unique_ptr<FieldLocation> DaosStore::archive(const Key&, const void *data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void *data, eckit::Length length) {
 
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped as it is cached after selectDatabase.
@@ -134,7 +134,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key&, const void *data, 
 
     archivedFields_++;
 
-    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
+    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed
