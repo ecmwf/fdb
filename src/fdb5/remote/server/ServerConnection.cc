@@ -235,6 +235,8 @@ void ServerConnection::initialiseConnections() {
         dataEndpoint = endpointFromClient;
     } else {
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
+        ASSERT(dataSocket_->socket() != -1);
+
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
     }
 
