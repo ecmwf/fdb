@@ -71,10 +71,10 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
     KeyChain keys;
     keys.registry(registry());
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// (*i)->dump(eckit::Log::info());
-		(*i)->expand(request, visitor, 0, keys, full);
+    for (const auto* rule : rules_) {
+        // eckit::Log::info() << "Rule " << **i <<  std::endl;
+        // (*i)->dump(eckit::Log::info());
+        rule->expandDatabase(request, visitor, keys, full);
     }
 }
 
@@ -85,9 +85,7 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(field, visitor, 0, keys, full);
-    }
+    for (const auto* rule : rules_) { rule->expandDatabase(field, visitor, keys, full); }
 }
 
 void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
@@ -106,9 +104,7 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     keys[1].registry(registry());
     keys[2].registry(registry());
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(request, visitor, 1, keys, full);
-    }
+    for (const auto* rule : dbRule->rules_) { rule->expandIndex(request, visitor, keys, full); }
 }
 
 void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
@@ -127,9 +123,7 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     keys[1].registry(registry());
     keys[2].registry(registry());
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(field, visitor, 1, keys, full);
-    }
+    for (const auto* rule : dbRule->rules_) { rule->expandIndex(field, visitor, keys, full); }
 }
 
 bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
@@ -190,7 +184,11 @@ bool Schema::matchFirstLevel(const std::string& fingerprint, Key& key) const {
     return false;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// LEVEL STUFF
+
 namespace {
+
 struct LevelVisitor: public RetrieveVisitor {
     class NullNotifier: public Notifier {
         void notifyWind() const override { }
@@ -212,9 +210,7 @@ struct LevelVisitor: public RetrieveVisitor {
     }
 
     bool selectDatabase(const Key& key, const Key& full) override {
-        if (done_) {
-            return false;  // Skip further exploration
-        }
+        if (done_) { return false; }  // Skip further exploration
 
         level_ = std::max(level_, 1);
 
@@ -292,7 +288,10 @@ private:
     std::set<std::string>                 keys_;
     std::vector<std::vector<std::string>> keySeq_;
 };
+
 }  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
 
 int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
                                 std::vector<Key>&                requestBits,

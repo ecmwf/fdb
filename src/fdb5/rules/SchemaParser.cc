@@ -13,6 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
+#include <utility>
 
 #include "fdb5/rules/SchemaParser.h"
 #include "fdb5/rules/Rule.h"
@@ -142,7 +143,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return new Rule(owner, line, predicates, rules, types);
+        return new Rule(owner, line, std::move(predicates), std::move(rules), types);
     }
 
 
@@ -166,7 +167,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
         c = peek();
         if (c == ']') {
             consume(c);
-            return new Rule(owner, line, predicates, rules, types);
+            return new Rule(owner, line, std::move(predicates), std::move(rules), types);
         }
 
 
@@ -197,4 +198,4 @@ void SchemaParser::parse(const Schema &owner,
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace eckit
+}  // namespace fdb5
