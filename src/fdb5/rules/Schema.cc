@@ -88,7 +88,7 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     for (const auto* rule : rules_) { rule->expandDatabase(field, visitor, keys, full); }
 }
 
-void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
+void Schema::expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
     for (const Rule* r : rules_) {

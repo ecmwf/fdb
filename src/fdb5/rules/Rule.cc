@@ -82,7 +82,7 @@ void Rule::expand(const metkit::mars::MarsRequest& request, std::vector<Predicat
                 // ASSERT(key == full);
                 // Here we recurse on the database's schema (rather than the master schema)
                 // see https://jira.ecmwf.int/browse/FDB-90
-                visitor.databaseSchema().expandSecond(request, visitor, key);
+                visitor.databaseSchema().expandIndex(request, visitor, key);
             };
         } else if (depth == 1) {
             if (visitor.selectIndex(key, full)) {
