@@ -1,0 +1,9 @@
+retrieve,
+class=od,
+date=jan,
+domain=g,
+expver=1,
+param=241.140,
+stream=wamo,
+type=cl,
+target=climate.grib
