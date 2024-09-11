@@ -460,7 +460,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 
     uint32_t id = generateRequestID();
 
-    static size_t queueSize = eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200);
+    static size_t queueSize = 320; // eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200);
                 // auto id = retrieveMessageQueues_.find(requestID);
                 // ASSERT (it != retrieveMessageQueues_.end());
                 // it->second->emplace(std::make_pair(message, std::move(payload)));

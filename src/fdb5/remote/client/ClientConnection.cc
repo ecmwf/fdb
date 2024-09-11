@@ -225,7 +225,7 @@ void ClientConnection::dataWrite(DataWriteRequest& r) {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 32);
+    static size_t maxQueueLength = 320; // eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
@@ -402,7 +402,6 @@ void ClientConnection::listeningControlThreadLoop() {
                         promises_.erase(pp);
                         handled = true;
                     } else {
-
                         Client* client = nullptr;
                         {
                             std::lock_guard<std::mutex> lock(clientsMutex_);
