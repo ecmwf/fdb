@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -ux
+
+yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=minimum_keys
+src_data="od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+try cd $bin_dir
+
+rm -rf $test_name || true
+mkdir -p $test_name/localroot
+
+try cd $test_name
+
+try cp "$src_dir/local.yaml" ./
+try cp "$bin_dir/$src_data" ./
+
+########################################################################################################################
+
+count() {
+  [[ $# -eq 1 ]] || die "count requires 1 argument; expected count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+# grep_count() {
+#   [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+#   val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
+#   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+# }
+
+########################################################################################################################
+
+echo "Ensure that we can wipe specified databases, but only when fully specified"
+
+try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.grib
+try grib_ls -m data.xxxx.grib
+
+try fdb-write data.xxxx.grib
+try fdb-list --all --full --minimum-keys= --porcelain > out
+count 24
+
+
+echo "Check that if any of the keys are missing, then nothing happens"
+
+for invalid_key in class=rd expver=xxxx; do
+  # set +e
+  fdb-list $invalid_key
+  rc=$?
+  # set -e
+
+  [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
+done
+
+
+echo "Check that supplying the key makes it work"
+
+try fdb-list class=rd,expver=xxxx --porcelain > out
+count 24
+
+
+echo "Check that we can change the minimum keys"
+
+for invalid_key in class=rd,expver=xxxx \
+                   class=rd,time=1200 \
+                   expver=xxxx,time=1200; do
+  set +e
+  fdb-list --minimum-keys="class,expver,time" $invalid_key
+  rc=$?
+  set -e
+
+  [[ $rc = 0 ]] && echo "Should not have succeeded: $invalid_key" && exit 1
+done
+
+
+echo "And that the purge works now this is supplied"
+
+fdb-list --minimum-keys="class,expver,time" class=rd,expver=xxxx,time=1200 --porcelain > out
+count 12

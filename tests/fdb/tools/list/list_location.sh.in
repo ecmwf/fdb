@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+set -ux
+
+yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=location
+src_data="od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+try cd $bin_dir
+
+rm -rf $test_name || true
+mkdir -p $test_name/localroot
+
+try cd $test_name
+
+try cp "$src_dir/local.yaml" ./
+try cp "$bin_dir/$src_data" ./
+
+########################################################################################################################
+
+count() {
+  [[ $# -eq 1 ]] || die "count requires 1 argument; expected count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+grep_count() {
+  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+  val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
+  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+}
+
+########################################################################################################################
+
+# Check that we can obtain the location of the data
+
+try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.grib
+try grib_ls -m data.xxxx.grib
+try fdb-write data.xxxx.grib
+
+try fdb-list --all --minimum-keys= --porcelain --full > out
+count 24
+
+# Specify the location flag
+
+try fdb-list class=rd,expver=xxxx,time=0000 --location > out
+grep_count "localroot/rd:xxxx" 12
+
+# And without the location flag, none of the location info is included
+
+fdb-list class=rd,expver=xxxx,time=0000 --porcelain
+try fdb-list class=rd,expver=xxxx,time=0000 --porcelain > out
+count 12
+grep_count "{class=rd,expver=xxxx,stream=oper,date=[0-9]+,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=[0-9]+,param=[0-9]+}" 12

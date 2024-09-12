@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# set -eu
+set -ux
 
-yell() { echo "$(basename "$0"): $*" >&2; }
+yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
 
@@ -14,42 +14,46 @@ export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
-tname=list_test
-srcdir=@CMAKE_CURRENT_SOURCE_DIR@
-bindir=@CMAKE_CURRENT_BINARY_DIR@
+test_name=depth
+src_data=x.grib
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 
 ########################################################################################################################
 
-try cd $bindir
+echo "running test '$test_name' on $(hostname)"
 
-rm -rf $tname || true
-mkdir -p $tname/localroot
+try cd $bin_dir
 
-try cd $tname
+rm -rf $test_name || true
+mkdir -p $test_name/localroot
 
-for f in local.yaml x.grib; do
-  cp "$srcdir/$f" ./
+try cd $test_name
+
+for f in local.yaml $src_data; do
+  try cp "$src_dir/$f" ./
 done
 
 ########################################################################################################################
 # Create a grib file with 4 steps and populate FDB
 
-try grib_set -s step=0 x.grib 0.grib
-try grib_set -s step=6 x.grib 6.grib
-try grib_set -s step=9 x.grib 9.grib
+try grib_set -s step=0 $src_data 0.grib
+try grib_set -s step=6 $src_data 6.grib
+try grib_set -s step=9 $src_data 9.grib
 
 for f in *.grib; do
   try grib_set -s type=an "$f" "cf.$f"
 done
 
 for f in *.grib; do
-  try cat "$f" >> "$tname.grib"
+  try cat "$f" >> "$test_name.grib"
 done
 
-try fdb-write "$tname.grib"
+try fdb-write "$test_name.grib"
 
 ########################################################################################################################
 # test all
+
 out=$(fdb-list --all --minimum-keys= --porcelain)
 exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=0,param=166}
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
