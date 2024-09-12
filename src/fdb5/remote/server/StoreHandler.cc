@@ -189,12 +189,14 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         stream >> numArchived;
     }
 
-    ASSERT(numArchived == 0 || archiveFuture_.valid());
+    if (numArchived > 0) {
+        ASSERT(archiveFuture_.valid());
 
-    std::lock_guard<std::mutex> lock(handlerMutex_);
-    auto it = stores_.find(clientID);
-    ASSERT(it != stores_.end());
-    it->second.store->flush();
+        std::lock_guard<std::mutex> lock(handlerMutex_);
+        auto it = stores_.find(clientID);
+        ASSERT(it != stores_.end());
+        it->second.store->flush();
+    }
 
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;

@@ -40,6 +40,7 @@ void Archiver::archive(const Key& key, const void* data, size_t len) {
 
 void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
+    std::lock_guard<std::mutex> lock(flushMutex_);
     visitor.rule(nullptr);
     
     dbConfig_.schema().expand(key, visitor);
@@ -55,6 +56,7 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 }
 
 void Archiver::flush() {
+    std::lock_guard<std::mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
         // flush the store, pass the number of flushed fields to the catalogue
         i->second.catalogue_->flush(i->second.store_->flush());

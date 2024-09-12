@@ -103,7 +103,7 @@ bool ClientConnection::remove(uint32_t clientID) {
             // if connection is already down, no need to escalate 
         }
 
-        ClientConnectionRouter::instance().deregister(*this);
+        // ClientConnectionRouter::instance().deregister(*this);
     }
 
     return clients_.empty();
@@ -165,18 +165,21 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
+    std::lock_guard<std::mutex> lock(clientsMutex_);
     ASSERT(clients_.empty());
     if (connected_) {
 
-        if (dataWriteFuture_.valid()) {
-            dataWriteFuture_.wait();
-        }
-
-        if (listeningControlThread_.joinable()) {
-            listeningControlThread_.join();
+        // if (dataWriteFuture_.valid()) {
+        //     dataWriteFuture_.wait();
+        // }
+        if (dataWriteThread_.joinable()) {
+            dataWriteThread_.join();
         }
         if (listeningDataThread_.joinable()) {
             listeningDataThread_.join();
+        }
+        if (listeningControlThread_.joinable()) {
+            listeningControlThread_.join();
         }
 
         // Close both the control and data connections
@@ -220,30 +223,28 @@ std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Messag
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {
+    // std::cout << "Write " << r.msg_ << ",clientID=" << r.client_->clientId() << ",requestID=" << r.id_ << std::endl;
     Connection::write(r.msg_, false, r.client_->clientId(), r.id_, r.data_.data(), r.data_.size());
 }
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    static size_t maxQueueLength = 320; // eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
-    auto it = clients_.find(client.clientId());
-    ASSERT(it != clients_.end());
-
+    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
     {
-        std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
+        // retrieve or add client to the list
+        std::lock_guard<std::mutex> lock(clientsMutex_);
+        auto it = clients_.find(client.clientId());
+        ASSERT(it != clients_.end());        
+    }
+    {
+        std::lock_guard<std::mutex> lock(dataWriteMutex_);
+        if (!dataWriteThread_.joinable()) {
+            // Reset the queue after previous done/errors
+            ASSERT(!dataWriteQueue_);
 
-        if (!dataWriteFuture_.valid()) {
-
-            {
-                // Reset the queue after previous done/errors
-                // std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
-                // TODO
-                ASSERT(!dataWriteQueue_);
-
-                dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
-            }
-
-            dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
+            dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+            dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
+            // dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
         }
     }
     uint32_t payloadLength = 0;
@@ -409,7 +410,7 @@ void ClientConnection::listeningControlThreadLoop() {
                             auto it = clients_.find(hdr.clientID());
                             if (it == clients_.end()) {
                                 std::stringstream ss;
-                                ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                                ss << "ERROR: connection=" << controlEndpoint_ << " received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
                                 ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
                                 eckit::Log::status() << ss.str() << std::endl;
                                 eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
@@ -428,7 +429,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     if (!handled) {
                         std::stringstream ss;
-                        ss << "ERROR: Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]. ABORTING";
+                        ss << "ERROR: connection=" << controlEndpoint_ << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]. ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
@@ -493,7 +494,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
                     if (!handled) {
                         std::stringstream ss;
-                        ss << "ERROR: Unexpected message recieved (" << hdr.message << "). ABORTING";
+                        ss << "ERROR: DATA connection=" << controlEndpoint_ << " Unexpected message recieved (" << hdr.message << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());

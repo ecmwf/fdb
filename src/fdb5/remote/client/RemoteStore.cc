@@ -196,17 +196,16 @@ std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const C
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     Client(storeEndpoints(config)),
-    dbKey_(dbKey), config_(config),
+    dbKey_(dbKey), config_(config)
     // retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    fieldsArchived_(0), locationsReceived_(0) {}
+    {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
-    dbKey_(Key()), config_(config),
+    dbKey_(Key()), config_(config)
     // retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    fieldsArchived_(0), locationsReceived_(0) { 
-
+    { 
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -215,8 +214,9 @@ RemoteStore::~RemoteStore() {
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
-    if (archivalCompleted_.valid() || !locations_.empty()) {
-        Log::error() << "Attempting to destruct RemoteStore with active archival - location to receive: " << locations_.size() << " archivalCompleted_.valid() " << archivalCompleted_.valid() << std::endl;
+    if (!locations_.complete()) {
+    // if (archivalCompleted_.valid() || !locations_.empty()) {
+        Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl; //  - location to receive: " << locations_.size() << " archivalCompleted_.valid() " << archivalCompleted_.valid() << std::endl;
         eckit::Main::instance().terminate();
     }
 }
@@ -241,19 +241,13 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
 
     uint32_t id = generateRequestID();
     {   // send the archival request
-        std::lock_guard<std::mutex> lock(archiveMutex_);
-        if (fieldsArchived_ == 0) { // if this is the first archival request, notify the server
-            ASSERT(locations_.size() == 0);
-
+        std::lock_guard<std::mutex> lock(locations_.mutex());
+        if (locations_.archived() == 0) { // if this is the first archival request, notify the server
             controlWriteCheckResponse(Message::Store, id, true);
         }
     }
-    {   // store the callback, associated with the request id - to be done BEFORE sending the data
-        std::lock_guard<std::mutex> lock(locationMutex_);
-        locations_[id] = catalogue_archive;
-    }
-    fieldsArchived_++;
-
+    // store the callback, associated with the request id - to be done BEFORE sending the data
+    locations_.archive(id, catalogue_archive);
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
@@ -266,7 +260,7 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
 
     dataWrite(Message::Blob, id, payloads);
 
-    eckit::Log::status() << "Field " << fieldsArchived_ << " enqueued for store archival" << std::endl;
+    eckit::Log::status() << "Field " << locations_.archived() << " enqueued for store archival" << std::endl;
 }
 
 bool RemoteStore::open() {
@@ -276,45 +270,25 @@ bool RemoteStore::open() {
 size_t RemoteStore::flush() {
 
     // Flush only does anything if there is an ongoing archive();
-    if (fieldsArchived_ == 0) {
+    if (locations_.archived() == 0) {
         return 0;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - fieldsArchived_ " << fieldsArchived_ << " locationsReceived_ " << locationsReceived_ << std::endl;
+    // remote side reported that all fields are flushed... now wait for field locations
+    // size_t locations;
+    bool complete = locations_.complete();
 
-    size_t locations;
-    bool wait = true;
-    {
-        std::lock_guard<std::mutex> lock(locationMutex_);
-        if ((fieldsArchived_ > locationsReceived_) || !locations_.empty()) {
-            promiseArchivalCompleted_ = std::promise<size_t>{};
-            archivalCompleted_ = promiseArchivalCompleted_.get_future();
-        } else {
-            wait = false;
-        }
-    }
+    size_t locations = complete ? locations_.archived() : locations_.wait();
 
-    if (wait) {
-        // wait for archival completion (received all fieldLocations)
-        archivalCompleted_.wait();
-        locations = archivalCompleted_.get();
-    } else {
-        locations = locationsReceived_;
-    }
+    Buffer sendBuf(1024);
+    MemoryStream s(sendBuf);
+    s << locations;
 
-    ASSERT(locations_.empty());
-    if (locations > 0) {
-        Buffer sendBuf(1024);
-        MemoryStream s(sendBuf);
-        s << locations;
+    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
+    // The flush call is blocking
+    controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 
-        LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
-        // The flush call is blocking
-        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
-    }
-
-    fieldsArchived_ = 0;
-    locationsReceived_ = 0;
+    locations_.reset();
 
     return locations;
 }
@@ -381,28 +355,14 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
     switch (message) {
     
         case Message::Store: { // received a Field location from the remote store, can forward to the archiver for the indexing
-            std::lock_guard<std::mutex> lock(locationMutex_);
-
-            auto it = locations_.find(requestID);
-            if (it != locations_.end()) {
-                MemoryStream s(payload);
-                std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-                if (defaultEndpoint().empty()) {
-                    it->second(std::move(location));
-                } else {
-                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
-                    it->second(std::move(remoteLocation));
-                }
-
-                locations_.erase(it);
-                locationsReceived_++;
-
-                if (archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_) && locations_.empty()) {
-                    promiseArchivalCompleted_.set_value(locationsReceived_);
-                }
-                return true;
+            MemoryStream s(payload);
+            std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
+            if (defaultEndpoint().empty()) {
+                return locations_.location(requestID, std::move(location));
+            } else {
+                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
+                return locations_.location(requestID, std::move(remoteLocation));
             }
-            return false;
         }
         case Message::Blob: {
             auto it = messageQueues_.find(requestID);
@@ -430,12 +390,12 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
                 messageQueues_.erase(it);
 
             } else {
-                auto it = locations_.find(requestID);
-                if (it != locations_.end()) {
-//                    archiver_->error(std::move(payload), controlEndpoint());
-                } else {
-                    // retrieveMessageQueue_.emplace(message, std::move(payload));
-                }
+//                 auto it = locations_.find(requestID);
+//                 if (it != locations_.end()) {
+// //                    archiver_->error(std::move(payload), controlEndpoint());
+//                 } else {
+//                     // retrieveMessageQueue_.emplace(message, std::move(payload));
+//                 }
             }
             return true;
         }

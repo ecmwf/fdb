@@ -25,6 +25,7 @@ RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
     config_(config), schema_(nullptr), numLocations_(0) {
 
+    // std::cout << "Catalogue  " << clientId() << "  " << key << std::endl;
     loadSchema();
 }
 
@@ -109,7 +110,6 @@ const Schema& RemoteCatalogue::schema() const {
 void RemoteCatalogue::flush(size_t archivedFields) {
 
     std::lock_guard<std::mutex> lock(archiveMutex_);
-
     ASSERT(archivedFields == numLocations_);
 
     // Flush only does anything if there is an ongoing archive();

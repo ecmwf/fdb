@@ -24,10 +24,81 @@ namespace fdb5::remote {
 
 // class RemoteStoreArchiver;
 
+class Locations {
+
+public:
+    Locations() : fieldsArchived_(0), locationsReceived_(0) {}
+
+    std::mutex& mutex() {
+        return locationMutex_;
+    }
+
+    size_t archived() { return fieldsArchived_; }
+
+    void archive(uint32_t requestID, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        locations_[requestID] = catalogue_archive;
+        fieldsArchived_++;
+        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+    }
+
+    bool location(uint32_t requestID, std::unique_ptr<FieldLocation> location) {
+
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        auto it = locations_.find(requestID);
+        if (it == locations_.end()) {
+            return false;
+        }
+        it->second(std::move(location));
+
+        locations_.erase(it);
+        locationsReceived_++;
+
+        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        if (archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_)) {
+            promiseArchivalCompleted_.set_value(locationsReceived_);
+        }
+        return true;
+    }
+
+    bool complete() {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+
+        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        if (fieldsArchived_ == locationsReceived_)
+            return true;
+
+        promiseArchivalCompleted_ = std::promise<size_t>{};
+        archivalCompleted_ = promiseArchivalCompleted_.get_future();
+        return false;
+    }
+
+    size_t wait() {
+        archivalCompleted_.wait();
+        return archivalCompleted_.get();
+    }
+
+    void reset() {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        fieldsArchived_ = locations_.size();
+        locationsReceived_ = 0;
+    }
+
+private:
+
+    std::mutex locationMutex_;
+    std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
+    size_t fieldsArchived_;
+    size_t locationsReceived_;
+    std::promise<size_t> promiseArchivalCompleted_;
+    std::future<size_t> archivalCompleted_;
+
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 /// Store that connects to a remote Store
-
 class RemoteStore : public Store, public Client {
 
 public: // types
@@ -102,13 +173,15 @@ private: // members
     // MessageQueue retrieveMessageQueue_;
 
     std::mutex retrieveMessageMutex_;
-    std::mutex locationMutex_;
-    std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
-    size_t fieldsArchived_;
-    size_t locationsReceived_;
-    std::promise<size_t> promiseArchivalCompleted_;
-    std::future<size_t> archivalCompleted_;
-    std::mutex archiveMutex_;
+
+    Locations locations_;
+    // std::recursive_mutex locationMutex_;
+    // std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
+    // size_t fieldsArchived_;
+    // size_t locationsReceived_;
+    // std::promise<size_t> promiseArchivalCompleted_;
+    // std::future<size_t> archivalCompleted_;
+    // // std::mutex archiveMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

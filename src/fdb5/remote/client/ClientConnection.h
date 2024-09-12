@@ -107,9 +107,10 @@ private: // members
     std::mutex promisesMutex_;
     std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
 
-    std::mutex dataWriteQueueMutex_;
+    std::mutex dataWriteMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
-    std::future<void> dataWriteFuture_;
+    std::thread dataWriteThread_;
+    // std::future<void> dataWriteFuture_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

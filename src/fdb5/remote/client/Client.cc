@@ -13,6 +13,7 @@
 
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+// #include <random>
 
 namespace fdb5::remote {
 
@@ -20,7 +21,10 @@ namespace fdb5::remote {
 
 void Client::setClientID() {
     static std::mutex idMutex_;
-    static uint32_t clientId_ = 0;
+    // static std::random_device rd;
+    // static std::mt19937 mt(rd());
+    // static std::uniform_int_distribution<int> dist(0, 1000);
+    static uint32_t clientId_ = 0; // dist(mt)*1000;
 
     std::lock_guard<std::mutex> lock(idMutex_);
     id_ = ++clientId_;

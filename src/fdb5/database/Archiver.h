@@ -83,6 +83,7 @@ private: // members
 
     Database* db_;
 
+    std::mutex flushMutex_;
     const ArchiveCallback& callback_;
 };
 

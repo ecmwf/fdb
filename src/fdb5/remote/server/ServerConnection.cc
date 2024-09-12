@@ -66,7 +66,7 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
         Connection(), config_(config),
         dataListenHostname_(config.getString("dataListenHostname", "")),
         readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)), 
-        archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32)),
+        archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 320)),
         controlSocket_(socket), numControlConnection_(0), numDataConnection_(0),
         dataSocket_(nullptr), dataListener_(0) {
 
