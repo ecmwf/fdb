@@ -41,7 +41,10 @@ try mkdir -p $test_name/localroot
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
-try cp "$bin_dir/$src_data" ./
+try ln -s "$bin_dir/$src_data" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
 
 ########################################################################################################################
 
@@ -113,3 +116,6 @@ echo "Test expansion of date and param with porcelain"
 try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=138 --porcelain | tee out
 line_count 12
 [[ $(grep '{class=rd,expver=xxxx' out | grep 'date=20240911' | grep param=138 | wc -l) -eq 12 ]] || die "Incorrect number of entries reported"
+
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

@@ -41,7 +41,10 @@ try mkdir -p $test_name/localroot
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
-try cp "$bin_dir/$src_data" ./
+try ln -s "$bin_dir/$src_data" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
 
 ########################################################################################################################
 
@@ -103,4 +106,5 @@ for i in 0 1; do
 
 done
 
-exit 0
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

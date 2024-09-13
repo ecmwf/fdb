@@ -41,7 +41,10 @@ try mkdir -p $test_name/localroot
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
-try cp "$bin_dir/$src_data" ./
+try ln -s "$bin_dir/$src_data" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
 
 ########################################################################################################################
 
@@ -65,3 +68,6 @@ echo "Test: without the location flag, none of the location info is included"
 try fdb-list class=rd,expver=xxxx,time=0000 --porcelain | tee out
 line_count 12
 grep_count "{class=rd,expver=xxxx,stream=oper,date=[0-9]+,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=[0-9]+,param=[0-9]+}" 12
+
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

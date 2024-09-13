@@ -35,19 +35,22 @@ done
 ########################################################################################################################
 # Create a grib file with 4 steps and populate FDB
 
-try grib_set -s step=0 $src_data 0.grib
-try grib_set -s step=6 $src_data 6.grib
-try grib_set -s step=9 $src_data 9.grib
+try grib_set -s step=0 $src_data data.0.grib
+try grib_set -s step=6 $src_data data.6.grib
+try grib_set -s step=9 $src_data data.9.grib
 
 for f in *.grib; do
-  try grib_set -s type=an "$f" "cf.$f"
+  try grib_set -s type=an "$f" "data.an.${f#*.}"
 done
 
 for f in *.grib; do
-  try cat "$f" >> "$test_name.grib"
+  try cat "$f" >> "data.$test_name.grib"
 done
 
-try fdb-write "$test_name.grib"
+try fdb-write "data.$test_name.grib"
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
 
 ########################################################################################################################
 
@@ -91,3 +94,7 @@ exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=9,param=166}"
 out=$(try fdb-list type=an --minimum-keys="" --porcelain --depth=3)
 try test "$exp" = "$out"
+
+
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/*data.*.grib

@@ -35,7 +35,10 @@ try mkdir -p $test_name/localroot
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
-try cp "$bin_dir/$src_data" ./
+try ln -s "$bin_dir/$src_data" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
 
 ########################################################################################################################
 
@@ -75,3 +78,6 @@ line_count 8
 echo "Test: All entries should be visible with --full"
 try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain --full | tee out
 line_count 16
+
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
