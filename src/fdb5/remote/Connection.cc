@@ -27,11 +27,16 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 void Connection::writeUnsafe(bool control, const void* data, size_t length) {
-    size_t written = 0;
+    long written = 0;
     if (control || single_) {
         written = controlSocket().write(data, length);
     } else {
         written = dataSocket().write(data, length);
+    }
+    if (written < 0) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << ". Error = " << eckit::Log::syserr;
+        throw TCPException(ss.str(), Here());
     }
     if (length != written) {
         std::stringstream ss;
@@ -41,11 +46,16 @@ void Connection::writeUnsafe(bool control, const void* data, size_t length) {
 }
 
 void Connection::readUnsafe(bool control, void* data, size_t length) {
-    size_t read = 0;
+    long read = 0;
     if (control || single_) {
         read = controlSocket().read(data, length);
     } else {
         read = dataSocket().read(data, length);
+    }
+    if (read < 0) {
+        std::stringstream ss;
+        ss << "Read error. Expected " << length << ". Error = " << eckit::Log::syserr;
+        throw TCPException(ss.str(), Here());
     }
     if (length != read) {
         std::stringstream ss;
