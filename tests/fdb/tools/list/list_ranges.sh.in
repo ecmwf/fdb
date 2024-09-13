@@ -2,9 +2,17 @@
 
 set -ux
 
-yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -21,8 +29,8 @@ echo "running test '$test_name' on $(hostname)"
 
 try cd $bin_dir
 
-rm -rf $test_name || true
-mkdir -p $test_name/localroot
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
 
 try cd $test_name
 
@@ -31,61 +39,47 @@ try cp "$bin_dir/$src_data" ./
 
 ########################################################################################################################
 
-count() {
-  [[ $# -ne 1 ]] && die "count requires 1 argument; expected count"
-  val=$(wc -l < out) && val=$((val + 0))
-  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
-}
-
-# grep_count() {
-#   [[ $# -ne 2 ]] && die "grep_count requires 2 arguments; regex and expected count"
-#   val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
-#   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
-# }
-
-########################################################################################################################
-
 # Ensure that we can wipe specified databases with ranges in the requests
 # --> Ensures the MARS requests are working correctly
 
 try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
-try grib_set -s class=rd,expver=xxxx,date=20170101 "$src_data" data.xxxx.d2.grib
-try grib_set -s class=rd,expver=xxxx,date=20180103 "$src_data" data.xxxx.d3.grib
+try grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
+try grib_set -s class=rd,expver=xxxx,date=20241001 "$src_data" data.xxxx.d3.grib
 try grib_ls -m data.xxxx.d1.grib
 
 try fdb-write data.xxxx.d1.grib
 try fdb-write data.xxxx.d2.grib
 try fdb-write data.xxxx.d3.grib
 
-try fdb-list --all --minimum-keys="" --porcelain --full > out
-count 72
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count 72
 
-try fdb-list class=rd,expver=xxxx --porcelain > out
-count 72
+try fdb-list class=rd,expver=xxxx --porcelain | tee out
+line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=-1 --porcelain > out
-count 24
+try fdb-list class=rd,expver=xxxx,date=20240911 --porcelain | tee out
+line_count 24
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101 --porcelain > out
-count 48
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912 --porcelain | tee out
+line_count 48
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103 --porcelain > out
-count 72
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001 --porcelain | tee out
+line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103/20060101,stream=oper,type=an,levtype=pl,param=60 --porcelain > out
-count 0
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001/20060101,stream=oper,type=an,levtype=pl,param=60 --porcelain | tee out
+line_count 0
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103,stream=oper,type=an,levtype=pl,param=155 --porcelain > out
-count 36
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=155 --porcelain | tee out
+line_count 36
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103,stream=oper,type=an,levtype=pl,param=60/155 --porcelain > out
-count 36
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155 --porcelain | tee out
+line_count 36
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103,stream=oper,type=an,levtype=pl,param=60/155/138 --porcelain > out
-count 72
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138 --porcelain | tee out
+line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/400/500/700/850/1000 --porcelain > out
-count 72
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
+line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=-1/20170101/20180103,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/123/1000 --porcelain > out
-count 24
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/123/1000 --porcelain | tee out
+line_count 24

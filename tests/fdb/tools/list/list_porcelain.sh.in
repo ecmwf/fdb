@@ -2,9 +2,23 @@
 
 set -ux
 
-yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+grep_count() {
+  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+  val=$(grep -cE "$1" out)
+  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+}
+
+########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -21,27 +35,13 @@ echo "running test '$test_name' on $(hostname)"
 
 try cd $bin_dir
 
-rm -rf $test_name || true
-mkdir -p $test_name/localroot
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
 
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
 try cp "$bin_dir/$src_data" ./
-
-########################################################################################################################
-
-count() {
-  [[ $# -eq 1 ]] || die "count requires 1 argument; expected count"
-  val=$(wc -l < out) && val=$((val + 0))
-  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
-}
-
-grep_count() {
-  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
-  val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
-  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
-}
 
 ########################################################################################################################
 
@@ -52,63 +52,64 @@ try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.grib
 try grib_ls -m data.xxxx.grib
 try fdb-write data.xxxx.grib
 
+tab=$'\t' # macos doesn't support '\t' in grep
 
 echo "Test all output"
 
-try fdb-list --all --minimum-keys="" --porcelain --full > out
-count 24
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count 24
 
 
 echo "Test normal output"
 
-try fdb-list class=rd,expver=xxxx > out
-grep_count '{class=rd,expver=xxxx' 24
-grep_count '^retrieve,$' 1
-grep_count '^\t.*=.*' 2
-grep_count '^\tclass=rd' 1
-grep_count '^\texpver=xxxx' 1
+try fdb-list class=rd,expver=xxxx | tee out
+grep_count "{class=rd,expver=xxxx" 24
+grep_count "^retrieve,$" 1
+grep_count "^${tab}.*=.*" 2
+grep_count "^${tab}class=rd" 1
+grep_count "^${tab}expver=xxxx" 1
 
 
 echo "Test porcelain output"
 
-try fdb-list class=rd,expver=xxxx --porcelain > out
-grep_count '{class=rd,expver=xxxx' 24
-count 24
+try fdb-list class=rd,expver=xxxx --porcelain | tee out
+line_count 24
+grep_count "{class=rd,expver=xxxx" 24
 
 
 echo "Test expansion of date and param without porcelain"
 
-try fdb-list class=rd,expver=xxxx,date=-1,stream=oper,type=an,levtype=pl,param=t > out
-grep_count '{class=rd,expver=xxxx' 0
-grep_count '^retrieve,$' 1
-grep_count '^\t.*=.*' 7
-grep_count '^\tclass=rd' 1
-grep_count '^\texpver=xxxx' 1
-grep_count '^\tparam=130' 1
-grep_count '^\tdate=[0-9]{8}' 1
+try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=t | tee out
+grep_count "{class=rd,expver=xxxx" 0
+grep_count "^retrieve,$" 1
+grep_count "^${tab}.*=.*" 7
+grep_count "^${tab}class=rd" 1
+grep_count "^${tab}expver=xxxx" 1
+grep_count "^${tab}param=130" 1
+grep_count "^${tab}date=20240911" 1
 
 
 echo "Test expansion of date and param with porcelain"
 
-try fdb-list class=rd,expver=xxxx,date=-1,stream=oper,type=an,levtype=pl,param=t --porcelain > out
-[[ "$(grep '{class=rd,expver=xxxx' out | grep 'date=[0-9]{8}' | wc -l)" -eq 0 ]] || die "Incorrect number of entries reported"
-count 0
+try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=t --porcelain | tee out
+line_count 0
+[[ "$(grep '{class=rd,expver=xxxx' out | grep 'date=20240911' | wc -l)" -eq 0 ]] || die "Incorrect number of entries reported"
 
 
 echo "Test expansion of date and param without porcelain"
 
-try fdb-list class=rd,expver=xxxx,date=-1,stream=oper,type=an,levtype=pl,param=138 > out
-[[ $(grep '{class=rd,expver=xxxx' out | grep -E 'date=[0-9]{8}' | grep param=138 | wc -l) =~ "12" ]] || die "Incorrect number of entries reported"
-grep_count '^retrieve,$' 1
-grep_count '^\t.*=.*' 7
-grep_count '^\tclass=rd' 1
-grep_count '^\texpver=xxxx' 1
-grep_count '^\tparam=138' 1
-grep_count '^\tdate=[0-9]{8}' 1
+try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=138 | tee out
+grep_count "^retrieve,$" 1
+grep_count "^${tab}.*=.*" 7
+grep_count "^${tab}class=rd" 1
+grep_count "^${tab}expver=xxxx" 1
+grep_count "^${tab}param=138" 1
+grep_count "^${tab}date=20240911" 1
+[[ $(grep '{class=rd,expver=xxxx' out | grep 'date=20240911' | grep param=138 | wc -l) -eq 12 ]] || die "Incorrect number of entries reported"
 
 
 echo "Test expansion of date and param with porcelain"
 
-try fdb-list class=rd,expver=xxxx,date=-1,stream=oper,type=an,levtype=pl,param=138 --porcelain > out
-[[ $(grep '{class=rd,expver=xxxx' out | grep -E 'date=[0-9]{8}' | grep param=138 | wc -l) =~ "12" ]] || die "Incorrect number of entries reported"
-count 12
+try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=138 --porcelain | tee out
+line_count 12
+[[ $(grep '{class=rd,expver=xxxx' out | grep 'date=20240911' | grep param=138 | wc -l) -eq 12 ]] || die "Incorrect number of entries reported"

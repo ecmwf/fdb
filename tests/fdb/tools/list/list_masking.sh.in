@@ -2,9 +2,17 @@
 
 set -ux
 
-yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -21,8 +29,8 @@ echo "running test '$test_name' on $(hostname)"
 
 try cd $bin_dir
 
-rm -rf $test_name || true
-mkdir -p $test_name/localroot
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
 
 try cd $test_name
 
@@ -31,52 +39,39 @@ try cp "$bin_dir/$src_data" ./
 
 ########################################################################################################################
 
-count() {
-  [[ $# -eq 1 ]] || die "count requires 1 argument; expected count"
-  val=$(wc -l < out) && val=$((val + 0))
-  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
-}
-
-# grep_count() {
-#   [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
-#   val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
-#   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
-# }
-
-########################################################################################################################
-
 # Ensure that we can wipe specified databases with ranges in the requests
 # --> Ensures the MARS requests are working correctly
 
 try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
-try grib_set -s class=rd,expver=xxxx,date=20170101 "$src_data" data.xxxx.d2.grib
+try grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
 try grib_ls -m data.xxxx.d1.grib
 
 try fdb-write data.xxxx.d1.grib
 try fdb-write data.xxxx.d2.grib
+# write the data twice
 try fdb-write data.xxxx.d1.grib
 try fdb-write data.xxxx.d2.grib
 
-echo "Incorrect number of entries written"
-try fdb-list --all --minimum-keys="" --porcelain > out
-count 48
+echo "Test: Incorrect number of entries written"
+try fdb-list --all --minimum-keys="" --porcelain | tee out
+line_count 48
 
-echo "Incorrect number of entries written"
-fdb-list --all --minimum-keys="" --porcelain --full > out
-count 96
+echo "Test: Incorrect number of entries written"
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count 96
 
-echo "Entries should be masked without --full"
-fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain > out
-count 48
+echo "Test: Entries should be masked without --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
+line_count 48
 
-echo "All entries should be visible with --full"
-try fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --full > out
-count 96
+echo "Test: All entries should be visible with --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --full | tee out
+line_count 96
 
-echo "Entries should be masked without full"
-try fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain > out
-count 8
+echo "Test: Entries should be masked without full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain | tee out
+line_count 8
 
-echo "All entries should be visible with --full"
-try fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain --full > out
-count 16
+echo "Test: All entries should be visible with --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain --full | tee out
+line_count 16

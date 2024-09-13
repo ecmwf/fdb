@@ -2,9 +2,23 @@
 
 set -ux
 
-yell() { printf "$(basename "$0"): \033[0;31m%s\033[0m\\n" "$*" >&2; }
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+grep_count() {
+  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+  val=$(grep -cE "$1" out)
+  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+}
+
+########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -21,27 +35,13 @@ echo "running test '$test_name' on $(hostname)"
 
 try cd $bin_dir
 
-rm -rf $test_name || true
-mkdir -p $test_name/localroot
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
 
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
 try cp "$bin_dir/$src_data" ./
-
-########################################################################################################################
-
-count() {
-  [[ $# -eq 1 ]] || die "count requires 1 argument; expected count"
-  val=$(wc -l < out) && val=$((val + 0))
-  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
-}
-
-grep_count() {
-  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
-  val=$(grep -E "$1" out | wc -l) && val=$((val + 0))
-  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
-}
 
 ########################################################################################################################
 
@@ -74,10 +74,10 @@ for i in 1 2; do
   echo "============ Loop $i ============"
 
   try fdb-write data.xxxx.0.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
-    count $sum
+    line_count $sum
     grep_count "$regex_x1" 0
     grep_count "$regex_x2" 0
     grep_count "$regex_y0" 0
@@ -87,10 +87,10 @@ for i in 1 2; do
   grep_count "$regex_x0" 24
 
   try fdb-write data.xxxy.0.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
-    count $sum
+    line_count $sum
     grep_count "$regex_x1" 0
     grep_count "$regex_x2" 0
     grep_count "$regex_y1" 0
@@ -101,10 +101,10 @@ for i in 1 2; do
 
 
   try fdb-write data.xxxx.1.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
-    count $sum
+    line_count $sum
     grep_count "$regex_x2" 0
     grep_count "$regex_y1" 0
     grep_count "$regex_y2" 0
@@ -114,10 +114,10 @@ for i in 1 2; do
   grep_count "$regex_x1" 24
 
   try fdb-write data.xxxy.1.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
-    count $sum
+    line_count $sum
     grep_count "$regex_x2" 0
     grep_count "$regex_y2" 0
   fi
@@ -128,10 +128,10 @@ for i in 1 2; do
 
 
   try fdb-write data.xxxx.2.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
-    count $sum
+    line_count $sum
     grep_count "$regex_y2" 0
   fi
   grep_count "$regex_x0" 24
@@ -141,9 +141,9 @@ for i in 1 2; do
   grep_count "$regex_x2" 24
 
   try fdb-write data.xxxy.2.grib
-  try fdb-list --all --minimum-keys="" --porcelain > out
+  try fdb-list --all --minimum-keys="" --porcelain | tee out
   [[ $i = 1 ]] && sum=$((sum + 24))
-  count $sum
+  line_count $sum
   grep_count "$regex_x0" 24
   grep_count "$regex_y0" 24
   grep_count "$regex_x1" 24
