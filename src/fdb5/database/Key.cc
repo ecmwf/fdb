@@ -15,14 +15,31 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/types/Type.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+// HELPERS
+
+namespace {
+
+class Reverse {
+public:
+    explicit Reverse(const Key& key): key_ {key} { }
+
+    Key::const_reverse_iterator begin() const { return key_.rbegin(); }
+
+    Key::const_reverse_iterator end() const { return key_.rend(); }
+
+private:
+    const Key& key_;
+};
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -199,6 +216,14 @@ void Key::pop(const std::string &k) {
     keys_.erase(k);
     ASSERT(names_.back() == k);
     names_.pop_back();
+}
+
+void Key::pushFrom(const Key& other) {
+    for (const auto& [keyword, value] : Reverse(other)) { push(keyword, value); }
+}
+
+void Key::popFrom(const Key& other) {
+    for (const auto& [keyword, value] : other) { pop(keyword); }
 }
 
 const std::string &Key::get( const std::string &k ) const {

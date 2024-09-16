@@ -17,10 +17,9 @@
 #define fdb5_Key_H
 
 #include <map>
-#include <string>
-#include <vector>
-#include <set>
 #include <memory>
+#include <set>
+#include <string>
 
 #include "eckit/types/Types.h"
 
@@ -63,6 +62,8 @@ public: // methods
 
     void push(const std::string &k, const std::string &v);
     void pop(const std::string &k);
+    void pushFrom(const Key& other);
+    void popFrom(const Key& other);
 
     const std::string& get( const std::string &k ) const;
 
