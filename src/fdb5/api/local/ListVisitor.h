@@ -49,8 +49,9 @@ public:
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
-            Key dbKey;
-            if (schema.matchFirstLevel(uri.path().baseName(), dbKey)) { queue_.emplace(dbKey, eckit::URI {}, 0); }
+            if (auto dbKey = schema.matchDatabaseKey(uri.path().baseName())) {
+                queue_.emplace(*dbKey, eckit::URI {}, 0);
+            }
             return false;
         }
         return true;

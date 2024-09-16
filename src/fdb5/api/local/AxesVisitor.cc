@@ -14,6 +14,8 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/rules/Schema.h"
 
+#include <utility>
+
 namespace fdb5 {
 namespace api {
 namespace local {
@@ -26,8 +28,9 @@ AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::M
 bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) {
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
     if (level_ == 1 && uri.scheme() == "toc") {
-        // TODO: This is hacky, only works with the toc backend...
-        if (schema.matchFirstLevel(uri.path().baseName(), dbKey_)) {
+        /// @todo This is hacky, only works with the toc backend...
+        if (auto found = schema.matchDatabaseKey(uri.path().baseName())) {
+            dbKey_ = *found;
             axes_.wipe();
             axes_.insert(dbKey_);
             axes_.sort();
