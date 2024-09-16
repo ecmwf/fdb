@@ -129,10 +129,10 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = db_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
-        std::string v = registry.lookupType(keyword).toKey(keyword, l);
+    for (const auto& value : list) {
+        std::string v = registry.lookupType(keyword).toKey(keyword, value);
         if (!toFilter || filter.find(v) != filter.end()) {
-            values.push_back(l);
+            values.push_back(value);
         }
     }
 }
