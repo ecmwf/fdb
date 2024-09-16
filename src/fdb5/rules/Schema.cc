@@ -24,10 +24,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/KeyChain.h"
-#include "fdb5/database/Notifier.h"
-#include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
-#include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
@@ -184,6 +181,7 @@ bool Schema::matchFirstLevel(const std::string& fingerprint, Key& key) const {
     return false;
 }
 
+#if 0
 //----------------------------------------------------------------------------------------------------------------------
 // LEVEL STUFF
 
@@ -346,6 +344,7 @@ int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
 
     return visitor.level();
 }
+#endif
 
 void Schema::load(const eckit::PathName &path, bool replace) {
 
