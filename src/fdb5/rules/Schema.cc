@@ -9,9 +9,9 @@
  */
 
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <mutex>
-#include <iostream>
 #include <set>
 #include <string>
 #include <vector>
@@ -67,6 +67,17 @@ void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visit
     for (const auto* rule : rules_) { rule->expand(request, visitor); }
 }
 
+std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request) const {
+    std::vector<Key> result;
+
+    for (const auto* rule : rules_) {
+        const auto keys = rule->findMatchingKeys(request);
+        result.insert(result.end(), keys.begin(), keys.end());
+    }
+
+    return result;
+}
+
 std::vector<const Rule*> Schema::getRules(const Key& key) const {
 
     for (const auto* rule : rules_) {
@@ -105,32 +116,6 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     for (const auto* rule : dbRule->rules_) { rule->expandIndex(field, visitor, keys, full); }
 }
 
-bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
-    bool found = false;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-        (*i)->expandFirstLevel(dbKey, result, found);
-    }
-    return found;
-}
-
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results) const {
-    bool found = false;
-    for (const Rule* rule : rules_) {
-        rule->expandFirstLevel(request, results, found);
-        if (found) { break; }
-    }
-    return found;
-}
-
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result) const {
-    if (std::vector<Key> results; expandFirstLevel(request, results)) {
-        result = results.front();
-        result.registry(registry());
-        return true;
-    }
-    return false;
-}
-
 void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->matchFirstLevel(dbKey, result, missing);
@@ -143,24 +128,15 @@ void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set
     }
 }
 
-bool Schema::matchFirstLevel(const std::string& fingerprint, Key& key) const {
-    eckit::Tokenizer  parse(":", true);
-    eckit::StringList values;
-    parse(fingerprint, values);
+std::unique_ptr<Key> Schema::matchDatabaseKey(const std::string& fingerprint) const {
 
-    bool found = false;
-    for (const Rule* rule : rules_) {
-        Key filledKey;
-        if (rule->tryFill(filledKey, values)) {
-            rule->expandFirstLevel(filledKey, key, found);
-            if (found) {
-                ASSERT(filledKey == key);
-                return true;
-            }
-        }
+    const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
+
+    for (const auto* rule : rules_) {
+        if (auto found = rule->findMatchingKey(values)) { return found; }
     }
 
-    return false;
+    return {};
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {

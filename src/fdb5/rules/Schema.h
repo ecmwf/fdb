@@ -51,23 +51,29 @@ public: // methods
 
     ~Schema();
 
-    void expand(const Key &field, WriteVisitor &visitor) const;
-    void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
-
     std::vector<const Rule*> getRules(const Key& key) const;
+
+    // EXPAND
+
+    void expand(const Key& field, WriteVisitor& visitor) const;
+
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+
+    std::vector<Key> expandDatabase(const metkit::mars::MarsRequest& request) const;
 
     // Each database has its own internal schema. So expand() above results in
     // expandFurther being called on the relevant schema from the DB, to start
     // iterating on that schemas rules.
     void expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const;
 
-    bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
+    // MATCH
 
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
-    bool        matchFirstLevel(const std::string& fingerprint, Key& key) const;
+
+    std::unique_ptr<Key> matchDatabaseKey(const std::string& fingerprint) const;
 
     void load(const eckit::PathName &path, bool replace = false);
     void load(std::istream& s, bool replace = false);
