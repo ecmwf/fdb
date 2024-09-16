@@ -12,9 +12,11 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -23,6 +25,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "eckit/types/Types.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/Key.h"
@@ -123,17 +126,66 @@ Rule::~Rule() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+std::unique_ptr<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
+
+    ASSERT(values.size() == predicates_.size());
+
+    auto key = std::make_unique<Key>(registry_);
+
+    for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
+
+        const auto& pred = *iter;
+
+        const auto& keyword = pred->keyword();
+
+        const auto& value = values.at(iter - predicates_.begin());
+
+        if (!pred->match(value)) { return {}; }
+
+        key->push(keyword, value);
+    }
+
+    return key;
+}
+
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request) const {
+
+    RuleGraph graph;
+
+    for (const auto* pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+
+        auto& node = graph.push(keyword);
+
+        const auto& values = pred->values(request);
+
+        /// @todo do we want to allow empty values?
+        // if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+
+        for (const auto& value : values) {
+            if (pred->match(value)) { node.emplace_back(value); }
+        }
+
+        if (node.empty()) { break; }
+    }
+
+    if (graph.size() == predicates_.size()) { return graph.makeKeys(registry_); }
+
+    return {};
+}
+
 std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
 
     RuleGraph graph;
 
     for (const auto* pred : predicates_) {
 
-        const std::string& keyword = pred->keyword();
+        const auto& keyword = pred->keyword();
 
         auto& node = graph.push(keyword);
 
-        eckit::StringList values;
+        std::vector<std::string> values;
         visitor.values(request, keyword, *registry_, values);
 
         if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
@@ -151,15 +203,15 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// EXPAND: READ
+// EXPAND: REQUEST READ
 
 void Rule::expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
+
+    ASSERT(rules_.empty());
 
     for (auto& key : findMatchingKeys(request, visitor)) {
 
         full.pushFrom(key);
-
-        ASSERT(rules_.empty());
 
         visitor.selectDatum(key, full);
 
@@ -270,74 +322,6 @@ void Rule::expandIndex(const Key& field, WriteVisitor& visitor, KeyChain& keys, 
 
 void Rule::expandDatum(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const {
     expand(field, predicates_.begin(), 2, keys, full, visitor);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// EXPAND: FIRST LEVEL (KEY)
-
-void Rule::expandFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& key, bool& found) const {
-
-    if (cur == predicates_.end()) {
-        found = true;
-        key.registry(registry());
-        return;
-    }
-
-    auto next = cur;
-    ++next;
-
-    const auto* pred    = *cur;
-    const auto& keyword = pred->keyword();
-    const auto& value   = pred->value(dbKey);
-
-    key.push(keyword, value);
-
-    if (pred->match(key)) { expandFirstLevel(dbKey, next, key, found); }
-
-    if (!found) { key.pop(keyword); }
-}
-
-void Rule::expandFirstLevel(const Key& dbKey, Key& result, bool& found) const {
-    expandFirstLevel(dbKey, predicates_.begin(), result, found);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// EXPAND: FIRST LEVEL (REQUEST)
-
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
-                            std::vector<Key>& results, Key& key, bool& found) const {
-
-    if (cur == predicates_.end()) {
-        found = true;
-        key.registry(registry());
-        results.push_back(key);
-        return;
-    }
-
-    auto next = cur;
-    ++next;
-
-    const auto* pred    = *cur;
-    const auto& keyword = pred->keyword();
-    const auto& values  = pred->values(request);
-
-    // Gives a unique expansion --> only considers the first of the values suggested.
-    /// @todo Consider the broader case.
-
-    for (const auto& value : values) {
-        key.push(keyword, value);
-
-        if (pred->match(key)) { expandFirstLevel(request, next, results, key, found); }
-
-        if (found) { return; }
-
-        key.pop(keyword);
-    }
-}
-
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results, bool& found) const {
-    Key tmp;
-    expandFirstLevel(request, predicates_.begin(), results, tmp, found);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

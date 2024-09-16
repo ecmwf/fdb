@@ -28,10 +28,8 @@
 #include "eckit/types/Types.h"
 #include "fdb5/types/TypesRegistry.h"
 
-namespace metkit {
-namespace mars {
-    class MarsRequest;
-}
+namespace metkit::mars {
+class MarsRequest;
 }
 
 namespace fdb5 {
@@ -73,8 +71,8 @@ public: // methods
 
     void fill(Key& key, const eckit::StringList& values) const;
 
-
     size_t depth() const;
+
     void updateParent(const Rule *parent);
 
     const Rule &topRule() const;
@@ -90,6 +88,10 @@ public: // methods
     const std::vector<Predicate*>& predicates() const;
 
 private:  // methods
+    std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
+
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request) const;
+
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
     void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
@@ -102,12 +104,6 @@ private:  // methods
 
     void expandFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& result, bool& found) const;
     void expandFirstLevel(const Key& dbKey, Key& result, bool& found) const;
-
-    // expand request
-
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
-                          std::vector<Key>& results, Key& working, bool& found) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& results, bool& found) const;
 
     // match key
 
