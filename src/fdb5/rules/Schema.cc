@@ -63,6 +63,15 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
+std::vector<const Rule*> Schema::getRules(const Key& key) const {
+
+    for (const auto* rule : rules_) {
+        if (rule->match(key)) { return rule->subRulesView(); }
+    }
+
+    return {};
+}
+
 void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
     for (const auto* rule : rules_) { rule->expand(request, visitor); }
 }
@@ -76,15 +85,6 @@ std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request
     }
 
     return result;
-}
-
-std::vector<const Rule*> Schema::getRules(const Key& key) const {
-
-    for (const auto* rule : rules_) {
-        if (rule->match(key)) { return rule->subRulesView(); }
-    }
-
-    return {};
 }
 
 void Schema::expand(const Key &field, WriteVisitor &visitor) const {
