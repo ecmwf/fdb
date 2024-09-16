@@ -63,16 +63,17 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
-void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full(registry());
-    KeyChain keys;
-    keys.registry(registry());
+void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
+    for (const auto* rule : rules_) { rule->expand(request, visitor); }
+}
+
+std::vector<const Rule*> Schema::getRules(const Key& key) const {
 
     for (const auto* rule : rules_) {
-        // eckit::Log::info() << "Rule " << **i <<  std::endl;
-        // (*i)->dump(eckit::Log::info());
-        rule->expandDatabase(request, visitor, keys, full);
+        if (rule->match(key)) { return rule->subRulesView(); }
     }
+
+    return {};
 }
 
 void Schema::expand(const Key &field, WriteVisitor &visitor) const {
@@ -83,25 +84,6 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
     for (const auto* rule : rules_) { rule->expandDatabase(field, visitor, keys, full); }
-}
-
-void Schema::expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
-
-    const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
-            break;
-        }
-    }
-    ASSERT(dbRule);
-
-    Key full = dbKey;
-    KeyChain keys {dbKey};
-    keys[1].registry(registry());
-    keys[2].registry(registry());
-
-    for (const auto* rule : dbRule->rules_) { rule->expandIndex(request, visitor, keys, full); }
 }
 
 void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {

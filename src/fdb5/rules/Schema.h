@@ -54,11 +54,12 @@ public: // methods
     void expand(const Key &field, WriteVisitor &visitor) const;
     void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
 
+    std::vector<const Rule*> getRules(const Key& key) const;
+
     // Each database has its own internal schema. So expand() above results in
     // expandFurther being called on the relevant schema from the DB, to start
     // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const;
+    void expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const;
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
     bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;

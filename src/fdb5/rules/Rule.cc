@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <list>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -24,14 +25,78 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/database/Key.h"
 #include "fdb5/database/KeyChain.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+// GRAPH
+
+namespace {
+
+class RuleGraph {
+    struct RuleNode {
+        explicit RuleNode(const std::string& keyword): keyword_ {keyword} { }
+
+        std::string keyword_;
+
+        std::vector<std::string> values_;
+    };
+
+public:  // types
+    using value_type     = std::list<RuleNode>;
+    using reference      = std::vector<std::string>&;
+    using const_iterator = value_type::const_iterator;
+
+public:  // methods
+    reference push(const std::string& keyword) { return nodes_.emplace_back(keyword).values_; }
+
+    std::size_t size() const { return nodes_.size(); }
+
+    std::vector<Key> makeKeys(const std::shared_ptr<TypesRegistry>& registry) const {
+        std::vector<Key> keys;
+
+        if (!nodes_.empty()) {
+            Key key(registry);
+            visit(nodes_.begin(), key, keys);
+        }
+
+        return keys;
+    }
+
+private:  // methods
+    // Recursive DFS (depth-first search) to generate all possible keys
+    void visit(const_iterator iter, Key& key, std::vector<Key>& keys) const {
+
+        if (iter == nodes_.end()) {
+            keys.push_back(key);
+            return;
+        }
+
+        const auto& [keyword, values] = *iter;
+
+        auto next = iter;
+        ++next;
+
+        for (const auto& value : values) {
+            key.push(keyword, value);
+            visit(next, key, keys);
+            key.pop(keyword);
+        }
+    }
+
+private:  // members
+    value_type nodes_;
+};
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -46,8 +111,6 @@ Rule::Rule(const Schema& schema, const std::size_t line, std::vector<Predicate*>
 }
 
 Rule::~Rule() {
-    //    eckit::Log::info() << " === Deleting rule " << this << std::endl;
-    //    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
     for (auto& predicate : predicates_) {
         delete predicate;
         predicate = nullptr;
@@ -59,80 +122,76 @@ Rule::~Rule() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// EXPAND: READ
 
-void Rule::expand(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
-                  const std::size_t depth, KeyChain& keys, Key& full, ReadVisitor& visitor) const {
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
 
-    ASSERT(depth < 3);
+    RuleGraph graph;
 
-    Key& key = keys[depth];
+    for (const auto* pred : predicates_) {
 
-    // eckit::Log::info() << "depth: " << depth << " - predicates: " << predicates_.size() << " cur "
-    //                    << (cur - predicates_.begin()) << std::endl;
+        const std::string& keyword = pred->keyword();
 
-    if (cur == predicates_.end()) {
+        auto& node = graph.push(keyword);
 
-        key.registry(registry());
+        eckit::StringList values;
+        visitor.values(request, keyword, *registry_, values);
 
-        // eckit::Log::info() << "RQ Setting rule, depth: " << depth << " : " << this << std::endl;
+        if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
 
-        if (depth == 0) {
-            if (visitor.selectDatabase(key, full)) {
-                // ASSERT(key == full);
-                // Here we recurse on the database's schema (rather than the master schema)
-                // see https://jira.ecmwf.int/browse/FDB-90
-                visitor.databaseSchema().expandIndex(request, visitor, key);
-            };
-        } else if (depth == 1) {
-            if (visitor.selectIndex(key, full)) {
-                for (auto* rule : rules_) { rule->expandDatum(request, visitor, keys, full); }
-            }
-        } else if (depth == 2) {
-            ASSERT(rules_.empty());
-            visitor.selectDatum(key, full);
+        for (const auto& value : values) {
+            if (pred->match(value)) { node.emplace_back(value); }
         }
 
-        return;
+        if (node.empty()) { break; }
     }
 
-    const auto* pred = *cur;
+    if (graph.size() == predicates_.size()) { return graph.makeKeys(registry_); }
 
-    const std::string& keyword = pred->keyword();
+    return {};
+}
 
-    eckit::StringList values;
-    visitor.values(request, keyword, *registry_, values);
+//----------------------------------------------------------------------------------------------------------------------
+// EXPAND: READ
 
-    // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
+void Rule::expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
 
-    if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+    for (auto& key : findMatchingKeys(request, visitor)) {
 
-    auto next = cur;
-    ++next;
+        full.pushFrom(key);
 
-    for (const auto& value : values) {
+        ASSERT(rules_.empty());
 
-        key.push(keyword, value);
-        full.push(keyword, value);
+        visitor.selectDatum(key, full);
 
-        if (pred->match(key)) { expand(request, next, depth, keys, full, visitor); }
-
-        full.pop(keyword);
-        key.pop(keyword);
+        full.popFrom(key);
     }
 }
 
-void Rule::expandDatabase(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys,
-                          Key& full) const {
-    expand(request, predicates_.begin(), 0, keys, full, visitor);
+void Rule::expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
+
+    for (auto& key : findMatchingKeys(request, visitor)) {
+
+        full.pushFrom(key);
+
+        if (visitor.selectIndex(key, full)) {
+            for (const auto* rule : rules_) { rule->expandDatum(request, visitor, full); }
+        }
+
+        full.popFrom(key);
+    }
 }
 
-void Rule::expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys, Key& full) const {
-    expand(request, predicates_.begin(), 1, keys, full, visitor);
-}
+void Rule::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
 
-void Rule::expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys, Key& full) const {
-    expand(request, predicates_.begin(), 2, keys, full, visitor);
+    for (auto& key : findMatchingKeys(request, visitor)) {
+
+        if (visitor.selectDatabase(key, key)) {
+            // (important) using the database's schema
+            for (const auto* rule : visitor.databaseSchema().getRules(key)) {
+                rule->expandIndex(request, visitor, key);
+            }
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

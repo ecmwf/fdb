@@ -63,9 +63,9 @@ public: // methods
     void expandIndex(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const;
     void expandDatum(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const;
 
-    void expandDatabase(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys, Key& full) const;
-    void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys, Key& full) const;
-    void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, KeyChain& keys, Key& full) const;
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+
+    std::vector<const Rule*> subRulesView() const { return {rules_.begin(), rules_.end()}; }
 
     const Rule* ruleFor(const KeyChain& keys, size_t depth) const;
 
@@ -90,8 +90,10 @@ public: // methods
     const std::vector<Predicate*>& predicates() const;
 
 private:  // methods
-    void expand(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
-                std::size_t depth, KeyChain& keys, Key& full, ReadVisitor& visitor) const;
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+
+    void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
+    void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
     void expand(const Key& field, std::vector<Predicate*>::const_iterator cur, std::size_t depth, KeyChain& keys,
                 Key& full, WriteVisitor& Visitor) const;
