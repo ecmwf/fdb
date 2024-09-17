@@ -14,6 +14,8 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
@@ -87,44 +89,25 @@ std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request
     return result;
 }
 
-void Schema::expand(const Key &field, WriteVisitor &visitor) const {
-    Key full(registry());
-    KeyChain keys;
-    keys.registry(registry());
+void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
-    visitor.rule(0); // reset to no rule so we verify that we pick at least one
+    visitor.rule(nullptr);  // reset to no rule so we verify that we pick at least one
 
-    for (const auto* rule : rules_) { rule->expandDatabase(field, visitor, keys, full); }
-}
-
-void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
-
-    const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
-            break;
-        }
+    for (const auto* rule : rules_) {
+        if (rule->expand(field, visitor)) { break; }
     }
-    ASSERT(dbRule);
-
-    Key full = dbKey;
-    KeyChain keys {dbKey};
-    keys[1].registry(registry());
-    keys[2].registry(registry());
-
-    for (const auto* rule : dbRule->rules_) { rule->expandIndex(field, visitor, keys, full); }
 }
 
-void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(dbKey, result, missing);
+void Schema::matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const {
+    for (auto* rule : rules_) {
+        if (auto key = rule->findMatchingKey(dbKey, missing)) { result.emplace(std::move(*key)); }
     }
 }
 
 void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(request, result, missing);
+    for (auto* rule : rules_) {
+        const auto keys = rule->findMatchingKeys(request, missing);
+        result.insert(keys.begin(), keys.end());
     }
 }
 
@@ -223,16 +206,20 @@ SchemaRegistry& SchemaRegistry::instance() {
 }
 
 const Schema& SchemaRegistry::get(const eckit::PathName& path) {
-    std::lock_guard<std::mutex> lock(m_);
-    auto it = schemas_.find(path);
-    if (it != schemas_.end()) {
-        return *it->second;
+    std::lock_guard lock(m_);
+
+    auto iter = schemas_.find(path);
+
+    if (iter == schemas_.end()) {
+        bool done = false;
+
+        std::tie(iter, done) = schemas_.emplace(path, std::make_unique<Schema>(path));
+
+        ASSERT(done);
     }
 
-    Schema* p = new Schema(path);
-    ASSERT(p);
-    schemas_[path] = std::unique_ptr<Schema>(p);
-    return *schemas_[path];
+    ASSERT(iter->second);
+    return *iter->second;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

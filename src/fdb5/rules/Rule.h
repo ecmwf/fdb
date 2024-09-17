@@ -20,7 +20,6 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -57,11 +56,13 @@ public: // methods
 
     void dump(std::ostream &s, size_t depth = 0) const;
 
-    void expandDatabase(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const;
-    void expandIndex(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const;
-    void expandDatum(const Key& field, WriteVisitor& visitor, KeyChain& keys, Key& full) const;
+    // EXPAND
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+
+    bool expand(const Key& field, WriteVisitor& visitor) const;
+
+    // ACCESS
 
     std::vector<const Rule*> subRulesView() const { return {rules_.begin(), rules_.end()}; }
 
@@ -90,32 +91,25 @@ public: // methods
 private:  // methods
     std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
 
+    std::unique_ptr<Key> findMatchingKey(const Key& field) const;
+
+    std::unique_ptr<Key> findMatchingKey(const Key& field, const char* missing) const;
+
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const;
+
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
+    // EXPAND READ PATH
+
     void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
     void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
-    void expand(const Key& field, std::vector<Predicate*>::const_iterator cur, std::size_t depth, KeyChain& keys,
-                Key& full, WriteVisitor& Visitor) const;
+    // EXPAND WRITE PATH
 
-    // expand key
-
-    void expandFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& result, bool& found) const;
-    void expandFirstLevel(const Key& dbKey, Key& result, bool& found) const;
-
-    // match key
-
-    void matchFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& tmp, std::set<Key>& result,
-                         const char* missing) const;
-    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const;
-
-    // match request
-
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
-                         Key& tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
+    bool expandDatum(const Key& field, WriteVisitor& visitor, Key& full) const;
+    bool expandIndex(const Key& field, WriteVisitor& visitor, Key& full) const;
 
     void keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const;
 

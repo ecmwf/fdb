@@ -19,6 +19,7 @@
 #include <iosfwd>
 #include <map>
 #include <mutex>
+#include <set>
 #include <vector>
 #include <memory>
 
@@ -61,19 +62,14 @@ public: // methods
 
     std::vector<Key> expandDatabase(const metkit::mars::MarsRequest& request) const;
 
-    // Each database has its own internal schema. So expand() above results in
-    // expandFurther being called on the relevant schema from the DB, to start
-    // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const;
-
     // MATCH
 
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
-    const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
-
     std::unique_ptr<Key> matchDatabaseKey(const std::string& fingerprint) const;
+
+    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
     void load(std::istream& s, bool replace = false);
