@@ -26,14 +26,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Key::Key(const std::shared_ptr<TypesRegistry> reg, bool canonical) :
-    keys_(),
-    registry_(reg), canonical_(canonical) {}
+Key::Key(std::shared_ptr<const TypesRegistry> reg, bool canonical): registry_(reg), canonical_(canonical) { }
 
-Key::Key(const std::string &s, const Rule *rule) :
-    keys_(),
-    registry_(rule ? rule->registry() : nullptr),
-    canonical_(false) {
+Key::Key(const std::string& s, const Rule* rule): registry_(rule ? rule->registry() : nullptr), canonical_(false) {
 
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
@@ -43,10 +38,8 @@ Key::Key(const std::string &s, const Rule *rule) :
     rule->fill(*this, values);
 }
 
-Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
-    keys_(keys),
-    registry_(reg),
-    canonical_(false) {
+Key::Key(const eckit::StringDict& keys, std::shared_ptr<const TypesRegistry> reg):
+    keys_(keys), registry_(reg), canonical_(false) {
 
     eckit::StringDict::const_iterator it = keys.begin();
     eckit::StringDict::const_iterator end = keys.end();
@@ -55,16 +48,12 @@ Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg
     }
 }
 
-Key::Key(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
-    registry_(reg),
-    canonical_(reg == nullptr) {
+Key::Key(eckit::Stream& s, std::shared_ptr<const TypesRegistry> reg): registry_(reg), canonical_(reg == nullptr) {
     decode(s);
 }
 
-Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
-    keys_(l),
-    registry_(reg),
-    canonical_(reg == nullptr) {
+Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, std::shared_ptr<const TypesRegistry> reg):
+    keys_(l), registry_(reg), canonical_(reg == nullptr) {
 
     for (const auto& kv : keys_) {
         names_.emplace_back(kv.first);
@@ -89,7 +78,7 @@ Key Key::parseStringUntyped(const std::string& s) {
     return Key{keys};
 }
 
-Key Key::parseString(const std::string &s, const std::shared_ptr<TypesRegistry> registry) {
+Key Key::parseString(const std::string& s, std::shared_ptr<const TypesRegistry> registry) {
 
     eckit::Tokenizer parse1(",");
     eckit::Tokenizer parse2("=");
@@ -307,7 +296,7 @@ bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-void Key::registry(const std::shared_ptr<TypesRegistry> reg) {
+void Key::registry(std::shared_ptr<const TypesRegistry> reg) {
     registry_ = reg;
 }
 
