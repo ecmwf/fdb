@@ -18,7 +18,7 @@
 
 #include <map>
 #include <string>
-#include <vector>
+#include <utility>  // std::pair
 #include <set>
 #include <memory>
 
@@ -187,14 +187,14 @@ class TypedKey : public BaseKey {
 
 public: // methods
 
-    explicit TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg);
-    explicit TypedKey(const std::shared_ptr<TypesRegistry> reg);
-    explicit TypedKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const Key& key, std::shared_ptr<const TypesRegistry> reg);
+    explicit TypedKey(std::shared_ptr<const TypesRegistry> reg);
+    explicit TypedKey(eckit::Stream &, std::shared_ptr<const TypesRegistry> reg);
     explicit TypedKey(const std::string &keys, const Rule* rule);
-    explicit TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg);
-    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const eckit::StringDict &keys, std::shared_ptr<const TypesRegistry> reg);
+    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<const TypesRegistry> reg);
 
-    static TypedKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+    static TypedKey parseString(const std::string&, std::shared_ptr<const TypesRegistry> reg);
 
     Key canonical() const;
 
@@ -207,7 +207,7 @@ public: // methods
     }
 
     // Registry is needed before we can stringise/canonicalise.
-    void registry(const std::shared_ptr<TypesRegistry> reg);
+    void registry(std::shared_ptr<const TypesRegistry> reg);
     [[ nodiscard ]]
     const TypesRegistry& registry() const;
     const void* reg() const;
@@ -218,8 +218,7 @@ private: // members
     std::string canonicalise(const std::string& keyword, const std::string& value) const override;
     std::string type(const std::string& keyword) const override;
 
-    std::shared_ptr<TypesRegistry> registry_;
-
+    std::shared_ptr<const TypesRegistry> registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -17,17 +17,21 @@
 #define fdb5_Schema_H
 
 #include <iosfwd>
-#include <vector>
+#include <map>
 #include <memory>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/types/TypesRegistry.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -75,8 +79,7 @@ public: // methods
 
     const std::string &path() const;
 
-    const std::shared_ptr<TypesRegistry> registry() const;
-
+    std::shared_ptr<const TypesRegistry> registry() const;
 
 private: // methods
 
