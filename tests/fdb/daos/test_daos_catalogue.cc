@@ -204,7 +204,7 @@ CASE("DaosCatalogue tests") {
         // archive
 
         /// DaosManager is configured with client config from the file
-        std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
+        std::unique_ptr<const fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
             eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key(nullptr, true)
         ));
 
@@ -308,7 +308,7 @@ CASE("DaosCatalogue tests") {
 
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -399,7 +399,7 @@ CASE("DaosCatalogue tests") {
 
         fdb5::TocStore tstore{schema, db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 
