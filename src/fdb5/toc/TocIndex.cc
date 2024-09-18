@@ -47,7 +47,7 @@ public:
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
-TocIndex::TocIndex(const Key& key, const Catalogue* catalogue, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+TocIndex::TocIndex(const Key& key, const Catalogue& catalogue, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     UriStoreWrapper(path.dirName()),
     IndexBase(key, type, catalogue),
     btree_(nullptr),
@@ -57,7 +57,7 @@ TocIndex::TocIndex(const Key& key, const Catalogue* catalogue, const eckit::Path
     preloadBTree_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const Catalogue* catalogue, const int version, const eckit::PathName &directory, const eckit::PathName &path,
+TocIndex::TocIndex(eckit::Stream &s, const Catalogue& catalogue, const int version, const eckit::PathName &directory, const eckit::PathName &path,
                    off_t offset, bool preloadBTree):
     UriStoreWrapper(directory, s),
     IndexBase(s, version, catalogue),

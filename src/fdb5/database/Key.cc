@@ -9,6 +9,7 @@
  */
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 
 #include "eckit/container/DenseSet.h"
@@ -24,8 +25,6 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-BaseKey::~BaseKey() {}
 
 void BaseKey::decode(eckit::Stream& s) {
 
@@ -54,8 +53,8 @@ void BaseKey::decode(eckit::Stream& s) {
 void BaseKey::encode(eckit::Stream& s) const {
 
     s << keys_.size();
-    for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-        s << i->first << canonicalise(i->first, i->second);
+    for (const auto& [key_name, key_value] : keys_) {
+        s << key_name << canonicalise(key_name, key_value);
     }
 
     s << names_.size();
@@ -149,7 +148,7 @@ bool BaseKey::match(const metkit::mars::MarsRequest& request) const {
         bool found=false;
         auto values = request.values(k);
         std::string can = canonicalise(k, j->second);
-        for (auto it = values.begin(); !found && it != values.end(); it++) {
+        for (auto it = values.cbegin(); !found && it != values.cend(); it++) {
             found = can == canonicalise(k, *it);
         }
         if (!found) {
@@ -159,35 +158,6 @@ bool BaseKey::match(const metkit::mars::MarsRequest& request) const {
 
     return true;
 }
-
-// bool BaseKey::match(const BaseKey& other, const eckit::StringList& ignore) const {
-
-//     for (const_iterator i = other.begin(); i != other.end(); ++i) {
-//         if (std::find(ignore.begin(), ignore.end(), i->first) != ignore.end())
-//             continue;
-
-//         const_iterator j = find(i->first);
-//         if (j == end()) {
-//             return false;
-//         }
-
-//         if (j->second != i->second) {
-//             return false;
-//         }
-
-//     }
-//     return true;
-// }
-
-// bool BaseKey::match(const std::string &key, const std::set<std::string> &values) const {
-
-//     eckit::StringDict::const_iterator i = find(key);
-//     if (i == end()) {
-//         return false;
-//     }
-
-//     return values.find(canonicalise(key, i->second)) != values.end();
-// }
 
 bool BaseKey::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
 
@@ -267,7 +237,7 @@ const eckit::StringDict &BaseKey::keyDict() const {
     return keys_;
 }
 
-metkit::mars::MarsRequest BaseKey::request(std::string verb) const {
+metkit::mars::MarsRequest BaseKey::request(const std::string& verb) const {
     metkit::mars::MarsRequest req(verb);
 
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
@@ -327,22 +297,10 @@ std::string BaseKey::toString() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Key::Key() :
-    BaseKey() {}
-
-// Key::Key(const std::string &s) :
-//     BaseKey({}) {
-
-//     eckit::Tokenizer parse(":", true);
-//     eckit::StringList values;
-//     parse(s, values);
-// }
-
 Key::Key(const eckit::StringDict &keys) :
     BaseKey(keys) {}
 
-Key::Key(eckit::Stream& s) :
-    BaseKey() {
+Key::Key(eckit::Stream& s) {
     decode(s);
 }
 
@@ -399,12 +357,6 @@ TypedKey::TypedKey(const std::string &s, const Rule *rule) :
 
 TypedKey::TypedKey(const eckit::StringDict &keys, std::shared_ptr<const TypesRegistry> reg) :
     BaseKey(keys), registry_(reg) {
-
-    // eckit::StringDict::const_iterator it = keys.begin();
-    // eckit::StringDict::const_iterator end = keys.end();
-    // for (; it != end; ++it) {
-    //     names_.emplace_back(it->first);
-    // }
 }
 
 TypedKey::TypedKey(eckit::Stream& s, std::shared_ptr<const TypesRegistry> reg) :

@@ -84,7 +84,7 @@ public: // methods
     const Rule &topRule() const;
 
     const Schema &schema() const;
-    const std::shared_ptr<TypesRegistry> registry() const;
+    std::shared_ptr<TypesRegistry> registry() const;
 
     void check(const Key& key) const;
 

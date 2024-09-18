@@ -27,7 +27,7 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Key;
-class Key;
+class TypedKey;
 class Matcher;
 class TypesRegistry;
 
@@ -47,7 +47,6 @@ public: // methods
     void fill(TypedKey& key, const std::string& value) const;
 
     const std::string &value(const Key& key) const;
-    // const std::string &value(const TypedKey& key) const;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
     const std::string &defaultValue() const;
 

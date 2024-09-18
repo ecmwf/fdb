@@ -441,7 +441,7 @@ void Rule::updateParent(const Rule *parent) {
     }
 }
 
-const std::shared_ptr<TypesRegistry> Rule::registry() const {
+std::shared_ptr<TypesRegistry> Rule::registry() const {
     return registry_;
 }
 

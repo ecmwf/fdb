@@ -15,6 +15,8 @@
 #ifndef fdb5_Store_H
 #define fdb5_Store_H
 
+#include <memory>
+
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
@@ -33,7 +35,7 @@ public:
 
     Store(const Schema& schema) : schema_(schema) {}
 
-    virtual ~Store() {}
+    virtual ~Store() = default;
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
     virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) = 0;

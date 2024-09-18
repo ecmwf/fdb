@@ -46,8 +46,8 @@ class BaseKey {
 
 public: // methods
 
-    BaseKey() : keys_(), names_() {}
-    BaseKey(const BaseKey &key) : keys_(key.keys_), names_(key.names_) {}
+    BaseKey() = default;
+    BaseKey(const BaseKey &key) = default;
 
     explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
         for (const auto& k : keys) {
@@ -60,7 +60,7 @@ public: // methods
         }
     }
 
-    virtual ~BaseKey();
+    virtual ~BaseKey() = default;
 
     std::set<std::string> keys() const;
 
@@ -133,7 +133,7 @@ public: // methods
 
     const eckit::StringDict& keyDict() const;
 
-    metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
+    metkit::mars::MarsRequest request(const std::string& verb = "retrieve") const;
 
     operator std::string() const;
 
@@ -162,7 +162,7 @@ class Key : public BaseKey {
 
 public: // methods
 
-    explicit Key();
+    explicit Key() = default;
     explicit Key(eckit::Stream &);
     explicit Key(const eckit::StringDict &keys);
     Key(std::initializer_list<std::pair<const std::string, std::string>>);

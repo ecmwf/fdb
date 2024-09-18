@@ -19,8 +19,8 @@ namespace fdb5 {
 
 BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey) :
     WriteVisitor(owner.prev_),
-    initialFieldKey_(initialFieldKey),
-    owner_(owner) {
+    owner_(owner),
+    initialFieldKey_(initialFieldKey) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 

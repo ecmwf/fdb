@@ -33,10 +33,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr) {}
-
-EntryVisitor::~EntryVisitor() {}
-
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
     currentStore_ = &store;

@@ -15,6 +15,8 @@
 #ifndef fdb5_Index_H
 #define fdb5_Index_H
 
+#include <memory>
+
 #include "eckit/eckit.h"
 
 #include "eckit/io/Length.h"
@@ -53,8 +55,8 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue);
-    IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue);
+    IndexBase(const Key& key, const std::string& type, const Catalogue& catalogue);
+    IndexBase(eckit::Stream& s, const int version, const Catalogue& catalogue);
 
     virtual ~IndexBase() override;
 
@@ -123,12 +125,15 @@ protected: // members
 
     Indexer   indexer_;
 
-    const Catalogue* catalogue_;
-    mutable std::shared_ptr<TypesRegistry> registry_;
-
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
     }
+
+private: // members
+
+    const Catalogue& catalogue_;
+    mutable std::shared_ptr<const TypesRegistry> registry_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

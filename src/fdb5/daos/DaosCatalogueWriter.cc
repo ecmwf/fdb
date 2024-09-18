@@ -150,7 +150,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
             indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
                     idxKey,
-                    this,
+                    *this,
                     fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
                     false
                 )
@@ -163,7 +163,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
             indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
                     idxKey,
-                    this,
+                    *this,
                     fdb5::DaosName{pool_, db_cont_}
                 )
             );
