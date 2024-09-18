@@ -110,7 +110,7 @@ DB& Archiver::database(const Key& key) {
     return out;
 }
 
-void Archiver::print(std::ostream &out) const {
+void Archiver::print(std::ostream& out) const {
     out << "Archiver["
         << "]"
         << std::endl;

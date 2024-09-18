@@ -20,10 +20,7 @@ namespace fdb5 {
 
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
-    keyword_(keyword) {
-    //    dump(LOG_DEBUG_LIB(LibFdb5));
-    //    LOG_DEBUG_LIB(LibFdb5) << std::endl;
-}
+    keyword_(keyword) {}
 
 Predicate::~Predicate() {
 }
@@ -47,10 +44,6 @@ std::string Predicate::keyword() const {
 bool Predicate::optional() const {
     return matcher_->optional();
 }
-
-// const std::string &Predicate::value(const TypedKey& key) const {
-//     return matcher_->value(key, keyword_);
-// }
 
 const std::string &Predicate::value(const Key& key) const {
     return matcher_->value(key, keyword_);

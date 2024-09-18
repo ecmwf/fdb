@@ -72,7 +72,7 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
     static eckit::ClassSpec                 classSpec_;
@@ -119,7 +119,7 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
     static eckit::ClassSpec                  classSpec_;
@@ -150,7 +150,7 @@ class PMemStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
     PMemStatsReportVisitor(const PMemDB& db);
-    virtual ~PMemStatsReportVisitor() override;
+    ~PMemStatsReportVisitor() override;
 
     virtual IndexStats indexStatistics() const;
     virtual DbStats    dbStatistics() const;

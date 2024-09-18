@@ -39,7 +39,7 @@ public: // methods
     virtual bool open();
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
-    virtual ~PMemDBReader() override;
+    ~PMemDBReader() override;
 
     virtual bool selectIndex(const Key& idxKey);
     virtual eckit::DataHandle* retrieve(const Key& key) const;
@@ -50,7 +50,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

@@ -125,7 +125,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
     s << type_;
 }
 
-void IndexBase::put(const Key& key, const Field &field) {
+void IndexBase::put(const Key& key, const Field& field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
@@ -159,11 +159,11 @@ const Key& IndexBase::key() const {
     return key_;
 }
 
-const std::string &IndexBase::type() const {
+const std::string& IndexBase::type() const {
     return type_;
 }
 
-const IndexAxis &IndexBase::axes() const {
+const IndexAxis& IndexBase::axes() const {
     return axes_;
 }
 

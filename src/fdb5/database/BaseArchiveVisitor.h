@@ -32,7 +32,7 @@ class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
 
-    BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey);
+    BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey);
 
 protected: // methods
 
@@ -50,7 +50,7 @@ protected: // methods
 
 private: // members
 
-    Archiver &owner_;
+    Archiver& owner_;
 
     const Key initialFieldKey_;
     bool checkMissingKeysOnWrite_;

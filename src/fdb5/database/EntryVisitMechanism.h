@@ -26,6 +26,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
+class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 

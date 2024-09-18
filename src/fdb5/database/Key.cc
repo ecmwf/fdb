@@ -335,9 +335,6 @@ std::string Key::type(const std::string& keyword) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TypedKey::TypedKey(const Key& key) : 
-//     BaseKey(key), registry_(nullptr) {}
-
 TypedKey::TypedKey(const Key& key, std::shared_ptr<const TypesRegistry> reg) : 
     BaseKey(key), registry_(reg) {}
 
@@ -365,12 +362,7 @@ TypedKey::TypedKey(eckit::Stream& s, std::shared_ptr<const TypesRegistry> reg) :
 }
 
 TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, std::shared_ptr<const TypesRegistry> reg) :
-    BaseKey(l), registry_(reg) {
-
-    // for (const auto& kv : keys_) {
-    //     names_.emplace_back(kv.first);
-    // }
-}
+    BaseKey(l), registry_(reg) {}
 
 TypedKey TypedKey::parseString(const std::string &s, std::shared_ptr<const TypesRegistry> registry) {
 

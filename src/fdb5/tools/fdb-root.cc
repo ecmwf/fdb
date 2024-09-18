@@ -67,14 +67,15 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
             const Schema& schema = conf.schema();
             TypedKey result{conf.schema().registry()};
             ASSERT( schema.expandFirstLevel(request.request(), result) );
+            const auto key = result.canonical();
 
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
-            std::unique_ptr<DB> db = DB::buildReader(result.canonical(), conf);
+            std::unique_ptr<DB> db = DB::buildReader(key, conf);
 
             if (!db->exists() && create_db) {
-                db = DB::buildWriter(result.canonical(), conf);
+                db = DB::buildWriter(key, conf);
             }
 
             if (db->exists()) {

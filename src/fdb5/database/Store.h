@@ -85,7 +85,7 @@ public:
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
+    std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}

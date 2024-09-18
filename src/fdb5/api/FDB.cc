@@ -19,7 +19,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-#include "eckit/utils/StringTools.h"
 
 #include "metkit/hypercube/HyperCubePayloaded.h"
 

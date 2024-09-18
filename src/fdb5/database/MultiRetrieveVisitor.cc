@@ -65,8 +65,6 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& full
     }
 
     /* DB not yet open */
-
-    //std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
     std::unique_ptr<DB> newDB = DB::buildReader(dbKey, config_);
 
     // If this database is locked for retrieval then it "does not exist"
@@ -128,7 +126,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = db_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
+    for(const auto& l: list) {
         std::string v = registry.lookupType(keyword).toKey(l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);

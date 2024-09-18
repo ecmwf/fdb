@@ -50,20 +50,20 @@ private:  // methods
 
     // From Visitor
 
-    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
+    bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
 
-    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
+    bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
 
-    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
+    bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 
     virtual void values(const metkit::mars::MarsRequest& request,
                         const std::string& keyword,
                         const TypesRegistry& registry,
                         eckit::StringList& values) override;
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
-    virtual const Schema& databaseSchema() const override;
+    const Schema& databaseSchema() const override;
 
 private:
 

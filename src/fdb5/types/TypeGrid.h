@@ -28,11 +28,11 @@ public: // methods
 
     TypeGrid(const std::string &name, const std::string &type);
 
-    virtual ~TypeGrid() override;
+    ~TypeGrid() override;
 
 private: // methods
 
-    virtual std::string toKey(const std::string& value) const override;
+    std::string toKey(const std::string& value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -40,7 +40,7 @@ private: // methods
                            const Notifier &wind,
                            const DB *db) const override;
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

@@ -18,7 +18,7 @@
 
 #include <map>
 #include <string>
-#include <utility>  // std::pair
+#include <utility>
 #include <set>
 #include <memory>
 
@@ -74,13 +74,9 @@ public: // methods
 
     void clear();
 
-    // std::vector<eckit::URI> TocEngine::databases(const Key& key,
     bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
 
-    // bool match(const BaseKey& other, const eckit::StringList& ignore) const;
-
-    // bool match(const std::string& key, const std::set<std::string>& values) const;
     bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the

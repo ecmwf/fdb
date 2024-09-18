@@ -20,7 +20,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AdoptVisitor::AdoptVisitor(Archiver &owner, const Key& initialFieldKey, const PathName &path, Offset offset, Length length) :
+AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const PathName& path, Offset offset, Length length) :
     BaseArchiveVisitor(owner, initialFieldKey),
     path_(path),
     offset_(offset),
@@ -41,7 +41,7 @@ bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullCom
     return true;
 }
 
-void AdoptVisitor::print(std::ostream &out) const {
+void AdoptVisitor::print(std::ostream& out) const {
     out << "AdoptVisitor["
         << "path=" << path_
         << ",offset=" << offset_

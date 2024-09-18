@@ -60,8 +60,6 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     for (Rule* r : rules_) {
-		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// (*i)->dump(eckit::Log::info());
 		r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
