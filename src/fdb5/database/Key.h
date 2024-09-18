@@ -18,7 +18,7 @@
 
 #include <map>
 #include <string>
-#include <vector>
+#include <utility>  // std::pair
 #include <set>
 #include <memory>
 
@@ -45,12 +45,11 @@ class Rule;
 class Key {
 
 public: // methods
-    explicit Key(std::shared_ptr<const TypesRegistry> reg = nullptr, bool canonical = false);
-    explicit Key(eckit::Stream&, std::shared_ptr<const TypesRegistry> reg = nullptr);
+    explicit Key(std::shared_ptr<const TypesRegistry> reg = {}, bool canonical = false);
+    explicit Key(eckit::Stream&, std::shared_ptr<const TypesRegistry> reg = {});
     explicit Key(const std::string &keys, const Rule* rule);
-    explicit Key(const eckit::StringDict& keys, std::shared_ptr<const TypesRegistry> reg = nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>,
-        std::shared_ptr<const TypesRegistry> reg = nullptr);
+    explicit Key(const eckit::StringDict& keys, std::shared_ptr<const TypesRegistry> reg = {});
+    Key(std::initializer_list<std::pair<const std::string, std::string>>, std::shared_ptr<const TypesRegistry> reg = {});
 
     static Key parseStringUntyped(const std::string& s);
     /// @todo - this functionality should not be supported any more.
