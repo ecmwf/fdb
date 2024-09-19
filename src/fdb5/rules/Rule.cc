@@ -11,6 +11,7 @@
 #include "fdb5/rules/Rule.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "eckit/config/Resource.h"
 
@@ -26,11 +27,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rule::Rule(const Schema &schema,
-           size_t line,
-           std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
-           const std::map<std::string, std::string> &types):
-    schema_(schema), registry_(new TypesRegistry()), line_(line) {
+Rule::Rule(const Schema& schema, size_t line, std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
+           const std::map<std::string, std::string>& types)
+    : schema_(schema), registry_(std::make_shared<TypesRegistry>()), line_(line) {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
