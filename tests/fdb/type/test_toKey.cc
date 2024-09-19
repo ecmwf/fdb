@@ -124,6 +124,8 @@ CASE( "Step & ClimateDaily - expansion" ) {
     key.set("levelist", "50");
     key.set("param", "129.128");
 
+    EXPECT(key.valuesToString() == "20210427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
+
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
     config.schema().expand(key, visitor);
@@ -131,8 +133,7 @@ CASE( "Step & ClimateDaily - expansion" ) {
 
     EXPECT(key.canonicalValue("date") == "0427");
     EXPECT(key.canonicalValue("time") == "0000");
-
-    std::cout << key.valuesToString() << std::endl;
+    EXPECT(key.canonicalValue("step") == "2-12");
 
     EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 

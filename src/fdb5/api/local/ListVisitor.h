@@ -19,14 +19,21 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "metkit/mars/MarsRequest.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+#include <string>
+
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -35,7 +42,8 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    using QueryVisitor<ListElement>::QueryVisitor;
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
+        QueryVisitor<ListElement>(queue, request), level_(level) { }
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
@@ -53,6 +61,11 @@ public:
         indexRequest_ = request_;
         for (const auto& kv : catalogue.key()) {
             indexRequest_.unsetValues(kv.first);
+        }
+
+        if (level_ == 1) {
+            queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
+            ret = false;
         }
 
         return ret;
@@ -73,9 +86,14 @@ public:
         }
 
         if (index.partialMatch(request_)) {
-            return true; // Explore contained entries
+            if (level_ == 2) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
+                return false;
+            }
+            return true;  // Explore contained entries
         }
-        return false; // Skip contained entries
+
+        return false;  // Skip contained entries
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
@@ -84,7 +102,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
+            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.stableLocation(), field.timestamp());
         }
     }
 
@@ -96,12 +114,11 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
+    const int level_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace fdb5::api::local
 
 #endif

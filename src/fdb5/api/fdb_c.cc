@@ -8,20 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsExpension.h"
-#include "eckit/utils/Tokenizer.h"
 
-#include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/KeyChain.h"
+#include "fdb5/fdb5_version.h"
 
 #include "fdb5/api/fdb_c.h"
 
@@ -88,50 +90,51 @@ private:
 };
 
 struct fdb_split_key_t {
-public:
-    fdb_split_key_t() : key_(nullptr), level_(-1) {}
+    using value_type = KeyChain;
 
-    void set(const std::vector<Key>& key) {
-        key_ = &key;
-        level_ = -1;
+    auto operator=(const value_type& keys) -> fdb_split_key_t& {
+        keys_  = &keys;
+        level_ = keys_->end();
+        return *this;
     }
 
-    int next_metadata(const char** k, const char** v, size_t* level) {
-        if (key_ == nullptr) {
-            std::stringstream ss;
-            ss << "fdb_split_key_t not valid. Key not configured";
-            throw eckit::UserError(ss.str(), Here());
+    auto operator++() -> fdb_split_key_t& {
+        /// @todo the following "if" is an unfortunate consequence of a flaw in this iterator
+        if (level_ == keys_->end()) {
+            level_ = keys_->begin();
+            curr_  = level_->begin();
+            return *this;
         }
-        if (level_ == -1) {
-            if (0 < key_->size()) {
-                level_ = 0;
-                it_ = key_->at(0).begin();
-            } else {
-                return FDB_ITERATION_COMPLETE;
-            }
-        } 
-        while (it_ == key_->at(level_).end()) {
-            if (level_<key_->size()-1) {
-                level_++;
-                it_ = key_->at(level_).begin();
-            } else {
-                return FDB_ITERATION_COMPLETE;
-            }
+        if (curr_ != level_->end()) {
+            ++curr_;
+            if (curr_ == level_->end() && level_ != keys_->end() - 1) { curr_ = (++level_)->begin(); }
         }
+        return *this;
+    }
 
-        *k = it_->first.c_str();
-        *v = it_->second.c_str();
-        if (level != nullptr) {
-            *level = level_;
-        }
-        it_++;
+    int next() {
+        ++(*this);
+        if (curr_ == level_->end()) { return FDB_ITERATION_COMPLETE; }
         return FDB_SUCCESS;
     }
 
-private:
-    const std::vector<Key>* key_;
-    int level_;
-    Key::const_iterator it_;
+    void metadata(const char** k, const char** v, size_t* level) const {
+        ASSERT_MSG(keys_, "keys are missing!");
+
+        const auto& [key, val] = *curr_;
+
+        *k = key.c_str();
+        *v = val.c_str();
+
+        if (level) { *level = level_ - keys_->begin(); }
+    }
+
+private:  // members
+    const value_type* keys_ {nullptr};
+
+    value_type::const_iterator level_;
+
+    Key::const_iterator curr_;
 };
 
 struct fdb_listiterator_t {
@@ -147,17 +150,20 @@ public:
     void attrs(const char** uri, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
-        const FieldLocation& loc = el_.location();
-        *uri = loc.uri().name().c_str();
-        *off = loc.offset();
-        *len = loc.length();
+        // guard against negative values
+        ASSERT(0 <= el_.offset());
+        ASSERT(0 <= el_.length());
+
+        *uri = el_.uri().name().c_str();
+        *off = el_.offset();
+        *len = el_.length();
     }
 
     void key(fdb_split_key_t* key) {
         ASSERT(validEl_);
         ASSERT(key);
 
-        key->set(el_.key());
+        *key = el_.keys();
     }
 
 private:
@@ -197,7 +203,7 @@ public:
             delete dh_;
         dh_ = dh;
     }
-    
+
 private:
     DataHandle* dh_;
 };
@@ -355,17 +361,18 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
     });
 }
 
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates) {
-    return wrapApiFunction([fdb, req, it, duplicates] {
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, const bool duplicates, const int depth) {
+    return wrapApiFunction([fdb, req, it, duplicates, depth] {
         ASSERT(fdb);
         ASSERT(it);
+        ASSERT(depth >= 1 && depth <= 3);
 
         std::vector<std::string> minKeySet; // we consider an empty set
         const FDBToolRequest toolRequest(
             req ? req->request() : metkit::mars::MarsRequest(),
             req == nullptr, minKeySet);
 
-        *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates));
+        *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates, depth));
     });
 }
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
@@ -486,7 +493,9 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->next_metadata(key, value, level);
+        const auto stat = it->next();
+        it->metadata(key, value, level);
+        return stat;
     }});
 }
 int fdb_delete_splitkey(fdb_split_key_t* key) {

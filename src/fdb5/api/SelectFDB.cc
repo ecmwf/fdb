@@ -137,12 +137,10 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
     return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
-ListIterator SelectFDB::list(const FDBToolRequest& request) {
+ListIterator SelectFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::list() >> " << request << std::endl;
     return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
-                         });
+                         [level](FDB& fdb, const FDBToolRequest& request) { return fdb.list(request, false, level); });
 }
 
 DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
