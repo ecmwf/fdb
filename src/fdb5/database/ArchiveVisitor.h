@@ -16,9 +16,12 @@
 #ifndef fdb5_ArchiveVisitor_H
 #define fdb5_ArchiveVisitor_H
 
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -28,27 +31,33 @@ class Archiver;
 
 class ArchiveVisitor : public BaseArchiveVisitor {
 
-public: // methods
+public:  // methods
 
-    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, const ArchiveCallback& callback = CALLBACK_NOOP);
+    ArchiveVisitor(Archiver& owner, const Key& dataKey, const void* data, size_t size,
+                   const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
-protected: // methods
+protected:  // methods
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    virtual void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
+private:  // methods
 
-    const void *data_;
+    void callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey,
+                   std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
+                   std::shared_ptr<const FieldLocation> fieldLocation);
+
+private:  // members
+
+    const void* data_;
     size_t size_;
 
     const ArchiveCallback& callback_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

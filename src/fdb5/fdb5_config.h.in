@@ -8,7 +8,6 @@
 // features
 
 #cmakedefine fdb5_HAVE_LUSTRE
-#cmakedefine fdb5_HAVE_PMEMFDB
 #cmakedefine fdb5_HAVE_RADOSFDB
 #cmakedefine fdb5_HAVE_TOCFDB
 #cmakedefine fdb5_HAVE_DUMMY_DAOS

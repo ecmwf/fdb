@@ -29,9 +29,14 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/types/Type.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include <string>
+#include <vector>
 
 namespace fdb5::api::local {
 
@@ -42,29 +47,48 @@ namespace fdb5::api::local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
-        QueryVisitor<ListElement>(queue, request), level_(level) { }
+
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+        QueryVisitor<ListElement>(queue, request), level_(level) {}
+
+    /// @todo remove this with better logic
+    bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
+
+        // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
+        if (level_ == 1 && uri.scheme() == "toc") {
+            /// @todo only works with the toc backend
+            if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
+                queue_.emplace(*dbKey, 0);
+                return false;
+            }
+        }
+        return true;
+    }
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+    bool visitDatabase(const Catalogue& catalogue) override {
 
         // If the DB is locked for listing, then it "doesn't exist"
         if (!catalogue.enabled(ControlIdentifier::List)) {
             return false;
         }
 
-        bool ret = QueryVisitor::visitDatabase(catalogue, store);
-        ASSERT(catalogue.key().partialMatch(request_));
+        bool ret = QueryVisitor::visitDatabase(catalogue);
+
+        auto dbRequest = catalogue.rule().registry().canonicalise(request_);
+        if (!currentCatalogue_->key().partialMatch(dbRequest)) {
+            return false;
+        }
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : catalogue.key()) {
-            indexRequest_.unsetValues(kv.first);
+        for (const auto& [k, v] : currentCatalogue_->key()) {
+            indexRequest_.unsetValues(k);
         }
 
         if (level_ == 1) {
-            queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
+            queue_.emplace(currentCatalogue_->key(), 0);
             ret = false;
         }
 
@@ -79,17 +103,20 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-        // Subselect the parts of the request
-        datumRequest_ = indexRequest_;
-        for (const auto& kv : index.key()) {
-            datumRequest_.unsetValues(kv.first);
-        }
+        if (index.partialMatch(*rule_, request_)) {
 
-        if (index.partialMatch(request_)) {
+            // Subselect the parts of the request
+            datumRequest_ = indexRequest_;
+
+            for (const auto& kv : index.key()) {
+                datumRequest_.unsetValues(kv.first);
+            }
+
             if (level_ == 2) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
                 return false;
             }
+
             return true;  // Explore contained entries
         }
 
@@ -97,12 +124,21 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const Key& key) override {
+    void visitDatum(const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (key.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.stableLocation(), field.timestamp());
+        // Take into account any rule-specific behaviour in the request
+        auto canonical = rule_->registry().canonicalise(request_);
+
+        if (datumKey.partialMatch(canonical)) {
+            for (const auto& k : datumKey.keys()) {
+                datumRequest_.unsetValues(k);
+            }
+            if (datumRequest_.parameters().size() == 0) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
+                               field.timestamp());
+            }
         }
     }
 
@@ -110,7 +146,7 @@ public:
         EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
-private: // members
+private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;

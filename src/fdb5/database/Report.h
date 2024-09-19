@@ -17,12 +17,13 @@
 #define fdb5_Report_H
 
 #include <map>
+#include <set>
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/IndexStats.h"
-#include "fdb5/database/DbStats.h"
 #include "fdb5/database/DataStats.h"
+#include "fdb5/database/DbStats.h"
+#include "fdb5/database/IndexStats.h"
 
 namespace fdb5 {
 
@@ -40,29 +41,29 @@ public:
     void append(const dbtype_t& dbtype, fdb5::IndexStats stats);
     void append(const dbtype_t& dbtype, fdb5::DataStats stats);
 
-    Report& operator+= (const Report& rhs);
+    Report& operator+=(const Report& rhs);
 
-private: // methods
+private:  // methods
 
     void print(std::ostream&) const;
 
     friend std::ostream& operator<<(std::ostream& s, const Report& o) {
-        o.print(s); return s;
+        o.print(s);
+        return s;
     }
 
-private: // members
+private:  // members
 
     std::set<dbtype_t> dbtypes_;
 
-    std::map<dbtype_t, fdb5::DbStats>    dbStats_;
+    std::map<dbtype_t, fdb5::DbStats> dbStats_;
     std::map<dbtype_t, fdb5::IndexStats> indexStats_;
-    std::map<dbtype_t, fdb5::DataStats>  dataStats_;
-
+    std::map<dbtype_t, fdb5::DataStats> dataStats_;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

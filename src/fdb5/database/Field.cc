@@ -16,24 +16,20 @@ namespace fdb5 {
 
 Field::Field() {}
 
-Field::Field(std::shared_ptr<FieldLocation> location, time_t timestamp, const FieldDetails& details):
-    location_(std::move(location)),
-    timestamp_(timestamp),
-    details_(details) {
-}
+Field::Field(std::shared_ptr<const FieldLocation> location, time_t timestamp, const FieldDetails& details) :
+    location_(std::move(location)), timestamp_(timestamp), details_(details) {}
 
-Field::Field(const FieldLocation&& location, time_t timestamp, const FieldDetails& details):
-    location_(location.make_shared()),
-    timestamp_(timestamp),
-    details_(details) {
-}
+Field::Field(const FieldLocation&& location, time_t timestamp, const FieldDetails& details) :
+    location_(location.make_shared()), timestamp_(timestamp), details_(details) {}
 
 void Field::print(std::ostream& out) const {
     out << "Field(location=" << location_;
-    if(details_) { out << ",details=" << details_; }
+    if (details_) {
+        out << ",details=" << details_;
+    }
     out << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

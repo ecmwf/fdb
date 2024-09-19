@@ -10,8 +10,8 @@
 
 #include "ExpverFileSpaceHandler.h"
 
-#include <cctype> 
 #include <sys/file.h>
+#include <cctype>
 
 #include <algorithm>
 #include <fstream>
@@ -19,12 +19,12 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/io/FileLock.h"
+#include "eckit/thread/AutoLock.h"
 
-#include "fdb5/toc/FileSpace.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/toc/FileSpace.h"
 
 using namespace eckit;
 
@@ -33,12 +33,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(LibResource<PathName, LibFdb5>("fdbExpverFileSystems;$FDB_EXPVER_FILE", "~fdb/etc/fdb/expver_to_fdb_root.map"))
-{
-}
+    fdbExpverFileSystems_(LibResource<PathName, LibFdb5>("fdbExpverFileSystems;$FDB_EXPVER_FILE",
+                                                         "~fdb/etc/fdb/expver_to_fdb_root.map")) {}
 
-ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
-}
+ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {}
 
 void ExpverFileSpaceHandler::load() const {
 
@@ -46,9 +44,9 @@ void ExpverFileSpaceHandler::load() const {
 
     std::ifstream in(fdbExpverFileSystems_.localPath());
 
-    if(!in) {
+    if (!in) {
         std::ostringstream oss;
-        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        oss << fdbExpverFileSystems_ << Log::syserr;
         Log::error() << oss.str() << std::endl;
         throw CantOpenFile(oss.str(), Here());
     }
@@ -58,37 +56,36 @@ void ExpverFileSpaceHandler::load() const {
     Tokenizer parse(" ");
     std::vector<std::string> s;
 
-    while(in.getline(line, sizeof(line)))
-    {
+    while (in.getline(line, sizeof(line))) {
         ++lineNo;
         s.clear();
 
-        parse(line,s);
+        parse(line, s);
 
         size_t i = 0;
-        while( i < s.size() ) /* cleanup entries that are empty */
+        while (i < s.size()) /* cleanup entries that are empty */
         {
-            if(s[i].length() == 0)
-                s.erase(s.begin()+i);
+            if (s[i].length() == 0)
+                s.erase(s.begin() + i);
             else
                 i++;
         }
 
-        if(s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#')
             continue;
 
-        if(s.size() != 2) {
+        if (s.size() != 2) {
             std::ostringstream oss;
-            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_ << " -- should have format 'expver filesystem'";
+            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_
+                << " -- should have format 'expver filesystem'";
             throw ReadError(oss.str(), Here());
         }
 
-        table_[ s[0] ] = PathName(s[1]);
+        table_[s[0]] = PathName(s[1]);
     }
 }
 
-eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const PathName& path) const
-{
+eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const PathName& path) const {
     // obtain exclusive lock to file
 
     PathName lockFile = fdbExpverFileSystems_ + ".lock";
@@ -100,45 +97,46 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     std::ifstream fi(fdbExpverFileSystems_.localPath());
 
-    if(!fi) {
+    if (!fi) {
         std::ostringstream oss;
-        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        oss << fdbExpverFileSystems_ << Log::syserr;
         Log::error() << oss.str() << std::endl;
         throw CantOpenFile(oss.str(), Here());
     }
 
-    char line[4*1024];
+    char line[4 * 1024];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
 
-    while(fi.getline(line, sizeof(line)))
-    {
+    while (fi.getline(line, sizeof(line))) {
         ++lineNo;
         s.clear();
 
-        parse(line,s);
+        parse(line, s);
 
         size_t i = 0;
-        while( i < s.size() ) /* cleanup entries that are empty */
+        while (i < s.size()) /* cleanup entries that are empty */
         {
-            if(s[i].length() == 0)
-                s.erase(s.begin()+i);
+            if (s[i].length() == 0)
+                s.erase(s.begin() + i);
             else
                 i++;
         }
 
-        if(s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#')
             continue;
 
-        if(s.size() != 2) {
+        if (s.size() != 2) {
             std::ostringstream oss;
-            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_ << " -- should have format 'expver filesystem'";
+            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_
+                << " -- should have format 'expver filesystem'";
             throw ReadError(oss.str(), Here());
         }
 
-        if(s[0] == expver) {
-            LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
+        if (s[0] == expver) {
+            LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_
+                                   << std::endl;
             return PathName(s[1]);
         }
     }
@@ -147,16 +145,17 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     std::ofstream of(fdbExpverFileSystems_.localPath(), std::ofstream::app);
 
-    if(!of) {
+    if (!of) {
         std::ostringstream oss;
-        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        oss << fdbExpverFileSystems_ << Log::syserr;
         Log::error() << oss.str() << std::endl;
         throw WriteError(oss.str(), Here());
     }
 
     // append to the file
 
-    LOG_DEBUG_LIB(LibFdb5) << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_
+                           << std::endl;
 
     of << expver << " " << path << std::endl;
 
@@ -165,14 +164,14 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
     return path;
 }
 
-PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const
-{
+PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const {
     return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
 }
 
 static bool expver_is_valid(const std::string& str) {
     LOG_DEBUG_LIB(LibFdb5) << "Validating expver string [" << str << "]" << std::endl;
-    return (str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end();
+    return ((str.size() <= 4) and std::find_if_not(str.begin(), str.end(), isdigit) == str.end()) ||
+           ((str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end());
 }
 
 eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
@@ -185,23 +184,26 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     // check if key is mapped already to a filesystem
 
-    if(table_.empty()) load();
+    if (table_.empty())
+        load();
 
     std::string expver = key.get("expver");
 
     // we can NOT use the type system here because we haven't opened a DB yet
-    // so we have to do validation directly on string 
-    if(not expver_is_valid(expver))
+    // so we have to do validation directly on string
+    if (not expver_is_valid(expver))
         throw eckit::BadValue("Invalid expver value " + expver, Here());
 
     LOG_DEBUG_LIB(LibFdb5) << "Selecting file system for expver [" << expver << "]" << std::endl;
 
     PathTable::const_iterator itr = table_.find(expver);
-    if(itr != table_.end()) {
-        LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
+    if (itr != table_.end()) {
+        LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_
+                               << std::endl;
 
         if (!fdbRootDirectory.empty() && itr->second != fdbRootDirectory) {
-            Log::warning() << "Existing root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
+            Log::warning() << "Existing root directory " << itr->second << " does not match FDB5_ROOT. Using existing"
+                           << std::endl;
         }
 
         return itr->second;
@@ -212,13 +214,15 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     PathName maybe;
     if (fdbRootDirectory.empty()) {
         maybe = select(key, fs);
-    } else {
+    }
+    else {
         // Before we allow an override, ensure that it is one of the available filesystems.
         std::vector<PathName> writable(fs.enabled(ControlIdentifier::Archive));
 
-        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
+        if (std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
             std::ostringstream msg;
-            msg << "FDB root directory " << fdbRootDirectory << " was not in the list of roots supporting archival " << writable;
+            msg << "FDB root directory " << fdbRootDirectory << " was not in the list of roots supporting archival "
+                << writable;
             throw BadParameter(msg.str());
         }
 
@@ -234,7 +238,8 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     table_[expver] = selected;
 
     if (!fdbRootDirectory.empty() && selected != fdbRootDirectory) {
-        Log::warning() << "Selected root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
+        Log::warning() << "Selected root directory " << itr->second << " does not match FDB5_ROOT. Using existing"
+                       << std::endl;
     }
 
     return selected;

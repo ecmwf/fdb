@@ -12,16 +12,15 @@
 
 #include "eccodes.h"
 
-#include "eckit/config/Resource.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
 #include "metkit/codes/CodesContent.h"
@@ -36,15 +35,15 @@ namespace tools {
 
 class PatchArchiver : public MessageArchiver {
 
-public: // methods
+public:  // methods
 
     explicit PatchArchiver(const Key& key) : key_(key) {}
 
-private: // methods
+private:  // methods
 
-    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
+    eckit::message::Message patch(const eckit::message::Message& msg) override;
 
-private: // members
+private:  // members
 
     const Key& key_;
 };
@@ -62,8 +61,7 @@ eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg)
 
         return eckit::message::Message(new metkit::codes::CodesContent(h, true));
     }
-    catch (...)
-    {
+    catch (...) {
         grib_handle_delete(h);
         throw;
     }
@@ -73,22 +71,21 @@ eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg)
 
 class FDBPatch : public FDBVisitTool {
 
-public: // methods
+public:  // methods
 
-    FDBPatch(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
+    FDBPatch(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
         options_.push_back(new SimpleOption<std::string>("expver", "Set the expver"));
         options_.push_back(new SimpleOption<std::string>("class", "Set the class"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void execute(const CmdArgs& args);
-    virtual void init(const CmdArgs &args);
+    virtual void init(const CmdArgs& args);
     virtual int minimumPositionalArguments() const;
 
-private: // members
+private:  // members
 
     fdb5::Key key_;
 };
@@ -179,30 +176,19 @@ void FDBPatch::execute(const CmdArgs& args) {
 
     // Status report
 
-    Log::info() << std::endl
-                << "Summary" << std::endl
-                << "=======" << std::endl << std::endl;
-    Log::info() << Plural(uniqueKeys.size(), "field")
-                << " ("
-                << Bytes(bytes)
-                << ") copied to "
-                << key_
-                << std::endl;
+    Log::info() << std::endl << "Summary" << std::endl << "=======" << std::endl << std::endl;
+    Log::info() << Plural(uniqueKeys.size(), "field") << " (" << Bytes(bytes) << ") copied to " << key_ << std::endl;
 
-    Log::info() << "Rates: "
-                << Bytes(bytes, timer)
-                << ", "
-                << uniqueKeys.size()  / timer.elapsed()
-                << " fields/s"
+    Log::info() << "Rates: " << Bytes(bytes, timer) << ", " << uniqueKeys.size() / timer.elapsed() << " fields/s"
                 << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBPatch app(argc, argv);
     return app.start();
 }

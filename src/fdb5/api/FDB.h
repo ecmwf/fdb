@@ -19,23 +19,24 @@
 #ifndef fdb5_api_FDB_H
 #define fdb5_api_FDB_H
 
-#include <memory>
 #include <iosfwd>
+#include <memory>
 #include <string>
 
 #include "eckit/distributed/Transport.h"
 
 #include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/AxesIterator.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -44,7 +45,9 @@ class Message;
 class DataHandle;
 }  // namespace eckit
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -58,15 +61,15 @@ class Key;
 
 class FDB {
 
-public: // methods
+public:  // methods
 
     FDB(const Config& config = Config().expandConfig());
     ~FDB();
 
-    FDB(const FDB&) = delete;
+    FDB(const FDB&)            = delete;
     FDB& operator=(const FDB&) = delete;
 
-    FDB(FDB&&) = default;
+    FDB(FDB&&)            = default;
     FDB& operator=(FDB&&) = default;
 
     // -------------- Primary API functions ----------------------------
@@ -74,12 +77,15 @@ public: // methods
     void archive(eckit::message::Message msg);
     void archive(eckit::DataHandle& handle);
     void archive(const void* data, size_t length);
-    // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
+    // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data
+    // exceeding the request
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
     // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
     // Optional callback function is called upon receiving field location from the store.
     void archive(const Key& key, const void* data, size_t length);
+
+    void reindex(const Key& key, const FieldLocation& location);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
@@ -95,26 +101,27 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
-    ListIterator list(const FDBToolRequest& request, bool deduplicate=false, int level=3);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
-    DumpIterator dump(const FDBToolRequest& request, bool simple=false);
+    DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
     /// TODO: Is this function superfluous given the control() function?
     StatusIterator status(const FDBToolRequest& request);
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
+    WipeIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
+                      bool unsafeWipeAll = false);
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
+    PurgeIterator purge(const FDBToolRequest& request, bool doit = false, bool porcelain = false);
 
     StatsIterator stats(const FDBToolRequest& request);
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
-                            ControlIdentifiers identifiers);
+    ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers);
 
-    IndexAxis axes(const FDBToolRequest& request, int level=3);
+    IndexAxis axes(const FDBToolRequest& request, int level = 3);
+
+    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3);
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
@@ -137,7 +144,7 @@ public: // methods
     void disable();
     bool disabled() const;
 
-private: // methods
+private:  // methods
 
     void print(std::ostream&) const;
 
@@ -146,9 +153,9 @@ private: // methods
         return s;
     }
 
-    bool sorted(const metkit::mars::MarsRequest &request);
+    bool sorted(const metkit::mars::MarsRequest& request);
 
-private: // members
+private:  // members
 
     std::unique_ptr<FDBBase> internal_;
 
@@ -156,12 +163,10 @@ private: // members
     bool reportStats_;
 
     FDBStats stats_;
-
-    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_FDB_H
+#endif  // fdb5_api_FDB_H

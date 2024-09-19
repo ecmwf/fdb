@@ -15,19 +15,36 @@
 
 #pragma once
 #include <future>
-#include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
 class FDB;
+class CallbackRegistry;
 
-using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>)>;
-using FlushCallback = std::function<void()>;
-using ConstructorCallback = std::function<void(FDB&)>;
+using ArchiveCallback     = std::function<void(const Key& key, const void* data, size_t length,
+                                           std::future<std::shared_ptr<const FieldLocation>>)>;
+using FlushCallback       = std::function<void()>;
+using ConstructorCallback = std::function<void(CallbackRegistry&)>;
 
-static const ArchiveCallback CALLBACK_NOOP = [](const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>) {};
-static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
-static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](FDB&) {};
+static const ArchiveCallback CALLBACK_ARCHIVE_NOOP         = [](auto&&...) {};
+static const FlushCallback CALLBACK_FLUSH_NOOP             = []() {};
+static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](auto&&...) {};
 
-} // namespace fdb5
+// -------------------------------------------------------------------------------------------------
+
+// This class provides a common interface for registering callbacks with an FDB object or a Store/Catalogue Handler.
+class CallbackRegistry {
+public:
+
+    void registerFlushCallback(FlushCallback callback) { flushCallback_ = callback; }
+    void registerArchiveCallback(ArchiveCallback callback) { archiveCallback_ = callback; }
+
+protected:
+
+    FlushCallback flushCallback_     = CALLBACK_FLUSH_NOOP;
+    ArchiveCallback archiveCallback_ = CALLBACK_ARCHIVE_NOOP;
+};
+
+}  // namespace fdb5

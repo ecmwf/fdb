@@ -9,62 +9,60 @@
  */
 
 
-#include "eckit/log/Log.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/AxisRegistry.h"
 #include "fdb5/database/IndexAxis.h"
+
+#include <memory>
 #include "fdb5/database/Key.h"
-#include "fdb5/types/TypesRegistry.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexAxis::IndexAxis() :
-    readOnly_(false),
-    dirty_(false) {
-}
+IndexAxis::IndexAxis() : readOnly_(false), dirty_(false) {}
 
 IndexAxis::~IndexAxis() {
-   if (!readOnly_)
-      return;
+    if (!readOnly_)
+        return;
 
     for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
-       AxisRegistry::instance().release(it->first, it->second);
+        AxisRegistry::instance().release(it->first, it->second);
     }
 }
 
-IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
-    readOnly_(true),
-    dirty_(false) {
+IndexAxis::IndexAxis(eckit::Stream& s, const int version) : readOnly_(true), dirty_(false) {
 
     decode(s, version);
 }
 
 IndexAxis::IndexAxis(IndexAxis&& rhs) noexcept :
-        axis_(std::move(rhs.axis_)),
-        readOnly_(rhs.readOnly_),
-        dirty_(rhs.dirty_) {}
+    axis_(std::move(rhs.axis_)), readOnly_(rhs.readOnly_), dirty_(rhs.dirty_) {}
 
 IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) noexcept {
-    axis_ = std::move(rhs.axis_);
+    axis_     = std::move(rhs.axis_);
     readOnly_ = rhs.readOnly_;
-    dirty_ = rhs.dirty_;
+    dirty_    = rhs.dirty_;
     return *this;
 }
 
 bool IndexAxis::operator==(const IndexAxis& rhs) const {
 
-    if (axis_.size() != rhs.axis_.size()) return false;
+    if (axis_.size() != rhs.axis_.size())
+        return false;
 
     for (const auto& kv : axis_) {
         auto it = rhs.axis_.find(kv.first);
-        if (it == rhs.axis_.end()) return false;
-        if (*kv.second != *it->second) return false;
+        if (it == rhs.axis_.end())
+            return false;
+        if (*kv.second != *it->second)
+            return false;
     }
 
     return true;
@@ -74,15 +72,33 @@ bool IndexAxis::operator!=(const IndexAxis& rhs) const {
     return !(*this == rhs);
 }
 
-void IndexAxis::encode(eckit::Stream &s, const int version) const {
+size_t encodeString(size_t len) {
+    return (5 + len);
+}
+
+size_t IndexAxis::encodeSize(const int version) const {
+    size_t size = 2;
+    size += encodeString(4) + 5;
+    size += encodeString(4);
+    for (const auto& [key, vals] : axis_) {
+        size += encodeString(key.length()) + 5;
+        for (const auto& v : *vals) {
+            size += encodeString(v.length());
+        }
+    }
+    return size;
+}
+
+void IndexAxis::encode(eckit::Stream& s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);
-    } else {
+    }
+    else {
         encodeLegacy(s, version);
     }
 }
 
-void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
+void IndexAxis::encodeCurrent(eckit::Stream& s, const int version) const {
     ASSERT(version >= 3);
 
     s.startObject();
@@ -90,7 +106,7 @@ void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
     s << "axes";
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
-        const eckit::DenseSet<std::string> &values = *(*i).second;
+        const eckit::DenseSet<std::string>& values = *(*i).second;
         s << values.size();
         for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             s << (*j);
@@ -99,13 +115,13 @@ void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
     s.endObject();
 }
 
-void IndexAxis::encodeLegacy(eckit::Stream &s, const int version) const {
+void IndexAxis::encodeLegacy(eckit::Stream& s, const int version) const {
     ASSERT(version <= 2);
 
     s << axis_.size();
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
-        const eckit::DenseSet<std::string> &values = *(*i).second;
+        const eckit::DenseSet<std::string>& values = *(*i).second;
         s << values.size();
         for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             s << (*j);
@@ -114,7 +130,7 @@ void IndexAxis::encodeLegacy(eckit::Stream &s, const int version) const {
 }
 
 
-void IndexAxis::decode(eckit::Stream &s, const int version) {
+void IndexAxis::decode(eckit::Stream& s, const int version) {
     if (version >= 3)
         decodeCurrent(s, version);
     else
@@ -128,19 +144,19 @@ enum IndexAxisStreamKeys {
 };
 
 IndexAxisStreamKeys indexAxiskeyId(const std::string& s) {
-    static const std::map<std::string, IndexAxisStreamKeys> keys {
+    static const std::map<std::string, IndexAxisStreamKeys> keys{
         {"size", IndexAxisSize},
         {"axes", IndexAxes},
     };
 
     auto it = keys.find(s);
-    if( it != keys.end() ) {
+    if (it != keys.end()) {
         return it->second;
     }
-    return IndexAxisKeyUnrecognised; 
+    return IndexAxisKeyUnrecognised;
 }
 
-void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
+void IndexAxis::decodeCurrent(eckit::Stream& s, const int version) {
     ASSERT(version >= 3);
 
     ASSERT(s.next());
@@ -159,7 +175,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
                 ASSERT(n);
                 for (size_t i = 0; i < n; i++) {
                     s >> k;
-                    std::shared_ptr<eckit::DenseSet<std::string> >& values = axis_[k];
+                    std::shared_ptr<eckit::DenseSet<std::string>>& values = axis_[k];
                     values.reset(new eckit::DenseSet<std::string>);
                     size_t m;
                     s >> m;
@@ -172,13 +188,14 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
                 }
                 break;
             default:
-                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
+                throw eckit::SeriousBug("IndexBase de-serialization error: " + k + " field is not recognized");
         }
     }
     ASSERT(!axis_.empty());
 }
 
 void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
+
     ASSERT(version <= 2);
 
     size_t n;
@@ -189,7 +206,7 @@ void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
 
     for (size_t i = 0; i < n; i++) {
         s >> k;
-        std::shared_ptr<eckit::DenseSet<std::string> >& values = axis_[k];
+        std::shared_ptr<eckit::DenseSet<std::string>>& values = axis_[k];
         values.reset(new eckit::DenseSet<std::string>);
         size_t m;
         s >> m;
@@ -202,11 +219,11 @@ void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
     }
 }
 
-void IndexAxis::dump(std::ostream &out, const char* indent) const {
+void IndexAxis::dump(std::ostream& out, const char* indent) const {
     out << indent << "Axes:" << std::endl;
-   for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         out << indent << indent << (*i).first << std::endl;
-        const eckit::DenseSet<std::string> &values = *(*i).second;
+        const eckit::DenseSet<std::string>& values = *(*i).second;
         for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             out << indent << indent << indent;
             if ((*j).empty()) {
@@ -215,10 +232,10 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
             else {
                 out << (*j);
             }
-            out  << std::endl;
+            out << std::endl;
         }
     }
-   // out << std::endl;
+    // out << std::endl;
 }
 
 bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
@@ -228,68 +245,87 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
     // --> keys that are in the request, but not the axis are OK (other parts of the request)
     // --> keys that are in the axis, but not the request are OK (list doesn't need to specify everything)
     //
-    // BUT keys tha correspond to the axis object, but do not match it, should result
+    // BUT keys that correspond to the axis object, but do not match it, should result
     // in the match failing (this will be the common outcome during the model run, when many
     // indexes exist)
 
-    for (const auto& kv : axis_) {
-        if (request.has(kv.first)) {
-            bool found = false;
-            for (const auto& rqval : request.values(kv.first)) {
-                if (kv.second->contains(rqval)) {
-                    found = true;
-                    break;;
-                }
+    auto matchValues = [](const std::vector<std::string>& rqValues, const eckit::DenseSet<std::string>& values) {
+        if (rqValues.empty()) {
+            return true;
+        }
+        for (const auto& rqval : rqValues) {
+            if (values.contains(rqval)) {
+                return true;
             }
+        }
+        return false;
+    };
 
-            if (!found) return false;
+    for (const auto& [keyword, values] : axis_) {
+        if (!matchValues(request.values(keyword, true), *values)) {
+            return false;
         }
     }
 
     return true;
 }
 
-bool IndexAxis::contains(const Key &key) const {
-
-    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
-        if (!key.match(i->first, *(i->second))) {
+bool IndexAxis::contains(const Key& key) const {
+    for (const auto& [keyword, values] : axis_) {
+        if (!key.matchValues(keyword, *values)) {
             return false;
         }
     }
     return true;
 }
 
-void IndexAxis::insert(const Key &key) {
+bool IndexAxis::containsPartial(const Key& key) const {
+    for (const auto& kv : key) {
+        auto it = axis_.find(kv.first);
+        if (it == axis_.end()) {
+            return false;
+        }
+        else {
+            if (!it->second->contains(kv.second)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void IndexAxis::insert(const Key& key) {
     ASSERT(!readOnly_);
 
-    for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
-        const std::string &keyword = i->first;
+    for (const auto& [keyword, value] : key) {
 
-        std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[keyword];
-        if (!axis_set)
-            axis_set.reset(new eckit::DenseSet<std::string>);
+        auto& axis_set = axis_[keyword];
 
-        axis_set->insert(key.canonicalValue(keyword));
+        if (!axis_set) {
+            axis_set = std::make_shared<eckit::DenseSet<std::string>>();
+        }
+
+        axis_set->insert(value);
 
         dirty_ = true;
     }
 }
 
-/// @note: this method inserts key-value pairs into an axis in memory. 
+/// @note: this method inserts key-value pairs into an axis in memory.
 ///   Intended for importing axis information from storage in the DAOS backend.
 ///   Input values are required to be cannoicalised.
 void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
     ASSERT(!readOnly_);
 
-    std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[axis];
+    std::shared_ptr<eckit::DenseSet<std::string>>& axis_set = axis_[axis];
 
     if (!axis_set)
         axis_set.reset(new eckit::DenseSet<std::string>());
 
-    for (const auto& value : values) axis_set->insert(value);
+    for (const auto& value : values)
+        axis_set->insert(value);
 
     dirty_ = true;
-
 }
 
 bool IndexAxis::dirty() const {
@@ -303,7 +339,7 @@ void IndexAxis::clean() {
 
 void IndexAxis::sort() {
     for (AxisMap::iterator i = axis_.begin(); i != axis_.end(); ++i)
-       i->second->sort();
+        i->second->sort();
 }
 
 void IndexAxis::wipe() {
@@ -314,12 +350,12 @@ void IndexAxis::wipe() {
     clean();
 }
 
-bool IndexAxis::has(const std::string &keyword) const {
+bool IndexAxis::has(const std::string& keyword) const {
     AxisMap::const_iterator i = axis_.find(keyword);
     return (i != axis_.end());
 }
 
-const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword) const {
+const eckit::DenseSet<std::string>& IndexAxis::values(const std::string& keyword) const {
 
     // If an Index is empty, this is bad, but is not strictly an error. Nothing will
     // be found...
@@ -348,9 +384,9 @@ std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
     return result;
 }
 
-void IndexAxis::print(std::ostream &out) const {
+void IndexAxis::print(std::ostream& out) const {
     out << "IndexAxis["
-        <<  "axis=";
+        << "axis=";
 
     const char* sep = "";
     out << "{";
@@ -365,7 +401,7 @@ void IndexAxis::print(std::ostream &out) const {
         sep = ",";
     }
     out << "}";
-    out  << "]";
+    out << "]";
 }
 
 void IndexAxis::json(eckit::JSON& json) const {
@@ -383,8 +419,10 @@ void IndexAxis::merge(const fdb5::IndexAxis& other) {
 
         auto it = axis_.find(kv.first);
         if (it == axis_.end()) {
-            axis_.emplace(kv.first, kv.second);
-        } else {
+            /// @note: Have to make a copy, otherwise we risk modifying cached axes in the AxisRegistry.
+            axis_.emplace(kv.first, std::make_shared<eckit::DenseSet<std::string>>(*kv.second));
+        }
+        else {
             it->second->merge(*kv.second);
         };
     }
@@ -392,4 +430,4 @@ void IndexAxis::merge(const fdb5::IndexAxis& other) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

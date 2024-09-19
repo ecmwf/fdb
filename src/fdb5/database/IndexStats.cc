@@ -14,18 +14,21 @@
 
 namespace fdb5 {
 
-::eckit::ClassSpec IndexStatsContent::classSpec_ = {&Streamable::classSpec(), "IndexStatsContent",};
+::eckit::ClassSpec IndexStatsContent::classSpec_ = {
+    &Streamable::classSpec(),
+    "IndexStatsContent",
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class NullIndexStats : public IndexStatsContent {
 public:
 
-    virtual size_t fieldsCount() const {  return 0; }
+    virtual size_t fieldsCount() const { return 0; }
     virtual size_t duplicatesCount() const { return 0; }
 
-    virtual size_t fieldsSize() const {  return 0; }
-    virtual size_t duplicatesSize() const {  return 0; }
+    virtual size_t fieldsSize() const { return 0; }
+    virtual size_t duplicatesSize() const { return 0; }
 
     virtual size_t addFieldsCount(size_t i) { return i; }
     virtual size_t addDuplicatesCount(size_t i) { return i; }
@@ -33,34 +36,26 @@ public:
     virtual size_t addFieldsSize(size_t i) { return i; }
     virtual size_t addDuplicatesSize(size_t i) { return i; }
 
-    virtual void add(const IndexStatsContent&) {
-        NOTIMP;
-    }
+    virtual void add(const IndexStatsContent&) { NOTIMP; }
 
-    virtual void report(std::ostream& out, const char* indent) const {
-        NOTIMP;
-    }
+    virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
 
-    virtual void encode(eckit::Stream& s) const {
-        NOTIMP;
-    }
+    virtual void encode(eckit::Stream& s) const { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-IndexStats::IndexStats() :
-    content_(new NullIndexStats()) {
+IndexStats::IndexStats() : content_(new NullIndexStats()) {
     content_->attach();
 }
 
-IndexStats::IndexStats(IndexStatsContent* p) :
-    content_(p) {
+IndexStats::IndexStats(IndexStatsContent* p) : content_(p) {
     content_->attach();
 }
 
 IndexStats::~IndexStats() {
-   content_->detach();
+    content_->detach();
 }
 
 IndexStats::IndexStats(const IndexStats& s) : content_(s.content_) {
@@ -79,13 +74,11 @@ IndexStats& IndexStats::operator+=(const IndexStats& s) {
     return *this;
 }
 
-void IndexStats::add(const IndexStats& s)
-{
+void IndexStats::add(const IndexStats& s) {
     content_->add(*s.content_);
 }
 
-void IndexStats::report(std::ostream& out, const char* indent) const
-{
+void IndexStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
 }
 
@@ -93,11 +86,9 @@ void IndexStats::encode(eckit::Stream& s) const {
     s << *content_;
 }
 
-IndexStatsContent::~IndexStatsContent()
-{
-}
+IndexStatsContent::~IndexStatsContent() {}
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
