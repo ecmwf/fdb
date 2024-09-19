@@ -23,8 +23,8 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
-
 #include "eckit/types/Types.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/Key.h"
@@ -236,12 +236,10 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
             if (pred->match(value)) { node.emplace_back(value); }
         }
 
-        if (node.empty()) { break; }
+        if (node.empty()) { return {}; }
     }
 
-    if (graph.size() == predicates_.size()) { return graph.makeKeys(registry_); }
-
-    return {};
+    return graph.makeKeys(registry_);
 }
 
 std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
@@ -251,6 +249,9 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto* pred : predicates_) {
 
         const auto& keyword = pred->keyword();
+
+        // performance optimisation to avoid calling values()
+        if (!pred->optional() && request.countValues(keyword) == 0) { return {}; }
 
         eckit::StringList values;
         visitor.values(request, keyword, *registry_, values);
@@ -263,12 +264,10 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
             if (pred->match(value)) { node.emplace_back(value); }
         }
 
-        if (node.empty()) { break; }
+        if (node.empty()) { return {}; }
     }
 
-    if (graph.size() == predicates_.size()) { return graph.makeKeys(registry_); }
-
-    return {};
+    return graph.makeKeys(registry_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -278,7 +277,7 @@ void Rule::expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
     ASSERT(rules_.empty());
 
-    for (auto& key : findMatchingKeys(request, visitor)) {
+    for (const auto& key : findMatchingKeys(request, visitor)) {
 
         full.pushFrom(key);
 
@@ -290,7 +289,7 @@ void Rule::expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
 void Rule::expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
 
-    for (auto& key : findMatchingKeys(request, visitor)) {
+    for (const auto& key : findMatchingKeys(request, visitor)) {
 
         full.pushFrom(key);
 
