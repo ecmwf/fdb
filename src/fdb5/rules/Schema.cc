@@ -111,15 +111,18 @@ void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set
     }
 }
 
-std::unique_ptr<Key> Schema::matchDatabaseKey(const std::string& fingerprint) const {
+std::unique_ptr<Key>
+Schema::matchDatabase(const std::string &fingerprint) const {
 
-    const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
+  const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
 
-    for (const auto* rule : rules_) {
-        if (auto found = rule->findMatchingKey(values)) { return found; }
+  for (const auto *rule : rules_) {
+    if (auto found = rule->findMatchingKey(values)) {
+      return found;
     }
+  }
 
-    return {};
+  return {};
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {

@@ -67,7 +67,7 @@ public: // methods
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
-    std::unique_ptr<Key> matchDatabaseKey(const std::string& fingerprint) const;
+    std::unique_ptr<Key> matchDatabase(const std::string &fingerprint) const;
 
     const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
 

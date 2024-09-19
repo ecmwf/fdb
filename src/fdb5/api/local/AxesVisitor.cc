@@ -29,7 +29,7 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
     if (level_ == 1 && uri.scheme() == "toc") {
         /// @todo This is hacky, only works with the toc backend...
-        if (auto found = schema.matchDatabaseKey(uri.path().baseName())) {
+        if (auto found = schema.matchDatabase(uri.path().baseName())) {
             dbKey_ = *found;
             axes_.wipe();
             axes_.insert(dbKey_);
