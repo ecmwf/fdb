@@ -19,10 +19,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-#include "eckit/utils/StringTools.h"
-
-#include "eckit/system/Plugin.h"
-#include "eckit/system/LibraryManager.h"
 
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
@@ -35,6 +31,8 @@
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -149,18 +147,18 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 }
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
-    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-    return loc->dataHandle();
+    auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+    return location->dataHandle();
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
-        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-        result.add(loc->dataHandle());
-        delete loc;
+        auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+        result.add(location->dataHandle());
     }
+
     return result.dataHandle();
 }
 

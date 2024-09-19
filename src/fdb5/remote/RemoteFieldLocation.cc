@@ -73,7 +73,7 @@ RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 
-std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
     return std::make_shared<RemoteFieldLocation>(std::move(*this));
 }
 
@@ -112,18 +112,7 @@ void RemoteFieldLocation::print(std::ostream& out) const {
 
 void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
-    // s << internalLocationScheme_;
-    // s << internalLocationHostPort_;
-//     std::stringstream ss;
-// //    ss << remoteStore_->config();
-//     s << ss.str();
 }
-
-// void RemoteFieldLocation::dump(std::ostream& out) const {
-//     out << "  uri: " << uri_ << std::endl;
-//     // out << "  internalScheme: " << internalLocationScheme_ << std::endl;
-//     // out << "  internalHost: " << internalLocationHostPort_ << std::endl;
-// }
 
 static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 
@@ -131,16 +120,16 @@ static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 
 class FdbURIManager : public eckit::URIManager {
     bool authority() override { return true; }
-    virtual bool query() override { return true; }
-    virtual bool fragment() override { return false; }
+    bool query() override { return true; }
+    bool fragment() override { return false; }
 
-    virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
+    bool exists(const eckit::URI& f) override { return f.path().exists(); }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+    eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+    eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+    eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
         return f.path().partHandle(ol, ll);
     }
 
@@ -148,7 +137,11 @@ class FdbURIManager : public eckit::URIManager {
         return eckit::PathName{u.name()};
     }
 
-    virtual std::string asString(const eckit::URI& uri) const override {
+    eckit::PathName path(const eckit::URI& u) const override {
+        return eckit::PathName{u.name()};
+    }
+
+    std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
         if (!q.empty())
             q = "?" + q;

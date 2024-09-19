@@ -28,11 +28,11 @@ public: // methods
 
     TypeDefault(const std::string &name, const std::string &type);
 
-    virtual ~TypeDefault() override;
+    ~TypeDefault() override;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

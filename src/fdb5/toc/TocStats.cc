@@ -227,8 +227,6 @@ bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
 
 void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
-//    ASSERT(currIndex_ != 0);
-
     TocDbStats* dbStats = new TocDbStats();
 
     // Exclude non-owned data if relevant

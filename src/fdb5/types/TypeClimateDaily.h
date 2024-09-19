@@ -28,9 +28,9 @@ public: // methods
 
     TypeClimateDaily(const std::string &name, const std::string &type);
 
-    virtual ~TypeClimateDaily() override;
+    ~TypeClimateDaily() override;
 
-    virtual std::string toKey(const std::string& value) const override;
+    std::string toKey(const std::string& value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -44,7 +44,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

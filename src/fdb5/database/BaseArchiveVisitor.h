@@ -33,29 +33,28 @@ class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
 
-    BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey);
+    BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey);
 
 protected: // methods
 
-    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey);
+    bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
 
-    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey);
+    bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
 
     virtual void checkMissingKeys(const TypedKey& fullComputedKey);
 
-    virtual const Schema& databaseSchema() const;
+    const Schema& databaseSchema() const override;
 
     fdb5::CatalogueWriter* catalogue() const;
     fdb5::Store* store() const;
 
-protected: // members
-
-    const Key& initialFieldKey_;
+    const Key& initialFieldKey() { return initialFieldKey_; } 
 
 private: // members
 
-    Archiver &owner_;
+    Archiver& owner_;
 
+    const Key initialFieldKey_;
     bool checkMissingKeysOnWrite_;
 };
 

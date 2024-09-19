@@ -9,13 +9,17 @@
  */
 
 #include <fstream>
+#include <memory>
+#include <mutex>
+
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/SchemaParser.h"
 #include "fdb5/database/WriteVisitor.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/rules/SchemaParser.h"
 
 namespace fdb5 {
 
@@ -81,8 +85,6 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     for (Rule* r : rules_) {
-		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// (*i)->dump(eckit::Log::info());
 		r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
@@ -228,10 +230,9 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-const std::shared_ptr<TypesRegistry> Schema::registry() const {
+std::shared_ptr<const TypesRegistry> Schema::registry() const {
     return registry_;
 }
-
 
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);

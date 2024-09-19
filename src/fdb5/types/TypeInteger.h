@@ -28,7 +28,7 @@ public: // methods
 
     TypeInteger(const std::string &name, const std::string &type);
 
-    virtual ~TypeInteger() override;
+    ~TypeInteger() override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -38,7 +38,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

@@ -25,8 +25,6 @@ eckit::Reanimator<Predicate> Predicate::reanimator_;
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
     keyword_(keyword) {
-    //    dump(Log::debug<LibFdb5>());
-    //    LOG_DEBUG_LIB(LibFdb5) << std::endl;
 }
 
 Predicate::Predicate(eckit::Stream& s) {
@@ -61,10 +59,6 @@ std::string Predicate::keyword() const {
 bool Predicate::optional() const {
     return matcher_->optional();
 }
-
-// const std::string &Predicate::value(const TypedKey& key) const {
-//     return matcher_->value(key, keyword_);
-// }
 
 const std::string &Predicate::value(const Key& key) const {
     return matcher_->value(key, keyword_);

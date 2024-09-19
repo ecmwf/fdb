@@ -72,9 +72,9 @@ private: // methods
     template <typename HelperClass>
     auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
 
-    virtual void print(std::ostream& s) const override;
+    void print(std::ostream& s) const override;
 
-    virtual FDBStats stats() const override { NOTIMP; }
+    FDBStats stats() const override { NOTIMP; }
 
     // Client
 

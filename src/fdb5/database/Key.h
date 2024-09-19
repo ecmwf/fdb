@@ -18,7 +18,7 @@
 
 #include <map>
 #include <string>
-#include <vector>
+#include <utility>
 #include <set>
 #include <memory>
 
@@ -47,8 +47,8 @@ class BaseKey {
 
 public: // methods
 
-    BaseKey() : keys_(), names_() {}
-    BaseKey(const BaseKey &key) : keys_(key.keys_), names_(key.names_) {}
+    BaseKey() = default;
+    BaseKey(const BaseKey &key) = default;
 
     explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
         for (const auto& k : keys) {
@@ -61,7 +61,7 @@ public: // methods
         }
     }
 
-    virtual ~BaseKey();
+    virtual ~BaseKey() = default;
 
     std::set<std::string> keys() const;
 
@@ -75,13 +75,9 @@ public: // methods
 
     void clear();
 
-    // std::vector<eckit::URI> TocEngine::databases(const Key& key,
     bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
 
-    // bool match(const BaseKey& other, const eckit::StringList& ignore) const;
-
-    // bool match(const std::string& key, const std::set<std::string>& values) const;
     bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
@@ -134,7 +130,7 @@ public: // methods
 
     const eckit::StringDict& keyDict() const;
 
-    metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
+    metkit::mars::MarsRequest request(const std::string& verb = "retrieve") const;
 
     operator std::string() const;
 
@@ -167,7 +163,7 @@ class Key : public BaseKey {
 
 public: // methods
 
-    explicit Key();
+    explicit Key() = default;
     explicit Key(eckit::Stream &);
     explicit Key(const eckit::StringDict &keys);
     Key(std::initializer_list<std::pair<const std::string, std::string>>);
@@ -192,14 +188,14 @@ class TypedKey : public BaseKey {
 
 public: // methods
 
-    explicit TypedKey(const Key& key, const std::shared_ptr<TypesRegistry> reg);
-    explicit TypedKey(const std::shared_ptr<TypesRegistry> reg);
-    explicit TypedKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const Key& key, std::shared_ptr<const TypesRegistry> reg);
+    explicit TypedKey(std::shared_ptr<const TypesRegistry> reg);
+    explicit TypedKey(eckit::Stream &, std::shared_ptr<const TypesRegistry> reg);
     explicit TypedKey(const std::string &keys, const Rule* rule);
-    explicit TypedKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg);
-    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg);
+    explicit TypedKey(const eckit::StringDict &keys, std::shared_ptr<const TypesRegistry> reg);
+    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<const TypesRegistry> reg);
 
-    static TypedKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+    static TypedKey parseString(const std::string&, std::shared_ptr<const TypesRegistry> reg);
 
     Key canonical() const;
 
@@ -212,7 +208,7 @@ public: // methods
     }
 
     // Registry is needed before we can stringise/canonicalise.
-    void registry(const std::shared_ptr<TypesRegistry> reg);
+    void registry(std::shared_ptr<const TypesRegistry> reg);
     [[ nodiscard ]]
     const TypesRegistry& registry() const;
     const void* reg() const;
@@ -223,8 +219,7 @@ private: // members
     std::string canonicalise(const std::string& keyword, const std::string& value) const override;
     std::string type(const std::string& keyword) const override;
 
-    std::shared_ptr<TypesRegistry> registry_;
-
+    std::shared_ptr<const TypesRegistry> registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

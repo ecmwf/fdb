@@ -66,7 +66,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
             fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
         }
 
-        indexes_[idxKey] = Index(new TocIndex(idxKey, this, indexPath, 0, TocIndex::WRITE));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, *this, indexPath, 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[idxKey];
@@ -88,7 +88,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
                 fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
             }
 
-            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, this, indexPath, 0, TocIndex::WRITE));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, *this, indexPath, 0, TocIndex::WRITE));
         }
 
         currentFull_ = fullIndexes_[idxKey];
@@ -303,7 +303,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& idxKey, const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
     archivedLocations_++;
 
     if (current_.null()) {
@@ -318,10 +318,10 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& key, std::shared_
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
-    current_.put(key, field);
+    current_.put(datumKey, field);
 
     if (useSubToc())
-        currentFull_.put(key, field);
+        currentFull_.put(datumKey, field);
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {

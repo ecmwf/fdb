@@ -34,7 +34,7 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
+bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
 
     if(catalogue_) {
         if(dbKey == catalogue_->key()) {
@@ -64,13 +64,11 @@ bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullCompu
 
 bool RetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
     ASSERT(catalogue_);
-    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return catalogue_->selectIndex(idxKey);
 }
 
-bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
+bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&) {
     ASSERT(catalogue_);
-    // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
     eckit::DataHandle *dh = nullptr;
@@ -98,14 +96,13 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = catalogue_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
-        std::string v = registry.lookupType(keyword).toKey(l);
+    for(const auto& value: list) {
+        std::string v = registry.lookupType(keyword).toKey(value);
         if (!toFilter || filter.find(v) != filter.end()) {
-            values.push_back(l);
+            values.push_back(value);
         }
     }
 }
-
 
 Store& RetrieveVisitor::store() {
     if (!store_) {

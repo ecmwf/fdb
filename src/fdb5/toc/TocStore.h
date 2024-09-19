@@ -21,7 +21,6 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 

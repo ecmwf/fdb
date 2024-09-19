@@ -126,7 +126,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = catalogue_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
+    for(const auto& l: list) {
         std::string v = registry.lookupType(keyword).toKey(l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);

@@ -108,7 +108,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
     db_ = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
 }
 
-void Archiver::print(std::ostream &out) const {
+void Archiver::print(std::ostream& out) const {
     out << "Archiver["
         << "]"
         << std::endl;

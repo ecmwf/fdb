@@ -30,11 +30,11 @@ public: // methods
     MatchAlways();
     MatchAlways(eckit::Stream& s);
 
-    virtual ~MatchAlways() override;
+    ~MatchAlways() override;
 
-    virtual bool match(const std::string &keyword, const Key& key) const override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
 	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
@@ -43,7 +43,9 @@ private: // methods
 
     void encode(eckit::Stream&) const override;
 
-    virtual void print( std::ostream &out ) const override;
+    void encode(eckit::Stream&) const override;
+
+    void print( std::ostream& out ) const override;
 
 private: // members
 

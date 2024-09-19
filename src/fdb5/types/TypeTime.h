@@ -28,15 +28,15 @@ public: // methods
 
     TypeTime(const std::string &name, const std::string &type);
 
-    virtual ~TypeTime() override;
+    ~TypeTime() override;
 
-    virtual std::string tidy(const std::string &value) const override;
+    std::string tidy(const std::string &value) const override;
                              
-    virtual std::string toKey(const std::string &value) const override;
+    std::string toKey(const std::string &value) const override;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

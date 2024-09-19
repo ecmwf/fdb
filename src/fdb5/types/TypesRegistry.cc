@@ -8,13 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
+#include <memory>
+#include <utility>
+
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/types/TypesRegistry.h"
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesFactory.h"
+#include "fdb5/types/TypesRegistry.h"
 
-namespace fdb5 {
+ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -51,16 +54,13 @@ void TypesRegistry::encode(eckit::Stream& s) const {
 }
 
 
-TypesRegistry::~TypesRegistry() {
-    for (TypeMap::iterator i = cache_.begin(); i != cache_.end(); ++i) {
-        delete (*i).second;
-    }
-}
+ TypesRegistry::~TypesRegistry() {
+     for (auto& item : cache_) { delete item.second; }
+ }
 
-void TypesRegistry::updateParent(std::shared_ptr<TypesRegistry> parent) {
-    parent_ = parent;
-}
-
+ void TypesRegistry::updateParent(std::shared_ptr<const TypesRegistry> parent) {
+     parent_ = std::move(parent);
+ }
 
 void TypesRegistry::addType(const std::string &keyword, const std::string &type) {
     ASSERT(types_.find(keyword) == types_.end());
@@ -118,4 +118,4 @@ void TypesRegistry::dump( std::ostream &out, const std::string &keyword ) const 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

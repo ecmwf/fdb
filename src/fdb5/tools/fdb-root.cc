@@ -67,15 +67,16 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
             const Schema& schema = conf.schema();
             TypedKey result{conf.schema().registry()};
             ASSERT( schema.expandFirstLevel(request.request(), result) );
+            const auto key = result.canonical();
 
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
 
-            std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(result.canonical(), conf);
+            std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
 
             if (!cat->exists() && create_db) {
-                cat = CatalogueWriterFactory::instance().build(result.canonical(), conf);
+                cat = CatalogueWriterFactory::instance().build(key, conf);
             }
 
             if (cat->exists()) {

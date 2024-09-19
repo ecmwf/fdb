@@ -26,6 +26,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
+class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,8 +34,7 @@ class EntryVisitor : public eckit::NonCopyable {
 
 public:  // methods
 
-    EntryVisitor();
-    virtual ~EntryVisitor();
+    virtual ~EntryVisitor() = default;
 
     // defaults
     virtual bool visitIndexes() { return true; }
@@ -61,9 +61,9 @@ private: // methods
 protected:  // members
 
     // n.b. non-owning
-    const Catalogue* currentCatalogue_;
-    std::unique_ptr<Store> currentStore_;
-    const Index* currentIndex_;
+    const Catalogue* currentCatalogue_ = nullptr;
+    std::unique_ptr<Store> currentStore_ = nullptr;
+    const Index* currentIndex_ = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

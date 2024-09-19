@@ -35,13 +35,9 @@ bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullC
 
     std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p = std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(std::promise<std::shared_ptr<const FieldLocation>>());
 
-    // auto c = std::async(std::launch::async, [p, this] {
-    //     callback_(initialFieldKey_, data_, size_, p->get_future());
-    // });
     store()->archive(idxKey, data_, size_,
         std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey.canonical(), p, std::placeholders::_1));
     callback_(initialFieldKey_, data_, size_, p->get_future());
-    // c.wait();
 
     return true;
 }

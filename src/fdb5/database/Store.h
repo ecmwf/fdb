@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
@@ -32,11 +34,11 @@ public:
 
     Store() {}
 
-    virtual ~Store() {}
+    virtual ~Store() = default;
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual void archive(const Key& idxKey, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive);
-    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length);
+    virtual void archive(const Key& idxKey, const void* data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive);
+    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void* data, eckit::Length length);
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -84,7 +86,7 @@ public:
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
+    std::unique_ptr<Store> make(const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}

@@ -189,7 +189,7 @@ public: // methods
 
 private: // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const override {
+    std::unique_ptr<FDBBase> make(const Config& config) const override {
         return std::unique_ptr<T>(new T(config, name_));
     }
 };

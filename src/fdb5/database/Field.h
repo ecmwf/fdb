@@ -54,7 +54,7 @@ public: // methods
 
     /// stableLocation is an object with validity that extends longer than that of the
     /// owning DB. May need converting to a more static form --- or not.
-    std::shared_ptr<FieldLocation> stableLocation() const {
+    std::shared_ptr<const FieldLocation> stableLocation() const {
         return location_->stableLocation();
     }
     const FieldDetails& details() const { return details_; }

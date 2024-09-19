@@ -33,11 +33,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr) {}
-
-EntryVisitor::~EntryVisitor() {}
-
-
 Store& EntryVisitor::store() {
     if (!currentStore_) {
         ASSERT(currentCatalogue_);
@@ -47,7 +42,6 @@ Store& EntryVisitor::store() {
     return *currentStore_;
 }
 
-// bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
     currentStore_.reset();

@@ -28,7 +28,7 @@ public: // methods
     DaosCatalogueWriter(const Key& key, const fdb5::Config& config);
     DaosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
-    virtual ~DaosCatalogueWriter() override;
+    ~DaosCatalogueWriter() override;
 
     void index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 
@@ -48,17 +48,17 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectIndex(const Key& idxKey) override;
-    virtual void deselectIndex() override;
+    bool selectIndex(const Key& idxKey) override;
+    void deselectIndex() override;
 
     bool open() override { NOTIMP; }
     void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
 
-    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const const FieldLocation> fieldLocation) override;
 
-    virtual void print( std::ostream &out ) const override { NOTIMP; }
+    void print( std::ostream &out ) const override { NOTIMP; }
 
 private: // methods
 

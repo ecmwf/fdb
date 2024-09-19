@@ -87,7 +87,7 @@ public: // methods
     const Rule &topRule() const;
 
     const Schema &schema() const;
-    const std::shared_ptr<TypesRegistry> registry() const;
+    std::shared_ptr<TypesRegistry> registry() const;
 
 	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 	static const eckit::ClassSpec&  classSpec() { return classSpec_; }

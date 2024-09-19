@@ -52,9 +52,9 @@ public: // methods
     {
     }
 
-    virtual ~LustreFileHandle() override {}
+    ~LustreFileHandle() override {}
 
-    virtual void openForAppend(const eckit::Length& len) override {
+    void openForAppend(const eckit::Length& len) override {
 
         std::string path = HANDLE::path_;
 

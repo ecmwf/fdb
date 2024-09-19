@@ -47,7 +47,7 @@ public: // methods
     PMemDB(const Key& key, const Config& config);
     PMemDB(const eckit::PathName& directory, const Config& config);
 
-    virtual ~PMemDB() override;
+    ~PMemDB() override;
 
     static const char* dbTypeName() { return PMemEngine::typeName(); }
 
@@ -81,9 +81,9 @@ protected: // methods
     virtual void archive(const Key& key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
-    virtual StatsReportVisitor* statsReportVisitor() const override;
-    virtual PurgeVisitor* purgeVisitor() const override;
-    virtual void maskIndexEntry(const Index& index) const override;
+    StatsReportVisitor* statsReportVisitor() const override;
+    PurgeVisitor* purgeVisitor() const override;
+    void maskIndexEntry(const Index& index) const override;
 
     // void loadSchema();
 

@@ -18,13 +18,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexBase::IndexBase(const Key& key, const std::string& type, const Catalogue* catalogue) :
+IndexBase::IndexBase(const Key& key, const std::string& type, const Catalogue& catalogue) :
     type_(type),
-    axes_(),
     key_(key),
-    catalogue_(catalogue)
-{
-}
+    catalogue_(catalogue) {}
 
 enum IndexBaseStreamKeys {
     IndexKeyUnrecognised,
@@ -90,7 +87,7 @@ void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding 
 }
 
 
-IndexBase::IndexBase(eckit::Stream& s, const int version, const Catalogue* catalogue) :
+IndexBase::IndexBase(eckit::Stream& s, const int version, const Catalogue& catalogue) :
     catalogue_(catalogue) {
     if (version >= 3)
         decodeCurrent(s, version);
@@ -129,7 +126,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
     s << type_;
 }
 
-void IndexBase::put(const Key& key, const Field &field) {
+void IndexBase::put(const Key& key, const Field& field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
@@ -139,8 +136,7 @@ void IndexBase::put(const Key& key, const Field &field) {
 
 const TypesRegistry& IndexBase::registry() const {
     if (!registry_) {
-        ASSERT(catalogue_);
-        const Rule* rule = catalogue_->schema().ruleFor(catalogue_->key(), key_);
+        const Rule* rule = catalogue_.schema().ruleFor(catalogue_.key(), key_);
         ASSERT(rule);
         registry_ = rule->registry();
     }
@@ -164,69 +160,46 @@ const Key& IndexBase::key() const {
     return key_;
 }
 
-const std::string &IndexBase::type() const {
+const std::string& IndexBase::type() const {
     return type_;
 }
 
-const IndexAxis &IndexBase::axes() const {
+const IndexAxis& IndexBase::axes() const {
     return axes_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
-// TODO: Remove/convert to other visitor type
-/*void DumpVisitor::visit(const Index& index,
-                        const Field& field,
-                        const std::string&,
-                        const std::string& fieldFingerprint) {
-
-
-    out_ << "ENTRY" << std::endl;
-
-    fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
-    out_ << "  Key: " << dbKey_ << index.key() << key;
-
-    FieldLocationPrinter printer(out_);
-    field.location().visit(printer);
-
-    out_ << std::endl;
-}*/
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class NullIndex : public IndexBase {
 
 public: // methods
 
-    NullIndex() : IndexBase(Key(), "null", nullptr) {}
+    NullIndex() : IndexBase(Key{}, "null", NullCatalogue{}) {}
 
 private: // methods
 
-    virtual const IndexLocation& location() const override { NOTIMP; }
-//    virtual const std::vector<eckit::URI> dataUris() const { NOTIMP; }
+    const IndexLocation& location() const override { NOTIMP; }
 
-    virtual bool dirty() const override { NOTIMP; }
+    bool dirty() const override { NOTIMP; }
 
-    virtual void open() override { NOTIMP; }
-    virtual void close() override { NOTIMP; }
-    virtual void reopen() override { NOTIMP; }
+    void open() override { NOTIMP; }
+    void close() override { NOTIMP; }
+    void reopen() override { NOTIMP; }
 
-    virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
+    void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get(const Key&, const Key&, Field&) const override { NOTIMP; }
-    virtual void add(const Key&, const Field&) override { NOTIMP; }
-    virtual void flush() override { NOTIMP; }
-    virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }
-    virtual void entries(EntryVisitor&) const override { NOTIMP; }
+    bool get(const Key&, const Key&, Field&) const override { NOTIMP; }
+    void add(const Key&, const Field&) override { NOTIMP; }
+    void flush() override { NOTIMP; }
+    void encode(eckit::Stream&, const int version) const override { NOTIMP; }
+    void entries(EntryVisitor&) const override { NOTIMP; }
 
-    virtual void print( std::ostream& s) const override { s << "NullIndex()"; }
-    virtual void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
+    void print( std::ostream& s) const override { s << "NullIndex()"; }
+    void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
 
-    virtual void flock() const override { NOTIMP; }
-    virtual void funlock() const override { NOTIMP; }
+    void flock() const override { NOTIMP; }
+    void funlock() const override { NOTIMP; }
 
-    virtual IndexStats statistics() const override { NOTIMP; }
+    IndexStats statistics() const override { NOTIMP; }
 
 };
 

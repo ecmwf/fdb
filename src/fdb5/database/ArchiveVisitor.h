@@ -16,6 +16,7 @@
 #ifndef fdb5_ArchiveVisitor_H
 #define fdb5_ArchiveVisitor_H
 
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 
 namespace metkit { class MarsRequest; }
@@ -34,9 +35,9 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
+    bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 private: // methods
 

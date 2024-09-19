@@ -31,16 +31,7 @@ TypeTime::~TypeTime() {
 
 std::string TypeTime::tidy(const std::string& value) const {
 
-    eckit::Translator<std::string, long> t;
-
-    long n = t(value);
-    if (n < 100) {
-        n *= 100;
-    }
-
-    std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(4) << n;
-    return oss.str();
+    return toKey(value);
 }
 
 std::string TypeTime::toKey(const std::string& value) const {

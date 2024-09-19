@@ -204,7 +204,7 @@ CASE("DaosCatalogue tests") {
         // archive
 
         /// DaosManager is configured with client config from the file
-        std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
+        std::unique_ptr<const fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
             eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key()
         ));
 

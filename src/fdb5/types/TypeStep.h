@@ -28,7 +28,7 @@ public: // methods
 
     TypeStep(const std::string &name, const std::string &type);
 
-    virtual ~TypeStep() override;
+    ~TypeStep() override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -36,13 +36,13 @@ public: // methods
                            const Notifier &wind,
                            const CatalogueReader* cat) const override;
 
-    virtual std::string toKey(const std::string& value) const override;
+    std::string toKey(const std::string& value) const override;
 
-    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
+    bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 
