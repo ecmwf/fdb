@@ -294,7 +294,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& key, std::shared_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {

@@ -24,8 +24,8 @@ eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::st
 std::set<eckit::PathName> setup(FDB& fdb) {
     // Setup: Write data, generating auxiliary files using the archive callback
     std::set<eckit::PathName> auxPaths;
-    fdb.registerArchiveCallback([&auxPaths] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>> future) {
-        std::shared_ptr<FieldLocation> location = future.get();
+    fdb.registerArchiveCallback([&auxPaths] (const Key& key, const void* data, size_t length, std::future<std::shared_ptr<const FieldLocation>> future) {
+        std::shared_ptr<const FieldLocation> location = future.get();
         for (const auto& ext : extensions) {
             auxPaths.insert(writeAuxiliaryData(location->uri().path(), ext));
         }

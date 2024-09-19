@@ -42,7 +42,7 @@ RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
 
 
-std::shared_ptr<FieldLocation> RadosFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> RadosFieldLocation::make_shared() const {
     return std::make_shared<RadosFieldLocation>(std::move(*this));
 }
 
