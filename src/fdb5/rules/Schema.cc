@@ -11,6 +11,7 @@
 #include <fstream>
 #include <memory>
 #include <mutex>
+#include <tuple>
 
 #include "eckit/exception/Exceptions.h"
 
@@ -25,15 +26,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema() : registry_(new TypesRegistry()) {
+Schema::Schema() : registry_(std::make_shared<TypesRegistry>()) { }
 
-}
-
-Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
+Schema::Schema(const eckit::PathName& path) : Schema() {
     load(path);
 }
 
-Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
+Schema::Schema(std::istream& s) : Schema() {
     load(s);
 }
 
@@ -238,16 +237,20 @@ SchemaRegistry& SchemaRegistry::instance() {
 }
 
 const Schema& SchemaRegistry::get(const eckit::PathName& path) {
-    std::lock_guard<std::mutex> lock(m_);
-    auto it = schemas_.find(path);
-    if (it != schemas_.end()) {
-        return *it->second;
+    std::lock_guard lock(m_);
+
+    auto iter = schemas_.find(path);
+
+    if (iter == schemas_.end()) {
+        bool done = false;
+
+        std::tie(iter, done) = schemas_.emplace(path, std::make_unique<Schema>(path));
+
+        ASSERT(done);
     }
 
-    Schema* p = new Schema(path);
-    ASSERT(p);
-    schemas_[path] = std::unique_ptr<Schema>(p);
-    return *schemas_[path];
+    ASSERT(iter->second);
+    return *iter->second;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
