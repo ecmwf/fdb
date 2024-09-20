@@ -18,10 +18,10 @@
 
 #include <iosfwd>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <vector>
-#include <memory>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/memory/NonCopyable.h"
@@ -52,8 +52,6 @@ public: // methods
 
     ~Schema();
 
-    std::vector<const Rule*> getRules(const Key& key) const;
-
     // EXPAND
 
     void expand(const Key& field, WriteVisitor& visitor) const;
@@ -64,10 +62,14 @@ public: // methods
 
     // MATCH
 
-    void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const;
 
     std::unique_ptr<Key> matchDatabase(const std::string &fingerprint) const;
+
+    // ACCESSORS
+
+    const Rule& matchingRule(const Key& dbKey) const;
 
     const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
 
@@ -97,7 +99,9 @@ private: // methods
 private: // members
 
     std::shared_ptr<TypesRegistry> registry_;
-    std::vector<Rule *>  rules_;
+
+    std::vector<Rule> rules_;
+
     std::string path_;
 
 };

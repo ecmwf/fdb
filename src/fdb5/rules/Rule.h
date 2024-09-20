@@ -18,13 +18,12 @@
 
 #include <cstddef>
 #include <iosfwd>
-#include <map>
 #include <memory>
-#include <string>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
+
+#include "fdb5/rules/SchemaParser.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace metkit::mars {
@@ -38,21 +37,40 @@ class Predicate;
 class ReadVisitor;
 class WriteVisitor;
 class Key;
+
+/// @todo remove this
 class KeyChain;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Rule : public eckit::NonCopyable {
+class Rule {
+    friend class Schema;
+
+public:  // types
+    using PredList = typename SchemaParser::PredList;
+    using RuleList = typename SchemaParser::RuleList;
+    using TypeList = typename SchemaParser::TypeList;
 
 public: // methods
-    Rule(const Schema& schema, std::size_t line, std::vector<Predicate*>&& predicates, std::vector<Rule*>&& rules,
-         const std::map<std::string, std::string>& types);
+    Rule(std::size_t line, PredList&& predicates, RuleList&& rules, const TypeList& types);
 
-    ~Rule();
+    virtual ~Rule() = default;
+
+    Rule(Rule&&)            = default;
+    Rule& operator=(Rule&&) = default;
+
+    Rule(const Rule&)            = delete;
+    Rule& operator=(const Rule&) = delete;
+
+    // MATCH
 
     bool match(const Key &key) const;
 
-    eckit::StringList keys(size_t level) const;
+    bool tryFill(Key& key, const eckit::StringList& values) const;
+
+    void fill(Key& key, const eckit::StringList& values) const;
+
+    void check(const Key& key) const;
 
     void dump(std::ostream &s, size_t depth = 0) const;
 
@@ -64,29 +82,23 @@ public: // methods
 
     // ACCESS
 
-    std::vector<const Rule*> subRulesView() const { return {rules_.begin(), rules_.end()}; }
+    const RuleList& subRules() const { return rules_; }
 
+    const PredList& predicates() const { return predicates_; }
+
+    /// @todo remove this
     const Rule* ruleFor(const KeyChain& keys, size_t depth) const;
 
-    bool tryFill(Key& key, const eckit::StringList& values) const;
-
-    void fill(Key& key, const eckit::StringList& values) const;
-
-    size_t depth() const;
+    std::size_t depth() const;
 
     void updateParent(const Rule *parent);
 
     const Rule &topRule() const;
 
-    const Schema &schema() const;
+    eckit::StringList keys(size_t level) const;
 
     /// @todo wrong constness
     const std::shared_ptr<TypesRegistry> registry() const;
-
-    void check(const Key& key) const;
-
-    const std::vector<Rule*>&      subRules() const;
-    const std::vector<Predicate*>& predicates() const;
 
 private:  // methods
     std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
@@ -101,32 +113,30 @@ private:  // methods
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
-    // EXPAND READ PATH
+    // EXPAND: READ PATH
 
     void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
+
     void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
-    // EXPAND WRITE PATH
+    // EXPAND: WRITE PATH
 
     bool expandDatum(const Key& field, WriteVisitor& visitor, Key& full) const;
+
     bool expandIndex(const Key& field, WriteVisitor& visitor, Key& full) const;
 
     void keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const;
 
-    friend std::ostream& operator<<(std::ostream& s, const Rule& x);
-
     void print(std::ostream& out) const;
 
+    friend std::ostream& operator<<(std::ostream& s, const Rule& x);
+
 private:  // members
-    friend class Schema;
-
-    const Schema& schema_;
-
     std::size_t line_ {0};
 
-    std::vector<Predicate*> predicates_;
+    PredList predicates_;
 
-    std::vector<Rule*> rules_;
+    RuleList rules_;
 
     std::shared_ptr<TypesRegistry> registry_;
 

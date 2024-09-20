@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -56,8 +57,8 @@ Schema::~Schema() {
 const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     KeyChain keys {dbKey, idxKey};
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        const Rule* r = (*i)->ruleFor(keys , 0);
+    for (const auto& rule : rules_) {
+        const Rule* r = rule.ruleFor(keys, 0);
         if (r) {
             return r;
         }
@@ -65,24 +66,26 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
-std::vector<const Rule*> Schema::getRules(const Key& key) const {
+const Rule& Schema::matchingRule(const Key& dbKey) const {
 
-    for (const auto* rule : rules_) {
-        if (rule->match(key)) { return rule->subRulesView(); }
+    for (const auto& rule : rules_) {
+        if (rule.match(dbKey)) { return rule; }
     }
 
-    return {};
+    std::stringstream msg;
+    msg << "No rule exists for key " << dbKey;
+    throw eckit::SeriousBug(msg.str(), Here());
 }
 
 void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
-    for (const auto* rule : rules_) { rule->expand(request, visitor); }
+    for (const auto& rule : rules_) { rule.expand(request, visitor); }
 }
 
 std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request) const {
     std::vector<Key> result;
 
-    for (const auto* rule : rules_) {
-        const auto keys = rule->findMatchingKeys(request);
+    for (const auto& rule : rules_) {
+        const auto keys = rule.findMatchingKeys(request);
         result.insert(result.end(), keys.begin(), keys.end());
     }
 
@@ -93,36 +96,33 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
     visitor.rule(nullptr);  // reset to no rule so we verify that we pick at least one
 
-    for (const auto* rule : rules_) {
-        if (rule->expand(field, visitor)) { break; }
+    for (const auto& rule : rules_) {
+        if (rule.expand(field, visitor)) { break; }
     }
 }
 
 void Schema::matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const {
-    for (auto* rule : rules_) {
-        if (auto key = rule->findMatchingKey(dbKey, missing)) { result.emplace(std::move(*key)); }
+    for (const auto& rule : rules_) {
+        if (auto key = rule.findMatchingKey(dbKey, missing)) { result.emplace(std::move(*key)); }
     }
 }
 
 void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    for (auto* rule : rules_) {
-        const auto keys = rule->findMatchingKeys(request, missing);
+    for (const auto& rule : rules_) {
+        const auto keys = rule.findMatchingKeys(request, missing);
         result.insert(keys.begin(), keys.end());
     }
 }
 
-std::unique_ptr<Key>
-Schema::matchDatabase(const std::string &fingerprint) const {
+std::unique_ptr<Key> Schema::matchDatabase(const std::string& fingerprint) const {
 
-  const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
+    const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
 
-  for (const auto *rule : rules_) {
-    if (auto found = rule->findMatchingKey(values)) {
-      return found;
+    for (const auto& rule : rules_) {
+        if (auto found = rule.findMatchingKey(values)) { return found; }
     }
-  }
 
-  return {};
+    return {};
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {
@@ -144,33 +144,32 @@ void Schema::load(std::istream& s, bool replace) {
         clear();
     }
 
-    SchemaParser parser(s);
-
-    parser.parse(*this, rules_, *registry_);
+    SchemaParser(s).parse(*this, rules_, *registry_);
 
     check();
 }
 
 void Schema::clear() {
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        delete *i;
-    }
+    rules_.clear();
+    // for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    //     delete *i;
+    // }
 }
 
 void Schema::dump(std::ostream &s) const {
     registry_->dump(s);
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->dump(s);
+    for (const auto& rule : rules_) {
+        rule.dump(s);
         s << std::endl;
     }
 }
 
 void Schema::check() {
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (auto& rule : rules_) {
         /// @todo print offending rule in meaningful message
-        ASSERT((*i)->depth() == 3);
-        (*i)->registry_->updateParent(registry_);
-        (*i)->updateParent(0);
+        ASSERT(rule.depth() == 3);
+        rule.registry_->updateParent(registry_);
+        rule.updateParent(0);
     }
 }
 
@@ -227,4 +226,4 @@ const Schema& SchemaRegistry::get(const eckit::PathName& path) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

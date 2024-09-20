@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
+// #include "eckit/memory/NonCopyable.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -35,11 +35,16 @@ class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Predicate : public eckit::NonCopyable {
+class Predicate {
 
 public: // methods
+    Predicate(const Predicate&)            = delete;
+    Predicate& operator=(const Predicate&) = delete;
 
-    Predicate(const std::string &keyword, Matcher *matcher);
+    Predicate(Predicate&&)            = default;
+    Predicate& operator=(Predicate&&) = default;
+
+    Predicate(const std::string& keyword, Matcher* matcher);
 
     ~Predicate();
 

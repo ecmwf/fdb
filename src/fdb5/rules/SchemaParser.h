@@ -14,6 +14,10 @@
 #ifndef fdb5_SchemaParser_h
 #define fdb5_SchemaParser_h
 
+#include <iosfwd>
+#include <string>
+#include <vector>
+
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
@@ -28,25 +32,28 @@ class TypesRegistry;
 
 class SchemaParser : public eckit::StreamParser {
 
-public: // methods
+public:  // types
+    using RuleList = std::vector<Rule>;
+    using PredList = std::vector<Predicate>;
+    using TypeList = eckit::StringDict;
 
-    SchemaParser(std::istream &in);
+public:  // methods
+    SchemaParser(std::istream& in) : StreamParser(in, true) { }
 
-    void parse(const Schema &owner, std::vector<Rule *> &, TypesRegistry &registry);
+    void parse(const Schema& owner, RuleList& result, TypesRegistry& registry);
 
-private: // methods
-
+private:  // methods
     std::string parseIdent(bool value, bool emptyOK);
 
-    Rule *parseRule(const Schema &owner);
+    Rule parseRule(const Schema& owner);
 
-    Predicate *parsePredicate(std::map<std::string, std::string> &types);
-    void parseTypes(std::map<std::string, std::string> &);
+    Predicate parsePredicate(TypeList& types);
 
+    void parseTypes(TypeList& types);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace eckit
+}  // namespace fdb5
 
 #endif
