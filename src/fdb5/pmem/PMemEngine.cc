@@ -60,13 +60,13 @@ bool PMemEngine::canHandle(const eckit::PathName& path) const
 static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
-    schema.matchFirstLevel(key, keys, missing);
+    schema.matchDatabase(key, keys, missing);
 }
 
 static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
-    schema.matchFirstLevel(rq, keys, missing);
+    schema.matchDatabase(rq, keys, missing);
 }
 
 std::vector<eckit::PathName> PMemEngine::databases(const Key &key,

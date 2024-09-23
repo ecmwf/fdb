@@ -697,7 +697,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::Mar
 //    Key key;
 //    config_.schema().expandFirstLevel(request, key);
     std::set<Key> keys;
-    config_.schema().matchFirstLevel(request, keys, "");
+    config_.schema().matchDatabase(request, keys, "");
     return visitableRoots(keys);
 }
 

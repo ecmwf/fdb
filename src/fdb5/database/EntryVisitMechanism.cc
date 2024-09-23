@@ -69,7 +69,7 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    Key key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    Key key(keyFingerprint, currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key()));
     visitDatum(field, key);
 }
 

@@ -223,7 +223,7 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
 
             // Match all possible expansions of the first level according to the schema
             std::set<Key> keys;
-            config_.schema().matchFirstLevel(rq, keys, "");
+            config_.schema().matchDatabase(rq, keys, "");
 
             std::set<std::string> expandedKeys;
             for (auto k = keys.begin(); k != keys.end(); ++k) {
