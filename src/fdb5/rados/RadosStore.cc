@@ -45,7 +45,7 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
         field.dataHandle(remapKey);
 }
 
-FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Length length) {
+FieldLocation* RadosStore::archive(const Key& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -154,7 +154,7 @@ eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName RadosStore::generateDataPath(const Key &key) const {
+eckit::PathName RadosStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
@@ -162,7 +162,7 @@ eckit::PathName RadosStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName RadosStore::getDataPath(const Key &key) {
+eckit::PathName RadosStore::getDataPath(const Key& key) {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;

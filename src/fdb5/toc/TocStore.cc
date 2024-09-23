@@ -115,10 +115,10 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<const FieldLocation> TocStore::archive(const Key& key, const void* data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void *data, eckit::Length length) {
     dirty_ = true;
 
-    eckit::PathName dataPath = getDataPath(key);
+    eckit::PathName dataPath = getDataPath(idxKey);
 
     eckit::DataHandle &dh = getDataHandle(dataPath);
 
@@ -128,7 +128,7 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& key, const voi
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key(nullptr, true)));
+    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 void TocStore::flush() {
@@ -241,7 +241,7 @@ eckit::DataHandle& TocStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName TocStore::generateDataPath(const Key &key) const {
+eckit::PathName TocStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
@@ -249,7 +249,7 @@ eckit::PathName TocStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName TocStore::getDataPath(const Key &key) const {
+eckit::PathName TocStore::getDataPath(const Key& key) const {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;

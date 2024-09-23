@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -31,10 +32,6 @@ public:
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
-EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr) {}
-
-EntryVisitor::~EntryVisitor() {}
 
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
@@ -59,8 +56,9 @@ bool EntryVisitor::visitIndex(const Index& index) {
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-
-    Key key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    const Rule* rule = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
+    ASSERT(rule);
+    TypedKey key(keyFingerprint, *rule);
     visitDatum(field, key);
 }
 

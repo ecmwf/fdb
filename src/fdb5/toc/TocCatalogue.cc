@@ -39,6 +39,14 @@ TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdenti
     dbKey_ = databaseKey();
 }
 
+
+std::vector<Index> TocCatalogue::loadIndexes(bool sorted,
+                                           std::set<std::string>* subTocs,
+                                           std::vector<bool>* indexInSubtoc,
+                                           std::vector<Key>* remapKeys) const {
+    return TocHandler::loadIndexes(*this, sorted, subTocs, indexInSubtoc,remapKeys);
+}
+
 bool TocCatalogue::exists() const {
     return TocHandler::exists();
 }
@@ -110,7 +118,7 @@ std::vector<Index> TocCatalogue::indexes(bool sorted) const {
 
 void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
                       std::set<URI>& data) const {
-    enumerateMasked(metadata, data);
+    enumerateMasked(*this, metadata, data);
 }
 
 std::string TocCatalogue::type() const

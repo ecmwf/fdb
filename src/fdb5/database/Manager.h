@@ -38,20 +38,17 @@ public: // methods
     ~Manager();
 
     /// Uniquely selects the engine that will handle this Key on insertion or if already exists
-    std::string engine(const Key &key);
+    std::string engine(const Key& key);
 
     /// set union of all the engines that can possibly handle this key
-    std::set<std::string> engines(const Key &key);
+    std::set<std::string> engines(const Key& key);
     std::set<std::string> engines(const metkit::mars::MarsRequest& rq, bool all);
 
     /// Uniquely selects the engine that will handle this URI by checking possible handlers
     std::string engine(const eckit::URI& uri);
 
     /// Uniquely selects a location where the Key will be put or already exists
-    eckit::URI location(const Key &key);
-
-    /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::URI> allLocations(const Key& key);
+    eckit::URI location(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);

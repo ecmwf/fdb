@@ -56,18 +56,18 @@ static FieldLocationBuilder<DaosFieldLocation> builder("daos");
 //----------------------------------------------------------------------------------------------------------------------
 
 class DaosURIManager : public eckit::URIManager {
-    virtual bool query() override { return true; }
-    virtual bool fragment() override { return true; }
+    bool query() override { return true; }
+    bool fragment() override { return true; }
 
-    virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
+    eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
-    virtual bool exists(const eckit::URI& f) override {
+    bool exists(const eckit::URI& f) override {
 
         return fdb5::DaosName(f).exists();
 
     }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
+    eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
 
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
@@ -75,7 +75,7 @@ class DaosURIManager : public eckit::URIManager {
         
     }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
+    eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
 
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
@@ -83,7 +83,7 @@ class DaosURIManager : public eckit::URIManager {
         
     }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+    eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
 
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
@@ -91,7 +91,7 @@ class DaosURIManager : public eckit::URIManager {
         
     }
 
-    virtual std::string asString(const eckit::URI& uri) const override {
+    std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
         if (!q.empty())
             q = "?" + q;

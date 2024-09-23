@@ -25,15 +25,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema() : registry_(new TypesRegistry()) {
+Schema::Schema() = default;
 
-}
-
-Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
+Schema::Schema(const eckit::PathName &path) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
+Schema::Schema(std::istream& s) {
     load(s);
 }
 
@@ -56,26 +54,22 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 }
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// (*i)->dump(eckit::Log::info());
-		(*i)->expand(request, visitor, 0, keys, full);
+    for (Rule* r : rules_) {
+		r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
 
-void Schema::expand(const Key &field, WriteVisitor &visitor) const {
-    Key full(registry());
-    std::vector<Key> keys(3);
-    for (auto& k : keys) k.registry(registry());
+void Schema::expand(const Key& field, WriteVisitor &visitor) const {
+    TypedKey fullComputedKey{registry()};
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(field, visitor, 0, keys, full);
+    for (Rule* r : rules_) {
+        r->expand(field, visitor, 0, keys, fullComputedKey);
     }
 }
 
@@ -90,14 +84,11 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
-    keys[1].registry(registry());
-    keys[2].registry(registry());
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(request, visitor, 1, keys, full);
+        (*i)->expand(request, visitor, 1, keys, fullComputedKey);
     }
 }
 
@@ -112,26 +103,15 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     }
     ASSERT(dbRule);
 
-    Key full = dbKey;
-    std::vector<Key> keys(3);
-    keys[0] = dbKey;
-    keys[1].registry(registry());
-    keys[2].registry(registry());
+    std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
+    TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(field, visitor, 1, keys, full);
+        (*i)->expand(field, visitor, 1, keys, fullComputedKey);
     }
 }
 
-bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
-    bool found = false;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-        (*i)->expandFirstLevel(dbKey, result, found);
-    }
-    return found;
-}
-
-bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result) const {
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
@@ -143,15 +123,15 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
     return found;
 }
 
-void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(dbKey, result, missing);
+void Schema::matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const {
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
 void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(request, result, missing);
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(request, result, missing);
     }
 }
 
@@ -176,7 +156,7 @@ void Schema::load(std::istream& s, bool replace) {
 
     SchemaParser parser(s);
 
-    parser.parse(*this, rules_, *registry_);
+    parser.parse(*this, rules_, registry_);
 
     check();
 }
@@ -188,7 +168,7 @@ void Schema::clear() {
 }
 
 void Schema::dump(std::ostream &s) const {
-    registry_->dump(s);
+    registry_.dump(s);
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->dump(s);
         s << std::endl;
@@ -199,7 +179,7 @@ void Schema::check() {
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
-        (*i)->registry_->updateParent(registry_);
+        (*i)->registry_.updateParent(registry_);
         (*i)->updateParent(0);
     }
 }
@@ -209,7 +189,7 @@ void Schema::print(std::ostream &out) const {
 }
 
 const Type &Schema::lookupType(const std::string &keyword) const {
-    return registry_->lookupType(keyword);
+    return registry_.lookupType(keyword);
 }
 
 
@@ -221,7 +201,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-std::shared_ptr<const TypesRegistry> Schema::registry() const {
+const TypesRegistry& Schema::registry() const {
     return registry_;
 }
 

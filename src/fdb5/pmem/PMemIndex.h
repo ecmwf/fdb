@@ -38,9 +38,9 @@ class PMemIndex : public IndexBase {
 
 public: // methods
 
-    PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
+    PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
 
-    virtual ~PMemIndex() override;
+    ~PMemIndex() override;
 
     virtual void visit(IndexLocationVisitor& visitor) const;
 
@@ -49,7 +49,7 @@ public: // methods
 protected: // methods
 
     virtual const IndexLocation& location() const { return location_; }
-    virtual const std::vector<eckit::URI> dataURIs() const override;
+    const std::vector<eckit::URI> dataURIs() const override;
 
     virtual bool dirty() const;
 
@@ -57,13 +57,13 @@ protected: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual bool get( const Key &key, Field &field ) const;
-    virtual void add( const Key &key, const Field &field );
+    virtual bool get(const Key& key, Field &field ) const;
+    virtual void add(const Key& key, const Field &field );
     virtual void flush();
-    virtual void encode(eckit::Stream &s) const override;
+    void encode(eckit::Stream &s) const override;
     virtual void entries(EntryVisitor &visitor) const;
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const;
 
     virtual IndexStats statistics() const;
