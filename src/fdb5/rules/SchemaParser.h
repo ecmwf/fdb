@@ -23,33 +23,33 @@
 
 namespace fdb5 {
 
-class Schema;
-class Rule;
 class Predicate;
 class TypesRegistry;
+class RuleDatum;
+class RuleIndex;
+class RuleDatabase;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class SchemaParser : public eckit::StreamParser {
 
-public:  // types
-    using RuleList = std::vector<Rule>;
-    using PredList = std::vector<Predicate>;
-    using TypeList = eckit::StringDict;
-
 public:  // methods
     SchemaParser(std::istream& in) : StreamParser(in, true) { }
 
-    void parse(const Schema& owner, RuleList& result, TypesRegistry& registry);
+    void parse(std::vector<RuleDatabase>& result, TypesRegistry& registry);
 
 private:  // methods
     std::string parseIdent(bool value, bool emptyOK);
 
-    Rule parseRule(const Schema& owner);
+    RuleDatum parseDatum();
 
-    Predicate parsePredicate(TypeList& types);
+    RuleIndex parseIndex();
 
-    void parseTypes(TypeList& types);
+    RuleDatabase parseDatabase();
+
+    Predicate parsePredicate(eckit::StringDict& types);
+
+    void parseTypes(eckit::StringDict& types);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

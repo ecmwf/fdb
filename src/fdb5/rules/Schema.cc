@@ -26,13 +26,12 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/KeyChain.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/rules/Predicate.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/SchemaParser.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -54,19 +53,26 @@ Schema::~Schema() {
     clear();
 }
 
-const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
-    KeyChain keys {dbKey, idxKey};
+//----------------------------------------------------------------------------------------------------------------------
 
-    for (const auto& rule : rules_) {
-        const Rule* r = rule.ruleFor(keys, 0);
-        if (r) {
-            return r;
+const Rule* Schema::matchingRule(const Key& dbKey, const Key& idxKey) const {
+
+    for (const auto& dbRule : rules_) {
+        if (!dbRule.match(dbKey)) { continue; }
+        for (const auto& idxRule : dbRule.rules()) {
+            if (idxRule.match(idxKey)) {
+                /// @note this assumes that there is only one datum per index
+                for (const auto& datumRule : idxRule.rules()) { return &datumRule; }
+            }
         }
     }
-    return 0;
+
+    LOG_DEBUG_LIB(LibFdb5) << "No rule is matching dbKey=" << dbKey << " and idxKey=" << idxKey << std::endl;
+
+    return nullptr;
 }
 
-const Rule& Schema::matchingRule(const Key& dbKey) const {
+const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
 
     for (const auto& rule : rules_) {
         if (rule.match(dbKey)) { return rule; }
@@ -76,6 +82,8 @@ const Rule& Schema::matchingRule(const Key& dbKey) const {
     msg << "No rule exists for key " << dbKey;
     throw eckit::SeriousBug(msg.str(), Here());
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
     for (const auto& rule : rules_) { rule.expand(request, visitor); }
@@ -101,13 +109,15 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
     }
 }
 
-void Schema::matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const {
+//----------------------------------------------------------------------------------------------------------------------
+
+void Schema::matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const {
     for (const auto& rule : rules_) {
         if (auto key = rule.findMatchingKey(dbKey, missing)) { result.emplace(std::move(*key)); }
     }
 }
 
-void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const {
     for (const auto& rule : rules_) {
         const auto keys = rule.findMatchingKeys(request, missing);
         result.insert(keys.begin(), keys.end());
@@ -124,6 +134,8 @@ std::unique_ptr<Key> Schema::matchDatabase(const std::string& fingerprint) const
 
     return {};
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void Schema::load(const eckit::PathName &path, bool replace) {
 
@@ -144,16 +156,18 @@ void Schema::load(std::istream& s, bool replace) {
         clear();
     }
 
-    SchemaParser(s).parse(*this, rules_, *registry_);
+    SchemaParser(s).parse(rules_, *registry_);
 
-    check();
+    for (auto& rule : rules_) {
+        rule.registry_->updateParent(registry_);
+        rule.updateParent(nullptr);
+    }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void Schema::clear() {
     rules_.clear();
-    // for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-    //     delete *i;
-    // }
 }
 
 void Schema::dump(std::ostream &s) const {
@@ -164,15 +178,6 @@ void Schema::dump(std::ostream &s) const {
     }
 }
 
-void Schema::check() {
-    for (auto& rule : rules_) {
-        /// @todo print offending rule in meaningful message
-        ASSERT(rule.depth() == 3);
-        rule.registry_->updateParent(registry_);
-        rule.updateParent(0);
-    }
-}
-
 void Schema::print(std::ostream &out) const {
     out << "Schema[path=" << path_ << "]";
 }
@@ -180,7 +185,6 @@ void Schema::print(std::ostream &out) const {
 const Type &Schema::lookupType(const std::string &keyword) const {
     return registry_->lookupType(keyword);
 }
-
 
 bool Schema::empty() const {
     return rules_.empty();
@@ -194,13 +198,13 @@ const std::shared_ptr<TypesRegistry> Schema::registry() const {
     return registry_;
 }
 
-
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);
     return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// REGISTRY
 
 SchemaRegistry& SchemaRegistry::instance() {
     static SchemaRegistry me;

@@ -26,7 +26,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/types/TypesRegistry.h"
+#include "fdb5/rules/Rule.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -35,19 +35,18 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Rule;
+class Database;
 class ReadVisitor;
 class WriteVisitor;
-class Schema;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Schema : private eckit::NonCopyable {
 
-public: // methods
-
+public:  // methods
     Schema();
-    Schema(const eckit::PathName &path);
+    Schema(const eckit::PathName& path);
     Schema(std::istream& s);
 
     ~Schema();
@@ -62,48 +61,46 @@ public: // methods
 
     // MATCH
 
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+    void matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
 
-    std::unique_ptr<Key> matchDatabase(const std::string &fingerprint) const;
+    void matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+
+    std::unique_ptr<Key> matchDatabase(const std::string& fingerprint) const;
+
+    const RuleDatabase& matchingRule(const Key& dbKey) const;
+
+    /// @todo return RuleDatum
+    const Rule* matchingRule(const Key& dbKey, const Key& idxKey) const;
+
+    void load(const eckit::PathName& path, bool replace = false);
+
+    void load(std::istream& s, bool replace = false);
 
     // ACCESSORS
 
-    const Rule& matchingRule(const Key& dbKey) const;
-
-    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
-
-    void load(const eckit::PathName &path, bool replace = false);
-    void load(std::istream& s, bool replace = false);
-
-    void dump(std::ostream &s) const;
+    void dump(std::ostream& s) const;
 
     bool empty() const;
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    const std::string &path() const;
+    const std::string& path() const;
 
     const std::shared_ptr<TypesRegistry> registry() const;
 
-
-private: // methods
-
+private:  // methods
     void clear();
-    void check();
 
-    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+    void print(std::ostream& out) const;
 
-    void print( std::ostream &out ) const;
+    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
-private: // members
-
+private:  // members
     std::shared_ptr<TypesRegistry> registry_;
 
-    std::vector<Rule> rules_;
+    std::vector<RuleDatabase> rules_;
 
     std::string path_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

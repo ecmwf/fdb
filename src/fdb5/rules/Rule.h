@@ -23,7 +23,6 @@
 
 #include "eckit/types/Types.h"
 
-#include "fdb5/rules/SchemaParser.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace metkit::mars {
@@ -38,22 +37,12 @@ class ReadVisitor;
 class WriteVisitor;
 class Key;
 
-/// @todo remove this
-class KeyChain;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class Rule {
     friend class Schema;
 
-public:  // types
-    using PredList = typename SchemaParser::PredList;
-    using RuleList = typename SchemaParser::RuleList;
-    using TypeList = typename SchemaParser::TypeList;
-
-public: // methods
-    Rule(std::size_t line, PredList&& predicates, RuleList&& rules, const TypeList& types);
-
+public:  // methods
     virtual ~Rule() = default;
 
     Rule(Rule&&)            = default;
@@ -62,9 +51,11 @@ public: // methods
     Rule(const Rule&)            = delete;
     Rule& operator=(const Rule&) = delete;
 
-    // MATCH
+    virtual const char* type() const = 0;
 
-    bool match(const Key &key) const;
+    virtual void updateParent(const Rule* parent);
+
+    bool match(const Key& key) const;
 
     bool tryFill(Key& key, const eckit::StringList& values) const;
 
@@ -72,79 +63,118 @@ public: // methods
 
     void check(const Key& key) const;
 
-    void dump(std::ostream &s, size_t depth = 0) const;
+    void dump(std::ostream& out) const;
 
-    // EXPAND
-
-    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
-
-    bool expand(const Key& field, WriteVisitor& visitor) const;
-
-    // ACCESS
-
-    const RuleList& subRules() const { return rules_; }
-
-    const PredList& predicates() const { return predicates_; }
-
-    /// @todo remove this
-    const Rule* ruleFor(const KeyChain& keys, size_t depth) const;
-
-    std::size_t depth() const;
-
-    void updateParent(const Rule *parent);
-
-    const Rule &topRule() const;
-
-    eckit::StringList keys(size_t level) const;
+    const Rule& topRule() const;
 
     /// @todo wrong constness
     const std::shared_ptr<TypesRegistry> registry() const;
 
-private:  // methods
-    std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
+protected:  // methods
+    Rule(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types);
 
     std::unique_ptr<Key> findMatchingKey(const Key& field) const;
 
-    std::unique_ptr<Key> findMatchingKey(const Key& field, const char* missing) const;
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
-    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const;
+private:  // methods
+    virtual void dumpRules(std::ostream& out) const = 0;
+
+    std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
+
+    std::unique_ptr<Key> findMatchingKey(const Key& field, const char* missing) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request) const;
 
-    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
-
-    // EXPAND: READ PATH
-
-    void expandDatum(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
-
-    void expandIndex(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
-
-    // EXPAND: WRITE PATH
-
-    bool expandDatum(const Key& field, WriteVisitor& visitor, Key& full) const;
-
-    bool expandIndex(const Key& field, WriteVisitor& visitor, Key& full) const;
-
-    void keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const;
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const;
 
     void print(std::ostream& out) const;
 
     friend std::ostream& operator<<(std::ostream& s, const Rule& x);
 
 private:  // members
+    const Rule* parent_ {nullptr};
+
     std::size_t line_ {0};
 
-    PredList predicates_;
-
-    RuleList rules_;
+    std::vector<Predicate> predicates_;
 
     std::shared_ptr<TypesRegistry> registry_;
+};
 
-    const Rule* parent_ {nullptr};
+//----------------------------------------------------------------------------------------------------------------------
+// RULE DATUM
+
+class RuleDatum : public Rule {
+public:  // methods
+    RuleDatum(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types);
+
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
+
+    bool expand(const Key& field, WriteVisitor& visitor, Key& full) const;
+
+    const char* type() const override { return "RuleDatum"; }
+
+private:  // methods
+    void dumpRules(std::ostream& /* out */) const override { }
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE INDEX
+
+class RuleIndex : public Rule {
+public:  // methods
+    RuleIndex(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types,
+              std::vector<RuleDatum>& rules);
+
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
+
+    bool expand(const Key& field, WriteVisitor& visitor, Key& full) const;
+
+    void updateParent(const Rule* parent) override;
+
+    const std::vector<RuleDatum>& rules() const { return rules_; }
+
+    const char* type() const override { return "RuleIndex"; }
+
+private:  // methods
+    void dumpRules(std::ostream& out) const override {
+        for (const auto& rule : rules_) { rule.dump(out); }
+    }
+
+private:  // methods
+    std::vector<RuleDatum> rules_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE DATABASE
+
+class RuleDatabase : public Rule {
+public:  // methods
+    RuleDatabase(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types,
+                 std::vector<RuleIndex>& rules);
+
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+
+    bool expand(const Key& field, WriteVisitor& visitor) const;
+
+    void updateParent(const Rule* /* parent */) override;
+
+    const std::vector<RuleIndex>& rules() const { return rules_; }
+
+    const char* type() const override { return "RuleDatabase"; }
+
+private:  // methods
+    void dumpRules(std::ostream& out) const override {
+        for (const auto& rule : rules_) { rule.dump(out); }
+    }
+
+private:  // methods
+    std::vector<RuleIndex> rules_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif
