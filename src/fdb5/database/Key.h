@@ -183,30 +183,26 @@ class TypedKey : public BaseKey {
 
 public: // methods
 
-    explicit TypedKey(const Key& key, std::shared_ptr<const TypesRegistry> reg);
-    explicit TypedKey(std::shared_ptr<const TypesRegistry> reg);
-    explicit TypedKey(eckit::Stream &, std::shared_ptr<const TypesRegistry> reg);
-    explicit TypedKey(const std::string &keys, const Rule* rule);
-    explicit TypedKey(const eckit::StringDict &keys, std::shared_ptr<const TypesRegistry> reg);
-    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<const TypesRegistry> reg);
+    explicit TypedKey(const Key& key, const TypesRegistry& reg);
+    explicit TypedKey(const TypesRegistry& reg);
+    explicit TypedKey(eckit::Stream &, const TypesRegistry& reg);
+    explicit TypedKey(const std::string &keys, const Rule& rule);
+    explicit TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg);
+    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const TypesRegistry& reg);
 
-    static TypedKey parseString(const std::string&, std::shared_ptr<const TypesRegistry> reg);
+    static TypedKey parseString(const std::string&, const TypesRegistry& reg);
 
     Key canonical() const;
 
     /// @throws When "other" doesn't contain all the keys of "this"
     void validateKeys(const BaseKey& other, bool checkAlsoValues = false) const;
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x) {
-        x = TypedKey(s, nullptr);
-        return s;
-    }
+    friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x);
 
     // Registry is needed before we can stringise/canonicalise.
-    void registry(std::shared_ptr<const TypesRegistry> reg);
+    void registry(const TypesRegistry& reg);
     [[ nodiscard ]]
     const TypesRegistry& registry() const;
-    const void* reg() const;
 
 private: // members
 
@@ -214,7 +210,7 @@ private: // members
     std::string canonicalise(const std::string& keyword, const std::string& value) const override;
     std::string type(const std::string& keyword) const override;
 
-    std::shared_ptr<const TypesRegistry> registry_;
+    std::reference_wrapper<const TypesRegistry> registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

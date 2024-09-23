@@ -137,9 +137,9 @@ const TypesRegistry& IndexBase::registry() const {
     if (!registry_) {
         const Rule* rule = catalogue_.schema().ruleFor(catalogue_.key(), key_);
         ASSERT(rule);
-        registry_ = rule->registry();
+        registry_ = std::ref(rule->registry());
     }
-    return *registry_;
+    return registry_.value().get();
 }
 
 bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {

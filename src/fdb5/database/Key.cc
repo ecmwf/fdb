@@ -335,36 +335,35 @@ std::string Key::type(const std::string& keyword) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypedKey::TypedKey(const Key& key, std::shared_ptr<const TypesRegistry> reg) : 
-    BaseKey(key), registry_(reg) {}
+TypedKey::TypedKey(const Key& key, const TypesRegistry& reg) : 
+    BaseKey(key), registry_(std::cref(reg)) {}
 
-TypedKey::TypedKey(std::shared_ptr<const TypesRegistry> reg) :
-    BaseKey({}), registry_(reg) {}
+TypedKey::TypedKey(const TypesRegistry& reg) :
+    registry_(std::cref(reg)) {}
 
-TypedKey::TypedKey(const std::string &s, const Rule *rule) :
-    BaseKey({}), registry_(rule ? rule->registry() : nullptr) {
+TypedKey::TypedKey(const std::string &s, const Rule& rule) :
+    registry_(std::cref(rule.registry())) {
 
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
     parse(s, values);
 
-    ASSERT(rule);
-    rule->fill(*this, values);
+    rule.fill(*this, values);
 }
 
-TypedKey::TypedKey(const eckit::StringDict &keys, std::shared_ptr<const TypesRegistry> reg) :
-    BaseKey(keys), registry_(reg) {
+TypedKey::TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg) :
+    BaseKey(keys), registry_(std::cref(reg)) {
 }
 
-TypedKey::TypedKey(eckit::Stream& s, std::shared_ptr<const TypesRegistry> reg) :
-    BaseKey({}), registry_(reg) {
+TypedKey::TypedKey(eckit::Stream& s, const TypesRegistry& reg) :
+    registry_(std::cref(reg)) {
     decode(s);
 }
 
-TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, std::shared_ptr<const TypesRegistry> reg) :
-    BaseKey(l), registry_(reg) {}
+TypedKey::TypedKey(std::initializer_list<std::pair<const std::string, std::string>> l, const TypesRegistry& reg) :
+    BaseKey(l), registry_(std::cref(reg)) {}
 
-TypedKey TypedKey::parseString(const std::string &s, std::shared_ptr<const TypesRegistry> registry) {
+TypedKey TypedKey::parseString(const std::string &s, const TypesRegistry& registry) {
 
     eckit::Tokenizer parse1(",");
     eckit::Tokenizer parse2("=");
@@ -395,8 +394,6 @@ void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
     eckit::StringSet missing;
     eckit::StringSet mismatch;
 
-    ASSERT(registry_);
-
     for (BaseKey::const_iterator j = other.begin(); j != other.end(); ++j) {
         const std::string& keyword = (*j).first;
         BaseKey::const_iterator k = find(keyword);
@@ -404,7 +401,7 @@ void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
             missing.insert(keyword);
         }
         else {
-            if(checkAlsoValues && !registry_->lookupType(keyword).match(keyword, j->second, k->second)) {
+            if(checkAlsoValues && !registry_.get().lookupType(keyword).match(keyword, j->second, k->second)) {
                 mismatch.insert((*j).first + "=" + j->second + " and " + k->second);
             }
         }
@@ -427,21 +424,11 @@ void TypedKey::validateKeys(const BaseKey& other, bool checkAlsoValues) const {
     }
 }
 
-void TypedKey::registry(std::shared_ptr<const TypesRegistry> reg) {
-    registry_ = std::move(reg);
+void TypedKey::registry(const TypesRegistry& reg) {
+    registry_ = std::cref(reg);
 }
 
 const TypesRegistry& TypedKey::registry() const {
-    if (!registry_) {
-        std::stringstream ss;
-        ss << "TypesRegistry has not been set for BaseKey " << (*this) << " prior to use";
-        throw eckit::SeriousBug(ss.str(), Here());
-    }
-
-    return *registry_;
-}
-
-const void* TypedKey::reg() const {
     return registry_.get();
 }
 
@@ -449,12 +436,12 @@ std::string TypedKey::canonicalise(const std::string& keyword, const std::string
     if (value.empty()) {
         return value;
     } else {
-        return this->registry().lookupType(keyword).toKey(value);
+        return registry().lookupType(keyword).toKey(value);
     }
 }
 
 std::string TypedKey::type(const std::string& keyword) const {
-    return this->registry().lookupType(keyword).type();
+    return registry().lookupType(keyword).type();
 }
 
 Key TypedKey::canonical() const {
@@ -468,6 +455,13 @@ Key TypedKey::canonical() const {
     }
 
     return key;
+}
+
+eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x) {
+    static TypesRegistry emptyTypesRegistry{};
+
+    x = TypedKey(s, emptyTypesRegistry);
+    return s;
 }
 
 } // namespace fdb5

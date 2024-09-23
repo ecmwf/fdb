@@ -31,11 +31,11 @@ Rule::Rule(const Schema &schema,
            size_t line,
            std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
            const std::map<std::string, std::string> &types):
-    schema_(schema), registry_(new TypesRegistry()), line_(line) {
+    schema_(schema), line_(line) {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        registry_->addType(i->first, i->second);
+        registry_.addType(i->first, i->second);
     }
 }
 
@@ -105,7 +105,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
     const std::string &keyword = (*cur)->keyword();
 
     eckit::StringList values;
-    visitor.values(request, keyword, *registry_, values);
+    visitor.values(request, keyword, registry_, values);
 
     // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
@@ -413,7 +413,7 @@ void Rule::dump(std::ostream &s, size_t depth) const {
     const char *sep = "";
     for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         s << sep;
-        (*i)->dump(s, *registry_);
+        (*i)->dump(s, registry_);
         sep = ",";
     }
 
@@ -433,15 +433,17 @@ size_t Rule::depth() const {
 
 void Rule::updateParent(const Rule *parent) {
     parent_ = parent;
+    // if (parent && (&registry_ != &parent->registry_)) {
     if (parent) {
-        registry_->updateParent(parent_->registry_);
+        registry_.updateParent(parent_->registry_);
     }
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->updateParent(this);
+        // if (&(*i)->registry_ != &registry_)
+            (*i)->updateParent(this);
     }
 }
 
-std::shared_ptr<TypesRegistry> Rule::registry() const {
+const TypesRegistry& Rule::registry() const {
     return registry_;
 }
 
@@ -467,7 +469,7 @@ void Rule::check(const Key& key) const {
         auto k = key.find(pred->keyword());
         if (k != key.end()) {
             const std::string& value = (*k).second;
-            const Type& type = registry_->lookupType(pred->keyword());
+            const Type& type = registry_.lookupType(pred->keyword());
             if (value != type.tidy(value)) {
                 std::stringstream ss;
                 ss << "Rule check - metadata not valid (not in canonical form) - found: ";

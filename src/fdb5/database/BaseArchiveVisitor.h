@@ -46,7 +46,7 @@ protected: // methods
 
     fdb5::DB* current() const;
 
-    const Key& initialFieldKey() { return initialFieldKey_; } 
+    const Key& initialFieldKey() const { return initialFieldKey_; } 
 
 private: // members
 

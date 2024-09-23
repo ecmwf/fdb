@@ -56,8 +56,9 @@ bool EntryVisitor::visitIndex(const Index& index) {
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-
-    TypedKey key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    const Rule* rule = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
+    ASSERT(rule);
+    TypedKey key(keyFingerprint, *rule);
     visitDatum(field, key);
 }
 

@@ -20,7 +20,6 @@
 #include "eckit/system/Library.h"
 
 #include "fdb5/database/DB.h"
-#include "fdb5/types/TypesRegistry.h"
 #include "fdb5/api/helpers/Callback.h"
 
 namespace fdb5 {
