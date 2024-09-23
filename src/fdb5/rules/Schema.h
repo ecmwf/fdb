@@ -21,6 +21,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
@@ -86,9 +87,10 @@ public:  // methods
 
     const std::string& path() const;
 
-    const std::shared_ptr<TypesRegistry> registry() const;
+    std::shared_ptr<const TypesRegistry> registry() const;
 
-private:  // methods
+private: // methods
+
     void clear();
 
     void print(std::ostream& out) const;

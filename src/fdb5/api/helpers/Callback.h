@@ -22,11 +22,11 @@ namespace fdb5 {
 
 class FDB;
 
-using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>)>;
+using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length, std::future<std::shared_ptr<const FieldLocation>>)>;
 using FlushCallback = std::function<void()>;
 using ConstructorCallback = std::function<void(FDB&)>;
 
-static const ArchiveCallback CALLBACK_NOOP = [](const Key& key, const void* data, size_t length, std::future<std::shared_ptr<FieldLocation>>) {};
+static const ArchiveCallback CALLBACK_NOOP = [](const Key& key, const void* data, size_t length, std::future<std::shared_ptr<const FieldLocation>>) {};
 static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
 static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](FDB&) {};
 

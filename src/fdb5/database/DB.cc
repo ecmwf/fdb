@@ -109,10 +109,10 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
 
     const Index& idx = cat->currentIndex();
 
-    std::shared_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
+    std::shared_ptr<const FieldLocation> location(store().archive(idx.key(), data, length));
 
     // In anticipaton of store().archive() working asynchronously in later FDB versions.
-    std::promise<std::shared_ptr<FieldLocation>> promise;
+    std::promise<std::shared_ptr<const FieldLocation>> promise;
     promise.set_value(location);
 
     callback(field, data, length, promise.get_future());

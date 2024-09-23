@@ -185,7 +185,7 @@ CASE("DaosStore tests") {
         /// DaosManager is configured with client config from the file
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = dstore;
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: two cont create with label happen here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -257,7 +257,7 @@ CASE("DaosStore tests") {
 
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 

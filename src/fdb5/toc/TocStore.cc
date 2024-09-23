@@ -115,7 +115,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& key, const void* data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -321,7 +321,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     eckit::PathName destPath = dest.path();
 
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
-        if (root.sameAs(destPath)) {      
+        if (root.sameAs(destPath)) {
             eckit::PathName src_db = directory_;
             eckit::PathName dest_db = destPath / key.valuesToString();
 
@@ -351,7 +351,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
 void TocStore::remove(const Key& key) const {
 
     eckit::PathName src_db = directory_;
-        
+
     DIR* dirp = ::opendir(src_db.asString().c_str());
     struct dirent* dp;
     while ((dp = ::readdir(dirp)) != NULL) {

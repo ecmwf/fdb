@@ -194,7 +194,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-const std::shared_ptr<TypesRegistry> Schema::registry() const {
+std::shared_ptr<const TypesRegistry> Schema::registry() const {
     return registry_;
 }
 

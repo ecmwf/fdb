@@ -20,6 +20,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>  // std::pair
 
 #include "eckit/types/Types.h"
 
@@ -28,11 +29,10 @@ namespace eckit {
     template<class T> class DenseSet;
 }
 
-namespace metkit {
-namespace mars {
+namespace metkit::mars {
     class MarsRequest;
 }
-}
+
 
 namespace fdb5 {
 
@@ -44,16 +44,15 @@ class Rule;
 class Key {
 
 public: // methods
-
-    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit Key(std::shared_ptr<const TypesRegistry> reg = {}, bool canonical = false);
+    explicit Key(eckit::Stream&, std::shared_ptr<const TypesRegistry> reg = {});
     explicit Key(const std::string &keys, const Rule* rule);
-    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    explicit Key(const eckit::StringDict& keys, std::shared_ptr<const TypesRegistry> reg = {});
+    Key(std::initializer_list<std::pair<const std::string, std::string>>, std::shared_ptr<const TypesRegistry> reg = {});
 
     static Key parseStringUntyped(const std::string& s);
     /// @todo - this functionality should not be supported any more.
-    static Key parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+    static Key parseString(const std::string&, std::shared_ptr<const TypesRegistry> reg);
 
     std::set<std::string> keys() const;
 
@@ -109,7 +108,7 @@ public: // methods
     }
 
     // Registry is needed before we can stringise/canonicalise.
-    void registry(const std::shared_ptr<TypesRegistry> reg);
+    void registry(std::shared_ptr<const TypesRegistry> reg);
     [[ nodiscard ]]
     const TypesRegistry& registry() const;
     const void* reg() const;
@@ -161,7 +160,7 @@ private: // members
     eckit::StringDict keys_;
     eckit::StringList names_;
 
-    std::shared_ptr<TypesRegistry> registry_;
+    std::shared_ptr<const TypesRegistry> registry_;
     bool canonical_;
 };
 
