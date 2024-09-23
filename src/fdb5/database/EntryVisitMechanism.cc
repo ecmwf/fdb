@@ -33,10 +33,14 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Store& EntryVisitor::store() {
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr), currentStore_(nullptr) {}
+
+EntryVisitor::~EntryVisitor() = default;
+
+Store& EntryVisitor::store() const {
     if (!currentStore_) {
         ASSERT(currentCatalogue_);
-        currentStore_ = currentCatalogue_->buildStore();
+        currentStore_ = currentCatalogue_->buildStore().get();
         ASSERT(currentStore_);
     }
     return *currentStore_;
@@ -44,7 +48,7 @@ Store& EntryVisitor::store() {
 
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_.reset();
+    currentStore_ = nullptr;
     return true;
 }
 
@@ -53,7 +57,7 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
-    currentStore_.reset();
+    currentStore_ = nullptr;
     currentIndex_ = nullptr;
 }
 

@@ -257,7 +257,11 @@ private:
 class NullCatalogue : public Catalogue {
 public:
 
-    NullCatalogue() : Catalogue(Key{}, ControlIdentifiers{}, Config{}) {}
+    const Key& key() const override { NOTIMP; }
+    const Key& indexKey() const override { NOTIMP; }
+    const Config& config() const override { NOTIMP; }
+
+    std::unique_ptr<Store> buildStore() const override { NOTIMP; }
 
     const Schema& schema() const override { NOTIMP; }
 
@@ -269,6 +273,7 @@ public:
     void hideContents() override { NOTIMP; }
 
     void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override { NOTIMP; }
+    bool enabled(const ControlIdentifier& controlIdentifier) const override { NOTIMP; }
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
@@ -291,7 +296,7 @@ public:
 
     std::string type() const override { NOTIMP; }
     bool open() override { NOTIMP; }
-    void flush() override { NOTIMP; }
+    void flush(size_t archivedFields) override { NOTIMP; }
     void clean() override { NOTIMP; }
     void close() override { NOTIMP; }
 

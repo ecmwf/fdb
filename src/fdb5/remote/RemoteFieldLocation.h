@@ -56,7 +56,6 @@ protected: // For Streamable
 
 private: // methods
 
-    void dump(std::ostream& out) const override;
     void print(std::ostream& out) const override;
 
 private: // members

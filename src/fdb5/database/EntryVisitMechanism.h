@@ -17,8 +17,8 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Field.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/Field.h"
 
 namespace fdb5 {
 
@@ -34,13 +34,13 @@ class EntryVisitor : public eckit::NonCopyable {
 
 public:  // methods
 
+    EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr), currentStore_(nullptr) {}
     virtual ~EntryVisitor() = default;
 
     // defaults
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-//    virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
     virtual bool visitDatabase(const Catalogue& catalogue);    // return true if Catalogue should be explored
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
@@ -52,7 +52,7 @@ public:  // methods
 
 protected:
 
-    Store& store();
+    Store& store() const;
 
 private: // methods
 
@@ -64,6 +64,7 @@ protected:  // members
     const Catalogue* currentCatalogue_ = nullptr;
     std::unique_ptr<Store> currentStore_ = nullptr;
     const Index* currentIndex_ = nullptr;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

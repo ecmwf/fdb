@@ -37,7 +37,7 @@ bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullC
 
     store()->archive(idxKey, data_, size_,
         std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey.canonical(), p, std::placeholders::_1));
-    callback_(initialFieldKey_, data_, size_, p->get_future());
+    callback_(initialFieldKey(), data_, size_, p->get_future());
 
     return true;
 }

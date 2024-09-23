@@ -56,7 +56,7 @@ protected: // methods
     void clean() override;
     void close() override;
 
-    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const const FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
 
     void print( std::ostream &out ) const override { NOTIMP; }
 

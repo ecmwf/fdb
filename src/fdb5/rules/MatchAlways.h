@@ -43,8 +43,6 @@ private: // methods
 
     void encode(eckit::Stream&) const override;
 
-    void encode(eckit::Stream&) const override;
-
     void print( std::ostream& out ) const override;
 
 private: // members
