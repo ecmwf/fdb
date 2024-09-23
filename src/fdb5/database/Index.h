@@ -16,6 +16,8 @@
 #define fdb5_Index_H
 
 #include <memory>
+#include <optional>
+#include <functional>
 
 #include "eckit/eckit.h"
 

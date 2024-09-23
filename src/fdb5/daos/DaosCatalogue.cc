@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <optional>
+
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 

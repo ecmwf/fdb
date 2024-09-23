@@ -21,6 +21,7 @@
 #include <utility>
 #include <set>
 #include <memory>
+#include <functional>
 
 #include "eckit/types/Types.h"
 
