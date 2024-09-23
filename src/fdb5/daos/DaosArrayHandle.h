@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <optional>
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/daos/DaosSession.h"
