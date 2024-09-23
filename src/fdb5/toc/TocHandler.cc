@@ -991,7 +991,7 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-std::vector<Index> TocHandler::loadIndexes(bool sorted,
+std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sorted,
                                            std::set<std::string>* subTocs,
                                            std::vector<bool>* indexInSubtoc,
                                            std::vector<Key>* remapKeys) const {
@@ -1037,7 +1037,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> offset;
             s >> type;
             LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-            indexes.push_back( new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)), r->header_.serialisationVersion_, currentDirectory(),
+            indexes.push_back( new TocIndex(s, catalogue, r->header_.serialisationVersion_, currentDirectory(),
                                             currentDirectory() / path, offset, preloadBTree_));
 
             if (subTocs != 0 && subTocRead_) {
@@ -1243,7 +1243,7 @@ DbStats TocHandler::stats() const
 }
 
 
-void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata,
+void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<eckit::URI, Offset>>& metadata,
                                  std::set<eckit::URI>& data) const {
 
     if (!enumeratedMaskedEntries_) {
@@ -1271,9 +1271,9 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
                 TocHandler h(absPath, remapKey_);
 
-                h.enumerateMasked(metadata, data);
+                h.enumerateMasked(catalogue, metadata, data);
 
-                std::vector<Index> indexes = h.loadIndexes();
+                std::vector<Index> indexes = h.loadIndexes(catalogue);
                 for (const auto& i : indexes) {
                     metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataURI : i.dataURIs()) {

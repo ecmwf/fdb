@@ -25,12 +25,9 @@ eckit::ClassSpec TypesRegistry::classSpec_ = { &eckit::Streamable::classSpec(), 
 
 eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
 
-TypesRegistry::TypesRegistry():
-    parent_(nullptr) {
-}
+TypesRegistry::TypesRegistry() = default;
 
-TypesRegistry::TypesRegistry(eckit::Stream& s):
-    parent_(nullptr) {
+TypesRegistry::TypesRegistry(eckit::Stream& s) : {
 
     size_t numTypes;
     std::string name;
@@ -54,13 +51,13 @@ void TypesRegistry::encode(eckit::Stream& s) const {
 }
 
 
- TypesRegistry::~TypesRegistry() {
-     for (auto& item : cache_) { delete item.second; }
- }
+TypesRegistry::~TypesRegistry() {
+    for (auto& item : cache_) { delete item.second; }
+}
 
- void TypesRegistry::updateParent(std::shared_ptr<const TypesRegistry> parent) {
-     parent_ = std::move(parent);
- }
+void TypesRegistry::updateParent(const TypesRegistry& parent) {
+    parent_ = std::cref(parent);
+}
 
 void TypesRegistry::addType(const std::string &keyword, const std::string &type) {
     ASSERT(types_.find(keyword) == types_.end());
@@ -68,23 +65,22 @@ void TypesRegistry::addType(const std::string &keyword, const std::string &type)
 }
 
 const Type &TypesRegistry::lookupType(const std::string &keyword) const {
+
     std::map<std::string, Type *>::const_iterator j = cache_.find(keyword);
 
     if (j != cache_.end()) {
         return *(*j).second;
     } else {
-
         std::string type = "Default";
         std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
         if (i != types_.end()) {
             type = (*i).second;
         } else {
             if (parent_) {
-                return parent_->lookupType(keyword);
+                return parent_.value().get().lookupType(keyword);
             }
         }
 
-        // eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
         Type* newKH = TypesFactory::build(type, keyword);
         cache_[keyword] = newKH;
         return *newKH;

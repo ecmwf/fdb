@@ -82,10 +82,10 @@ public: // methods
 
     const std::string &path() const;
 
-    std::shared_ptr<const TypesRegistry> registry() const;
+    const TypesRegistry& registry() const;
     
 	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec()        { return classSpec_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 
@@ -105,7 +105,8 @@ private: // members
 
     friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
 
-    std::shared_ptr<TypesRegistry> registry_;
+    TypesRegistry registry_;
+    
     std::vector<Rule *>  rules_;
     std::string path_;
 

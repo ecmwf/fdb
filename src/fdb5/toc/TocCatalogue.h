@@ -55,6 +55,11 @@ protected: // methods
 
     std::string type() const override;
 
+    std::vector<Index> loadIndexes(bool sorted=false,
+                                   std::set<std::string>* subTocs = nullptr,
+                                   std::vector<bool>* indexInSubtoc = nullptr,
+                                   std::vector<Key>* remapKeys = nullptr) const;
+
     void checkUID() const override;
     bool exists() const override;
     // void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) override;

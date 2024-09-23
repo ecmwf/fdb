@@ -131,7 +131,7 @@ protected: // members
 private: // members
 
     const Catalogue& catalogue_;
-    mutable std::shared_ptr<const TypesRegistry> registry_;
+    mutable std::optional<std::reference_wrapper<const TypesRegistry>> registry_;
 
 };
 

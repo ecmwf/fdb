@@ -48,7 +48,7 @@ protected: // methods
     fdb5::CatalogueWriter* catalogue() const;
     fdb5::Store* store() const;
 
-    const Key& initialFieldKey() { return initialFieldKey_; } 
+    const Key& initialFieldKey() const { return initialFieldKey_; } 
 
 private: // members
 
