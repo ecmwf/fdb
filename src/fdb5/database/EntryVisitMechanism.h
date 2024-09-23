@@ -34,8 +34,8 @@ class EntryVisitor : public eckit::NonCopyable {
 
 public:  // methods
 
-    EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr), currentStore_(nullptr) {}
-    virtual ~EntryVisitor() = default;
+    EntryVisitor();
+    virtual ~EntryVisitor();
 
     // defaults
     virtual bool visitIndexes() { return true; }
@@ -62,7 +62,7 @@ protected:  // members
 
     // n.b. non-owning
     const Catalogue* currentCatalogue_ = nullptr;
-    std::unique_ptr<Store> currentStore_ = nullptr;
+    mutable Store* currentStore_ = nullptr;
     const Index* currentIndex_ = nullptr;
 
 };

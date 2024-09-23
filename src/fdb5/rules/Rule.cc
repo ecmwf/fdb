@@ -50,7 +50,7 @@ Rule::Rule(eckit::Stream& s):
 }
 
 Rule::Rule(const Schema &schema, eckit::Stream& s):
-    schema_(schema), registry_(new TypesRegistry(s)) {
+    schema_(schema), registry_(s) {
 
     size_t numPredicates;
     size_t numRules;
@@ -68,7 +68,9 @@ Rule::Rule(const Schema &schema, eckit::Stream& s):
 }
 
 void Rule::encode(eckit::Stream& s) const {
-    registry_->encode(s);
+    
+    registry_.encode(s);
+
     s << line_;
     s << predicates_.size();
     for (const Predicate* predicate : predicates_) {

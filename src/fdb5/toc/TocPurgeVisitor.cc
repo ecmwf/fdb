@@ -97,26 +97,6 @@ void TocPurgeVisitor::report(std::ostream& out) const {
         it.second.report(out, "          ");
     }
 
-    size_t indexToDelete = 0;
-    out << std::endl;
-    out << "Number of reachable fields per index file:" << std::endl;
-    for (const auto& it : indexUsage_) { // <std::string, size_t>
-        out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
-        if (it.second == 0) {
-            indexToDelete++;
-        }
-    }
-
-    size_t dataToDelete = 0;
-    out << std::endl;
-    out << "Number of reachable fields per data file:" << std::endl;
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
-        out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
-        if (it.second == 0) {
-            dataToDelete++;
-        }
-    }
-
     out << std::endl;
     size_t cnt = 0;
     out << "Unreferenced owned data files:" << std::endl;

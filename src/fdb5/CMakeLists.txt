@@ -328,58 +328,6 @@ if( HAVE_TOCFDB )
         fdb-reconsolidate-toc )
 endif()
 
-if( HAVE_PMEMFDB )
-
-    list( APPEND fdb5_srcs
-        pmem/DataPool.cc
-        pmem/DataPool.h
-        pmem/DataPoolManager.cc
-        pmem/DataPoolManager.h
-        pmem/MemoryBufferStream.h
-        pmem/MemoryBufferStream.cc
-        pmem/PBaseNode.cc
-        pmem/PBaseNode.h
-        pmem/PBranchingNode.cc
-        pmem/PBranchingNode.h
-        pmem/PDataNode.cc
-        pmem/PDataNode.h
-        pmem/PDataRoot.cc
-        pmem/PDataRoot.h
-        pmem/PIndexRoot.cc
-        pmem/PIndexRoot.h
-        pmem/PMemDB.cc
-        pmem/PMemDB.h
-        pmem/PMemDBReader.cc
-        pmem/PMemDBReader.h
-        pmem/PMemDBWriter.cc
-        pmem/PMemDBWriter.h
-        pmem/PMemFieldLocation.cc
-        pmem/PMemFieldLocation.h
-        pmem/PMemIndex.cc
-        pmem/PMemIndex.h
-        pmem/PMemIndexLocation.cc
-        pmem/PMemIndexLocation.h
-        pmem/PRoot.cc
-        pmem/PRoot.h
-        pmem/Pool.cc
-        pmem/Pool.h
-        pmem/PoolEntry.cc
-        pmem/PoolEntry.h
-        pmem/PoolGroup.cc
-        pmem/PoolGroup.h
-        pmem/PoolManager.cc
-        pmem/PoolManager.h
-        pmem/PMemStats.cc
-        pmem/PMemStats.h
-        pmem/PMemEngine.cc
-        pmem/PMemEngine.h
-    )
-
-else()
-    set( PMEM_LIBRARIES "" )
-    set( PMEM_INCLUDE_DIRS "" )
-endif()
-
 if( HAVE_RADOSFDB )
     list( APPEND fdb5_srcs
         rados/RadosFieldLocation.cc

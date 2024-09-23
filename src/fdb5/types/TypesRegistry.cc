@@ -27,7 +27,7 @@ eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
 
 TypesRegistry::TypesRegistry() = default;
 
-TypesRegistry::TypesRegistry(eckit::Stream& s) : {
+TypesRegistry::TypesRegistry(eckit::Stream& s) {
 
     size_t numTypes;
     std::string name;

@@ -39,7 +39,7 @@ Schema::Schema(std::istream& s) {
     load(s);
 }
 Schema::Schema(eckit::Stream& s) :
-    registry_(new TypesRegistry(s)) {
+    registry_(s) {
 
     size_t numRules;
     s >> path_;
@@ -52,7 +52,7 @@ Schema::Schema(eckit::Stream& s) :
 }
 
 void Schema::encode(eckit::Stream& s) const {
-    registry_->encode(s);
+    registry_.encode(s);
     s << path_;
     s << rules_.size();
     for (const Rule* rule : rules_) {
