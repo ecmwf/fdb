@@ -68,8 +68,9 @@ public: // methods
 
     void push(const std::string &k, const std::string &v);
     void pop(const std::string &k);
-    void pushFrom(const Key& other);
-    void popFrom(const Key& other);
+
+    void pushFrom(const BaseKey& other);
+    void popFrom(const BaseKey& other);
 
     const std::string& get( const std::string &k ) const;
 

@@ -134,14 +134,6 @@ void BaseKey::popFrom(const BaseKey& other) {
     for (const auto& [keyword, value] : other) { pop(keyword); }
 }
 
-void Key::pushFrom(const Key& other) {
-    for (const auto& [keyword, value] : Reverse(other)) { push(keyword, value); }
-}
-
-void Key::popFrom(const Key& other) {
-    for (const auto& [keyword, value] : other) { pop(keyword); }
-}
-
 const std::string &BaseKey::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
     if ( i == keys_.end() ) {

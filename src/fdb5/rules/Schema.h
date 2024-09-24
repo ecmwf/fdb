@@ -70,8 +70,7 @@ public:  // methods
 
     const RuleDatabase& matchingRule(const Key& dbKey) const;
 
-    /// @todo return RuleDatum
-    const Rule* matchingRule(const Key& dbKey, const Key& idxKey) const;
+    const RuleDatum& matchingRule(const Key& dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName& path, bool replace = false);
 

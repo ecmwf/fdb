@@ -19,12 +19,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Matcher::Matcher() {
-}
-
-Matcher::~Matcher() {
-}
-
 bool Matcher::optional() const {
     return false;
 }

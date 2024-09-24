@@ -53,21 +53,21 @@ Schema::~Schema() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const Rule* Schema::matchingRule(const Key& dbKey, const Key& idxKey) const {
+const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const {
 
     for (const auto& dbRule : rules_) {
         if (!dbRule.match(dbKey)) { continue; }
         for (const auto& idxRule : dbRule.rules()) {
             if (idxRule.match(idxKey)) {
                 /// @note this assumes that there is only one datum per index
-                for (const auto& datumRule : idxRule.rules()) { return &datumRule; }
+                for (const auto& datumRule : idxRule.rules()) { return datumRule; }
             }
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "No rule is matching dbKey=" << dbKey << " and idxKey=" << idxKey << std::endl;
-
-    return nullptr;
+    std::ostringstream msg;
+    msg << "No rule is matching dbKey=" << dbKey << " and idxKey=" << idxKey << std::endl;
+    throw eckit::SeriousBug(msg.str(), Here());
 }
 
 const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
@@ -76,7 +76,7 @@ const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
         if (rule.match(dbKey)) { return rule; }
     }
 
-    std::stringstream msg;
+    std::ostringstream msg;
     msg << "No rule exists for key " << dbKey;
     throw eckit::SeriousBug(msg.str(), Here());
 }
