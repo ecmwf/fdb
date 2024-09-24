@@ -102,7 +102,7 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const Key &key, const Config& config);
+    TocHandler( const Key& key, const Config& config);
 
     TocHandler( const eckit::PathName &dir, const Config& config);
 
@@ -114,7 +114,7 @@ public: // methods
     bool exists() const;
     void checkUID() const override;
 
-    void writeInitRecord(const Key &tocKey);
+    void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index &);
     void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);
@@ -128,7 +128,8 @@ public: // methods
 
     /// Return a list of existent indexes. If supplied, also supply a list of associated
     /// subTocs that were read to get these indexes
-    std::vector<Index> loadIndexes(bool sorted=false,
+    std::vector<Index> loadIndexes(const Catalogue& catalogue,
+                                   bool sorted=false,
                                    std::set<std::string>* subTocs = nullptr,
                                    std::vector<bool>* indexInSubtoc = nullptr,
                                    std::vector<Key>* remapKeys = nullptr) const;
@@ -146,7 +147,8 @@ public: // methods
 
     DbStats stats() const;
 
-    void enumerateMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+    void enumerateMasked(const Catalogue& catalogue,
+                         std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                          std::set<eckit::URI>& data) const;
 
     std::vector<eckit::PathName> subTocPaths() const;

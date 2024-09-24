@@ -117,7 +117,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source, conf);
+    std::unique_ptr<DB> dbSource = DB::buildReader(source.canonical(), conf);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
@@ -130,7 +130,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         throw eckit::UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildReader(target, conf);
+    std::unique_ptr<DB> dbTarget = DB::buildReader(target.canonical(), conf);
 
     if (remove_) {
         if (!dbTarget->exists()) {

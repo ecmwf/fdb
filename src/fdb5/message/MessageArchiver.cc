@@ -37,18 +37,9 @@ namespace fdb5 {
 using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
+namespace {
 
-MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
-    MessageDecoder(),
-    fdb_(config),
-    key_(key),
-    completeTransfers_(completeTransfers),
-    verbose_(verbose)
-{
-}
-
-
-static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     // parse requests
 
@@ -81,11 +72,11 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
     return v;
 }
 
-static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
 
-    if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
+    if(str.empty()) return {};
 
-    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = fdb5::Key::parseString(str).keys(); //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -96,6 +87,19 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
     }
 
     return r;
+}
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+    MessageDecoder(),
+    fdb_(config),
+    key_(key),
+    completeTransfers_(completeTransfers),
+    verbose_(verbose)
+{
 }
 
 void MessageArchiver::filters(const std::string& include, const std::string& exclude) {

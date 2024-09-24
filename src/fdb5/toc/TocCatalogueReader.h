@@ -52,7 +52,7 @@ public: // methods
 
 private:  // methods
     void loadIndexesAndRemap() const;
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;

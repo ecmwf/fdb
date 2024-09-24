@@ -69,7 +69,7 @@ public: // method
 
 private: // methods
 
-    virtual void print(std::ostream& s) const override;
+    void print(std::ostream& s) const override;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));

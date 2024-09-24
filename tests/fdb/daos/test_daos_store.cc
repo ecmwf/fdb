@@ -175,7 +175,7 @@ CASE("DaosStore tests") {
         fdb5::Schema schema{schema_file()};
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
@@ -247,9 +247,9 @@ CASE("DaosStore tests") {
         // request
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 

@@ -44,14 +44,14 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 // From Visitor
 
-bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
+bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
 
-	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << key  << std::endl;
+	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey  << std::endl;
 
     /* is it the current DB ? */
 
     if(db_) {
-        if(key == db_->key()) {
+        if(dbKey == db_->key()) {
             eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
@@ -59,16 +59,14 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* is the DB already open ? */
 
-    if(databases_.exists(key)) {
-        LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << key << std::endl;
-        db_ = databases_.access(key);
+    if(databases_.exists(dbKey)) {
+        LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << dbKey << std::endl;
+        db_ = databases_.access(dbKey);
         return true;
     }
 
     /* DB not yet open */
-
-    //std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
-    std::unique_ptr<DB> newDB = DB::buildReader(key, config_);
+    std::unique_ptr<DB> newDB = DB::buildReader(dbKey, config_);
 
     // If this database is locked for retrieval then it "does not exist"
     if (!newDB->enabled(ControlIdentifier::Retrieve)) {
@@ -78,33 +76,33 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         return false;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {
-        LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << key << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << dbKey << std::endl;
         return false;
     } else {
         db_ = newDB.release();
-        databases_.insert(key, db_);
+        databases_.insert(dbKey, db_);
         return true;
     }
 }
 
-bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
+bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey&) {
     ASSERT(db_);
-    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << key << std::endl;
-    return db_->selectIndex(key);
+    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
+    return db_->selectIndex(idxKey);
 }
 
-bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
+bool MultiRetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& full) {
     ASSERT(db_);
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << key << ", " << full << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << datumKey << ", " << full << std::endl;
 
     Field field;
-    if (db_->inspect(key, field)) {
+    if (db_->inspect(datumKey.canonical(), field)) {
 
         Key simplifiedKey;
-        for (auto k = key.begin(); k != key.end(); k++) {
+        for (auto k = datumKey.begin(); k != datumKey.end(); k++) {
             if (!k->second.empty())
                 simplifiedKey.set(k->first, k->second);
         }
@@ -130,7 +128,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 
     for (const auto& value : list) {
-        std::string v = registry.lookupType(keyword).toKey(keyword, value);
+        std::string v = registry.lookupType(keyword).toKey(value);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(value);
         }

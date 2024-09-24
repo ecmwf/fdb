@@ -42,7 +42,7 @@ public: // methods
 
 private: // methods
 
-    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
+    eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private: // members
 

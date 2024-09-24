@@ -36,6 +36,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +55,7 @@ public: // methods
     bool operator==(const IndexAxis& rhs) const;
     bool operator!=(const IndexAxis& rhs) const;
 
-    void insert(const Key &key);
+    void insert(const Key& key);
     /// @note: the values are required to be cannonicalised
     void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;
@@ -72,9 +73,9 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
-    bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    bool containsPartial(const Key& key) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const;
     bool contains(const Key& key) const;
+    bool containsPartial(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.

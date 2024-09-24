@@ -43,20 +43,20 @@ void TocCatalogueReader::loadIndexesAndRemap() const {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
-    if(currentIndexKey_ == key) {
+    if(currentIndexKey_ == idxKey) {
         return true;
     }
 
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
     matching_.clear();
 
     for (const auto& pair : mappedIndexes()) {
-        if (pair.first.key() == key) { matching_.emplace_back(&pair); }
+        if (pair.first.key() == idxKey) { matching_.emplace_back(&pair); }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found "
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return !matching_.empty();

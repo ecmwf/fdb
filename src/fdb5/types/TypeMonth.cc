@@ -29,8 +29,7 @@ TypeMonth::TypeMonth(const std::string &name, const std::string &type) :
 TypeMonth::~TypeMonth() {
 }
 
-std::string TypeMonth::toKey(const std::string&,
-                             const std::string& value) const {
+std::string TypeMonth::toKey(const std::string& value) const {
 
     eckit::Date date(value);
     return std::to_string(date.year() * 100 + date.month());

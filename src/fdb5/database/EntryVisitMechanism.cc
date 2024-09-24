@@ -37,10 +37,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr) {}
-
-EntryVisitor::~EntryVisitor() {}
-
 bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
     return true;
 }
@@ -68,8 +64,10 @@ bool EntryVisitor::visitIndex(const Index& index) {
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-
-    Key key(keyFingerprint, currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key()));
+    /// @todo fix that matchingRule returns reference or throws if not found
+    const Rule* rule = currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
+    ASSERT(rule);
+    TypedKey key(keyFingerprint, *rule);
     visitDatum(field, key);
 }
 

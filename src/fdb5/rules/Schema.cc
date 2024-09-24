@@ -37,15 +37,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema() : registry_(new TypesRegistry()) {
+Schema::Schema() = default;
 
-}
-
-Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
+Schema::Schema(const eckit::PathName &path) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
+Schema::Schema(std::istream& s) {
     load(s);
 }
 
@@ -156,10 +154,10 @@ void Schema::load(std::istream& s, bool replace) {
         clear();
     }
 
-    SchemaParser(s).parse(rules_, *registry_);
+    SchemaParser(s).parse(rules_, registry_);
 
     for (auto& rule : rules_) {
-        rule.registry_->updateParent(registry_);
+        rule.registry_.updateParent(registry_);
         rule.updateParent(nullptr);
     }
 }
@@ -171,7 +169,7 @@ void Schema::clear() {
 }
 
 void Schema::dump(std::ostream &s) const {
-    registry_->dump(s);
+    registry_.dump(s);
     for (const auto& rule : rules_) {
         rule.dump(s);
         s << std::endl;
@@ -183,7 +181,7 @@ void Schema::print(std::ostream &out) const {
 }
 
 const Type &Schema::lookupType(const std::string &keyword) const {
-    return registry_->lookupType(keyword);
+    return registry_.lookupType(keyword);
 }
 
 bool Schema::empty() const {
@@ -194,7 +192,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-std::shared_ptr<const TypesRegistry> Schema::registry() const {
+const TypesRegistry& Schema::registry() const {
     return registry_;
 }
 

@@ -21,10 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildReader(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, true));
 }
-std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildWriter(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
@@ -64,8 +64,8 @@ const Schema& DB::schema() const {
     return catalogue_->schema();
 }
 
-bool DB::selectIndex(const Key &key) {
-    return catalogue_->selectIndex(key);
+bool DB::selectIndex(const Key& idxKey) {
+    return catalogue_->selectIndex(idxKey);
 }
 
 void DB::deselectIndex() {
@@ -172,7 +172,7 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void DB::index(const Key& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);

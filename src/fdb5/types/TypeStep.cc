@@ -36,8 +36,7 @@ TypeStep::~TypeStep() {
 }
 
 
-std::string TypeStep::toKey(const std::string&,
-                            const std::string& value) const {
+std::string TypeStep::toKey(const std::string& value) const {
     return StepRange(value);
 }
 

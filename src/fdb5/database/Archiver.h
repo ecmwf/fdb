@@ -46,23 +46,23 @@ public: // methods
 
     virtual ~Archiver();
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    friend std::ostream &operator<<(std::ostream &s, const Archiver &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) {
         x.print(s);
         return s;
     }
 
 private: // methods
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
 
-    DB& database(const Key &key);
+    DB& database(const Key& key);
 
 private: // members
 

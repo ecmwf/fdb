@@ -22,14 +22,15 @@
 #include "eckit/memory/NonCopyable.h"
 
 class MarsTask;
-namespace metkit {
-namespace mars {
+
+namespace metkit::mars {
     class MarsRequest;
-}
 }
 
 namespace fdb5 {
 
+class Key;
+class TypedKey;
 class Key;
 class TypesRegistry;
 
@@ -38,25 +39,23 @@ class TypesRegistry;
 class Matcher : public eckit::NonCopyable {
 
 public: // methods
+    Matcher() = default;
 
-    Matcher();
-
-    virtual ~Matcher();
+    virtual ~Matcher() = default;
 
     virtual bool optional() const;
 
-    virtual const std::string &value(const Key &, const std::string &keyword) const;
+    virtual const std::string& value(const Key&, const std::string& keyword) const;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
-    virtual const std::string &defaultValue() const;
+    virtual const std::string& defaultValue() const;
 
-    virtual bool match(const std::string& value) const = 0;
-    virtual bool match(const std::string &keyword, const Key &key) const = 0;
-    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const;
+    virtual bool match(const std::string& value) const                   = 0;
+    virtual bool match(const std::string& keyword, const Key& key) const = 0;
+    virtual void fill(TypedKey& key, const std::string& keyword, const std::string& value) const;
 
+    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
-
-    friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
+    friend std::ostream& operator<<(std::ostream& s, const Matcher& x);
 
 private: // methods
 

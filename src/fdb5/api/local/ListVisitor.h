@@ -24,6 +24,7 @@
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -107,12 +108,13 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const Key& key) override {
+    void visitDatum(const Field& field, const TypedKey& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (key.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), key, field.stableLocation(), field.timestamp());
+        /// @todo fix that datumKey is not a TypedKey but Key
+        if (datumKey.match(datumRequest_)) {
+            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey.canonical(), field.stableLocation(), field.timestamp());
         }
     }
 

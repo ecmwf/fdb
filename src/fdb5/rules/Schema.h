@@ -87,7 +87,7 @@ public:  // methods
 
     const std::string& path() const;
 
-    std::shared_ptr<const TypesRegistry> registry() const;
+    const TypesRegistry& registry() const;
 
 private: // methods
 
@@ -98,7 +98,7 @@ private: // methods
     friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
 private:  // members
-    std::shared_ptr<TypesRegistry> registry_;
+    TypesRegistry registry_;
 
     std::vector<RuleDatabase> rules_;
 

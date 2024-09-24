@@ -36,6 +36,7 @@ class Predicate;
 class ReadVisitor;
 class WriteVisitor;
 class Key;
+class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -57,8 +58,7 @@ public:  // methods
 
     bool match(const Key& key) const;
 
-    bool tryFill(Key& key, const eckit::StringList& values) const;
-
+    /// @todo this should make a Key, not fill one
     void fill(Key& key, const eckit::StringList& values) const;
 
     void check(const Key& key) const;
@@ -67,26 +67,27 @@ public:  // methods
 
     const Rule& topRule() const;
 
-    /// @todo wrong constness
-    const std::shared_ptr<TypesRegistry> registry() const;
+    const TypesRegistry& registry() const;
 
 protected:  // methods
     Rule(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types);
 
-    std::unique_ptr<Key> findMatchingKey(const Key& field) const;
+    std::unique_ptr<TypedKey> findMatchingKey(const Key& field) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
 private:  // methods
     virtual void dumpRules(std::ostream& out) const = 0;
 
-    std::unique_ptr<Key> findMatchingKey(const eckit::StringList& values) const;
+    std::unique_ptr<TypedKey> findMatchingKey(const eckit::StringList& values) const;
 
-    std::unique_ptr<Key> findMatchingKey(const Key& field, const char* missing) const;
+    std::unique_ptr<TypedKey> findMatchingKey(const Key& field, const char* missing) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const;
+
+    bool tryFill(Key& key, const eckit::StringList& values) const;
 
     void print(std::ostream& out) const;
 
@@ -99,7 +100,7 @@ private:  // members
 
     std::vector<Predicate> predicates_;
 
-    std::shared_ptr<TypesRegistry> registry_;
+    TypesRegistry registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

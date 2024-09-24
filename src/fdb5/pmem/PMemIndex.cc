@@ -32,7 +32,7 @@ namespace pmem {
 //-----------------------------------------------------------------------------
 
 
-PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
+PMemIndex::PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
     IndexBase(key, type),
     location_(node, mgr) {
 
@@ -55,7 +55,7 @@ void PMemIndex::visit(IndexLocationVisitor& visitor) const {
 }
 
 
-bool PMemIndex::get(const Key &key, Field &field) const {
+bool PMemIndex::get(const Key& key, Field &field) const {
 
     ::pmem::PersistentPtr<PDataNode> node = location_.node().getDataNode(key, location_.pool_manager());
 
@@ -80,7 +80,7 @@ void PMemIndex::close() {
     // Intentionally left blank. Indices neither opened nor closed (part of open DB).
 }
 
-void PMemIndex::add(const Key &key, const Field &field) {
+void PMemIndex::add(const Key& key, const Field &field) {
 
     struct Inserter : FieldLocationVisitor {
         Inserter(PBranchingNode& indexNode, const Key& key, DataPoolManager& poolManager) :

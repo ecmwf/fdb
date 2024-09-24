@@ -59,11 +59,11 @@ public:  // methods
 
     std::size_t size() const { return nodes_.size(); }
 
-    std::vector<Key> makeKeys(const std::shared_ptr<TypesRegistry>& registry) const {
+    std::vector<Key> makeKeys(const TypesRegistry& registry) const {
         std::vector<Key> keys;
 
         if (!nodes_.empty()) {
-            Key key(registry);
+            TypedKey key(registry);
             visit(nodes_.begin(), key, keys);
         }
 
@@ -72,10 +72,10 @@ public:  // methods
 
 private:  // methods
     // Recursive DFS (depth-first search) to generate all possible keys
-    void visit(const_iterator iter, Key& key, std::vector<Key>& keys) const {
+    void visit(const_iterator iter, TypedKey& key, std::vector<Key>& keys) const {
 
         if (iter == nodes_.end()) {
-            keys.push_back(key);
+            keys.push_back(key.canonical());
             return;
         }
 
@@ -100,20 +100,20 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 Rule::Rule(const std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types)
-    : line_ {line}, predicates_ {std::move(predicates)}, registry_ {std::make_shared<TypesRegistry>()} {
-    for (const auto& [keyword, type] : types) { registry_->addType(keyword, type); }
+    : line_ {line}, predicates_ {std::move(predicates)} {
+    for (const auto& [keyword, type] : types) { registry_.addType(keyword, type); }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // MATCHING KEYS
 
-std::unique_ptr<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
+std::unique_ptr<TypedKey> Rule::findMatchingKey(const eckit::StringList& values) const {
 
     if (predicates_.empty()) { return {}; }
 
     ASSERT(values.size() >= predicates_.size());
 
-    auto key = std::make_unique<Key>(registry_);
+    auto key = std::make_unique<TypedKey>(registry_);
 
     for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
         const auto& pred = *iter;
@@ -131,11 +131,11 @@ std::unique_ptr<Key> Rule::findMatchingKey(const eckit::StringList& values) cons
     return key;
 }
 
-std::unique_ptr<Key> Rule::findMatchingKey(const Key& field) const {
+std::unique_ptr<TypedKey> Rule::findMatchingKey(const Key& field) const {
 
     if (field.size() < predicates_.size()) { return {}; }
 
-    auto key = std::make_unique<Key>(registry_);
+    auto key = std::make_unique<TypedKey>(registry_);
 
     for (const auto& pred : predicates_) {
 
@@ -150,9 +150,9 @@ std::unique_ptr<Key> Rule::findMatchingKey(const Key& field) const {
     return key;
 }
 
-std::unique_ptr<Key> Rule::findMatchingKey(const Key& field, const char* missing) const {
+std::unique_ptr<TypedKey> Rule::findMatchingKey(const Key& field, const char* missing) const {
 
-    auto key = std::make_unique<Key>(registry_);
+    auto key = std::make_unique<TypedKey>(registry_);
 
     for (const auto& pred : predicates_) {
 
@@ -319,7 +319,7 @@ void Rule::dump(std::ostream& out) const {
     const char* sep = "";
     for (const auto& pred : predicates_) {
         out << sep;
-        pred.dump(out, *registry_);
+        pred.dump(out, registry_);
         sep = ",";
     }
 
@@ -330,10 +330,10 @@ void Rule::dump(std::ostream& out) const {
 
 void Rule::updateParent(const Rule* parent) {
     parent_ = parent;
-    if (parent) { registry_->updateParent(parent_->registry_); }
+    if (parent) { registry_.updateParent(parent_->registry_); }
 }
 
-const std::shared_ptr<TypesRegistry> Rule::registry() const {
+const TypesRegistry& Rule::registry() const {
     return registry_;
 }
 
@@ -351,11 +351,11 @@ void Rule::check(const Key& key) const {
         auto k = key.find(pred.keyword());
         if (k != key.end()) {
             const std::string& value = (*k).second;
-            const Type&        type  = registry_->lookupType(pred.keyword());
-            if (value != type.tidy(pred.keyword(), value)) {
+            const Type& type = registry_.lookupType(pred.keyword());
+            if (value != type.tidy(value)) {
                 std::stringstream ss;
                 ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred.keyword() << "=" << value << " - expecting " << type.tidy(pred.keyword(), value) << std::endl;
+                ss << pred.keyword() << "=" << value << " - expecting " << type.tidy(value) << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
         }
@@ -482,10 +482,12 @@ bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
 
     if (auto key = findMatchingKey(field)) {
 
-        if (visitor.selectDatabase(*key, *key)) {
+        TypedKey full(*key, registry());
+
+        if (visitor.selectDatabase(*key, full)) {
             // (important) using the database's schema
             for (const auto& rule : visitor.databaseSchema().matchingRule(*key).rules()) {
-                if (rule.expand(field, visitor, *key)) { return true; }
+                if (rule.expand(field, visitor, full)) { return true; }
             }
         }
     }

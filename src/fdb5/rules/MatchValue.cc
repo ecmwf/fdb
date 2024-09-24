@@ -26,8 +26,8 @@ bool MatchValue::match(const std::string& value) const {
     return value == value_;
 }
 
-bool MatchValue::match(const std::string &keyword, const Key &key) const {
-    Key::const_iterator i = key.find(keyword);
+bool MatchValue::match(const std::string &keyword, const Key& key) const {
+    auto i = key.find(keyword);
 
     if (i == key.end()) {
         return false;

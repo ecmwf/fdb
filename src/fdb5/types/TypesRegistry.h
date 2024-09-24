@@ -19,6 +19,8 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <optional>
+#include <functional>
 
 #include "eckit/memory/NonCopyable.h"
 
@@ -39,7 +41,7 @@ public: // methods
     const Type &lookupType(const std::string &keyword) const;
 
     void addType(const std::string &, const std::string &);
-    void updateParent(std::shared_ptr<const TypesRegistry> parent);
+    void updateParent(const TypesRegistry& parent);
     void dump( std::ostream &out ) const;
     void dump( std::ostream &out, const std::string &keyword ) const;
 
@@ -51,7 +53,7 @@ private: // members
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;
-    std::shared_ptr<const TypesRegistry> parent_;
+    std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
 
     friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
 
