@@ -35,7 +35,7 @@ FDBForker::FDBForker(net::TCPSocket &socket, const Config &config) :
     socket_(socket),
     config_(config) {
 
-        std::cout << socket.localAddr() << "  " << socket.remoteAddr() << std::endl;
+        std::cout << socket.localHost() << ":" << socket.localPort() << "  " << socket.remoteHost() << ":" << socket.remotePort() << std::endl;
     }
 
 FDBForker::~FDBForker() {}
