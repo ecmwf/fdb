@@ -213,7 +213,7 @@ void ServerConnection::initialiseConnections() {
 
             LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
             agreedConf_.set("NumberOfConnections", ncSelected);
-            single_ = (ncSelected == 1);
+            single_ = true; // (ncSelected == 1);
         }
         else {
             std::stringstream ss;
@@ -246,7 +246,6 @@ void ServerConnection::initialiseConnections() {
             dataSocket_->accept();
         });
     }
-    sleep(1);
     eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
     {
         eckit::Buffer startupBuffer(1024);
