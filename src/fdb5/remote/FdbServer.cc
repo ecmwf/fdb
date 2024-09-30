@@ -34,8 +34,6 @@ FDBForker::FDBForker(net::TCPSocket &socket, const Config &config) :
     ProcessControler(true),
     socket_(socket),
     config_(config) {
-
-        std::cout << socket.localHost() << ":" << socket.localPort() << "  " << socket.remoteHost() << ":" << socket.remotePort() << std::endl;
     }
 
 FDBForker::~FDBForker() {}
@@ -49,6 +47,8 @@ void FDBForker::run() {
     ::srandom(::getpid() + ::time(nullptr));
 
     eckit::Log::info() << "FDB forked pid " << ::getpid() << std::endl;
+
+    std::cout << socket.localHost() << ":" << socket.localPort() << "  " << socket.remoteHost() << ":" << socket.remotePort() << std::endl;
 
     if (config_.getString("type", "local") == "catalogue" || (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
