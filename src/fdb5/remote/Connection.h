@@ -59,6 +59,8 @@ private: // members
 
     std::mutex controlMutex_;
     std::mutex dataMutex_;
+    std::mutex readControlMutex_;
+    std::mutex readDataMutex_;
 
 };
 

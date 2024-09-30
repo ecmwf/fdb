@@ -86,6 +86,7 @@ void Connection::readUnsafe(bool control, void* data, size_t length) {
 eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
     eckit::FixedString<4> tail;
 
+    std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
     readUnsafe(control, &hdr, sizeof(hdr));
 
     // std::cout << "READ [" <<  "endpoint=" <<  ((control || single_) ? controlSocket() : dataSocket()).remotePort() << ",message=" << hdr.message << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;

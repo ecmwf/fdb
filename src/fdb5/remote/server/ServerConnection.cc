@@ -240,6 +240,13 @@ void ServerConnection::initialiseConnections() {
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
     }
 
+    std::future<void> dataSocketInitFuture_;
+    if (!single_) {
+        dataSocketInitFuture_ = std::async(std::launch::async, [this] {
+            dataSocket_->accept();
+        });
+    }
+
     eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
     {
         eckit::Buffer startupBuffer(1024);
@@ -255,14 +262,8 @@ void ServerConnection::initialiseConnections() {
         write(Message::Startup, true, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{startupBuffer.data(), s.position()}});
     }
 
-
-    if (!errorMsg.empty()) {
-        error(errorMsg, hdr.clientID(), hdr.requestID);
-        return;
-    }
-
-    if (!single_) {
-        dataSocket_->accept();
+    if (!single_ && dataSocketInitFuture_.valid()) {
+        dataSocketInitFuture_.wait(); 
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
@@ -290,8 +291,15 @@ void ServerConnection::initialiseConnections() {
             std::stringstream ss;
             ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
             throw eckit::BadValue(ss.str(), Here());
-        }
+        }       
     }
+
+    if (!errorMsg.empty()) {
+        error(errorMsg, hdr.clientID(), hdr.requestID);
+        return;
+    }
+
+    
 }
 
 int ServerConnection::selectDataPort() {

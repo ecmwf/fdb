@@ -93,7 +93,7 @@ bool RemoteCatalogue::selectIndex(const Key& idxKey) {
 }
 
 const Index& RemoteCatalogue::currentIndex(){
-    return nullptr;
+    NOTIMP;
 }
 const Key RemoteCatalogue::currentIndexKey() {
     return currentIndexKey_;
