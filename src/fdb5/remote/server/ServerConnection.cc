@@ -213,7 +213,7 @@ void ServerConnection::initialiseConnections() {
 
             LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
             agreedConf_.set("NumberOfConnections", ncSelected);
-            single_ = true; // (ncSelected == 1);
+            single_ = (ncSelected == 1);
         }
         else {
             std::stringstream ss;

@@ -27,7 +27,7 @@ namespace fdb5::remote {
 class Connection : eckit::NonCopyable {
 
 public: // methods
-    Connection() : single_(true) {}
+    Connection() : single_(false) {}
     virtual ~Connection() {}
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
