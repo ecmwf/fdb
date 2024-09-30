@@ -87,22 +87,7 @@ bool ClientConnection::remove(uint32_t clientID) {
     }
 
     if (clients_.empty()) {
-        if (!single_) {
-            // TODO make the data connection dying automatically, when there are no more async writes
-            try {
-                // all done - disconnecting
-                Connection::write(Message::Exit, false, 0, 0);
-            } catch(...) {
-                // if connection is already down, no need to escalate 
-            }
-        }
-        try {
-            // all done - disconnecting
-            Connection::write(Message::Exit, true, 0, 0);
-        } catch(...) {
-            // if connection is already down, no need to escalate 
-        }
-
+        teardown();
         // ClientConnectionRouter::instance().deregister(*this);
     }
 
@@ -440,9 +425,9 @@ void ClientConnection::listeningControlThreadLoop() {
 
     // We don't want to let exceptions escape inside a worker thread.
     } catch (const std::exception& e) {
-//        ClientConnectionRouter::instance().handleException(std::make_exception_ptr(e));
+       ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
     } catch (...) {
-//        ClientConnectionRouter::instance().handleException(std::current_exception());
+       ClientConnectionRouter::instance().teardown(std::current_exception());
     }
     // ClientConnectionRouter::instance().deregister(*this);
 }
@@ -505,9 +490,9 @@ void ClientConnection::listeningDataThreadLoop() {
 
     // We don't want to let exceptions escape inside a worker thread.
     } catch (const std::exception& e) {
-//        ClientConnectionRouter::instance().handleException(std::make_exception_ptr(e));
+       ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
     } catch (...) {
-//        ClientConnectionRouter::instance().handleException(std::current_exception());
+       ClientConnectionRouter::instance().teardown(std::current_exception());
     }
     // ClientConnectionRouter::instance().deregister(*this);
 }

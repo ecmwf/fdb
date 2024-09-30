@@ -24,6 +24,25 @@ public:
 
 }
 
+void Connection::teardown() {
+
+    if (!single_) {
+        // TODO make the data connection dying automatically, when there are no more async writes
+        try {
+            // all done - disconnecting
+            Connection::write(Message::Exit, false, 0, 0);
+        } catch(...) {
+            // if connection is already down, no need to escalate 
+        }
+    }
+    try {
+        // all done - disconnecting
+        Connection::write(Message::Exit, true, 0, 0);
+    } catch(...) {
+        // if connection is already down, no need to escalate 
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 void Connection::writeUnsafe(bool control, const void* data, size_t length) {

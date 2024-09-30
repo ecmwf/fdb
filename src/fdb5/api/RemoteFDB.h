@@ -80,7 +80,7 @@ private: // methods
 
     bool handle(remote::Message message, bool control, uint32_t requestID) override;
     bool handle(remote::Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
-    void handleException(std::exception_ptr e) override;
+    // void handleException(std::exception_ptr e) override;
 
 private: // members
 

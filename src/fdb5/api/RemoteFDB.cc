@@ -308,7 +308,7 @@ bool RemoteFDB::handle(remote::Message message, bool control, uint32_t requestID
             return false;
     }
 }
-void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
+// void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
 
 static FDBBuilder<RemoteFDB> builder("remote");
 

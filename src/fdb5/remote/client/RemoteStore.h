@@ -155,7 +155,7 @@ private: // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, bool control, uint32_t requestID) override;
     bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
-    void handleException(std::exception_ptr e) override;
+    // void handleException(std::exception_ptr e) override;
 
 private: // members
 

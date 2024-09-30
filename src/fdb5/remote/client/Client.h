@@ -52,7 +52,7 @@ public:
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, bool control, uint32_t requestID) = 0;
     virtual bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    virtual void handleException(std::exception_ptr e) = 0;
+    // virtual void handleException(std::exception_ptr e) = 0;
 
 protected:
     

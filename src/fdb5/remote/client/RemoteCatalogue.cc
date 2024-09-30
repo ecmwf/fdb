@@ -175,9 +175,9 @@ bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, 
     return false;
 }
 
-void RemoteCatalogue::handleException(std::exception_ptr e) {
-    NOTIMP;
-}
+// void RemoteCatalogue::handleException(std::exception_ptr e) {
+//     NOTIMP;
+// }
 
 void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
 void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}

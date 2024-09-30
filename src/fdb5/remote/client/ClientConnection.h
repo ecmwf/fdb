@@ -110,7 +110,6 @@ private: // members
     std::mutex dataWriteMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
     std::thread dataWriteThread_;
-    // std::future<void> dataWriteFuture_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

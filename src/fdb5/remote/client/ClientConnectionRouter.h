@@ -27,6 +27,8 @@ public:
     ClientConnection& connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
     ClientConnection& connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
+    void teardown(std::exception_ptr e);
+
     void deregister(ClientConnection& connection);
 
 private:

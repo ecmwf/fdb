@@ -97,4 +97,25 @@ ClientConnectionRouter& ClientConnectionRouter::instance()
     return router;
 }
 
+void ClientConnectionRouter::teardown(std::exception_ptr e) {
+
+    try {
+        if (e) {
+            std::rethrow_exception(e);
+        }
+    }
+    catch(const std::exception& e) {
+        eckit::Log::error() << "error: " << e.what();
+    }
+
+    std::lock_guard<std::mutex> lock(connectionMutex_);
+
+    for (const auto& [endp,conn] : connections_) {
+        if (conn) {
+            eckit::Log::warning() << "closing connection " << endp << std::endl;
+            conn->teardown();
+        }
+    }
+}
+
 }  // namespace fdb5::remote

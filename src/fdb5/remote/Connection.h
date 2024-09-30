@@ -38,6 +38,8 @@ public: // methods
     eckit::Buffer readControl(MessageHeader& hdr);
     eckit::Buffer readData(MessageHeader& hdr);
 
+    void teardown();
+
 private: // methods
 
     eckit::Buffer read(bool control, MessageHeader& hdr);
