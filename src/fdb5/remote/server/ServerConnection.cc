@@ -246,7 +246,7 @@ void ServerConnection::initialiseConnections() {
             dataSocket_->accept();
         });
     }
-
+    sleep(1);
     eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
     {
         eckit::Buffer startupBuffer(1024);
