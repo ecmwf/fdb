@@ -33,7 +33,10 @@ namespace fdb5::remote {
 FDBForker::FDBForker(net::TCPSocket &socket, const Config &config) :
     ProcessControler(true),
     socket_(socket),
-    config_(config) {}
+    config_(config) {
+
+        std::cout << socket << std::endl;
+    }
 
 FDBForker::~FDBForker() {}
 
