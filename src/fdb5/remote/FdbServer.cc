@@ -46,9 +46,7 @@ void FDBForker::run() {
     ::srand(::getpid() + ::time(nullptr));
     ::srandom(::getpid() + ::time(nullptr));
 
-    eckit::Log::info() << "FDB forked pid " << ::getpid() << std::endl;
-
-    std::cout << socket_.localHost() << ":" << socket_.localPort() << "  " << socket_.remoteHost() << ":" << socket_.remotePort() << std::endl;
+    eckit::Log::info() << "FDB forked pid " << ::getpid() << "  --  connection: " << socket_.localHost() << ":" << socket_.localPort() << "-->" << socket_.remoteHost() << ":" << socket_.remotePort() << std::endl;
 
     if (config_.getString("type", "local") == "catalogue" || (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
