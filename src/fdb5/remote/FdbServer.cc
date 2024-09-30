@@ -120,7 +120,7 @@ void FdbServerBase::doRun() {
     startPortReaperThread(config);
 
     int port = config.getInt("serverPort", 7654);
-    bool threaded = config.getBool("serverThreaded", false);
+    bool threaded = config.getBool("serverThreaded", true);
 
     net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
     server.closeExec(false);
