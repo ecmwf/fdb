@@ -156,6 +156,8 @@ protected:
 
 private:
 
+    std::mutex dataPortMutex_;
+
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;
     size_t dataListener_;

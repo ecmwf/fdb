@@ -168,6 +168,8 @@ void ServerConnection::initialiseConnections() {
         errorMsg = "Error retrieving client protocol version";
     }
 
+    std::cout << "Connection from: " << endpointFromClient << "  sessionId" << clientSession << std::endl;
+
     if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
@@ -234,6 +236,7 @@ void ServerConnection::initialiseConnections() {
     if (single_) {
         dataEndpoint = endpointFromClient;
     } else {
+        std::lock_guard<std::mutex> lock(dataPortMutex_);
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
         ASSERT(dataSocket_->socket() != -1);
 
