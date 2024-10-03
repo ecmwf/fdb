@@ -108,6 +108,8 @@ FdbServerBase::~FdbServerBase() {}
 
 void FdbServerBase::doRun() {
 
+    std::mutex forkMutex;
+
     hookUnique();
 
     Config config = LibFdb5::instance().defaultConfig();
@@ -132,6 +134,7 @@ void FdbServerBase::doRun() {
                 t.start();
             }
             else {
+                std::lock_guard<std::mutex> lock(forkMutex);
                 FDBForker f(server.accept(), config);
                 f.start();
             }

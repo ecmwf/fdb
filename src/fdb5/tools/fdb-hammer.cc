@@ -12,6 +12,9 @@
 #include <iomanip>
 #include <unordered_set>
 #include <memory>
+#include <random>
+#include <thread>
+#include <chrono>
 
 #include "eccodes.h"
 
@@ -70,6 +73,7 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("delay", "Add random delay"));
     }
     ~FDBHammer() override {}
 
@@ -121,12 +125,24 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
+    bool delay = args.getBool("delay", false);
+
 
     const char* buffer = nullptr;
     size_t size = 0;
 
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+
+    if (delay) {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(0, 10000);
+
+        int delayDuration = dist(mt);
+        std::cout << "delay duration: " << delayDuration << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayDuration));
+    }
 
     fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
