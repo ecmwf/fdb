@@ -14,8 +14,9 @@
 #include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/tools/FDBVisitTool.h"
 
@@ -105,7 +106,7 @@ std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) cons
 
     if (all_) {
         ASSERT(requests_.empty());
-        requests.emplace_back(FDBToolRequest(metkit::mars::MarsRequest{}, all_, minimumKeys_));
+        requests.emplace_back(metkit::mars::MarsRequest {}, all_, minimumKeys_);
     } else {
 
         for (const std::string& request_string : requests_) {
