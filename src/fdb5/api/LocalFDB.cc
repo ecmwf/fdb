@@ -125,8 +125,8 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
     return queryInternal<ControlVisitor>(request, action, identifiers);
 }
 
-AxesIterator LocalFDB::axes(const FDBToolRequest& request, int level) {
-    LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axes() : " << request << std::endl;
+AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axesIterator() : " << request << std::endl;
     return queryInternal<AxesVisitor>(request, config_, level);
 }
 
