@@ -175,7 +175,7 @@ CASE("DaosStore tests") {
         fdb5::Schema schema{schema_file()};
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
@@ -185,7 +185,7 @@ CASE("DaosStore tests") {
         /// DaosManager is configured with client config from the file
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = dstore;
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: two cont create with label happen here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -247,9 +247,9 @@ CASE("DaosStore tests") {
         // request
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 
@@ -257,7 +257,7 @@ CASE("DaosStore tests") {
 
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 

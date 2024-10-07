@@ -20,9 +20,6 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "eckit/system/Plugin.h"
-#include "eckit/system/LibraryManager.h"
-
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
@@ -33,6 +30,8 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -109,15 +108,15 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
     // serialisation won't work properly...)
     Key keyInternal(key);
-    keyInternal.registry(config().schema().registry());
 
     // step in archival requests from the model is just an integer. We need to include the stepunit
     auto stepunit = keyInternal.find("stepunits");
     if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+        if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
             auto step = keyInternal.find("step");
             if (step != keyInternal.end()) {
-                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
+                std::string canonicalStep = config().schema().registry().lookupType("step").toKey(step->second + static_cast<char>(tolower(stepunit->second[0])));
+                keyInternal.set("step", canonicalStep);
             }
         }
         keyInternal.unset("stepunits");
@@ -154,21 +153,20 @@ public:
 };
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
-    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-    return loc->dataHandle();
+    auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+    return location->dataHandle();
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
-        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-        result.add(loc->dataHandle());
-        delete loc;
+        auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+        result.add(location->dataHandle());
     }
+
     return result.dataHandle();
 }
-    
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
@@ -303,11 +301,15 @@ void FDB::flush() {
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
     IndexAxis axes;
     AxesElement elem;
-    auto it = internal_->axes(request, level);
+    auto it = axesIterator(request, level);
     while (it.next(elem)) {
         axes.merge(elem.axes());
     }
     return axes;
+}
+
+AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
+    return internal_->axesIterator(request, level);
 }
 
 bool FDB::dirty() const {

@@ -196,6 +196,14 @@ ControlIterator SelectFDB::control(const FDBToolRequest& request,
     });
 }
 
+AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::axesIterator() >> " << request << std::endl;
+    return queryInternal(request,
+                         [level](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.axesIterator(request, level);
+    });
+}
+
 void SelectFDB::flush() {
     for (auto& iter : subFdbs_) {
         FDB& fdb(iter.second);
@@ -208,7 +216,7 @@ void SelectFDB::print(std::ostream &s) const {
     s << "SelectFDB()";
 }
 
-bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 

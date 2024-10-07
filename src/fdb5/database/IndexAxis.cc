@@ -221,7 +221,7 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
    // out << std::endl;
 }
 
-bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
+bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const {
 
     // We partially match on a request
     //
@@ -240,6 +240,11 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
                     found = true;
                     break;;
                 }
+                std::string canonical_rqval = registry.lookupType(kv.first).toKey(rqval);
+                if (kv.second->contains(canonical_rqval)) {
+                    found = true;
+                    break;;
+                }
             }
 
             if (!found) return false;
@@ -249,9 +254,10 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-bool IndexAxis::contains(const Key &key) const {
+bool IndexAxis::contains(const Key& key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+
         if (!key.match(i->first, *(i->second))) {
             return false;
         }
@@ -259,17 +265,16 @@ bool IndexAxis::contains(const Key &key) const {
     return true;
 }
 
-void IndexAxis::insert(const Key &key) {
+void IndexAxis::insert(const Key& key) {
     ASSERT(!readOnly_);
 
-    for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
-        const std::string &keyword = i->first;
+    for (const auto& k : key) {
 
-        std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[keyword];
+        std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[k.first];
         if (!axis_set)
             axis_set.reset(new eckit::DenseSet<std::string>);
 
-        axis_set->insert(key.canonicalValue(keyword));
+        axis_set->insert(key.canonicalValue(k.first));
 
         dirty_ = true;
     }

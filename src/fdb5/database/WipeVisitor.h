@@ -37,7 +37,7 @@ public: // methods
     ~WipeVisitor() override;
 
     bool visitEntries() override { return false; }
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
 protected: // members

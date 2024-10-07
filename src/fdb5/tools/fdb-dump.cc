@@ -38,8 +38,8 @@ public: // methods
 
 private: // methods
 
-    virtual void execute(const CmdArgs& args) override;
-    virtual void init(const CmdArgs &args) override;
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs &args) override;
 
 private: // members
 

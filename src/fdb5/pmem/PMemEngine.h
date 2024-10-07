@@ -53,18 +53,16 @@ protected: // methods
 
     virtual std::string dbType() const;
 
-    virtual eckit::PathName location(const Key &key, const Config& config) const;
+    virtual eckit::PathName location(const Key& key, const Config& config) const;
 
     virtual bool canHandle(const eckit::PathName& path) const;
-
-    virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
     virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const;
 
     virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

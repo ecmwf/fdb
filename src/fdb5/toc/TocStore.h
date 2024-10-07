@@ -21,7 +21,6 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
@@ -64,7 +63,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -74,8 +73,8 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key) const;
+    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::PathName getDataPath(const Key& key) const;
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;

@@ -172,7 +172,8 @@ PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) con
 
 static bool expver_is_valid(const std::string& str) {
     LOG_DEBUG_LIB(LibFdb5) << "Validating expver string [" << str << "]" << std::endl;
-    return (str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end();
+    return ((str.size() <= 4) and std::find_if_not(str.begin(), str.end(), isdigit) == str.end()) ||
+        ((str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end());
 }
 
 eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {

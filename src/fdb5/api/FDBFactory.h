@@ -89,7 +89,7 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
 
     void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 
@@ -185,7 +185,7 @@ public: // methods
 
 private: // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const override {
+    std::unique_ptr<FDBBase> make(const Config& config) const override {
         return std::unique_ptr<T>(new T(config, name_));
     }
 };

@@ -43,9 +43,9 @@ class FDBTool : public eckit::Tool {
 protected: // methods
 
     FDBTool(int argc, char **argv);
-    virtual ~FDBTool() override {}
+    ~FDBTool() override {}
 
-    virtual void run() override;
+    void run() override;
     Config config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig = eckit::LocalConfiguration()) const;
 
 public: // methods
