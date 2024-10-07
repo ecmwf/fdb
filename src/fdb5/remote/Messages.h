@@ -63,6 +63,7 @@ enum class Message : uint16_t {
     Read,
     Move,
     Store,
+    Axes,
 
     // Responses
     Received = 200,

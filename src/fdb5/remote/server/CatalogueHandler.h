@@ -53,6 +53,7 @@ private:  // methods
 
     void flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);

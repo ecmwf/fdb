@@ -56,6 +56,17 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
     }
 };
 
+
+struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
+    AxesHelper(int level) : level_(level) {}
+
+    void encodeExtra(eckit::Stream& s) const {
+        s << level_;
+    }
+private:
+    int level_;
+};
+
 struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::Inspect> {
 
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
@@ -228,6 +239,10 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
     return forwardApiCall(ListHelper(), request);
+}
+
+AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, int level) {
+    return forwardApiCall(AxesHelper(level), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {

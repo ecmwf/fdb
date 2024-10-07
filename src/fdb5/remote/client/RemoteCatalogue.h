@@ -30,7 +30,6 @@ public:
 
     //From CatalogueReader
     DbStats stats() const override { return DbStats(); }
-    bool axis(const std::string& keyword, eckit::StringSet& s) const override { return false; }
     bool retrieve(const Key& key, Field& field) const override { return false; }
 
     // From Catalogue

@@ -48,6 +48,8 @@ public: // method
 
     ListIterator list(const FDBToolRequest& request) override;
 
+    AxesIterator axesIterator(const FDBToolRequest& request, int level=3) override;
+
     DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 
     StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }

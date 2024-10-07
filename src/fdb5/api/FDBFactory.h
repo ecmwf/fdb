@@ -93,7 +93,7 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
 
     void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 

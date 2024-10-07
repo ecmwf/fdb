@@ -46,6 +46,7 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Read: s << "Read"; break;
         case Message::Move: s << "Move"; break;
         case Message::Store: s << "Store"; break;
+        case Message::Axes: s << "Axes"; break;
 
     // Responses
         case Message::Received: s << "Received"; break;

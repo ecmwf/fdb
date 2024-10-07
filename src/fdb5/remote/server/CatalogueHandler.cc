@@ -99,6 +99,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 list(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::Axes: // list request. Location are sent aynchronously over the data connection
+                axes(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
             case Message::Inspect: // inspect request. Location are sent aynchronously over the data connection
                 inspect(clientID, requestID, std::move(payload));
                 return Handled::Yes;
@@ -216,6 +220,17 @@ struct ListHelper : public BaseHelper<ListElement> {
     }
 };
 
+struct AxesHelper : public BaseHelper<AxesElement> {
+    void extraDecode(eckit::Stream& s) {
+        s >> level_;
+    }
+    AxesIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.axesIterator(request, level_);
+    }
+private:
+    int level_;
+};
+
 struct InspectHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.inspect(request.request());
@@ -281,6 +296,10 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     forwardApiCall<ListHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    forwardApiCall<AxesHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
