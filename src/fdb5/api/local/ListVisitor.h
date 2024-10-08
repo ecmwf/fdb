@@ -50,8 +50,10 @@ public:
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
-            if (auto dbKey = schema.matchDatabase(uri.path().baseName())) { queue_.emplace(*dbKey, eckit::URI {}, 0); }
-            return false;
+            if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
+                queue_.emplace(*dbKey, eckit::URI {}, 0);
+                return false;
+            }
         }
         return true;
     }
@@ -108,13 +110,13 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const TypedKey& datumKey) override {
+    void visitDatum(const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        /// @todo fix that datumKey is not a TypedKey but Key
         if (datumKey.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey.canonical(), field.stableLocation(), field.timestamp());
+            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
+                           field.timestamp());
         }
     }
 

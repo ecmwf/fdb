@@ -28,8 +28,7 @@ class Schema;
 class Store;
 class Catalogue;
 
-namespace api {
-namespace local {
+namespace api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -46,8 +45,11 @@ public:
     void catalogueComplete(const Catalogue& catalogue) override;
 
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override;
+
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+
     bool visitIndex(const Index& /*index*/) override;
+
     void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
 private: // members
@@ -59,6 +61,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
+}  // namespace api::local
+
 } // namespace fdb5

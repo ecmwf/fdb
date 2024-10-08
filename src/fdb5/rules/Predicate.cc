@@ -60,7 +60,7 @@ const std::vector<std::string>& Predicate::values(const metkit::mars::MarsReques
     return matcher_->values(rq, keyword_);
 }
 
-void Predicate::fill(TypedKey& key, const std::string& value) const {
+void Predicate::fill(Key& key, const std::string& value) const {
     matcher_->fill(key, keyword_, value);
 }
 

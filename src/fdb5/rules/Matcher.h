@@ -30,7 +30,6 @@ namespace metkit::mars {
 namespace fdb5 {
 
 class Key;
-class TypedKey;
 class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -50,7 +49,7 @@ public: // methods
 
     virtual bool match(const std::string& value) const                   = 0;
     virtual bool match(const std::string& keyword, const Key& key) const = 0;
-    virtual void fill(TypedKey& key, const std::string& keyword, const std::string& value) const;
+    virtual void fill(Key& key, const std::string& keyword, const std::string& value) const;
 
     virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
 

@@ -31,10 +31,9 @@ const std::vector<std::string> &Matcher::values(const metkit::mars::MarsRequest&
     return rq.values(keyword);
 }
 
-void Matcher::fill(TypedKey& key, const std::string &keyword, const std::string& value) const {
+void Matcher::fill(Key& key, const std::string& keyword, const std::string& value) const {
     key.push(keyword, value);
 }
-
 
 const std::string &Matcher::defaultValue() const {
     NOTIMP;

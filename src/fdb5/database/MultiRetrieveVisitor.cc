@@ -44,9 +44,9 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 // From Visitor
 
-bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
+bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKey */) {
 
-	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey  << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey << std::endl;
 
     /* is it the current DB ? */
 
@@ -88,18 +88,18 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& full
     }
 }
 
-bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey&) {
+bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const Key& /* fullKey */) {
     ASSERT(db_);
     LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
     return db_->selectIndex(idxKey);
 }
 
-bool MultiRetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& full) {
+bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     ASSERT(db_);
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << datumKey << ", " << full << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << datumKey << ", " << fullKey << std::endl;
 
     Field field;
-    if (db_->inspect(datumKey.canonical(), field)) {
+    if (db_->inspect(datumKey, field)) {
 
         Key simplifiedKey;
         for (auto k = datumKey.begin(); k != datumKey.end(); k++) {

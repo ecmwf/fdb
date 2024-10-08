@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <iosfwd>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "eckit/types/Types.h"
@@ -36,7 +37,6 @@ class Predicate;
 class ReadVisitor;
 class WriteVisitor;
 class Key;
-class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -56,10 +56,11 @@ public:  // methods
 
     virtual void updateParent(const Rule* parent);
 
-    bool match(const Key& key) const;
+    /// @todo this different from the other findMatchingKey in that it throws and fixes quantile values
+    /// can we merge them ?
+    Key makeKey(const std::string& keyFingerprint) const;
 
-    /// @todo this should make a Key, not fill one
-    void fill(Key& key, const eckit::StringList& values) const;
+    bool match(const Key& key) const;
 
     void check(const Key& key) const;
 
@@ -72,22 +73,24 @@ public:  // methods
 protected:  // methods
     Rule(std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types);
 
-    std::unique_ptr<TypedKey> findMatchingKey(const Key& field) const;
+    std::optional<Key> findMatchingKey(const Key& field) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
 private:  // methods
     virtual void dumpRules(std::ostream& out) const = 0;
 
-    std::unique_ptr<TypedKey> findMatchingKey(const eckit::StringList& values) const;
+    std::optional<Key> findMatchingKey(const eckit::StringList& values) const;
 
-    std::unique_ptr<TypedKey> findMatchingKey(const Key& field, const char* missing) const;
+    std::optional<Key> findMatchingKey(const Key& field, const char* missing) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request) const;
 
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const;
 
     bool tryFill(Key& key, const eckit::StringList& values) const;
+
+    void fill(Key& key, const eckit::StringList& values) const;
 
     void print(std::ostream& out) const;
 

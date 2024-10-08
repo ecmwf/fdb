@@ -36,7 +36,7 @@ bool MatchOptional::optional() const {
     return true;
 }
 
-void MatchOptional::fill(TypedKey& key, const std::string &keyword, const std::string& value) const {
+void MatchOptional::fill(Key& key, const std::string& keyword, const std::string& value) const {
     if (!value.empty()) {
         key.push(keyword, value);
     }

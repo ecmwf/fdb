@@ -20,6 +20,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -66,10 +67,12 @@ public:  // methods
 
     void matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const;
 
-    std::unique_ptr<Key> matchDatabase(const std::string& fingerprint) const;
+    std::optional<Key> matchDatabase(const std::string& fingerprint) const;
 
+    /// @throws eckit::SeriousBug if no rule is found
     const RuleDatabase& matchingRule(const Key& dbKey) const;
 
+    /// @throws eckit::SeriousBug if no rule is found
     const RuleDatum& matchingRule(const Key& dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName& path, bool replace = false);

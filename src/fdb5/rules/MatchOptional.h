@@ -42,7 +42,7 @@ private: // methods
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
     void print(std::ostream& out) const override;
     const std::string& defaultValue() const override;
-    void fill(TypedKey& key, const std::string& keyword, const std::string& value) const override;
+    void fill(Key& key, const std::string& keyword, const std::string& value) const override;
 
     std::vector<std::string> default_;
 

@@ -11,8 +11,7 @@
 #include <cstddef>
 #include <iostream>
 #include <list>
-#include <map>
-#include <memory>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -21,6 +20,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -42,9 +42,16 @@ namespace {
 
 class RuleGraph {
     struct RuleNode {
+
+        RuleNode(const RuleNode&)            = delete;
+        RuleNode& operator=(const RuleNode&) = delete;
+        RuleNode(RuleNode&&)                 = delete;
+        RuleNode& operator=(RuleNode&&)      = delete;
+        ~RuleNode()                          = default;
+
         explicit RuleNode(const std::string& keyword) : keyword_ {keyword} { }
 
-        std::string keyword_;
+        const std::string& keyword_;
 
         eckit::StringList values_;
     };
@@ -107,7 +114,7 @@ Rule::Rule(const std::size_t line, std::vector<Predicate>& predicates, const eck
 //----------------------------------------------------------------------------------------------------------------------
 // MATCHING KEYS
 
-std::unique_ptr<TypedKey> Rule::findMatchingKey(const eckit::StringList& values) const {
+std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
     if (predicates_.empty()) { return {}; }
 
@@ -131,39 +138,46 @@ std::unique_ptr<TypedKey> Rule::findMatchingKey(const eckit::StringList& values)
     return key;
 }
 
-std::unique_ptr<TypedKey> Rule::findMatchingKey(const Key& field) const {
+std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
 
-    if (field.size() < predicates_.size()) { return {}; }
+    if (predicates_.empty()) { return {}; }
 
-    auto key = std::make_unique<TypedKey>(registry_);
+    ASSERT(values.size() >= predicates_.size());
 
-    for (const auto& pred : predicates_) {
+    TypedKey key(registry_);
 
-        /// @note the key is constructed from the predicate
-        if (!pred.match(field)) { return {}; }
+    for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
+        const auto& pred = *iter;
 
         const auto& keyword = pred.keyword();
 
-        key->push(keyword, pred.value(field));
+        /// @note 1-1 order between predicates and values
+        const auto& value = values.at(iter - predicates_.begin());
+
+        if (!pred.match(value)) { return {}; }
+
+        key.push(keyword, value);
     }
 
-    return key;
+    return key.canonical();
 }
 
-std::unique_ptr<TypedKey> Rule::findMatchingKey(const Key& field, const char* missing) const {
+std::optional<Key> Rule::findMatchingKey(const Key& field, const char* missing) const {
 
-    auto key = std::make_unique<TypedKey>(registry_);
+    Key key;
 
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred.keyword();
 
-        if (field.find(keyword) == field.end()) {
-            key->push(keyword, missing);
-        } else if (pred.match(field)) {
-            key->push(keyword, pred.value(field));
+        if (const auto [iter, found] = field.find(keyword); found) {
+            if (pred.match(iter->second)) {
+                key.emplace(keyword, iter->second);
+            } else {
+                return {};
+            }
         } else {
-            return {};
+            key.emplace(keyword, missing);
         }
     }
 
@@ -235,7 +249,8 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         if (!pred.optional() && request.countValues(keyword) == 0) { return {}; }
 
         eckit::StringList values;
-        visitor.values(request, keyword, *registry_, values);
+        /// @todo this is already canonical
+        visitor.values(request, keyword, registry_, values);
 
         if (values.empty() && pred.optional()) { values.push_back(pred.defaultValue()); }
 
@@ -278,11 +293,11 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
-    auto it_pred = predicates_.begin();
+    auto it_pred  = predicates_.begin();
 
     for (; it_pred != predicates_.end() && it_value != values.end(); ++it_pred, ++it_value) {
 
@@ -309,6 +324,16 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
     ASSERT(tryFill(key, values));
+}
+
+Key Rule::makeKey(const std::string& keyFingerprint) const {
+    Key key;
+
+    const auto values = eckit::Tokenizer(":", true).tokenize(keyFingerprint);
+
+    fill(key, values);
+
+    return key;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -388,7 +413,7 @@ void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
 bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
 
-    if (auto key = findMatchingKey(field)) {
+    if (const auto key = findMatchingKey(field)) {
 
         full.pushFrom(*key);
 
@@ -413,8 +438,10 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE INDEX
 
-RuleIndex::RuleIndex(const std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types,
-                     std::vector<RuleDatum>& rules)
+RuleIndex::RuleIndex(const std::size_t        line,
+                     std::vector<Predicate>&  predicates,
+                     const eckit::StringDict& types,
+                     std::vector<RuleDatum>&  rules)
     : Rule(line, predicates, types), rules_ {std::move(rules)} { }
 
 void RuleIndex::updateParent(const Rule* parent) {
@@ -438,7 +465,7 @@ void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
 bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
 
-    if (auto key = findMatchingKey(field)) {
+    if (const auto key = findMatchingKey(field)) {
 
         full.pushFrom(*key);
 
@@ -457,8 +484,10 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE DATABASE
 
-RuleDatabase::RuleDatabase(const std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types,
-                           std::vector<RuleIndex>& rules)
+RuleDatabase::RuleDatabase(const std::size_t        line,
+                           std::vector<Predicate>&  predicates,
+                           const eckit::StringDict& types,
+                           std::vector<RuleIndex>&  rules)
     : Rule(line, predicates, types), rules_ {std::move(rules)} { }
 
 void RuleDatabase::updateParent(const Rule* /* parent */) {
@@ -482,12 +511,10 @@ bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
 
     if (auto key = findMatchingKey(field)) {
 
-        TypedKey full(*key, registry());
-
-        if (visitor.selectDatabase(*key, full)) {
+        if (visitor.selectDatabase(*key, *key)) {
             // (important) using the database's schema
             for (const auto& rule : visitor.databaseSchema().matchingRule(*key).rules()) {
-                if (rule.expand(field, visitor, full)) { return true; }
+                if (rule.expand(field, visitor, *key)) { return true; }
             }
         }
     }

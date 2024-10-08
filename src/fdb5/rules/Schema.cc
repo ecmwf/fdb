@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -39,7 +40,7 @@ namespace fdb5 {
 
 Schema::Schema() = default;
 
-Schema::Schema(const eckit::PathName &path) {
+Schema::Schema(const eckit::PathName& path) {
     load(path);
 }
 
@@ -58,15 +59,14 @@ const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const
     for (const auto& dbRule : rules_) {
         if (!dbRule.match(dbKey)) { continue; }
         for (const auto& idxRule : dbRule.rules()) {
-            if (idxRule.match(idxKey)) {
-                /// @note this assumes that there is only one datum per index
-                for (const auto& datumRule : idxRule.rules()) { return datumRule; }
-            }
+            if (!idxRule.match(idxKey)) { continue; }
+            /// @note returning first datum. could there be multiple datum per index ?
+            for (const auto& datumRule : idxRule.rules()) { return datumRule; }
         }
     }
 
     std::ostringstream msg;
-    msg << "No rule is matching dbKey=" << dbKey << " and idxKey=" << idxKey << std::endl;
+    msg << "No rule is matching dbKey=" << dbKey << " and idxKey=" << idxKey;
     throw eckit::SeriousBug(msg.str(), Here());
 }
 
@@ -77,7 +77,7 @@ const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
     }
 
     std::ostringstream msg;
-    msg << "No rule exists for key " << dbKey;
+    msg << "No rule is matching dbKey=" << dbKey;
     throw eckit::SeriousBug(msg.str(), Here());
 }
 
@@ -111,7 +111,7 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
 void Schema::matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const {
     for (const auto& rule : rules_) {
-        if (auto key = rule.findMatchingKey(dbKey, missing)) { result.emplace(std::move(*key)); }
+        if (auto key = rule.findMatchingKey(dbKey, missing)) { result.insert(std::move(*key)); }
     }
 }
 
@@ -122,7 +122,7 @@ void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::set<Ke
     }
 }
 
-std::unique_ptr<Key> Schema::matchDatabase(const std::string& fingerprint) const {
+std::optional<Key> Schema::matchDatabase(const std::string& fingerprint) const {
 
     const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
 
@@ -135,24 +135,21 @@ std::unique_ptr<Key> Schema::matchDatabase(const std::string& fingerprint) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Schema::load(const eckit::PathName &path, bool replace) {
+void Schema::load(const eckit::PathName& path, bool replace) {
 
     path_ = path;
 
     LOG_DEBUG_LIB(LibFdb5) << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
-    if (!in)
-        throw eckit::CantOpenFile(path);
+    if (!in) { throw eckit::CantOpenFile(path); }
 
     load(in, replace);
 }
 
 void Schema::load(std::istream& s, bool replace) {
 
-    if (replace) {
-        clear();
-    }
+    if (replace) { clear(); }
 
     SchemaParser(s).parse(rules_, registry_);
 
@@ -168,7 +165,7 @@ void Schema::clear() {
     rules_.clear();
 }
 
-void Schema::dump(std::ostream &s) const {
+void Schema::dump(std::ostream& s) const {
     registry_.dump(s);
     for (const auto& rule : rules_) {
         rule.dump(s);
@@ -176,11 +173,11 @@ void Schema::dump(std::ostream &s) const {
     }
 }
 
-void Schema::print(std::ostream &out) const {
+void Schema::print(std::ostream& out) const {
     out << "Schema[path=" << path_ << "]";
 }
 
-const Type &Schema::lookupType(const std::string &keyword) const {
+const Type& Schema::lookupType(const std::string& keyword) const {
     return registry_.lookupType(keyword);
 }
 
@@ -188,7 +185,7 @@ bool Schema::empty() const {
     return rules_.empty();
 }
 
-const std::string &Schema::path() const {
+const std::string& Schema::path() const {
     return path_;
 }
 
@@ -196,7 +193,7 @@ const TypesRegistry& Schema::registry() const {
     return registry_;
 }
 
-std::ostream &operator<<(std::ostream &s, const Schema &x) {
+std::ostream& operator<<(std::ostream& s, const Schema& x) {
     x.print(s);
     return s;
 }

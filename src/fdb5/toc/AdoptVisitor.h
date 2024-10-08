@@ -25,7 +25,6 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Archiver;
-class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,8 +39,7 @@ public: // methods
                  eckit::Length length);
 
 protected: // methods
-
-    bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void print( std::ostream& out ) const override;
 

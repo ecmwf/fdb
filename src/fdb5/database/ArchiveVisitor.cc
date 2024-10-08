@@ -22,13 +22,13 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, cons
     callback_(callback){
 }
 
-bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
+bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
 
-    checkMissingKeys(fullComputedKey);
+    checkMissingKeys(fullKey);
 
     ASSERT(current());
 
-    current()->archive(datumKey.canonical(), data_, size_, initialFieldKey(), callback_);
+    current()->archive(datumKey, data_, size_, initialFieldKey(), callback_);
 
     return true;
 }

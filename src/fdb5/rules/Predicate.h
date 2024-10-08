@@ -30,7 +30,6 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class TypedKey;
 class Matcher;
 class TypesRegistry;
 
@@ -49,11 +48,13 @@ public: // methods
 
     ~Predicate();
 
+    /// @note this calls find() on key; prefer match(value)
     bool match(const Key& key) const;
+
     bool match(const std::string& value) const;
 
     void dump( std::ostream &s, const TypesRegistry &registry ) const;
-    void fill(TypedKey& key, const std::string& value) const;
+    void fill(Key& key, const std::string& value) const;
 
     const std::string &value(const Key& key) const;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;

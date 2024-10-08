@@ -30,12 +30,9 @@ RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer)
     gatherer_(gatherer) {
 }
 
-RetrieveVisitor::~RetrieveVisitor() {
-}
-
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
+bool RetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /*fullKey*/) {
 
     if(db_) {
         if(dbKey == db_->key()) {
@@ -44,7 +41,7 @@ bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "RetrieveVisitor::selectDatabase " << dbKey << std::endl;
-//    db_.reset(DBFactory::buildReader(key));
+    //    db_.reset(DBFactory::buildReader(key));
     db_ = DB::buildReader(dbKey);
 
     // If this database is locked for retrieval then it "does not exist"
@@ -59,22 +56,22 @@ bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
     if (!db_->open()) {
         eckit::Log::info() << "Database does not exists " << dbKey << std::endl;
         return false;
-    } else {
-        return true;
     }
+
+    return true;
 }
 
-bool RetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey&) {
+bool RetrieveVisitor::selectIndex(const Key& idxKey, const Key& /*fullKey*/) {
     ASSERT(db_);
     // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return db_->selectIndex(idxKey);
 }
 
-bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&) {
+bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
     ASSERT(db_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(datumKey.canonical());
+    eckit::DataHandle* dh = db_->retrieve(datumKey);
 
     if (dh) {
         gatherer_.add(dh);

@@ -30,7 +30,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
-class TypedKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -55,15 +55,14 @@ public:  // methods
     time_t indexTimestamp() const;
 
 private: // methods
-
-    virtual void visitDatum(const Field& field, const TypedKey& datumKey) = 0;
+    virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
 
     // n.b. non-owning
-    const Catalogue* currentCatalogue_ = nullptr;
-    const Store* currentStore_ = nullptr;
-    const Index* currentIndex_ = nullptr;
+    const Catalogue* currentCatalogue_ {nullptr};
+    const Store*     currentStore_ {nullptr};
+    const Index*     currentIndex_ {nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -64,11 +64,11 @@ bool EntryVisitor::visitIndex(const Index& index) {
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-    /// @todo fix that matchingRule returns reference or throws if not found
-    const Rule* rule = currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
-    ASSERT(rule);
-    TypedKey key(keyFingerprint, *rule);
-    visitDatum(field, key);
+
+    const auto& datumRule = currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
+    const auto  datumKey  = datumRule.makeKey(keyFingerprint);
+
+    visitDatum(field, datumKey);
 }
 
 
