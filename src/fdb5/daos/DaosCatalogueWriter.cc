@@ -159,7 +159,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
         } catch (fdb5::DaosEntityNotFoundException& e) {
 
             firstIndexWrite_ = true;
- 
+
             indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
                     idxKey,
@@ -249,13 +249,9 @@ void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLoc
     std::string axisNames = "";
     std::string sep = "";
 
-    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
+    for (const auto& [keyword, value] : key) {
 
-        const std::string &keyword = i->first;
-
-        std::string value = key.canonicalValue(keyword);
-
-        if (value.length() == 0) continue;
+        if (value.empty()) { continue; }
 
         axisNames += sep + keyword;
         sep = ",";

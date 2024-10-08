@@ -104,12 +104,10 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
 
     const MatchList* matching = nullptr;
 
-    const auto& names = key.names();
-    for (const auto& name : names) {
+    for (const auto& [name, value] : key) {
         Key tmpKey = key;
         tmpKey.unset(name);
 
-        // if (std::map<Key, MatchList>::const_iterator iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
         if (const auto& iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
             matching = &(iter->second);
             break;
@@ -136,6 +134,7 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
             }
         }
     }
+
     return false;
 }
 

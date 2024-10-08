@@ -16,27 +16,33 @@
 
 #include "fdb5/config/Config.h"
 
+#include <vector>
+
 namespace fdb5 {
 
 /// Version 2: TOC format originally used in first public release
 /// Version 3: TOC serialisation format includes Stream objects
+/// Version 4: TOC serialisation format includes Stream objects without name
 class TocSerialisationVersion {
+public:  // types
+    using version_type = unsigned int;
 
-public:
+public:  // methods
     TocSerialisationVersion(const fdb5::Config& config);
-    virtual ~TocSerialisationVersion();
+
+    virtual ~TocSerialisationVersion() = default;
 
     /// Defines the serialisation versions the software is able to handle
     /// Entries with these versions will not issue errors
-    static std::vector<unsigned int> supported();
+    static std::vector<version_type> supported();
 
     /// Latest version of serialisation the software is capable to create
     /// To be used as default
-    static unsigned int latest();
+    static version_type latest();
 
     /// Default version of serialisation the software will use
     /// This may be behind the latest version
-    static unsigned int defaulted();
+    static version_type defaulted();
 
     /// List of supported versions as a string
     static std::string supportedStr();
@@ -44,15 +50,13 @@ public:
     /// Defines the serialisation version the software is meant to create new entries with
     /// Normally is the latest()
     /// But can be overriden by the variable FDB5_SERIALISATION_VERSION
-    unsigned int used() const;
+    version_type used() const;
 
     /// Checks the serialisation version is supported by the software
-    bool check(unsigned int version, bool throwOnFail = true) const;
+    static bool check(version_type version, bool throwOnFail = true);
 
 private: // members
-
-    unsigned int used_; //< version to be used for serialisation on write
-
+    version_type used_;  //< version to be used for serialisation on write
 };
 
 } // namespace fdb5

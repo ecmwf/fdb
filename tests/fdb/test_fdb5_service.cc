@@ -23,6 +23,7 @@
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
 
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
@@ -111,16 +112,16 @@ CASE ( "test_fdb_stepunit_archive" ) {
 	fdb5::FDB fdb;
 
 	Key key;
-	key.set("class","od");
-	key.set("expver","0001");
-	key.set("type","fc");
-	key.set("stream","oper");
-	key.set("date","20101010");
-	key.set("time","0000");
-	key.set("domain","g");
-	key.set("levtype","sfc");
-	key.set("step","60");
-	key.set("param","130");
+	key.push("class","od");
+	key.push("expver","0001");
+	key.push("type","fc");
+	key.push("stream","oper");
+	key.push("date","20101010");
+	key.push("time","0000");
+	key.push("domain","g");
+	key.push("levtype","sfc");
+	key.push("step","60");
+	key.push("param","130");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
 	fdb.flush();
 
@@ -135,8 +136,8 @@ CASE ( "test_fdb_stepunit_archive" ) {
         EXPECT(!iter.next(el));
     }
 
-	key.set("step","2");
-	key.set("stepunits","h");
+	key.push("step","2");
+	key.push("stepunits","h");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
 	fdb.flush();
 
@@ -162,8 +163,8 @@ CASE ( "test_fdb_stepunit_archive" ) {
         EXPECT(!iter.next(el));
     }
 
-	key.set("step","30");
-	key.set("stepunits","m");
+	key.push("step","30");
+	key.push("stepunits","m");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
 	fdb.flush();
 
@@ -173,8 +174,8 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "30m");
-		EXPECT(!iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(!iter.next(el));
 	}
 
 	req.values("step", {"0","to","2","by","30m"});
@@ -187,10 +188,10 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		fdb5::ListIterator iter = fdb.list(r, true);
 		fdb5::ListElement el;
 		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "30m");
-		EXPECT(iter.next(el));
-		EXPECT(el.key().get("step") == "2");
-		EXPECT(!iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(!iter.next(el));
 	}
 }
 

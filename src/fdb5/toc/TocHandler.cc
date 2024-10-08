@@ -24,14 +24,15 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
 
@@ -136,9 +137,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
-    if (subTocOverride) {
-        useSubToc_ = true;
-    }    
+    if (subTocOverride) { useSubToc_ = true; }
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
@@ -171,14 +170,15 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
             }
 
             for (const auto& kv : parentKey) {
-                auto it = key.find(kv.first);
-                if (it == key.end()) {
+                const auto [it, found] = key.find(kv.first);
+
+                if (!found) {
                     std::stringstream ss;
                     ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                     throw UserError(ss.str(), Here());
-                } else if (kv.second != it->second) {
-                    remapKey_.set(kv.first, kv.second);
                 }
+
+                if (kv.second != it->second) { remapKey_.emplace(kv.first, kv.second); }
             }
 
             LOG_DEBUG_LIB(LibFdb5) << "Key remapping: " << remapKey_ << std::endl;
@@ -514,7 +514,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
         throw;
     }
 
-    serialisationVersion_.check(r.header_.serialisationVersion_, true);
+    TocSerialisationVersion::check(r.header_.serialisationVersion_, true);
 
     return true;
 }
@@ -729,6 +729,8 @@ void TocHandler::writeInitRecord(const Key& key) {
     TocHandlerCloser closer(*this);
 
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+
+    // std::cout << "FDB TOC writeInitRecord key => " << key << std::endl;
 
     size_t len = readNext(*r);
     if (len == 0) {
@@ -1448,8 +1450,6 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
 }
 
 void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
-
-    
 
     for (ControlIdentifier identifier : identifiers) {
 

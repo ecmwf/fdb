@@ -258,7 +258,7 @@ bool IndexAxis::contains(const Key& key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
 
-        if (!key.match(i->first, *(i->second))) {
+        if (!key.matchValues(i->first, *(i->second))) {
             return false;
         }
     }
@@ -286,7 +286,8 @@ void IndexAxis::insert(const Key& key) {
         if (!axis_set)
             axis_set.reset(new eckit::DenseSet<std::string>);
 
-        axis_set->insert(key.canonicalValue(k.first));
+        // axis_set->insert(key.canonicalValue(k.first));
+        axis_set->insert(key.get(k.first));
 
         dirty_ = true;
     }

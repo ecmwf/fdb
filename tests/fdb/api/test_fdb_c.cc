@@ -34,10 +34,11 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
 }
 
 void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, bool checkLevel = true) {
-    const char *k;
-    const char *v;
-    size_t l;
-    int err;
+    const char* k = nullptr;
+    const char* v = nullptr;
+    std::size_t l = 0;
+
+    int err = 0;
 
     fdb_split_key_t* sk = nullptr;
     fdb_new_splitkey(&sk);
@@ -46,18 +47,21 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
 
     size_t level = 0;
     for (const auto& key : keys) {
-        for (const auto& k1 : key) {
-            int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
-            std::cerr << "k=" << k << " v=" << v << " l=" << l << std::endl;
+        for (const auto& [keyword, value] : key) {
+
+            err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+
+            std::cerr << "keyword=" << k << "\tvalue=" << v << "\tlevel=" << l << std::endl;
+
             EXPECT(err == FDB_SUCCESS);
-            EXPECT(k1.first == k);
-            EXPECT(k1.second == v);
-            if (checkLevel) {
-                EXPECT(level == l);
-            }
+            EXPECT(keyword == k);
+            EXPECT(value == v);
+
+            if (checkLevel) { EXPECT(level == l); }
         }
         level++;
     }
+
     err = fdb_splitkey_next_metadata(sk, &k, &v, &l);
     EXPECT(err == FDB_ITERATION_COMPLETE);
 

@@ -22,13 +22,9 @@ MatchAny::MatchAny(const std::set<std::string>& values): values_(values) { }
 
 bool MatchAny::match(const std::string &keyword, const Key& key) const {
 
-    auto i = key.find(keyword);
+    if (const auto [iter, found] = key.find(keyword); found) { return match(iter->second); }
 
-    if (i == key.end()) {
-        return false;
-    }
-
-    return match(i->second);
+    return false;
 }
 
 bool MatchAny::match(const std::string& value) const {

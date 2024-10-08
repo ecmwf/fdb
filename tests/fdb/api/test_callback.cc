@@ -12,15 +12,15 @@ CASE("Archive and flush callback") {
     size_t length = data_str.size();
 
     Key key;
-    key.set("class","od");
-    key.set("expver","xxxx");
-    key.set("type","fc");
-    key.set("stream","oper");
-    key.set("date","20101010");
-    key.set("time","0000");
-    key.set("domain","g");
-    key.set("levtype","sfc");
-    key.set("param","130");
+    key.push("class","od");
+    key.push("expver","xxxx");
+    key.push("type","fc");
+    key.push("stream","oper");
+    key.push("date","20101010");
+    key.push("time","0000");
+    key.push("domain","g");
+    key.push("levtype","sfc");
+    key.push("param","130");
 
     std::map<fdb5::Key, eckit::URI> map;
     std::vector<Key> keys;
@@ -35,15 +35,15 @@ CASE("Archive and flush callback") {
         flushCalled = true;
     });
 
-    key.set("step","1");
+    key.push("step","1");
     keys.push_back(key);
     fdb.archive(key, data, length);
 
-    key.set("date","20111213");
+    key.push("date","20111213");
     keys.push_back(key);
     fdb.archive(key, data, length);
 
-    key.set("type","pf");
+    key.push("type","pf");
     keys.push_back(key);
     fdb.archive(key, data, length);
     

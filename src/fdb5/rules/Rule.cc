@@ -116,26 +116,21 @@ Rule::Rule(const std::size_t line, std::vector<Predicate>& predicates, const eck
 
 std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
-    if (predicates_.empty()) { return {}; }
+    if (field.size() < predicates_.size()) { return {}; }
 
-    ASSERT(values.size() >= predicates_.size());
+    TypedKey key(registry_);
 
-    auto key = std::make_unique<TypedKey>(registry_);
+    for (const auto& pred : predicates_) {
 
-    for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
-        const auto& pred = *iter;
+        /// @note the key is constructed from the predicate
+        if (!pred.match(field)) { return {}; }
 
         const auto& keyword = pred.keyword();
 
-        // 1-1 order between predicates and values
-        const auto& value = values.at(iter - predicates_.begin());
-
-        if (!pred.match(value)) { return {}; }
-
-        key->push(keyword, value);
+        key.push(keyword, pred.value(field));
     }
 
-    return key;
+    return key.canonical();
 }
 
 std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
@@ -373,15 +368,17 @@ const Rule& Rule::topRule() const {
 
 void Rule::check(const Key& key) const {
     for (const auto& pred : predicates_) {
-        auto k = key.find(pred.keyword());
-        if (k != key.end()) {
-            const std::string& value = (*k).second;
-            const Type& type = registry_.lookupType(pred.keyword());
-            if (value != type.tidy(value)) {
-                std::stringstream ss;
-                ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred.keyword() << "=" << value << " - expecting " << type.tidy(value) << std::endl;
-                throw eckit::UserError(ss.str(), Here());
+
+        const auto& keyword = pred.keyword();
+
+        if (const auto [iter, found] = key.find(keyword); found) {
+            const auto& value     = iter->second;
+            const auto& tidyValue = registry().lookupType(keyword).tidy(value);
+            if (value != tidyValue) {
+                std::ostringstream oss;
+                oss << "Rule check - metadata not valid (not in canonical form) - found: ";
+                oss << keyword << "=" << value << " - expecting " << tidyValue << '\n';
+                throw eckit::UserError(oss.str(), Here());
             }
         }
     }

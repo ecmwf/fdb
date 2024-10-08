@@ -153,22 +153,17 @@ private: // methods
                     }
                     var = false;
 
-                    j = k.find(word);
-                    if(j != k.end()) {
+                    if (const auto [iter, found] = k.find(word); found) {
                         if(!missing) {
-                            result += (*j).second;
-                        }
-                        else {
-                            if((*j).second == missing || (*j).second.empty()) {
+                            result += iter->second;
+                        } else {
+                            if (iter->second == missing || iter->second.empty()) {
                                 result += keyregex_.find(word)->second; // we know it exists because it is ensured in match()
-                            }
-                            else
-                            {
-                                result += (*j).second;
+                            } else {
+                                result += iter->second;
                             }
                         }
-                    }
-                    else {
+                    } else {
                         std::ostringstream os;
                         os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
                         throw UserError(os.str());
@@ -585,10 +580,8 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     std::ostringstream oss;
     const char *sep = "";
 
-    for (auto& k : key.names()) {
-        auto& v = key.get(k);
-        oss << sep;
-        oss << (v == missing || v.empty() ? missing : key.canonicalValue(k));
+    for (const auto& [keyword, value] : key) {
+        oss << sep << (value == missing || value.empty() ? missing : value);
         sep = ":";
     }
     result.push_back(oss.str());
@@ -597,7 +590,6 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
     return result;
 }
-
 
 TocPath RootManager::directory(const Key& key) {
 

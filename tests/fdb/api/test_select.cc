@@ -19,8 +19,9 @@
 
 #include "metkit/mars/TypeAny.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 #include "ApiSpy.h"
 
@@ -79,8 +80,8 @@ CASE( "archives_distributed_according_to_select" ) {
     // Do some archiving
 
     fdb5::Key k;
-    k.set("class", "od");
-    k.set("expver", "xxxx");
+    k.push("class", "od");
+    k.push("expver", "xxxx");
 
     fdb.archive(k, (const void*)0x1234, 1234);
 
@@ -91,8 +92,8 @@ CASE( "archives_distributed_according_to_select" ) {
     EXPECT(spy_rd2.counts().archive == 0);
     EXPECT(spy_rd2.counts().flush == 0);
 
-    k.set("class", "rd");
-    k.set("expver", "yyyy");
+    k.push("class", "rd");
+    k.push("expver", "yyyy");
 
     fdb.archive(k, (const void*)0x4321, 4321);
 

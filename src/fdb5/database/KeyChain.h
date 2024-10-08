@@ -49,15 +49,17 @@ public:  // methods
     explicit KeyChain(const Key& dbKey): ParentType {dbKey, Key {}, Key {}} { }
 
     void registry(const std::shared_ptr<TypesRegistry>& registry) {
-        for (auto& key : *this) { key.registry(registry); }
+        /// @todo remove this method
+        // for (auto& key : *this) { key.registry(registry); }
     }
 
     auto combine() const -> const Key& {
         if (!key_) {
             /// @todo fixme: no API to get registry from Key; fix this copy hack
-            key_.emplace((*this)[0]);
+            // key_.emplace((*this)[0]);
+            key_ = std::make_optional<Key>();
             for (auto&& key : *this) {
-                for (auto&& [keyword, value] : key) { key_->set(keyword, value); }
+                for (auto&& [keyword, value] : key) { key_->emplace(keyword, value); }
             }
         }
         return *key_;

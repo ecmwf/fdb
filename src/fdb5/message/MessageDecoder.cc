@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
 #include <cctype>
 
 #include "fdb5/message/MessageDecoder.h"
@@ -16,8 +15,6 @@
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
 
-#include "metkit/mars/MarsExpandContext.h"
-#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/Type.h"
 
 namespace fdb5 {
@@ -26,18 +23,23 @@ namespace  {
 class KeySetter : public eckit::message::MetadataGatherer {
 
     void setValue(const std::string& key, const std::string& value) override {
-        key_.set(key, value);
+        key_.push(key, value);
     }
 
     void setValue(const std::string& key, long value) override {
-        if (key_.find(key) == key_.end()) {
-            key_.set(key, std::to_string(value));
+        // key_.push(key, std::to_string(value));
+
+        if (const auto [iter, found] = key_.find(key); !found) {
+            // iter->second = std::to_string(value);
+            key_.emplace(key, std::to_string(value));
         }
     }
 
     void setValue(const std::string& key, double value) override {
-        if (key_.find(key) == key_.end()) {
-            key_.set(key, std::to_string(value));
+        // key_.push(key, std::to_string(value));
+        if (const auto [iter, found] = key_.find(key); !found) {
+            // iter->second = std::to_string(value);
+            key_.emplace(key, std::to_string(value));
         }
     }
 

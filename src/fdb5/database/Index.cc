@@ -134,10 +134,11 @@ void IndexBase::put(const Key& key, const Field& field) {
 }
 
 const TypesRegistry& IndexBase::registry() const {
+    /// @todo change this to be static variable
     if (!registry_) {
-        const Rule* rule = catalogue_.schema().ruleFor(catalogue_.key(), key_);
-        ASSERT(rule);
-        registry_ = std::ref(rule->registry());
+        const auto& rule = catalogue_.schema().matchingRule(catalogue_.key(), key_);
+
+        registry_ = std::ref(rule.registry());
     }
     return registry_.value().get();
 }
@@ -153,10 +154,6 @@ bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
 
 bool IndexBase::mayContain(const Key& key) const {
     return axes_.contains(key);
-}
-
-bool IndexBase::mayContainPartial(const Key& key) const {
-    return axes_.containsPartial(key);
 }
 
 bool IndexBase::mayContainPartial(const Key& key) const {

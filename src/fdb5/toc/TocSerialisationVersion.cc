@@ -8,91 +8,101 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb5.h"
+
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+
+#include <array>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
-static unsigned getUserEnvSerialisationVersion() {
+namespace {
 
-    static unsigned fdbSerialisationVersion =
-        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
-    
-    if (fdbSerialisationVersion && fdbSerialisationVersion != TocSerialisationVersion::defaulted()) {
-        LOG_DEBUG_LIB(LibFdb5) << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
-    }
-    return fdbSerialisationVersion; // default is 0 (not defined by user/service)
-}
+constexpr std::array<TocSerialisationVersion::version_type, 4> supportedVersions = {4, 3, 2, 1};
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
 
 TocSerialisationVersion::TocSerialisationVersion(const fdb5::Config& config) {
-    static unsigned envVersion = getUserEnvSerialisationVersion();
-    if (envVersion) {
-        used_ = envVersion;
+    static version_type fdbSerialisationVersion =
+        eckit::Resource<version_type>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
+
+    LOG_DEBUG_LIB(LibFdb5) << "FDB serialisation version: " << fdbSerialisationVersion << std::endl;
+
+    // version=0 means undefined
+    if (fdbSerialisationVersion > 0) {
+        used_ = fdbSerialisationVersion;
     } else {
-        static int tocSerialisationVersion = config.getInt("tocSerialisationVersion", 0);
-        if (tocSerialisationVersion && tocSerialisationVersion != TocSerialisationVersion::defaulted()) {
-            LOG_DEBUG_LIB(LibFdb5) << "tocSerialisationVersion overidde to version: " << tocSerialisationVersion << std::endl;
+        static version_type tocSerialisationVersion = config.getInt("tocSerialisationVersion", 0);
+
+        LOG_DEBUG_LIB(LibFdb5) << "TOC Serialisation Version: " << tocSerialisationVersion << std::endl;
+
+        if (tocSerialisationVersion != 0 && tocSerialisationVersion != TocSerialisationVersion::defaulted()) {
             used_ = tocSerialisationVersion;
         } else {
             used_ = defaulted();
         }
     }
 
-    bool valid = check(used_, false);
-    if(not valid) {
+    LOG_DEBUG_LIB(LibFdb5) << "Using TOC serialisation version: " << used_ << std::endl;
+
+    if (!check(used_, false)) {
         std::ostringstream msg;
-        msg << "Unsupported FDB5 toc serialisation version " << envVersion
-        << " - supported: " << supportedStr()
-        << std::endl;
+        msg << "TOC serialisation version [" << used_ << "] is NOT valid! Supported: " << supportedStr() << std::endl;
         throw eckit::BadValue(msg.str(), Here());
     }
 }
 
-TocSerialisationVersion::~TocSerialisationVersion() {}
-
-std::vector<unsigned int> TocSerialisationVersion::supported() {
-    std::vector<unsigned int> versions = {3, 2, 1};
-    return versions;
+auto TocSerialisationVersion::supported() -> std::vector<version_type> {
+    return {supportedVersions.begin(), supportedVersions.end()};
 }
 
-unsigned int TocSerialisationVersion::latest() {
-    return 3;
+auto TocSerialisationVersion::latest() -> version_type {
+    return supportedVersions.front();
 }
 
-unsigned int TocSerialisationVersion::defaulted() {
+auto TocSerialisationVersion::defaulted() -> version_type {
     return 2;
 }
 
-unsigned int TocSerialisationVersion::used() const {
+auto TocSerialisationVersion::used() const -> version_type {
     return used_;
 }
 
 std::string TocSerialisationVersion::supportedStr() {
     std::ostringstream oss;
+
     char sep = '[';
-    for (auto v : supported()) {
-        oss << sep << v;
+    for (const auto& version : supportedVersions) {
+        oss << sep << version;
         sep = ',';
     }
     oss << ']';
+
     return oss.str();
 }
 
-bool TocSerialisationVersion::check(unsigned int version, bool throwOnFail) const {
-    std::vector<unsigned int> versionsSupported = supported();
-    for (auto v : versionsSupported) {
-        if (version == v)
-            return true;
+bool TocSerialisationVersion::check(const version_type version, const bool throwOnFail) {
+
+    for (const auto& supported : supportedVersions) {
+        if (version == supported) { return true; }
     }
+
     if (throwOnFail) {
         std::ostringstream msg;
         msg << "Record version mismatch, software supports versions " << supportedStr() << " got " << version;
         throw eckit::SeriousBug(msg.str());
     }
+
     return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -13,6 +13,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include <cctype>
 #include <cstddef>
 #include <sstream>
 #include <string>
@@ -117,16 +118,16 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
 
     // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
     // serialisation won't work properly...)
+    /// @todo see if we can use TypedKey
     Key keyInternal(key);
 
     // step in archival requests from the model is just an integer. We need to include the stepunit
-    auto stepunit = keyInternal.find("stepunits");
-    if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
-            auto step = keyInternal.find("step");
-            if (step != keyInternal.end()) {
-                std::string canonicalStep = config().schema().registry().lookupType("step").toKey(step->second + static_cast<char>(tolower(stepunit->second[0])));
-                keyInternal.set("step", canonicalStep);
+
+    if (const auto [stepunit, foundSUnit] = keyInternal.find("stepunits"); foundSUnit) {
+        if (stepunit->second.size() > 0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
+            if (const auto [step, foundStep] = keyInternal.find("step"); foundStep) {
+                const auto value = step->second + static_cast<char>(tolower(stepunit->second[0]));
+                step->second     = config().schema().registry().lookupType("step").toKey(value);
             }
         }
         keyInternal.unset("stepunits");

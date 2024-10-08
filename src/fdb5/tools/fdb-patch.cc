@@ -107,11 +107,11 @@ void FDBPatch::init(const CmdArgs& args) {
     if (args.get("expver", s)) {
         std::ostringstream oss;
         oss << std::setfill('0') << std::setw(4) << s;
-        key_.set("expver", oss.str());
+        key_.push("expver", oss.str());
     }
 
     if (args.get("class", s)) {
-        key_.set("class", s);
+        key_.push("class", s);
     }
 
     if (key_.empty()) {
@@ -146,7 +146,7 @@ void FDBPatch::execute(const CmdArgs& args) {
             Key key;
             for (const Key& k : elem.keys()) {
                 for (const auto& kv : k) {
-                    key.set(kv.first, kv.second);
+                    key.emplace(kv.first, kv.second);
                 }
             }
 
@@ -164,10 +164,7 @@ void FDBPatch::execute(const CmdArgs& args) {
     // Construct a retrieve data handle
 
     HandleGatherer handles(false);
-    for (const Key& key : uniqueKeys) {
-        metkit::mars::MarsRequest rq("retrieve", key.keyDict());
-        handles.add(fdb.retrieve(rq));
-    }
+    for (const Key& key : uniqueKeys) { handles.add(fdb.retrieve(key.request("retrieve"))); }
 
     // Do retrieve-patch-archive
 

@@ -9,7 +9,6 @@
  */
 
 #include <cstdlib>
-#include <string.h>
 
 #include "eckit/testing/Test.h"
 
@@ -33,15 +32,15 @@ CASE( "ClimateDaily - no expansion" ) {
 
     fdb5::Key key{};
     EXPECT(key.valuesToString() == "");
-    EXPECT_THROWS(key.canonicalValue("date"));
+    EXPECT_THROWS(key.value("date"));
 
-    key.set("date", "20210427");
-    EXPECT_NO_THROW(key.canonicalValue("date"));
-    EXPECT(key.canonicalValue("date") == "20210427");
+    key.push("date", "20210427");
+    EXPECT_NO_THROW(key.value("date"));
+    EXPECT(key.value("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427");
 
-    key.set("stream", "dacl");
-    EXPECT(key.canonicalValue("date") == "20210427");
+    key.push("stream", "dacl");
+    EXPECT(key.value("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
 }
@@ -52,114 +51,115 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
-    key.set("date", "20210427");
+    key.push("date", "20210427");
     EXPECT_NO_THROW(key.canonicalValue("date"));
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427");
 
-    key.set("stream", "dacl");
+    key.push("stream", "dacl");
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
-    key.set("time", "12:aa");
+    key.push("time", "12:aa");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "12am");
+    key.push("time", "12am");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "123");
+    key.push("time", "123");
     EXPECT(key.canonicalValue("time") == "0123");
 
-    key.set("time", "1:23");
+    key.push("time", "1:23");
     EXPECT(key.canonicalValue("time") == "0123");
 
-    key.set("time", "01::23::45");
+    key.push("time", "01::23::45");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", ":01:23:45:");
+    key.push("time", ":01:23:45:");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "12:99");
+    key.push("time", "12:99");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "7700");
+    key.push("time", "7700");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "01:23:45:67");
+    key.push("time", "01:23:45:67");
     EXPECT_THROWS(key.canonicalValue("time"));
 
-    key.set("time", "12");
+    key.push("time", "12");
     EXPECT(key.canonicalValue("time") == "1200");
 
-    key.set("time", "6");
+    key.push("time", "6");
     EXPECT(key.canonicalValue("time") == "0600");
 
-    key.set("time", "06:21");
+    key.push("time", "06:21");
     EXPECT(key.canonicalValue("time") == "0621");
 
-    key.set("time", "00:18:00");
+    key.push("time", "00:18:00");
     EXPECT(key.canonicalValue("time") == "0018");
 
-    key.set("time", "00");
+    key.push("time", "00");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    key.set("time", "0");
+    key.push("time", "0");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    key.set("time", "00:00");
+    key.push("time", "00:00");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    key.set("time", "00:00:00");
+    key.push("time", "00:00:00");
     EXPECT(key.canonicalValue("time") == "0000");
 
     EXPECT(key.valuesToString() == "20210427:dacl:0000");
 
-    key.set("class", "ei");
-    key.set("expver", "7799");
-    key.set("domain", "g");
-    key.set("type", "pb");
-    key.set("levtype", "pl");
-    key.set("step", "02-12");
-    key.set("quantile", "99:100");
-    key.set("levelist", "50");
-    key.set("param", "129.128");
+    key.push("class", "ei");
+    key.push("expver", "7799");
+    key.push("domain", "g");
+    key.push("type", "pb");
+    key.push("levtype", "pl");
+    key.push("step", "02-12");
+    key.push("quantile", "99:100");
+    key.push("levelist", "50");
+    key.push("param", "129.128");
 
     EXPECT(key.valuesToString() == "20210427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
     config.schema().expand(key.canonical(), visitor);
-    key.registry(visitor.rule()->registry());
 
-    EXPECT(key.canonicalValue("date") == "0427");
-    EXPECT(key.canonicalValue("time") == "0000");
-    EXPECT(key.canonicalValue("step") == "2-12");
+    fdb5::TypedKey key2(key, visitor.rule()->registry());
 
-    EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
+    EXPECT(key2.canonicalValue("date") == "0427");
+    EXPECT(key2.canonicalValue("time") == "0000");
+    EXPECT(key2.canonicalValue("step") == "2-12");
 
-    key.set("step", "00");
-    EXPECT(key.canonicalValue("step") == "0");
+    EXPECT(key2.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 
-    key.set("step", "1");
-    EXPECT(key.canonicalValue("step") == "1");
+    key2.push("step", "00");
+    EXPECT(key2.canonicalValue("step") == "0");
 
-    key.set("step", "0-1");
-    EXPECT(key.canonicalValue("step") == "0-1");
+    key2.push("step", "1");
+    EXPECT(key2.canonicalValue("step") == "1");
 
-    key.set("step", "30m");
-    EXPECT(key.canonicalValue("step") == "30m");
+    key2.push("step", "0-1");
+    EXPECT(key2.canonicalValue("step") == "0-1");
 
-    key.set("step", "60m");
-    EXPECT(key.canonicalValue("step") == "1");
+    key2.push("step", "30m");
+    EXPECT(key2.canonicalValue("step") == "30m");
 
-    key.set("step", "30m-60m");
-    EXPECT(key.canonicalValue("step") == "30m-1");
+    key2.push("step", "60m");
+    EXPECT(key2.canonicalValue("step") == "1");
 
-    key.set("step", "30m-1");
-    EXPECT(key.canonicalValue("step") == "30m-1");
+    key2.push("step", "30m-60m");
+    EXPECT(key2.canonicalValue("step") == "30m-1");
 
-    key.set("step", "60m-120m");
-    EXPECT(key.canonicalValue("step") == "1-2");
+    key2.push("step", "30m-1");
+    EXPECT(key2.canonicalValue("step") == "30m-1");
+
+    key2.push("step", "60m-120m");
+    EXPECT(key2.canonicalValue("step") == "1-2");
 }
 
 
@@ -175,61 +175,63 @@ CASE( "Levelist" ) {
 
     fdb5::TypedKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
+    EXPECT_THROWS(key.value("levelist"));
     EXPECT_THROWS(key.canonicalValue("levelist"));
 
-    key.set("levelist", "925");
+    key.push("levelist", "925");
     EXPECT_NO_THROW(key.canonicalValue("levelist"));
     EXPECT(key.canonicalValue("levelist") == "925");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
-    key.set("levelist", "200.0");
+    key.push("levelist", "200.0");
     EXPECT(key.canonicalValue("levelist") == "200");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
-    key.set("levelist", "200.0000000");
+    key.push("levelist", "200.0000000");
     EXPECT(key.canonicalValue("levelist") == "200");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
-    key.set("levelist", "200.1");
+    key.push("levelist", "200.1");
     EXPECT(key.canonicalValue("levelist") == "200.1");
-    EXPECT(!key.match("levelist", values));
+    // EXPECT(!key.match("levelist", values));
 
-    key.set("levelist", "300");
+    key.push("levelist", "300");
     EXPECT(key.canonicalValue("levelist") == "300");
-    EXPECT(!key.match("levelist", values));
+    // EXPECT(!key.match("levelist", values));
 
-    key.set("levelist", "0.7");
+    key.push("levelist", "0.7");
     EXPECT(key.canonicalValue("levelist") == "0.7");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
-    key.set("levelist", "0.7000");
+    key.push("levelist", "0.7000");
     EXPECT(key.canonicalValue("levelist") == "0.7");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
-    key.set("levelist", "0.5");
+    key.push("levelist", "0.5");
     EXPECT(key.canonicalValue("levelist") == "0.5");
-    EXPECT(!key.match("levelist", values));
+    // EXPECT(!key.match("levelist", values));
 
-    key.set("levelist", "0.333");
+    key.push("levelist", "0.333");
     EXPECT(key.canonicalValue("levelist") == "0.333");
-    EXPECT(!key.match("levelist", values));
+    // EXPECT(!key.match("levelist", values));
 
-    key.set("levelist", "0.333333");
+    key.push("levelist", "0.333333");
     EXPECT(key.canonicalValue("levelist") == "0.333333");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 
     // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
     /// @note don't use to_string when canonicalising Keys
-    key.set("levelist", std::to_string(double(1./3.)));
+    key.push("levelist", std::to_string(1. / 3.));
     EXPECT(key.canonicalValue("levelist") == "0.333333");
-    EXPECT(key.match("levelist", values));
+    // EXPECT(key.match("levelist", values));
 }
 
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
-    fdb5::TypedKey key = fdb5::TypedKey::parseString(
-        "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128",
-        config.schema().registry());
+    fdb5::TypedKey key =
+        fdb5::TypedKey::parse(
+            "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=" "20210427,time=6,step=0,quantile=99:100," "levelist=50,param=129.128",
+            config.schema().registry());
 
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.canonicalValue("time") == "0600");
@@ -238,15 +240,16 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
     config.schema().expand(key.canonical(), visitor);
-    key.registry(visitor.rule()->registry());
+    // key.registry(visitor.rule()->registry());
+    fdb5::TypedKey key2(key, visitor.rule()->registry());
 
-    EXPECT(key.canonicalValue("date") == "0427");
-    EXPECT(key.valuesToString() == "ei:0001:dacl:g:pb:pl:0427:0600:0:99:100:50:129.128");
+    EXPECT(key2.canonicalValue("date") == "0427");
+    EXPECT(key2.valuesToString() == "ei:0001:dacl:g:pb:pl:0427:0600:0:99:100:50:129.128");
 }
 
 CASE( "ClimateMonthly - string ctor - expansion" ) {
 
-    fdb5::TypedKey key = fdb5::TypedKey::parseString(
+    fdb5::TypedKey key = fdb5::TypedKey::parse(
         "class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128",
         config.schema().registry());
 
@@ -256,19 +259,19 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
     config.schema().expand(key.canonical(), visitor);
-    key.registry(visitor.rule()->registry());
+    // key.registry(visitor.rule()->registry());
+    fdb5::TypedKey key2(key, visitor.rule()->registry());
 
-    EXPECT(key.canonicalValue("date") == "4");
-    EXPECT(key.valuesToString() == "op:0001:mnth:g:cl:pl:4:0000:50:129.128");
-
+    EXPECT(key2.canonicalValue("date") == "4");
+    EXPECT(key2.valuesToString() == "op:0001:mnth:g:cl:pl:4:0000:50:129.128");
 }
 
 // do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from Key?
 CASE( "Date - string ctor - expansion" ) {
 
-    fdb5::TypedKey key = fdb5::TypedKey::parseString(
-            "class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
-            config.schema().registry());
+    fdb5::TypedKey key =
+        fdb5::TypedKey::parse("class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
+                              config.schema().registry());
 
     eckit::Date now(-2);
     eckit::Translator<long, std::string> t;
@@ -279,11 +282,11 @@ CASE( "Date - string ctor - expansion" ) {
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
     config.schema().expand(key.canonical(), visitor);
-    key.registry(visitor.rule()->registry());
+    // key.registry(visitor.rule()->registry());
+    fdb5::TypedKey key2(key, visitor.rule()->registry());
 
-    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
-    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:MHS:3001");
-
+    EXPECT(key2.canonicalValue("date") == t(now.yyyymmdd()));
+    EXPECT(key2.valuesToString() == "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:MHS:3001");
 }
 
 

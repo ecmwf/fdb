@@ -209,7 +209,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
             TocHandler toc(path, config);
             if (toc.databaseKey().match(key)) {
                 LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;
-                result.push_back(eckit::URI(typeName(), path));
+                result.emplace_back(typeName(), path);
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;

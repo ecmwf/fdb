@@ -206,19 +206,14 @@ void SelectFDB::print(std::ostream &s) const {
     s << "SelectFDB()";
 }
 
-bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const Key& key, const SelectMap& select, const bool requireMissing) const {
 
-    for (const auto& kv : select) {
+    for (const auto& [keyword, regex] : select) {
+        const auto [iter, found] = key.find(keyword);
 
-        const std::string& k(kv.first);
-        const eckit::Regex& re(kv.second);
+        if (!found && requireMissing) { return false; }
 
-        eckit::StringDict::const_iterator i = key.find(k);
-        if (i == key.end()) {
-            if (requireMissing) return false;
-        } else if (!re.match(i->second)) {
-            return false;
-        }
+        if (!regex.match(iter->second)) { return false; }
     }
 
     return true;

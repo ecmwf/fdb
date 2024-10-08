@@ -135,6 +135,8 @@ protected: // members
 private: // members
 
     const Catalogue& catalogue_;
+
+    /// @todo this is not right, remove it
     mutable std::optional<std::reference_wrapper<const TypesRegistry>> registry_;
 
 };
