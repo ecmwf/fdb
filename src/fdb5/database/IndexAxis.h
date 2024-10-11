@@ -22,7 +22,7 @@
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
+// #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
 namespace eckit {
@@ -36,7 +36,8 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class TypesRegistry;
+
+// class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -73,7 +74,7 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
-    bool partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request) const;
     bool contains(const Key& key) const;
     bool containsPartial(const Key& key) const;
 

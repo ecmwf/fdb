@@ -230,7 +230,7 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
     }
 }
 
-const std::vector<eckit::URI> DaosIndex::dataURIs() const {
+std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
     /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files
