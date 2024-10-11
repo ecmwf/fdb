@@ -236,6 +236,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
+            /// @todo we don't have to open tocs to check if they match the request
             TocHandler toc(path, config);
             if (toc.databaseKey().partialMatch(request)) {
                 LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;

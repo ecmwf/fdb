@@ -245,8 +245,8 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
     for (const auto& kv : TocCatalogue::dbKey_) {
 
-        auto it = otherKey.find(kv.first);
-        if (it == otherKey.end()) {
+        const auto [it, found] = otherKey.find(kv.first);
+        if (!found) {
             std::stringstream ss;
             ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());

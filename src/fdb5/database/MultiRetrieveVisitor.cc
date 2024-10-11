@@ -102,9 +102,8 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
     if (db_->inspect(datumKey, field)) {
 
         Key simplifiedKey;
-        for (auto k = datumKey.begin(); k != datumKey.end(); k++) {
-            if (!k->second.empty())
-                simplifiedKey.set(k->first, k->second);
+        for (const auto& [keyword, value] : datumKey) {
+            if (!value.empty()) { simplifiedKey.push(keyword, value); }
         }
 
         iterator_.emplace({db_->key(), db_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});

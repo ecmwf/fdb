@@ -120,12 +120,11 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     Key keyInternal(key);
 
     // step in archival requests from the model is just an integer. We need to include the stepunit
-    auto stepunit = keyInternal.find("stepunits");
-    if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size()>0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
-            auto step = keyInternal.find("step");
-            if (step != keyInternal.end()) {
-                std::string canonicalStep = config().schema().registry().lookupType("step").toKey(step->second + static_cast<char>(tolower(stepunit->second[0])));
+    if (const auto [stepunit, found] = keyInternal.find("stepunits"); found) {
+        if (stepunit->second.size() > 0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
+            if (auto [step, foundStep] = keyInternal.find("step"); foundStep) {
+                std::string canonicalStep = config().schema().registry().lookupType("step").toKey(
+                    step->second + static_cast<char>(tolower(stepunit->second[0])));
                 keyInternal.set("step", canonicalStep);
             }
         }

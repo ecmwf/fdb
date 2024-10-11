@@ -251,9 +251,8 @@ void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLoc
 
     for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
 
-        const std::string &keyword = i->first;
-
-        std::string value = key.canonicalValue(keyword);
+        const std::string& keyword = i->first;
+        const std::string& value = i->second;
 
         if (value.length() == 0) continue;
 

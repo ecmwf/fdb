@@ -18,7 +18,6 @@
 
 #include <cstddef>
 #include <iosfwd>
-#include <memory>
 #include <optional>
 #include <vector>
 

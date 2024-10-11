@@ -127,7 +127,7 @@ FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
 
     const std::string keyStr = uri.query("remapKey");
     if (!keyStr.empty()) {
-        remapKey_ = Key::parseString(keyStr);
+        remapKey_ = Key::parse(keyStr);
     } else {
         remapKey_ = Key();
     }

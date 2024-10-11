@@ -26,14 +26,11 @@ bool MatchValue::match(const std::string& value) const {
     return value == value_;
 }
 
-bool MatchValue::match(const std::string &keyword, const Key& key) const {
-    auto i = key.find(keyword);
+bool MatchValue::match(const std::string& keyword, const Key& key) const {
 
-    if (i == key.end()) {
-        return false;
-    }
+    if (const auto [iter, found] = key.find(keyword); found) { return match(iter->second); }
 
-    return match(i->second);
+    return false;
 }
 
 void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {

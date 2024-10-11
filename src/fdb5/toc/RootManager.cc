@@ -153,25 +153,22 @@ private: // methods
                     }
                     var = false;
 
-                    j = k.find(word);
-                    if(j != k.end()) {
-                        if(!missing) {
-                            result += (*j).second;
-                        }
-                        else {
-                            if((*j).second == missing || (*j).second.empty()) {
-                                result += keyregex_.find(word)->second; // we know it exists because it is ensured in match()
-                            }
-                            else
-                            {
+                    if (const auto [iter, found] = k.find(word); found) {
+                        if (!missing) {
+                            result += iter->second;
+                        } else {
+                            if (iter->second == missing || iter->second.empty()) {
+                                // we know it exists because it is ensured in match()
+                                result += keyregex_.find(word)->second;
+                            } else {
                                 result += (*j).second;
                             }
                         }
-                    }
-                    else {
-                        std::ostringstream os;
-                        os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
-                        throw UserError(os.str());
+                    } else {
+                        std::ostringstream oss;
+                        oss << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " << s
+                            << " at position " << i;
+                        throw UserError(oss.str());
                     }
                     break;
 
@@ -584,11 +581,10 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
     std::ostringstream oss;
     const char *sep = "";
-
-    for (auto& k : key.names()) {
-        auto& v = key.get(k);
+    for (const auto& k : key.names()) {
+        const auto& v = key.get(k);
         oss << sep;
-        oss << (v == missing || v.empty() ? missing : key.canonicalValue(k));
+        oss << (v == missing || v.empty() ? missing : v);
         sep = ":";
     }
     result.push_back(oss.str());

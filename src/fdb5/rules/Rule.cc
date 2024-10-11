@@ -24,6 +24,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/database/BaseKey.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
@@ -66,23 +67,32 @@ public:  // methods
 
     std::size_t size() const { return nodes_.size(); }
 
-    std::vector<Key> makeKeys(const TypesRegistry& registry) const {
+    std::vector<Key> makeKeys() const {
         std::vector<Key> keys;
 
         if (!nodes_.empty()) {
-            TypedKey key(registry);
+            Key key;
             visit(nodes_.begin(), key, keys);
         }
 
         return keys;
     }
 
+    void canonicalise(const TypesRegistry& registry) {
+        for (auto& [keyword, values] : nodes_) {
+            const auto& type = registry.lookupType(keyword);
+            for (auto& value : values) {
+                if (!value.empty()) { value = type.toKey(value); }
+            }
+        }
+    }
+
 private:  // methods
     // Recursive DFS (depth-first search) to generate all possible keys
-    void visit(const_iterator iter, TypedKey& key, std::vector<Key>& keys) const {
+    void visit(const_iterator iter, Key& key, std::vector<Key>& keys) const {
 
         if (iter == nodes_.end()) {
-            keys.push_back(key.canonical());
+            keys.push_back(key);
             return;
         }
 
@@ -116,26 +126,21 @@ Rule::Rule(const std::size_t line, std::vector<Predicate>& predicates, const eck
 
 std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
-    if (predicates_.empty()) { return {}; }
+    if (field.size() < predicates_.size()) { return {}; }
 
-    ASSERT(values.size() >= predicates_.size());
+    TypedKey key(registry_);
 
-    auto key = std::make_unique<TypedKey>(registry_);
+    for (const auto& pred : predicates_) {
 
-    for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
-        const auto& pred = *iter;
+        /// @note the key is constructed from the predicate
+        if (!pred.match(field)) { return {}; }
 
         const auto& keyword = pred.keyword();
 
-        // 1-1 order between predicates and values
-        const auto& value = values.at(iter - predicates_.begin());
-
-        if (!pred.match(value)) { return {}; }
-
-        key->push(keyword, value);
+        key.push(keyword, pred.value(field));
     }
 
-    return key;
+    return key.canonical();
 }
 
 std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
@@ -172,12 +177,12 @@ std::optional<Key> Rule::findMatchingKey(const Key& field, const char* missing) 
 
         if (const auto [iter, found] = field.find(keyword); found) {
             if (pred.match(iter->second)) {
-                key.emplace(keyword, iter->second);
+                key.push(keyword, iter->second);
             } else {
                 return {};
             }
         } else {
-            key.emplace(keyword, missing);
+            key.push(keyword, missing);
         }
     }
 
@@ -207,9 +212,9 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         }
     }
 
-    /// @note request match all keys ?
+    // graph.canonicalise(registry_);
 
-    return graph.makeKeys(registry_);
+    return graph.makeKeys();
 }
 
 std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request) const {
@@ -234,7 +239,9 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         if (node.empty()) { return {}; }
     }
 
-    return graph.makeKeys(registry_);
+    graph.canonicalise(registry_);
+
+    return graph.makeKeys();
 }
 
 std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
@@ -249,7 +256,6 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         if (!pred.optional() && request.countValues(keyword) == 0) { return {}; }
 
         eckit::StringList values;
-        /// @todo this is already canonical
         visitor.values(request, keyword, registry_, values);
 
         if (values.empty() && pred.optional()) { values.push_back(pred.defaultValue()); }
@@ -263,7 +269,9 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         if (node.empty()) { return {}; }
     }
 
-    return graph.makeKeys(registry_);
+    graph.canonicalise(registry_);
+
+    return graph.makeKeys();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -320,15 +328,13 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
 
 void Rule::fill(Key& key, const eckit::StringList& values) const {
     // FDB-103 - see comment in fill re quantile
-
-    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
-    ASSERT(values.size() <= predicates_.size() + 1);
     ASSERT(tryFill(key, values));
 }
 
 Key Rule::makeKey(const std::string& keyFingerprint) const {
     Key key;
 
+    /// @note assumed keyFingerprint is canonical
     const auto values = eckit::Tokenizer(":", true).tokenize(keyFingerprint);
 
     fill(key, values);
@@ -364,7 +370,6 @@ const TypesRegistry& Rule::registry() const {
 
 void Rule::print(std::ostream& out) const {
     out << type() << "[line=" << line_ << "]";
-    // for (const auto& pred : predicates_) { out << "\t" << pred; } // left for debugging
 }
 
 const Rule& Rule::topRule() const {
@@ -373,18 +378,21 @@ const Rule& Rule::topRule() const {
 
 void Rule::check(const Key& key) const {
     for (const auto& pred : predicates_) {
-        auto k = key.find(pred.keyword());
-        if (k != key.end()) {
-            const std::string& value = (*k).second;
-            const Type& type = registry_.lookupType(pred.keyword());
-            if (value != type.tidy(value)) {
-                std::stringstream ss;
-                ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred.keyword() << "=" << value << " - expecting " << type.tidy(value) << std::endl;
-                throw eckit::UserError(ss.str(), Here());
+
+        const auto& keyword = pred.keyword();
+
+        if (const auto [iter, found] = key.find(keyword); found) {
+            const auto& value     = iter->second;
+            const auto& tidyValue = registry().lookupType(keyword).tidy(value);
+            if (value != tidyValue) {
+                std::ostringstream oss;
+                oss << "Rule check - metadata not valid (not in canonical form) - found: ";
+                oss << keyword << "=" << value << " - expecting " << tidyValue << '\n';
+                throw eckit::UserError(oss.str(), Here());
             }
         }
     }
+
     if (parent_) { parent_->check(key); }
 }
 

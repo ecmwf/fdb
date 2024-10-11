@@ -108,8 +108,8 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
     for (const auto& kv : target) {
-        auto it = source.find(kv.first);
-        ASSERT(it != source.end());
+        const auto [it, found] = source.find(kv.first);
+        ASSERT(found);
         if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
             std::stringstream ss;
             ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;

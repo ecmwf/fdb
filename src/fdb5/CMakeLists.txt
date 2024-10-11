@@ -79,6 +79,8 @@ list( APPEND fdb5_srcs
     database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
+    database/BaseKey.cc
+    database/BaseKey.h
     database/Catalogue.cc
     database/Catalogue.h
     database/DB.cc

@@ -18,7 +18,6 @@
 #include "fdb5/database/Key.h"
 
 #include <array>
-#include <memory>
 #include <optional>
 #include <ostream>
 #include <utility>
@@ -48,16 +47,11 @@ public:  // methods
 
     explicit KeyChain(const Key& dbKey): ParentType {dbKey, Key {}, Key {}} { }
 
-    void registry(const std::shared_ptr<TypesRegistry>& registry) {
-        for (auto& key : *this) { key.registry(registry); }
-    }
-
-    auto combine() const -> const Key& {
+    const Key& combine() const {
         if (!key_) {
-            /// @todo fixme: no API to get registry from Key; fix this copy hack
-            key_.emplace((*this)[0]);
-            for (auto&& key : *this) {
-                for (auto&& [keyword, value] : key) { key_->set(keyword, value); }
+            key_ = std::make_optional<Key>();
+            for (const auto& key : *this) {
+                for (const auto& [keyword, value] : key) { key_->set(keyword, value); }
             }
         }
         return *key_;

@@ -42,14 +42,11 @@ void MatchOptional::fill(Key& key, const std::string& keyword, const std::string
     }
 }
 
-const std::string &MatchOptional::value(const Key& key, const std::string &keyword) const {
-    Key::const_iterator i = key.find(keyword);
+const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
 
-    if (i == key.end()) {
-        return default_[0];
-    }
+    if (const auto [iter, found] = key.find(keyword); found) { return iter->second; }
 
-    return key.get(keyword);
+    return default_[0];
 }
 
 const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
