@@ -13,12 +13,11 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/types/Type.h"
 
 #include <utility>
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,7 +41,7 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
     return true;
 }
 
-bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& /* store */) {
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
@@ -51,6 +50,9 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
 }
 
 bool AxesVisitor::visitIndex(const Index& index) {
+
+    /// @note do we need to canonicalise the request here?
+
     if (index.partialMatch(request_)) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
@@ -70,6 +72,6 @@ void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+} // namespace fdb5::api::local
+
+

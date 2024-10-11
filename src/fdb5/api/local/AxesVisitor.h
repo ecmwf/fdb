@@ -48,7 +48,7 @@ public:
 
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
 
-    bool visitIndex(const Index& /*index*/) override;
+    bool visitIndex(const Index& index) override;
 
     void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
