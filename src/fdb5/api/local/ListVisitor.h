@@ -24,12 +24,14 @@
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/types/Type.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <string>
@@ -46,6 +48,7 @@ public:
     ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
         QueryVisitor<ListElement>(queue, request), level_(level) { }
 
+    /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
@@ -68,13 +71,12 @@ public:
         }
 
         bool ret = QueryVisitor::visitDatabase(catalogue, store);
-        ASSERT(catalogue.key().partialMatch(request_));
+
+        ASSERT(currentCatalogue_->key().partialMatch(request_));
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : catalogue.key()) {
-            indexRequest_.unsetValues(kv.first);
-        }
+        for (const auto& kv : currentCatalogue_->key()) { indexRequest_.unsetValues(kv.first); }
 
         if (level_ == 1) {
             queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
@@ -90,15 +92,28 @@ public:
     /// Returns true/false depending on matching the request (avoids enumerating
     /// entries if not matching).
     bool visitIndex(const Index& index) override {
+        ASSERT(currentCatalogue_);
+
         QueryVisitor::visitIndex(index);
+
+        /// @todo entry point of canonical request, should be done in a more general way
+        const auto& registry =
+            currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key()).registry();
+
+        for (auto& param : indexRequest_.parameters()) {
+            std::vector<std::string> canValues;
+            for (const auto& value : param.values()) {
+                const auto canval = registry.lookupType(param.name()).toKey(value);
+                canValues.emplace_back(canval);
+            }
+            param.values(canValues);
+        }
 
         // Subselect the parts of the request
         datumRequest_ = indexRequest_;
-        for (const auto& kv : index.key()) {
-            datumRequest_.unsetValues(kv.first);
-        }
+        for (const auto& kv : currentIndex_->key()) { datumRequest_.unsetValues(kv.first); }
 
-        if (index.partialMatch(request_)) {
+        if (index.partialMatch(indexRequest_)) {
             if (level_ == 2) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
                 return false;
