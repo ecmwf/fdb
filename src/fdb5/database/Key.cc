@@ -113,8 +113,6 @@ void Key::validateKeys(const Key& other, bool checkAlsoValues) const {
 
 bool Key::match(const Key& other) const {
 
-    // if (other.empty()) { return false; }
-
     for (const auto& [keyword, value] : other) {
 
         if (const auto [iter, found] = find(keyword); found) {
@@ -128,8 +126,6 @@ bool Key::match(const Key& other) const {
 }
 
 bool Key::match(const metkit::mars::MarsRequest& request) const {
-
-    // if (request.parameters().empty()) { return false; }
 
     // for (const auto& param : request.parameters()) {
     for (const auto& param : request.params()) {
@@ -146,8 +142,6 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
 }
 
 bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
-
-    // if (request.parameters().empty()) { return false; }
 
     for (const auto& [keyword, value] : *this) {
 

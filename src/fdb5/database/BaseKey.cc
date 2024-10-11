@@ -17,7 +17,6 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <ostream>
 #include <sstream>

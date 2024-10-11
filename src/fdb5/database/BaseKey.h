@@ -97,8 +97,6 @@ public:  // methods
 
     eckit::StringSet keys() const;
 
-    // virtual std::string valuesToString() const = 0;
-
     metkit::mars::MarsRequest request(const std::string& verb = "retrieve") const;
 
     const eckit::StringList& names() const { return names_; }
