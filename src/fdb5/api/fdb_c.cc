@@ -494,7 +494,7 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         ASSERT(key);
         ASSERT(value);
         const auto stat = it->next();
-        it->metadata(key, value, level);
+        if (stat == FDB_SUCCESS) { it->metadata(key, value, level); }
         return stat;
     }});
 }
