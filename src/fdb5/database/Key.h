@@ -81,6 +81,8 @@ public:  // methods
 
     std::string type() const override { return "TypedKey"; }
 
+    Key tidy() const;
+
     Key canonical() const;
 
 private:  // members

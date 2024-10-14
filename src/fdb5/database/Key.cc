@@ -165,6 +165,15 @@ bool Key::matchValues(const std::string& keyword, const eckit::DenseSet<std::str
 //----------------------------------------------------------------------------------------------------------------------
 // TYPED KEY
 
+Key TypedKey::tidy() const {
+    Key key;
+    for (const auto& keyword : names()) {
+        const auto& value = get(keyword);
+        value.empty() ? key.push(keyword, value) : key.push(keyword, registry_.lookupType(keyword).tidy(value));
+    }
+    return key;
+}
+
 Key TypedKey::canonical() const {
     Key key;
     for (const auto& keyword : names()) {
