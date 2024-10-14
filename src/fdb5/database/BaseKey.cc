@@ -30,23 +30,25 @@ namespace fdb5 {
 
 namespace {
 
-class Reverse {
+class ReverseName {
+    using value_type = eckit::StringList;
+
 public:  // methods
-    Reverse()                          = delete;
-    Reverse(const Reverse&)            = delete;
-    Reverse& operator=(const Reverse&) = delete;
-    Reverse(Reverse&&)                 = delete;
-    Reverse& operator=(Reverse&&)      = delete;
-    ~Reverse()                         = default;
+    ReverseName()                              = delete;
+    ReverseName(const ReverseName&)            = delete;
+    ReverseName& operator=(const ReverseName&) = delete;
+    ReverseName(ReverseName&&)                 = delete;
+    ReverseName& operator=(ReverseName&&)      = delete;
+    ~ReverseName()                             = default;
 
-    explicit Reverse(const BaseKey& key) : key_ {key} { }
+    explicit ReverseName(const value_type& value) : value_ {value} { }
 
-    BaseKey::const_reverse_iterator begin() const { return key_.rbegin(); }
+    auto begin() const -> value_type::const_reverse_iterator { return value_.rbegin(); }
 
-    BaseKey::const_reverse_iterator end() const { return key_.rend(); }
+    auto end() const -> value_type::const_reverse_iterator { return value_.rend(); }
 
 private:  // members
-    const BaseKey& key_;
+    const value_type& value_;
 };
 
 }  // namespace
@@ -109,11 +111,14 @@ void BaseKey::pop(const std::string& keyword) {
 }
 
 void BaseKey::pushFrom(const BaseKey& other) {
-    for (const auto& [keyword, value] : Reverse(other)) { push(keyword, value); }
+    for (const auto& keyword : other.names()) {
+        const auto& value = other.get(keyword);
+        push(keyword, value);
+    }
 }
 
 void BaseKey::popFrom(const BaseKey& other) {
-    for (const auto& [keyword, value] : other) { pop(keyword); }
+    for (const auto& keyword : ReverseName(other.names())) { pop(keyword); }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
