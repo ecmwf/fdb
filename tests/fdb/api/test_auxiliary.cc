@@ -1,4 +1,5 @@
 #include "eckit/testing/Test.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "metkit/mars/MarsRequest.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -64,8 +65,10 @@ std::set<eckit::PathName> setup(FDB& fdb) {
 
 CASE("Wipe with extensions") {
 
-    ::setenv("FDB_AUX_EXTENSIONS", "foo,bar", 1);
+    eckit::TmpDir tmpdir;
+    eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
 
+    eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
     FDB fdb;
     std::set<eckit::PathName> auxPaths = setup(fdb);
     EXPECT(auxPaths.size() == 6);
@@ -91,8 +94,10 @@ CASE("Wipe with extensions") {
 
 CASE("Purge with extensions") {
 
-    ::setenv("FDB_AUX_EXTENSIONS", "foo,bar", 1);
+    eckit::TmpDir tmpdir;
+    eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
 
+    eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
     std::set<eckit::PathName> auxPathsDelete;
 
     // Archive the same data three times
