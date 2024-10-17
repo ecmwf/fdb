@@ -11,11 +11,7 @@
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/tools/FDBTool.h"
-
-#include "fdb5/toc/BTreeIndex.h"
-#include "fdb5/database/Index.h"
 
 #include <string>
 

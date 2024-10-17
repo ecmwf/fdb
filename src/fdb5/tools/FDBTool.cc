@@ -9,13 +9,10 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "eckit/types/Date.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
-
-using eckit::Log;
 
 namespace fdb5 {
 

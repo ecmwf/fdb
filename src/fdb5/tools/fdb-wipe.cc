@@ -14,7 +14,6 @@
 #include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 using namespace eckit::option;
