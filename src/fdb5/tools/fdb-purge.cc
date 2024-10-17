@@ -61,9 +61,7 @@ void FDBPurge::init(const CmdArgs& args) {
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
-
-    FDB fdb;
-
+    FDB fdb(config(args));
     for (const FDBToolRequest& request : requests()) {
 
         if (!porcelain_) {
