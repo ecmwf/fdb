@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"

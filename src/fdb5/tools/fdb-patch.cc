@@ -12,7 +12,6 @@
 
 #include "eccodes.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"

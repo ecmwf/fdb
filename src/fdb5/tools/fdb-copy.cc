@@ -11,8 +11,8 @@
 #include <fstream>
 #include <memory>
 
-#include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 #include "eckit/filesystem/PathName.h"
 
 #include "metkit/mars/MarsRequest.h"
