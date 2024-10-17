@@ -22,9 +22,9 @@ class FDBDumpToc : public fdb5::FDBTool {
 
   public: // methods
 
-    FDBDumpToc(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {
-
+    FDBDumpToc(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+        // FDBDumpToc does not require to read the configuration
+        needsConfig_ = false;
         options_.push_back(new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
     }
 

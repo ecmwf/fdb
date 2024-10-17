@@ -31,7 +31,9 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
-    options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
+    if(needsConfig_) {
+        options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
+    }
 
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
                                 minimumPositionalArguments());
