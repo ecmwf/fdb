@@ -9,6 +9,7 @@
  */
 
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBTool.h"

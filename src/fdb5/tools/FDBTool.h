@@ -19,10 +19,11 @@
 #include <vector>
 
 #include "eckit/runtime/Tool.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/config/Configuration.h"
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 
-#include "fdb5/database/DB.h"
-#include "eckit/option/SimpleOption.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
     namespace option {

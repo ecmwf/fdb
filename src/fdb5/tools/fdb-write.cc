@@ -14,7 +14,6 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/message/MessageArchiver.h"
