@@ -169,3 +169,33 @@ add_subdirectory( tests )
 ecbuild_install_project( NAME fdb )
 
 ecbuild_print_summary()
+
+## Pybind PyFDB 
+
+set(PYBIND11_FINDPYTHON ON)
+find_package(pybind11 CONFIG REQUIRED)
+
+pybind11_add_module(example src/fdb5/api/fdb_py.cc)
+
+target_link_libraries(example PRIVATE 
+                    eckit
+                    eccodes
+                    metkit
+                    fdb5
+                    pybind11::module 
+                    pybind11::lto 
+                    pybind11::windows_extras)
+
+pybind11_extension(example)
+if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+    # Strip unnecessary sections of the binary on Linux/macOS
+    pybind11_strip(example)
+endif()
+
+set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
+                                         CUDA_VISIBILITY_PRESET "hidden")
+
+
+install(TARGETS example DESTINATION .)
+
+
