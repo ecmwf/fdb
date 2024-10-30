@@ -1,0 +1,18 @@
+---
+type: local
+schema: /home/macm/workspace/opencube/dev/bundle_fdb_openfam/fdb/fam_test_dir/schema
+store: fam
+catalogue: toc
+spaces:
+- handler: Default
+  roots:
+  - path: ./root
+  - path: fam://endpoint/region
+  - path: ./backup
+    wipe: true
+    list: true
+    retrieve: false
+fam_roots:
+- uri: fam://127.0.0.1:8880/test_region_fdb
+  writable: true
+  visit: true
