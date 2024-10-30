@@ -22,50 +22,60 @@
 
 namespace fdb5 {
 
-static const StoreBuilder<FamStore> builder(FamCommon::TYPE);
+static const StoreBuilder<FamStore> builder(FamCommon::typeName);
 
 //----------------------------------------------------------------------------------------------------------------------
 
 FamStore::FamStore(const Schema& schema, const Key& key, const Config& config):
-    Store(schema), FamCommon(config, key), config_(config) { }
+    FamCommon(config, key), Store(schema), config_(config) { }
 
 FamStore::~FamStore() = default;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 auto FamStore::uri() const -> eckit::URI {
-    return root().uri();
+    return FamCommon::uri();
 }
 
-bool FamStore::uriBelongs(const eckit::URI& uri) const {
-    return root().uriBelongs(uri);
+auto FamStore::exists() const -> bool {
+    return FamCommon::exists();
 }
 
-bool FamStore::uriExists(const eckit::URI& uri) const {
-    ASSERT(uri.endpoint() == root().endpoint());
+auto FamStore::uriBelongs(const eckit::URI& uri) const -> bool {
+    return root_.uriBelongs(uri);
+}
+
+auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
+    ASSERT(uriBelongs(uri));
     return eckit::FamObjectName(uri).exists();
 }
 
-std::set<eckit::URI> FamStore::asCollocatedDataURIs(const std::vector<eckit::URI>& /* uriList */) const {
+void FamStore::flush() {
     NOTIMP;
 }
 
-std::vector<eckit::URI> FamStore::collocatedDataURIs() const {
+void FamStore::close() {
     NOTIMP;
 }
 
-bool FamStore::exists() const {
-    return root().exists();
+auto FamStore::asCollocatedDataURIs(const std::vector<eckit::URI>& /* uriList */) const -> std::set<eckit::URI> {
+    NOTIMP;
 }
 
-eckit::FamObjectName FamStore::makeObject(const Key& key) const {
+auto FamStore::collocatedDataURIs() const -> std::vector<eckit::URI> {
+    NOTIMP;
+}
+
+auto FamStore::makeObject(const Key& key) const -> eckit::FamObjectName {
     const auto objectName = toString(key);
-    return root().object(objectName).withUUID();
+    return root_.object(objectName).withUUID();
 }
 
-eckit::DataHandle* FamStore::retrieve(Field& field) const {
+auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> FamStore::archive(const Key& key, const void* data, eckit::Length length) {
+auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> {
     auto object = makeObject(key);
 
     LOG_DEBUG_LIB(LibFdb5) << "FamStore archiving object: " << object << '\n';
@@ -82,14 +92,6 @@ std::unique_ptr<FieldLocation> FamStore::archive(const Key& key, const void* dat
     return std::make_unique<FamFieldLocation>(object.uri(), 0, length, fdb5::Key());
 }
 
-void FamStore::flush() {
-    NOTIMP;
-}
-
-void FamStore::close() {
-    NOTIMP;
-}
-
 void FamStore::remove(const Key& key) const {
     auto object = makeObject(key);
 
@@ -99,19 +101,16 @@ void FamStore::remove(const Key& key) const {
 }
 
 void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
-    ASSERT(uri.endpoint() == root().endpoint());
-
-    const auto path = eckit::FamPath(uri);  // asserts uri.scheme
-    ASSERT(path.regionName == root().path().regionName);
+    ASSERT(root_.uriBelongs(uri));
 
     logVerbose << "remove: ";
-    logAlways << uri << std::endl;
+    logAlways << uri << '\n';
 
-    if (doit) { root().object(path.objectName).lookup().deallocate(); }
+    if (doit) { root_.object(eckit::FamPath(uri).objectName).lookup().deallocate(); }
 }
 
 void FamStore::print(std::ostream& out) const {
-    out << "FamStore[schema=" << schema_ << ", root=" << root() << ']';
+    out << "FamStore[schema=" << schema_ << ", root=" << root_ << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------

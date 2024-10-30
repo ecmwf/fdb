@@ -21,6 +21,8 @@
 
 #include "eckit/io/fam/FamRegionName.h"
 
+#include <string>
+
 namespace fdb5 {
 
 class Key;
@@ -28,21 +30,23 @@ class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FamCommon {
-public:  // types
-    static constexpr const char* TYPE = "fam";
+struct FamCommon {
+    static constexpr auto typeName = eckit::FamPath::scheme;
 
-public:  // methods
-    FamCommon(const Config& config, const Key& key);
-
-    virtual ~FamCommon();
-
-protected:  // methods
     static auto toString(const Key& key) -> std::string;
 
-    auto root() const -> const eckit::FamRegionName& { return root_; }
+    FamCommon(const eckit::FamRegionName& root);
 
-private:  // members
+    FamCommon(const Config& config);
+
+    FamCommon(const Config& config, const Key& key);
+
+    virtual ~FamCommon() = default;
+
+    auto exists() const -> bool;
+
+    auto uri() const -> eckit::URI;
+
     const eckit::FamRegionName root_;
 };
 

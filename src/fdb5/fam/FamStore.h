@@ -29,21 +29,25 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FamStore: public Store, public FamCommon {
+class FamStore: protected FamCommon, public Store {
 public:  // methods
     FamStore(const Schema& schema, const Key& key, const Config& config);
 
     ~FamStore() override;
 
+    auto type() const -> std::string override { return FamCommon::typeName; }
+
     auto uri() const -> eckit::URI override;
 
-    bool uriBelongs(const eckit::URI& uri) const override;
-    bool uriExists(const eckit::URI& uri) const override;
+    auto uriBelongs(const eckit::URI& uri) const -> bool override;
 
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI>    asCollocatedDataURIs(const std::vector<eckit::URI>& uriList) const override;
+    auto uriExists(const eckit::URI& uri) const -> bool override;
 
-    bool open() override { return true; }
+    auto collocatedDataURIs() const -> std::vector<eckit::URI> override;
+
+    auto asCollocatedDataURIs(const std::vector<eckit::URI>& uriList) const -> std::set<eckit::URI> override;
+
+    auto open() -> bool override { return true; }
 
     void flush() override;
 
@@ -51,20 +55,18 @@ public:  // methods
 
     void checkUID() const override { }
 
-    eckit::FamObjectName makeObject(const Key& key) const;
+    auto makeObject(const Key& key) const -> eckit::FamObjectName;
 
 protected:  // methods
-    std::string type() const override { return TYPE; }
+    auto exists() const -> bool override;
 
-    bool exists() const override;
+    auto retrieve(Field& field) const -> eckit::DataHandle* override;
 
-    eckit::DataHandle* retrieve(Field& field) const override;
-
-    std::unique_ptr<FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
-
-    void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
+    auto archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> override;
 
     void remove(const Key& key) const override;
+
+    void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
 

@@ -15,14 +15,12 @@
 
 #include "fdb5/fam/FamCommon.h"
 
-#include "fdb5/LibFdb5.h"
+#include "eckit/filesystem/URI.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/Schema.h"
 
 #include <algorithm>
 #include <string>
-#include <utility>
 
 namespace fdb5 {
 
@@ -49,9 +47,22 @@ auto FamCommon::toString(const Key& key) -> std::string {
     return name;
 }
 
-FamCommon::FamCommon(const Config& config, const Key& /* key */): root_ {parseRoot(config)} { }
+FamCommon::FamCommon(const eckit::FamRegionName& root): root_ {root} { }
 
-FamCommon::~FamCommon() = default;
+FamCommon::FamCommon(const Config& config): FamCommon(parseRoot(config)) { }
+
+/// @todo use key once fam root manager is implemented
+FamCommon::FamCommon(const Config& config, const Key& /* key */): FamCommon(config) { }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+auto FamCommon::exists() const -> bool {
+    return root_.exists();
+}
+
+auto FamCommon::uri() const -> eckit::URI {
+    return root_.uri();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

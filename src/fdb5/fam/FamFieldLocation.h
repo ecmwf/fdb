@@ -19,7 +19,6 @@
 
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/io/fam/FamObjectName.h"
 #include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
@@ -31,11 +30,6 @@ public:
     FamFieldLocation(const eckit::URI& uri);
 
     FamFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey);
-
-    FamFieldLocation(const eckit::FamObjectName& name,
-                     const eckit::Offset&        offset,
-                     const eckit::Length&        length,
-                     const Key&                  remapKey);
 
     FamFieldLocation(eckit::Stream& stream);
 

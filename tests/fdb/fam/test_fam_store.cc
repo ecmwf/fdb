@@ -17,6 +17,7 @@
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
+#include "eckit/io/fam/FamRegion.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"

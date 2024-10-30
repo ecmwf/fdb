@@ -15,7 +15,9 @@
 
 #include "fdb5/fam/FamFieldLocation.h"
 
+#include "eckit/io/fam/FamObjectName.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/fam/FamCommon.h"
 
 namespace fdb5 {
 
@@ -23,7 +25,7 @@ namespace fdb5 {
 
 ::eckit::Reanimator<FamFieldLocation> FamFieldLocation::reanimator_;
 
-static const FieldLocationBuilder<FamFieldLocation> builder(eckit::FamPath::SCHEME);
+static const FieldLocationBuilder<FamFieldLocation> builder(FamCommon::typeName);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,11 +35,6 @@ FamFieldLocation::FamFieldLocation(const eckit::URI&    uri,
                                    const eckit::Offset& offset,
                                    const eckit::Length& length,
                                    const Key&           remapKey): FieldLocation(uri, offset, length, remapKey) { }
-
-FamFieldLocation::FamFieldLocation(const eckit::FamObjectName& name,
-                                   const eckit::Offset&        offset,
-                                   const eckit::Length&        length,
-                                   const Key& remapKey): FieldLocation(name.uri(), offset, length, remapKey) { }
 
 FamFieldLocation::FamFieldLocation(const FamFieldLocation& rhs):
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) { }
