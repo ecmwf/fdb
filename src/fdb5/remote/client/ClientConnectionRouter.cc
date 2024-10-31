@@ -4,6 +4,8 @@
 #include <random>
 #include <thread>
 
+#include "eckit/config/Resource.h"
+
 namespace{
     
 class ConnectionError : public eckit::Exception {
