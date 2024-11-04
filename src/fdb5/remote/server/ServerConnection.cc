@@ -232,6 +232,7 @@ void ServerConnection::initialiseConnections() {
     //               server has multiple, then we use that on, whilst retaining
     //               the capacity in the protocol for the server to make a choice.
 
+    std::future<bool> dataSocketFuture;
     eckit::net::Endpoint dataEndpoint;
     if (single_) {
         dataEndpoint = endpointFromClient;
@@ -241,25 +242,27 @@ void ServerConnection::initialiseConnections() {
         ASSERT(dataSocket_->socket() != -1);
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
+
+        dataSocketFuture = std::async(std::launch::async, [this] { dataSocket_->accept(); return true; });
     }
 
     eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
-    {
-        eckit::Buffer startupBuffer(1024);
-        eckit::MemoryStream s(startupBuffer);
 
-        s << clientSession;
-        s << sessionID_;
-        s << dataEndpoint;
-        s << agreedConf_.get();
+    eckit::Buffer startupBuffer(1024);
+    eckit::MemoryStream s(startupBuffer);
 
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+    s << clientSession;
+    s << sessionID_;
+    s << dataEndpoint;
+    s << agreedConf_.get();
 
-        write(Message::Startup, true, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{startupBuffer.data(), s.position()}});
-    }
+    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+
+    write(Message::Startup, true, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{startupBuffer.data(), s.position()}});
 
     if (!single_) {
-        dataSocket_->accept();
+        ASSERT(dataSocketFuture.valid());
+        dataSocketFuture.wait();
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
