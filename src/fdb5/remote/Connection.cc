@@ -76,13 +76,10 @@ void Connection::readUnsafe(bool control, void* data, size_t length) {
         ss << "Read error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
-    if (length < read) {
+    if (length != read) {
         std::stringstream ss;
         ss << "Read error. Expected " << length << " bytes, read " << read;
         throw TCPException(ss.str(), Here());
-    }
-    if (read == 0) {
-        readUnsafe(control,data,length);
     }
 }
 

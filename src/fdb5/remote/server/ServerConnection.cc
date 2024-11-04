@@ -14,6 +14,8 @@
  */
 
 #include <chrono>
+#include <random>
+#include <thread>
 
 #include "eckit/config/Resource.h"
 #include "eckit/maths/Functions.h"
@@ -263,6 +265,12 @@ void ServerConnection::initialiseConnections() {
     if (!single_) {
         ASSERT(dataSocketFuture.valid());
         dataSocketFuture.wait();
+
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(0, 1000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(dist(rd)));
+
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
