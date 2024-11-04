@@ -301,6 +301,7 @@ void ClientConnection::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
+    eckit::Log::info() << "writeControlStartupMessage - Sending session " << sessionID_ << " to control " << controlEndpoint_ << std::endl;
     Connection::write(Message::Startup, true, 0, 0, payload, s.position());
 }
 
@@ -312,6 +313,7 @@ void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSes
     s << sessionID_;
     s << serverSession;
 
+    eckit::Log::info() << "writeDataStartupMessage - Sending session " << sessionID_ << " to data " << dataEndpoint_ << std::endl;
     Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
@@ -329,6 +331,8 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
     eckit::LocalConfiguration serverFunctionality(s);
 
     dataEndpoint_ = dataEndpoint;
+
+    eckit::Log::info() << "verifyServerStartupResponse - Received from server " << clientSession << " " << serverSession << " " << dataEndpoint << std::endl;
 
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         eckit::Log::warning() << "Data and control interface hostnames do not match. "

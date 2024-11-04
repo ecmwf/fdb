@@ -170,8 +170,6 @@ void ServerConnection::initialiseConnections() {
         errorMsg = "Error retrieving client protocol version";
     }
 
-    std::cout << "Connection from: " << endpointFromClient << "  sessionId" << clientSession << std::endl;
-
     if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
@@ -238,12 +236,14 @@ void ServerConnection::initialiseConnections() {
     eckit::net::Endpoint dataEndpoint;
     if (single_) {
         dataEndpoint = endpointFromClient;
+        eckit::Log::info() << "initialiseConnections - received " << clientSession << " from " << endpointFromClient << " - single connection " << std::endl;
     } else {
         std::lock_guard<std::mutex> lock(dataPortMutex_);
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
         ASSERT(dataSocket_->socket() != -1);
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
+        eckit::Log::info() << "initialiseConnections - received " << clientSession << " from " << endpointFromClient << " - opening data connection " << dataEndpoint << std::endl;
 
         dataSocketFuture = std::async(std::launch::async, [this] { dataSocket_->accept(); return true; });
     }
@@ -266,16 +266,18 @@ void ServerConnection::initialiseConnections() {
         ASSERT(dataSocketFuture.valid());
         dataSocketFuture.wait();
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(0, 1000);
-        std::this_thread::sleep_for(std::chrono::milliseconds(dist(rd)));
+        // std::random_device rd;
+        // std::mt19937 mt(rd());
+        // std::uniform_int_distribution<int> dist(0, 1000);
+        // std::this_thread::sleep_for(std::chrono::milliseconds(dist(rd)));
 
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
         // it returns the details we sent it
         // IE check that we are connected to the correct client!
+
+        eckit::Log::info() << "initialiseConnections - waiting for client message on data connection" << std::endl;
 
         MessageHeader dataHdr;
         eckit::Buffer payload2 = readData(dataHdr);
