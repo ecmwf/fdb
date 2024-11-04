@@ -60,7 +60,7 @@ public:
 ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
     controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), controlStopping_(false), dataStopping_(false), dataWriteQueue_(nullptr) {
 
-    std::cerr << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
+    std::cerr << sessionID_ << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
 
 void ClientConnection::add(Client& client) {
@@ -117,13 +117,13 @@ bool ClientConnection::connect(bool singleAttempt) {
     {
 	    std::lock_guard<std::mutex> lock(countMutex);
 	    connectCount++;
-	    std::cerr << "ClientConnection::connect() count - " << connectCount << std::endl;
+	    std::cerr << sessionID_ << "ClientConnection::connect() count - " << connectCount << std::endl;
     }
 
 
 //    std::lock_guard<std::mutex> lock(requestMutex_);
     if (connected_) {
-        std::cerr << "ClientConnection::connect() called when already connected" << std::endl;
+        std::cerr << sessionID_ << "ClientConnection::connect() called when already connected" << std::endl;
         return connected_;
     }
 
@@ -132,7 +132,7 @@ bool ClientConnection::connect(bool singleAttempt) {
 
     try {
         // Connect to server, and check that the server is happy on the response 
-	    std::cerr << "Connecting to host: " << controlEndpoint_ << std::endl;
+	    std::cerr << sessionID_ << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
         writeControlStartupMessage();
@@ -140,7 +140,7 @@ bool ClientConnection::connect(bool singleAttempt) {
 
         if (!single_) {
             // Connect to the specified data port
-		std::cerr << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+		std::cerr << sessionID_ << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
             dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
             writeDataStartupMessage(serverSession);
 
@@ -331,36 +331,36 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
 
     MessageHeader hdr;
     eckit::Buffer payload = Connection::readControl(hdr);
-    std::cerr << "Verify: 1 " << std::endl;
+    std::cerr << sessionID_ << "Verify: 1 " << std::endl;
 
     ASSERT(hdr.requestID == 0);
 
-    std::cerr << "Verify: 1a " << std::endl;
+    // std::cerr << sessionID_ << "Verify: 1a " << std::endl;
     eckit::MemoryStream s(payload);
-    std::cerr << "Verify: 1b " << std::endl;
+    // std::cerr << sessionID_ << "Verify: 1b " << std::endl;
     eckit::SessionID clientSession(s);
-    std::cerr << "Verify: 1c " << std::endl;
+    // std::cerr << sessionID_ << "Verify: 1c " << std::endl;
     eckit::SessionID serverSession(s);
-    std::cerr << "Verify: 1d " << std::endl;
+    // std::cerr << sessionID_ << "Verify: 1d " << std::endl;
     eckit::net::Endpoint dataEndpoint(s);
-    std::cerr << "Verify: 1e " << std::endl;
+    // std::cerr << sessionID_ << "Verify: 1e " << std::endl;
     eckit::LocalConfiguration serverFunctionality(s);
-    std::cerr << "Verify: 2 " << std::endl;
-    std::cerr << "Client session: " << clientSession << std::endl;
-    std::cerr << "Server session: " << serverSession << std::endl;
-    std::cerr << "Endpoint: " << dataEndpoint << std::endl;
-    std::cerr << "Payloud: " << serverFunctionality << std::endl;
+    std::cerr << sessionID_ << "Verify: 2 " << std::endl;
+    std::cerr << sessionID_ << "Client session: " << clientSession << std::endl;
+    std::cerr << sessionID_ << "Server session: " << serverSession << std::endl;
+    std::cerr << sessionID_ << "Endpoint: " << dataEndpoint << std::endl;
+    std::cerr << sessionID_ << "Payloud: " << serverFunctionality << std::endl;
 
     dataEndpoint_ = dataEndpoint;
 
-    eckit::Log::info() << "verifyServerStartupResponse - Received from server " << clientSession << " " << serverSession << " " << dataEndpoint << std::endl;
+    std::cerr << sessionID_ << " - verifyServerStartupResponse - Received from server " << clientSession << " " << serverSession << " " << dataEndpoint << std::endl;
 
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         eckit::Log::warning() << "Data and control interface hostnames do not match. "
                        << dataEndpoint_.hostname() << " /= "
                        << controlEndpoint_.hostname() << std::endl;
     }
-    std::cerr << "Verify: 3 " << std::endl;
+    std::cerr << sessionID_ << "Verify: 3 " << std::endl;
 
     if (clientSession != sessionID_) {
         std::stringstream ss;
@@ -368,18 +368,18 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
            << sessionID_ << " != " << clientSession;
         throw eckit::BadValue(ss.str(), Here());
     }
-    std::cerr << "Verify: 4 " << std::endl;
+    std::cerr << sessionID_ << "Verify: 4 " << std::endl;
     if (serverFunctionality.has("NumberOfConnections") && serverFunctionality.getInt("NumberOfConnections")==1) {
         single_ = true;
     }
-    std::cerr << "Verify: 5 " << std::endl;
+    std::cerr << sessionID_ << "Verify: 5 " << std::endl;
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         eckit::Log::warning() << "Returned control interface does not match. "
                        << dataEndpoint_ << " /= "
                        << controlEndpoint_ << std::endl;
     }
-    std::cerr << "Verify: 6 " << std::endl;
+    std::cerr << sessionID_ << "Verify: 6 " << std::endl;
 
     return serverSession;
 }
@@ -394,7 +394,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
             eckit::Buffer payload = Connection::readControl(hdr);
 
-            std::cerr << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",control=" << hdr.control() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            std::cerr << sessionID_ << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",control=" << hdr.control() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
                 controlStopping_ = true;
@@ -427,7 +427,7 @@ void ClientConnection::listeningControlThreadLoop() {
                                 ss << "ERROR: connection=" << controlEndpoint_ << " received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
                                 ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
                                 eckit::Log::status() << ss.str() << std::endl;
-                                std::cerr << "Retrieving... " << ss.str() << std::endl;
+                                std::cerr << sessionID_ << "Retrieving... " << ss.str() << std::endl;
                                 throw eckit::SeriousBug(ss.str(), Here());
                             }
                             client = it->second;
@@ -445,7 +445,7 @@ void ClientConnection::listeningControlThreadLoop() {
                         std::stringstream ss;
                         ss << "ERROR: connection=" << controlEndpoint_ << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]. ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
-                        std::cerr << "Client Retrieving... " << ss.str() << std::endl;
+                        std::cerr << sessionID_ << "Client Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
                     }
                 }
@@ -465,7 +465,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
     try {
 
-        std::cerr << "ClientConnection::listeningDataThreadLoop started" << std::endl;
+        std::cerr << sessionID_ << "ClientConnection::listeningDataThreadLoop started" << std::endl;
 
         MessageHeader hdr;
 
@@ -473,7 +473,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
             eckit::Buffer payload = Connection::readData(hdr);
 
-            std::cerr << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            std::cerr << sessionID_ << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
                 dataStopping_ = true;
@@ -491,7 +491,7 @@ void ClientConnection::listeningDataThreadLoop() {
                             ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
                             ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
                             eckit::Log::status() << ss.str() << std::endl;
-                            std::cerr << "Retrieving... " << ss.str() << std::endl;
+                            std::cerr << sessionID_ << "Retrieving... " << ss.str() << std::endl;
                             throw eckit::SeriousBug(ss.str(), Here());
                         }
                         client = it->second;
@@ -510,7 +510,7 @@ void ClientConnection::listeningDataThreadLoop() {
                         std::stringstream ss;
                         ss << "ERROR: DATA connection=" << controlEndpoint_ << " Unexpected message recieved (" << hdr.message << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
-                        std::cerr << "Client Retrieving... " << ss.str() << std::endl;
+                        std::cerr << sessionID_ << "Client Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
                     }
                 }

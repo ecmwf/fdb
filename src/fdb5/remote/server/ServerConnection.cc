@@ -83,7 +83,7 @@ ServerConnection::~ServerConnection() {
         archiveFuture_.wait();
     }
     
-    eckit::Log::info() << "Done" << std::endl;
+    std::cerr << clientSessionID_ << "Done" << std::endl;
 }
 
 
@@ -154,15 +154,17 @@ void ServerConnection::initialiseConnections() {
 
     MessageHeader hdr;
     eckit::Buffer payload1 = readControl(hdr);
+    std::cerr << "initialiseConnections " << sessionID_ << " Verify 1" << std::endl;
 
     ASSERT(hdr.message == Message::Startup);
     ASSERT(hdr.requestID == 0);
 
     eckit::MemoryStream s1(payload1);
-    eckit::SessionID clientSession(s1);
+    eckit::SessionID clientSessionID_(s1);
     eckit::net::Endpoint endpointFromClient(s1);
     unsigned int remoteProtocolVersion = 0;
     std::string errorMsg;
+    std::cerr << clientSessionID_ << " Verify 2 " << sessionID_ << std::endl;
 
     try {
         s1 >> remoteProtocolVersion;
@@ -236,24 +238,24 @@ void ServerConnection::initialiseConnections() {
     eckit::net::Endpoint dataEndpoint;
     if (single_) {
         dataEndpoint = endpointFromClient;
-        eckit::Log::info() << "initialiseConnections - received " << clientSession << " from " << endpointFromClient << " - single connection " << std::endl;
+        std::cerr << clientSessionID_ << "initialiseConnections - received " << clientSessionID_ << " from " << endpointFromClient << " - single connection " << std::endl;
     } else {
         std::lock_guard<std::mutex> lock(dataPortMutex_);
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
         ASSERT(dataSocket_->socket() != -1);
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
-        eckit::Log::info() << "initialiseConnections - received " << clientSession << " from " << endpointFromClient << " - opening data connection " << dataEndpoint << std::endl;
+        std::cerr << clientSessionID_ << "initialiseConnections - received " << clientSessionID_ << " from " << endpointFromClient << " - opening data connection " << dataEndpoint << std::endl;
 
         dataSocketFuture = std::async(std::launch::async, [this] { dataSocket_->accept(); return true; });
     }
 
-    eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
+    std::cerr << clientSessionID_ << "Sending data endpoint to client: " << dataEndpoint << std::endl;
 
     eckit::Buffer startupBuffer(1024);
     eckit::MemoryStream s(startupBuffer);
 
-    s << clientSession;
+    s << clientSessionID_;
     s << sessionID_;
     s << dataEndpoint;
     s << agreedConf_.get();
@@ -277,7 +279,7 @@ void ServerConnection::initialiseConnections() {
         // it returns the details we sent it
         // IE check that we are connected to the correct client!
 
-        eckit::Log::info() << "initialiseConnections - waiting for client message on data connection" << std::endl;
+        std::cerr << clientSessionID_ << "initialiseConnections - waiting for client message on data connection" << std::endl;
 
         MessageHeader dataHdr;
         eckit::Buffer payload2 = readData(dataHdr);
@@ -290,9 +292,9 @@ void ServerConnection::initialiseConnections() {
         eckit::SessionID clientSession2(s2);
         eckit::SessionID serverSession(s2);
 
-        if (clientSession != clientSession2) {
+        if (clientSessionID_ != clientSession2) {
             std::stringstream ss;
-            ss << "Client session IDs do not match: " << clientSession << " != " << clientSession2;
+            ss << "Client session IDs do not match: " << clientSessionID_ << " != " << clientSession2;
             throw eckit::BadValue(ss.str(), Here());
         }
 
@@ -312,8 +314,8 @@ void ServerConnection::initialiseConnections() {
 }
 
 int ServerConnection::selectDataPort() {
-    eckit::Log::info() << "SelectDataPort: " << std::endl;
-    eckit::Log::info() << config_ << std::endl;
+    std::cerr << clientSessionID_ << "SelectDataPort: " << std::endl;
+    std::cerr << clientSessionID_ << config_ << std::endl;
     if (config_.has("dataPortStart")) {
         ASSERT(config_.has("dataPortCount"));
         return AvailablePortList(config_.getInt("dataPortStart"), config_.getLong("dataPortCount"))
@@ -389,7 +391,7 @@ void ServerConnection::listeningThreadLoopData() {
                 ASSERT(hdr.clientID() == 0);
 
                 eckit::Log::status() << "Terminating DATA listener" << std::endl;
-                eckit::Log::info() << "Terminating DATA listener" << std::endl;
+                std::cerr << clientSessionID_ << "Terminating DATA listener" << std::endl;
 
                 break;
             } else {
@@ -461,7 +463,7 @@ void ServerConnection::handle() {
                 ASSERT(hdr.clientID() == 0);
 
                 eckit::Log::status() << "Terminating CONTROL listener" << std::endl;
-                eckit::Log::info() << "Terminating CONTROL listener" << std::endl;
+                std::cerr << clientSessionID_ << "Terminating CONTROL listener" << std::endl;
 
                 break;
             }
@@ -545,7 +547,7 @@ void ServerConnection::tidyWorkers() {
         std::future_status stat = it->second.wait_for(std::chrono::milliseconds(0));
 
         if (stat == std::future_status::ready) {
-            eckit::Log::info() << "Tidying up worker for request ID: " << it->first << std::endl;
+            std::cerr << clientSessionID_ << "Tidying up worker for request ID: " << it->first << std::endl;
             workerThreads_.erase(it++);
         }
         else {

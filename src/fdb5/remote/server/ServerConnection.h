@@ -140,6 +140,7 @@ protected:
     eckit::Queue<readLocationElem> readLocationQueue_;
 
     eckit::SessionID sessionID_;
+    eckit::SessionID clientSessionID_;
     eckit::LocalConfiguration agreedConf_;
     std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
