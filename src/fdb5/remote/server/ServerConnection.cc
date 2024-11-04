@@ -41,11 +41,11 @@ namespace fdb5::remote {
 // helpers
 namespace {
 
-class TCPException : public eckit::Exception {
-public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {}
-};
+// class TCPException : public eckit::Exception {
+// public:
+//     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
+//         eckit::Exception(std::string("TCPException: ") + msg, here) {}
+// };
 
 std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2, const std::string& field){
 

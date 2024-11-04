@@ -10,7 +10,9 @@
 
 #pragma once
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/net/TCPSocket.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/remote/Messages.h"
 
@@ -21,6 +23,16 @@ class Buffer;
 }
 
 namespace fdb5::remote {
+
+class TCPException : public eckit::Exception {
+public:
+    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
+        eckit::Exception(std::string("TCPException: ") + msg, here) {
+
+        std::cerr << "TCP Exception; backtrace(): " << std::endl;
+        std::cerr << eckit::BackTrace::dump() << std::endl;
+    }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

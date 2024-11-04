@@ -9,7 +9,6 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
-#include "eckit/os/BackTrace.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
@@ -24,19 +23,19 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace{
+// namespace{
 
-class TCPException : public eckit::Exception {
-public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
+// class TCPException : public eckit::Exception {
+// public:
+//     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
+//         eckit::Exception(std::string("TCPException: ") + msg, here) {
 
-        std::cerr << "TCP Exception; backtrace(): " << std::endl;
-        std::cerr << eckit::BackTrace::dump() << std::endl;
-    }
-};
+//         std::cerr << "TCP Exception; backtrace(): " << std::endl;
+//         std::cerr << eckit::BackTrace::dump() << std::endl;
+//     }
+// };
 
-}
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

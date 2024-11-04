@@ -10,19 +10,19 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace{
+// namespace{
 
-class TCPException : public eckit::Exception {
-public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
+// class TCPException : public eckit::Exception {
+// public:
+//     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
+//         eckit::Exception(std::string("TCPException: ") + msg, here) {
 
-        eckit::Log::error() << "TCP Exception; backtrace(): " << std::endl;
-        eckit::Log::error() << eckit::BackTrace::dump() << std::endl;
-    }
-};
+//         eckit::Log::error() << "TCP Exception; backtrace(): " << std::endl;
+//         eckit::Log::error() << eckit::BackTrace::dump() << std::endl;
+//     }
+// };
 
-}
+// }
 
 void Connection::teardown() {
 
