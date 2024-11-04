@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "eckit/config/Resource.h"
+#include "fdb5/LibFdb5.h"
 
 namespace{
     
@@ -34,25 +35,32 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static int connectionCount = 0;
+
 ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
+    connectionCount++;
+    std::cerr << "ConnectionRouter::connection--1 -- " << connectionCount << std::endl;
+
     auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
+	std::cerr << "ConnectionRouter - existing connection" << std::endl;
         return *(it->second);
     } else {
+	std::cerr << "ConnectionRouter - new connection" << std::endl;
         ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
         
         static int fdbConnectMaxSleep = eckit::Resource<int>("fdbConnectMaxSleep", 0);
         
-        if (fdbConnectMaxSleep) {
+        /*if (fdbConnectMaxSleep) {
             std::random_device rd;
             std::mt19937 mt(rd());
             std::uniform_int_distribution<int> dist(0, fdbConnectMaxSleep);
 
             std::this_thread::sleep_for(std::chrono::milliseconds(dist(rd)));
-        }
+        }*/
 
         if (clientConnection->connect()) {
             auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
@@ -69,6 +77,7 @@ ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
+    std::cerr << "ConnectionRouter::connection--2 -- " << connectionCount << std::endl;
     while (fullEndpoints.size()>0) {
 
         // select a random endpoint
@@ -78,9 +87,11 @@ ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair
         // look for the selected endpoint
         auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
+	    std::cerr << "ConnectionRouter - existing connection" << std::endl;
             return *(it->second);
         }
         else { // not yet there, trying to connect
+	    std::cerr << "ConnectionRouter - new connection" << std::endl;
              std::unique_ptr<ClientConnection> clientConnection =  std::unique_ptr<ClientConnection>(new ClientConnection{endpoint, fullEndpoints.at(idx).second});
             if (clientConnection->connect(true)) {
                 auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
@@ -102,6 +113,7 @@ ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
     // std::lock_guard<std::mutex> lock(connectionMutex_);
+	eckit::Log::info() << "ConnectionRouter::deregister" << std::endl;
     auto it = connections_.find(connection.controlEndpoint());
     if (it != connections_.end()) {
         connections_.erase(it);
@@ -122,7 +134,7 @@ void ClientConnectionRouter::teardown(std::exception_ptr e) {
         }
     }
     catch(const std::exception& e) {
-        eckit::Log::error() << "error: " << e.what();
+        std::cerr << "error: " << e.what();
     }
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
