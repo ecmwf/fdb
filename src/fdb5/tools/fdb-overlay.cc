@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -17,8 +17,6 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
-/*#include "fdb5/toc/TocCatalogueWriter.h"
-#include "fdb5/toc/TocDBReader.h"*/
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
 
