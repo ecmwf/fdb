@@ -1,28 +1,12 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
-#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb5.h"
-// #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Connection.h"
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-namespace{
-
-class TCPException : public eckit::Exception {
-public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
-
-        eckit::Log::error() << "TCP Exception; backtrace(): " << std::endl;
-        eckit::Log::error() << eckit::BackTrace::dump() << std::endl;
-    }
-};
-
-}
 
 void Connection::teardown() {
 
