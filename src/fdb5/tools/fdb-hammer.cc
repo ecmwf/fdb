@@ -139,7 +139,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
         std::uniform_int_distribution<int> dist(0, 10000);
 
         int delayDuration = dist(mt);
-        std::cout << "delay duration: " << delayDuration << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(delayDuration));
     }
 

@@ -1,11 +1,5 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-#include <chrono>
-#include <random>
-#include <thread>
-
-#include "eckit/config/Resource.h"
-
 namespace{
     
 class ConnectionError : public eckit::Exception {
@@ -43,16 +37,6 @@ ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint&
         return *(it->second);
     } else {
         ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
-        
-        // static int fdbConnectMaxSleep = eckit::Resource<int>("fdbConnectMaxSleep", 0);
-        
-        // if (fdbConnectMaxSleep) {
-        //     std::random_device rd;
-        //     std::mt19937 mt(rd());
-        //     std::uniform_int_distribution<int> dist(0, fdbConnectMaxSleep);
-
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(dist(rd)));
-        // }
 
         if (clientConnection->connect()) {
             auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;

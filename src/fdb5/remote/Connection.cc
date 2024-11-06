@@ -73,8 +73,6 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
     std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
     readUnsafe(control, &hdr, sizeof(hdr));
 
-    // std::cout << "READ [" <<  "endpoint=" <<  ((control || single_) ? controlSocket() : dataSocket()).remotePort() << ",message=" << hdr.message << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
-
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
     ASSERT(single_ || hdr.control() == control);
@@ -88,14 +86,11 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
     ASSERT(tail == EndMarker);
 
     if (hdr.message == Message::Error) {
-        // std::cout << "ERROR while reading: ";
 
         char msg[hdr.payloadSize+1];
         if (hdr.payloadSize) {
             char msg[hdr.payloadSize+1];
-            // std::cout << static_cast<char*>(payload.data());
         }
-        // std::cout << std::endl;
     }
 
     return payload;
@@ -119,8 +114,6 @@ void Connection::write(remote::Message msg, bool control, uint32_t clientID, uin
     }
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
-
-    // std::cout << "WRITE [" << "endpoint=" << ((control || single_) ? controlSocket() : dataSocket()).remotePort() << ",message=" << message.message << ",clientID=" << message.clientID() << ",requestID=" << message.requestID << ",payload=" << message.payloadSize << "]" << std::endl;
 
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID() << ",control=" << control << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 

@@ -191,7 +191,6 @@ std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Messag
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {
-    // std::cout << "Write " << r.msg_ << ",clientID=" << r.client_->clientId() << ",requestID=" << r.id_ << std::endl;
     Connection::write(r.msg_, false, r.client_->clientId(), r.id_, r.data_.data(), r.data_.size());
 }
 

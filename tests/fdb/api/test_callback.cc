@@ -53,10 +53,6 @@ CASE("Archive and flush callback") {
 
     EXPECT(map.size() == 3);
 
-    // for (const auto& [key, uri] : map) {
-    //     std::cout << key << " -> " << uri << std::endl;
-    // }
-
     for (const auto& [key, uri] : map) {
         bool found = false;
         for (const auto& originalKey : keys) {

@@ -25,7 +25,6 @@ RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
     config_(config), schema_(nullptr), numLocations_(0) {
 
-    // std::cout << "Catalogue  " << clientId() << "  " << key << std::endl;
     loadSchema();
 }
 

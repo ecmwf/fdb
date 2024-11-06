@@ -271,10 +271,7 @@ CASE( "Date - string ctor - expansion" ) {
     eckit::Date now(-2);
     eckit::Translator<long, std::string> t;
 
-    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
-    // std::cout << key.valuesToString() << std::endl;
-    // std::cout << ("od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001") << std::endl;
-    
+    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));    
     EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001");
 
     fdb5::Archiver archiver;

@@ -416,19 +416,15 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
     auto it = catalogues_.find(clientID);
     ASSERT(it != catalogues_.end());
 
-    // std::cout << "flush " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
-
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
         it->second.locationsExpected = numArchived;     // setting locationsExpected also means that a flush has been requested
         it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
-        // std::cout << "flush post lock " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
         if (it->second.locationsArchived == numArchived) {
             it->second.fieldLocationsReceived.set_value(numArchived);
         }
     }
 
-    // std::cout << "flush wait " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
     it->second.archivalCompleted.wait();
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
@@ -436,7 +432,6 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         it->second.locationsExpected = 0;
         it->second.locationsArchived = 0;
     }
-    // std::cout << "flush post wait " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
 
     it->second.catalogue->flush(numArchived);
 
@@ -470,12 +465,9 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     it->second.catalogue->selectIndex(idxKey);
     it->second.catalogue->archive(idxKey, datumKey, std::move(location));
     {
-        // std::cout << "archiveBlob " << clientID << " archived " << it->second.locationsArchived << " expected " << it->second.locationsExpected << std::endl;
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        // std::cout << "archiveBlob post mutex " << std::endl;
         it->second.locationsArchived++;
         if (it->second.locationsExpected != 0 && it->second.archivalCompleted.valid() && it->second.locationsExpected == it->second.locationsArchived) {
-            // std::cout << "archiveBlob set_value " << std::endl;
             it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
         }
     }
