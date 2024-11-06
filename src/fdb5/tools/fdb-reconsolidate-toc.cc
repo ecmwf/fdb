@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/LocalConfiguration.h"
