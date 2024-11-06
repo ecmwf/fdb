@@ -11,9 +11,7 @@
 #include <unordered_set>
 
 #include "eckit/option/CmdArgs.h"
-#include "eckit/config/Resource.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 
@@ -21,7 +19,6 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
@@ -104,13 +101,13 @@ void FDBList::init(const CmdArgs& args) {
     if (compact_) {
         if (location_) {
             throw UserError("--compact and --location are not compatible", Here());
-        } 
+        }
         if (full_) {
             throw UserError("--compact and --full are not compatible", Here());
-        } 
+        }
         if (porcelain_) {
             throw UserError("--compact and --porcelain are not compatible", Here());
-        } 
+        }
     }
 
     /// @todo option ignore-errors

@@ -9,15 +9,12 @@
  */
 
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/tools/FDBTool.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/tools/FDBInspect.h"
 #include "fdb5/io/LustreSettings.h"
-
-#include "fdb5/fdb5_config.h"
 #include "fdb5/fdb5_version.h"
 
 using eckit::Log;

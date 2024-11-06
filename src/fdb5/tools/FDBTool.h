@@ -19,10 +19,11 @@
 #include <vector>
 
 #include "eckit/runtime/Tool.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/config/Configuration.h"
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 
-#include "fdb5/database/Catalogue.h"
-#include "eckit/option/SimpleOption.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
     namespace option {
@@ -55,6 +56,8 @@ public: // methods
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
+    /// Set this to false in tool subclass if your tool does not require access to 'config.yaml'
+    bool needsConfig_{true};
 
 protected: // methods
 

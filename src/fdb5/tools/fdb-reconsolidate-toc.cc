@@ -9,10 +9,11 @@
  */
 
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/database/DB.h"
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/LocalConfiguration.h"
-#include "fdb5/database/Catalogue.h"
+#include "eckit/filesystem/URI.h"
 
 using namespace eckit;
 
@@ -53,8 +54,7 @@ void FDBReconsolidateToc::execute(const eckit::option::CmdArgs& args) {
         dbPath = dbPath.dirName();
     }
 
-    // TODO: In updated version, grab default Config() here;
-    std::unique_ptr<fdb5::CatalogueWriter> catalogue = fdb5::CatalogueWriterFactory::instance().build(eckit::URI("toc", dbPath), eckit::LocalConfiguration());
+    std::unique_ptr<fdb5::CatalogueWriter> catalogue = fdb5::CatalogueWriterFactory::instance().build(eckit::URI("toc", dbPath), config(args));
 
     catalogue->reconsolidate();
 }
