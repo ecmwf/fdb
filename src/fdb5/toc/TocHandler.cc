@@ -752,16 +752,16 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     if (!isSubToc_) {
         {
-            eckit::StdDir(directory_);  // flush DB directory file handle cache to detect any toc file recently created by racing processes
+            eckit::StdDir(directory_.localPath());  // flush DB directory file handle cache to detect any toc file recently created by racing processes
         }
 
         // flush TOC file attribute cache to detect recent writes in it
         fd_ = ::open( tocPath_.localPath(), O_RDONLY );
         if (fd_ < 0) {
-            if (errno != ENOENT) throw FailedSystemCall(std::string("open O_RDONLY ") + tocPath_.localPath() + " failed with " + errno);
+            if (errno != ENOENT) throw FailedSystemCall(std::string("open O_RDONLY ") + tocPath_.localPath() + " failed with " + strerror(errno));
         } else {
             int rc = ::close( fd_ );
-            if (rc < 0) throw FailedSystemCall(std::string("close failed with ") + errno);
+            if (rc < 0) throw FailedSystemCall(std::string("close failed with ") + strerror(errno));
         }
     }
 

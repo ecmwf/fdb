@@ -203,6 +203,7 @@ protected: // methods
 private: // methods
 
     friend class TocHandlerCloser;
+    friend class NFSTocHandlerCloser;
 
     void openForAppend();
 
