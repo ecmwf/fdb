@@ -209,6 +209,7 @@ private: // methods
     void openForRead() const;
 
     void close() const;
+    void closeFD() const;
 
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is

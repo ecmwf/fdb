@@ -22,6 +22,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/StdDir.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
@@ -63,6 +64,15 @@ class TocHandlerCloser {
     TocHandlerCloser(const TocHandler &handler): handler_(handler) {}
     ~TocHandlerCloser() {
         handler_.close();
+    }
+};
+
+class NFSTocHandlerCloser {
+    const TocHandler& handler_;
+  public:
+    NFSTocHandlerCloser(const TocHandler &handler): handler_(handler) {}
+    ~NFSTocHandlerCloser() {
+        handler_.closeFD();
     }
 };
 
@@ -583,14 +593,31 @@ void TocHandler::close() const {
 
     if ( fd_ >= 0 ) {
         LOG_DEBUG_LIB(LibFdb5) << "Closing TOC " << tocPath_ << std::endl;
-        if(dirty_) {
-            SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
-            dirty_ = false;
-        }
+        // if(dirty_) {
+        //     SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+        //     dirty_ = false;
+        // }
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
         writeMode_ = false;
     }
+
+    if (!isSubToc_) tocPath_.syncParentDirectory();  // flush DB directory file handle cache
+}
+
+void TocHandler::closeFD() const {
+
+    if ( fd_ >= 0 ) {
+        LOG_DEBUG_LIB(LibFdb5) << "Closing TOC " << tocPath_ << std::endl;
+        // if(dirty_) {
+        //     SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+        //     dirty_ = false;
+        // }
+        SYSCALL2( ::close(fd_), tocPath_ );
+        fd_ = -1;
+        writeMode_ = false;
+    }
+
 }
 
 void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
@@ -723,6 +750,21 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     ASSERT(fd_ == -1);
 
+    if (!isSubToc_) {
+        {
+            eckit::StdDir(directory_);  // flush DB directory file handle cache to detect any toc file recently created by racing processes
+        }
+
+        // flush TOC file attribute cache to detect recent writes in it
+        fd_ = ::open( tocPath_.localPath(), O_RDONLY );
+        if (fd_ < 0) {
+            if (errno != ENOENT) throw FailedSystemCall(std::string("open O_RDONLY ") + tocPath_.localPath() + " failed with " + errno);
+        } else {
+            int rc = ::close( fd_ );
+            if (rc < 0) throw FailedSystemCall(std::string("close failed with ") + errno);
+        }
+    }
+
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open( tocPath_.localPath(), iomode, mode_t(0777) ), tocPath_);
 
@@ -771,6 +813,8 @@ void TocHandler::writeInitRecord(const Key& key) {
         append(*r2, s.position());
         dbUID_ = r2->header_.uid_;
 
+        if (!isSubToc_) tocPath_.syncParentDirectory();  // flush DB directory file handle cache
+
     } else {
         ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
@@ -803,7 +847,14 @@ void TocHandler::writeClearAllRecord() {
 void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
-    TocHandlerCloser closer(*this);
+    NFSTocHandlerCloser closer(*this);  // only closes the fd, which also releases the lock
+
+    struct flock lock;
+    lock.l_type = F_WRLCK;
+    lock.l_start = 0;
+    lock.l_whence = SEEK_SET;
+    lock.l_len = 0;
+    ::fcntl(fd_, F_SETLKW, &lock);  /// @note: updates file attributes, although only on Linux and Solaris
 
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
@@ -817,6 +868,14 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     s << path;
     s << off_t{0};
     append(*r, s.position());
+
+    eckit::fdatasync(fd_);  // flush toc file content and some metadata
+
+    /// @note: releasing the lock is unnecessary as the fd will be closed and release the lock automatically
+    // lock.l_type = F_UNLCK;
+    // ::fcntl(fd_, F_SETLKW, &lock);
+
+    tocPath_.syncParentDirectory();  // flush DB directory file handle cache
 
     LOG_DEBUG_LIB(LibFdb5) << "Write TOC_SUB_TOC " << path << std::endl;
 }
@@ -874,6 +933,8 @@ void TocHandler::writeIndexRecord(const Index& index) {
     }
 
     // Otherwise, we actually do the writing!
+
+    // TODO: if !useSubToc_, get a lock here
 
     openForAppend();
     TocHandlerCloser closer(*this);
