@@ -67,7 +67,7 @@ private: // methods
 
     eckit::SessionID verifyServerStartupResponse();
 
-    void handleError(const MessageHeader& hdr, eckit::Buffer buffer);
+    // void handleError(const MessageHeader& hdr, eckit::Buffer buffer);
 
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();

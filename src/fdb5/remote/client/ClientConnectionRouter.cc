@@ -37,7 +37,6 @@ ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint&
         return *(it->second);
     } else {
         ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
-
         if (clientConnection->connect()) {
             auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
             return *(it->second);

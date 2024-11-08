@@ -255,20 +255,19 @@ void ClientConnection::dataWriteThreadLoop() {
     // They will be released when flush() is called.
 }
 
-void ClientConnection::handleError(const MessageHeader& hdr, eckit::Buffer buffer) {
-    ASSERT(hdr.marker == StartMarker);
-    ASSERT(hdr.version == CurrentVersion);
+// void ClientConnection::handleError(const MessageHeader& hdr, eckit::Buffer buffer) {
+//     ASSERT(hdr.marker == StartMarker);
+//     ASSERT(hdr.version == CurrentVersion);
 
-    if (hdr.message == Message::Error) {
-        ASSERT(hdr.payloadSize > 9);
-        std::string what(buffer.size()+1, ' ');
-        buffer.copy(what.c_str(), buffer.size());
-        what[buffer.size()] = 0; // Just in case
+//     if (hdr.message == Message::Error) {
+//         ASSERT(hdr.payloadSize > 9);
+//         std::string what(buffer.size()+1, ' ');
+//         buffer.copy(what.c_str(), buffer.size());
+//         what[buffer.size()] = 0; // Just in case
 
-        throw RemoteFDBException(what, controlEndpoint_);
-    }
-}
-
+//         throw RemoteFDBException(what, controlEndpoint_);
+//     }
+// }
 
 void ClientConnection::writeControlStartupMessage() {
 
@@ -283,7 +282,7 @@ void ClientConnection::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
-    eckit::Log::info() << "writeControlStartupMessage - Sending session " << sessionID_ << " to control " << controlEndpoint_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control " << controlEndpoint_ << std::endl;
     Connection::write(Message::Startup, true, 0, 0, payload, s.position());
 }
 
@@ -295,7 +294,7 @@ void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSes
     s << sessionID_;
     s << serverSession;
 
-    eckit::Log::info() << "writeDataStartupMessage - Sending session " << sessionID_ << " to data " << dataEndpoint_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "writeDataStartupMessage - Sending session " << sessionID_ << " to data " << dataEndpoint_ << std::endl;
     Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
@@ -314,8 +313,7 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
 
     dataEndpoint_ = dataEndpoint;
 
-    eckit::Log::info() << "verifyServerStartupResponse - Received from server " << clientSession << " " << serverSession << " " << dataEndpoint << std::endl;
-
+    LOG_DEBUG_LIB(LibFdb5) << "verifyServerStartupResponse - Received from server " << clientSession << " " << serverSession << " " << dataEndpoint << std::endl;
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         eckit::Log::warning() << "Data and control interface hostnames do not match. "
                        << dataEndpoint_.hostname() << " /= "
@@ -480,7 +478,6 @@ void ClientConnection::listeningDataThreadLoop() {
     } catch (...) {
        ClientConnectionRouter::instance().teardown(std::current_exception());
     }
-    // ClientConnectionRouter::instance().deregister(*this);
 }
 
 }  // namespace fdb5::remote
