@@ -499,6 +499,12 @@ if ( HAVE_GRIB )
     )
 endif()
 
+if ( HAVE_FAMFDB )
+    list( APPEND fdb5_tools
+        fdb-fam
+    )
+endif()
+
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools
         fdb-root
