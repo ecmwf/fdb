@@ -16,7 +16,6 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocEngine.h"
@@ -35,9 +34,9 @@ public:  // methods
     }
 
 private:  // methods
-    virtual void init(const CmdArgs& args);
-    virtual void execute(const CmdArgs& args);
-    virtual void usage(const std::string& tool) const;
+    void init(const CmdArgs& args) override;
+    void execute(const CmdArgs& args) override;
+    void usage(const std::string& tool) const override;
 
 private:  // members
     bool doit_ {false};

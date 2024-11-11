@@ -27,10 +27,10 @@
 using namespace eckit::option;
 
 class FDBCopy : public fdb5::FDBTool {
-    virtual void execute(const CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+    void execute(const CmdArgs& args) override;
+    void usage(const std::string& tool) const override;
 
-  public:
+public:
     FDBCopy(int argc, char **argv): fdb5::FDBTool(argc, argv) {
         options_.push_back(new SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new SimpleOption<bool>("raw", "Process the MARS request without expansion"));
@@ -101,7 +101,7 @@ void FDBCopy::execute(const CmdArgs& args) {
     fdb5::HandleGatherer handles(sort);
 
     fdb5::FDB fdbRead(readConfig);
-   
+
     for (const auto& request : requests) {
         eckit::Log::info() << request << std::endl;
         handles.add(fdbRead.retrieve(request));
@@ -112,9 +112,8 @@ void FDBCopy::execute(const CmdArgs& args) {
     fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
     fdbWriter.archive(*dh);
 }
-             
+
 int main(int argc, char **argv) {
     FDBCopy app(argc, argv);
     return app.start();
 }
-

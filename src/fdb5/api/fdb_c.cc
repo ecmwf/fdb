@@ -8,15 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/Tokenizer.h"
-#include "eckit/config/YAMLConfiguration.h"
 
-#include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"

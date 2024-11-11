@@ -16,9 +16,6 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/option/SimpleOption.h"
-#include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
@@ -75,7 +72,7 @@ private:  // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string keySignature(const fdb5::Key& key) {
+static std::string keySignature(const fdb5::Key& key) {
     std::string signature;
     std::string separator;
     for (auto&& k : key.keys()) {
@@ -84,7 +81,6 @@ std::string keySignature(const fdb5::Key& key) {
     }
     return signature;
 }
-
 
 void FDBList::init(const CmdArgs& args) {
 
