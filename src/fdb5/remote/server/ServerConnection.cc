@@ -135,9 +135,19 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
 eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
-    std::vector<int> remoteFieldLocationVersions = {1};
+    static std::vector<int> remoteFieldLocationVersions = {1};
+    static std::vector<int> numberOfConnections = config_.getIntVector("supportedConnections", {1,2});
+
+    ASSERT(0 < numberOfConnections.size());
+    ASSERT(numberOfConnections[0] == 1 || numberOfConnections[0] == 2);
+
+    ASSERT(numberOfConnections.size() <= 2);
+    if (numberOfConnections.size() > 1) {
+        ASSERT(numberOfConnections[0] == 1);
+        ASSERT(numberOfConnections[1] == 2);
+    }
+
     conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
-    std::vector<int> numberOfConnections = {1,2};
     conf.set("NumberOfConnections", numberOfConnections);
     return conf;
 }
