@@ -13,6 +13,7 @@
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/Tokenizer.h"
+#include "eckit/config/YAMLConfiguration.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsExpension.h"
@@ -335,6 +336,16 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     return wrapApiFunction([fdb] {
         *fdb = new fdb_handle_t();
     });
+}
+
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config) {
+    return wrapApiFunction([fdb, system_config, user_config] {
+        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(user_config))};
+        cfg.set("configSource", "yaml");
+        cfg.expandConfig();
+        *fdb = new fdb_handle_t(cfg);
+    });
+
 }
 
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length) {

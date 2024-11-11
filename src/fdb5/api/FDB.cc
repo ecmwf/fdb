@@ -308,11 +308,15 @@ void FDB::flush() {
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
     IndexAxis axes;
     AxesElement elem;
-    auto it = internal_->axes(request, level);
+    auto it = axesIterator(request, level);
     while (it.next(elem)) {
         axes.merge(elem.axes());
     }
     return axes;
+}
+
+AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
+    return internal_->axesIterator(request, level);
 }
 
 bool FDB::dirty() const {

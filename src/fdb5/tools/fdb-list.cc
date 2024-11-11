@@ -16,6 +16,9 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
@@ -29,6 +32,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
 

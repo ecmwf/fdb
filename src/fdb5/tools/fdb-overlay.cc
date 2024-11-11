@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
 #include "fdb5/LibFdb5.h"
