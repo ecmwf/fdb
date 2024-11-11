@@ -26,41 +26,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
-#include <type_traits>
 #include <utility>
-
-//----------------------------------------------------------------------------------------------------------------------
-// HELPERS
-
-namespace {
-
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<fdb5::BaseKey, T>>>
-std::string valuesToString(const T& key) {
-
-    std::ostringstream oss;
-
-    /// @note this unfortunate (consequence of insertion-order problem) check is not fully safe
-    if (key.names().size() != key.size()) {
-        oss << "names and keys size mismatch" << '\n'
-            << "    names: " << key.names().size() << "  " << key.names() << '\n'
-            << "    keys:  " << key.size() << "  " << key.keyDict() << '\n';
-        throw eckit::SeriousBug(oss.str());
-    }
-
-    const char* sep = "";
-    for (const auto& keyword : key.names()) {
-        if constexpr (std::is_same_v<T, fdb5::Key>) {
-            oss << sep << key[keyword];
-        } else {
-            static_assert(false, "valuesToString() is not yet implemented for this type");
-        }
-        sep = ":";
-    }
-
-    return oss.str();
-}
-
-}  // namespace
 
 namespace fdb5 {
 
@@ -81,7 +47,23 @@ Key Key::parse(const std::string& keyString) {
 }
 
 std::string Key::valuesToString() const {
-    return ::valuesToString(*this);
+    std::ostringstream oss;
+
+    /// @note this unfortunate (consequence of insertion-order problem) check is not fully safe
+    if (names().size() != size()) {
+        oss << "names and keys size mismatch" << '\n'
+            << "    names: " << names().size() << "  " << names() << '\n'
+            << "    keys:  " << size() << "  " << keyDict() << '\n';
+        throw eckit::SeriousBug(oss.str());
+    }
+
+    const char* sep = "";
+    for (const auto& keyword : names()) {
+        oss << sep << get(keyword);
+        sep = ":";
+    }
+
+    return oss.str();
 }
 
 void Key::validateKeys(const Key& other, bool checkAlsoValues) const {
