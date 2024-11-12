@@ -34,6 +34,7 @@
 
 namespace eckit {
 class Configuration;
+class MemoryHandle;
 }
 
 namespace fdb5 {
@@ -107,7 +108,7 @@ public: // methods
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey);
+    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc=nullptr);
 
     ~TocHandler() override;
 
@@ -215,7 +216,9 @@ private: // methods
     /// to allow searching only from the first subtoc.
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
                             std::set<std::pair<eckit::PathName, eckit::Offset>>& maskedEntries) const;
+    eckit::PathName parseSubTocRecord(const TocRecord& r, bool readMasked) const;
     void populateMaskedEntriesList() const;
+    void preloadSubTocs(bool readMasked) const;
 
     void append(TocRecord &r, size_t payloadSize);
 
@@ -224,9 +227,12 @@ private: // methods
     // readMasked=true will walk subtocs and read indexes even if they are masked. This is
     // useful for dumping indexes which are cleared, or only referred to in cleared subtocs.
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true,
-                  bool hideClearEntries = true, bool readMasked = false) const;
+                  bool hideClearEntries = true, bool readMasked = false,
+                  const TocRecord** data=nullptr, size_t* length=nullptr) const;
 
-    bool readNextInternal(TocRecord &r) const;
+    void selectSubTocRead(const eckit::PathName& path) const;
+
+    bool readNextInternal(TocRecord &r, const TocRecord** data=nullptr, size_t* length=nullptr) const;
 
     std::string userName(long) const;
 
@@ -255,13 +261,15 @@ private: // members
     mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.
-    mutable std::unique_ptr<TocHandler> subTocRead_;
+    mutable std::map<eckit::PathName, std::unique_ptr<TocHandler>> subTocReadCache_;
+    mutable TocHandler* subTocRead_; // n.b. non-owning
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 
     mutable std::set<std::pair<eckit::PathName, eckit::Offset>> maskedEntries_;
 
     mutable bool enumeratedMaskedEntries_;
+    mutable int numSubtocsRaw_;
     mutable bool writeMode_;
 };
 
