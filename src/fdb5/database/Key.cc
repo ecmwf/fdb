@@ -26,6 +26,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+BaseKey::BaseKey(const std::string& fingerprint, const Rule& rule) {
+    eckit::Tokenizer parse(":", true);
+    eckit::StringList values;
+    parse(fingerprint, values);
+
+    rule.fill(*this, values);
+}
+
 void BaseKey::decode(eckit::Stream& s) {
 
     keys_.clear();
@@ -307,6 +315,9 @@ Key::Key(eckit::Stream& s) {
 Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l) :
     BaseKey(l) {}
 
+Key::Key(const std::string& fingerprint, const Rule& rule) :
+    BaseKey(fingerprint, rule) {}
+
 Key Key::parseString(const std::string& s) {
 
     eckit::Tokenizer parse1(",");
@@ -342,13 +353,8 @@ TypedKey::TypedKey(const TypesRegistry& reg) :
     registry_(std::cref(reg)) {}
 
 TypedKey::TypedKey(const std::string &s, const Rule& rule) :
+    BaseKey(s, rule),
     registry_(std::cref(rule.registry())) {
-
-    eckit::Tokenizer parse(":", true);
-    eckit::StringList values;
-    parse(s, values);
-
-    rule.fill(*this, values);
 }
 
 TypedKey::TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg) :

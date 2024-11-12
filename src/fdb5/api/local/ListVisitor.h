@@ -80,12 +80,12 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const TypedKey& datumKey) override {
+    void visitDatum(const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
         if (datumKey.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey.canonical()}, field.stableLocation(), field.timestamp()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey}, field.stableLocation(), field.timestamp()));
         }
     }
 
