@@ -1176,7 +1176,8 @@ Key TocHandler::databaseKey() {
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
-    while ( readNext(*r) ) {
+    bool walkSubTocs = false;
+    while ( readNext(*r, walkSubTocs) ) {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
             dbUID_ = r->header_.uid_;

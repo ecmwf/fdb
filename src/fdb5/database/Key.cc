@@ -51,6 +51,7 @@ void BaseKey::decode(eckit::Stream& s) {
     }
 
     s >> n;
+    names_.reserve(n);
     for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v; // this is the type (ignoring FTM)
@@ -154,7 +155,7 @@ bool BaseKey::match(const metkit::mars::MarsRequest& request) const {
         }
 
         bool found=false;
-        auto values = request.values(k);
+        const auto& values = request.values(k);
         std::string can = canonicalise(k, j->second);
         for (auto it = values.cbegin(); !found && it != values.cend(); it++) {
             found = can == canonicalise(k, *it);
