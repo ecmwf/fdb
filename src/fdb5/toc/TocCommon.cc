@@ -15,26 +15,44 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/URIManager.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
 
+namespace {
+// This should be replaced by functionality directly in eckit
+eckit::LocalPathName to_localpath(const eckit::PathName& path) {
+    bool tildeIsUserHome = false;
+    bool skipTildeExpansion = true;
+    return eckit::LocalPathName(path.path(), tildeIsUserHome, skipTildeExpansion);
+}
+
+// This should be replaced by functionality directly in eckit
+eckit::LocalPathName localpath_append(const eckit::LocalPathName& path1, const eckit::LocalPathName& path2) {
+    bool tildeIsUserHome = false;
+    bool skipTildeExpansion = true;
+    return eckit::LocalPathName(path1.path() + "/" + path2.path(), tildeIsUserHome, skipTildeExpansion);
+}
+
+}
+
 namespace fdb5 {
 
-eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
+eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
     if (path.exists()) return path.realName();
 
-    return findRealPath(path.dirName()) / path.baseName();
+    return findRealPath(localpath_append(path.dirName(), path.baseName()));
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
-    directory_(findRealPath(directory)),
-    schemaPath_(directory_ / "schema"),
+    directory_(findRealPath(to_localpath(directory))),
+    schemaPath_(localpath_append(directory_, "schema")),
     dbUID_(static_cast<uid_t>(-1)),
     userUID_(::getuid()),
     dirty_(false) {}
@@ -62,8 +80,12 @@ void TocCommon::checkUID() const {
 }
 
 uid_t TocCommon::dbUID() const {
-    if (dbUID_ == static_cast<uid_t>(-1))
-        dbUID_ = directory_.owner();
+    if (dbUID_ == static_cast<uid_t>(-1)) {
+        // TODO: Do properly in eckit
+        struct stat s;
+        SYSCALL(::stat(directory_.localPath(), &s));
+        dbUID_ = s.st_uid;
+    }
 
     return dbUID_;
 }
