@@ -24,6 +24,10 @@
 
 #include "eckit/memory/NonCopyable.h"
 
+namespace metkit::mars {
+class MarsRequest;
+}
+
 namespace fdb5 {
 
 class Type;
@@ -45,6 +49,7 @@ public: // methods
     void dump( std::ostream &out ) const;
     void dump( std::ostream &out, const std::string &keyword ) const;
 
+    metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
 private: // members
 
