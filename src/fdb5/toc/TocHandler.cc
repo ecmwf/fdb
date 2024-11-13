@@ -1244,6 +1244,14 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
         return indexes;
     }
 
+    // If we haven't yet read the TOC_INIT record to extract the parentKey, it may be needed for
+    // subtoc handling...
+    // We've got a bit mangled with our constness here...
+    if (parentKey_.empty() && remapKeys && !isSubToc_) {
+        const auto& k = const_cast<TocHandler&>(*this).databaseKey();
+        parentKey_ = k;
+    }
+
     openForRead();
     TocHandlerCloser close(*this);
 
