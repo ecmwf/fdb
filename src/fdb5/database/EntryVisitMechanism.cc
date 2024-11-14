@@ -36,6 +36,8 @@ public:
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
     currentStore_ = &store;
+    currentIndex_ = nullptr;
+    rule_ = nullptr;
     return true;
 }
 
@@ -46,19 +48,20 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
     currentCatalogue_ = nullptr;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
+    rule_ = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
     currentIndex_ = &index;
+    rule_ = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
     return true;
 }
 
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-    const Rule* rule = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
-    ASSERT(rule);
-    TypedKey key(keyFingerprint, *rule);
+    ASSERT(rule_);
+    Key key(keyFingerprint, *rule_);
     visitDatum(field, key);
 }
 

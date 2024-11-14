@@ -51,7 +51,7 @@ public:  // methods
 
 private: // methods
 
-    virtual void visitDatum(const Field& field, const TypedKey& datumKey) = 0;
+    virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
 
@@ -59,6 +59,7 @@ protected:  // members
     const Catalogue* currentCatalogue_ = nullptr;
     const Store* currentStore_ = nullptr;
     const Index* currentIndex_ = nullptr;
+    const Rule* rule_ = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

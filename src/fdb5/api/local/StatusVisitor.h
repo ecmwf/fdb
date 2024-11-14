@@ -38,7 +38,7 @@ public:
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override { queue_.emplace(catalogue); return true; }
     bool visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
     void visitDatum(const Field& field, const std::string& keyFingerprint) override {
         EntryVisitor::visitDatum(field, keyFingerprint);
