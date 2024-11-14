@@ -15,6 +15,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/URIManager.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
@@ -23,7 +24,7 @@
 
 namespace fdb5 {
 
-eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
+eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
@@ -33,7 +34,7 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
-    directory_(findRealPath(directory)),
+    directory_(findRealPath(eckit::LocalPathName{directory})),
     schemaPath_(directory_ / "schema"),
     dbUID_(static_cast<uid_t>(-1)),
     userUID_(::getuid()),
@@ -62,8 +63,12 @@ void TocCommon::checkUID() const {
 }
 
 uid_t TocCommon::dbUID() const {
-    if (dbUID_ == static_cast<uid_t>(-1))
-        dbUID_ = directory_.owner();
+    if (dbUID_ == static_cast<uid_t>(-1)) {
+        // TODO: Do properly in eckit
+        struct stat s;
+        SYSCALL(::stat(directory_.localPath(), &s));
+        dbUID_ = s.st_uid;
+    }
 
     return dbUID_;
 }

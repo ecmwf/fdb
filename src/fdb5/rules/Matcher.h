@@ -30,8 +30,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class Key;
-class TypedKey;
+class BaseKey;
 class Key;
 class TypesRegistry;
 
@@ -52,7 +51,7 @@ public: // methods
     virtual const std::string &defaultValue() const;
 
     virtual bool match(const std::string &keyword, const Key& key) const = 0;
-    virtual void fill(TypedKey& key, const std::string &keyword, const std::string& value) const;
+    virtual void fill(BaseKey& key, const std::string &keyword, const std::string& value) const;
 
 
     virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
