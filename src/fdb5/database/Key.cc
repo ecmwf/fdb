@@ -28,6 +28,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+BaseKey::BaseKey(const std::string& fingerprint, const Rule& rule) {
+    eckit::Tokenizer parse(":", true);
+    eckit::StringList values;
+    parse(fingerprint, values);
+
+    rule.fill(*this, values);
+}
+
 void BaseKey::decode(eckit::Stream& s) {
 
     keys_.clear();
@@ -45,6 +53,7 @@ void BaseKey::decode(eckit::Stream& s) {
     }
 
     s >> n;
+    names_.reserve(n);
     for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v; // this is the type (ignoring FTM)
@@ -148,7 +157,7 @@ bool BaseKey::match(const metkit::mars::MarsRequest& request) const {
         }
 
         bool found=false;
-        auto values = request.values(k);
+        const auto& values = request.values(k);
         std::string can = canonicalise(k, j->second);
         for (auto it = values.cbegin(); !found && it != values.cend(); it++) {
             found = can == canonicalise(k, *it);
@@ -307,6 +316,9 @@ Key::Key(eckit::Stream& s) {
 Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l) :
     BaseKey(l) {}
 
+Key::Key(const std::string& fingerprint, const Rule& rule) :
+    BaseKey(fingerprint, rule) {}
+
 Key Key::parseString(const std::string& s) {
 
     eckit::Tokenizer parse1(",");
@@ -342,13 +354,8 @@ TypedKey::TypedKey(const TypesRegistry& reg) :
     registry_(std::cref(reg)) {}
 
 TypedKey::TypedKey(const std::string &s, const Rule& rule) :
+    BaseKey(s, rule),
     registry_(std::cref(rule.registry())) {
-
-    eckit::Tokenizer parse(":", true);
-    eckit::StringList values;
-    parse(s, values);
-
-    rule.fill(*this, values);
 }
 
 TypedKey::TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg) :

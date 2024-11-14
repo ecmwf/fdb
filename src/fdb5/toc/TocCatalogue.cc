@@ -71,10 +71,6 @@ const Schema& TocCatalogue::schema() const {
     return *schema_;
 }
 
-const eckit::PathName& TocCatalogue::basePath() const {
-    return directory_;
-}
-
 std::vector<PathName> TocCatalogue::metadataPaths() const {
 
     std::vector<PathName> paths(subTocPaths());

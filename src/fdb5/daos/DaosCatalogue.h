@@ -32,7 +32,7 @@ public: // methods
     DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
-    static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
+    // static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
     
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }

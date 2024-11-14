@@ -436,7 +436,7 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
     return 0;
 }
 
-void Rule::fill(TypedKey& key, const eckit::StringList& values) const {
+void Rule::fill(BaseKey& key, const eckit::StringList& values) const {
 
     // See FDB-103. This is a hack to work around the indexing abstraction
     // being leaky.

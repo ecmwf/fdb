@@ -41,8 +41,8 @@ private: // methods
 
     bool dirty() const override { NOTIMP; }
 
-    void open() override { NOTIMP; };
-    void close() override { NOTIMP; }
+    void open() override { NOTIMP; }
+    void close() override {}
     void reopen() override { NOTIMP; }
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }

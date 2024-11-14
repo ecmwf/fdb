@@ -167,7 +167,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
 std::string DaosCatalogue::type() const {
 
-    return DaosCatalogue::catalogueTypeName();
+    // return DaosCatalogue::catalogueTypeName();
     
 }
 

@@ -17,6 +17,9 @@
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypesRegistry.h"
 
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/Parameter.h"
+
  namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -85,6 +88,22 @@ const Type &TypesRegistry::lookupType(const std::string &keyword) const {
         cache_[keyword] = newKH;
         return *newKH;
     }
+}
+
+metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRequest& request) const {
+    metkit::mars::MarsRequest result(request.verb());
+
+    for (const auto& param : request.parameters()) {
+        const std::vector<std::string>& srcVals = param.values();
+        std::vector<std::string> vals;
+        vals.reserve(srcVals.size());
+        for (const auto& v : srcVals) {
+            vals.push_back(lookupType(param.name()).toKey(v));
+        }
+        result.values(param.name(), vals);
+    }
+
+    return result;
 }
 
 std::ostream &operator<<(std::ostream &s, const TypesRegistry &x) {

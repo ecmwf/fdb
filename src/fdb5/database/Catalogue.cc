@@ -13,6 +13,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/utils/StringTools.h"
@@ -37,11 +38,18 @@ void Catalogue::visitEntries(EntryVisitor& visitor /*, const Store& store*/, boo
 
     std::vector<Index> all = indexes(sorted);
 
+    // It is likely that many indexes in the same database share resources/files/etc.
+    // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
+    // pre-open the indexes, and keep them open
+    std::vector<eckit::AutoCloser<Index>> closers;
+    closers.reserve(all.size());
+
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this)) {
         if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
+            for (Index& idx : all) {
                 if (visitor.visitEntries()) {
+                    closers.emplace_back(idx);
                     idx.entries(visitor); // contains visitIndex
                 } else {
                     visitor.visitIndex(idx);

@@ -61,6 +61,7 @@ public: // methods
             names_.emplace_back(k.first);
         }
     }
+    BaseKey(const std::string& fingerprint, const Rule& rule);
 
     virtual ~BaseKey() = default;
 
@@ -167,6 +168,7 @@ public: // methods
     explicit Key() = default;
     explicit Key(eckit::Stream &);
     explicit Key(const eckit::StringDict &keys);
+    explicit Key(const std::string& fingerprint, const Rule& rule);
     Key(std::initializer_list<std::pair<const std::string, std::string>>);
 
     static Key parseString(const std::string& s);

@@ -155,11 +155,11 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
     private:
-        void visitDatum(const Field& field, const TypedKey& datumKey) override {
+        void visitDatum(const Field& field, const Key& datumKey) override {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(datumKey.canonical(), location.uri(), location.offset(), location.length());
+            writer_.index(datumKey, location.uri(), location.offset(), location.length());
 
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {

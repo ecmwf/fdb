@@ -20,7 +20,7 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.24.4 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.28.3 REQUIRED )
 
 ### GRIB support
 
@@ -31,7 +31,7 @@ ecbuild_add_option( FEATURE GRIB
                     CONDITION eccodes_FOUND
                     DESCRIPTION "Support for GRIB via eccodes")
 
-ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
+ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
 
 ### FDB backend in CEPH object store (using Rados)
 

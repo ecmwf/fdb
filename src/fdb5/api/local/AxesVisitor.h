@@ -40,7 +40,7 @@ public:
 //    bool preVisitDatabase(const eckit::URI& uri) override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index&) override;
-    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
 private: // members
 

@@ -77,7 +77,7 @@ std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
-    (directory_).children(files, dirs);
+    PathName(directory_).children(files, dirs);
 
     std::vector<eckit::URI> res;
     for (const auto& f : files) {
