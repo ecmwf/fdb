@@ -59,29 +59,6 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup {
     {ControlIdentifier::UniqueRoot, allow_duplicates_file}
 };
 
-namespace {
-// This should be replaced by functionality directly in eckit
-eckit::LocalPathName to_localpath(const eckit::PathName& path) {
-    bool tildeIsUserHome = false;
-    bool skipTildeExpansion = true;
-    return LocalPathName(path.path(), tildeIsUserHome, skipTildeExpansion);
-}
-
-// This should be replaced by functionality directly in eckit
-eckit::LocalPathName localpath_append(const eckit::LocalPathName& path1, const eckit::LocalPathName& path2) {
-    bool tildeIsUserHome = false;
-    bool skipTildeExpansion = true;
-    return LocalPathName(path1.path() + "/" + path2.path(), tildeIsUserHome, skipTildeExpansion);
-}
-
-eckit::LocalPathName localpath_append(const eckit::LocalPathName& path1, const char* path2) {
-    bool tildeIsUserHome = false;
-    bool skipTildeExpansion = true;
-    return LocalPathName(path1.path() + "/" + path2, tildeIsUserHome, skipTildeExpansion);
-}
-
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocHandlerCloser {
@@ -151,7 +128,7 @@ private: // members
 
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
-    tocPath_(localpath_append(directory_, "toc")),
+    tocPath_(directory_ / "toc"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
     useSubToc_(config.userConfig().getBool("useSubToc", false)),
@@ -177,7 +154,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
-    tocPath_(TocCommon::findRealPath(to_localpath(path))),
+    tocPath_(TocCommon::findRealPath(eckit::LocalPathName{path})),
     serialisationVersion_(TocSerialisationVersion(dbConfig_)),
     useSubToc_(false),
     isSubToc_(true),
@@ -471,7 +448,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 s >> path;
                 s >> offset;
 
-                LocalPathName absPath = localpath_append(currentDirectory(), path);
+                LocalPathName absPath = currentDirectory() / path;
 
                 std::pair<LocalPathName, size_t> key(absPath.baseName(), offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
@@ -666,10 +643,10 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
     if (path.path()[0] == '/') {
         absPath = findRealPath(path);
         if (!absPath.exists()) {
-            absPath = localpath_append(currentDirectory(), path.baseName());
+            absPath = currentDirectory() / path.baseName();
         }
     } else {
-        absPath = localpath_append(currentDirectory(), path);
+        absPath = currentDirectory() / path;
     }
 
     // If this subtoc has a masking entry, then skip it, and go on to the next entry.
@@ -988,7 +965,7 @@ void TocHandler::writeInitRecord(const Key& key) {
                                << schemaPath_
                                << std::endl;
 
-            eckit::LocalPathName tmp = to_localpath(eckit::PathName::unique(schemaPath_));
+            eckit::LocalPathName tmp{eckit::PathName::unique(schemaPath_)};
 
             eckit::FileHandle in(dbConfig_.schemaPath());
 
@@ -1353,7 +1330,7 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
                     LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
                     tocindexes[entry.seqNo] = new TocIndex(s, catalogue, entry.datap->header_.serialisationVersion_,
                                                            entry.tocDirectoryName,
-                                                           localpath_append(entry.tocDirectoryName, path),
+                                                           entry.tocDirectoryName / path,
                                                            offset, preloadBTree_);
                 }
             }));
@@ -1456,7 +1433,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                 if(!simple) { out << std::endl; }
                 Index index(new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)), r->header_.serialisationVersion_,
-                                         currentDirectory(), localpath_append(currentDirectory(), path), offset));
+                                         currentDirectory(), currentDirectory() / path, offset));
                 index.dump(out, "  ", simple);
                 break;
             }
@@ -1510,11 +1487,11 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 s >> offset;
                 s >> type;
 
-                if (localpath_append(currentDirectory(), path).sameAs(to_localpath(indexFile))) {
+                if ((currentDirectory() / path).sameAs(eckit::LocalPathName{indexFile})) {
                     r->dump(out, true);
                     out << std::endl << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                     Index index(new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)), r->header_.serialisationVersion_,
-                                             currentDirectory(), localpath_append(currentDirectory(), path), offset));
+                                             currentDirectory(), currentDirectory() / path, offset));
                     index.dump(out, "  ", false, true);
                 }
                 break;
@@ -1569,10 +1546,10 @@ void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<
         if (entry.first.path()[0] == '/') {
             absPath = entry.first;
             if (!absPath.exists()) {
-                absPath = localpath_append(currentDirectory(), entry.first.baseName());
+                absPath = currentDirectory() / entry.first.baseName();
             }
         } else {
-            absPath = localpath_append(currentDirectory(), entry.first);
+            absPath = currentDirectory() / entry.first;
         }
 
         if (absPath.exists()) {
@@ -1618,7 +1595,7 @@ void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<
             s >> type;
 
             // n.b. readNextInternal --> directory_ not currentDirectory()
-            LocalPathName absPath = localpath_append(directory_, path);
+            LocalPathName absPath = directory_ / path;
 
             std::pair<eckit::LocalPathName, size_t> key(absPath.baseName(), offset);
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
@@ -1814,7 +1791,7 @@ std::vector<PathName> TocHandler::lockfilePaths() const {
 }
 
 LocalPathName TocHandler::fullControlFilePath(const std::string& name) const {
-    return localpath_append(directory_, name);
+    return directory_ / name;
 }
 
 void TocHandler::createControlFile(const std::string& name) const {

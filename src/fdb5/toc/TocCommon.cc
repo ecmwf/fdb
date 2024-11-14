@@ -22,23 +22,6 @@
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
 
-namespace {
-// This should be replaced by functionality directly in eckit
-eckit::LocalPathName to_localpath(const eckit::PathName& path) {
-    bool tildeIsUserHome = false;
-    bool skipTildeExpansion = true;
-    return eckit::LocalPathName(path.path(), tildeIsUserHome, skipTildeExpansion);
-}
-
-// This should be replaced by functionality directly in eckit
-eckit::LocalPathName localpath_append(const eckit::LocalPathName& path1, const eckit::LocalPathName& path2) {
-    bool tildeIsUserHome = false;
-    bool skipTildeExpansion = true;
-    return eckit::LocalPathName(path1.path() + "/" + path2.path(), tildeIsUserHome, skipTildeExpansion);
-}
-
-}
-
 namespace fdb5 {
 
 eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
@@ -47,12 +30,12 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
     // we find one that does, get the realpath on that, then reconstruct.
     if (path.exists()) return path.realName();
 
-    return localpath_append(findRealPath(path.dirName()), path.baseName());
+    return findRealPath(path.dirName()) / path.baseName();
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
-    directory_(findRealPath(to_localpath(directory))),
-    schemaPath_(localpath_append(directory_, "schema")),
+    directory_(findRealPath(eckit::LocalPathName{directory})),
+    schemaPath_(directory_ / "schema"),
     dbUID_(static_cast<uid_t>(-1)),
     userUID_(::getuid()),
     dirty_(false) {}
