@@ -30,7 +30,7 @@ std::unique_ptr<Store> Catalogue::buildStore() {
 
 void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
 
-    const auto all = indexes(sorted);
+    auto all = indexes(sorted);  // Deferred reading indexes.
 
     // It is likely that many indexes in the same database share resources/files/etc.
     // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
@@ -41,8 +41,7 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
-            const auto& all = indexes(sorted);  // Deferred reading indexes.
-            for (const Index& idx : all) {
+            for (Index& idx : all) {
                 if (visitor.visitEntries()) {
                     closers.emplace_back(idx);
                     idx.entries(visitor); // contains visitIndex
@@ -51,7 +50,6 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
                 }
             }
         }
-
     }
 
     visitor.catalogueComplete(*this);

@@ -139,6 +139,7 @@ void BaseKey::decode(eckit::Stream& stream) {
     }
 
     stream >> size;
+    names_.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {
         stream >> keyword;
         stream >> value;

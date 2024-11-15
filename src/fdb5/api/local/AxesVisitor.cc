@@ -51,8 +51,6 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& /* stor
 
 bool AxesVisitor::visitIndex(const Index& index) {
 
-    /// @note do we need to canonicalise the request here?
-
     if (index.partialMatch(request_)) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
@@ -73,5 +71,3 @@ void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5::api::local
-
-

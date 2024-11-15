@@ -60,22 +60,20 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
+    ASSERT(currentCatalogue_);
     currentIndex_ = &index;
-    rule_ = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
+    rule_         = &currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
     return true;
 }
 
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    // ASSERT(rule_);
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    const auto& datumRule = currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
-    const auto  datumKey  = datumRule.makeKey(keyFingerprint);
+    const auto datumKey = rule_->makeKey(keyFingerprint);
 
     visitDatum(field, datumKey);
 }
-
 
 time_t EntryVisitor::indexTimestamp() const {
     return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
