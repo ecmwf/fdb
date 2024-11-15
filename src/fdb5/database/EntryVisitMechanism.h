@@ -63,6 +63,7 @@ protected:  // members
     const Catalogue* currentCatalogue_ {nullptr};
     const Store*     currentStore_ {nullptr};
     const Index*     currentIndex_ {nullptr};
+    const Rule* rule_ = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

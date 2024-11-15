@@ -39,7 +39,6 @@ public: // methods
     ~TocCatalogue() override {}
 
     static const char* catalogueTypeName() { return TocEngine::typeName(); }
-    const eckit::PathName& basePath() const override;
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 

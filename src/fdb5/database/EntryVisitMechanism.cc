@@ -44,6 +44,8 @@ bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*s
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
     currentStore_ = &store;
+    currentIndex_ = nullptr;
+    rule_ = nullptr;
     return true;
 }
 
@@ -54,14 +56,17 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
     currentCatalogue_ = nullptr;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
+    rule_ = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
     currentIndex_ = &index;
+    rule_ = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
     return true;
 }
 
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
+    // ASSERT(rule_);
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 

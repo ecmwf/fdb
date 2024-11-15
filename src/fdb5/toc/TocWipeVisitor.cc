@@ -226,8 +226,8 @@ void TocWipeVisitor::addMetadataPaths() {
 
     // toc, schema
 
-    schemaPath_ = catalogue_.schemaPath();
-    tocPath_ = catalogue_.tocPath();
+    schemaPath_ = catalogue_.schemaPath().path();
+    tocPath_ = catalogue_.tocPath().path();
 
     // subtocs
 

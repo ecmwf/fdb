@@ -14,6 +14,7 @@
 #include "fdb5/database/Catalogue.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/utils/StringTools.h"
@@ -28,12 +29,22 @@ std::unique_ptr<Store> Catalogue::buildStore() {
 }
 
 void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
+
+    const auto all = indexes(sorted);
+
+    // It is likely that many indexes in the same database share resources/files/etc.
+    // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
+    // pre-open the indexes, and keep them open
+    std::vector<eckit::AutoCloser<Index>> closers;
+    closers.reserve(all.size());
+
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
             const auto& all = indexes(sorted);  // Deferred reading indexes.
             for (const Index& idx : all) {
                 if (visitor.visitEntries()) {
+                    closers.emplace_back(idx);
                     idx.entries(visitor); // contains visitIndex
                 } else {
                     visitor.visitIndex(idx);

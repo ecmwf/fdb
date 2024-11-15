@@ -32,9 +32,11 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/types/Type.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include <string>
+#include <vector>
 
 namespace fdb5::api::local {
 
@@ -92,32 +94,23 @@ public:
     /// Returns true/false depending on matching the request (avoids enumerating
     /// entries if not matching).
     bool visitIndex(const Index& index) override {
-        ASSERT(currentCatalogue_);
-
         QueryVisitor::visitIndex(index);
 
-        /// @todo entry point of canonical request, should be done in a more general way
-        const auto& registry =
-            currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key()).registry();
+        if (index.partialMatch(request_)) {
 
-        for (auto& param : indexRequest_.parameters()) {
-            std::vector<std::string> canValues;
-            for (const auto& value : param.values()) {
-                const auto canval = registry.lookupType(param.name()).toKey(value);
-                canValues.emplace_back(canval);
-            }
-            param.values(canValues);
-        }
+            // Subselect the parts of the request
+            datumRequest_ = indexRequest_;
 
-        // Subselect the parts of the request
-        datumRequest_ = indexRequest_;
-        for (const auto& kv : currentIndex_->key()) { datumRequest_.unsetValues(kv.first); }
+            for (const auto& kv : index.key()) { datumRequest_.unsetValues(kv.first); }
 
-        if (index.partialMatch(indexRequest_)) {
+            // Take into account any rule-specific behaviour in the request
+            datumRequest_ = rule_->registry().canonicalise(datumRequest_);
+
             if (level_ == 2) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
                 return false;
             }
+
             return true;  // Explore contained entries
         }
 

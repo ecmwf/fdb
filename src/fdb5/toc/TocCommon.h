@@ -15,6 +15,7 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/thread/ThreadPool.h"
 #include "eckit/serialisation/Streamable.h"
@@ -31,12 +32,12 @@ public:
     TocCommon(const eckit::PathName& path);
     virtual ~TocCommon() {}
 
-    static eckit::PathName findRealPath(const eckit::PathName& path);
+    static eckit::LocalPathName findRealPath(const eckit::LocalPathName& path);
     static std::string userName(uid_t uid);
 
     virtual void checkUID() const;
 
-    virtual const eckit::PathName& basePath() const { return directory_; }
+    virtual const eckit::LocalPathName& basePath() const { return directory_; }
 
     std::string owner() const { return userName(dbUID()); }
 
@@ -46,8 +47,8 @@ protected: // methods
 
 protected: // members
 
-    const eckit::PathName directory_;
-    const eckit::PathName schemaPath_;
+    const eckit::LocalPathName directory_;
+    const eckit::LocalPathName schemaPath_;
 
     mutable uid_t dbUID_;
     uid_t userUID_;
