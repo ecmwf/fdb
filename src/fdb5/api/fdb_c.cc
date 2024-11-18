@@ -193,6 +193,10 @@ public:
         ASSERT(dh_);
         return dh_->read(buf, length);
     }
+    long size() {
+        ASSERT(dh_);
+        return dh_->size();
+    }
     void set(DataHandle* dh) {
         if (dh_)
             delete dh_;
@@ -552,6 +556,12 @@ int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read)
         ASSERT(buf);
         ASSERT(read);
         *read = dr->read(buf, count);
+    });
+}
+int fdb_datareader_size(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([=]{
+        ASSERT(dr);
+        *size = dr->size();
     });
 }
 int fdb_delete_datareader(fdb_datareader_t* dr) {
