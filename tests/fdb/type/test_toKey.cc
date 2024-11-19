@@ -9,7 +9,7 @@
  */
 
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
 
 #include "eckit/testing/Test.h"
 

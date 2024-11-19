@@ -15,7 +15,7 @@
 #define fdb5_TocRecord_H
 
 #include <unistd.h>
-#include <time.h>
+#include <ctime>
 #include <sys/time.h>
 
 #include "eckit/types/FixedString.h"

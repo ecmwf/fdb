@@ -16,12 +16,12 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdlib>
+#include <cstdint>
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include <stdbool.h>
-#include <string.h>
+#include <cstdbool>
+#include <cstring>
 
 //----------------------------------------------------------------------------------------------------------------------
 
