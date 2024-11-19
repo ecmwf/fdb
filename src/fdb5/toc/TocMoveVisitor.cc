@@ -22,7 +22,7 @@
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/RootManager.h"
 
-#include <cerrno>
+#include <dirent.h>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
 #include <sys/file.h>
