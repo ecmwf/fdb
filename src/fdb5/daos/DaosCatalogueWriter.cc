@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>
+#include <climits>
 #include <numeric>
 
 #include "eckit/io/FileHandle.h"
