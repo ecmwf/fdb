@@ -1,0 +1,8 @@
+---
+Checks: "-*, readability-delete-null-pointer"
+WarningsAsErrors:             true
+HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
+ImplementationFileExtensions: ['c','cc','cpp','cxx']
+HeaderFilterRegex:            ''
+FormatStyle:                  none
+InheritParentConfig:          false
