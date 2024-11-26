@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include <stdbool.h>
 #include <string.h>
 
 //----------------------------------------------------------------------------------------------------------------------

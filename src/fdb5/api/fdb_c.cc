@@ -9,7 +9,6 @@
  */
 
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/config/YAMLConfiguration.h"
@@ -66,8 +65,8 @@ public:
         Tokenizer parse("/");
 
         for (int i=0; i<numValues; i++) {
-        	std::vector<std::string> result;
-        	parse(values[i], result);
+            std::vector<std::string> result;
+            parse(values[i], result);
             vv.insert(std::end(vv), std::begin(result), std::end(result));
         }
         request_.values(n, vv);
@@ -110,7 +109,7 @@ public:
             } else {
                 return FDB_ITERATION_COMPLETE;
             }
-        } 
+        }
         while (it_ == key_->at(level_).end()) {
             if (level_<key_->size()-1) {
                 level_++;
@@ -193,12 +192,15 @@ public:
         ASSERT(dh_);
         return dh_->read(buf, length);
     }
+    long size() {
+        ASSERT(dh_);
+        return dh_->size();
+    }
     void set(DataHandle* dh) {
-        if (dh_)
-            delete dh_;
+        delete dh_;
         dh_ = dh;
     }
-    
+
 private:
     DataHandle* dh_;
 };
@@ -552,6 +554,12 @@ int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read)
         ASSERT(buf);
         ASSERT(read);
         *read = dr->read(buf, count);
+    });
+}
+int fdb_datareader_size(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([=]{
+        ASSERT(dr);
+        *size = dr->size();
     });
 }
 int fdb_delete_datareader(fdb_datareader_t* dr) {

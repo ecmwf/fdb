@@ -13,6 +13,10 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/remote/FdbServer.h"
+
+#include <cstdlib>
+
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 

@@ -9,7 +9,6 @@
  */
 
 #include <cstdlib>
-#include <string.h>
 
 #include "eckit/testing/Test.h"
 

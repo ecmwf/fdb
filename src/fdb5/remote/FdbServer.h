@@ -15,7 +15,6 @@
 #pragma once
 
 #include <unistd.h>
-#include <stdlib.h>
 #include <thread>
 
 #include "eckit/net/Port.h"

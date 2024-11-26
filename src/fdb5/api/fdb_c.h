@@ -279,6 +279,13 @@ int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
  */
 int fdb_datareader_skip(fdb_datareader_t* dr, long count);
 
+/** Return size of internal datahandle in bytes.
+ * \param dr DataReader instance
+ * \param size Size of the DataReader
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_size(fdb_datareader_t* dr, long* size);
+
 /** Read binary data from a DataReader to a given memory buffer.
  * \param dr DataReader instance
  * \param buf Pointer of the target memory buffer.

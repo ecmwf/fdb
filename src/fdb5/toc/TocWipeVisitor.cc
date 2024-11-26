@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cstring>
 #include <dirent.h>
-#include <errno.h>
+#include <cerrno>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
 
