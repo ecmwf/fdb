@@ -45,7 +45,7 @@ int fdb5LustreapiFileCreate(eckit::PathName path, LustreStripe stripe) {
     struct statfs buf;
 
     statfs(path.dirName().localPath(), &buf);
-    if (buf.type == LL_SUPER_MAGIC) {
+    if (buf.f_type == LL_SUPER_MAGIC) {
 
         static bool lustreapi_silence = false;
 
