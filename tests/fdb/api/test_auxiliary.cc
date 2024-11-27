@@ -1,5 +1,6 @@
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "metkit/mars/MarsRequest.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -64,8 +65,7 @@ std::set<eckit::PathName> setup(FDB& fdb) {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Wipe with extensions") {
-
-    eckit::TmpDir tmpdir;
+    eckit::TmpDir tmpdir(eckit::LocalPathName::cwd().c_str());
     eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
 
     eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
@@ -93,8 +93,7 @@ CASE("Wipe with extensions") {
 }
 
 CASE("Purge with extensions") {
-
-    eckit::TmpDir tmpdir;
+    eckit::TmpDir tmpdir(eckit::LocalPathName::cwd().c_str());
     eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
 
     eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
