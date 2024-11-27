@@ -938,7 +938,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
-        fdb5LustreapiFileCreate(tocPath_.localPath(), stripeIndexLustreSettings());
+        fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
     }
 
     ASSERT(fd_ == -1);
@@ -976,7 +976,7 @@ void TocHandler::writeInitRecord(const Key& key) {
             // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
 
             if (stripeLustre()) {
-                fdb5LustreapiFileCreate(tmp.localPath(), stripeIndexLustreSettings());
+                fdb5LustreapiFileCreate(tmp, stripeIndexLustreSettings());
             }
             eckit::FileHandle out(tmp);
             in.copyTo(out);
