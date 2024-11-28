@@ -38,7 +38,7 @@ bool fdb5LustreapiSupported() {
 #endif
 }
 
-int fdb5LustreapiFileCreate(eckit::PathName path, LustreStripe stripe) {
+int fdb5LustreapiFileCreate(const eckit::PathName& path, LustreStripe stripe) {
 
 #if defined(fdb5_HAVE_LUSTRE)
 
