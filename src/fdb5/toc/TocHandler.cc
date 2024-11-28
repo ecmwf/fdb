@@ -725,7 +725,7 @@ public:
                 int fd;
                 SYSCALL2((fd = ::open(path.localPath(), iomode)), path);
                 closers.emplace_back(AutoFDCloser{fd});
-                eckit::Length tocSize = 2*1024*1024;
+                eckit::Length tocSize = path.size();
 
                 aiocb& aio(aiocbs[i]);
                 zero(aio);
@@ -802,9 +802,8 @@ public:
             }
         }
 #else
-    NOTIMP
+    NOTIMP;
 #endif // eckit_HAVE_AIO
-
         return std::move(subTocReadCache_);
     }
 
