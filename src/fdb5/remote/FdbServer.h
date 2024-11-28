@@ -16,7 +16,6 @@
 #define fdb5_remote_FdbServer_H
 
 #include <unistd.h>
-#include <stdlib.h>
 #include <thread>
 
 #include "eckit/net/Port.h"

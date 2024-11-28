@@ -724,7 +724,7 @@ public:
                 int fd;
                 SYSCALL2((fd = ::open(path.localPath(), iomode)), path);
                 closers.emplace_back(AutoFDCloser{fd});
-                eckit::Length tocSize = 2*1024*1024;
+                eckit::Length tocSize = path.size();
 
                 aiocb& aio(aiocbs[i]);
                 zero(aio);
@@ -801,9 +801,8 @@ public:
             }
         }
 #else
-    NOTIMP
+    NOTIMP;
 #endif // eckit_HAVE_AIO
-
         return std::move(subTocReadCache_);
     }
 
@@ -938,7 +937,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
-        fdb5LustreapiFileCreate(tocPath_.localPath(), stripeIndexLustreSettings());
+        fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
     }
 
     ASSERT(fd_ == -1);
@@ -976,7 +975,7 @@ void TocHandler::writeInitRecord(const Key& key) {
             // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
 
             if (stripeLustre()) {
-                fdb5LustreapiFileCreate(tmp.localPath(), stripeIndexLustreSettings());
+                fdb5LustreapiFileCreate(tmp, stripeIndexLustreSettings());
             }
             eckit::FileHandle out(tmp);
             in.copyTo(out);

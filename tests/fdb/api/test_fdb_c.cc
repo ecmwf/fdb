@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
