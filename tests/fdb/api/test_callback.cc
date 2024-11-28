@@ -1,5 +1,6 @@
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "fdb5/api/FDB.h"
 
 namespace fdb5::test {
@@ -7,7 +8,7 @@ namespace fdb5::test {
 //----------------------------------------------------------------------------------------------------------------------
 CASE("Archive and flush callback") {
 
-    eckit::TmpDir tmpdir;
+    eckit::TmpDir tmpdir(eckit::LocalPathName::cwd().c_str());
     eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
 
     FDB fdb;
