@@ -20,7 +20,7 @@
 #ifndef fdb5_pmem_DataPoolManager_H
 #define fdb5_pmem_DataPoolManager_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <iosfwd>
 #include <map>
 

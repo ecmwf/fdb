@@ -13,10 +13,12 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/remote/FdbServer.h"
+
+#include <cstdlib>
+
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
-
-#include "fdb5/remote/FdbServer.h"
 
 #include "fdb5/remote/AvailablePortList.h"
 #include "fdb5/remote/Handler.h"
