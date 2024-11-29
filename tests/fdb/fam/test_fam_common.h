@@ -35,8 +35,7 @@
 using namespace std::string_literals;
 
 namespace {
-// const auto TEST_FDB_ENDPOINT = eckit::net::Endpoint("127.0.0.1", 8880);
-const auto TEST_FDB_FAM_ENDPOINT = "10.115.3.2:8080"s;
+const auto TEST_FDB_FAM_ENDPOINT = "10.115.3.1:8780"s;
 const auto TEST_FDB_FAM_REGION   = "test_region_fdb"s;
 const auto TEST_FDB_FAM_URI      = "fam://" + TEST_FDB_FAM_ENDPOINT + "/" + TEST_FDB_FAM_REGION;
 }  // namespace
