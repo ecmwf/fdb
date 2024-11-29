@@ -39,9 +39,9 @@ class TypesRegistry : public eckit::Streamable  {
 public: // methods
 
     TypesRegistry();
-    TypesRegistry(eckit::Stream& s);
+    explicit TypesRegistry(eckit::Stream& s);
 
-    ~TypesRegistry();
+    ~TypesRegistry() override;
 
     const Type &lookupType(const std::string &keyword) const;
 

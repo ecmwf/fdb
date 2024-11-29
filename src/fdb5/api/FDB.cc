@@ -162,11 +162,7 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::read(bool seekable, ListIterator& it, bool sorted) {
-
-    if (seekable) {
-        return new FieldHandle(it);
-    }
+eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
 
     eckit::Timer timer;
     timer.start();
@@ -218,9 +214,13 @@ eckit::DataHandle* FDB::read(bool seekable, ListIterator& it, bool sorted) {
     return result.dataHandle();
 }
 
+eckit::DataHandle* FDB::readSeekable(ListIterator& it, bool sorted) {
+    return new FieldHandle(it);
+}
+
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, bool seekable) {
     ListIterator it = inspect(request);
-    return read(seekable, it, sorted(request));
+    return (seekable ? readSeekable(it, sorted(request)) : read(it, sorted(request)));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {

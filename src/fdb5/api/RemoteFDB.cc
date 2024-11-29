@@ -56,7 +56,6 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
     }
 };
 
-
 struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
     AxesHelper(int level) : level_(level) {}
 
@@ -85,15 +84,6 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
         std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
-};
-
-class FDBEndpoint {
-public:
-    eckit::net::Endpoint fieldLocationEndpoint_;
-    bool localFieldLocation_;
-
-    FDBEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint, bool localFieldLocation) :
-        fieldLocationEndpoint_(fieldLocationEndpoint), localFieldLocation_(localFieldLocation) {}
 };
 
 }
@@ -222,19 +212,18 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
         new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
-            eckit::Buffer msg{0};
-                        while (true) {
-                            if (messageQueue->pop(msg) == -1) {
-                                break;
-                            } else {
-                                MemoryStream s(msg);
-                                queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
-                            }
-                        }
-                        // messageQueue goes out of scope --> destructed
+                eckit::Buffer msg{0};
+                while (true) {
+                    if (messageQueue->pop(msg) == -1) {
+                        break;
+                    } else {
+                        MemoryStream s(msg);
+                        queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
                     }
-                )
-           );
+                }
+                // messageQueue goes out of scope --> destructed
+            })
+        );
 }
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
@@ -323,7 +312,6 @@ bool RemoteFDB::handle(remote::Message message, bool control, uint32_t requestID
             return false;
     }
 }
-// void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
 
 static FDBBuilder<RemoteFDB> builder("remote");
 

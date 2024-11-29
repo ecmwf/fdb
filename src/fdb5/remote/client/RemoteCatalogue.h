@@ -19,7 +19,7 @@ public:
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
-    ~RemoteCatalogue() {}
+    ~RemoteCatalogue() override;
 
     // From CatalogueWriter
     const Index& currentIndex() override;
@@ -59,8 +59,6 @@ public:
     void checkUID() const override;
     eckit::URI uri() const override;
 
-    void sendArchiveData(uint32_t id, const Key& key, std::unique_ptr<FieldLocation> fieldLocation);
-
 protected:
 
     // FDBStats archivalCompleted();
@@ -72,7 +70,6 @@ private:
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, bool control, uint32_t requestID) override;
     bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
-    // void handleException(std::exception_ptr e) override;
 
 protected:
 

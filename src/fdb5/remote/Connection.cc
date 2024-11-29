@@ -8,6 +8,9 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+Connection::Connection() : single_(false) {}
+Connection::~Connection() {}
+
 void Connection::teardown() {
 
     if (!single_) {

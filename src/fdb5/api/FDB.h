@@ -89,7 +89,9 @@ public: // methods
 
     eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool sorted = false);
 
-    eckit::DataHandle* read(bool seekable, ListIterator& it, bool sorted = false);
+    eckit::DataHandle* read(ListIterator& it, bool sorted = false);
+
+    eckit::DataHandle* readSeekable(ListIterator& it, bool sorted = false);
 
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, bool seekable = false);
 

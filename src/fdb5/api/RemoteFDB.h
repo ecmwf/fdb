@@ -21,11 +21,10 @@
 #pragma once
 
 #include <thread>
+#include <unordered_map>
 
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
-
-#include <unordered_map>
 
 namespace fdb5 {
 
@@ -36,13 +35,12 @@ class RemoteFDB : public LocalFDB, public remote::Client {
 
 public: // types
 
-//    using StoredMessage = std::pair<remote::Message, eckit::Buffer>;
     using MessageQueue = eckit::Queue<eckit::Buffer>;
 
 public: // method
 
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-    ~RemoteFDB() {}
+    ~RemoteFDB() override {}
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
@@ -79,10 +77,8 @@ private: // methods
     FDBStats stats() const override { NOTIMP; }
 
     // Client
-
     bool handle(remote::Message message, bool control, uint32_t requestID) override;
     bool handle(remote::Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
-    // void handleException(std::exception_ptr e) override;
 
 private: // members
 

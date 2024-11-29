@@ -403,9 +403,6 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
             return false;
     }
 }
-// void RemoteStore::handleException(std::exception_ptr e) {
-//     Log::error() << "RemoteStore::handleException " << std::endl;
-// }
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
     return dataHandle(fieldLocation, Key());

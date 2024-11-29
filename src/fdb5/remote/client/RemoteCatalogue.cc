@@ -28,35 +28,14 @@ RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     loadSchema();
 }
 
+// Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB for catalogue traversal
+// this ctor is here only to comply with the factory
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0)
-    {
-        NOTIMP;
-    }
-
-
-void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_ptr<FieldLocation> fieldLocation)
-{
-    ASSERT(!dbKey_.empty());
-    ASSERT(!currentIndexKey_.empty());
-    ASSERT(!key.empty());
-    ASSERT(fieldLocation);
-
-    Buffer keyBuffer(4096);
-    MemoryStream keyStream(keyBuffer);
-    keyStream << currentIndexKey_;
-    keyStream << key;
-
-    Buffer locBuffer(4096);
-    MemoryStream locStream(locBuffer);
-    locStream << *fieldLocation;
-
-    std::vector<std::pair<const void*, uint32_t>> payloads;
-    payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
-    payloads.push_back(std::pair<const void*, uint32_t>{locBuffer, locStream.position()});
-
-    dataWrite(Message::Blob, id, payloads);
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0) {
+    NOTIMP;
 }
+
+RemoteCatalogue::~RemoteCatalogue() {}
 
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
 
@@ -173,10 +152,6 @@ bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, 
     // }
     return false;
 }
-
-// void RemoteCatalogue::handleException(std::exception_ptr e) {
-//     NOTIMP;
-// }
 
 void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
 void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}

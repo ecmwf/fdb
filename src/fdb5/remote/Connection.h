@@ -41,8 +41,8 @@ public:
 class Connection : eckit::NonCopyable {
 
 public: // methods
-    Connection() : single_(false) {}
-    virtual ~Connection() {}
+    Connection();
+    virtual ~Connection();
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});

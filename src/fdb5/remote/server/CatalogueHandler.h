@@ -38,14 +38,12 @@ class CatalogueHandler : public ServerConnection {
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
-    ~CatalogueHandler();
+    ~CatalogueHandler() override;
 
 private:  // methods
 
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
-    // Handled handleData(Message message, uint32_t clientID, uint32_t requestID) override;
-    // Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
     // API functionality
     template <typename HelperClass>
@@ -64,7 +62,6 @@ private:  // methods
     bool remove(bool control, uint32_t clientID) override;
     // bool handlers() override;
 
-    // CatalogueWriter& catalogue(uint32_t catalogueID);
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
 private:  // member

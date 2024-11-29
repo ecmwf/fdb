@@ -155,7 +155,6 @@ private: // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, bool control, uint32_t requestID) override;
     bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
-    // void handleException(std::exception_ptr e) override;
 
 private: // members
 
@@ -163,25 +162,16 @@ private: // members
 
     const Config& config_;
 
-
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     std::map<uint32_t, std::shared_ptr<MessageQueue>> retrieveMessageQueues_;
-    // MessageQueue retrieveMessageQueue_;
 
     std::mutex retrieveMessageMutex_;
 
     Locations locations_;
-    // std::recursive_mutex locationMutex_;
-    // std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
-    // size_t fieldsArchived_;
-    // size_t locationsReceived_;
-    // std::promise<size_t> promiseArchivalCompleted_;
-    // std::future<size_t> archivalCompleted_;
-    // // std::mutex archiveMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

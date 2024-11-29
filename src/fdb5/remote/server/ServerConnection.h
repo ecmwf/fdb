@@ -87,7 +87,7 @@ struct ArchiveElem {
 class ServerConnection : public Connection, public Handler {
 public:  // methods
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
-    ~ServerConnection();
+    ~ServerConnection() override;
 
     void initialiseConnections();
 

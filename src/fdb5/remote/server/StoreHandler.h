@@ -33,7 +33,7 @@ class StoreHandler : public ServerConnection {
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
-    ~StoreHandler();
+    ~StoreHandler() override;
 
 private:  // methods
 

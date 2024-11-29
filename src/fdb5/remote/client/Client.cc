@@ -84,17 +84,4 @@ void Client::dataWrite(remote::Message msg, uint32_t requestID, std::vector<std:
     connection_.dataWrite(*this, msg, requestID, data);
 }
 
-// void Client::handleException(std::exception_ptr e) {
-//     try
-//     {
-//         if (e)
-//             std::rethrow_exception(e);
-//     }
-//     catch(const std::exception& e)
-//     {
-//         eckit::Log::error() << "error: " << e.what();
-//         ClientConnectionRouter::instance().teardown();
-//     }
-// }
-
 } // namespace fdb5::remote
