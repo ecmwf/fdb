@@ -28,7 +28,7 @@ TypeDate::~TypeDate() {
 }
 
 
-std::string TypeDate::tidy(const std::string&, const std::string &value) const {
+std::string TypeDate::tidy(const std::string &value) const {
 
     if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
         eckit::Translator<std::string, long> t;

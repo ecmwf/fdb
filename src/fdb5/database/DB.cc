@@ -14,7 +14,6 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
 
 using eckit::Log;
 
@@ -22,10 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildReader(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, true));
 }
-std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildWriter(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
@@ -65,8 +64,8 @@ const Schema& DB::schema() const {
     return catalogue_->schema();
 }
 
-bool DB::selectIndex(const Key &key) {
-    return catalogue_->selectIndex(key);
+bool DB::selectIndex(const Key& idxKey) {
+    return catalogue_->selectIndex(idxKey);
 }
 
 void DB::deselectIndex() {
@@ -110,9 +109,14 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
     ASSERT(cat);
 
     const Index& idx = cat->currentIndex();
-    std::unique_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
 
-    callback(field, *location);
+    std::shared_ptr<const FieldLocation> location(store().archive(idx.key(), data, length));
+
+    // In anticipaton of store().archive() working asynchronously in later FDB versions.
+    std::promise<std::shared_ptr<const FieldLocation>> promise;
+    promise.set_value(location);
+
+    callback(field, data, length, promise.get_future());
 
     cat->archive(key, std::move(location));
 }
@@ -169,7 +173,7 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void DB::index(const Key& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);

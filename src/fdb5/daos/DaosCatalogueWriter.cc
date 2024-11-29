@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>
+#include <climits>
 #include <numeric>
 
 #include "eckit/io/FileHandle.h"
@@ -30,7 +30,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& config) :
+DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& config) :
     DaosCatalogue(key, config), firstIndexWrite_(false) {
 
 
@@ -121,11 +121,11 @@ DaosCatalogueWriter::~DaosCatalogueWriter() {
 
 }
 
-bool DaosCatalogueWriter::selectIndex(const Key& key) {
+bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
 
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
 
-    if (indexes_.find(key) == indexes_.end()) {
+    if (indexes_.find(idxKey) == indexes_.end()) {
 
         fdb5::DaosKeyValueName catalogue_kv{pool_, db_cont_, catalogue_kv_};
 
@@ -145,11 +145,12 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
             /// @note: performed RPCs:
             /// - get index location from catalogue kv (daos_kv_get)
-            res = catalogue_kv_obj.get(key.valuesToString(), &n[0], idx_loc_max_len);
+            res = catalogue_kv_obj.get(idxKey.valuesToString(), &n[0], idx_loc_max_len);
 
-            indexes_[key] = Index(
+            indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
-                    key, 
+                    idxKey,
+                    *this,
                     fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
                     false
                 )
@@ -159,20 +160,21 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
             firstIndexWrite_ = true;
  
-            indexes_[key] = Index(
+            indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
-                    key, 
+                    idxKey,
+                    *this,
                     fdb5::DaosName{pool_, db_cont_}
                 )
             );
 
             /// index index kv in catalogue kv
-            std::string nstr{indexes_[key].location().uri().asString()};
+            std::string nstr{indexes_[idxKey].location().uri().asString()};
             if (nstr.length() > idx_loc_max_len)
                 throw eckit::Exception("Serialised index location exceeded configured maximum index location length.");
             /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on first write to an index key):
             /// - record index kv location into catalogue kv (daos_kv_put) -- always performed
-            catalogue_kv_obj.put(key.valuesToString(), nstr.data(), nstr.length());
+            catalogue_kv_obj.put(idxKey.valuesToString(), nstr.data(), nstr.length());
 
             /// @note: performed RPCs:
             /// - close index kv when destroyed (daos_obj_close)
@@ -184,7 +186,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
     }
 
-    current_ = indexes_[key];
+    current_ = indexes_[idxKey];
 
     return true;
 
@@ -226,7 +228,7 @@ const Index& DaosCatalogueWriter::currentIndex() {
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void DaosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());

@@ -37,7 +37,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -89,9 +89,9 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
 
-    void registerCallback(ArchiveCallback callback) {callback_ = callback;}
+    void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
@@ -185,7 +185,7 @@ public: // methods
 
 private: // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const override {
+    std::unique_ptr<FDBBase> make(const Config& config) const override {
         return std::unique_ptr<T>(new T(config, name_));
     }
 };

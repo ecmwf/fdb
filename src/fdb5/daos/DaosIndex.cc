@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>  // for PATH_MAX
+#include <climits>  // for PATH_MAX
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -34,8 +34,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) : 
-    IndexBase(key, "daosKeyValue"), 
+DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name) : 
+    IndexBase(key, "daosKeyValue", catalogue), 
     location_(buildIndexKvName(key, name), 0) {
 
     fdb5::DaosSession s{};
@@ -65,8 +65,8 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     
 }
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
-    IndexBase(key, "daosKeyValue"),
+DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosKeyValueName& name, bool readAxes) :
+    IndexBase(key, "daosKeyValue", catalogue),
     location_(name, 0) {
 
     if (readAxes) updateAxes();
@@ -112,7 +112,7 @@ void DaosIndex::updateAxes() {
 
 }
 
-bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
+bool DaosIndex::get(const Key& key, const Key& remapKey, Field &field) const {
 
     const fdb5::DaosKeyValueName& n = location_.daosName();
 
@@ -159,7 +159,7 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
 }
 
-void DaosIndex::add(const Key &key, const Field &field) {
+void DaosIndex::add(const Key& key, const Field &field) {
 
     eckit::MemoryHandle h{(size_t) PATH_MAX};
     eckit::HandleStream hs{h};

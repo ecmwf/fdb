@@ -15,7 +15,7 @@
 
 #include "eckit/log/Log.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include "eccodes.h"
 
 using namespace eckit;

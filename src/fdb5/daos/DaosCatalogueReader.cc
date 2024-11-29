@@ -23,8 +23,8 @@ namespace fdb5 {
 /// @note: as opposed to the TOC catalogue, the DAOS catalogue does not pre-load all indexes from storage.
 ///   Instead, it selects and loads only those indexes that are required to fulfil the request.
 
-DaosCatalogueReader::DaosCatalogueReader(const Key& key, const fdb5::Config& config) :
-    DaosCatalogue(key, config) {
+DaosCatalogueReader::DaosCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
+    DaosCatalogue(dbKey, config) {
 
     /// @todo: schema is being loaded at DaosCatalogueWriter creation for write, but being loaded
     ///        at DaosCatalogueReader::open for read. Is this OK?
@@ -34,16 +34,16 @@ DaosCatalogueReader::DaosCatalogueReader(const Key& key, const fdb5::Config& con
 DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
     DaosCatalogue(uri, ControlIdentifiers{}, config) {}
 
-bool DaosCatalogueReader::selectIndex(const Key &key) {
+bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
 
-    if (currentIndexKey_ == key) {
+    if (currentIndexKey_ == idxKey) {
         return true;
     }
 
     /// @todo: shouldn't this be set only if found a matching index?
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
 
-    if (indexes_.find(key) == indexes_.end()) {
+    if (indexes_.find(idxKey) == indexes_.end()) {
 
         fdb5::DaosKeyValueName catalogue_kv{pool_, db_cont_, catalogue_kv_};
 
@@ -62,7 +62,7 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
 
             /// @note: performed RPCs:
             /// - retrieve index kv location from catalogue kv (daos_kv_get)
-            res = catalogue_kv_obj.get(key.valuesToString(), &n[0], idx_loc_max_len);
+            res = catalogue_kv_obj.get(idxKey.valuesToString(), &n[0], idx_loc_max_len);
 
         } catch (fdb5::DaosEntityNotFoundException& e) {
 
@@ -75,14 +75,14 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
 
         fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}};
 
-        indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv, true));
+        indexes_[idxKey] = Index(new fdb5::DaosIndex(idxKey, *this, index_kv, true));
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
 
     }
 
-    current_ = indexes_[key];
+    current_ = indexes_[idxKey];
 
     return true;
 

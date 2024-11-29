@@ -22,7 +22,6 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/TocCommon.h"
 
 #define MAX_THREADS 256
 
@@ -163,7 +162,7 @@ private: // methods
             }
         }
     }
-    
+
     void messageFromWorker( eckit::distributed::Message& message, int worker) const {}
 
 private: // attributes

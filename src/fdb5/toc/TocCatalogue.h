@@ -39,7 +39,6 @@ public: // methods
     ~TocCatalogue() override {}
 
     static const char* catalogueTypeName() { return TocEngine::typeName(); }
-    const eckit::PathName& basePath() const override;
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
@@ -55,6 +54,11 @@ protected: // methods
     TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
+
+    std::vector<Index> loadIndexes(bool sorted=false,
+                                   std::set<std::string>* subTocs = nullptr,
+                                   std::vector<bool>* indexInSubtoc = nullptr,
+                                   std::vector<Key>* remapKeys = nullptr) const;
 
     void checkUID() const override;
     bool exists() const override;

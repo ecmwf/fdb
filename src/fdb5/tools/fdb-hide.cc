@@ -8,10 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
-#include "eckit/option/VectorOption.h"
-#include "eckit/os/AutoUmask.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
@@ -19,7 +17,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
-#include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -83,10 +80,12 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     const Schema& schema = conf.schema();
 
-    Key dbkey;
+    TypedKey dbkey{schema.registry()};
     ASSERT(schema.expandFirstLevel(dbrequest.request(), dbkey));
 
-    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbkey, conf, true);
+    const auto dbCanonicalKey = dbkey.canonical();
+
+    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbCanonicalKey, conf, true);
     if (!db->exists()) {
         std::stringstream ss;
         ss << "Database not found: " << dbkey << std::endl;
@@ -101,7 +100,7 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
     if (doit_) {
-        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbkey, conf, false);
+        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbCanonicalKey, conf, false);
         TocCatalogueWriter* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
         tocDB->hideContents();
     } else {

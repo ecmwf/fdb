@@ -58,9 +58,9 @@ public: // methods
     virtual eckit::DataHandle *dataHandle() const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
-    virtual std::shared_ptr<FieldLocation> make_shared() const = 0;
+    virtual std::shared_ptr<const FieldLocation> make_shared() const = 0;
 
-    virtual std::shared_ptr<FieldLocation> stableLocation() const { return make_shared(); }
+    virtual std::shared_ptr<const FieldLocation> stableLocation() const { return make_shared(); }
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
@@ -72,7 +72,7 @@ private: // methods
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
 
     static eckit::ClassSpec                  classSpec_;
 

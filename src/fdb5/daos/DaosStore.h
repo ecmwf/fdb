@@ -42,6 +42,10 @@ public: // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    // DAOS store does not currently support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
+    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+
 protected: // methods
 
     std::string type() const override { return "daos"; }
@@ -49,7 +53,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

@@ -48,11 +48,11 @@ public: // methods
 
 protected: // For Streamable (see comments. This is a bit odd).
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
 
 private: // methods
 
-    virtual void print(std::ostream &out) const override;
+    void print(std::ostream &out) const override;
 
 private: // friends
 

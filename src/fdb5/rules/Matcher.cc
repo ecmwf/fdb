@@ -29,7 +29,7 @@ bool Matcher::optional() const {
     return false;
 }
 
-const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
+const std::string &Matcher::value(const Key& key, const std::string &keyword) const {
     return key.get(keyword);
 }
 
@@ -37,7 +37,7 @@ const std::vector<std::string> &Matcher::values(const metkit::mars::MarsRequest&
     return rq.values(keyword);
 }
 
-void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {
+void Matcher::fill(BaseKey& key, const std::string &keyword, const std::string& value) const {
     key.push(keyword, value);
 }
 

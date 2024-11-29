@@ -15,8 +15,11 @@
 #include "fdb5/fdb5_config.h"
 #include "fdb5/LibFdb5.h"
 
+#define LL_SUPER_MAGIC  0x0BD00BD0
 
 #if defined(fdb5_HAVE_LUSTRE)
+#include <sys/vfs.h>
+
 extern "C" {
 void fdb5_lustreapi_silence_msg();
 int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
@@ -35,19 +38,24 @@ bool fdb5LustreapiSupported() {
 #endif
 }
 
-int fdb5LustreapiFileCreate(const char* path, LustreStripe stripe) {
+int fdb5LustreapiFileCreate(const eckit::PathName& path, LustreStripe stripe) {
 
 #if defined(fdb5_HAVE_LUSTRE)
 
-    static bool lustreapi_silence = false;
+    struct statfs buf;
 
-    if(not lustreapi_silence) {
-        fdb5_lustreapi_silence_msg();
-        lustreapi_silence = true;
+    statfs(path.dirName().localPath(), &buf);
+    if (buf.f_type == LL_SUPER_MAGIC) {
+
+        static bool lustreapi_silence = false;
+
+        if(not lustreapi_silence) {
+            fdb5_lustreapi_silence_msg();
+            lustreapi_silence = true;
+        }
+
+        return fdb5_lustreapi_file_create(path.localPath(), stripe.size_, stripe.count_);
     }
-
-    return fdb5_lustreapi_file_create(path, stripe.size_, stripe.count_);
-
 #endif
 
     /// @note since fdb5LustreapiSupported() should be guarding all calls to this function,

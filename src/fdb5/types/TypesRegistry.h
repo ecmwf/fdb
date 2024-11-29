@@ -19,8 +19,14 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <optional>
+#include <functional>
 
 #include "eckit/memory/NonCopyable.h"
+
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -39,10 +45,11 @@ public: // methods
     const Type &lookupType(const std::string &keyword) const;
 
     void addType(const std::string &, const std::string &);
-    void updateParent(std::shared_ptr<TypesRegistry> parent);
+    void updateParent(const TypesRegistry& parent);
     void dump( std::ostream &out ) const;
     void dump( std::ostream &out, const std::string &keyword ) const;
 
+    metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
 private: // members
 
@@ -51,7 +58,7 @@ private: // members
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;
-    std::shared_ptr<TypesRegistry> parent_;
+    std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
 
     friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
 

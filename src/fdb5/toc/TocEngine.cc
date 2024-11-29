@@ -40,28 +40,7 @@ namespace fdb5 {
 
 void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
 
-    if ((eckit::PathName(path) / "toc").exists()) {
-        dbs.push_back(path);
-        return;
-    }
-
     eckit::StdDir d(path.c_str());
-    if (d == nullptr) {
-        // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
-        // path to have disappeared
-        if (errno == ENOENT) {
-            return;
-        }
-
-        // It should not be an error if we don't have permission to read a path/DB in the
-        // tree. This is a multi-user system.
-        if (errno == EACCES) {
-            return;
-        }
-
-        Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
-        throw FailedSystemCall("opendir");
-    }
 
     // Once readdir_r finally gets deprecated and removed, we may need to 
     // protecting readdir() as not yet guarranteed thread-safe by POSIX
@@ -90,7 +69,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 #if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
-            scan_dbs(full.c_str(), dbs);
+            dbs.push_back(full);
         } else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
@@ -100,7 +79,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             if(eckit::Stat::stat(full.c_str(), &info) == 0)
             {
                 if(S_ISDIR(info.st_mode)) {
-                    scan_dbs(full.c_str(), dbs);
+                    dbs.push_back(full);
                 }
             }
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
@@ -248,11 +227,6 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     }
 
     return result;
-}
-
-std::vector<eckit::URI> TocEngine::allLocations(const Key& key, const Config& config) const
-{
-    return databases(key, CatalogueRootManager(config).allRoots(key), config);
 }
 
 std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const

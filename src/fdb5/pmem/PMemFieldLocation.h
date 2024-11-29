@@ -47,13 +47,13 @@ public:
     virtual eckit::DataHandle *dataHandle() const;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const;
+    virtual std::shared_ptr<const FieldLocation> make_shared() const;
 
     // The PMemFieldLocation only has validity equal to that of the PMemDB.
     // This is a problem with any async API functions.
     // --> For visibility purposes return something more stable (currently a
     //     TocFieldLocation....)
-    virtual std::shared_ptr<FieldLocation> stableLocation() const;
+    virtual std::shared_ptr<const FieldLocation> stableLocation() const;
 
     virtual void visit(FieldLocationVisitor& visitor) const;
 
@@ -61,13 +61,13 @@ public:
 
 protected: // For Streamable (see comments. This is a bit odd).
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
 
 private: // methods
 
     virtual void dump(std::ostream &out) const;
 
-    virtual void print(std::ostream &out) const override;
+    void print(std::ostream &out) const override;
 
 private: // members
 

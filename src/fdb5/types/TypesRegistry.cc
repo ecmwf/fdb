@@ -8,30 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
+#include <memory>
+#include <utility>
+
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/types/TypesRegistry.h"
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesFactory.h"
+#include "fdb5/types/TypesRegistry.h"
 
-namespace fdb5 {
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/Parameter.h"
 
-//----------------------------------------------------------------------------------------------------------------------
+ namespace fdb5 {
 
-TypesRegistry::TypesRegistry():
-    parent_(nullptr) {
-}
+ //----------------------------------------------------------------------------------------------------------------------
+
+TypesRegistry::TypesRegistry() { }
 
 TypesRegistry::~TypesRegistry() {
-    for (TypeMap::iterator i = cache_.begin(); i != cache_.end(); ++i) {
-        delete (*i).second;
-    }
+    for (auto& item : cache_) { delete item.second; }
 }
 
-void TypesRegistry::updateParent(std::shared_ptr<TypesRegistry> parent) {
-    parent_ = parent;
+void TypesRegistry::updateParent(const TypesRegistry& parent) {
+    parent_ = std::cref(parent);
 }
-
 
 void TypesRegistry::addType(const std::string &keyword, const std::string &type) {
     ASSERT(types_.find(keyword) == types_.end());
@@ -39,27 +40,42 @@ void TypesRegistry::addType(const std::string &keyword, const std::string &type)
 }
 
 const Type &TypesRegistry::lookupType(const std::string &keyword) const {
+
     std::map<std::string, Type *>::const_iterator j = cache_.find(keyword);
 
     if (j != cache_.end()) {
         return *(*j).second;
     } else {
-
         std::string type = "Default";
         std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
         if (i != types_.end()) {
             type = (*i).second;
         } else {
             if (parent_) {
-                return parent_->lookupType(keyword);
+                return parent_.value().get().lookupType(keyword);
             }
         }
 
-        // eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
         Type* newKH = TypesFactory::build(type, keyword);
         cache_[keyword] = newKH;
         return *newKH;
     }
+}
+
+metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRequest& request) const {
+    metkit::mars::MarsRequest result(request.verb());
+
+    for (const auto& param : request.parameters()) {
+        const std::vector<std::string>& srcVals = param.values();
+        std::vector<std::string> vals;
+        vals.reserve(srcVals.size());
+        for (const auto& v : srcVals) {
+            vals.push_back(lookupType(param.name()).toKey(v));
+        }
+        result.values(param.name(), vals);
+    }
+
+    return result;
 }
 
 std::ostream &operator<<(std::ostream &s, const TypesRegistry &x) {
@@ -89,4 +105,4 @@ void TypesRegistry::dump( std::ostream &out, const std::string &keyword ) const 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

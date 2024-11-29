@@ -72,7 +72,7 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
     static eckit::ClassSpec                 classSpec_;
@@ -119,7 +119,7 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
+    void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
     static eckit::ClassSpec                  classSpec_;
@@ -150,7 +150,7 @@ class PMemStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
     PMemStatsReportVisitor(const PMemDB& db);
-    virtual ~PMemStatsReportVisitor() override;
+    ~PMemStatsReportVisitor() override;
 
     virtual IndexStats indexStatistics() const;
     virtual DbStats    dbStatistics() const;
@@ -162,7 +162,7 @@ private: // methods
 
     bool visitDatabase(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
+    void visitDatum(const Field& field, const TypedKey& datumKey) override { NOTIMP; }
 
     // This visitor is only legit for one DB - so don't reset database
     void databaseComplete(const DB& db) override;

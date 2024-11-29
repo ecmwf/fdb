@@ -15,6 +15,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/utils/StringTools.h"
@@ -32,11 +33,18 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
 
     std::vector<Index> all = indexes(sorted);
 
+    // It is likely that many indexes in the same database share resources/files/etc.
+    // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
+    // pre-open the indexes, and keep them open
+    std::vector<eckit::AutoCloser<Index>> closers;
+    closers.reserve(all.size());
+
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
+            for (Index& idx : all) {
                 if (visitor.visitEntries()) {
+                    closers.emplace_back(idx);
                     idx.entries(visitor); // contains visitIndex
                 } else {
                     visitor.visitIndex(idx);
@@ -101,8 +109,8 @@ void CatalogueFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config& config, bool read) {
-    std::string name = Manager(config).engine(key);
+std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& dbKey, const Config& config, bool read) {
+    std::string name = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     nameLowercase += read ? ".reader" : ".writer";
@@ -120,7 +128,7 @@ std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config&
         throw eckit::SeriousBug(std::string("No CatalogueBuilder called ") + nameLowercase);
     }
 
-    return j->second->make(key, config);
+    return j->second->make(dbKey, config);
 }
 
 std::unique_ptr<Catalogue> CatalogueFactory::build(const eckit::URI& uri, const fdb5::Config& config, bool read) {

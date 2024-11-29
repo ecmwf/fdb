@@ -27,16 +27,16 @@ namespace fdb5 {
 Report::~Report() {
 }
 
-void Report::append(const dbtype_t& dbtype, DbStats stats)
+void Report::append(const dbtype_t& dbType, DbStats stats)
 {
-    dbtypes_.insert(dbtype);
+    dbtypes_.insert(dbType);
 
-    std::map<dbtype_t, DbStats>::iterator itr = dbStats_.find(dbtype);
+    std::map<dbtype_t, DbStats>::iterator itr = dbStats_.find(dbType);
     if(itr != dbStats_.end()) {
         itr->second.add(stats);
     }
     else {
-        dbStats_[dbtype] = stats;
+        dbStats_[dbType] = stats;
     }
 }
 
@@ -57,40 +57,40 @@ Report& Report::operator+=(const Report& rhs) {
 
     // collate DB stats
 
-    for(std::map<dbtype_t, DbStats>::const_iterator i = rhs.dbStats_.begin(); i != rhs.dbStats_.end(); ++i) {
-        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << i->first << std::endl;
-        std::map<dbtype_t, DbStats>::iterator j = dbStats_.find(i->first);
+    for(const auto& [dbType, dbStat] : rhs.dbStats_) {
+        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << dbType << std::endl;
+        std::map<dbtype_t, DbStats>::iterator j = dbStats_.find(dbType);
         if(j != dbStats_.end()) {
-            j->second.add(i->second);
+            j->second.add(dbStat);
         }
         else{
-            dbStats_[i->first] = i->second;
+            dbStats_[dbType] = dbStat;
         }
     }
 
     // collate Index stats
 
-    for(std::map<dbtype_t, IndexStats>::const_iterator i = rhs.indexStats_.begin(); i != rhs.indexStats_.end(); ++i) {
-        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << i->first << std::endl;
-        std::map<dbtype_t, IndexStats>::iterator j = indexStats_.find(i->first);
+    for(const auto& [dbType, indexStat] : rhs.indexStats_) {
+        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << dbType << std::endl;
+        std::map<dbtype_t, IndexStats>::iterator j = indexStats_.find(dbType);
         if(j != indexStats_.end()) {
-            j->second.add(i->second);
+            j->second.add(indexStat);
         }
         else{
-            indexStats_[i->first] = i->second;
+            indexStats_[dbType] = indexStat;
         }
     }
 
     // collate Data stats
 
-    for(std::map<dbtype_t, DataStats>::const_iterator i = rhs.dataStats_.begin(); i != rhs.dataStats_.end(); ++i) {
-        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << i->first << std::endl;
-        std::map<dbtype_t, DataStats>::iterator j = dataStats_.find(i->first);
+    for(const auto& [dbType, dataStat] : rhs.dataStats_) {
+        LOG_DEBUG_LIB(LibFdb5) << "dbtype " << dbType << std::endl;
+        std::map<dbtype_t, DataStats>::iterator j = dataStats_.find(dbType);
         if(j != dataStats_.end()) {
-            j->second.add(i->second);
+            j->second.add(dataStat);
         }
         else{
-            dataStats_[i->first] = i->second;
+            dataStats_[dbType] = dataStat;
         }
     }
 
@@ -102,19 +102,19 @@ void Report::print(std::ostream& out) const
     const char* sep = "";
     for(std::set<dbtype_t>::const_iterator i = dbtypes_.begin(); i != dbtypes_.end(); ++i) {
 
-        dbtype_t dbtype = *i;
+        dbtype_t dbType = *i;
 
-        out << sep << "Database Type \'" << dbtype << "\'" << std::endl;
+        out << sep << "Database Type \'" << dbType << "\'" << std::endl;
 
-        std::map<dbtype_t, DbStats>::const_iterator db = dbStats_.find(dbtype);
+        std::map<dbtype_t, DbStats>::const_iterator db = dbStats_.find(dbType);
         if(db != dbStats_.end())
             db->second.report(out);
 
-        std::map<dbtype_t, IndexStats>::const_iterator idx = indexStats_.find(dbtype);
+        std::map<dbtype_t, IndexStats>::const_iterator idx = indexStats_.find(dbType);
         if(idx != indexStats_.end())
             idx->second.report(out);
 
-        std::map<dbtype_t, DataStats>::const_iterator data = dataStats_.find(dbtype);
+        std::map<dbtype_t, DataStats>::const_iterator data = dataStats_.find(dbType);
         if(data != dataStats_.end())
             data->second.report(out);
 

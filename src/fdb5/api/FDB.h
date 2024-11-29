@@ -33,8 +33,9 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -115,11 +116,14 @@ public: // methods
 
     IndexAxis axes(const FDBToolRequest& request, int level=3);
 
+    AxesIterator axesIterator(const FDBToolRequest& request, int level=3);
+
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool dirty() const;
 
-    void registerCallback(ArchiveCallback callback);
+    void registerArchiveCallback(ArchiveCallback callback);
+    void registerFlushCallback(FlushCallback callback);
 
     // -------------- API management ----------------------------
 
@@ -155,6 +159,7 @@ private: // members
 
     FDBStats stats_;
 
+    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

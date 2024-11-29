@@ -23,7 +23,6 @@
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
 
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -39,13 +38,13 @@ using namespace eckit;
 
 class FDBHammer : public fdb5::FDBTool {
 
-    virtual void usage(const std::string &tool) const override;
+    void usage(const std::string &tool) const override;
 
-    virtual void init(const eckit::option::CmdArgs &args) override;
+    void init(const eckit::option::CmdArgs &args) override;
 
-    virtual int minimumPositionalArguments() const override { return 1; }
+    int minimumPositionalArguments() const override { return 1; }
 
-    virtual void execute(const eckit::option::CmdArgs &args) override;
+    void execute(const eckit::option::CmdArgs &args) override;
 
     void executeRead(const eckit::option::CmdArgs& args);
     void executeWrite(const eckit::option::CmdArgs& args);
@@ -338,7 +337,7 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
         number_values.push_back(std::to_string(n + number - 1));
     }
     request.values("number", number_values);
-   
+
     std::vector<std::string> levelist_values;
     for (size_t l = 1; l <= nlevels; ++l) {
         levelist_values.push_back(std::to_string(l + level - 1));
@@ -357,7 +356,7 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
 
     size_t count = 0;
     for (size_t step = 0; step < nsteps; ++step) {
- 
+
         request.setValue("step", step);
 
         auto listObject = fdb.list(fdb5::FDBToolRequest(request, false, minimumKeys));

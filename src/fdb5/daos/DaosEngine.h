@@ -33,22 +33,20 @@ public: // methods
 
 protected: // methods
 
-    virtual std::string name() const override;
+    std::string name() const override;
 
-    virtual std::string dbType() const override { NOTIMP; };
+    std::string dbType() const override { NOTIMP; };
 
-    virtual eckit::URI location(const Key &key, const Config& config) const override { NOTIMP; };
+    eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual bool canHandle(const eckit::URI&, const Config&) const override;
+    bool canHandle(const eckit::URI&, const Config&) const override;
 
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
+    std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
+    std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
-
-    virtual void print( std::ostream &out ) const override { NOTIMP; };
+    void print( std::ostream &out ) const override { NOTIMP; };
 
 private: // methods
 

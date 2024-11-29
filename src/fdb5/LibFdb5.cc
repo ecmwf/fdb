@@ -48,6 +48,14 @@ const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) {
     return *config_;
 }
 
+ConstructorCallback LibFdb5::constructorCallback() {
+    return constructorCallback_;
+}
+
+void LibFdb5::registerConstructorCallback(ConstructorCallback cb) {
+    constructorCallback_ = cb;
+}
+
 bool LibFdb5::dontDeregisterFactories() const {
 #if eckit_VERSION_MAJOR > 1 || (eckit_VERSION_MAJOR == 1 && (eckit_VERSION_MINOR > 17 || (eckit_VERSION_MINOR == 17 && eckit_VERSION_PATCH >0)))
     return eckit::LibEcKit::instance().dontDeregisterFactories();
@@ -74,6 +82,10 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
 }
 
 
+const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
+    static std::set<std::string> auxiliaryRegistry(eckit::Resource<std::set<std::string>>("$FDB_AUX_EXTENSIONS;fdbAuxExtensions", {"gribjump"}));
+    return auxiliaryRegistry;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 static unsigned getUserEnvRemoteProtocol() {
