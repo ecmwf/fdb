@@ -12,8 +12,10 @@
 #include <memory>
 #include <utility>
 
+#include "eckit/config/Resource.h"
 #include "eckit/container/DenseSet.h"
 #include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -47,7 +49,7 @@ void BaseKey::decode(eckit::Stream& s) {
     for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v;
-        keys_[k] = v;
+        keys_[k] = eckit::StringTools::lower(v);
     }
 
     s >> n;
@@ -95,9 +97,9 @@ void BaseKey::set(const std::string &k, const std::string &v) {
     eckit::StringDict::iterator it = keys_.find(k);
     if (it == keys_.end()) {
         names_.push_back(k);
-        keys_[k] = v;
+        keys_[k] = eckit::StringTools::lower(v);
     } else {
-        it->second = v;
+        it->second = eckit::StringTools::lower(v);
     }
 }
 
@@ -199,7 +201,6 @@ std::string BaseKey::canonicalValue(const std::string& keyword) const {
 
     eckit::StringDict::const_iterator it = keys_.find(keyword);
     ASSERT(it != keys_.end());
-
     return canonicalise(keyword, it->second);
 }
 
@@ -223,10 +224,9 @@ std::string BaseKey::valuesToString() const {
 
         oss << sep;
         oss << canonicalise(*j, i->second);
-
+        
         sep = ":";
     }
-
     return oss.str();
 }
 

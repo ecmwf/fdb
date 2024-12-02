@@ -191,7 +191,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
             messageToKey(msg, key);
 
             LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
-                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
+                                   << " key: " << key << " length:" << msg.length()
                                    << std::endl;
 
             ASSERT(key.match(key_));

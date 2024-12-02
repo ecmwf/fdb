@@ -34,7 +34,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Indexer.h"
-#include "fdb5/database/Key.h"
+
 
 namespace eckit {
 class Stream;
@@ -42,7 +42,6 @@ class Stream;
 
 namespace fdb5 {
 
-class Key;
 class Index;
 class IndexLocationVisitor;
 class Schema;
@@ -121,9 +120,9 @@ protected: // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis axes_;      ///< This Index spans along these axis
-    Key       key_;       ///< key that selected this index
-    time_t    timestamp_; ///< timestamp when this Index was flushed
+    IndexAxis     axes_;      ///< This Index spans along these axis
+    Key           key_;       ///< key that selected this index
+    time_t        timestamp_; ///< timestamp when this Index was flushed
 
     Indexer   indexer_;
 

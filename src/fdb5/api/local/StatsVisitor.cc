@@ -16,7 +16,7 @@
 
 #include "fdb5/api/local/StatsVisitor.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {
@@ -25,14 +25,15 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+// bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool StatsVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     ASSERT(!internalVisitor_);
     internalVisitor_.reset(catalogue.statsReportVisitor());
 
-    internalVisitor_->visitDatabase(catalogue, store);
+    internalVisitor_->visitDatabase(catalogue);
 
     return true; // Explore contained indexes
 }

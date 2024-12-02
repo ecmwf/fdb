@@ -16,7 +16,7 @@
 #ifndef fdb5_TocDB_H
 #define fdb5_TocDB_H
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
@@ -29,16 +29,15 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocCatalogue : public Catalogue, public TocHandler {
+class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public: // methods
 
-    TocCatalogue(const Key& key, const fdb5::Config& config);
+    TocCatalogue(const Key& dbKey, const fdb5::Config& config);
     TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 
-    static const char* catalogueTypeName() { return TocEngine::typeName(); }
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
@@ -51,7 +50,7 @@ public: // constants
 
 protected: // methods
 
-    TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
+    TocCatalogue(const Key& dbKey, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
@@ -62,6 +61,7 @@ protected: // methods
 
     void checkUID() const override;
     bool exists() const override;
+    // void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;

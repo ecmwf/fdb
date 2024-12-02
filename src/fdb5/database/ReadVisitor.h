@@ -19,6 +19,7 @@
 #include <iosfwd>
 
 #include "eckit/memory/NonCopyable.h"
+#include "fdb5/database/Catalogue.h"
 #include "eckit/types/Types.h"
 
 namespace metkit {
@@ -32,6 +33,7 @@ namespace fdb5 {
 class Key;
 class TypedKey;
 class TypesRegistry;
+class Store;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -40,7 +42,9 @@ class ReadVisitor : public eckit::NonCopyable {
 
 public: // methods
 
-    virtual ~ReadVisitor();
+    ReadVisitor() : catalogue_(nullptr) {}
+
+    virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) = 0;
     virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) = 0;
@@ -57,6 +61,10 @@ public: // methods
 protected: // methods
 
     virtual void print( std::ostream &out ) const = 0;
+
+protected: // members
+
+    CatalogueReader* catalogue_;
 
 private: // members
 

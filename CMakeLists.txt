@@ -33,13 +33,6 @@ ecbuild_add_option( FEATURE GRIB
 
 ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
 
-### FDB backend in persistent memory, i.e. pmem (NVRAM)
-
-ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
-                    DEFAULT OFF
-                    DESCRIPTION "Persistent memory (NVRAM) support for FDB"
-                    REQUIRED_PACKAGES "NAME pmem" )
-
 ### FDB backend in CEPH object store (using Rados)
 
 find_package( RADOS QUIET )
@@ -171,6 +164,7 @@ add_subdirectory( src )
 add_subdirectory( tests )
 
 ### finalize
+
 
 ecbuild_install_project( NAME fdb )
 

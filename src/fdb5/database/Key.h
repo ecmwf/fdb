@@ -23,7 +23,9 @@
 #include <memory>
 #include <functional>
 
+#include "eckit/serialisation/Stream.h"
 #include "eckit/types/Types.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace eckit {
     class JSON;
@@ -38,7 +40,6 @@ namespace mars {
 
 namespace fdb5 {
 
-class TypesRegistry;
 class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -135,7 +136,7 @@ public: // methods
 
     operator std::string() const;
 
-    operator eckit::StringDict() const;
+    virtual operator eckit::StringDict() const;
 
 protected: // members
 
@@ -147,7 +148,11 @@ protected: // members
     void decode(eckit::Stream& s);
     void encode(eckit::Stream &s) const;
 
+private: // methods
+
     std::string toString() const;
+
+protected: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;

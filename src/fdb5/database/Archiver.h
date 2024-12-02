@@ -20,8 +20,9 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace eckit   {
 class DataHandle;
@@ -37,6 +38,11 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct Database {
+    time_t                              time_;
+    std::unique_ptr<CatalogueWriter>    catalogue_;
+    std::unique_ptr<Store>              store_;
+};
 class Archiver : public eckit::NonCopyable {
 
 public: // methods
@@ -44,6 +50,8 @@ public: // methods
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
 
     virtual ~Archiver();
+
+    // uint32_t id() const { return id_; }
 
     void archive(const Key& key, BaseArchiveVisitor& visitor);
     void archive(const Key& key, const void* data, size_t len);
@@ -61,22 +69,20 @@ private: // methods
 
     void print(std::ostream& out) const;
 
-    DB& database(const Key& key);
+    void selectDatabase(const Key& key);
 
 private: // members
-
     friend class BaseArchiveVisitor;
-
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
 
     Config dbConfig_;
 
-    store_t databases_;
+    std::map<Key, Database> databases_;
 
     std::vector<Key> prev_;
 
-    DB* current_;
+    Database* db_;
 
+    std::mutex flushMutex_;
     const ArchiveCallback& callback_;
 };
 

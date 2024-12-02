@@ -27,9 +27,9 @@ ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue,
     identifiers_(identifiers) {}
 
 
-bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool ControlVisitor::visitDatabase(const Catalogue& catalogue) { //, const Store& store) {
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue); //, store);
 
     // Only lock/unlock things that match exactly.
 

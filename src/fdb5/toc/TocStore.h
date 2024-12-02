@@ -16,7 +16,7 @@
 #ifndef fdb5_TocStore_H
 #define fdb5_TocStore_H
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
@@ -32,7 +32,7 @@ class TocStore : public Store, public TocCommon {
 
 public: // methods
 
-    TocStore(const Schema& schema, const Key& key, const Config& config);
+    TocStore(const Key& key, const Config& config);
 
     ~TocStore() override {}
 
@@ -43,7 +43,7 @@ public: // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { TocCommon::checkUID(); }
@@ -92,7 +92,7 @@ private: // members
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     mutable PathStore   dataPaths_;
-
+    size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
 
 };

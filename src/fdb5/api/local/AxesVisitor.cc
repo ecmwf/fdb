@@ -49,7 +49,7 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
 }
 #endif
 
-bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);

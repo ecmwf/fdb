@@ -35,7 +35,8 @@ public:
 
 private: // methods
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    // bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
 
     void move();
 
