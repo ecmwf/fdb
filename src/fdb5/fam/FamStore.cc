@@ -75,7 +75,7 @@ auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
     return field.dataHandle();
 }
 
-auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> {
+auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<const FieldLocation> {
     auto object = makeObject(key);
 
     LOG_DEBUG_LIB(LibFdb5) << "FamStore archiving object: " << object << '\n';

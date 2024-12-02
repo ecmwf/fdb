@@ -78,7 +78,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     const auto& schema = config.schema();
 
-    const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}}, schema.registry());
+    const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
 
     fdb5::FamStore famStore(schema, storeKey, config);
 
@@ -97,8 +97,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
                                 {"fam2c", "val2c"},
                                 {"fam3a", "val3a"},
                                 {"fam3b", "val3b"},
-                                {"fam3c", "val3c"}},
-                               schema.registry());
+                                {"fam3c", "val3c"}});
 
     //------------------------------------------------------------------------------------------------------------------
 

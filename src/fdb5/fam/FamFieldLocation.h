@@ -37,7 +37,7 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    std::shared_ptr<FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
     void visit(FieldLocationVisitor& visitor) const override;
 

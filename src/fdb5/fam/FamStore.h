@@ -62,7 +62,7 @@ protected:  // methods
 
     auto retrieve(Field& field) const -> eckit::DataHandle* override;
 
-    auto archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> override;
+    auto archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<const FieldLocation> override;
 
     void remove(const Key& key) const override;
 
