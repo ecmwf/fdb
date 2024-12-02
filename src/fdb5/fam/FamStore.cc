@@ -26,8 +26,8 @@ static const StoreBuilder<FamStore> builder(FamCommon::typeName);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamStore::FamStore(const Schema& schema, const Key& key, const Config& config)
-    : FamCommon(config, key), Store(schema), config_(config) { }
+FamStore::FamStore(const Key& key, const Config& config)
+    : FamCommon(config, key), Store(), config_(config) { }
 
 FamStore::~FamStore() = default;
 
@@ -50,8 +50,9 @@ auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
     return eckit::FamObjectName(uri).exists();
 }
 
-void FamStore::flush() {
+auto FamStore::flush() -> size_t {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
+    return 0;
 }
 
 void FamStore::close() {
@@ -110,7 +111,7 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
 }
 
 void FamStore::print(std::ostream& out) const {
-    out << "FamStore[schema=" << schema_ << ", root=" << root_ << ']';
+    out << "FamStore[root=" << root_ << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------

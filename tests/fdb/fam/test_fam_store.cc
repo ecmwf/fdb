@@ -80,7 +80,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
 
-    fdb5::FamStore famStore(schema, storeKey, config);
+    fdb5::FamStore famStore(storeKey, config);
 
     auto& store = static_cast<fdb5::Store&>(famStore);
 

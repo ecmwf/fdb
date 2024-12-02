@@ -31,7 +31,7 @@ class Schema;
 
 class FamStore: protected FamCommon, public Store {
 public:  // methods
-    FamStore(const Schema& schema, const Key& key, const Config& config);
+    FamStore(const Key& key, const Config& config);
 
     ~FamStore() override;
 
@@ -49,7 +49,7 @@ public:  // methods
 
     auto open() -> bool override { return true; }
 
-    void flush() override;
+    auto flush() -> size_t override;
 
     void close() override;
 
