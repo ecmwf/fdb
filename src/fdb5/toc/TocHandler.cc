@@ -292,8 +292,16 @@ void TocHandler::openForRead() const {
 
         FileDescHandle toc(fd_, true); // closes the file descriptor
         AutoClose closer1(toc);
-        fd_ = -1;
 
+        struct flock lock;
+        lock.l_type = F_RDLCK;
+        lock.l_start = 0;
+        lock.l_whence = SEEK_SET;
+        lock.l_len = 0;
+        ::fcntl(fd_, F_SETLKW, &lock);  /// @note: updates file attributes, although only on Linux and Solaris
+        /// @note: will be released when AutoClose'd
+
+        fd_ = -1;
 
         bool grow = true;
         cachedToc_.reset( new eckit::MemoryHandle(tocSize, grow) );
@@ -301,6 +309,17 @@ void TocHandler::openForRead() const {
         long buffersize = 4*1024*1024;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
+    } else {
+
+        struct flock lock;
+        lock.l_type = F_RDLCK;
+        lock.l_start = 0;
+        lock.l_whence = SEEK_SET;
+        lock.l_len = 0;
+        ::fcntl(fd_, F_SETLKW, &lock);  /// @note: updates file attributes, although only on Linux and Solaris
+        /// @note: this lock will be automatically released on close()
+        /// @todo: is this OK? Maybe somewhere the TocHandle is kept open for read e.g. for the lifetime of the process
+
     }
 }
 
@@ -848,6 +867,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
     NFSTocHandlerCloser closer(*this);  // only closes the fd, which also releases the lock
+    /// @todo: explore using FileDescHandle and AutoClose instead of NFSTocHandlerCloser
 
     struct flock lock;
     lock.l_type = F_WRLCK;
@@ -1009,7 +1029,7 @@ uid_t TocHandler::dbUID() const {
 
 Key TocHandler::databaseKey() {
     openForRead();
-    TocHandlerCloser close(*this);
+    NFSTocHandlerCloser closer(*this);  // only closes the fd (which also may release the lock if acquired in openForRead)
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
