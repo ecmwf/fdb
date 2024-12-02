@@ -808,22 +808,22 @@ void TocHandler::writeInitRecord(const Key& key) {
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     /// @note: lock for read if this TocHandler is not for a subtoc and the contents were not cached
-    struct flock lock;
+    struct flock toc_flock;
     bool lock_acquired = false;
     if (!isSubToc_ && !cachedToc_) {
-        lock.l_type = F_RDLCK;
-        lock.l_start = 0;
-        lock.l_whence = SEEK_SET;
-        lock.l_len = 0;
-        ::fcntl(fd_, F_SETLKW, &lock);  /// @note: updates file attributes, although only on Linux and Solaris
+        toc_flock.l_type = F_RDLCK;
+        toc_flock.l_start = 0;
+        toc_flock.l_whence = SEEK_SET;
+        toc_flock.l_len = 0;
+        ::fcntl(fd_, F_SETLKW, &toc_flock);  /// @note: updates file attributes, although only on Linux and Solaris
         lock_acquired = true;
     }
 
     size_t len = readNext(*r);
 
     if (lock_acquired) {
-        lock.l_type = F_UNLCK;
-        ::fcntl(fd_, F_SETLKW, &lock);
+        toc_flock.l_type = F_UNLCK;
+        ::fcntl(fd_, F_SETLKW, &toc_flock);
     }
 
     if (len == 0) {
@@ -865,11 +865,11 @@ void TocHandler::writeInitRecord(const Key& key) {
         s << isSubToc_;
 
         if (!isSubToc_) {
-            lock.l_type = F_WRLCK;
-            lock.l_start = 0;
-            lock.l_whence = SEEK_SET;
-            lock.l_len = 0;
-            ::fcntl(fd_, F_SETLKW, &lock);  /// @note: updates file attributes, although only on Linux and Solaris
+            toc_flock.l_type = F_WRLCK;
+            toc_flock.l_start = 0;
+            toc_flock.l_whence = SEEK_SET;
+            toc_flock.l_len = 0;
+            ::fcntl(fd_, F_SETLKW, &toc_flock);  /// @note: updates file attributes, although only on Linux and Solaris
         }
 
         append(*r2, s.position());
