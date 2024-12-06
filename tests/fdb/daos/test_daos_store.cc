@@ -384,7 +384,7 @@ CASE("DaosStore tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false," ");
             std::cout << std::endl;
             ++count;
         }

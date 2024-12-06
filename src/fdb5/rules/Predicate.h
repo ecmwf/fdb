@@ -17,34 +17,44 @@
 #define fdb5_Predicate_H
 
 #include <iosfwd>
-#include <vector>
 #include <memory>
+#include <string>
+#include <vector>
 
-#include "eckit/memory/NonCopyable.h"
+// #include "eckit/memory/NonCopyable.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
 class Key;
-class BaseKey;
 class Matcher;
 class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Predicate : public eckit::NonCopyable {
+class Predicate {
 
 public: // methods
+    Predicate(const Predicate&)            = delete;
+    Predicate& operator=(const Predicate&) = delete;
 
-    Predicate(const std::string &keyword, Matcher *matcher);
+    Predicate(Predicate&&)            = default;
+    Predicate& operator=(Predicate&&) = default;
+
+    Predicate(const std::string& keyword, Matcher* matcher);
 
     ~Predicate();
 
+    /// @note this calls find() on key; prefer match(value)
     bool match(const Key& key) const;
 
+    bool match(const std::string& value) const;
+
     void dump( std::ostream &s, const TypesRegistry &registry ) const;
-    void fill(BaseKey& key, const std::string& value) const;
+    void fill(Key& key, const std::string& value) const;
 
     const std::string &value(const Key& key) const;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
@@ -52,7 +62,7 @@ public: // methods
 
     bool optional() const;
 
-    std::string keyword() const;
+    const std::string& keyword() const;
 
 private: // methods
 

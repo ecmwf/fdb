@@ -29,14 +29,14 @@ AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const Pa
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
+bool AdoptVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
 
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
-    checkMissingKeys(fullComputedKey);
+    checkMissingKeys(fullKey);
 
     ASSERT(current());
 
-    current()->index(datumKey.canonical(), path_, offset_, length_);
+    current()->index(datumKey, path_, offset_, length_);
 
     return true;
 }

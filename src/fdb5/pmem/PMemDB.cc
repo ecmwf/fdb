@@ -187,8 +187,9 @@ void PMemDB::dump(std::ostream& out, bool simple) const {
     // And dump the rest of the stuff
 
     struct DumpVisitor : EntryVisitor {
-        DumpVisitor(std::ostream& out) : out_(out) {}
-        void visitDatum(const Field& field, const TypedKey& datumKey) override {
+        DumpVisitor(std::ostream& out) : out_(out) { }
+
+        void visitDatum(const Field& field, const Key& datumKey) override {
             out_ << "ENTRY" << std::endl;
             out_ << "  " << datumKey << std::endl;
             field.location().dump(out_);

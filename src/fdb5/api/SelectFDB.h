@@ -50,7 +50,7 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int level) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 

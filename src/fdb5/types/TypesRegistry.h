@@ -16,13 +16,10 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
-#include <string>
-#include <map>
-#include <memory>
-#include <optional>
 #include <functional>
-
-#include "eckit/memory/NonCopyable.h"
+#include <map>
+#include <optional>
+#include <string>
 
 namespace metkit::mars {
 class MarsRequest;
@@ -34,11 +31,17 @@ class Type;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypesRegistry : private eckit::NonCopyable {
+class TypesRegistry {
 
 public: // methods
 
     TypesRegistry();
+
+    TypesRegistry(const TypesRegistry&)            = delete;
+    TypesRegistry& operator=(const TypesRegistry&) = delete;
+
+    TypesRegistry(TypesRegistry&&)            = default;
+    TypesRegistry& operator=(TypesRegistry&&) = default;
 
     ~TypesRegistry();
 
@@ -62,8 +65,7 @@ private: // members
 
     friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
 
-    void print( std::ostream &out ) const;
-
+    void print(std::ostream& out) const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

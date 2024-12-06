@@ -13,28 +13,34 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include <functional>
 #include <unistd.h>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <sstream>
+#include <string>
 
 #include "fdb5/api/RemoteFDB.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 
+#include "eckit/config/Configuration.h"
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
-#include "eckit/distributed/Transport.h"
-#include "eckit/config/Resource.h"
+#include "eckit/os/BackTrace.h"
+#include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
-#include "eckit/runtime/Main.h"
-#include "eckit/os/BackTrace.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -62,7 +68,7 @@ public:
     ConnectionError(const int);
     ConnectionError(const int, const eckit::net::Endpoint&);
 
-    bool retryOnClient() const override { return true; } 
+    bool retryOnClient() const override { return true; }
 };
 
 ConnectionError::ConnectionError(const int retries) {
@@ -549,13 +555,20 @@ struct BaseAPIHelper {
     static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
 };
 
-using ListHelper = BaseAPIHelper<ListElement, fdb5::remote::Message::List>;
+struct ListHelper : public BaseAPIHelper<ListElement, fdb5::remote::Message::List> {
+
+    ListHelper(int level) : level_(level) {}
+    void encodeExtra(eckit::Stream& s) const { s << level_; }
+
+private:
+    int level_;
+};
 
 struct InspectHelper : BaseAPIHelper<ListElement, fdb5::remote::Message::Inspect> {
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
-        return ListElement(elem.key(), RemoteFieldLocation(fdb, elem.location()).make_shared(), elem.timestamp());
+        return {elem.keys(), std::make_shared<RemoteFieldLocation>(fdb, elem.location()), elem.timestamp()};
     }
 };
 
@@ -625,7 +638,7 @@ private:
 
 struct MoveHelper : BaseAPIHelper<MoveElement, fdb5::remote::Message::Move> {
 
-    
+
     MoveHelper(const eckit::URI& dest) :
         dest_(dest) {}
 
@@ -715,8 +728,8 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
            );
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
-    return forwardApiCall(ListHelper(), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const int level) {
+    return forwardApiCall(ListHelper(level), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {

@@ -20,6 +20,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -27,7 +28,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/types/TypesRegistry.h"
+#include "fdb5/rules/Rule.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -36,67 +37,74 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Rule;
+class Database;
 class ReadVisitor;
 class WriteVisitor;
-class Schema;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Schema : private eckit::NonCopyable {
 
-public: // methods
-
+public:  // methods
     Schema();
-    Schema(const eckit::PathName &path);
+    Schema(const eckit::PathName& path);
     Schema(std::istream& s);
 
     ~Schema();
 
-    void expand(const Key& field, WriteVisitor &visitor) const;
-    void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
+    // EXPAND
 
-    // Each database has its own internal schema. So expand() above results in
-    // expandFurther being called on the relevant schema from the DB, to start
-    // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+    void expand(const Key& field, WriteVisitor& visitor) const;
 
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result) const ;
-    void matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
-    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
+    std::vector<Key> expandDatabase(const metkit::mars::MarsRequest& request) const;
 
-    void load(const eckit::PathName &path, bool replace = false);
+    // MATCH
+
+    void matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
+
+    void matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+
+    std::optional<Key> matchDatabase(const std::string& fingerprint) const;
+
+    /// @throws eckit::SeriousBug if no rule is found
+    const RuleDatabase& matchingRule(const Key& dbKey) const;
+
+    /// @throws eckit::SeriousBug if no rule is found
+    const RuleDatum& matchingRule(const Key& dbKey, const Key& idxKey) const;
+
+    void load(const eckit::PathName& path, bool replace = false);
+
     void load(std::istream& s, bool replace = false);
 
-    void dump(std::ostream &s) const;
+    // ACCESSORS
+
+    void dump(std::ostream& s) const;
 
     bool empty() const;
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    const std::string &path() const;
+    const std::string& path() const;
 
     const TypesRegistry& registry() const;
 
 private: // methods
 
     void clear();
-    void check();
 
-    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+    void print(std::ostream& out) const;
 
-    void print( std::ostream &out ) const;
+    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
-private: // members
-
+private:  // members
     TypesRegistry registry_;
-    
-    std::vector<Rule *>  rules_;
-    std::string path_;
 
+    std::vector<RuleDatabase> rules_;
+
+    std::string path_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

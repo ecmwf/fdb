@@ -148,7 +148,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
     if (subTocOverride) {
         useSubToc_ = true;
-    }    
+    }
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc) :
@@ -187,12 +187,15 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
             }
 
             for (const auto& kv : parentKey) {
-                auto it = key.find(kv.first);
-                if (it == key.end()) {
+                const auto [it, found] = key.find(kv.first);
+
+                if (!found) {
                     std::stringstream ss;
                     ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                     throw UserError(ss.str(), Here());
-                } else if (kv.second != it->second) {
+                }
+
+                if (kv.second != it->second) {
                     remapKey_.set(kv.first, kv.second);
                 }
             }
@@ -1739,7 +1742,7 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
 
 void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
 
-    
+
 
     for (ControlIdentifier identifier : identifiers) {
 

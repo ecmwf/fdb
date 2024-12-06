@@ -39,7 +39,8 @@ list( APPEND fdb5_srcs
     api/helpers/FDBToolRequest.cc
     api/helpers/FDBToolRequest.h
     api/helpers/DumpIterator.h
-    api/helpers/ListIterator.cc
+    api/helpers/ListElement.cc
+    api/helpers/ListElement.h
     api/helpers/ListIterator.h
     api/helpers/LockIterator.h
     api/helpers/MoveIterator.h
@@ -78,6 +79,8 @@ list( APPEND fdb5_srcs
     database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
+    database/BaseKey.cc
+    database/BaseKey.h
     database/Catalogue.cc
     database/Catalogue.h
     database/DB.cc
@@ -126,6 +129,7 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
+    database/KeyChain.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc
@@ -483,6 +487,7 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-info
+    fdb-inspect
     fdb-status
     fdb-lock
     fdb-unlock

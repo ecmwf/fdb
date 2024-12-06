@@ -292,8 +292,9 @@ std::vector<PathName> PoolManager::visitablePools(const Key& key) {
 }
 
 std::vector<PathName> PoolManager::visitablePools(const metkit::mars::MarsRequest& request) {
-    std::set<TypedKey> keys;
-    config_.schema().matchFirstLevel(request, keys, "");
+    /// @todo fix here
+    std::set<Key> keys;
+    config_.schema().matchDatabase(request, keys, "");
     return visitablePools(keys);
 }
 

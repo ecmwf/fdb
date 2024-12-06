@@ -19,7 +19,9 @@
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -34,8 +36,7 @@ public: // methods
     ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size, const ArchiveCallback& callback = CALLBACK_NOOP);
 
 protected: // methods
-
-    bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void print( std::ostream &out ) const override;
 

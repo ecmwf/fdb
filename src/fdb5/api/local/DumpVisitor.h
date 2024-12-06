@@ -48,8 +48,10 @@ public:
         catalogue.dump(out_, simple_);
         return true;
     }
-    bool visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+    bool visitIndex(const Index& /*index*/) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
     void visitDatum(const Field& field, const std::string& keyFingerprint) override {
         EntryVisitor::visitDatum(field, keyFingerprint);

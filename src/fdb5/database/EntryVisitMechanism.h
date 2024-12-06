@@ -20,13 +20,17 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 
+namespace eckit {
+class URI;
+}
+
 namespace fdb5 {
 
 class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
-class TypedKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,6 +44,7 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
+    virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
     virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
@@ -50,16 +55,15 @@ public:  // methods
     time_t indexTimestamp() const;
 
 private: // methods
-
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
 
     // n.b. non-owning
-    const Catalogue* currentCatalogue_ = nullptr;
-    const Store* currentStore_ = nullptr;
-    const Index* currentIndex_ = nullptr;
-    const Rule* rule_ = nullptr;
+    const Catalogue* currentCatalogue_ {nullptr};
+    const Store*     currentStore_ {nullptr};
+    const Index*     currentIndex_ {nullptr};
+    const Rule*      rule_ {nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

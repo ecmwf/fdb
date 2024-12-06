@@ -20,11 +20,12 @@
 #include <vector>
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
 
 #include "fdb5/database/Key.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -36,14 +37,13 @@ class Schema;
 class WriteVisitor : public eckit::NonCopyable {
 
 public: // methods
+    WriteVisitor(std::vector<Key>&);
 
-    WriteVisitor(std::vector<Key> &);
+    virtual ~WriteVisitor() = default;
 
-    virtual ~WriteVisitor();
-
-    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) = 0;
-    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) = 0;
-    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) = 0;
+    virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
+    virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
+    virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
@@ -70,8 +70,7 @@ private: // members
 
     std::vector<Key> &prev_;
 
-    const Rule *rule_; // Last rule used
-
+    const Rule* rule_ {nullptr};  // Last rule used
 };
 
 //----------------------------------------------------------------------------------------------------------------------

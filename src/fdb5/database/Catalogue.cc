@@ -13,7 +13,6 @@
 
 #include "fdb5/database/Catalogue.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
@@ -31,7 +30,7 @@ std::unique_ptr<Store> Catalogue::buildStore() {
 
 void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
 
-    std::vector<Index> all = indexes(sorted);
+    auto all = indexes(sorted);  // Deferred reading indexes.
 
     // It is likely that many indexes in the same database share resources/files/etc.
     // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
@@ -51,11 +50,9 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
                 }
             }
         }
-
     }
 
     visitor.catalogueComplete(*this);
-
 }
 
 bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {

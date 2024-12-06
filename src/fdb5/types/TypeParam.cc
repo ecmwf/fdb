@@ -38,7 +38,7 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
                           const DB *db) const {
     ASSERT(db);
 
-    eckit::StringSet ax;
+    eckit::DenseSet<std::string> ax;
 
     db->axis(keyword, ax);
 

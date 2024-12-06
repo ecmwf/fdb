@@ -14,24 +14,28 @@
 
 #pragma once
 
+#include <iosfwd>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
-#include "eckit/types/Types.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
-#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -112,14 +116,18 @@ protected: // members
 
 class CatalogueReader {
 public:
+    virtual ~CatalogueReader() = default;
+
     virtual DbStats stats() const = 0;
-    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
 
 class CatalogueWriter {
 public:
+    virtual ~CatalogueWriter() = default;
+
     virtual const Index& currentIndex() = 0;
     virtual void archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
@@ -171,56 +179,4 @@ private:
     eckit::Mutex mutex_;
 };
 
-class NullCatalogue : public Catalogue {
-public:
-
-    NullCatalogue() : Catalogue(Key{}, ControlIdentifiers{}, Config{}) {}
-
-    const Schema& schema() const override { NOTIMP; }
-
-    bool selectIndex(const Key& idxKey) override { NOTIMP; }
-    void deselectIndex() override { NOTIMP; }
-
-    std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }
-
-    void hideContents() override { NOTIMP; }
-
-    void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override { NOTIMP; }
-
-    StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
-    PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; }
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
-
-    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; }
-
-    std::vector<fdb5::Index> indexes(bool sorted=false) const override { NOTIMP; }
-
-    /// For use by the WipeVisitor
-    void maskIndexEntry(const Index& index) const override { NOTIMP; }
-
-    /// For use by purge/wipe
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                           std::set<eckit::URI>& data) const override { NOTIMP; }
-
-    friend std::ostream &operator<<(std::ostream &s, const Catalogue &x);
-    void print( std::ostream &out ) const override { NOTIMP; }
-
-    std::string type() const override { NOTIMP; }
-    bool open() override { NOTIMP; }
-    void flush() override { NOTIMP; }
-    void clean() override { NOTIMP; }
-    void close() override { NOTIMP; }
-
-    bool exists() const override { NOTIMP; }
-    void checkUID() const override { NOTIMP; }
-
-    eckit::URI uri() const override { NOTIMP; }
-
-protected: // methods
-
-    void loadSchema() override { NOTIMP; }
-
-};
-
-}
+}  // namespace fdb5
