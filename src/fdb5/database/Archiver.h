@@ -16,7 +16,6 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
-#include <time.h>
 #include <utility>
 
 #include "eckit/memory/NonCopyable.h"

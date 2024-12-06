@@ -19,7 +19,6 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/LibFdb5.h"
 
-#include <stdlib.h>
 #include <random>
 
 using namespace eckit;

@@ -11,6 +11,8 @@
 
 #include "fdb5/database/Archiver.h"
 
+#include <ctime>
+
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"

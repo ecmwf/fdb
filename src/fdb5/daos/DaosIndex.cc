@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>  // for PATH_MAX
+#include <climits>  // for PATH_MAX
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/serialisation/MemoryStream.h"
