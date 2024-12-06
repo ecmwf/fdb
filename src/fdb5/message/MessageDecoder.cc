@@ -109,7 +109,7 @@ std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const e
     eckit::message::Reader reader(path);
     eckit::message::Message msg;
 
-    std::map<std::string, std::set<std::string> > s;
+    std::map<std::string, std::set<std::string>> s;
 
     while ( (msg = reader.next()) ) {
 

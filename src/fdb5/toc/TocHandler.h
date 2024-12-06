@@ -26,7 +26,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
@@ -104,7 +104,7 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const Key& key, const Config& config);
+    // TocHandler( const Key& key, const Config& config);
 
     TocHandler( const eckit::PathName &dir, const Config& config);
 
@@ -272,6 +272,8 @@ private: // members
     mutable bool enumeratedMaskedEntries_;
     mutable int numSubtocsRaw_;
     mutable bool writeMode_;
+
+    mutable bool dirty_;
 };
 
 

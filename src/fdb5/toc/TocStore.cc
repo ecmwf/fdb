@@ -34,10 +34,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema),
+TocStore::TocStore(const Key& key, const Config& config) :
+    Store(),
     TocCommon(StoreRootManager(config).directory(key).directory_),
-    auxFileExtensions_{auxFileExtensions()} {}
+    archivedFields_(0), auxFileExtensions_{auxFileExtensions()} {}
 
 eckit::URI TocStore::uri() const {
 
@@ -115,8 +115,8 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void *data, eckit::Length length) {
-    dirty_ = true;
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void* data, eckit::Length length) {
+    archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(idxKey);
 
@@ -128,19 +128,21 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    return std::unique_ptr<const FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
-void TocStore::flush() {
-    if (!dirty_) {
-        return;
+size_t TocStore::flush() {
+    if (archivedFields_ == 0) {
+        return 0;
     }
 
     // ensure consistent state before writing Toc entry
-
     flushDataHandles();
 
-    dirty_ = false;
+    size_t out = archivedFields_;
+    archivedFields_ = 0;
+
+    return out;
 }
 
 void TocStore::close() {

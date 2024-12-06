@@ -11,14 +11,22 @@
 // #include "eckit/log/Log.h"
 
 #include "fdb5/database/ReadVisitor.h"
+#include "fdb5/database/Store.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ReadVisitor::~ReadVisitor() {
-}
+
+// CatalogueReader* ReadVisitor::reader() const {
+//     if (catalogue_) {
+//         CatalogueReader* catalogueReader = dynamic_cast<CatalogueReader*>(catalogue_);
+//         ASSERT(catalogueReader);
+//         return catalogueReader;
+//     }
+//     return nullptr;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

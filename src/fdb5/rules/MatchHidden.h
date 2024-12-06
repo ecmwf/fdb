@@ -25,26 +25,36 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchHidden : public Matcher {
+class MatchHidden : public Matcher{
 
 public: // methods
 
     MatchHidden(const std::string &def);
+    MatchHidden(eckit::Stream& s);
 
     ~MatchHidden() override;
 
-    bool match(const std::string &keyword, const Key& key) const override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
+
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 
-    bool optional() const override;
-    const std::string &value(const Key& , const std::string &keyword) const override;
-    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    void print( std::ostream &out ) const override;
-    const std::string &defaultValue() const override;
+    void encode(eckit::Stream&) const override;
 
+    bool optional() const override;
+    const std::string &value(const Key&, const std::string& keyword) const override;
+    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
+    void print( std::ostream& out ) const override;
+    const std::string& defaultValue() const override;
+
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<MatchHidden> reanimator_;
 
     std::vector<std::string> default_;
 

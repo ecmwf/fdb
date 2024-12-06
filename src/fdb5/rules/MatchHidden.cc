@@ -21,9 +21,34 @@ static std::string empty;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchHidden::classSpec_ = { &Matcher::classSpec(), "MatchHidden", };
+
+eckit::Reanimator<MatchHidden> MatchHidden::reanimator_;
+
+
 MatchHidden::MatchHidden(const std::string &def) :
     Matcher() {
     default_.push_back(def);
+}
+
+MatchHidden::MatchHidden(eckit::Stream& s) :
+    Matcher() {
+        
+    size_t numValues;
+    std::string value;
+
+    s >> numValues;
+    for (size_t i=0; i < numValues; i++) {
+        s >> value;
+        default_.push_back(value);
+    }
+}
+
+void MatchHidden::encode(eckit::Stream& s) const {
+    s << default_.size();
+    for (const std::string& value : default_) {
+        s << value;
+    }
 }
 
 MatchHidden::~MatchHidden() {

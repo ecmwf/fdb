@@ -19,7 +19,7 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/LibFdb5.h"
 
@@ -44,14 +44,15 @@ bool PurgeVisitor::visitCatalogue(const Catalogue& catalogue) {
     return false;
 }*/
 
-bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+//bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // If the DB is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
     
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     // If the request is overspecified relative to the DB key, then we
     // bail out here.
@@ -65,9 +66,9 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store)
     }
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.purgeVisitor(store));
+    internalVisitor_.reset(catalogue.purgeVisitor(store()));
 
-    internalVisitor_->visitDatabase(catalogue, store);
+    internalVisitor_->visitDatabase(catalogue);
 
     return true; // Explore contained indexes
 }

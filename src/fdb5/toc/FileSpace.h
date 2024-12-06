@@ -69,7 +69,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const;
 
     void print( std::ostream &out ) const;
 
