@@ -19,7 +19,7 @@
 #include "fdb5/toc/TocWipeVisitor.h"
 
 #include <dirent.h>
-#include <errno.h>
+#include <cerrno>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
 #include <cstring>

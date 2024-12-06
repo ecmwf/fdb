@@ -68,8 +68,8 @@ public:
         Tokenizer parse("/");
 
         for (int i=0; i<numValues; i++) {
-        	std::vector<std::string> result;
-        	parse(values[i], result);
+            std::vector<std::string> result;
+            parse(values[i], result);
             vv.insert(std::end(vv), std::begin(result), std::end(result));
         }
         request_.values(n, vv);
@@ -92,6 +92,43 @@ private:
 
 struct fdb_split_key_t {
     using value_type = KeyChain;
+
+    void set(const std::vector<Key>& key) {
+        key_ = &key;
+        level_ = -1;
+    }
+
+    int next_metadata(const char** k, const char** v, size_t* level) {
+        if (key_ == nullptr) {
+            std::stringstream ss;
+            ss << "fdb_split_key_t not valid. Key not configured";
+            throw eckit::UserError(ss.str(), Here());
+        }
+        if (level_ == -1) {
+            if (0 < key_->size()) {
+                level_ = 0;
+                it_ = key_->at(0).begin();
+            } else {
+                return FDB_ITERATION_COMPLETE;
+            }
+        }
+        while (it_ == key_->at(level_).end()) {
+            if (level_<key_->size()-1) {
+                level_++;
+                it_ = key_->at(level_).begin();
+            } else {
+                return FDB_ITERATION_COMPLETE;
+            }
+        }
+
+        *k = it_->first.c_str();
+        *v = it_->second.c_str();
+        if (level != nullptr) {
+            *level = level_;
+        }
+        it_++;
+        return FDB_SUCCESS;
+    }
 
     auto operator=(const value_type& keys) -> fdb_split_key_t& {
         keys_  = &keys;
@@ -199,9 +236,12 @@ public:
         ASSERT(dh_);
         return dh_->read(buf, length);
     }
+    long size() {
+        ASSERT(dh_);
+        return dh_->size();
+    }
     void set(DataHandle* dh) {
-        if (dh_)
-            delete dh_;
+        delete dh_;
         dh_ = dh;
     }
 
@@ -561,6 +601,12 @@ int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read)
         ASSERT(buf);
         ASSERT(read);
         *read = dr->read(buf, count);
+    });
+}
+int fdb_datareader_size(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([=]{
+        ASSERT(dr);
+        *size = dr->size();
     });
 }
 int fdb_delete_datareader(fdb_datareader_t* dr) {

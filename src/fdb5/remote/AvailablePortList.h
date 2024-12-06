@@ -20,7 +20,7 @@
 #define fdb5_remote_AvailablePortList_H
 
 #include <sys/types.h>
-#include <time.h>
+#include <ctime>
 #include <utility>
 
 #include "eckit/container/SharedMemArray.h"
