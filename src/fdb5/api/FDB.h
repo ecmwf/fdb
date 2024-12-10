@@ -91,7 +91,9 @@ public: // methods
 
     eckit::DataHandle* read(ListIterator& it, bool sorted = false);
 
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
+    eckit::DataHandle* readSeekable(ListIterator& it, bool sorted = false);
+
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, bool seekable = false);
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 

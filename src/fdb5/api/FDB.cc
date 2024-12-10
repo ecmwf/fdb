@@ -27,6 +27,7 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
@@ -219,9 +220,13 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::readSeekable(ListIterator& it, bool sorted) {
+    return new FieldHandle(it);
+}
+
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, bool seekable) {
     ListIterator it = inspect(request);
-    return read(it, sorted(request));
+    return (seekable ? readSeekable(it, sorted(request)) : read(it, sorted(request)));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
