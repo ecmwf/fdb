@@ -19,8 +19,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool Matcher::optional() const {
-    return false;
+eckit::ClassSpec Matcher::classSpec_ = { &eckit::Streamable::classSpec(), "Matcher", };
+
+Matcher::Matcher(eckit::Stream&) {
+}
+
+void Matcher::encode(eckit::Stream& s) const {
 }
 
 const std::string &Matcher::value(const Key& key, const std::string &keyword) const {

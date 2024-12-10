@@ -17,6 +17,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchAlways::classSpec_ = { &Matcher::classSpec(), "MatchAlways", };
+
+eckit::Reanimator<MatchAlways> MatchAlways::reanimator_;
+
+
+MatchAlways::MatchAlways(eckit::Stream&) :
+    Matcher() {
+}
+
+void MatchAlways::encode(eckit::Stream& s) const {
+}
+
 void MatchAlways::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
 }

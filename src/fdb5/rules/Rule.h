@@ -21,6 +21,8 @@
 #include <optional>
 #include <vector>
 
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/serialisation/Reanimator.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/types/TypesRegistry.h"
@@ -39,7 +41,7 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Rule {
+class Rule : public eckit::Streamable {
     friend class Schema;
 
 public:  // methods
@@ -50,6 +52,12 @@ public:  // methods
 
     Rule(const Rule&)            = delete;
     Rule& operator=(const Rule&) = delete;
+
+    /// @todo fix this
+    Rule(eckit::Stream& s);
+
+    /// @todo fix this
+    Rule(const Schema &schema, eckit::Stream& s);
 
     virtual const char* type() const = 0;
 
@@ -91,11 +99,16 @@ private:  // methods
 
     void fill(Key& key, const eckit::StringList& values) const;
 
+    void encode(eckit::Stream& s) const override;
+
     void print(std::ostream& out) const;
 
     friend std::ostream& operator<<(std::ostream& s, const Rule& x);
 
 private:  // members
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Rule> reanimator_;
+
     const Rule* parent_ {nullptr};
 
     std::size_t line_ {0};

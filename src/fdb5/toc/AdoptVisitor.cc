@@ -11,8 +11,9 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/AdoptVisitor.h"
+#include "fdb5/toc/TocEngine.h"
 
 using namespace eckit;
 
@@ -34,11 +35,14 @@ bool AdoptVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(fullKey);
 
-    ASSERT(current());
+    CatalogueWriter* cat = catalogue();
+    ASSERT(cat);
 
-    current()->index(datumKey, path_, offset_, length_);
-
-    return true;
+    if (cat->type() == TocEngine::typeName()) {
+        cat->index(datumKey, eckit::URI("file", path_), offset_, length_);
+        return true;
+    }
+    return false;
 }
 
 void AdoptVisitor::print(std::ostream& out) const {

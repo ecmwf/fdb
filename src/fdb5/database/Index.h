@@ -30,7 +30,7 @@
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Indexer.h"
-#include "fdb5/database/Key.h"
+
 
 namespace eckit {
 class Stream;
@@ -38,7 +38,6 @@ class Stream;
 
 namespace fdb5 {
 
-class Key;
 class Index;
 class IndexLocationVisitor;
 class Schema;

@@ -112,7 +112,7 @@ private: // methods
 
 private: // members
 
-    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
+    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string>>> AxisMap;
     AxisMap axis_;
 
     bool readOnly_;

@@ -39,11 +39,12 @@ private: // types
 
     struct Counts {
         Counts() :
-            archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
+            archive(0), inspect(0), list(0), axes(0), dump(0), status(0), wipe(0),
             purge(0), stats(0), flush(0), control(0), move(0) {}
         size_t archive;
         size_t inspect;
         size_t list;
+        size_t axes;
         size_t dump;
         size_t status;
         size_t wipe;
@@ -94,6 +95,11 @@ public: // methods
         counts_.list += 1;
         ASSERT(level == 3);
         return fdb5::ListIterator(0);
+    }
+
+    fdb5::AxesIterator axesIterator(const fdb5::FDBToolRequest& request, int level=3) override {
+        counts_.axes += 1;
+        return fdb5::AxesIterator(0);
     }
 
     fdb5::DumpIterator dump(const fdb5::FDBToolRequest& request, bool simple) override {

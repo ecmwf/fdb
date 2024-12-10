@@ -19,7 +19,10 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <functional>
 #include <string>
+
+#include "eckit/serialisation/Streamable.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -31,11 +34,12 @@ class Type;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypesRegistry {
+class TypesRegistry : public eckit::Streamable {
 
 public: // methods
 
     TypesRegistry();
+    explicit TypesRegistry(eckit::Stream& s);
 
     TypesRegistry(const TypesRegistry&)            = delete;
     TypesRegistry& operator=(const TypesRegistry&) = delete;
@@ -43,7 +47,7 @@ public: // methods
     TypesRegistry(TypesRegistry&&)            = default;
     TypesRegistry& operator=(TypesRegistry&&) = default;
 
-    ~TypesRegistry();
+    ~TypesRegistry() override;
 
     const Type &lookupType(const std::string &keyword) const;
 
@@ -54,7 +58,14 @@ public: // methods
 
     metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    void encode(eckit::Stream& s) const override;
+
 private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<TypesRegistry> reanimator_;
 
     typedef std::map<std::string, Type *> TypeMap;
 

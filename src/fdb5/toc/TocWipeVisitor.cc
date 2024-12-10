@@ -10,19 +10,19 @@
 
 
 #include <algorithm>
-
-#include "eckit/os/Stat.h"
-
-#include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/toc/TocCatalogue.h"
-#include "fdb5/toc/TocWipeVisitor.h"
-
+#include <cstring>
 #include <dirent.h>
 #include <cerrno>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
-#include <cstring>
+
+#include "eckit/os/Stat.h"
+
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -100,14 +100,16 @@ TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
 TocWipeVisitor::~TocWipeVisitor() {}
 
 
-bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+// bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // Overall checks
 
     ASSERT(&catalogue_ == &catalogue);
 //    ASSERT(&store_ == &store);
     ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
-    WipeVisitor::visitDatabase(catalogue, store);
+//    WipeVisitor::visitDatabase(catalogue, store);
+    WipeVisitor::visitDatabase(catalogue);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
 
@@ -163,6 +165,8 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
     // Enumerate data files.
 
     std::vector<eckit::URI> indexDataPaths(index.dataURIs());
+    auto paths = store_.asCollocatedDataURIs(indexDataPaths);
+
     for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataPaths)) {
         if (include) {
             if (!store_.uriBelongs(uri)) {

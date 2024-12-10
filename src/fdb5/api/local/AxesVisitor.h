@@ -46,7 +46,7 @@ public:
 
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override;
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
 
     bool visitIndex(const Index& index) override;
 

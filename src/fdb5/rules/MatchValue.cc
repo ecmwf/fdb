@@ -20,10 +20,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchValue::classSpec_ = { &Matcher::classSpec(), "MatchValue", };
+
+eckit::Reanimator<MatchValue> MatchValue::reanimator_;
+
+//----------------------------------------------------------------------------------------------------------------------
+
 MatchValue::MatchValue(std::string value): value_ {std::move(value)} { }
 
-bool MatchValue::match(const std::string& value) const {
-    return value == value_;
+MatchValue::MatchValue(eckit::Stream& s) :
+    Matcher() {
+    s >> value_;
+}
+
+void MatchValue::encode(eckit::Stream& s) const {
+    s << value_;
 }
 
 bool MatchValue::match(const std::string& keyword, const Key& key) const {

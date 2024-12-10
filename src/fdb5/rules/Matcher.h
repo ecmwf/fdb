@@ -19,7 +19,7 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
 
 class MarsTask;
 
@@ -34,12 +34,13 @@ class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Matcher : public eckit::NonCopyable {
+class Matcher : public eckit::Streamable {
 
 public: // methods
     Matcher() = default;
 
-    virtual ~Matcher() = default;
+    Matcher() = default;
+    Matcher(eckit::Stream& s);
 
     virtual bool optional() const;
 
@@ -53,11 +54,23 @@ public: // methods
 
     virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
 
-    friend std::ostream& operator<<(std::ostream& s, const Matcher& x);
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
+
+    friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
+
+//	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 
+    void encode(eckit::Stream&) const override;
+
     virtual void print( std::ostream &out ) const = 0;
+
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Matcher> reanimator_;
 
 };
 

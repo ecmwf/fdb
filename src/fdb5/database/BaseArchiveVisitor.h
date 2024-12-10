@@ -25,7 +25,8 @@ class MarsRequest;
 namespace fdb5 {
 
 class Archiver;
-class DB;
+class CatalogueWriter;
+class Store;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -45,7 +46,8 @@ protected: // methods
 
     const Schema& databaseSchema() const override;
 
-    DB* current() const;
+    fdb5::CatalogueWriter* catalogue() const;
+    fdb5::Store* store() const;
 
     const Key& initialFieldKey() const { return initialFieldKey_; }
 

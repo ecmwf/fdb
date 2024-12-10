@@ -63,16 +63,22 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             if (keys.empty()) { throw eckit::UserError("Invalid request", Here()); }
 
+            /// @todo this is running over keys, which needs more thoughts
+
             for (const auto& key : keys) {
 
                 eckit::Log::info() << key << std::endl;
 
-                // 'Touch' the database (which will create it if it doesn't exist)
-                std::unique_ptr<DB> db = DB::buildReader(key, conf);
+            // 'Touch' the database (which will create it if it doesn't exist)
 
-                if (!db->exists() && create) { db = DB::buildWriter(key, conf); }
+            std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
 
-                if (db->exists()) { eckit::Log::info() << (*db) << std::endl; }
+            if (!cat->exists() && create) {
+                cat = CatalogueWriterFactory::instance().build(key, conf);
+            }
+
+            if (cat->exists()) {
+                eckit::Log::info() << (*cat) << std::endl;
             }
         }
     }

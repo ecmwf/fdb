@@ -35,17 +35,17 @@ namespace fdb5 {
 class BTreeIndex;
 
 
-/// FileStoreWrapper exists _only_ so that the files_ member can be initialised from the stream
+/// FileStoreWrapper exists _only_ so that the uris_ member can be initialised from the stream
 /// before the Index base class is initialised, for the TocIndex class. This order is required
-/// to preserve the order that data is stored/read from streams from before the files_ object
+/// to preserve the order that data is stored/read from streams from before the uris_ object
 /// was moved into the TocIndex class.
 
 struct UriStoreWrapper {
 
-    UriStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
-    UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+    UriStoreWrapper(const eckit::PathName& directory) : uris_(directory) {}
+    UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : uris_(directory, s) {}
 
-    UriStore files_;
+    UriStore uris_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

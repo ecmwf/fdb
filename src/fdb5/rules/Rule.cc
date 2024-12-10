@@ -116,9 +116,55 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec Rule::classSpec_ = { &eckit::Streamable::classSpec(), "Rule", };
+
+eckit::Reanimator<Rule> Rule::reanimator_;
+
+//----------------------------------------------------------------------------------------------------------------------
+
 Rule::Rule(const std::size_t line, std::vector<Predicate>& predicates, const eckit::StringDict& types)
     : line_ {line}, predicates_ {std::move(predicates)} {
     for (const auto& [keyword, type] : types) { registry_.addType(keyword, type); }
+}
+
+/// @todo fix this
+Rule::Rule(eckit::Stream& s):
+    Rule(Schema(""), s) {
+    NOTIMP;
+}
+
+/// @todo fix this
+Rule::Rule(const Schema &schema, eckit::Stream& s):
+    schema_(schema), registry_(s) {
+
+    size_t numPredicates;
+    size_t numRules;
+
+    s >> line_;
+    s >> numPredicates;
+    for (size_t i=0; i < numPredicates; i++) {
+        predicates_.push_back(eckit::Reanimator<Predicate>::reanimate(s));
+    }
+
+    s >> numRules;
+    for (size_t i=0; i < numRules; i++) {
+        rules_.push_back(new Rule(schema, s));
+    }
+}
+
+void Rule::encode(eckit::Stream& s) const {
+
+    registry_.encode(s);
+
+    s << line_;
+    s << predicates_.size();
+    for (const Predicate* predicate : predicates_) {
+        s << *predicate;
+    }
+    s << rules_.size();
+    for (const Rule* rule : rules_) {
+        rule->encode(s);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

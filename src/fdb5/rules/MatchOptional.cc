@@ -22,7 +22,32 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchOptional::classSpec_ = { &Matcher::classSpec(), "MatchOptional", };
+
+eckit::Reanimator<MatchOptional> MatchOptional::reanimator_;
+
+
 MatchOptional::MatchOptional(std::string def): default_ {std::move(def)} { }
+
+MatchOptional::MatchOptional(eckit::Stream& s) :
+    Matcher() {
+
+    size_t numValues;
+    std::string value;
+
+    s >> numValues;
+    for (size_t i=0; i < numValues; i++) {
+        s >> value;
+        default_.push_back(value);
+    }
+}
+
+void MatchOptional::encode(eckit::Stream& s) const {
+    s << default_.size();
+    for (const std::string& value : default_) {
+        s << value;
+    }
+}
 
 bool MatchOptional::match(const std::string& /*value*/) const {
     return true;

@@ -22,7 +22,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config): TocCatalogue(key, config) { }
+TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
+    TocCatalogue(dbKey, config) {
+}
 
 TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config):
     TocCatalogue(uri.path(), ControlIdentifiers {}, config) { }
@@ -157,7 +159,7 @@ std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
     return returnedIndexes;
 }
 
-static CatalogueBuilder<TocCatalogueReader> builder("toc.reader");
+static CatalogueReaderBuilder<TocCatalogueReader> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

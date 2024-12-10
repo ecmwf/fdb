@@ -65,14 +65,15 @@ public:
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+//    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+    bool visitDatabase(const Catalogue& catalogue) override {
 
         // If the DB is locked for listing, then it "doesn't exist"
         if (!catalogue.enabled(ControlIdentifier::List)) {
             return false;
         }
 
-        bool ret = QueryVisitor::visitDatabase(catalogue, store);
+        bool ret = QueryVisitor::visitDatabase(catalogue);
 
         ASSERT(currentCatalogue_->key().partialMatch(request_));
 

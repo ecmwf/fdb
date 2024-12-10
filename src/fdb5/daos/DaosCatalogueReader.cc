@@ -133,7 +133,7 @@ bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
 
 }
 
-static fdb5::CatalogueBuilder<fdb5::DaosCatalogueReader> builder("daos.reader");
+static fdb5::CatalogueReaderBuilder<fdb5::DaosCatalogueReader> builder("daos");
 
 //----------------------------------------------------------------------------------------------------------------------
 

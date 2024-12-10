@@ -225,7 +225,7 @@ CASE("DaosCatalogue tests") {
             EXPECT(cat_kv.has(index_key.valuesToString()));
 
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
             EXPECT(index_kv.has(field_key.valuesToString()));
             fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
             fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
@@ -306,7 +306,7 @@ CASE("DaosCatalogue tests") {
 
         char data[] = "test";
 
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
         std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
@@ -320,7 +320,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
@@ -356,7 +356,7 @@ CASE("DaosCatalogue tests") {
             std::ostream out(std::cout.rdbuf());
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -397,7 +397,7 @@ CASE("DaosCatalogue tests") {
 
         char data[] = "test";
 
-        fdb5::TocStore tstore{schema, db_key, config};
+        fdb5::TocStore tstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
         std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
@@ -411,7 +411,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             tstore.flush();
@@ -462,7 +462,7 @@ CASE("DaosCatalogue tests") {
             std::ostream out(std::cout.rdbuf());
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before

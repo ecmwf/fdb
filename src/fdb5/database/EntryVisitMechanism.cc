@@ -19,6 +19,7 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/Store.h"
 
 #include <memory>
 #include <vector>
@@ -41,9 +42,29 @@ bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*s
     return true;
 }
 
-bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
+    return true;
+}
+
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr), currentIndex_(nullptr) {}
+
+EntryVisitor::~EntryVisitor() {
+    if (currentStore_)
+        delete currentStore_;
+}
+
+Store& EntryVisitor::store() const {
+    if (!currentStore_) {
+        ASSERT(currentCatalogue_);
+        currentStore_ = currentCatalogue_->buildStore().release();
+        ASSERT(currentStore_);
+    }
+    return *currentStore_;
+}
+
+bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_ = &store;
+    currentStore_ = nullptr;
     currentIndex_ = nullptr;
     rule_ = nullptr;
     return true;
@@ -54,6 +75,7 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
+    delete currentStore_;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
     rule_ = nullptr;
@@ -106,25 +128,26 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
-
         for (const URI& uri : uris) {
             if (!visitor.preVisitDatabase(uri, dbConfig_.schema())) { continue; }
 
             /// @note: the schema of a URI returned by visitableLocations
             ///   matches the corresponding Engine type name
             // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
+            LOG_DEBUG_LIB(LibFdb5) << "FDB processing URI " << uri << std::endl;
 
-            std::unique_ptr<DB> db;
-
+            std::unique_ptr<CatalogueReader> catalogue;
             try {
-                db = DB::buildReader(uri, dbConfig_);
+
+                catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
 
             } catch (fdb5::DatabaseNotFoundException& e) { visitor.onDatabaseNotFound(e); }
 
-            ASSERT(db->open());
-            eckit::AutoCloser<DB> closer(*db);
+            ASSERT(catalogue->open());
 
-            db->visitEntries(visitor, false);
+            eckit::AutoCloser<Catalogue> closer(*catalogue);
+
+            catalogue->visitEntries(visitor, /* *store, */ false);
         }
 
     } catch (eckit::UserError&) {

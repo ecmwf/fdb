@@ -73,9 +73,11 @@ void FdbHide::execute(const CmdArgs& args) {
 
     if (keys.empty()) { throw eckit::UserError("Invalid request", Here()); }
 
+    /// @todo do we want to assert that expandDatabase returns only one key ?
+
     for (const auto& key : keys) {
 
-        auto db = CatalogueFactory::instance().build(key, conf, true);
+        auto db = CatalogueReaderFactory::instance().build(key, conf);
         if (!db->exists()) {
             std::stringstream ss;
             ss << "Database not found: " << key << std::endl;
@@ -86,7 +88,7 @@ void FdbHide::execute(const CmdArgs& args) {
 
         eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
         if (doit_) {
-            auto  dbWriter = CatalogueFactory::instance().build(key, conf, false);
+            auto  dbWriter = CatalogueWriterFactory::instance().build(key, conf);
             auto* tocDB    = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
             tocDB->hideContents();
         } else {

@@ -48,13 +48,16 @@ public: // methods
     std::string engine(const eckit::URI& uri);
 
     /// Uniquely selects a location where the Key will be put or already exists
-    eckit::URI location(const Key& key);
+    // eckit::URI location(const Key &key);
+
+    // /// Lists the roots that can be visited given a DB key
+    // std::vector<eckit::URI> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
 
-    /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::URI> writableLocations(const Key& key);
+    // /// Lists the roots where a DB key would be able to be written
+    // std::vector<eckit::URI> writableLocations(const Key& key);
 
 private: // members
 

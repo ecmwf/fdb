@@ -42,7 +42,7 @@ public: // methods
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
 
     bool visitIndex(const Index& /*index*/) override { NOTIMP; }
 

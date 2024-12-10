@@ -140,9 +140,9 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     count_(0),
     enumeratedMaskedEntries_(false),
     numSubtocsRaw_(0),
-    writeMode_(false)
+    writeMode_(false),
+    dirty_(false)
 {
-
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
@@ -165,7 +165,8 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     count_(0),
     enumeratedMaskedEntries_(false),
     numSubtocsRaw_(0),
-    writeMode_(false)
+    writeMode_(false),
+    dirty_(false)
 {
 
     if (cachedToc_) {
@@ -220,7 +221,7 @@ void TocHandler::checkUID() const {
         return;
     }
 
-    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
 

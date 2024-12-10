@@ -22,9 +22,37 @@
 
  namespace fdb5 {
 
- //----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-TypesRegistry::TypesRegistry() { }
+eckit::ClassSpec TypesRegistry::classSpec_ = { &eckit::Streamable::classSpec(), "TypesRegistry", };
+
+eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
+
+TypesRegistry::TypesRegistry() = default;
+
+TypesRegistry::TypesRegistry(eckit::Stream& s) {
+
+    size_t numTypes;
+    std::string name;
+    std::string type;
+
+    s >> numTypes;
+    for (size_t i=0; i<numTypes; i++) {
+        s >> name;
+        s >> type;
+        types_[name] = type;
+    }
+}
+
+void TypesRegistry::encode(eckit::Stream& s) const {
+
+    s << types_.size();
+    for (auto t: types_) {
+        s << t.first;
+        s << t.second;
+    }
+}
+
 
 TypesRegistry::~TypesRegistry() {
     for (auto& item : cache_) { delete item.second; }

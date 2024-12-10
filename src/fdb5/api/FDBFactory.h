@@ -25,7 +25,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
@@ -39,13 +39,17 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 
-namespace eckit {
-namespace message {
-class Message;
-}
-}  // namespace eckit
+namespace eckit::message {
 
-namespace metkit { class MarsRequest; }
+class Message;
+
+}  // namespace eckit::message
+
+namespace metkit {
+
+class MarsRequest;
+
+} // namespace metkit
 
 namespace fdb5 {
 
@@ -89,7 +93,7 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
 
     void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 

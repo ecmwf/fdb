@@ -26,7 +26,8 @@
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/serialisation/Reanimator.h"
 
 #include "fdb5/rules/Rule.h"
 
@@ -44,12 +45,13 @@ class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Schema : private eckit::NonCopyable {
+class Schema : public eckit::Streamable {
 
 public:  // methods
     Schema();
     Schema(const eckit::PathName& path);
     Schema(std::istream& s);
+    Schema(eckit::Stream& s);
 
     ~Schema();
 
@@ -91,15 +93,28 @@ public:  // methods
 
     const TypesRegistry& registry() const;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
 private: // methods
 
     void clear();
 
+    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+
     void print(std::ostream& out) const;
+
+    void encode(eckit::Stream& s) const override;
 
     friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
-private:  // members
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Schema> reanimator_;
+
+    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+
     TypesRegistry registry_;
 
     std::vector<RuleDatabase> rules_;
@@ -114,6 +129,7 @@ private:  // members
 class SchemaRegistry {
 public:
     static SchemaRegistry& instance();
+    const Schema& add(const eckit::PathName& path, Schema* schema);
     const Schema& get(const eckit::PathName& path);
 
 private:

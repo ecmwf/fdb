@@ -21,6 +21,7 @@
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
@@ -30,17 +31,19 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocCatalogueWriter::TocCatalogueWriter(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config),
-    umask_(config.umask()) {
-    writeInitRecord(key);
+TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
+    TocCatalogue(dbKey, config),
+    umask_(config.umask()),
+    archivedLocations_(0) {
+    writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
     TocCatalogue(uri.path(), ControlIdentifiers{}, config),
-    umask_(config.umask()) {
+    umask_(config.umask()),
+    archivedLocations_(0) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -51,6 +54,7 @@ TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
+// selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
 
@@ -109,7 +113,7 @@ void TocCatalogueWriter::clean() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
-    flush(); // closes the TOC entries & indexes but not data files
+    flush(archivedLocations_); // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -122,7 +126,7 @@ void TocCatalogueWriter::close() {
 }
 
 void TocCatalogueWriter::index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
-    dirty_ = true;
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -226,6 +230,11 @@ const Index& TocCatalogueWriter::currentIndex() {
     return current_;
 }
 
+const Key TocCatalogueWriter::currentIndexKey() {
+    currentIndex();
+    return currentIndexKey_;
+}
+
 const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
     return TocHandler::serialisationVersion();
 }
@@ -293,30 +302,37 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) {
-    dirty_ = true;
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
+    } else {
+        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the indexKey used for store archival. Reset it
+        if(currentIndexKey_ != idxKey) {
+            selectIndex(idxKey);
+        }
     }
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
-    current_.put(key, field);
+    current_.put(datumKey, field);
 
     if (useSubToc())
-        currentFull_.put(key, field);
+        currentFull_.put(datumKey, field);
 }
 
-void TocCatalogueWriter::flush() {
-    if (!dirty_) {
+void TocCatalogueWriter::flush(size_t archivedFields) {
+    ASSERT(archivedFields == archivedLocations_);
+
+    if (archivedLocations_ == 0) {
         return;
     }
 
     flushIndexes();
 
-    dirty_ = false;
+    archivedLocations_ = 0;
     current_ = Index();
     currentFull_ = Index();
 }
@@ -402,7 +418,7 @@ void TocCatalogueWriter::print(std::ostream &out) const {
     out << "TocCatalogueWriter(" << directory() << ")";
 }
 
-static CatalogueBuilder<TocCatalogueWriter> builder("toc.writer");
+static CatalogueWriterBuilder<TocCatalogueWriter> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

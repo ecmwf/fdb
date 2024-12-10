@@ -21,7 +21,8 @@
 #include <string>
 #include <vector>
 
-// #include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/serialisation/Reanimator.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -35,7 +36,7 @@ class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Predicate {
+class Predicate : public eckit::Streamable {
 
 public: // methods
     Predicate(const Predicate&)            = delete;
@@ -45,6 +46,7 @@ public: // methods
     Predicate& operator=(Predicate&&) = default;
 
     Predicate(const std::string& keyword, Matcher* matcher);
+    Predicate(eckit::Stream& s);
 
     ~Predicate();
 
@@ -62,15 +64,23 @@ public: // methods
 
     bool optional() const;
 
-    const std::string& keyword() const;
+    std::string keyword() const;
+
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const Predicate &x);
 
+    void encode(eckit::Stream& s) const override;
+
     void print( std::ostream &out ) const;
 
 private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Predicate> reanimator_;
 
     std::unique_ptr<Matcher> matcher_;
 

@@ -83,19 +83,19 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& con
         int db_key_max_len = 512;  // @todo: take from config
         if (hs.bytesWritten() > db_key_max_len)
             throw eckit::Exception("Serialised db key exceeded configured maximum db key length.");
-        
-        fdb5::DaosKeyValue{s, catalogue_kv_name}.put("key", h.data(), hs.bytesWritten());   
+
+        fdb5::DaosKeyValue{s, catalogue_kv_name}.put("key", h.data(), hs.bytesWritten());
 
         /// index newly created catalogue kv in main kv
         int db_loc_max_len = 512;  // @todo: take from config
         std::string nstr = catalogue_kv_name.URI().asString();
-        if (nstr.length() > db_loc_max_len) 
+        if (nstr.length() > db_loc_max_len)
             throw eckit::Exception("Serialised db location exceeded configured maximum db location length.");
 
         main_kv.put(db_cont_, nstr.data(), nstr.length());
 
     }
-    
+
     /// @todo: record or read dbUID
 
     /// @note: performed RPCs:
@@ -159,7 +159,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
         } catch (fdb5::DaosEntityNotFoundException& e) {
 
             firstIndexWrite_ = true;
- 
+
             indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
                     idxKey,
@@ -202,7 +202,7 @@ void DaosCatalogueWriter::deselectIndex() {
 
 void DaosCatalogueWriter::clean() {
 
-    flush();
+    flush(0);
 
     deselectIndex();
 
@@ -228,7 +228,7 @@ const Index& DaosCatalogueWriter::currentIndex() {
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) {
+void DaosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -249,7 +249,7 @@ void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLoc
     std::string axisNames = "";
     std::string sep = "";
 
-    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
+    for (Key::const_iterator i = datumKey.begin(); i != datumKey.end(); ++i) {
 
         const std::string& keyword = i->first;
         const std::string& value = i->second;
@@ -275,7 +275,7 @@ void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLoc
     }
 
     /// index the field and update in-memory axes
-    current_.put(key, field);
+    current_.put(datumKey, field);
 
     fdb5::DaosSession s{};
 
@@ -335,7 +335,7 @@ void DaosCatalogueWriter::archive(const Key& key, std::shared_ptr<const FieldLoc
 
 }
 
-void DaosCatalogueWriter::flush() {
+void DaosCatalogueWriter::flush(size_t archivedFields) {
 
     if (!current_.null()) current_ = Index();
 
@@ -347,7 +347,7 @@ void DaosCatalogueWriter::closeIndexes() {
 
 }
 
-static fdb5::CatalogueBuilder<fdb5::DaosCatalogueWriter> builder("daos.writer");
+static fdb5::CatalogueWriterBuilder<fdb5::DaosCatalogueWriter> builder("daos");
 
 //----------------------------------------------------------------------------------------------------------------------
 

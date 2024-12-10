@@ -128,7 +128,8 @@ CASE("Step & ClimateDaily - expansion") {
         EXPECT_EQUAL(key.valuesToString(), "20210427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
     }
 
-    fdb5::Archiver       archiver;
+    fdb5::Config conf = config.expandConfig();
+    fdb5::Archiver       archiver(conf);
     fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
     config.schema().expand(key, visitor);
 

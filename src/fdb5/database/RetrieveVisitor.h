@@ -25,8 +25,6 @@ namespace fdb5 {
 class HandleGatherer;
 class Notifier;
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class RetrieveVisitor : public ReadVisitor {
@@ -51,12 +49,14 @@ protected:  // methods
 
     void print( std::ostream &out ) const override;
 
+    Store& store();
     const Schema& databaseSchema() const override;
 
-protected:
-    const Notifier &wind_;
+private:
 
-    std::unique_ptr<DB> db_;
+    std::unique_ptr<Store> store_;
+
+    const Notifier &wind_;
 
     HandleGatherer &gatherer_;
 };
