@@ -30,8 +30,6 @@ class MarsRequest;
 
 namespace fdb5 {
 
-// class Type;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class TypesRegistry : public eckit::Streamable {
@@ -40,14 +38,6 @@ public:  // methods
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
-
-    // TypesRegistry(const TypesRegistry&)            = delete;
-    // TypesRegistry& operator=(const TypesRegistry&) = delete;
-
-    // TypesRegistry(TypesRegistry&&);
-    // TypesRegistry& operator=(TypesRegistry&&);
-
-    // ~TypesRegistry() override;
 
     const Type& lookupType(const std::string& keyword) const;
 
@@ -74,8 +64,6 @@ private:  // methods
 private:  // members
     std::map<std::string, std::string> types_;
 
-    /// @todo why not raw ptr ?
-    // std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
     const TypesRegistry* parent_ {nullptr};
 
     using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;

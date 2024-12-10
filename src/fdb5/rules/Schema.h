@@ -48,9 +48,6 @@ class TypesRegistry;
 
 class Schema : public eckit::Streamable {
 
-    // public:  // types
-    //     using Rules = std::vector<std::unique_ptr<RuleDatabase>>;
-
 public:  // methods
     Schema();
     Schema(const eckit::PathName& path);
@@ -59,7 +56,7 @@ public:  // methods
 
     ~Schema() override;
 
-    // EXPAND
+    // expand
 
     void expand(const Key& field, WriteVisitor& visitor) const;
 
@@ -67,7 +64,7 @@ public:  // methods
 
     std::vector<Key> expandDatabase(const metkit::mars::MarsRequest& request) const;
 
-    // MATCH
+    // match
 
     void matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
 
@@ -85,7 +82,7 @@ public:  // methods
 
     void load(std::istream& s, bool replace = false);
 
-    // ACCESSORS
+    // accessors
 
     void dump(std::ostream& s) const;
 

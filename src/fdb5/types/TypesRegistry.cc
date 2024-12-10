@@ -8,11 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include <cstddef>
 #include <memory>
 #include <utility>
 
 #include "eckit/exception/Exceptions.h"
 
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -32,33 +35,28 @@ eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
 
 TypesRegistry::TypesRegistry(eckit::Stream& stream) {
 
-    size_t      size = 0;
-    std::string name;
-    std::string type;
+    size_t typeSize = 0;
+    stream >> typeSize;
+    for (size_t i = 0; i < typeSize; ++i) {
+        std::string keyword, type;
 
-    stream >> size;
-    for (size_t i = 0; i < size; ++i) {
-        stream >> name;
+        stream >> keyword;
         stream >> type;
-        types_[name] = type;
+
+        types_[keyword] = type;
     }
 }
 
 void TypesRegistry::encode(eckit::Stream& out) const {
     out << types_.size();
-    for (const auto& [name, type] : types_) {
-        out << name;
+    for (const auto& [keyword, type] : types_) {
+        out << keyword;
         out << type;
     }
 }
 
-// TypesRegistry::~TypesRegistry() {
-// for (auto& item : cache_) { delete item.second; }
-// }
-
 void TypesRegistry::updateParent(const TypesRegistry& parent) {
     parent_ = &parent;
-    // parent_ = std::cref(parent);
 }
 
 void TypesRegistry::addType(const std::string& keyword, const std::string& type) {
@@ -78,11 +76,13 @@ const Type& TypesRegistry::lookupType(const std::string& keyword) const {
         return parent_->lookupType(keyword);
     }
 
-    if (const auto [iter, success] = cache_.try_emplace(keyword, TypesFactory::build(type, keyword)); success) {
-        return *iter->second;
+    auto* newType = TypesFactory::build(type, keyword);
+
+    if (const auto [iter, success] = cache_.try_emplace(keyword, newType); !success) {
+        LOG_DEBUG_LIB(LibFdb5) << "Failed to insert new type into cache" << std::endl;
     }
 
-    throw eckit::SeriousBug("Failed to insert new type into cache", Here());
+    return *newType;
 }
 
 metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRequest& request) const {
@@ -104,16 +104,12 @@ void TypesRegistry::print(std::ostream& out) const {
 }
 
 void TypesRegistry::dump(std::ostream& out) const {
-    for (std::map<std::string, std::string>::const_iterator i = types_.begin(); i != types_.end(); ++i) {
-        out << i->first << ":" << i->second << ";" << std::endl;
-    }
+    for (const auto& [keyword, type] : types_) { out << keyword << ":" << type << ";" << std::endl; }
 }
 
 void TypesRegistry::dump(std::ostream& out, const std::string& keyword) const {
-    std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
-
     out << keyword;
-    if (i != types_.end()) { out << ":" << i->second; }
+    if (auto iter = types_.find(keyword); iter != types_.end()) { out << ":" << iter->second; }
 }
 
 std::ostream& operator<<(std::ostream& out, const TypesRegistry& registry) {
