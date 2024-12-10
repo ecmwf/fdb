@@ -35,7 +35,7 @@ FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
     all_(false),
     raw_(false) {
 
-    minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
+    minimumKeys_ = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", minimumKeys, true);
 
     if(minimumKeys_.size() != 0) {
         options_.push_back(new VectorOption<std::string>("minimum-keys",

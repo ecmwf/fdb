@@ -33,7 +33,7 @@ void TypeIgnore::getValues(const metkit::mars::MarsRequest&,
                            const std::string&,
                            eckit::StringList&,
                            const Notifier&,
-                           const DB*) const {
+                           const CatalogueReader*) const {
 }
 
 void TypeIgnore::print(std::ostream &out) const {

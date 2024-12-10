@@ -25,6 +25,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema", };
+
+eckit::Reanimator<Schema> Schema::reanimator_;
+
 Schema::Schema() = default;
 
 Schema::Schema(const eckit::PathName &path) {
@@ -33,6 +37,27 @@ Schema::Schema(const eckit::PathName &path) {
 
 Schema::Schema(std::istream& s) {
     load(s);
+}
+Schema::Schema(eckit::Stream& s) :
+    registry_(s) {
+
+    size_t numRules;
+    s >> path_;
+    s >> numRules;
+    for (size_t i=0; i < numRules; i++) {
+        rules_.push_back(new Rule(*this, s));
+    }
+
+    check();
+}
+
+void Schema::encode(eckit::Stream& s) const {
+    registry_.encode(s);
+    s << path_;
+    s << rules_.size();
+    for (const Rule* rule : rules_) {
+        rule->encode(s);
+    }
 }
 
 Schema::~Schema() {
@@ -44,8 +69,8 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     keys.push_back(dbKey);
     keys.push_back(idxKey);
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        const Rule* r = (*i)->ruleFor(keys , 0);
+    for (const Rule* rule : rules_) {
+        const Rule* r = rule->ruleFor(keys , 0);
         if (r) {
             return r;
         }
@@ -76,9 +101,9 @@ void Schema::expand(const Key& field, WriteVisitor &visitor) const {
 void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
+    for (const Rule* rule : rules_) {
+        if (rule->match(dbKey)) {
+            dbRule = rule;
             break;
         }
     }
@@ -95,9 +120,9 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
 void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
+    for (const Rule* rule : rules_) {
+        if (rule->match(dbKey)) {
+            dbRule = rule;
             break;
         }
     }
@@ -142,9 +167,11 @@ void Schema::load(const eckit::PathName &path, bool replace) {
     LOG_DEBUG_LIB(LibFdb5) << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
-    if (!in)
-        throw eckit::CantOpenFile(path);
-
+    if (!in) {
+        auto ex = eckit::CantOpenFile(path);
+        ex.dumpStackTrace();
+        throw ex;
+    }
     load(in, replace);
 }
 
@@ -176,11 +203,11 @@ void Schema::dump(std::ostream &s) const {
 }
 
 void Schema::check() {
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (Rule* rule : rules_) {
         /// @todo print offending rule in meaningful message
-        ASSERT((*i)->depth() == 3);
-        (*i)->registry_.updateParent(registry_);
-        (*i)->updateParent(0);
+        ASSERT(rule->depth() == 3);
+        rule->registry_.updateParent(registry_);
+        rule->updateParent(0);
     }
 }
 
@@ -215,6 +242,12 @@ std::ostream &operator<<(std::ostream &s, const Schema &x) {
 SchemaRegistry& SchemaRegistry::instance() {
     static SchemaRegistry me;
     return me;
+}
+
+const Schema& SchemaRegistry::add(const eckit::PathName& path, Schema* schema) {
+    ASSERT(schema);
+    schemas_[path] = std::unique_ptr<Schema>(schema);
+    return *schemas_[path];
 }
 
 const Schema& SchemaRegistry::get(const eckit::PathName& path) {

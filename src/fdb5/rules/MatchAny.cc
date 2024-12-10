@@ -16,9 +16,34 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchAny::classSpec_ = { &Matcher::classSpec(), "MatchAny", };
+
+eckit::Reanimator<MatchAny> MatchAny::reanimator_;
+
+
 MatchAny::MatchAny(const std::set<std::string> &values) :
     Matcher(),
     values_(values) {
+}
+
+MatchAny::MatchAny(eckit::Stream& s) :
+    Matcher() {
+
+    size_t numValues;
+    std::string value;
+
+    s >> numValues;
+    for (size_t i=0; i < numValues; i++) {
+        s >> value;
+        values_.insert(value);
+    }
+}
+
+void MatchAny::encode(eckit::Stream& s) const {
+    s << values_.size();
+    for (const std::string& value : values_) {
+        s << value;
+    }
 }
 
 MatchAny::~MatchAny() {

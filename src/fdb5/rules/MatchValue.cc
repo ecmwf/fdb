@@ -16,11 +16,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec MatchValue::classSpec_ = { &Matcher::classSpec(), "MatchValue", };
+
+eckit::Reanimator<MatchValue> MatchValue::reanimator_;
+
+
 MatchValue::MatchValue(const std::string &value) :
     Matcher(),
     value_(value) {
 }
 
+MatchValue::MatchValue(eckit::Stream& s) :
+    Matcher() {
+        
+    s >> value_;
+}
+
+void MatchValue::encode(eckit::Stream& s) const {
+    s << value_;
+}
 MatchValue::~MatchValue() {
 }
 

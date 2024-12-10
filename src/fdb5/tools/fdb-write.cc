@@ -34,7 +34,7 @@ public:
 
     FDBWrite(int argc, char **argv) :
         fdb5::FDBTool(argc, argv),
-        verbose_(false) {
+        archivers_(1), verbose_(false) {
 
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("include-filter",
@@ -49,6 +49,8 @@ public:
                                                          "List of comma separated key-values of modifiers to each message "
                                                          "int input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
 
+        options_.push_back(new eckit::option::SimpleOption<long>("archivers", "Number of archivers (default is 1). Input files are distributed among the user-specified archivers. For testing purposes only!"));
+
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report timing statistics"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
@@ -57,6 +59,7 @@ public:
     std::string filterInclude_;
     std::string filterExclude_;
     std::string modifiers_;
+    long archivers_;
     bool verbose_;
 };
 
@@ -71,15 +74,19 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
     args.get("modifiers", modifiers_);
+    archivers_ = args.getLong("archivers", 1);
     verbose_ = args.getBool("verbose", false);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
-
-    archiver.filters(filterInclude_, filterExclude_);
-    archiver.modifiers(modifiers_);
+    std::vector<std::unique_ptr<fdb5::MessageArchiver>> archivers;
+    for (int i=0; i<archivers_; i++) {
+        std::unique_ptr<fdb5::MessageArchiver> a(new fdb5::MessageArchiver(fdb5::Key(), false, verbose_, config(args)));
+        a->filters(filterInclude_, filterExclude_);
+        a->modifiers(modifiers_);
+        archivers.push_back(std::move(a));
+    }
 
     for (size_t i = 0; i < args.count(); i++) {
 
@@ -89,7 +96,11 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
 
-        archiver.archive( *dh );
+        archivers.at(i%archivers_)->archive( *dh );
+    }
+
+    for (auto& a : archivers) {
+        a->flush();
     }
 }
 

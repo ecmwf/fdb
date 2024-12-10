@@ -15,7 +15,7 @@
 #ifndef fdb5_RadosStore_H
 #define fdb5_RadosStore_H
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
@@ -37,7 +37,7 @@ public: // methods
     eckit::URI uri() const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { /* nothing to do */ }
@@ -49,7 +49,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
-    FieldLocation* archive(const Key& key, const void *data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -76,8 +76,8 @@ private: // members
 
     PathStore   dataPaths_;
     eckit::PathName directory_;
-
-    mutable bool dirty_;
+    
+    size_t archivedFields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

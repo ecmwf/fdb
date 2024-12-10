@@ -78,6 +78,7 @@ void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding 
 
     axes_.decode(s, version);
 
+
     std::string dummy;
     s >> key_;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
@@ -121,7 +122,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
 
     axes_.encode(s, version);
     s << key_;
-    s << key_.valuesToString(); // we no longer write this field, required in the previous index format
+    s << ""; // key_.valuesToString();    we no longer write this field, required in the previous index format
     s << type_;
 }
 

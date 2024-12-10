@@ -26,14 +26,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
+    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {
+}
 
 TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
-    Catalogue(key, tocPath.controlIdentifiers_, config),
-    TocHandler(tocPath.directory_, config) {}
+    CatalogueImpl(key, tocPath.controlIdentifiers_, config),
+    TocHandler(tocPath.directory_, config) {
+}
 
 TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config),
+    CatalogueImpl(Key(), controlIdentifiers, config),
     TocHandler(directory, config) {
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
@@ -82,9 +84,35 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
     return paths;
 }
 
+// void TocCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) {
+
+//     std::vector<Index> all = indexes(sorted);
+
+//     // Allow the visitor to selectively reject this DB.
+//     if (visitor.visitDatabase(*this /*, store*/)) {
+//         if (visitor.visitIndexes()) {
+//             for (const Index& idx : all) {
+//                 if (visitor.visitEntries()) {
+//                     idx.entries(visitor); // contains visitIndex
+//                 } else {
+//                     visitor.visitIndex(idx);
+//                 }
+//             }
+//         }
+
+//         visitor.catalogueComplete(*this);
+//     }
+
+// }
+
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
+    // if (schema_) {
+    //     schema_->load(schemaPath());
+    // } else {
+    //     schema_.reset(new Schema(schemaPath()));
+    // }
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
@@ -119,7 +147,7 @@ void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
 
 std::string TocCatalogue::type() const
 {
-    return TocCatalogue::catalogueTypeName();
+    return TocEngine::typeName();
 }
 
 void TocCatalogue::checkUID() const {
@@ -143,7 +171,7 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
-    return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
+    return CatalogueImpl::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

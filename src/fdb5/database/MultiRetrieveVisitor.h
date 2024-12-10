@@ -31,8 +31,6 @@ namespace fdb5 {
 class HandleGatherer;
 class Notifier;
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class MultiRetrieveVisitor : public ReadVisitor {
@@ -41,7 +39,7 @@ public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
                          InspectIterator& queue,
-                         eckit::CacheLRU<Key,DB*>& databases,
+                         eckit::CacheLRU<Key,CatalogueReader*>& databases,
                          const Config& config);
 
     ~MultiRetrieveVisitor();
@@ -67,11 +65,9 @@ private:  // methods
 
 private:
 
-    DB* db_;
-
     const Notifier& wind_;
 
-    eckit::CacheLRU<Key,DB*>& databases_;
+    eckit::CacheLRU<Key,CatalogueReader*>& databases_;
 
     InspectIterator& iterator_;
 

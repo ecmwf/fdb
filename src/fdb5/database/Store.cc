@@ -24,6 +24,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void Store::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+    catalogue_archive(archive(key, data, length));
+}
+
+std::unique_ptr<const FieldLocation> Store::archive(const Key& key, const void *data, eckit::Length length) {
+    NOTIMP;
+}
+
 bool Store::canMoveTo(const Key&, const Config&, const eckit::URI& dest) const {
     std::stringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
@@ -72,7 +80,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
     std::string name = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
@@ -89,8 +97,28 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(schema, key, config);
+    return (*j).second->make(key, config);
 }
+
+// std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& config) {
+//     std::string name = uri.scheme();
+//     std::string nameLowercase = eckit::StringTools::lower(name);
+
+//     eckit::AutoLock<eckit::Mutex> lock(mutex_);
+//     auto j = builders_.find(nameLowercase);
+
+//     LOG_DEBUG_LIB(LibFdb5) << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
+
+//     if (j == builders_.end()) {
+//         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
+//         eckit::Log::error() << "StoreBuilders are:" << std::endl;
+//         for (j = builders_.begin(); j != builders_.end(); ++j)
+//             eckit::Log::error() << "   " << (*j).first << std::endl;
+//         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
+//     }
+
+//     return (*j).second->make(uri, config);
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
