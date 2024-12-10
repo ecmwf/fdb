@@ -37,6 +37,8 @@ using StatsHelper = BaseAPIHelper<fdb5::StatsElement, fdb5::remote::Message::Sta
 
 struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List> {
 
+    ListHelper(const int depth) : depth_(depth) { }
+
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
@@ -54,6 +56,11 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
         std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
+
+    void encodeExtra(eckit::Stream& s) const { s << depth_; }
+
+private:
+    int depth_ {3};
 };
 
 struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
@@ -226,12 +233,12 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         );
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
-    return forwardApiCall(ListHelper(), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const int depth) {
+    return forwardApiCall(ListHelper(depth), request);
 }
 
-AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, int level) {
-    return forwardApiCall(AxesHelper(level), request);
+AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const int depth) {
+    return forwardApiCall(AxesHelper(depth), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
