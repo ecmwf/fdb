@@ -15,7 +15,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -25,16 +24,16 @@ namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbRoot: public FDBTool {
+class FdbRoot : public FDBTool {
 public:  // methods
-    FdbRoot(int argc, char** argv): FDBTool(argc, argv) {
+    FdbRoot(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(
             new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
 private:  // methods
-    virtual void execute(const eckit::option::CmdArgs& args);
-    virtual void usage(const std::string& tool) const;
+    void execute(const eckit::option::CmdArgs& args) override;
+    void usage(const std::string& tool) const override;
 };
 
 void FdbRoot::usage(const std::string& tool) const {
@@ -69,16 +68,13 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
                 eckit::Log::info() << key << std::endl;
 
-            // 'Touch' the database (which will create it if it doesn't exist)
+                // 'Touch' the database (which will create it if it doesn't exist)
 
-            std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
+                std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
 
-            if (!cat->exists() && create) {
-                cat = CatalogueWriterFactory::instance().build(key, conf);
-            }
+                if (!cat->exists() && create) { cat = CatalogueWriterFactory::instance().build(key, conf); }
 
-            if (cat->exists()) {
-                eckit::Log::info() << (*cat) << std::endl;
+                if (cat->exists()) { eckit::Log::info() << (*cat) << std::endl; }
             }
         }
     }
@@ -88,7 +84,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
 }  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbRoot app(argc, argv);
     return app.start();
 }

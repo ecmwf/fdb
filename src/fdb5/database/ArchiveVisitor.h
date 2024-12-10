@@ -38,7 +38,7 @@ public: // methods
 protected: // methods
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
 private: // methods
 

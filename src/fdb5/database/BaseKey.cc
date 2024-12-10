@@ -14,6 +14,7 @@
 #include "eckit/log/CodeLocation.h"
 #include "eckit/serialisation/Stream.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -88,10 +89,10 @@ void BaseKey::set(const std::string& keyword, const std::string& value) {
     ASSERT(names_.size() == keys_.size());
 
     if (const auto iter = keys_.find(keyword); iter != keys_.end()) {
-        iter->second = value;
+        iter->second = eckit::StringTools::lower(value);
     } else {
         names_.push_back(keyword);
-        keys_[keyword] = value;
+        keys_[keyword] = eckit::StringTools::lower(value);
     }
 }
 
@@ -135,7 +136,7 @@ void BaseKey::decode(eckit::Stream& stream) {
     for (std::size_t i = 0; i < size; ++i) {
         stream >> keyword;
         stream >> value;
-        keys_[keyword] = value;
+        keys_[keyword] = eckit::StringTools::lower(value);
     }
 
     stream >> size;

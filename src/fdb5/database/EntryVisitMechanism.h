@@ -30,6 +30,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
+class Rule;
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------

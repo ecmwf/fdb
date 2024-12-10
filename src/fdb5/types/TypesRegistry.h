@@ -16,13 +16,13 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
-#include <functional>
 #include <map>
-#include <optional>
-#include <functional>
+#include <memory>
 #include <string>
 
 #include "eckit/serialisation/Streamable.h"
+
+#include "fdb5/types/Type.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -30,57 +30,65 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class Type;
+// class Type;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class TypesRegistry : public eckit::Streamable {
 
-public: // methods
+public:  // methods
+    TypesRegistry() = default;
 
-    TypesRegistry();
-    explicit TypesRegistry(eckit::Stream& s);
+    explicit TypesRegistry(eckit::Stream& stream);
 
-    TypesRegistry(const TypesRegistry&)            = delete;
-    TypesRegistry& operator=(const TypesRegistry&) = delete;
+    // TypesRegistry(const TypesRegistry&)            = delete;
+    // TypesRegistry& operator=(const TypesRegistry&) = delete;
 
-    TypesRegistry(TypesRegistry&&)            = default;
-    TypesRegistry& operator=(TypesRegistry&&) = default;
+    // TypesRegistry(TypesRegistry&&);
+    // TypesRegistry& operator=(TypesRegistry&&);
 
-    ~TypesRegistry() override;
+    // ~TypesRegistry() override;
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    void addType(const std::string &, const std::string &);
+    void addType(const std::string&, const std::string&);
     void updateParent(const TypesRegistry& parent);
-    void dump( std::ostream &out ) const;
-    void dump( std::ostream &out, const std::string &keyword ) const;
+    void dump(std::ostream& out) const;
+    void dump(std::ostream& out, const std::string& keyword) const;
 
     metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
-	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
-    void encode(eckit::Stream& s) const override;
+    // streamable
 
-private: // members
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec classSpec_;
-    static eckit::Reanimator<TypesRegistry> reanimator_;
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-    typedef std::map<std::string, Type *> TypeMap;
-
-    mutable TypeMap cache_;
-
-    std::map<std::string, std::string> types_;
-    std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
-
-    friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
+private:  // methods
+    void encode(eckit::Stream& out) const override;
 
     void print(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
+
+private:  // members
+    std::map<std::string, std::string> types_;
+
+    /// @todo why not raw ptr ?
+    // std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
+    const TypesRegistry* parent_ {nullptr};
+
+    using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
+    mutable TypeMap cache_;
+
+    // streamable
+
+    static eckit::ClassSpec                 classSpec_;
+    static eckit::Reanimator<TypesRegistry> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -27,15 +27,14 @@ eckit::Reanimator<MatchHidden> MatchHidden::reanimator_;
 
 MatchHidden::MatchHidden(std::string def): default_ {std::move(def)} { }
 
-MatchHidden::MatchHidden(eckit::Stream& s) :
-    Matcher() {
+MatchHidden::MatchHidden(eckit::Stream& stream) : Matcher() {
 
     size_t numValues;
     std::string value;
 
-    s >> numValues;
+    stream >> numValues;
     for (size_t i=0; i < numValues; i++) {
-        s >> value;
+        stream >> value;
         default_.push_back(value);
     }
 }
@@ -45,18 +44,6 @@ void MatchHidden::encode(eckit::Stream& s) const {
     for (const std::string& value : default_) {
         s << value;
     }
-}
-
-bool MatchHidden::match(const std::string& /*value*/) const {
-    return true;
-}
-
-bool MatchHidden::match(const std::string&, const Key&) const {
-    return true;
-}
-
-bool MatchHidden::optional() const {
-    return true;
 }
 
 const std::string &MatchHidden::value(const Key&, const std::string&) const {

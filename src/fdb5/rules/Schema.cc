@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -42,35 +43,35 @@ eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema
 
 eckit::Reanimator<Schema> Schema::reanimator_;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 Schema::Schema() = default;
 
 Schema::Schema(const eckit::PathName& path) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) {
-    load(s);
+Schema::Schema(std::istream& stream) {
+    load(stream);
 }
-Schema::Schema(eckit::Stream& s) :
-    registry_(s) {
 
-    size_t numRules;
-    s >> path_;
-    s >> numRules;
-    for (size_t i=0; i < numRules; i++) {
-        rules_.push_back(new Rule(*this, s));
-    }
+Schema::Schema(eckit::Stream& stream) : registry_ {stream} {
+
+    stream >> path_;
+
+    size_t ruleSize = 0;
+    stream >> ruleSize;
+
+    for (size_t i = 0; i < ruleSize; i++) { rules_.emplace_back(eckit::Reanimator<RuleDatabase>::reanimate(stream)); }
 
     check();
 }
 
-void Schema::encode(eckit::Stream& s) const {
-    registry_.encode(s);
-    s << path_;
-    s << rules_.size();
-    for (const Rule* rule : rules_) {
-        rule->encode(s);
-    }
+void Schema::encode(eckit::Stream& stream) const {
+    stream << registry_;
+    stream << path_;
+    stream << rules_.size();
+    for (const auto& rule : rules_) { stream << *rule; }
 }
 
 Schema::~Schema() {
@@ -82,11 +83,11 @@ Schema::~Schema() {
 const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const {
 
     for (const auto& dbRule : rules_) {
-        if (!dbRule.match(dbKey)) { continue; }
-        for (const auto& idxRule : dbRule.rules()) {
-            if (!idxRule.match(idxKey)) { continue; }
+        if (!dbRule->match(dbKey)) { continue; }
+        for (const auto& idxRule : dbRule->rules()) {
+            if (!idxRule->match(idxKey)) { continue; }
             /// @note returning first datum. could there be multiple datum per index ?
-            for (const auto& datumRule : idxRule.rules()) { return datumRule; }
+            for (const auto& datumRule : idxRule->rules()) { return *datumRule; }
         }
     }
 
@@ -98,7 +99,7 @@ const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const
 const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
 
     for (const auto& rule : rules_) {
-        if (rule.match(dbKey)) { return rule; }
+        if (rule->match(dbKey)) { return *rule; }
     }
 
     std::ostringstream msg;
@@ -109,14 +110,14 @@ const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
-    for (const auto& rule : rules_) { rule.expand(request, visitor); }
+    for (const auto& rule : rules_) { rule->expand(request, visitor); }
 }
 
 std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request) const {
     std::vector<Key> result;
 
     for (const auto& rule : rules_) {
-        const auto keys = rule.findMatchingKeys(request);
+        const auto keys = rule->findMatchingKeys(request);
         result.insert(result.end(), keys.begin(), keys.end());
     }
 
@@ -128,7 +129,7 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
     visitor.rule(nullptr);  // reset to no rule so we verify that we pick at least one
 
     for (const auto& rule : rules_) {
-        if (rule.expand(field, visitor)) { break; }
+        if (rule->expand(field, visitor)) { break; }
     }
 }
 
@@ -136,13 +137,13 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
 void Schema::matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const {
     for (const auto& rule : rules_) {
-        if (auto key = rule.findMatchingKey(dbKey, missing)) { result.insert(std::move(*key)); }
+        if (auto key = rule->findMatchingKey(dbKey, missing)) { result.insert(std::move(*key)); }
     }
 }
 
 void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const {
     for (const auto& rule : rules_) {
-        const auto keys = rule.findMatchingKeys(request, missing);
+        const auto keys = rule->findMatchingKeys(request, missing);
         result.insert(keys.begin(), keys.end());
     }
 }
@@ -152,7 +153,7 @@ std::optional<Key> Schema::matchDatabase(const std::string& fingerprint) const {
     const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
 
     for (const auto& rule : rules_) {
-        if (auto found = rule.findMatchingKey(values)) { return found; }
+        if (auto found = rule->findMatchingKey(values)) { return found; }
     }
 
     return {};
@@ -160,30 +161,29 @@ std::optional<Key> Schema::matchDatabase(const std::string& fingerprint) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Schema::load(const eckit::PathName& path, bool replace) {
+void Schema::load(const eckit::PathName& path, const bool replace) {
 
     path_ = path;
 
     LOG_DEBUG_LIB(LibFdb5) << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
-    if (!in) { { auto ex = eckit::CantOpenFile(path); }
+    if (!in) {
+        auto ex = eckit::CantOpenFile(path);
         ex.dumpStackTrace();
         throw ex;
     }
+
     load(in, replace);
 }
 
-void Schema::load(std::istream& s, bool replace) {
+void Schema::load(std::istream& s, const bool replace) {
 
     if (replace) { clear(); }
 
     SchemaParser(s).parse(rules_, registry_);
 
-    for (auto& rule : rules_) {
-        rule.registry_.updateParent(registry_);
-        rule.updateParent(nullptr);
-    }
+    check();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -195,8 +195,15 @@ void Schema::clear() {
 void Schema::dump(std::ostream& s) const {
     registry_.dump(s);
     for (const auto& rule : rules_) {
-        rule.dump(s);
-        s << std::endl;
+        rule->dump(s);
+        s << '\n';
+    }
+}
+
+void Schema::check() {
+    for (auto& rule : rules_) {
+        rule->registry_.updateParent(registry_);
+        rule->updateParent(nullptr);
     }
 }
 
@@ -220,9 +227,9 @@ const TypesRegistry& Schema::registry() const {
     return registry_;
 }
 
-std::ostream& operator<<(std::ostream& s, const Schema& x) {
-    x.print(s);
-    return s;
+std::ostream& operator<<(std::ostream& out, const Schema& schema) {
+    schema.print(out);
+    return out;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

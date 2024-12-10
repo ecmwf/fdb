@@ -24,7 +24,7 @@
 class MarsTask;
 
 namespace metkit::mars {
-    class MarsRequest;
+class MarsRequest;
 }
 
 namespace fdb5 {
@@ -36,13 +36,14 @@ class TypesRegistry;
 
 class Matcher : public eckit::Streamable {
 
-public: // methods
+public:  // methods
     Matcher() = default;
 
-    Matcher() = default;
-    Matcher(eckit::Stream& s);
+    // virtual ~Matcher() = default;
 
-    virtual bool optional() const;
+    Matcher(eckit::Stream& stream);
+
+    virtual bool optional() const { return false; }
 
     virtual const std::string& value(const Key&, const std::string& keyword) const;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
@@ -54,28 +55,26 @@ public: // methods
 
     virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
+    friend std::ostream& operator<<(std::ostream& s, const Matcher& x);
 
-    friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
+    // streamable
 
-//	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
+private:  // methods
+    void encode(eckit::Stream& out) const override;
 
-    void encode(eckit::Stream&) const override;
+    virtual void print(std::ostream& out) const = 0;
 
-    virtual void print( std::ostream &out ) const = 0;
+private:  // members
+    // streamable
 
-private: // members
-
-    static eckit::ClassSpec classSpec_;
+    static eckit::ClassSpec           classSpec_;
     static eckit::Reanimator<Matcher> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

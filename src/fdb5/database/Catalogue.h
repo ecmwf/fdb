@@ -143,12 +143,13 @@ public:
 
     // CatalogueReader(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
     //     : Catalogue(key, controlIdentifiers, config) {}
-    CatalogueReader() {}
+    CatalogueReader() = default;
 
-    virtual ~CatalogueReader() {}
+    virtual ~CatalogueReader() = default;
 
     virtual DbStats stats() const = 0;
-    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const { NOTIMP; }
+
+    virtual bool axis(const std::string& /*keyword*/, eckit::DenseSet<std::string>& /*string*/) const { NOTIMP; }
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 

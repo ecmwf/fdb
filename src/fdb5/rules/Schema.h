@@ -26,9 +26,10 @@
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
-#include "eckit/serialisation/Streamable.h"
 #include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/Streamable.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/rules/Rule.h"
 
 namespace metkit::mars {
@@ -47,13 +48,16 @@ class TypesRegistry;
 
 class Schema : public eckit::Streamable {
 
+    // public:  // types
+    //     using Rules = std::vector<std::unique_ptr<RuleDatabase>>;
+
 public:  // methods
     Schema();
     Schema(const eckit::PathName& path);
-    Schema(std::istream& s);
-    Schema(eckit::Stream& s);
+    Schema(std::istream& stream);
+    Schema(eckit::Stream& stream);
 
-    ~Schema();
+    ~Schema() override;
 
     // EXPAND
 
@@ -93,33 +97,36 @@ public:  // methods
 
     const TypesRegistry& registry() const;
 
-	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    // streamable
 
-private: // methods
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+private:  // methods
+    void check();
 
     void clear();
 
-    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+    void encode(eckit::Stream& stream) const override;
 
     void print(std::ostream& out) const;
 
-    void encode(eckit::Stream& s) const override;
-
-    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
-
-private: // members
-
-    static eckit::ClassSpec classSpec_;
-    static eckit::Reanimator<Schema> reanimator_;
+    friend std::ostream& operator<<(std::ostream& out, const Schema& schema);
 
     friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
 
+private:  // members
     TypesRegistry registry_;
 
-    std::vector<RuleDatabase> rules_;
+    RuleList rules_;
 
     std::string path_;
+
+    // streamable
+
+    static eckit::ClassSpec          classSpec_;
+    static eckit::Reanimator<Schema> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -129,6 +136,7 @@ private: // members
 class SchemaRegistry {
 public:
     static SchemaRegistry& instance();
+
     const Schema& add(const eckit::PathName& path, Schema* schema);
     const Schema& get(const eckit::PathName& path);
 
@@ -139,6 +147,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -206,7 +206,7 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-std::vector<const eckit::URI> TocIndex::dataURIs() const {
+std::vector<eckit::URI> TocIndex::dataURIs() const {
     return uris_.paths();
 }
 

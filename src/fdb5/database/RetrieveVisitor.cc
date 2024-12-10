@@ -29,9 +29,6 @@ RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer)
     store_(nullptr), wind_(wind), gatherer_(gatherer) {
 }
 
-RetrieveVisitor::~RetrieveVisitor() {
-}
-
 // From Visitor
 
 bool RetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /*fullKey*/) {

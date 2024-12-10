@@ -42,10 +42,6 @@ bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*s
     return true;
 }
 
-bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
-    return true;
-}
-
 EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr), currentIndex_(nullptr) {}
 
 EntryVisitor::~EntryVisitor() {

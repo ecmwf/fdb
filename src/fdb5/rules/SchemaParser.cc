@@ -13,6 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
+#include "fdb5/rules/SchemaParser.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
@@ -20,8 +21,8 @@
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/rules/SchemaParser.h"
-#include "fdb5/types/TypesRegistry.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -61,7 +62,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     }
 }
 
-Predicate SchemaParser::parsePredicate(eckit::StringDict& types) {
+std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types) {
 
     std::set<std::string> values;
     std::string k = parseIdent(false, false);
@@ -77,7 +78,7 @@ Predicate SchemaParser::parsePredicate(eckit::StringDict& types) {
 
     if (c == '?') {
         consume(c);
-        return {k, new MatchOptional(parseIdent(true, true))};
+        return std::make_unique<Predicate>(k, new MatchOptional(parseIdent(true, true)));
     }
 
     if (c == '-') {
@@ -86,7 +87,7 @@ Predicate SchemaParser::parsePredicate(eckit::StringDict& types) {
             // Register ignore type
             types[k] = "Ignore";
         }
-        return {k, new MatchHidden(parseIdent(true, true))};
+        return std::make_unique<Predicate>(k, new MatchHidden(parseIdent(true, true)));
     }
 
     if (c != ',' && c != '[' && c != ']') {
@@ -101,9 +102,9 @@ Predicate SchemaParser::parsePredicate(eckit::StringDict& types) {
     }
 
     switch (values.size()) {
-        case 0:  return {k, new MatchAlways()}; break;
-        case 1:  return {k, new MatchValue(*values.begin())}; break;
-        default: return {k, new MatchAny(values)}; break;
+        case 0:  return std::make_unique<Predicate>(k, new MatchAlways()); break;
+        case 1:  return std::make_unique<Predicate>(k, new MatchValue(*values.begin())); break;
+        default: return std::make_unique<Predicate>(k, new MatchAny(values)); break;
     }
 }
 
@@ -121,9 +122,9 @@ void SchemaParser::parseTypes(eckit::StringDict& types) {
     }
 }
 
-RuleDatum SchemaParser::parseDatum() {
-    std::vector<Predicate> predicates;
-    eckit::StringDict      types;
+std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
+    Rule::Predicates  predicates;
+    eckit::StringDict types;
 
     consume('[');
 
@@ -132,7 +133,7 @@ RuleDatum SchemaParser::parseDatum() {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return {line, predicates, types};
+        return std::make_unique<RuleDatum>(line, predicates, types);
     }
 
     for (;;) {
@@ -148,15 +149,15 @@ RuleDatum SchemaParser::parseDatum() {
         c = peek();
         if (c == ']') {
             consume(c);
-            return {line, predicates, types};
+            return std::make_unique<RuleDatum>(line, predicates, types);
         }
     }
 }
 
-RuleIndex SchemaParser::parseIndex() {
-    std::vector<Predicate> predicates;
-    eckit::StringDict      types;
-    std::vector<RuleDatum> rules;
+std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
+    Rule::Predicates    predicates;
+    eckit::StringDict   types;
+    RuleIndex::Children rules;
 
     consume('[');
 
@@ -165,7 +166,7 @@ RuleIndex SchemaParser::parseIndex() {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return {line, predicates, types, rules};
+        return std::make_unique<RuleIndex>(line, predicates, types, rules);
     }
 
     for (;;) {
@@ -185,15 +186,15 @@ RuleIndex SchemaParser::parseIndex() {
         c = peek();
         if (c == ']') {
             consume(c);
-            return {line, predicates, types, rules};
+            return std::make_unique<RuleIndex>(line, predicates, types, rules);
         }
     }
 }
 
-RuleDatabase SchemaParser::parseDatabase() {
-    std::vector<Predicate> predicates;
+std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
+    Rule::Predicates       predicates;
     eckit::StringDict      types;
-    std::vector<RuleIndex> rules;
+    RuleDatabase::Children rules;
 
     consume('[');
 
@@ -202,7 +203,7 @@ RuleDatabase SchemaParser::parseDatabase() {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return {line, predicates, types, rules};
+        return std::make_unique<RuleDatabase>(line, predicates, types, rules);
     }
 
     for (;;) {
@@ -222,12 +223,12 @@ RuleDatabase SchemaParser::parseDatabase() {
         c = peek();
         if (c == ']') {
             consume(c);
-            return {line, predicates, types, rules};
+            return std::make_unique<RuleDatabase>(line, predicates, types, rules);
         }
     }
 }
 
-void SchemaParser::parse(std::vector<RuleDatabase>& result, TypesRegistry& registry) {
+void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
     eckit::StringDict types;
 
     parseTypes(types);

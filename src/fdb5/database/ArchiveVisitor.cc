@@ -7,12 +7,12 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include <functional>
-#include "eckit/exception/Exceptions.h"
-#include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
+#include "fdb5/database/Archiver.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Store.h"
+
+#include <functional>
 
 namespace fdb5 {
 
@@ -28,15 +28,17 @@ void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxK
     catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
 }
 
-bool ArchiveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
+bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
 
-    checkMissingKeys(fullComputedKey);
+    checkMissingKeys(fullKey);
     const Key idxKey = catalogue()->currentIndexKey();
 
-    std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p = std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(std::promise<std::shared_ptr<const FieldLocation>>());
+    std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p =
+        std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(
+            std::promise<std::shared_ptr<const FieldLocation>>());
 
     store()->archive(idxKey, data_, size_,
-        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
+                     std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
     callback_(initialFieldKey(), data_, size_, p->get_future());
 
     return true;

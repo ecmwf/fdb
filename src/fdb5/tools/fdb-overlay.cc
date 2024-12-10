@@ -137,7 +137,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         if (!dbTarget->exists()) {
             std::stringstream ss;
             ss << "Target database must already exist: " << target << std::endl;
-            throw UserError(ss.str(), Here());
+            throw eckit::UserError(ss.str(), Here());
         }
     } else {
         if (dbTarget->exists() && !force_) {

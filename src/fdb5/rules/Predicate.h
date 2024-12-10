@@ -22,7 +22,8 @@
 #include <vector>
 
 #include "eckit/serialisation/Streamable.h"
-#include "eckit/serialisation/Reanimator.h"
+
+#include "fdb5/rules/Matcher.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -31,64 +32,64 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Matcher;
+// class Matcher;
 class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Predicate : public eckit::Streamable {
 
-public: // methods
-    Predicate(const Predicate&)            = delete;
-    Predicate& operator=(const Predicate&) = delete;
+public:  // methods
+    Predicate(std::string keyword, Matcher* matcher);
 
-    Predicate(Predicate&&)            = default;
-    Predicate& operator=(Predicate&&) = default;
+    explicit Predicate(eckit::Stream& stream);
 
-    Predicate(const std::string& keyword, Matcher* matcher);
-    Predicate(eckit::Stream& s);
-
-    ~Predicate();
 
     /// @note this calls find() on key; prefer match(value)
     bool match(const Key& key) const;
 
     bool match(const std::string& value) const;
 
-    void dump( std::ostream &s, const TypesRegistry &registry ) const;
+    void dump(std::ostream& out, const TypesRegistry& registry) const;
+
     void fill(Key& key, const std::string& value) const;
 
-    const std::string &value(const Key& key) const;
+    const std::string& value(const Key& key) const;
+
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
-    const std::string &defaultValue() const;
+
+    const std::string& defaultValue() const;
 
     bool optional() const;
 
-    std::string keyword() const;
+    const std::string& keyword() const { return keyword_; }
 
-	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    // streamable
 
-private: // methods
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    friend std::ostream &operator<<(std::ostream &s, const Predicate &x);
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-    void encode(eckit::Stream& s) const override;
+private:  // methods
+    void encode(eckit::Stream& out) const override;
 
-    void print( std::ostream &out ) const;
+    void print(std::ostream& out) const;
 
-private: // members
+    friend std::ostream& operator<<(std::ostream& out, const Predicate& predicate);
 
-    static eckit::ClassSpec classSpec_;
-    static eckit::Reanimator<Predicate> reanimator_;
+private:  // members
+    std::string keyword_;
 
     std::unique_ptr<Matcher> matcher_;
 
-    std::string keyword_;
+    // streamable
+
+    static eckit::ClassSpec             classSpec_;
+    static eckit::Reanimator<Predicate> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

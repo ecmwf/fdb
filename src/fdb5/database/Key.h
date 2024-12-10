@@ -16,6 +16,7 @@
 #pragma once
 
 #include "fdb5/database/BaseKey.h"
+#include "fdb5/types/TypesRegistry.h"
 
 #include <cstddef>
 #include <functional>

@@ -15,19 +15,15 @@
 #define fdb5_SchemaParser_h
 
 #include <iosfwd>
+#include <memory>
 #include <string>
-#include <vector>
 
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
-namespace fdb5 {
+#include "fdb5/rules/Rule.h"
 
-class Predicate;
-class TypesRegistry;
-class RuleDatum;
-class RuleIndex;
-class RuleDatabase;
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -36,18 +32,18 @@ class SchemaParser : public eckit::StreamParser {
 public:  // methods
     SchemaParser(std::istream& in) : StreamParser(in, true) { }
 
-    void parse(std::vector<RuleDatabase>& result, TypesRegistry& registry);
+    void parse(RuleList& result, TypesRegistry& registry);
 
 private:  // methods
     std::string parseIdent(bool value, bool emptyOK);
 
-    RuleDatum parseDatum();
+    std::unique_ptr<RuleDatum> parseDatum();
 
-    RuleIndex parseIndex();
+    std::unique_ptr<RuleIndex> parseIndex();
 
-    RuleDatabase parseDatabase();
+    std::unique_ptr<RuleDatabase> parseDatabase();
 
-    Predicate parsePredicate(eckit::StringDict& types);
+    std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
 
     void parseTypes(eckit::StringDict& types);
 };
