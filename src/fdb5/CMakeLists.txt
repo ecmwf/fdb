@@ -150,8 +150,6 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
-    io/FieldHandle.cc
-    io/FieldHandle.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
