@@ -319,7 +319,7 @@ CASE("Date - string ctor - expansion") {
     eckit::Translator<long, std::string> t;
 
     EXPECT_EQUAL(key["date"], t(now.yyyymmdd()));
-    EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:MHS:3001");
+    EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 
     {
         fdb5::Archiver       archiver;
@@ -331,7 +331,7 @@ CASE("Date - string ctor - expansion") {
     }
 
     EXPECT_EQUAL(key["date"], t(now.yyyymmdd()));
-    EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:MHS:3001");
+    EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 }
 
 //----------------------------------------------------------------------------------------------------------------------

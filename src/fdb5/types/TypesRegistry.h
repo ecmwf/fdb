@@ -63,9 +63,9 @@ public:  // methods
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
+    void encode(eckit::Stream& out) const override;
 
 private:  // methods
-    void encode(eckit::Stream& out) const override;
 
     void print(std::ostream& out) const;
 

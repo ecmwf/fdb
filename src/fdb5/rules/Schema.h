@@ -39,7 +39,6 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Database;
 class ReadVisitor;
 class WriteVisitor;
 class TypesRegistry;

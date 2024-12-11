@@ -182,7 +182,8 @@ Rule::Rule(eckit::Stream& stream) : registry_ {stream} {
 // }
 
 void Rule::encode(eckit::Stream& out) const {
-    out << registry_;
+    registry_.encode(out);
+    // out << registry_;
     out << line_;
     out << predicates_.size();
     for (const auto& pred : predicates_) { out << *pred; }
@@ -518,6 +519,7 @@ RuleIndex::RuleIndex(eckit::Stream& stream) : Rule(stream), rules_ {decodeRules<
 
 void RuleIndex::encode(eckit::Stream& out) const {
     Rule::encode(out);
+    out << rules_.size();
     for (const auto& rule : rules_) { out << *rule; }
 }
 
@@ -568,6 +570,7 @@ RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule(stream), rules_ {decode
 
 void RuleDatabase::encode(eckit::Stream& out) const {
     Rule::encode(out);
+    out << rules_.size();
     for (const auto& rule : rules_) { out << *rule; }
 }
 
