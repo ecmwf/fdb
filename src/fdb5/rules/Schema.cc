@@ -68,7 +68,8 @@ Schema::Schema(eckit::Stream& stream) : registry_ {stream} {
 }
 
 void Schema::encode(eckit::Stream& stream) const {
-    stream << registry_;
+    registry_.encode(stream);
+    // stream << registry_;
     stream << path_;
     stream << rules_.size();
     for (const auto& rule : rules_) { stream << *rule; }
