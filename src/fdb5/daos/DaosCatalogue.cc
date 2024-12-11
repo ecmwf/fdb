@@ -167,8 +167,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
 std::string DaosCatalogue::type() const {
 
-    // return DaosCatalogue::catalogueTypeName();
-    
+    return fdb5::DaosEngine::typeName();
 }
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
