@@ -39,8 +39,6 @@ class Matcher : public eckit::Streamable {
 public:  // methods
     Matcher() = default;
 
-    // virtual ~Matcher() = default;
-
     Matcher(eckit::Stream& stream);
 
     virtual bool optional() const { return false; }

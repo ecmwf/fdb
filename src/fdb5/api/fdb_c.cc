@@ -394,7 +394,7 @@ int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
         ASSERT(fdb);
         ASSERT(req);
         ASSERT(dr);
-        dr->set(fdb->retrieve(req->request(), true));
+        dr->set(fdb->retrieve(req->request()));
     });
 }
 int fdb_flush(fdb_handle_t* fdb) {

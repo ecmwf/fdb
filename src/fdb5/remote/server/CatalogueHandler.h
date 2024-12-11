@@ -60,7 +60,6 @@ private:  // methods
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 
     bool remove(bool control, uint32_t clientID) override;
-    // bool handlers() override;
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
@@ -73,7 +72,6 @@ private:  // member
     std::mutex fdbMutex_;
     std::mutex fieldLocationsMutex_;
 
-    // uint32_t fdbId_;
     bool fdbControlConnection_;
     bool fdbDataConnection_;
 };

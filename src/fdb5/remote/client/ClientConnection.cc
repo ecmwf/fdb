@@ -48,9 +48,6 @@ ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, 
 
 void ClientConnection::add(Client& client) {
     std::lock_guard<std::mutex> lock(clientsMutex_);
-    // auto it = clients_.find(client.id());
-    // ASSERT(it == clients_.end());
-
     clients_[client.id()] = &client;
 }
 
@@ -71,7 +68,6 @@ bool ClientConnection::remove(uint32_t clientID) {
 
     if (clients_.empty()) {
         teardown();
-        // ClientConnectionRouter::instance().deregister(*this);
     }
 
     return clients_.empty();
@@ -94,17 +90,16 @@ uint32_t ClientConnection::generateRequestID() {
 
 bool ClientConnection::connect(bool singleAttempt) {
 
-//    std::lock_guard<std::mutex> lock(requestMutex_);
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
         return connected_;
     }
 
     int fdbMaxConnectRetries = (singleAttempt ? 1 : eckit::Resource<int>("fdbMaxConnectRetries", 3));
-    int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", (singleAttempt ? 2 : 5)); // 0 = No timeout 
+    int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", (singleAttempt ? 2 : 5)); // 0 = No timeout
 
     try {
-        // Connect to server, and check that the server is happy on the response 
+        // Connect to server, and check that the server is happy on the response
         LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
@@ -136,10 +131,6 @@ void ClientConnection::disconnect() {
     std::lock_guard<std::mutex> lock(clientsMutex_);
     ASSERT(clients_.empty());
     if (connected_) {
-
-        // if (dataWriteFuture_.valid()) {
-        //     dataWriteFuture_.wait();
-        // }
         if (dataWriteThread_.joinable()) {
             dataWriteThread_.join();
         }
@@ -174,11 +165,6 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 // -----------------------------------------------------------------------------------------------------
 
 std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
-
-    // std::lock_guard<std::mutex> lock(clientsMutex_);
-    // auto it = clients_.find(client.clientId());
-    // ASSERT(it != clients_.end());
-
     std::future<eckit::Buffer> f;
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
@@ -201,7 +187,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         // retrieve or add client to the list
         std::lock_guard<std::mutex> lock(clientsMutex_);
         auto it = clients_.find(client.clientId());
-        ASSERT(it != clients_.end());        
+        ASSERT(it != clients_.end());
     }
     {
         std::lock_guard<std::mutex> lock(dataWriteMutex_);
@@ -211,7 +197,6 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
 
             dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
             dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
-            // dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
         }
     }
     uint32_t payloadLength = 0;
@@ -254,20 +239,6 @@ void ClientConnection::dataWriteThreadLoop() {
     // We are inside an async, so don't need to worry about exceptions escaping.
     // They will be released when flush() is called.
 }
-
-// void ClientConnection::handleError(const MessageHeader& hdr, eckit::Buffer buffer) {
-//     ASSERT(hdr.marker == StartMarker);
-//     ASSERT(hdr.version == CurrentVersion);
-
-//     if (hdr.message == Message::Error) {
-//         ASSERT(hdr.payloadSize > 9);
-//         std::string what(buffer.size()+1, ' ');
-//         buffer.copy(what.c_str(), buffer.size());
-//         what[buffer.size()] = 0; // Just in case
-
-//         throw RemoteFDBException(what, controlEndpoint_);
-//     }
-// }
 
 void ClientConnection::writeControlStartupMessage() {
 
@@ -413,7 +384,6 @@ void ClientConnection::listeningControlThreadLoop() {
     } catch (...) {
        ClientConnectionRouter::instance().teardown(std::current_exception());
     }
-    // ClientConnectionRouter::instance().deregister(*this);
 }
 
 void ClientConnection::listeningDataThreadLoop() {

@@ -22,8 +22,6 @@
 
 namespace fdb5::remote {
 
-// class RemoteStoreArchiver;
-
 class Locations {
 
 public:

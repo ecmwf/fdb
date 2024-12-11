@@ -155,8 +155,6 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
-    io/FieldHandle.cc
-    io/FieldHandle.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -252,9 +250,6 @@ if(HAVE_FDB_REMOTE)
         remote/server/StoreHandler.cc
         remote/server/ServerConnection.h
         remote/server/ServerConnection.cc
-
-        # remote/RemoteConfiguration.h
-        # remote/RemoteConfiguration.cc
     )
 endif()
 

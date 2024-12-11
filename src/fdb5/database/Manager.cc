@@ -269,31 +269,6 @@ std::string Manager::engine(const URI& uri)
     throw eckit::BadParameter(oss.str(), Here());
 }
 
-// eckit::URI Manager::location(const Key& key) {
-
-//     const std::string& name = Manager::engine(key);
-
-//     return Engine::backend(name).location(key, config_);
-// }
-
-// std::vector<URI> Manager::allLocations(const Key& key)
-// {
-//     std::set<std::string> engines = Manager::engines(key);
-
-//     LOG_DEBUG_LIB(LibFdb5) << "Matching engines for key " << key << " -> " << engines << std::endl;
-
-//     std::vector<URI> r; // union of all locations
-
-//     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-//         LOG_DEBUG_LIB(LibFdb5) << "Selected FDB engine " << *i << std::endl;
-//         std::vector<URI> p = Engine::backend(*i).allLocations(key, config_);
-//         r.insert(r.end(), p.begin(), p.end());
-//     }
-
-//     return r;
-// }
-
-
 std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequest& rq, bool all) {
 
     std::set<std::string> engines = Manager::engines(rq, all);
@@ -317,23 +292,6 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
     return r;
 
 }
-
-// std::vector<eckit::URI> Manager::writableLocations(const Key& key) {
-
-//     std::set<std::string> engines = Manager::engines(key);
-
-//     LOG_DEBUG_LIB(LibFdb5) << "Matching engines for key " << key << " -> " << engines << std::endl;
-
-//     std::vector<URI> r; // union of all locations
-
-//     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-//         LOG_DEBUG_LIB(LibFdb5) << "Selected FDB engine " << *i << std::endl;
-//         std::vector<URI> p = Engine::backend(*i).writableLocations(key, config_);
-//         r.insert(r.end(), p.begin(), p.end());
-//     }
-
-//     return r;
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

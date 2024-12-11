@@ -63,10 +63,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 archiver();
                 return Handled::YesAddArchiveListener;
 
-            // case Message::Flush: // notification that the client has sent all data locations for archival
-            //     flush(clientID, requestID, eckit::Buffer{0});
-            //     return Handled::Yes;
-
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -134,57 +130,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     return Handled::No;
 }
 
-// Handled CatalogueHandler::handleData(Message message, uint32_t clientID, uint32_t requestID) {
-//     try {
-//         switch (message) {
-//             case Message::Flush: // notification that the client has sent all data locations for archival
-//                 return Handled::YesRemoveArchiveListener; // ????
-//
-//             default: {
-//                 std::stringstream ss;
-//                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
-//                 Log::status() << ss.str() << std::endl;
-//                 Log::error() << ss.str() << std::endl;
-//                 throw SeriousBug(ss.str(), Here());
-//             }
-//         }
-//     }
-//     catch (std::exception& e) {
-//         // n.b. more general than eckit::Exception
-//         error(e.what(), clientID, requestID);
-//     }
-//     catch (...) {
-//         error("Caught unexpected and unknown error", clientID, requestID);
-//     }
-//     return Handled::No;
-// }
-
-// Handled CatalogueHandler::handleData(Message message, uint32_t clientID, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) {
-//     try {
-//         switch (message) {
-//             case Message::Blob:
-//             case Message::MultiBlob:
-//                 queue(message, clientID, requestID, std::move(payload));
-//                 return Handled::Yes;
-//
-//             default: {
-//                 std::stringstream ss;
-//                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
-//                 Log::status() << ss.str() << std::endl;
-//                 Log::error() << ss.str() << std::endl;
-//                 throw SeriousBug(ss.str(), Here());
-//             }
-//         }
-//     }
-//     catch (std::exception& e) {
-//         // n.b. more general than eckit::Exception
-//         error(e.what(), clientID, requestID);
-//     }
-//     catch (...) {
-//         error("Caught unexpected and unknown error", clientID, requestID);
-//     }
-//     return Handled::No;
-// }
 
 // API forwarding logic, adapted from original remoteHandler
 // Used for Inspect and List
@@ -321,7 +266,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
         // 1. Read dbkey to select catalogue
         MemoryStream s(payload);
         Key dbKey(s);
-    
+
         // 2. Get catalogue
         Catalogue& cat = catalogue(clientID, dbKey);
         const Schema& schema = cat.schema();
@@ -402,7 +347,7 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-        
+
     ASSERT(payload.size() > 0);
 
     size_t numArchived = 0;
@@ -474,7 +419,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
 }
 
 bool CatalogueHandler::remove(bool control, uint32_t clientID) {
-    
+
     std::lock_guard<std::mutex> lock(handlerMutex_);
 
     // is the client an FDB
@@ -513,7 +458,6 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
         numDataConnection_++;
     }
     return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
-    // return *((catalogues_[id] = std::make_pair(single_ ? 1 : 2, CatalogueArchiver(dbKey, config_))).second.catalogue);
 }
 
 }  // namespace fdb5::remote

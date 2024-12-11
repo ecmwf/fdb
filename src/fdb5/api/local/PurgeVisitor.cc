@@ -39,12 +39,6 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
     doit_(doit),
     porcelain_(porcelain) {}
 
-/*
-bool PurgeVisitor::visitCatalogue(const Catalogue& catalogue) {
-    return false;
-}*/
-
-//bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // If the DB is locked for wiping, then it "doesn't exist"

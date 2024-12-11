@@ -65,7 +65,6 @@ public:
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-//    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
     bool visitDatabase(const Catalogue& catalogue) override {
 
         // If the DB is locked for listing, then it "doesn't exist"

@@ -25,7 +25,6 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool StatsVisitor::visitDatabase(const Catalogue& catalogue) {
 
     EntryVisitor::visitDatabase(catalogue);

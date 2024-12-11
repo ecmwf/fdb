@@ -22,7 +22,6 @@
 #include <cmath>
 
 #include "eckit/types/FixedString.h"
-// #include "fdb5/remote/Handler.h"
 
 namespace eckit {
     class Stream;
@@ -89,7 +88,6 @@ public: // methods
         requestID(0),
         payloadSize(0) {}
 
-    // MessageHeader(Message message, bool control, const Handler& clientID, uint32_t requestID, uint32_t payloadSize=0);
 
     MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
     

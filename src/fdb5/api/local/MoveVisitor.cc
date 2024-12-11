@@ -41,7 +41,6 @@ MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue,
     QueryVisitor<MoveElement>(queue, request),
     dest_(dest) {}
 
-//bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue) {
     if (catalogue.key().match(request_)) {
         catalogue.control(
@@ -54,11 +53,8 @@ bool MoveVisitor::visitDatabase(const Catalogue& catalogue) {
         ASSERT(!catalogue.enabled(ControlIdentifier::UniqueRoot));
 
         EntryVisitor::visitDatabase(catalogue);
-//        EntryVisitor::visitDatabase(catalogue, store);
 
         ASSERT(!internalVisitor_);
-        // internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, queue_));
-        // internalVisitor_->visitDatabase(catalogue, store);
         internalVisitor_.reset(catalogue.moveVisitor(store(), request_, dest_, queue_));
         internalVisitor_->visitDatabase(catalogue);
 

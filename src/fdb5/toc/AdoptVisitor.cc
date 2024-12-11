@@ -31,8 +31,6 @@ AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const Pa
 }
 
 bool AdoptVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
-
-    // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(fullKey);
 
     CatalogueWriter* cat = catalogue();

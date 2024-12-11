@@ -404,7 +404,6 @@ void ServerConnection::listeningThreadLoopData() {
                         }
                     case Handled::Replied: // nothing to do
                     case Handled::Yes:
-        //                write(Message::Received, false, hdr.clientID(), hdr.requestID);
                         break;
                     case Handled::No:
                     default:
@@ -436,8 +435,6 @@ void ServerConnection::handle() {
 
     // listen loop
     while (true) {
-        //tidyWorkers();
-
         eckit::Buffer payload = readControl(hdr); // READ CONTROL
         LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 

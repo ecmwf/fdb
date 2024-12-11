@@ -30,7 +30,7 @@ class TocCommon {
 public:
 
     TocCommon(const eckit::PathName& path);
-    virtual ~TocCommon() {}
+    virtual ~TocCommon() = default;
 
     static eckit::LocalPathName findRealPath(const eckit::LocalPathName& path);
     static std::string userName(uid_t uid);

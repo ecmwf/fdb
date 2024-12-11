@@ -44,7 +44,6 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
 
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
     LocalConfiguration(config), schemaPathInitialised_(false) {
-    // initializeSchemaPath();
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 

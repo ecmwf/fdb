@@ -103,9 +103,6 @@ public: // typedefs
     typedef std::vector< eckit::LocalPathName > TocPaths;
 
 public: // methods
-
-    // TocHandler( const Key& key, const Config& config);
-
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.

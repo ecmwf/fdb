@@ -78,7 +78,7 @@ private: // methods
 
 private: // members
 
-    eckit::SessionID sessionID_; 
+    eckit::SessionID sessionID_;
 
     eckit::net::Endpoint controlEndpoint_;
     eckit::net::Endpoint dataEndpoint_;
@@ -93,16 +93,16 @@ private: // members
 
     std::thread listeningControlThread_;
     std::thread listeningDataThread_;
-    
+
     std::mutex requestMutex_;
 
     // requestID
     std::mutex idMutex_;
     uint32_t id_;
 
-    bool connected_; 
-    bool controlStopping_; 
-    bool dataStopping_; 
+    bool connected_;
+    bool controlStopping_;
+    bool dataStopping_;
 
     std::mutex promisesMutex_;
     std::map<uint32_t, std::promise<eckit::Buffer>> promises_;

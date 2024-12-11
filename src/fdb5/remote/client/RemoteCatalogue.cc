@@ -144,12 +144,6 @@ bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID) 
 }
 bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
     LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
-    // if (message == Message::Schema) {
-    //     LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::handle received payload size: " << payload.size() << std::endl;
-    //     MemoryStream s(payload);
-    //     schema_ = std::unique_ptr<Schema>(eckit::Reanimator<Schema>::reanimate(s));
-    //     return true;
-    // }
     return false;
 }
 

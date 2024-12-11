@@ -38,7 +38,6 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/io/FieldHandle.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
 
@@ -155,6 +154,13 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     return sorted;
 }
 
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
+
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
     auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
     return location->dataHandle();
@@ -172,7 +178,6 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
 }
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
-
     eckit::Timer timer;
     timer.start();
 
@@ -221,13 +226,9 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::readSeekable(ListIterator& it, bool sorted) {
-    return new FieldHandle(it);
-}
-
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, bool seekable) {
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListIterator it = inspect(request);
-    return (seekable ? readSeekable(it, sorted(request)) : read(it, sorted(request)));
+    return read(it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {

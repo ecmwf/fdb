@@ -117,7 +117,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
 
     axes_.encode(s, version);
     s << key_;
-    s << ""; // key_.valuesToString();    we no longer write this field, required in the previous index format
+    s << ""; // we no longer write this field, required in the previous index format
     s << type_;
 }
 

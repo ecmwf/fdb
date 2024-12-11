@@ -29,7 +29,6 @@ TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& sto
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
-//bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     std::set<std::pair<URI, Offset>> metadata;
@@ -70,7 +69,7 @@ void TocPurgeVisitor::gatherAuxiliaryURIs() {
                 deletable = true;
             }
         }
-        
+
         // Add auxiliary files to the corresponding set
         eckit::URI uri(store_.type(), eckit::PathName(it.first));
         for (const auto& auxURI : store_.getAuxiliaryURIs(uri)) {
