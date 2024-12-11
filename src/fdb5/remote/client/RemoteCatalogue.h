@@ -39,7 +39,7 @@ public:
     const Schema& schema() const override;
 
     std::vector<eckit::PathName> metadataPaths() const override;
-    void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted = false) override;
+    void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
@@ -60,8 +60,6 @@ public:
     eckit::URI uri() const override;
 
 protected:
-
-    // FDBStats archivalCompleted();
 
     void loadSchema() override;
 

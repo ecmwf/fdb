@@ -148,7 +148,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
     if (subTocOverride) {
         useSubToc_ = true;
-    }    
+    }
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc) :
@@ -1740,7 +1740,7 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
 
 void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
 
-    
+
 
     for (ControlIdentifier identifier : identifiers) {
 

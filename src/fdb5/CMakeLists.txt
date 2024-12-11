@@ -213,7 +213,7 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_FDB_REMOTE)
-    list( APPEND fdb5_srcs 
+    list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
 
@@ -245,9 +245,6 @@ if(HAVE_FDB_REMOTE)
         remote/server/StoreHandler.cc
         remote/server/ServerConnection.h
         remote/server/ServerConnection.cc
-
-        # remote/RemoteConfiguration.h
-        # remote/RemoteConfiguration.cc
     )
 endif()
 
@@ -353,19 +350,19 @@ if( HAVE_DAOSFDB )
         daos/DaosArrayHandle.h
         daos/DaosKeyValueHandle.cc
         daos/DaosKeyValueHandle.h
-        daos/DaosStore.h 
-        daos/DaosStore.cc 
-        daos/DaosFieldLocation.h 
+        daos/DaosStore.h
+        daos/DaosStore.cc
+        daos/DaosFieldLocation.h
         daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
         daos/DaosEngine.h
-        daos/DaosEngine.cc 
-        daos/DaosCatalogue.h 
-        daos/DaosCatalogue.cc 
-        daos/DaosCatalogueWriter.h 
+        daos/DaosEngine.cc
+        daos/DaosCatalogue.h
+        daos/DaosCatalogue.cc
+        daos/DaosCatalogueWriter.h
         daos/DaosCatalogueWriter.cc
-        daos/DaosCatalogueReader.h 
+        daos/DaosCatalogueReader.h
         daos/DaosCatalogueReader.cc
         daos/DaosIndex.h
         daos/DaosIndex.cc
@@ -373,11 +370,11 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        daos/DaosWipeVisitor.h 
+        daos/DaosWipeVisitor.h
         daos/DaosWipeVisitor.cc
-        daos/DaosArrayPartHandle.h 
+        daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
-        daos/DaosLazyFieldLocation.h 
+        daos/DaosLazyFieldLocation.h
         daos/DaosLazyFieldLocation.cc
         daos/UUID.h
         daos/UUID.cc
@@ -392,7 +389,7 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
-    
+
     TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES

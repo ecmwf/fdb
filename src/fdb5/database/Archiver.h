@@ -51,8 +51,6 @@ public: // methods
 
     virtual ~Archiver();
 
-    // uint32_t id() const { return id_; }
-
     void archive(const Key& key, BaseArchiveVisitor& visitor);
     void archive(const Key& key, const void* data, size_t len);
 

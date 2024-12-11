@@ -99,15 +99,10 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
     return payload;
 }
 
-// void Connection::write(remote::Message msg, bool control, const Handler& clientID, uint32_t requestID, const void* data, uint32_t length) {
-//     write(msg, control, clientID.clientId(), requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
-// }
-// void Connection::write(remote::Message msg, bool control, const Handler& clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
-//     write(msg, control, clientID.clientId(), requestID, data);
-// }
 void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) {
     write(msg, control, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
 }
+
 void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
     uint32_t payloadLength = 0;
@@ -128,28 +123,15 @@ void Connection::write(remote::Message msg, bool control, uint32_t clientID, uin
     writeUnsafe(control, &EndMarker, sizeof(EndMarker));
 }
 
-// void Connection::writeControl(remote::Message msg, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) {
-//     write(msg, true, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
-// }
-// void Connection::writeControl(remote::Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
-//     write(msg, true, clientID, requestID, data);
-// }
-// void Connection::writeData(remote::Message msg, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) {
-//     write(msg, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
-// }
-// void Connection::writeData(remote::Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
-//     write(msg, false, clientID, requestID, data);
-// }
 void Connection::error(const std::string& msg, uint32_t clientID, uint32_t requestID) {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Error, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{msg.c_str(), msg.length()}});
 }
-// void Connection::error(const std::string& msg, const Handler& clientID, uint32_t requestID) {
-//     write(Message::Error, true, clientID.clientId(), requestID, std::vector<std::pair<const void*, uint32_t>>{{msg.c_str(), msg.length()}});
-// }
+
 eckit::Buffer Connection::readControl(MessageHeader& hdr) {
     return read(true, hdr);
 }
+
 eckit::Buffer Connection::readData(MessageHeader& hdr) {
     return read(false, hdr);
 }

@@ -38,7 +38,6 @@ public:
 
     using QueryVisitor<StatsElement>::QueryVisitor;
 
-//    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;

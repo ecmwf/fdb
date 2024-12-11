@@ -32,7 +32,6 @@ struct BaseAPIHelper {
     static ValueType valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) { return ValueType(s); }
 };
 
-// using ListHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List>;
 using StatsHelper = BaseAPIHelper<fdb5::StatsElement, fdb5::remote::Message::Stats>;
 
 struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List> {

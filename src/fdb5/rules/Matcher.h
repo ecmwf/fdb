@@ -19,7 +19,6 @@
 #include <iosfwd>
 #include <vector>
 
-//#include "eckit/memory/NonCopyable.h"
 #include "eckit/serialisation/Streamable.h"
 
 class MarsTask;
@@ -60,7 +59,6 @@ public: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
 
-//	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods

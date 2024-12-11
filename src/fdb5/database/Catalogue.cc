@@ -34,7 +34,7 @@ std::unique_ptr<Store> CatalogueImpl::buildStore() const {
     return StoreFactory::instance().build(key(), config_);
 }
 
-void Catalogue::visitEntries(EntryVisitor& visitor /*, const Store& store*/, bool sorted) {
+void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     std::vector<Index> all = indexes(sorted);
 

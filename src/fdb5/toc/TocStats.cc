@@ -218,7 +218,6 @@ TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-//bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(&catalogue == currentCatalogue_);
     return true;

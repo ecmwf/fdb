@@ -57,186 +57,186 @@ struct FixtureService {
     StringDict p;
     fdb5::Config config;
 
-	std::vector<std::string> modelParams_;
+    std::vector<std::string> modelParams_;
 
     FixtureService() : env("environ")
-	{
+    {
         p["class"]  = "rd";
-		p["stream"] = "oper";
-		p["domain"] = "g";
-		p["expver"] = "0001";
-		p["date"] = "20120911";
-		p["time"] = "0000";
+        p["stream"] = "oper";
+        p["domain"] = "g";
+        p["expver"] = "0001";
+        p["date"] = "20120911";
+        p["time"] = "0000";
         p["type"] = "fc";
 
         modelParams_.push_back( "130.128" );
         modelParams_.push_back( "138.128" );
-	}
+    }
 
     void write_cycle(fdb5::Archiver& fdb, StringDict& p )
-	{
-		Translator<size_t,std::string> str;
-		std::vector<std::string>::iterator param = modelParams_.begin();
-		for( ; param != modelParams_.end(); ++param )
-		{
-			p["param"] = *param;
+    {
+        Translator<size_t,std::string> str;
+        std::vector<std::string>::iterator param = modelParams_.begin();
+        for( ; param != modelParams_.end(); ++param )
+        {
+            p["param"] = *param;
 
-			p["levtype"] = "pl";
+            p["levtype"] = "pl";
 
-			for( size_t step = 0; step < 12; ++step )
-			{
-				p["step"] = str(step*3);
+            for( size_t step = 0; step < 12; ++step )
+            {
+                p["step"] = str(step*3);
 
-				for( size_t level = 0; level < 10; ++level )
-				{
-					p["levelist"] = str(level*100);
+                for( size_t level = 0; level < 10; ++level )
+                {
+                    p["levelist"] = str(level*100);
 
-					std::ostringstream data;
-					data << "Raining cats and dogs -- "
-						 << " param " << *param
-						 << " step "  << step
-						 << " level " << level
-						 << std::endl;
-					std::string data_str = data.str();
+                    std::ostringstream data;
+                    data << "Raining cats and dogs -- "
+                         << " param " << *param
+                         << " step "  << step
+                         << " level " << level
+                         << std::endl;
+                    std::string data_str = data.str();
 
                     fdb5::Key k{p};
                     ArchiveVisitor visitor(fdb, k, static_cast<const void *>(data_str.c_str()), data_str.size());
                     fdb.archive(k, visitor);
-				}
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE ( "test_fdb_stepunit_archive" ) {
 
-	std::string data_str = "Raining cats and dogs";
+    std::string data_str = "Raining cats and dogs";
 
-	fdb5::FDB fdb;
+    fdb5::FDB fdb;
 
-	Key key;
-	key.set("class","od");
-	key.set("expver","0001");
-	key.set("type","fc");
-	key.set("stream","oper");
-	key.set("date","20101010");
-	key.set("time","0000");
-	key.set("domain","g");
-	key.set("levtype","sfc");
-	key.set("step","60");
-	key.set("param","130");
-	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
-	fdb.flush();
+    Key key;
+    key.set("class","od");
+    key.set("expver","0001");
+    key.set("type","fc");
+    key.set("stream","oper");
+    key.set("date","20101010");
+    key.set("time","0000");
+    key.set("domain","g");
+    key.set("levtype","sfc");
+    key.set("step","60");
+    key.set("param","130");
+    fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+    fdb.flush();
 
-	metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest req = key.request();
 
-	{
-		fdb5::FDBToolRequest r(req);
-		fdb5::ListIterator iter = fdb.list(r, true);
-		fdb5::ListElement el;
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "60");
-		EXPECT(!iter.next(el));
-	}
+    {
+        fdb5::FDBToolRequest r(req);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT(!iter.next(el));
+    }
 
-	key.set("step","2");
-	key.set("stepunits","h");
-	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
-	fdb.flush();
+    key.set("step","2");
+    key.set("stepunits","h");
+    fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+    fdb.flush();
 
-	req.setValue("step", "2");
-	{
-		fdb5::FDBToolRequest r(req);
-		fdb5::ListIterator iter = fdb.list(r, true);
-		fdb5::ListElement el;
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
-		EXPECT(!iter.next(el));
-	}
+    req.setValue("step", "2");
+    {
+        fdb5::FDBToolRequest r(req);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(!iter.next(el));
+    }
 
-	req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2","60"});
-	{
-		fdb5::FDBToolRequest r(req);
-		fdb5::ListIterator iter = fdb.list(r, true);
-		fdb5::ListElement el;
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "60");
-		EXPECT(!iter.next(el));
-	}
+    req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2","60"});
+    {
+        fdb5::FDBToolRequest r(req);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT(!iter.next(el));
+    }
 
-	key.set("step","30");
-	key.set("stepunits","m");
-	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
-	fdb.flush();
+    key.set("step","30");
+    key.set("stepunits","m");
+    fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+    fdb.flush();
 
-	req.setValue("step", "30m");
-	{
-		fdb5::FDBToolRequest r(req);
-		fdb5::ListIterator iter = fdb.list(r, true);
-		fdb5::ListElement el;
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "30m");
-		EXPECT(!iter.next(el));
-	}
+    req.setValue("step", "30m");
+    {
+        fdb5::FDBToolRequest r(req);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(!iter.next(el));
+    }
 
-	req.values("step", {"0","to","2","by","30m"});
-	req.unsetValues("param");
-	{
-		metkit::mars::MarsExpension expand{false};
+    req.values("step", {"0","to","2","by","30m"});
+    req.unsetValues("param");
+    {
+        metkit::mars::MarsExpension expand{false};
 
-		metkit::mars::MarsRequest expandedRequests = expand.expand(req);
-		fdb5::FDBToolRequest r(expandedRequests);
-		fdb5::ListIterator iter = fdb.list(r, true);
-		fdb5::ListElement el;
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "30m");
-		EXPECT(iter.next(el));
-		EXPECT(el.combinedKey().get("step") == "2");
-		EXPECT(!iter.next(el));
-	}
+        metkit::mars::MarsRequest expandedRequests = expand.expand(req);
+        fdb5::FDBToolRequest r(expandedRequests);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(!iter.next(el));
+    }
 }
 
 CASE ( "test_fdb_service" ) {
 
-	SETUP("Fixture") {
-		FixtureService f;
+    SETUP("Fixture") {
+        FixtureService f;
 
         SECTION( "test_fdb_service_write" )
-		{
-			fdb5::Archiver fdb;
+        {
+            fdb5::Archiver fdb;
 
             f.p["class"]  = "rd";
-			f.p["stream"] = "oper";
-			f.p["domain"] = "g";
-			f.p["expver"] = "0001";
+            f.p["stream"] = "oper";
+            f.p["domain"] = "g";
+            f.p["expver"] = "0001";
 
-			f.p["date"] = "20120911";
-			f.p["time"] = "0000";
-			f.p["type"] = "fc";
+            f.p["date"] = "20120911";
+            f.p["time"] = "0000";
+            f.p["type"] = "fc";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120911";
-			f.p["time"] = "0000";
-			f.p["type"] = "4v";
+            f.p["date"] = "20120911";
+            f.p["time"] = "0000";
+            f.p["type"] = "4v";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120912";
-			f.p["time"] = "0000";
-			f.p["type"] = "fc";
+            f.p["date"] = "20120912";
+            f.p["time"] = "0000";
+            f.p["type"] = "fc";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120912";
-			f.p["time"] = "0000";
-			f.p["type"] = "4v";
+            f.p["date"] = "20120912";
+            f.p["time"] = "0000";
+            f.p["type"] = "4v";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
         }
 
 
@@ -244,24 +244,24 @@ CASE ( "test_fdb_service" ) {
         {
             fdb5::FDB retriever;
 
-			Buffer buffer(1024);
+            Buffer buffer(1024);
 
-			Translator<size_t,std::string> str;
-			std::vector<std::string>::iterator param = f.modelParams_.begin();
-			for( ; param != f.modelParams_.end(); ++param )
-			{
-				f.p["param"] = *param;
-				f.p["levtype"] = "pl";
+            Translator<size_t,std::string> str;
+            std::vector<std::string>::iterator param = f.modelParams_.begin();
+            for( ; param != f.modelParams_.end(); ++param )
+            {
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
 
-				for( size_t step = 0; step < 2; ++step )
-				{
-					f.p["step"] = str(step*3);
+                for( size_t step = 0; step < 2; ++step )
+                {
+                    f.p["step"] = str(step*3);
 
-					for( size_t level = 0; level < 3; ++level )
-					{
-						f.p["levelist"] = str(level*100);
+                    for( size_t level = 0; level < 3; ++level )
+                    {
+                        f.p["levelist"] = str(level*100);
 
-						Log::info() << "Looking for: " << f.p << std::endl;
+                        Log::info() << "Looking for: " << f.p << std::endl;
 
                         metkit::mars::MarsRequest r("retrieve", f.p);
                         std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
@@ -281,9 +281,9 @@ CASE ( "test_fdb_service" ) {
                                 << std::endl;
 
                         EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
-					}
-				}
-			}
+                    }
+                }
+            }
         }
 
 
@@ -291,157 +291,157 @@ CASE ( "test_fdb_service" ) {
         {
             fdb5::FDB lister;
 
-			Translator<size_t,std::string> str;
-			std::vector<std::string>::iterator param = f.modelParams_.begin();
-			for( ; param != f.modelParams_.end(); ++param )
-			{
-				f.p["param"] = *param;
-				f.p["levtype"] = "pl";
-				f.p["step"] = str(0);
-				f.p["levelist"] = str(0);
+            Translator<size_t,std::string> str;
+            std::vector<std::string>::iterator param = f.modelParams_.begin();
+            for( ; param != f.modelParams_.end(); ++param )
+            {
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
+                f.p["step"] = str(0);
+                f.p["levelist"] = str(0);
 
-				Log::info() << "Looking for: " << f.p << std::endl;
+                Log::info() << "Looking for: " << f.p << std::endl;
 
-				metkit::mars::MarsRequest r("retrieve", f.p);
-				fdb5::FDBToolRequest req(r);
-				auto iter = lister.list(req);
-				fdb5::ListElement el;
-				EXPECT(iter.next(el));
+                metkit::mars::MarsRequest r("retrieve", f.p);
+                fdb5::FDBToolRequest req(r);
+                auto iter = lister.list(req);
+                fdb5::ListElement el;
+                EXPECT(iter.next(el));
 
-				eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.location().uri().path().dirName();
 
-				DIR* dirp = ::opendir(path.asString().c_str());
-            	struct dirent* dp;
-            	while ((dp = ::readdir(dirp)) != nullptr) {
-                	EXPECT_NOT(strstr( dp->d_name, "toc."));
-				}
+                DIR* dirp = ::opendir(path.asString().c_str());
+                struct dirent* dp;
+                while ((dp = ::readdir(dirp)) != nullptr) {
+                    EXPECT_NOT(strstr( dp->d_name, "toc."));
+                }
 
-				// consuming the rest of the queue
-				while (iter.next(el));
-			}
+                // consuming the rest of the queue
+                while (iter.next(el));
+            }
         }
 
         SECTION( "test_fdb_service_marsreques" )
         {
             std::vector<string> steps;
-			steps.push_back( "15" );
-			steps.push_back( "18" );
-			steps.push_back( "24" );
+            steps.push_back( "15" );
+            steps.push_back( "18" );
+            steps.push_back( "24" );
 
-			std::vector<string> levels;
-			levels.push_back( "100" );
-			levels.push_back( "500" );
+            std::vector<string> levels;
+            levels.push_back( "100" );
+            levels.push_back( "500" );
 
-			std::vector<string> params;
-			params.push_back( "130.128" );
-			params.push_back( "138.128" );
+            std::vector<string> params;
+            params.push_back( "130.128" );
+            params.push_back( "138.128" );
 
-			std::vector<string> dates;
-			dates.push_back( "20120911" );
-			dates.push_back( "20120912" );
+            std::vector<string> dates;
+            dates.push_back( "20120911" );
+            dates.push_back( "20120912" );
 
 
             metkit::mars::MarsRequest r("retrieve");
 
             r.setValue("class","rd");
-			r.setValue("expver","0001");
-			r.setValue("type","fc");
-			r.setValue("stream","oper");
-			r.setValue("time","0000");
-			r.setValue("domain","g");
-			r.setValue("levtype","pl");
+            r.setValue("expver","0001");
+            r.setValue("type","fc");
+            r.setValue("stream","oper");
+            r.setValue("time","0000");
+            r.setValue("domain","g");
+            r.setValue("levtype","pl");
 
             r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
             r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
             r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
             r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
 
-			Log::info() << r << std::endl;
+            Log::info() << r << std::endl;
 
             fdb5::FDB retriever;
 
             std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );
 
-			PathName path ( "data_mars_request.data" );
-			path.unlink();
+            PathName path ( "data_mars_request.data" );
+            path.unlink();
 
-			dh->saveInto(path);
+            dh->saveInto(path);
         }
-	}
+    }
 }
 
 
 
 CASE ( "test_fdb_service_subtoc" ) {
 
-	SETUP("Fixture") {
-		FixtureService f;
+    SETUP("Fixture") {
+        FixtureService f;
 
-		eckit::LocalConfiguration userConf;
-    	userConf.set("useSubToc", true);
-		
-		fdb5::Config expanded = fdb5::Config().expandConfig();
+        eckit::LocalConfiguration userConf;
+        userConf.set("useSubToc", true);
 
-		fdb5::Config config(expanded, userConf);
+        fdb5::Config expanded = fdb5::Config().expandConfig();
+
+        fdb5::Config config(expanded, userConf);
 
         SECTION( "test_fdb_service_subtoc_write" )
-		{
-			fdb5::Archiver fdb(config);
+        {
+            fdb5::Archiver fdb(config);
 
             f.p["class"]  = "rd";
-			f.p["stream"] = "oper";
-			f.p["domain"] = "g";
-			f.p["expver"] = "0002";
+            f.p["stream"] = "oper";
+            f.p["domain"] = "g";
+            f.p["expver"] = "0002";
 
-			f.p["date"] = "20120911";
-			f.p["time"] = "0000";
-			f.p["type"] = "fc";
+            f.p["date"] = "20120911";
+            f.p["time"] = "0000";
+            f.p["type"] = "fc";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120911";
-			f.p["time"] = "0000";
-			f.p["type"] = "4v";
+            f.p["date"] = "20120911";
+            f.p["time"] = "0000";
+            f.p["type"] = "4v";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120912";
-			f.p["time"] = "0000";
-			f.p["type"] = "fc";
+            f.p["date"] = "20120912";
+            f.p["time"] = "0000";
+            f.p["type"] = "fc";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
 
-			f.p["date"] = "20120912";
-			f.p["time"] = "0000";
-			f.p["type"] = "4v";
+            f.p["date"] = "20120912";
+            f.p["time"] = "0000";
+            f.p["type"] = "4v";
 
-			f.write_cycle(fdb, f.p);
+            f.write_cycle(fdb, f.p);
         }
 
         SECTION( "test_fdb_service_subtoc_readtobuffer" )
         {
             fdb5::FDB retriever;
 
-			Buffer buffer(1024);
+            Buffer buffer(1024);
 
-			f.p["expver"] = "0002";
+            f.p["expver"] = "0002";
 
-			Translator<size_t,std::string> str;
-			std::vector<std::string>::iterator param = f.modelParams_.begin();
-			for( ; param != f.modelParams_.end(); ++param )
-			{
-				f.p["param"] = *param;
-				f.p["levtype"] = "pl";
+            Translator<size_t,std::string> str;
+            std::vector<std::string>::iterator param = f.modelParams_.begin();
+            for( ; param != f.modelParams_.end(); ++param )
+            {
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
 
-				for( size_t step = 0; step < 2; ++step )
-				{
-					f.p["step"] = str(step*3);
+                for( size_t step = 0; step < 2; ++step )
+                {
+                    f.p["step"] = str(step*3);
 
-					for( size_t level = 0; level < 3; ++level )
-					{
-						f.p["levelist"] = str(level*100);
+                    for( size_t level = 0; level < 3; ++level )
+                    {
+                        f.p["levelist"] = str(level*100);
 
-						Log::info() << "Looking for: " << f.p << std::endl;
+                        Log::info() << "Looking for: " << f.p << std::endl;
 
                         metkit::mars::MarsRequest r("retrieve", f.p);
                         std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
@@ -461,9 +461,9 @@ CASE ( "test_fdb_service_subtoc" ) {
                                 << std::endl;
 
                         EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
-					}
-				}
-			}
+                    }
+                }
+            }
         }
 
 
@@ -471,126 +471,126 @@ CASE ( "test_fdb_service_subtoc" ) {
         {
             fdb5::FDB lister;
 
-			f.p["expver"] = "0002";
+            f.p["expver"] = "0002";
 
-			Translator<size_t,std::string> str;
-			std::vector<std::string>::iterator param = f.modelParams_.begin();
-			for( ; param != f.modelParams_.end(); ++param )
-			{
+            Translator<size_t,std::string> str;
+            std::vector<std::string>::iterator param = f.modelParams_.begin();
+            for( ; param != f.modelParams_.end(); ++param )
+            {
 
-				f.p["param"] = *param;
-				f.p["levtype"] = "pl";
-				f.p["step"] = str(0);
-				f.p["levelist"] = str(0);
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
+                f.p["step"] = str(0);
+                f.p["levelist"] = str(0);
 
-				Log::info() << "Looking for: " << f.p << std::endl;
+                Log::info() << "Looking for: " << f.p << std::endl;
 
-				metkit::mars::MarsRequest r("retrieve", f.p);
-				fdb5::FDBToolRequest req(r);
-				auto iter = lister.list(req);
-				fdb5::ListElement el;
-				EXPECT(iter.next(el));
+                metkit::mars::MarsRequest r("retrieve", f.p);
+                fdb5::FDBToolRequest req(r);
+                auto iter = lister.list(req);
+                fdb5::ListElement el;
+                EXPECT(iter.next(el));
 
-				eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.location().uri().path().dirName();
 
-				DIR* dirp = ::opendir(path.asString().c_str());
-            	struct dirent* dp;
-				bool subtoc = false;
-            	while ((dp = ::readdir(dirp)) != nullptr) {
-                	if (strstr( dp->d_name, "toc.")) {
-						subtoc = true;
-					}
-				}
-				EXPECT(subtoc);
+                DIR* dirp = ::opendir(path.asString().c_str());
+                struct dirent* dp;
+                bool subtoc = false;
+                while ((dp = ::readdir(dirp)) != nullptr) {
+                    if (strstr( dp->d_name, "toc.")) {
+                        subtoc = true;
+                    }
+                }
+                EXPECT(subtoc);
 
-				// consuming the rest of the queue
-				while (iter.next(el));
-			}
+                // consuming the rest of the queue
+                while (iter.next(el));
+            }
         }
 
         SECTION( "test_fdb_service_subtoc_marsreques" )
         {
             std::vector<string> steps;
-			steps.push_back( "15" );
-			steps.push_back( "18" );
-			steps.push_back( "24" );
+            steps.push_back( "15" );
+            steps.push_back( "18" );
+            steps.push_back( "24" );
 
-			std::vector<string> levels;
-			levels.push_back( "100" );
-			levels.push_back( "500" );
+            std::vector<string> levels;
+            levels.push_back( "100" );
+            levels.push_back( "500" );
 
-			std::vector<string> params;
-			params.push_back( "130.128" );
-			params.push_back( "138.128" );
+            std::vector<string> params;
+            params.push_back( "130.128" );
+            params.push_back( "138.128" );
 
-			std::vector<string> dates;
-			dates.push_back( "20120911" );
-			dates.push_back( "20120912" );
+            std::vector<string> dates;
+            dates.push_back( "20120911" );
+            dates.push_back( "20120912" );
 
 
             metkit::mars::MarsRequest r("retrieve");
 
             r.setValue("class","rd");
-			r.setValue("expver","0002");
-			r.setValue("type","fc");
-			r.setValue("stream","oper");
-			r.setValue("time","0000");
-			r.setValue("domain","g");
-			r.setValue("levtype","pl");
+            r.setValue("expver","0002");
+            r.setValue("type","fc");
+            r.setValue("stream","oper");
+            r.setValue("time","0000");
+            r.setValue("domain","g");
+            r.setValue("levtype","pl");
 
             r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
             r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
             r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
             r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
 
-			Log::info() << r << std::endl;
+            Log::info() << r << std::endl;
 
             fdb5::FDB retriever;
 
             std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );
 
-			PathName path ( "data_mars_request.data" );
-			path.unlink();
+            PathName path ( "data_mars_request.data" );
+            path.unlink();
 
-			dh->saveInto(path);
+            dh->saveInto(path);
         }
-	}
+    }
 }
 
 CASE( "schemaSerialisation" ) {
 
-	PathName filename    = PathName::unique("data");                                             
-	std::string filepath = filename.asString();
+    PathName filename    = PathName::unique("data");
+    std::string filepath = filename.asString();
 
-	std::string original;
-	
-	{
-		eckit::FileStream sout(filepath.c_str(), "w");
-		auto c = eckit::closer(sout);
+    std::string original;
 
-		fdb5::Config config;
-		config = config.expandConfig();
-		
-		std::stringstream ss;
-		config.schema().dump(ss);
-		original = ss.str();
+    {
+        eckit::FileStream sout(filepath.c_str(), "w");
+        auto c = eckit::closer(sout);
 
-		sout << config.schema();
-	}
-	{                                                                                           
-		eckit::FileStream sin(filepath.c_str(), "r");
-		auto c = eckit::closer(sin);
+        fdb5::Config config;
+        config = config.expandConfig();
 
-		fdb5::Schema* clone = eckit::Reanimator<fdb5::Schema>::reanimate(sin);
+        std::stringstream ss;
+        config.schema().dump(ss);
+        original = ss.str();
 
-		std::stringstream ss;
-		clone->dump(ss);
+        sout << config.schema();
+    }
+    {
+        eckit::FileStream sin(filepath.c_str(), "r");
+        auto c = eckit::closer(sin);
 
-		EXPECT(original == ss.str());
-	}
-	if (filename.exists()) {
-		filename.unlink();
-	}
+        fdb5::Schema* clone = eckit::Reanimator<fdb5::Schema>::reanimate(sin);
+
+        std::stringstream ss;
+        clone->dump(ss);
+
+        EXPECT(original == ss.str());
+    }
+    if (filename.exists()) {
+        filename.unlink();
+    }
 }
 
 //-----------------------------------------------------------------------------

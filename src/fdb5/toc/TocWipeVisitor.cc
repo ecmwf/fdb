@@ -100,15 +100,12 @@ TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
 TocWipeVisitor::~TocWipeVisitor() {}
 
 
-// bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // Overall checks
 
     ASSERT(&catalogue_ == &catalogue);
-//    ASSERT(&store_ == &store);
     ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
-//    WipeVisitor::visitDatabase(catalogue, store);
     WipeVisitor::visitDatabase(catalogue);
 
     // Check that we are in a clean state (i.e. we only visit one DB).

@@ -44,8 +44,6 @@ protected: // methods
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
 
-    // std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
-
     void print( std::ostream &out ) const override { NOTIMP; };
 
 private: // methods

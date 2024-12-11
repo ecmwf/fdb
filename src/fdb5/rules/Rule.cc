@@ -267,35 +267,6 @@ void Rule::expand(const Key& initialFieldKey, WriteVisitor &visitor, size_t dept
     expand(initialFieldKey, predicates_.begin(), depth, keys, fullComputedKey, visitor);
 }
 
-// void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
-
-//     if (cur == predicates_.end()) {
-//         found = true;
-//         result.rule(this);
-//         return;
-//     }
-
-//     std::vector<Predicate *>::const_iterator next = cur;
-//     ++next;
-
-//     const std::string &keyword = (*cur)->keyword();
-//     const std::string &value = (*cur)->value(dbKey);
-
-//     result.push(keyword, value);
-
-//     if ((*cur)->match(result)) {
-//         expandFirstLevel(dbKey, next, result, found);
-//     }
-
-//     if (!found) {
-//         result.pop(keyword);
-//     }
-// }
-
-// void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
-//     expandFirstLevel(dbKey, predicates_.begin(), result, found);
-// }
-
 void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& found) const {
 
     if (cur == predicates_.end()) {

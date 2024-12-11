@@ -136,8 +136,6 @@ class CatalogueReader : virtual public Catalogue {
 
 public:
 
-    // CatalogueReader(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-    //     : Catalogue(key, controlIdentifiers, config) {}
     CatalogueReader() {}
     
     virtual ~CatalogueReader() {}
@@ -153,9 +151,6 @@ class CatalogueWriter : virtual public Catalogue  {
 public:
 
     CatalogueWriter() {}
-    // CatalogueWriter(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-    //     : Catalogue(key, controlIdentifiers, config) {}
-    
     virtual ~CatalogueWriter() {}
 
     virtual const Index& currentIndex() = 0;

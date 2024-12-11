@@ -34,7 +34,6 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullCo
 }
 
 bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
-    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
     return catalogue()->selectIndex(idxKey);
 }
 
