@@ -67,7 +67,6 @@ private: // methods
 protected: // members
 
     bool single_;
-//    bool exit_;
 
 private: // members
 

@@ -120,7 +120,7 @@ eckit::URI RemoteCatalogue::uri() const {
 
 void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
-    // (outside of the catalogue) 
+    // (outside of the catalogue)
 
     if (!schema_) {
         LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
@@ -129,7 +129,7 @@ void RemoteCatalogue::loadSchema() {
         eckit::Buffer keyBuffer(4096);
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
-        
+
         eckit::Buffer buf = controlWriteReadResponse(Message::Schema, generateRequestID(), keyBuffer, keyStream.position());
 
         eckit::MemoryStream s(buf);
@@ -151,7 +151,7 @@ void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<
 void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
 void RemoteCatalogue::reconsolidate(){NOTIMP;}
 std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {NOTIMP;}
-void RemoteCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) {NOTIMP;}
+void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {NOTIMP;}
 void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {NOTIMP;}
 StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {NOTIMP;}
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {NOTIMP;}

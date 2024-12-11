@@ -38,8 +38,8 @@ public: // methods
 
     void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
-	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 

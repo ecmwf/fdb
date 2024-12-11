@@ -297,7 +297,6 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
-    // std::vector<std::pair<std::string, eckit::net::Endpoint>> stores;
     for (const auto& configStore: config_.getSubConfigurations("stores")) {
         ASSERT(configStore.has("default"));
         eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};

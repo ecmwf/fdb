@@ -59,11 +59,13 @@ private: // methods
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
-
-    // n.b. non-owning
+    /// Non-owning
     const Catalogue* currentCatalogue_ = nullptr;
+    /// Owned store
     mutable Store* currentStore_ = nullptr;
+    /// Non-owning
     const Index* currentIndex_ = nullptr;
+    /// Non-owning
     const Rule* rule_ = nullptr;
 };
 

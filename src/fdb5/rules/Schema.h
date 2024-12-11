@@ -84,8 +84,8 @@ public: // methods
 
     const TypesRegistry& registry() const;
     
-	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
 
 private: // methods
 
