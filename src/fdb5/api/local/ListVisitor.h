@@ -104,18 +104,19 @@ public:
     /// Returns true/false depending on matching the request (avoids enumerating
     /// entries if not matching).
     bool visitIndex(const Index& index) override {
-        std::cout << "####################   ListVisitor::visitIndex - request: " << request_ << std::endl;
         QueryVisitor::visitIndex(index);
 
-        if (index.partialMatch(request_)) {
+        if (index.partialMatch(*rule_, request_)) {
 
             // Subselect the parts of the request
             datumRequest_ = indexRequest_;
 
             for (const auto& kv : index.key()) { datumRequest_.unsetValues(kv.first); }
-
-            // Take into account any rule-specific behaviour in the request
-            datumRequest_ = rule_->registry().canonicalise(datumRequest_);
+            for (const auto& p : request_.parameters()) {
+                if (index.key().find(p.name()).second) {
+                    partialRequest_.setValuesTyped(&p.type(), p.values());
+                }
+            }
 
             if (level_ == 2) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
@@ -133,9 +134,18 @@ public:
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (datumKey.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                           field.timestamp());
+        // std::cout << "##### visitDatum " << datumKey << "  " << datumRequest_;
+        // Take into account any rule-specific behaviour in the request
+        auto canonical = rule_->registry().canonicalise(request_);
+
+        if (datumKey.partialMatch(canonical)) {
+            for (const auto& k : datumKey.keys()) {
+                datumRequest_.unsetValues(k);
+            }
+            if (datumRequest_.parameters().size() == 0) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
+                            field.timestamp());
+            }
         }
     }
 

@@ -68,6 +68,15 @@ cat > listDec <<EOF
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
 EOF
 
+cat > listDec00 <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
+EOF
+
+cat > list20021202 <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
+EOF
+
 cat > req12 <<EOF
 retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,date=20021130/20021201,time=1200,levelist=1000,param=129
 EOF
@@ -86,6 +95,12 @@ cmp out listNov
 
 $fdblist class=d1,expver=0001,date=20021201/to/20021231 --porcelain | tee out
 cmp out listDec
+
+$fdblist class=d1,expver=0001,date=20021201/to/20021231,time=0 --porcelain | tee out
+cmp out listDec00
+
+$fdblist class=d1,expver=0001,date=20021202 --porcelain | tee out
+cmp out list20021202
 
 cat > read12 <<EOF
 { "messages" : [ 
@@ -192,7 +207,7 @@ $gribls -jm out.grib           | post_process | tee out
 cat read12                     | post_process | tee expected
 diff out expected
 
-# $fdbread reqDec out.grib
-# $gribls -jm out.grib           | post_process | tee out
-# cat readDec                    | post_process | tee expected
-# diff out expected
+$fdbread reqDec out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat readDec                    | post_process | tee expected
+diff out expected

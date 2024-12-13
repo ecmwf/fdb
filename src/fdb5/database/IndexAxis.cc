@@ -226,8 +226,6 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
 
 bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
 
-    std::cout << "@@@@@     IndexAxis::partialMatch " << request << std::endl;
-
     // We partially match on a request
     //
     // --> keys that are in the request, but not the axis are OK (other parts of the request)

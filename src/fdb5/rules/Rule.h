@@ -68,6 +68,7 @@ public:  // methods
 
     void dump(std::ostream& out) const;
 
+    const Rule& parent() const;
     const Rule& topRule() const;
 
     const TypesRegistry& registry() const;

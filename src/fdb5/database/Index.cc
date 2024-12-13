@@ -137,11 +137,13 @@ void IndexBase::put(const Key& key, const Field& field) {
 //     return registry_.value().get();
 // }
 
-bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
+bool IndexBase::partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const {
 
-    if (!key_.partialMatch(request)) { return false; }
+    auto canonical = rule.parent().registry().canonicalise(request);
+    if (!key_.partialMatch(canonical)) { return false; }
 
-    if (!axes_.partialMatch(request)) { return false; }
+    canonical = rule.registry().canonicalise(request);
+    if (!axes_.partialMatch(canonical)) { return false; }
 
     return true;
 }

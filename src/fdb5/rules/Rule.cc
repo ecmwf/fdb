@@ -443,7 +443,18 @@ const TypesRegistry& Rule::registry() const {
 }
 
 void Rule::print(std::ostream& out) const {
-    out << type() << "[line=" << line_ << "]";
+    out << type() << "[line=" << line_ << ",predicates=[";
+    std::string sep;
+    for (const auto& p : predicates_) {
+        out << sep << *p;
+        sep = ",";
+    }
+    out << "]]";
+}
+
+const Rule& Rule::parent() const {
+    ASSERT(parent_);
+    return *parent_;
 }
 
 const Rule& Rule::topRule() const {

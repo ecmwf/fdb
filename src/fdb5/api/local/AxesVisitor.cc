@@ -51,9 +51,7 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
 
 bool AxesVisitor::visitIndex(const Index& index) {
 
-    std::cout << "@@@@@     AxesVisitor::visitIndex " << request_ << std::endl;
-
-    if (index.partialMatch(request_)) {
+    if (index.partialMatch(*rule_, request_)) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
