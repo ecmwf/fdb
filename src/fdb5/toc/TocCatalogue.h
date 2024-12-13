@@ -65,6 +65,7 @@ protected: // methods
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
+    const Rule& rule() const override;
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
@@ -93,6 +94,7 @@ private: // members
 
     // non-owning
     const Schema* schema_;
+    const RuleDatabase* rule_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

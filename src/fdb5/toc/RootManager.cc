@@ -663,8 +663,11 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
+    std::map<Key, const Rule*> results;
     std::set<Key> keys;
-    config_.schema().matchDatabase(request, keys, "");
+    config_.schema().matchDatabase(request, results, "");
+    for (const auto& [key, rule] : results)
+        keys.insert(key);
     return visitableRoots(keys);
 }
 

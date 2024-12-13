@@ -23,7 +23,7 @@ namespace fdb5::remote {
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
-    config_(config), schema_(nullptr), numLocations_(0) {
+    config_(config), schema_(nullptr), rule_(nullptr), numLocations_(0) {
 
     loadSchema();
 }
@@ -31,7 +31,7 @@ RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
 // Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB for catalogue traversal
 // this ctor is here only to comply with the factory
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0) {
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), rule_(nullptr), numLocations_(0) {
     NOTIMP;
 }
 
@@ -80,9 +80,15 @@ const Key RemoteCatalogue::currentIndexKey() {
 void RemoteCatalogue::deselectIndex() {
     currentIndexKey_ = Key();
 }
+
 const Schema& RemoteCatalogue::schema() const {
     ASSERT(schema_);
     return *schema_;
+}
+
+const Rule& RemoteCatalogue::rule() const {
+    ASSERT(rule_);
+    return *rule_;
 }
 
 void RemoteCatalogue::flush(size_t archivedFields) {
@@ -134,6 +140,8 @@ void RemoteCatalogue::loadSchema() {
 
         eckit::MemoryStream s(buf);
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));
+
+        rule_ = &schema_->matchingRule(dbKey_);
     }
 }
 

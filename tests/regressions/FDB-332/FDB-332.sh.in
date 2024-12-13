@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdboverlay="$<TARGET_FILE:fdb-overlay>"
+fdbpurge="$<TARGET_FILE:fdb-purge>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+fdbmove="$<TARGET_FILE:fdb-move>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root*
+mkdir -p ${bindir}/root
+mkdir -p ${bindir}/root2
+
+for f in config.yaml schema 20021130T12.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s date=20021201,time=0000 20021130T12.grib 20021201T00.grib
+$gribset -s date=20021201,time=1200 20021130T12.grib 20021201T12.grib
+$gribset -s date=20021202,time=0000 20021130T12.grib 20021202T00.grib
+$gribset -s date=20030101,time=0000 20021130T12.grib 20030101T00.grib
+$gribset -s date=20030101,time=1200 20021130T12.grib 20030101T12.grib
+
+cat 20021130T12.grib 20021201T00.grib 20021201T12.grib 20021202T00.grib 20030101T00.grib 20030101T12.grib > in.grib
+
+cat > list <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=1200,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200211,resolution=standard,type=fc,levtype=pl}{date=20021130,time=1200,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2003}{date=200301,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2003}{date=200301,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
+EOF
+
+cat > listNov <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200211,resolution=standard,type=fc,levtype=pl}{date=20021130,time=1200,levelist=1000,param=129}
+EOF
+
+cat > listDec <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=1200,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
+EOF
+
+cat > req12 <<EOF
+retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,date=20021130/20021201,time=1200,levelist=1000,param=129
+EOF
+
+cat > reqDec <<EOF
+retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,date=20021201/to/20021231,time=0000/1200,levelist=1000,param=129
+EOF
+
+$fdbwrite in.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdblist class=d1,expver=0001,date=20021101/to/20021130 --porcelain | tee out
+cmp out listNov
+
+$fdblist class=d1,expver=0001,date=20021201/to/20021231 --porcelain | tee out
+cmp out listDec
+
+cat > read12 <<EOF
+{ "messages" : [ 
+  {
+    "date": 20021130,
+    "time": 1200,
+    "dataset": "climate-dt",
+    "activity": "story-nudging",
+    "experiment": "Tplus2.0K",
+    "generation": 1,
+    "model": "IFS-FESOM",
+    "realization": 1,
+    "resolution": "standard",
+    "class": "d1",
+    "expver": "0001",
+    "type": "fc",
+    "stream": "clte",
+    "levelist": 1000,
+    "levtype": "pl",
+    "param": 129
+  },
+  {
+    "date": 20021201,
+    "time": 1200,
+    "dataset": "climate-dt",
+    "activity": "story-nudging",
+    "experiment": "Tplus2.0K",
+    "generation": 1,
+    "model": "IFS-FESOM",
+    "realization": 1,
+    "resolution": "standard",
+    "class": "d1",
+    "expver": "0001",
+    "type": "fc",
+    "stream": "clte",
+    "levelist": 1000,
+    "levtype": "pl",
+    "param": 129
+  }
+]}
+EOF
+
+cat > readDec <<EOF
+{ "messages" : [ 
+  {
+    "date": 20021201,
+    "time": 0000,
+    "dataset": "climate-dt",
+    "activity": "story-nudging",
+    "experiment": "Tplus2.0K",
+    "generation": 1,
+    "model": "IFS-FESOM",
+    "realization": 1,
+    "resolution": "standard",
+    "class": "d1",
+    "expver": "0001",
+    "type": "fc",
+    "stream": "clte",
+    "levelist": 1000,
+    "levtype": "pl",
+    "param": 129
+  },
+  {
+    "date": 20021201,
+    "time": 1200,
+    "dataset": "climate-dt",
+    "activity": "story-nudging",
+    "experiment": "Tplus2.0K",
+    "generation": 1,
+    "model": "IFS-FESOM",
+    "realization": 1,
+    "resolution": "standard",
+    "class": "d1",
+    "expver": "0001",
+    "type": "fc",
+    "stream": "clte",
+    "levelist": 1000,
+    "levtype": "pl",
+    "param": 129
+  },
+  {
+    "date": 20021202,
+    "time": 0000,
+    "dataset": "climate-dt",
+    "activity": "story-nudging",
+    "experiment": "Tplus2.0K",
+    "generation": 1,
+    "model": "IFS-FESOM",
+    "realization": 1,
+    "resolution": "standard",
+    "class": "d1",
+    "expver": "0001",
+    "type": "fc",
+    "stream": "clte",
+    "levelist": 1000,
+    "levtype": "pl",
+    "param": 129
+  }
+]}
+EOF
+
+$fdbread req12 out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat read12                     | post_process | tee expected
+diff out expected
+
+# $fdbread reqDec out.grib
+# $gribls -jm out.grib           | post_process | tee out
+# cat readDec                    | post_process | tee expected
+# diff out expected

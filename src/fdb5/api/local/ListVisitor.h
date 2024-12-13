@@ -52,6 +52,7 @@ public:
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
+
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
@@ -67,6 +68,7 @@ public:
     /// request so we can test request is used in its entirety
     bool visitDatabase(const Catalogue& catalogue) override {
 
+
         // If the DB is locked for listing, then it "doesn't exist"
         if (!catalogue.enabled(ControlIdentifier::List)) {
             return false;
@@ -74,11 +76,19 @@ public:
 
         bool ret = QueryVisitor::visitDatabase(catalogue);
 
-        ASSERT(currentCatalogue_->key().partialMatch(request_));
+        auto dbRequest = catalogue.rule().registry().canonicalise(request_);
+        ASSERT(currentCatalogue_->key().partialMatch(dbRequest));
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : currentCatalogue_->key()) { indexRequest_.unsetValues(kv.first); }
+        for (const auto& [k,v] : currentCatalogue_->key()) {
+            indexRequest_.unsetValues(k);
+        }
+        for (const auto& p : request_.parameters()) {
+            if (currentCatalogue_->key().find(p.name()).second) {
+                partialRequest_.setValuesTyped(&p.type(), p.values());
+            }
+        }
 
         if (level_ == 1) {
             queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
@@ -94,6 +104,7 @@ public:
     /// Returns true/false depending on matching the request (avoids enumerating
     /// entries if not matching).
     bool visitIndex(const Index& index) override {
+        std::cout << "####################   ListVisitor::visitIndex - request: " << request_ << std::endl;
         QueryVisitor::visitIndex(index);
 
         if (index.partialMatch(request_)) {
@@ -134,6 +145,8 @@ public:
 
 private: // members
 
+
+    metkit::mars::MarsRequest partialRequest_;
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
     const int level_;

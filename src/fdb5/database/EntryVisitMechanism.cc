@@ -14,7 +14,6 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/DB.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Manager.h"
@@ -62,7 +61,7 @@ bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
-    rule_ = nullptr;
+    rule_ = &currentCatalogue_->rule();
     return true;
 }
 

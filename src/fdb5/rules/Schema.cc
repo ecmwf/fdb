@@ -136,16 +136,20 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Schema::matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const {
+void Schema::matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result, const char* missing) const {
     for (const auto& rule : rules_) {
-        if (auto key = rule->findMatchingKey(dbKey, missing)) { result.insert(std::move(*key)); }
+        if (auto key = rule->findMatchingKey(dbKey, missing)) {
+            result[std::move(*key)] = rule.get();
+        }
     }
 }
 
-void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const {
+void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result, const char* missing) const {
     for (const auto& rule : rules_) {
         const auto keys = rule->findMatchingKeys(request, missing);
-        result.insert(keys.begin(), keys.end());
+        for (const auto& k : keys) {
+            result[k] = rule.get();
+        }
     }
 }
 

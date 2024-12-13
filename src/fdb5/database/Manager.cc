@@ -222,12 +222,12 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
         } else {
 
             // Match all possible expansions of the first level according to the schema
-            std::set<Key> keys;
+            std::map<Key, const Rule*> keys;
             config_.schema().matchDatabase(rq, keys, "");
 
             std::set<std::string> expandedKeys;
-            for (auto k = keys.begin(); k != keys.end(); ++k) {
-                expandedKeys.insert(k->valuesToString());
+            for (const auto& [k,r] : keys) {
+                expandedKeys.insert(k.valuesToString());
             }
 
             for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) {

@@ -205,6 +205,8 @@ list( APPEND fdb5_srcs
     types/TypeInteger.h
     types/TypeMonth.cc
     types/TypeMonth.h
+    types/TypeYear.cc
+    types/TypeYear.h
     types/TypeParam.cc
     types/TypeParam.h
     types/TypesFactory.cc
@@ -416,14 +418,12 @@ ecbuild_add_library(
         "${UUID_LIBRARIES}"
 
     PRIVATE_INCLUDES
-        "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
         "${DAOS_INCLUDE_DIRS}"
         "${DAOS_TESTS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
         ${grib_handling_pkg}
-        ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
         "${DAOS_LIBRARIES}"
         "${DAOS_TESTS_LIBRARIES}"

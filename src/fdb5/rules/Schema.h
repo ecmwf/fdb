@@ -65,9 +65,9 @@ public:  // methods
 
     // match
 
-    void matchDatabase(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
+    void matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result, const char* missing) const;
 
-    void matchDatabase(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+    void matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result, const char* missing) const;
 
     std::optional<Key> matchDatabase(const std::string& fingerprint) const;
 

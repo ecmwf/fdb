@@ -37,6 +37,7 @@ public:
     const Key currentIndexKey() override;
     void deselectIndex() override;
     const Schema& schema() const override;
+    const Rule& rule() const override;
 
     std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
@@ -78,6 +79,7 @@ private:
 
     Key currentIndexKey_;
     std::unique_ptr<Schema> schema_;
+    const RuleDatabase* rule_;
 
     std::mutex archiveMutex_;
     size_t numLocations_;

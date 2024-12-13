@@ -293,6 +293,8 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
+        const auto& type = registry_.lookupType(keyword);
+
 
         const auto& values = pred->values(request);
 
@@ -302,6 +304,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
+            // std::string value = type.toKey(val);
             if (pred->match(value)) { node.emplace_back(value); }
         }
 
@@ -320,6 +323,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
+        const auto& type = registry_.lookupType(keyword);
 
         // performance optimization to avoid calling values() on visitor
         if (!pred->optional() && request.countValues(keyword) == 0) { return {}; }
@@ -332,6 +336,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
+            //std::string value = type.toKey(val);
             if (pred->match(value)) { node.emplace_back(value); }
         }
 
