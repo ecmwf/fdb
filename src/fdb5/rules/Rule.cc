@@ -26,6 +26,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/BaseKey.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/ReadVisitor.h"
@@ -70,11 +71,12 @@ public:  // methods
     std::size_t size() const { return nodes_.size(); }
 
     std::vector<Key> makeKeys() const {
+        std::set<Key> seen;
         std::vector<Key> keys;
 
         if (!nodes_.empty()) {
             Key key;
-            visit(nodes_.begin(), key, keys);
+            visit(nodes_.begin(), key, seen, keys);
         }
 
         return keys;
@@ -91,10 +93,14 @@ public:  // methods
 
 private:  // methods
     // Recursive DFS (depth-first search) to generate all possible keys
-    void visit(const_iterator iter, Key& key, std::vector<Key>& keys) const {
+    void visit(const_iterator iter, Key& key, std::set<Key>& seen, std::vector<Key>& keys) const {
 
         if (iter == nodes_.end()) {
-            keys.push_back(key);
+            auto it = seen.find(key);
+            if (it == seen.end()) {
+                seen.insert(key);
+                keys.push_back(key);
+            }
             return;
         }
 
@@ -105,7 +111,7 @@ private:  // methods
 
         for (const auto& value : values) {
             key.push(keyword, value);
-            visit(next, key, keys);
+            visit(next, key, seen, keys);
             key.pop(keyword);
         }
     }
@@ -113,23 +119,6 @@ private:  // methods
 private:  // members
     value_type nodes_;
 };
-
-template<typename T, typename R>
-R decodeRules(eckit::Stream& stream) {
-
-    size_t numRules = 0;
-    stream >> numRules;
-
-    R rules;
-    rules.reserve(numRules);
-
-    for (size_t i = 0; i < numRules; ++i) {
-        auto* rule = eckit::Reanimator<T>::reanimate(stream);
-        rules.emplace_back(rule);
-    }
-
-    return rules;
-}
 
 }  // namespace
 
@@ -152,38 +141,21 @@ Rule::Rule(const std::size_t line, Predicates& predicates, const eckit::StringDi
     for (const auto& [keyword, type] : types) { registry_.addType(keyword, type); }
 }
 
-Rule::Rule(eckit::Stream& stream) : registry_ {stream} {
+void Rule::decode(eckit::Stream& stream) {
+    size_t numPred = 0;
 
+    registry_.decode(stream);
     stream >> line_;
-
-    size_t predSize = 0;
-    stream >> predSize;
-
-    for (size_t i = 0; i < predSize; ++i) { predicates_.emplace_back(eckit::Reanimator<Predicate>::reanimate(stream)); }
+    stream >> numPred;
+    
+    predicates_.reserve(numPred);
+    for (size_t i = 0; i < numPred; ++i) {
+        predicates_.emplace_back(eckit::Reanimator<Predicate>::reanimate(stream));
+    }
 }
-
-// Rule::Rule(Rule&& other) noexcept
-//     : parent_ {other.parent_},
-//       line_ {other.line_},
-//       predicates_ {std::move(other.predicates_)},
-//       registry_ {std::move(other.registry_)} {
-//     other.parent_ = nullptr;
-// }
-//
-// Rule& Rule::operator=(Rule&& other) noexcept {
-//     if (this != &other) {
-//         parent_       = other.parent_;
-//         line_         = other.line_;
-//         predicates_   = std::move(other.predicates_);
-//         registry_     = std::move(other.registry_);
-//         other.parent_ = nullptr;
-//     }
-//     return *this;
-// }
 
 void Rule::encode(eckit::Stream& out) const {
     registry_.encode(out);
-    // out << registry_;
     out << line_;
     out << predicates_.size();
     for (const auto& pred : predicates_) { out << *pred; }
@@ -441,6 +413,10 @@ void Rule::print(std::ostream& out) const {
     out << type() << "[line=" << line_ << "]";
 }
 
+bool Rule::isTopRule() const {
+    return parent_ == nullptr;
+}
+
 const Rule& Rule::topRule() const {
     return parent_ ? parent_->topRule() : *this;
 }
@@ -472,6 +448,19 @@ std::ostream& operator<<(std::ostream& out, const Rule& rule) {
 
 //----------------------------------------------------------------------------------------------------------------------
 // RULE DATUM
+
+RuleDatum::RuleDatum(eckit::Stream& stream) : Rule() {
+    decode(stream);
+    size_t numRules;
+    stream >> numRules;
+    ASSERT(numRules == 0);
+}
+
+
+void RuleDatum::encode(eckit::Stream& out) const {
+    Rule::encode(out);
+    out << 0ul;
+}
 
 void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
 
@@ -515,12 +504,24 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules)
     : Rule(line, predicates, types), rules_ {std::move(rules)} { }
 
-RuleIndex::RuleIndex(eckit::Stream& stream) : Rule(stream), rules_ {decodeRules<RuleDatum, Children>(stream)} { }
+RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
+    decode(stream);
+    
+    size_t numRules;
+    stream >> numRules;
+    rules_.reserve(numRules);
+
+    for (size_t i=0; i < numRules; i++) {
+        rules_.emplace_back(new RuleDatum(stream));
+    }
+}
 
 void RuleIndex::encode(eckit::Stream& out) const {
     Rule::encode(out);
     out << rules_.size();
-    for (const auto& rule : rules_) { out << *rule; }
+    for (const auto& rule : rules_) { 
+        rule->encode(out);
+    }
 }
 
 void RuleIndex::updateParent(const Rule* parent) {
@@ -566,12 +567,24 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 RuleDatabase::RuleDatabase(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules)
     : Rule(line, predicates, types), rules_ {std::move(rules)} { }
 
-RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule(stream), rules_ {decodeRules<RuleIndex, Children>(stream)} { }
+RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule() {
+    decode(stream);
+
+    size_t numRules;
+    stream >> numRules;
+    rules_.reserve(numRules);
+
+    for (size_t i=0; i < numRules; i++) {
+        rules_.emplace_back(new RuleIndex(stream));
+    }
+}
 
 void RuleDatabase::encode(eckit::Stream& out) const {
     Rule::encode(out);
     out << rules_.size();
-    for (const auto& rule : rules_) { out << *rule; }
+    for (const auto& rule : rules_) {
+        rule->encode(out);
+    }
 }
 
 void RuleDatabase::updateParent(const Rule* /* parent */) {

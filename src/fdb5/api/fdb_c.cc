@@ -23,7 +23,6 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/KeyChain.h"
 #include "fdb5/fdb5_version.h"
 
 #include "fdb5/api/fdb_c.h"
@@ -91,7 +90,7 @@ private:
 };
 
 struct fdb_split_key_t {
-    using value_type = KeyChain;
+    using value_type = std::array<Key, 3>;
 
     auto operator=(const value_type& keys) -> fdb_split_key_t& {
         keys_  = &keys;

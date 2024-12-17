@@ -54,6 +54,7 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
     void encode(eckit::Stream& out) const override;
+    void decode(eckit::Stream& stream);
 
 private:  // methods
 

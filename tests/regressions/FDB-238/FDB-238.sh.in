@@ -70,49 +70,8 @@ cat > content.6 <<EOF
 ]}
 EOF
 
-cat > content.6dup <<EOF
+cat > content.12 <<EOF
 { "messages" : [
-  {
-    "domain": "g",
-    "levtype": "sfc",
-    "date": 20201102,
-    "time": "0000",
-    "step": 6,
-    "param": 166.128,
-    "class": "rd",
-    "type": "fc",
-    "stream": "oper",
-    "expver": "xxxx"
-  },
-  {
-    "domain": "g",
-    "levtype": "sfc",
-    "date": 20201102,
-    "time": "0000",
-    "step": 6,
-    "param": 166.128,
-    "class": "rd",
-    "type": "fc",
-    "stream": "oper",
-    "expver": "xxxx"
-  }
-]}
-EOF
-
-cat > content.12dup <<EOF
-{ "messages" : [
-  {
-    "domain": "g",
-    "levtype": "sfc",
-    "date": 20201102,
-    "time": "0000",
-    "step": 12,
-    "param": 166.128,
-    "class": "rd",
-    "type": "fc",
-    "stream": "oper",
-    "expver": "xxxx"
-  },
   {
     "domain": "g",
     "levtype": "sfc",
@@ -159,7 +118,7 @@ cmp out list
 # read contents
 $fdbread checkV2.req checkV2.grib
 $gribls -jm checkV2.grib       | post_process | tee out
-cat content.6dup               | post_process | tee checkv2
+cat content.6                  | post_process | tee checkv2
 diff out checkv2
 
 # write new field with version 3 (will have toc with mixed versions)
@@ -169,7 +128,7 @@ export FDB5_CONFIG_FILE=version3.yaml
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
 $gribls -jm checkV3.grib       | post_process | tee out
-cat content.12dup              | post_process | tee checkv3
+cat content.12                 | post_process | tee checkv3
 diff out checkv3
 
 export FDB_DEDUPLICATE_FIELDS=ON
@@ -202,11 +161,10 @@ export FDB_DEDUPLICATE_FIELDS=OFF
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.dup.grib
 $gribls -jm checkV2.dup.grib   | post_process | tee out
-cat content.6dup               | post_process | tee checkv2.dup
+cat content.6                  | post_process | tee checkv2.dup
 diff out checkv2.dup
 
-cat 6.grib 6.grib > 6dup.grib
-cmp checkV2.dup.grib 6dup.grib
+cmp checkV2.dup.grib 6.grib
 
 unset FDB_DEDUPLICATE_FIELDS
 

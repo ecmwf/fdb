@@ -35,6 +35,11 @@ eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
 
 TypesRegistry::TypesRegistry(eckit::Stream& stream) {
 
+    decode(stream);
+}
+
+void TypesRegistry::decode(eckit::Stream& stream) {
+
     size_t typeSize = 0;
     stream >> typeSize;
     for (size_t i = 0; i < typeSize; ++i) {

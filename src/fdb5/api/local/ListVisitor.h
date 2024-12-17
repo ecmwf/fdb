@@ -56,7 +56,7 @@ public:
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
             if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
-                queue_.emplace(*dbKey, eckit::URI {}, 0);
+                queue_.emplace(*dbKey, 0);
                 return false;
             }
         }
@@ -81,7 +81,7 @@ public:
         for (const auto& kv : currentCatalogue_->key()) { indexRequest_.unsetValues(kv.first); }
 
         if (level_ == 1) {
-            queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
+            queue_.emplace(currentCatalogue_->key(), 0);
             ret = false;
         }
 
@@ -107,7 +107,7 @@ public:
             datumRequest_ = rule_->registry().canonicalise(datumRequest_);
 
             if (level_ == 2) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
                 return false;
             }
 

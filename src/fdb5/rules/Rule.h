@@ -68,12 +68,19 @@ public:  // methods
 
     void dump(std::ostream& out) const;
 
+    const Rule& parent() const;
     const Rule& topRule() const;
+    bool isTopRule() const;
 
     const TypesRegistry& registry() const;
 
-protected:  // methods
     void encode(eckit::Stream& out) const override;
+
+protected:  // methods
+
+    Rule() = default;
+
+    void decode(eckit::Stream& stream);
 
     std::optional<Key> findMatchingKey(const Key& field) const;
 
@@ -98,7 +105,7 @@ private:  // methods
 
     friend std::ostream& operator<<(std::ostream& out, const Rule& rule);
 
-private:  // members
+protected:  // members
     const Rule* parent_ {nullptr};
 
     std::size_t line_ {0};
@@ -119,6 +126,8 @@ class RuleDatum : public Rule {
 public:  // methods
     using Rule::Rule;
 
+    explicit RuleDatum(eckit::Stream& stream);
+
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
     bool expand(const Key& field, WriteVisitor& visitor, Key& full) const;
@@ -130,6 +139,8 @@ public:  // methods
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+    void encode(eckit::Stream& out) const override;
 
 private:  // methods
     void dumpChildren(std::ostream& /* out */) const override { }
@@ -169,8 +180,9 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private:  // methods
     void encode(eckit::Stream& out) const override;
+
+private:  // methods
 
     void dumpChildren(std::ostream& out) const override {
         for (const auto& rule : rules_) { rule->dump(out); }
@@ -213,8 +225,9 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private:  // methods
     void encode(eckit::Stream& out) const override;
+
+private:  // methods
 
     void dumpChildren(std::ostream& out) const override {
         for (const auto& rule : rules_) { rule->dump(out); }
