@@ -49,6 +49,9 @@ $gribset -s date=20030101,time=1200 20021130T12.grib 20030101T12.grib
 
 cat 20021130T12.grib 20021201T00.grib 20021201T12.grib 20021202T00.grib 20030101T00.grib 20030101T12.grib > in.grib
 
+cat > none <<EOF
+EOF
+
 cat > list <<EOF
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=0000,levelist=1000,param=129}
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,date=2002}{date=200212,resolution=standard,type=fc,levtype=pl}{date=20021201,time=1200,levelist=1000,param=129}
@@ -102,6 +105,9 @@ cmp out listDec00
 $fdblist class=d1,expver=0001,date=20021202 --porcelain | tee out
 cmp out list20021202
 
+$fdblist class=d1,expver=0001,date=20021201/to/20021231,number=1 --porcelain | tee out
+cmp out none
+
 cat > read12 <<EOF
 { "messages" : [ 
   {
@@ -147,7 +153,7 @@ cat > readDec <<EOF
 { "messages" : [ 
   {
     "date": 20021201,
-    "time": 0000,
+    "time": "0000",
     "dataset": "climate-dt",
     "activity": "story-nudging",
     "experiment": "Tplus2.0K",
@@ -183,7 +189,7 @@ cat > readDec <<EOF
   },
   {
     "date": 20021202,
-    "time": 0000,
+    "time": "0000",
     "dataset": "climate-dt",
     "activity": "story-nudging",
     "experiment": "Tplus2.0K",

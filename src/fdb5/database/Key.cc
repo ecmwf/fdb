@@ -160,7 +160,8 @@ Key TypedKey::canonical() const {
     Key key;
     for (const auto& keyword : names()) {
         const auto& value = get(keyword);
-        value.empty() ? key.push(keyword, value) : key.push(keyword, registry_.lookupType(keyword).toKey(value));
+        const Type& type = registry_.lookupType(keyword);
+        value.empty() ? key.push(type.alias(), value) : key.push(type.alias(), type.toKey(value));
     }
     return key;
 }

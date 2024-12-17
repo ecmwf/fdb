@@ -109,7 +109,6 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
         iterator_.emplace({catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
         return true;
     }
-    std::cout << "MultiRetrieveVisitor::selectDatum NOT matching " << datumKey << std::endl;
 
     return false;
 }

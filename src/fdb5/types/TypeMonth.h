@@ -26,7 +26,7 @@ class TypeMonth : public Type {
 
 public: // methods
 
-    TypeMonth(const std::string &name, const std::string &type);
+    TypeMonth(const std::string& name, const std::string& type, const std::string& alias = "month");
 
     ~TypeMonth() override;
 

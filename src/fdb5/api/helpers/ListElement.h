@@ -89,7 +89,7 @@ private:  // methods
 private:  // members
     KeyChain keys_;
 
-    eckit::URI uri_;
+    // eckit::URI uri_;
 
     std::shared_ptr<const FieldLocation> loc_;
 

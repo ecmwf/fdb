@@ -49,10 +49,8 @@ public:  // types
     using Predicates = std::vector<std::unique_ptr<Predicate>>;
 
 public:  // methods
+    
     Rule(std::size_t line, Predicates& predicates, const eckit::StringDict& types);
-
-    explicit Rule(eckit::Stream& stream);
-
 
     virtual const char* type() const = 0;
 
@@ -69,12 +67,18 @@ public:  // methods
     void dump(std::ostream& out) const;
 
     const Rule& parent() const;
+    bool isTopRule() const;
     const Rule& topRule() const;
 
     const TypesRegistry& registry() const;
 
-protected:  // methods
     void encode(eckit::Stream& out) const override;
+
+protected:  // methods
+
+    Rule() = default;
+
+    void decode(eckit::Stream& stream);
 
     std::optional<Key> findMatchingKey(const Key& field) const;
 
@@ -99,7 +103,7 @@ private:  // methods
 
     friend std::ostream& operator<<(std::ostream& out, const Rule& rule);
 
-private:  // members
+protected: // members
     const Rule* parent_ {nullptr};
 
     std::size_t line_ {0};
@@ -108,8 +112,9 @@ private:  // members
 
     TypesRegistry registry_;
 
-    // streamable
+private:  // members
 
+    // streamable
     static eckit::ClassSpec classSpec_;
 };
 
@@ -119,6 +124,8 @@ private:  // members
 class RuleDatum : public Rule {
 public:  // methods
     using Rule::Rule;
+
+    explicit RuleDatum(eckit::Stream& stream);
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
@@ -170,9 +177,9 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private:  // methods
     void encode(eckit::Stream& out) const override;
 
+private:  // methods
     void dumpChildren(std::ostream& out) const override {
         for (const auto& rule : rules_) { rule->dump(out); }
     }
@@ -214,8 +221,9 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private:  // methods
     void encode(eckit::Stream& out) const override;
+
+private:  // methods
 
     void dumpChildren(std::ostream& out) const override {
         for (const auto& rule : rules_) { rule->dump(out); }

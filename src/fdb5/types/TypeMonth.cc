@@ -22,8 +22,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeMonth::TypeMonth(const std::string &name, const std::string &type) :
-    Type(name, type) {
+TypeMonth::TypeMonth(const std::string& name, const std::string& type, const std::string& alias) :
+    Type(name, type, alias) {
 }
 
 TypeMonth::~TypeMonth() {
@@ -32,7 +32,7 @@ TypeMonth::~TypeMonth() {
 std::string TypeMonth::toKey(const std::string& value) const {
 
     eckit::Date date(value);
-    return std::to_string(date.year() * 100 + date.month());
+    return std::to_string(date.month());
 }
 
 void TypeMonth::getValues(const metkit::mars::MarsRequest& request,

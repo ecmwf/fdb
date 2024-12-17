@@ -57,12 +57,15 @@ Schema::Schema(std::istream& stream) {
 
 Schema::Schema(eckit::Stream& stream) : registry_ {stream} {
 
+    size_t numRules = 0;
+
     stream >> path_;
+    stream >> numRules;
+    rules_.reserve(numRules);
 
-    size_t ruleSize = 0;
-    stream >> ruleSize;
-
-    for (size_t i = 0; i < ruleSize; i++) { rules_.emplace_back(eckit::Reanimator<RuleDatabase>::reanimate(stream)); }
+    for (size_t i = 0; i < numRules; i++) {
+        rules_.emplace_back(new RuleDatabase(stream));
+    }
 
     check();
 }
@@ -72,7 +75,9 @@ void Schema::encode(eckit::Stream& stream) const {
     // stream << registry_;
     stream << path_;
     stream << rules_.size();
-    for (const auto& rule : rules_) { stream << *rule; }
+    for (const auto& rule : rules_) { 
+        rule->encode(stream);
+    }
 }
 
 Schema::~Schema() {

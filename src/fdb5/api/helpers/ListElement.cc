@@ -29,10 +29,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ListElement::ListElement(Key dbKey, const eckit::URI& uri, const TimeStamp& timestamp):
-    keys_ {std::move(dbKey)}, uri_ {uri}, timestamp_ {timestamp} { }
+    keys_ {std::move(dbKey)}, /* uri_ {uri}, */ timestamp_ {timestamp} { }
 
 ListElement::ListElement(Key dbKey, Key indexKey, const eckit::URI& uri, const TimeStamp& timestamp):
-    keys_ {std::move(dbKey), std::move(indexKey)}, uri_ {uri}, timestamp_ {timestamp} { }
+    keys_ {std::move(dbKey), std::move(indexKey)}, /* uri_ {uri}, */ timestamp_ {timestamp} { }
 
 ListElement::ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
                          const TimeStamp& timestamp):
@@ -44,8 +44,13 @@ ListElement::ListElement(const KeyChain& keys, std::shared_ptr<const FieldLocati
     ListElement(keys[0], keys[1], keys[2], std::move(location), timestamp) { }
 
 ListElement::ListElement(eckit::Stream& stream) {
-    stream >> keys_;
-    stream >> uri_;
+    std::vector<Key> keys;
+    stream >> keys;
+    keys_[0] = std::move(keys.at(0));
+    keys_[1] = std::move(keys.at(1));
+    keys_[2] = std::move(keys.at(2));
+
+    // stream >> uri_;
     loc_.reset(eckit::Reanimator<FieldLocation>::reanimate(stream));
     stream >> timestamp_;
 }
@@ -56,8 +61,8 @@ const FieldLocation& ListElement::location() const {
 }
 
 const eckit::URI& ListElement::uri() const {
-    if (loc_) { return loc_->uri(); }
-    return uri_;
+    ASSERT(loc_);
+    return loc_->uri();
 }
 
 eckit::Offset ListElement::offset() const {
@@ -74,8 +79,8 @@ void ListElement::print(std::ostream& out, const bool location, const bool lengt
         out << sep;
         if (loc_) {
             out << *loc_;
-        } else {
-            out << "host=" << (uri_.host().empty() ? "empty" : uri_.host());
+        // } else {
+        //     out << "host=" << (uri_.host().empty() ? "empty" : uri_.host());
         }
     }
     if (length) { out << sep << "length=" << this->length(); }
@@ -88,9 +93,17 @@ void ListElement::json(eckit::JSON& json) const {
 }
 
 void ListElement::encode(eckit::Stream& stream) const {
-    for (const auto& key : keys_) { stream << key; }
-    stream << uri_;
-    if (loc_) { stream << *loc_; }
+
+    std::vector<Key> keys;
+    keys.reserve(3);
+
+    for (const auto& k: keys_) {
+        keys.emplace_back(k);
+    }
+
+    stream << keys;
+    // stream << uri_;
+    stream << *loc_;
     stream << timestamp_;
 }
 

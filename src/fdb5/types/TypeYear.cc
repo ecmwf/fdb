@@ -22,8 +22,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeYear::TypeYear(const std::string &name, const std::string &type) :
-    Type(name, type) {
+TypeYear::TypeYear(const std::string& name, const std::string& type, const std::string& alias) :
+    Type(name, type, alias) {
 }
 
 TypeYear::~TypeYear() {

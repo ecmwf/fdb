@@ -156,6 +156,7 @@ public:
         ASSERT(0 <= el_.length());
 
         *uri = el_.uri().name().c_str();
+        // *uri = el_.uri().name().c_str();
         *off = el_.offset();
         *len = el_.length();
     }

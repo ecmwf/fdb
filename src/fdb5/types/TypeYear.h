@@ -26,7 +26,7 @@ class TypeYear : public Type {
 
 public: // methods
 
-    TypeYear(const std::string &name, const std::string &type);
+    TypeYear(const std::string &name, const std::string &type, const std::string& alias = "year");
 
     ~TypeYear() override;
 

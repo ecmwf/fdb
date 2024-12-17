@@ -38,6 +38,8 @@ public:  // methods
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
+    
+    void decode(eckit::Stream& stream);
 
     const Type& lookupType(const std::string& keyword) const;
 
