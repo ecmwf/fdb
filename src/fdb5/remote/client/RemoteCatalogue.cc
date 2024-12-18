@@ -35,8 +35,6 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
     NOTIMP;
 }
 
-RemoteCatalogue::~RemoteCatalogue() {}
-
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
 
     ASSERT(!datumKey.empty());
@@ -137,12 +135,11 @@ void RemoteCatalogue::loadSchema() {
     }
 }
 
-bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID) {
+bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
     Log::warning() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
-    NOTIMP;
     return false;
 }
-bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
+bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
     LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
     return false;
 }

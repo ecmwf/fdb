@@ -246,7 +246,7 @@ void RemoteFDB::print(std::ostream& s) const {
 }
 
 // Client
-bool RemoteFDB::handle(remote::Message message, bool control, uint32_t requestID) {
+bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
     
     switch (message) {
         case fdb5::remote::Message::Complete: {
@@ -279,7 +279,7 @@ bool RemoteFDB::handle(remote::Message message, bool control, uint32_t requestID
             return false;
     }
 }
-bool RemoteFDB::handle(remote::Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
+bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) {
 
     switch (message) {
         case fdb5::remote::Message::Blob: {
