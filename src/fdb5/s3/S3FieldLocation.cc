@@ -33,14 +33,14 @@ S3FieldLocation::S3FieldLocation(const eckit::URI &uri, eckit::Offset offset, ec
 S3FieldLocation::S3FieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
 
-std::shared_ptr<FieldLocation> S3FieldLocation::make_shared() const {
-    return std::make_shared<S3FieldLocation>(std::move(*this));
+std::shared_ptr<const FieldLocation> S3FieldLocation::make_shared() const {
+    return std::make_shared<const S3FieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* S3FieldLocation::dataHandle() const {
 
     return eckit::S3ObjectName(uri_).dataHandle(offset());
-    
+
 }
 
 void S3FieldLocation::print(std::ostream &out) const {

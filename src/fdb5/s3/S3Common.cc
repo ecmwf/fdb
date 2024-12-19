@@ -8,16 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
-
-#include "eckit/io/s3/S3Name.h"
-#include "eckit/io/s3/S3Credential.h"
-#include "eckit/io/s3/S3Session.h"
-
 #include "fdb5/s3/S3Common.h"
 
-// #include "eckit/exception/Exceptions.h"
-#include "eckit/config/Resource.h"
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/s3/S3Config.h"
+#include "eckit/io/s3/S3Session.h"
+#include "eckit/utils/Tokenizer.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+
+#include <algorithm>
+#include <string>
 
 namespace fdb5 {
 
@@ -27,16 +30,11 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     parseConfig(config);
 
-
-
     /// @note: code for bucket per DB
 
     std::string keyStr = key.valuesToString();
     std::replace(keyStr.begin(), keyStr.end(), ':', '-');
     db_bucket_ = prefix_ + keyStr;
-
-
-
 
     /// @note: code for single bucket for all DBs
 
@@ -63,11 +61,7 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
     // if (c.has("client"))
     //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
-
-
-
     /// @todo: check that the bucket name complies with name restrictions
-
 }
 
 S3Common::S3Common(const fdb5::Config& config, const std::string& component, const eckit::URI& uri) {
@@ -77,18 +71,14 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     parseConfig(config);
 
-    endpoint_ = eckit::net::Endpoint{uri.host(), uri.port()};
-
-
+    endpoint_ = eckit::net::Endpoint {uri.host(), uri.port()};
 
     /// @note: code for bucket per DB
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n = parts.size();
+    const auto n     = parts.size();
     ASSERT(n == 1 | n == 2);
     db_bucket_ = parts[0];
-
-
 
     /// @note: code for single bucket for all DBs
 
@@ -104,38 +94,42 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     // db_prefix_ = bits[0];
 
-
     // // eckit::LocalConfiguration c{};
 
     // // if (config.has("s3")) c = config.getSubConfiguration("s3");
 
     // // if (c.has("client"))
     // //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
-
 }
 
 void S3Common::parseConfig(const fdb5::Config& config) {
 
-    eckit::LocalConfiguration s3{};
+    eckit::LocalConfiguration s3 {};
 
     if (config.has("s3")) {
         s3 = config.getSubConfiguration("s3");
-        
+
         std::string credentialsPath;
         if (s3.has("credential")) { credentialsPath = s3.getString("credential"); }
-        eckit::S3Session::instance().readCredentials(credentialsPath);
+        eckit::S3Session::instance().loadCredentials(credentialsPath);
     }
-    
 
-    endpoint_ = eckit::net::Endpoint{s3.getString("endpoint", "127.0.0.1:9000")};
+    if (!s3.has("endpoint")) {
+        throw eckit::UserError("Missing \"endpoint\" in configuration: " + config.configPath());
+    }
 
+    endpoint_ = eckit::net::Endpoint {s3.getString("endpoint", "127.0.0.1:9000")};
 
+    eckit::S3Config s3Config(endpoint_);
+
+    if (s3.has("region")) { s3Config.region = s3.getString("region"); }
+
+    eckit::S3Session::instance().addClient(s3Config);
 
     /// @note: code for bucket per DB only
     prefix_ = s3.getString("bucketPrefix", prefix_);
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

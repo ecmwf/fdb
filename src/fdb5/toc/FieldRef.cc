@@ -10,15 +10,14 @@
 
 #include "fdb5/toc/FieldRef.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/serialisation/Stream.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
-
 #include "fdb5/toc/TocFieldLocation.h"
+
 #ifdef fdb5_HAVE_S3FDB
 #include "fdb5/s3/S3FieldLocation.h"
 #endif
@@ -37,9 +36,9 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
+    const auto* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
 #ifdef fdb5_HAVE_S3FDB
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    const S3FieldLocation* s3floc = dynamic_cast<const S3FieldLocation*>(&loc);
+    const auto* s3floc = dynamic_cast<const S3FieldLocation*>(&loc);
     if(!tocfloc && !s3floc) {
         throw eckit::NotImplemented(
             "Field location is not of TocFieldLocation or S3FieldLocation type "

@@ -15,26 +15,25 @@
 #ifndef fdb5_Index_H
 #define fdb5_Index_H
 
-#include <memory>
-#include <optional>
-#include <functional>
-
 #include "eckit/eckit.h"
-
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
+#include "eckit/memory/Counted.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
 #include "eckit/types/Types.h"
-#include "eckit/memory/Counted.h"
-
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
+#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Indexer.h"
 #include "fdb5/database/Key.h"
+
+#include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
 
 namespace eckit {
 class Stream;
@@ -154,7 +153,7 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
+    std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
 
     bool dirty() const { return content_->dirty(); }
 
