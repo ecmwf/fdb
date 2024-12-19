@@ -138,6 +138,8 @@ public: // methods
 
     virtual operator eckit::StringDict() const;
 
+    size_t encodeSize() const;
+
 protected: // members
 
     //TODO add unit test for each type

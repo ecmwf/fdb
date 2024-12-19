@@ -74,6 +74,23 @@ bool IndexAxis::operator!=(const IndexAxis& rhs) const {
     return !(*this == rhs);
 }
 
+size_t encodeString(size_t len) {
+    return (5 + len);
+}
+
+size_t IndexAxis::encodeSize(const int version) const {
+    size_t size=2;
+    size += encodeString(4) + 5;
+    size += encodeString(4);
+    for (const auto& [key, vals] : axis_) {
+        size += encodeString(key.length()) + 5;
+        for (const auto& v : *vals) {
+            size += encodeString(v.length());
+        }
+    }
+    return size;
+}
+
 void IndexAxis::encode(eckit::Stream &s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);

@@ -61,6 +61,22 @@ void BaseKey::decode(eckit::Stream& s) {
     }
 }
 
+size_t encodeString(const std::string& str) {
+    return (5 + str.length());
+}
+
+size_t BaseKey::encodeSize() const {
+    size_t size = 5;
+    for (const auto& [key_name, key_value] : keys_) {
+        size += encodeString(key_name) + encodeString(canonicalise(key_name, key_value));
+    }
+    size += 5;
+    for (const auto& name : names_) {
+        size += encodeString(name) + encodeString(type(name));
+    }
+    return size;
+}
+
 void BaseKey::encode(eckit::Stream& s) const {
 
     s << keys_.size();

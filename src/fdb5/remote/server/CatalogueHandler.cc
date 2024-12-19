@@ -166,6 +166,8 @@ struct ListHelper : public BaseHelper<ListElement> {
 };
 
 struct AxesHelper : public BaseHelper<AxesElement> {
+    virtual size_t encodeBufferSize(const AxesElement& el) const { return el.encodeSize(); }
+
     void extraDecode(eckit::Stream& s) {
         s >> level_;
     }
