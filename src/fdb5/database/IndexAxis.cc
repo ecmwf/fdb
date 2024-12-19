@@ -33,9 +33,9 @@ IndexAxis::~IndexAxis() {
    if (!readOnly_)
       return;
 
-    for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
-       AxisRegistry::instance().release(it->first, it->second);
-    }
+    // for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
+    //    AxisRegistry::instance().release(it->first, it->second);
+    // }
 }
 
 IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
@@ -168,7 +168,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
                         values->insert(v);
                     }
                     values->sort();
-                    AxisRegistry::instance().deduplicate(k, values);
+                    // AxisRegistry::instance().deduplicate(k, values);
                 }
                 break;
             default:
@@ -199,7 +199,7 @@ void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
             values->insert(v);
         }
         values->sort();
-        AxisRegistry::instance().deduplicate(k, values);
+        // AxisRegistry::instance().deduplicate(k, values);
     }
 }
 
