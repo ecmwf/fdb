@@ -21,7 +21,6 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/utils/MD5.h"
-#include "eckit/utils/Tokenizer.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
@@ -63,15 +62,7 @@ bool S3Store::uriBelongs(const eckit::URI& uri) const {
 }
 
 bool S3Store::uriExists(const eckit::URI& uri) const {
-
-    // auto tmp = uri;
-    // tmp.endpoint(endpoint_);
-
-    std::cerr << "-----------> Checking if " << uri << " exists" << std::endl;
-
     return eckit::S3Name::make(endpoint_, uri.name())->exists();
-
-    // return eckit::S3ObjectName(tmp).exists();
 }
 
 bool S3Store::auxiliaryURIExists(const eckit::URI& uri) const {
@@ -90,23 +81,6 @@ std::vector<eckit::URI> S3Store::collocatedDataURIs() const {
     for (const auto& key : bucket.listObjects()) { store_unit_uris.push_back(bucket.makeObject(key)->uri()); }
 
     return store_unit_uris;
-
-    /// @note: code for single bucket for all DBs
-    // std::vector<eckit::URI> store_unit_uris;
-
-    // eckit::S3Bucket bucket{endpoint_, bucket_};
-
-    // if (!bucket.exists()) return store_unit_uris;
-
-    // /// @note if an S3Catalogue is implemented, more filtering will need to
-    // ///   be done here to discriminate store keys from catalogue keys
-    // for (const auto& key : bucket.listObjects(filter = "^" + db_prefix_ + "_.*")) {
-
-    //     store_unit_uris.push_back(key.uri());
-
-    // }
-
-    // return store_unit_uris;
 }
 
 std::set<eckit::URI> S3Store::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
@@ -133,17 +107,11 @@ std::vector<eckit::URI> S3Store::getAuxiliaryURIs(const eckit::URI& uri) const {
 
 /// @todo: never used in actual fdb-read?
 eckit::DataHandle* S3Store::retrieve(Field& field) const {
-
     return field.dataHandle();
 }
 
 std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void* data, eckit::Length length) {
 
-    /// @note: code for S3 object (key) per field:
-
-    /// @note: generate unique key name
-    ///  if single bucket, starting by dbkey_indexkey_
-    ///  if bucket per db, starting by indexkey_
     eckit::S3ObjectName n = generateDataKey(key);
 
     /// @todo: ensure bucket if not yet seen by this process
@@ -161,21 +129,6 @@ std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void
     h->write(data, length);
 
     return std::unique_ptr<const S3FieldLocation>(new S3FieldLocation(n.uri(), 0, length, fdb5::Key()));
-
-    /// @note: code for S3 object (key) per index store:
-
-    // /// @note: get or generate unique key name
-    // ///  if single bucket, starting by dbkey_indexkey_
-    // ///  if bucket per db, starting by indexkey_
-    // eckit::S3Name n = getDataKey(key);
-
-    // eckit::DataHandle &dh = getDataHandle(key, n);
-
-    // eckit::Offset offset{dh.position()};
-
-    // h.write(data, length);
-
-    // return std::unique_ptr<S3FieldLocation>(new S3FieldLocation(n.URI(), offset, length, fdb5::Key()));
 }
 
 void S3Store::flush() {
@@ -198,65 +151,21 @@ void S3Store::close() {
 
 void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
 
-    /// @note: code for bucket per DB
+    auto item = eckit::S3Name::make(endpoint_, uri.name());
 
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n     = parts.size();
-    ASSERT(n == 1 | n == 2);
-
-    ASSERT(parts[0] == db_bucket_);
-
-    if (n == 2) {  // object
-
-        eckit::S3ObjectName key {uri};
-
-        logVerbose << "destroy S3 key: " << key.asString() << std::endl;
-
-        if (doit) { key.remove(); }
-
-    } else {  // pool
-
-        eckit::S3BucketName bucket {uri};
-
-        logVerbose << "destroy S3 bucket: " << bucket.asString() << std::endl;
-
-        if (doit) { bucket.ensureDestroyed(); }
+    if (auto* object = dynamic_cast<eckit::S3ObjectName*>(item.get())) {
+        logVerbose << "Removing S3 object: " << object->asString() << '\n';
+        if (doit) { object->remove(); }
+    } else if (auto* bucket = dynamic_cast<eckit::S3BucketName*>(item.get())) {
+        logVerbose << "Removing S3 bucket: " << bucket->asString() << '\n';
+        if (doit) { bucket->ensureDestroyed(); }
+    } else {
+        throw eckit::SeriousBug("S3Store::remove: unknown URI type: " + uri.asString(), Here());
     }
-
-    // void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
-    //     ASSERT(uri.scheme() == type());
-    //
-    //     eckit::PathName path = uri.path();
-    //     if (path.isDir()) {
-    //         logVerbose << "rmdir: ";
-    //         logAlways << path << std::endl;
-    //         if (doit) path.rmdir(false);
-    //     } else {
-    //         logVerbose << "Unlinking: ";
-    //         logAlways << path << std::endl;
-    //         if (doit) path.unlink(false);
-    //     }
-    // }
-
-    // /// @note: code for single bucket for all DBs
-    // eckit::S3Name n{uri};
-
-    // ASSERT(n.bucket().name() == bucket_);
-    // /// @note: if uri doesn't have key name, maybe this method should return without destroying anything.
-    // ///   this way when TocWipeVisitor has wipeAll == true, the (only) bucket will not be destroyed
-    // ASSERT(n.name().rfind(db_prefix_, 0) == 0);
-
-    // logVerbose << "destroy S3 key: ";
-    // logAlways << n.asString() << std::endl;
-    // if (doit) n.destroy();
 }
 
 void S3Store::print(std::ostream& out) const {
-
     out << "S3Store(" << endpoint_ << "/" << db_bucket_ << ")";
-
-    /// @note: code for single bucket for all DBs
-    // out << "S3Store(" << endpoint_ << "/" << bucket_ << ")";
 }
 
 /// @note: unique name generation copied from LocalPathName::unique.
@@ -287,58 +196,7 @@ eckit::S3ObjectName S3Store::generateDataKey(const Key& key) const {
     std::replace(keyStr.begin(), keyStr.end(), ':', '-');
 
     return eckit::S3ObjectName {endpoint_, {db_bucket_, keyStr + "." + md5.digest() + ".data"}};
-
-    /// @note: code for single bucket for all DBs
-    // return eckit::S3Name{endpoint_, bucket_, db_prefix_ + "_" + key.valuesToString() + "_" + md5.digest() + ".data"};
 }
-
-/// @note: code for S3 object (key) per index store:
-// eckit::S3Name S3Store::getDataKey(const Key& key) const {
-
-//     KeyStore::const_iterator j = dataKeys_.find(key);
-
-//     if ( j != dataKeys_.end() )
-//         return j->second;
-
-//     eckit::S3Name dataKey = generateDataKey(key);
-
-//     dataKeys_[ key ] = dataKey;
-
-//     return dataKey;
-
-// }
-
-/// @note: code for S3 object (key) per index store:
-// eckit::DataHandle& S3Store::getDataHandle(const Key& key, const eckit::S3Name& name) {
-
-//     HandleStore::const_iterator j = handles_.find(key);
-//     if ( j != handles_.end() )
-//         return j->second;
-
-//     eckit::DataHandle *dh = name.dataHandle(multipart = true);
-
-//     ASSERT(dh);
-
-//     handles_[ key ] = dh;
-
-//     dh->openForAppend(0);
-
-//     return *dh;
-
-// }
-
-/// @note: code for S3 object (key) per index store:
-// void S3Store::closeDataHandles() {
-
-//     for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
-//         eckit::DataHandle *dh = j->second;
-//         dh->close();
-//         delete dh;
-//     }
-
-//     handles_.clear();
-
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

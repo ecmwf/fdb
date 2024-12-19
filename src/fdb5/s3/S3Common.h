@@ -15,36 +15,26 @@
 #pragma once
 
 #include "eckit/filesystem/URI.h"
-
-#include "fdb5/database/Key.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
 class S3Common {
 
-public: // methods
-
+public:  // methods
     S3Common(const fdb5::Config&, const std::string& component, const fdb5::Key&);
     S3Common(const fdb5::Config&, const std::string& component, const eckit::URI&);
 
-private: // methods
-
+private:  // methods
     void parseConfig(const fdb5::Config& config);
 
-protected: // members
-
+protected:  // members
     eckit::net::Endpoint endpoint_;
-    std::string db_bucket_;
+    std::string          db_bucket_;
 
-    /// @note: code for single bucket for all DBs
-    // std::string bucket_;
-    // std::string db_prefix_;
-
-private: // members
-
+private:  // members
     std::string prefix_;
-
 };
 
-}
+}  // namespace fdb5
