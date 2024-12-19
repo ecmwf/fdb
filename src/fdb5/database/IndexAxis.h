@@ -44,7 +44,7 @@ class IndexAxis : private eckit::NonCopyable {
 
 public: // methods
 
-    IndexAxis();
+    IndexAxis(bool ignoreRegistry = false);
     IndexAxis(eckit::Stream &s, const int version);
     IndexAxis(IndexAxis&& rhs) noexcept;
 
@@ -115,6 +115,7 @@ private: // members
 
     bool readOnly_;
     bool dirty_;
+    bool ignoreregistry_ = false;
 
 };
 

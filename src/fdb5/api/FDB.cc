@@ -299,7 +299,7 @@ void FDB::flush() {
 }
 
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
-    IndexAxis axes;
+    IndexAxis axes(true); // ignore registry, unsafe.
     AxesElement elem;
     auto it = axesIterator(request, level);
     while (it.next(elem)) {

@@ -24,18 +24,23 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexAxis::IndexAxis() :
+IndexAxis::IndexAxis(bool ignoreregistry) :
     readOnly_(false),
     dirty_(false) {
+    ignoreregistry_ = ignoreregistry;
 }
 
 IndexAxis::~IndexAxis() {
    if (!readOnly_)
       return;
 
-    // for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
-    //    AxisRegistry::instance().release(it->first, it->second);
-    // }
+    if (ignoreregistry_) {
+        return;
+    }
+
+    for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
+       AxisRegistry::instance().release(it->first, it->second);
+    }
 }
 
 IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
@@ -168,7 +173,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
                         values->insert(v);
                     }
                     values->sort();
-                    // AxisRegistry::instance().deduplicate(k, values);
+                    AxisRegistry::instance().deduplicate(k, values);
                 }
                 break;
             default:
@@ -199,7 +204,7 @@ void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
             values->insert(v);
         }
         values->sort();
-        // AxisRegistry::instance().deduplicate(k, values);
+        AxisRegistry::instance().deduplicate(k, values);
     }
 }
 
@@ -385,13 +390,18 @@ void IndexAxis::json(eckit::JSON& json) const {
 void IndexAxis::merge(const fdb5::IndexAxis& other) {
 
     ASSERT(!readOnly_);
+    ASSERT(ignoreregistry_); // xxx: lhs modifies the hash by merging values.
     for (const auto& kv : other.axis_) {
 
         auto it = axis_.find(kv.first);
         if (it == axis_.end()) {
-            axis_.emplace(kv.first, kv.second);
+            // NB: Have to make a copy, otherwise we risk corrupting the registry.
+            std::shared_ptr<eckit::DenseSet<std::string>> new_set(new eckit::DenseSet<std::string>(*kv.second));
+            axis_.emplace(kv.first, new_set);
         } else {
-            it->second->merge(*kv.second);
+            // NB: The AxisRegistry hashes based on the values. Hence, it is not safe to modify the values when they are in the registry.
+            // Which is why we make the copy above. We are free to do whatever we want to this object.
+            it->second->merge(*kv.second); 
         };
     }
 }
