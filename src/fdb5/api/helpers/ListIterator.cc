@@ -41,15 +41,17 @@ Key ListElement::combinedKey() const {
     return combined;
 }
 
-void ListElement::print(std::ostream &out, bool withLocation, bool withLength, bool withTimestamp, const char* sep) const {
-    if (!withLocation && location_ && !location_->host().empty()) {
-        out << "host=" << location_->host() << ",";
-    }
+void ListElement::print(std::ostream& out, bool withLocation, bool withLength, bool withTimestamp, const char* sep) const {
     for (const auto& bit : keyParts_) {
         out << bit;
     }
-    if (location_ && withLocation) out << sep << *location_;
-    if (withLength) out << sep << "length=" << location_->length();
+    if (location_) {
+        if (withLocation) {
+            out << sep << *location_;
+        } else if (withLength) {
+            out << sep << "length=" << location_->length();
+        }
+    }
     if (withTimestamp) out << sep << "timestamp=" << timestamp_;
 }
 

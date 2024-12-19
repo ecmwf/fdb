@@ -183,7 +183,7 @@ CASE("DaosStore tests") {
         // archive
 
         /// DaosManager is configured with client config from the file
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = dstore;
         std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: two cont create with label happen here
@@ -255,7 +255,7 @@ CASE("DaosStore tests") {
 
         char data[] = "test";
 
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
         std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
@@ -270,7 +270,7 @@ CASE("DaosStore tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             //const fdb5::Index& idx = tcat.currentIndex();
-            static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, std::move(loc));
+            static_cast<fdb5::CatalogueWriter&>(tcat).archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
@@ -316,7 +316,7 @@ CASE("DaosStore tests") {
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before

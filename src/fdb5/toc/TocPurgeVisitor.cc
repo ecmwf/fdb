@@ -29,7 +29,7 @@ TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& sto
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
-bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     std::set<std::pair<URI, Offset>> metadata;
     std::set<URI> data;
@@ -44,9 +44,9 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
     }
 
     for (const auto& uri : data) {
-        if (!store.uriBelongs(uri)) {
+        if (!store_.uriBelongs(uri)) {
             Log::error() << "Catalogue is pointing to data files that do not belong to the store." << std::endl;
-            Log::error() << "Configured Store URI: " << store.uri().asString() << std::endl;
+            Log::error() << "Configured Store URI: " << store_.uri().asString() << std::endl;
             Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
             Log::error() << "This may occur when purging an overlayed FDB, which is not supported." << std::endl;
             NOTIMP;
@@ -69,7 +69,7 @@ void TocPurgeVisitor::gatherAuxiliaryURIs() {
                 deletable = true;
             }
         }
-        
+
         // Add auxiliary files to the corresponding set
         eckit::URI uri(store_.type(), eckit::PathName(it.first));
         for (const auto& auxURI : store_.getAuxiliaryURIs(uri)) {
@@ -86,34 +86,14 @@ void TocPurgeVisitor::gatherAuxiliaryURIs() {
 }
 
 void TocPurgeVisitor::report(std::ostream& out) const {
-
-    const eckit::PathName& directory(((TocCatalogue*) currentCatalogue_)->basePath());
+    const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+    const eckit::PathName& directory(cat->basePath());
 
     out << std::endl;
     out << "Index Report:" << std::endl;
     for (const auto& it : indexStats_) { // <Index, IndexStats>
         out << "    Index " << it.first << std::endl;
         it.second.report(out, "          ");
-    }
-
-    size_t indexToDelete = 0;
-    out << std::endl;
-    out << "Number of reachable fields per index file:" << std::endl;
-    for (const auto& it : indexUsage_) { // <std::string, size_t>
-        out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
-        if (it.second == 0) {
-            indexToDelete++;
-        }
-    }
-
-    size_t dataToDelete = 0;
-    out << std::endl;
-    out << "Number of reachable fields per data file:" << std::endl;
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
-        out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
-        if (it.second == 0) {
-            dataToDelete++;
-        }
     }
 
     out << std::endl;

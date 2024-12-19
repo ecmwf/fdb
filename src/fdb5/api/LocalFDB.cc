@@ -21,7 +21,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Inspector.h"
@@ -143,7 +143,7 @@ void LocalFDB::print(std::ostream &s) const {
 
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
-
+static FDBBuilder<LocalFDB> builder("catalogue"); // Enable type=catalogue to build localFDB (serverside).
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

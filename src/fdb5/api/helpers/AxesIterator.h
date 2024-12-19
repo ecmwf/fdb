@@ -40,6 +40,7 @@ public: // methods
     const IndexAxis& axes() const { return axes_; }
 
     void print(std::ostream& out) const;
+    size_t encodeSize() const;
 
 private: // methods
 

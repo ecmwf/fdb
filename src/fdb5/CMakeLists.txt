@@ -80,8 +80,6 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/Catalogue.cc
     database/Catalogue.h
-    database/DB.cc
-    database/DB.h
     database/DatabaseNotFoundException.cc
     database/DatabaseNotFoundException.h
     database/DataStats.cc
@@ -126,7 +124,6 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
-    database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc
     database/Report.h
@@ -216,22 +213,38 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_FDB_REMOTE)
-    list( APPEND fdb5_srcs 
+    list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
 
-        remote/RemoteConfiguration.h
-        remote/RemoteConfiguration.cc
+        remote/Connection.h
+        remote/Connection.cc
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
         remote/Messages.h
         remote/Messages.cc
-        remote/Handler.h
-        remote/Handler.cc
-        remote/AvailablePortList.cc
-        remote/AvailablePortList.h
         remote/FdbServer.h
         remote/FdbServer.cc
+
+        remote/client/Client.h
+        remote/client/Client.cc
+        remote/client/ClientConnection.h
+        remote/client/ClientConnection.cc
+        remote/client/ClientConnectionRouter.h
+        remote/client/ClientConnectionRouter.cc
+        remote/client/RemoteStore.cc
+        remote/client/RemoteStore.h
+        remote/client/RemoteCatalogue.h
+        remote/client/RemoteCatalogue.cc
+
+        remote/server/AvailablePortList.cc
+        remote/server/AvailablePortList.h
+        remote/server/CatalogueHandler.h
+        remote/server/CatalogueHandler.cc
+        remote/server/StoreHandler.h
+        remote/server/StoreHandler.cc
+        remote/server/ServerConnection.h
+        remote/server/ServerConnection.cc
     )
 endif()
 
@@ -310,58 +323,6 @@ if( HAVE_TOCFDB )
         fdb-reconsolidate-toc )
 endif()
 
-if( HAVE_PMEMFDB )
-
-    list( APPEND fdb5_srcs
-        pmem/DataPool.cc
-        pmem/DataPool.h
-        pmem/DataPoolManager.cc
-        pmem/DataPoolManager.h
-        pmem/MemoryBufferStream.h
-        pmem/MemoryBufferStream.cc
-        pmem/PBaseNode.cc
-        pmem/PBaseNode.h
-        pmem/PBranchingNode.cc
-        pmem/PBranchingNode.h
-        pmem/PDataNode.cc
-        pmem/PDataNode.h
-        pmem/PDataRoot.cc
-        pmem/PDataRoot.h
-        pmem/PIndexRoot.cc
-        pmem/PIndexRoot.h
-        pmem/PMemDB.cc
-        pmem/PMemDB.h
-        pmem/PMemDBReader.cc
-        pmem/PMemDBReader.h
-        pmem/PMemDBWriter.cc
-        pmem/PMemDBWriter.h
-        pmem/PMemFieldLocation.cc
-        pmem/PMemFieldLocation.h
-        pmem/PMemIndex.cc
-        pmem/PMemIndex.h
-        pmem/PMemIndexLocation.cc
-        pmem/PMemIndexLocation.h
-        pmem/PRoot.cc
-        pmem/PRoot.h
-        pmem/Pool.cc
-        pmem/Pool.h
-        pmem/PoolEntry.cc
-        pmem/PoolEntry.h
-        pmem/PoolGroup.cc
-        pmem/PoolGroup.h
-        pmem/PoolManager.cc
-        pmem/PoolManager.h
-        pmem/PMemStats.cc
-        pmem/PMemStats.h
-        pmem/PMemEngine.cc
-        pmem/PMemEngine.h
-    )
-
-else()
-    set( PMEM_LIBRARIES "" )
-    set( PMEM_INCLUDE_DIRS "" )
-endif()
-
 if( HAVE_RADOSFDB )
     list( APPEND fdb5_srcs
         rados/RadosFieldLocation.cc
@@ -389,19 +350,19 @@ if( HAVE_DAOSFDB )
         daos/DaosArrayHandle.h
         daos/DaosKeyValueHandle.cc
         daos/DaosKeyValueHandle.h
-        daos/DaosStore.h 
-        daos/DaosStore.cc 
-        daos/DaosFieldLocation.h 
+        daos/DaosStore.h
+        daos/DaosStore.cc
+        daos/DaosFieldLocation.h
         daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
         daos/DaosEngine.h
-        daos/DaosEngine.cc 
-        daos/DaosCatalogue.h 
-        daos/DaosCatalogue.cc 
-        daos/DaosCatalogueWriter.h 
+        daos/DaosEngine.cc
+        daos/DaosCatalogue.h
+        daos/DaosCatalogue.cc
+        daos/DaosCatalogueWriter.h
         daos/DaosCatalogueWriter.cc
-        daos/DaosCatalogueReader.h 
+        daos/DaosCatalogueReader.h
         daos/DaosCatalogueReader.cc
         daos/DaosIndex.h
         daos/DaosIndex.cc
@@ -409,11 +370,11 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        daos/DaosWipeVisitor.h 
+        daos/DaosWipeVisitor.h
         daos/DaosWipeVisitor.cc
-        daos/DaosArrayPartHandle.h 
+        daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
-        daos/DaosLazyFieldLocation.h 
+        daos/DaosLazyFieldLocation.h
         daos/DaosLazyFieldLocation.cc
         daos/UUID.h
         daos/UUID.cc
@@ -428,7 +389,7 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
-    
+
     TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES

@@ -15,7 +15,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
-#include "fdb5/database/Key.h"
+
 #include "fdb5/rules/Rule.h"
 
 using namespace eckit::testing;
@@ -123,9 +123,10 @@ CASE( "Step & ClimateDaily - expansion" ) {
     key.set("levelist", "50");
     key.set("param", "129.128");
 
-    fdb5::Archiver archiver;
+    fdb5::Config conf = config.expandConfig();
+    fdb5::Archiver archiver(conf);
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
-    config.schema().expand(key.canonical(), visitor);
+    conf.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == "0427");
@@ -259,7 +260,7 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 
 }
 
-// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from Key?
+// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from TypedKey?
 CASE( "Date - string ctor - expansion" ) {
 
     fdb5::TypedKey key = fdb5::TypedKey::parseString(
@@ -269,8 +270,8 @@ CASE( "Date - string ctor - expansion" ) {
     eckit::Date now(-2);
     eckit::Translator<long, std::string> t;
 
-    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
-    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:MHS:3001");
+    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));    
+    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001");
 
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
@@ -278,7 +279,7 @@ CASE( "Date - string ctor - expansion" ) {
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
-    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:MHS:3001");
+    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001");
 
 }
 

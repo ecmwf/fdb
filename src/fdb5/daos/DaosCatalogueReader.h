@@ -34,7 +34,7 @@ public: // methods
     void deselectIndex() override;
 
     bool open() override;
-    void flush() override {}
+    void flush(size_t archivedFields) override {}
     void clean() override {}
     void close() override {}
     

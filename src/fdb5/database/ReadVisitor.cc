@@ -7,19 +7,4 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
-// #include "eckit/log/Log.h"
-
 #include "fdb5/database/ReadVisitor.h"
-
-
-namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-ReadVisitor::~ReadVisitor() {
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-} // namespace fdb5

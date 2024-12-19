@@ -48,13 +48,13 @@ bool InspectIterator::next(ListElement& elem) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static void purgeDB(Key& key, DB*& db) {
+static void purgeCatalogue(Key& key, CatalogueReader*& db) {
     LOG_DEBUG_LIB(LibFdb5) << "Purging DB with key " << key << std::endl;
     delete db;
 }
 
 Inspector::Inspector(const Config& dbConfig) :
-    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB),
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue),
     dbConfig_(dbConfig) {}
 
 Inspector::~Inspector() {

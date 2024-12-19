@@ -22,7 +22,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace fdb5 {
 namespace api {
@@ -44,7 +44,7 @@ public:
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+    bool visitDatabase(const Catalogue& catalogue) override {
         catalogue.dump(out_, simple_);
         return true;
     }

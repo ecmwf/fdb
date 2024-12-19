@@ -23,9 +23,14 @@
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/types/Type.h"
 
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+eckit::ClassSpec Rule::classSpec_ = { &eckit::Streamable::classSpec(), "Rule", };
+
+eckit::Reanimator<Rule> Rule::reanimator_;
 
 Rule::Rule(const Schema &schema,
            size_t line,
@@ -36,6 +41,44 @@ Rule::Rule(const Schema &schema,
     std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
         registry_.addType(i->first, i->second);
+    }
+}
+
+Rule::Rule(eckit::Stream& s):
+    Rule(Schema(""), s) {
+    NOTIMP;
+}
+
+Rule::Rule(const Schema &schema, eckit::Stream& s):
+    schema_(schema), registry_(s) {
+
+    size_t numPredicates;
+    size_t numRules;
+
+    s >> line_;
+    s >> numPredicates;
+    for (size_t i=0; i < numPredicates; i++) {
+        predicates_.push_back(eckit::Reanimator<Predicate>::reanimate(s));
+    }
+
+    s >> numRules;
+    for (size_t i=0; i < numRules; i++) {
+        rules_.push_back(new Rule(schema, s));
+    }
+}
+
+void Rule::encode(eckit::Stream& s) const {
+    
+    registry_.encode(s);
+
+    s << line_;
+    s << predicates_.size();
+    for (const Predicate* predicate : predicates_) {
+        s << *predicate;
+    }
+    s << rules_.size();
+    for (const Rule* rule : rules_) {
+        rule->encode(s);
     }
 }
 
@@ -217,11 +260,10 @@ void Rule::expand( const Key& initialFieldKey,
 
     fullComputedKey.pop(keyword);
     k.pop(keyword);
-
-
 }
 void Rule::expand(const Key& initialFieldKey, WriteVisitor &visitor, size_t depth, std::vector<TypedKey> &keys, TypedKey& fullComputedKey) const {
     ASSERT(keys.size() == 3);
+
     expand(initialFieldKey, predicates_.begin(), depth, keys, fullComputedKey, visitor);
 }
 

@@ -38,7 +38,7 @@ private: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const override;
+                           const CatalogueReader* cat) const override;
 
     void print( std::ostream &out ) const override;
 
