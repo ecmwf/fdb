@@ -20,7 +20,7 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.24.4 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.28.3 REQUIRED )
 
 ### GRIB support
 
@@ -31,7 +31,7 @@ ecbuild_add_option( FEATURE GRIB
                     CONDITION eccodes_FOUND
                     DESCRIPTION "Support for GRIB via eccodes")
 
-ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
+ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
 
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
@@ -75,6 +75,45 @@ ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
 ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
+
+find_package(UUID QUIET)
+
+find_package(DAOS QUIET)
+
+set(_default_dummy_daos ON)
+if(DAOS_FOUND)
+    set(_default_dummy_daos OFF)
+endif()
+
+ecbuild_add_option( FEATURE DUMMY_DAOS
+                    DEFAULT ${_default_dummy_daos}
+                    CONDITION UUID_FOUND
+                    DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
+
+if(HAVE_DUMMY_DAOS)
+    set(DAOS_LIBRARIES dummy_daos)
+    set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+    set(DAOS_FOUND TRUE)
+    set(DAOS_TESTS_LIBRARIES dummy_daos_tests)
+    set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+    set(DAOS_TESTS_FOUND TRUE)
+endif()
+
+ecbuild_add_option( FEATURE DAOSFDB
+                    CONDITION DAOS_FOUND AND UUID_FOUND 
+                    DEFAULT ON
+                    DESCRIPTION "DAOS support for FDB Store" )
+
+ecbuild_add_option( FEATURE DAOS_ADMIN
+                    DEFAULT ${_default_dummy_daos}
+                    CONDITION HAVE_DAOSFDB AND DAOS_TESTS_FOUND
+                    DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
+
+# DAOS_TESTS is a daos admin library, usually not present
+if(NOT HAVE_DAOS_ADMIN)
+    set( DAOS_TESTS_LIBRARIES "" )
+    set( DAOS_TESTS_INCLUDE_DIRS "" )
+endif()
 
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF

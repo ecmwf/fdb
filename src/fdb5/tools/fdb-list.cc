@@ -11,9 +11,7 @@
 #include <unordered_set>
 
 #include "eckit/option/CmdArgs.h"
-#include "eckit/config/Resource.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 
@@ -21,7 +19,6 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
@@ -41,11 +38,15 @@ class FDBList : public FDBVisitTool {
     FDBList(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver"),
         location_(false),
+        timestamp_(false),
+        length_(false),
         full_(false),
         porcelain_(false),
         json_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
+        options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
@@ -58,6 +59,8 @@ class FDBList : public FDBVisitTool {
     virtual void init(const CmdArgs &args);
 
     bool location_;
+    bool timestamp_;
+    bool length_;
     bool full_;
     bool porcelain_;
     bool json_;
@@ -67,7 +70,7 @@ class FDBList : public FDBVisitTool {
 
 std::string keySignature(const fdb5::Key& key) {
     std::string signature;
-    std::string separator="";
+    std::string separator;
     for (auto k : key.keys()) {
         signature += separator+k;
         separator=":";
@@ -81,6 +84,8 @@ void FDBList::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     location_ = args.getBool("location", false);
+    timestamp_ = args.getBool("timestamp", false);
+    length_ = args.getBool("length", false);
     full_ = args.getBool("full", false);
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
@@ -88,21 +93,21 @@ void FDBList::init(const CmdArgs& args) {
 
     if (json_) {
         porcelain_ = true;
-        if (location_) {
-            throw UserError("--json and --location are not compatible", Here());
+        if (location_ || timestamp_ || length_) {
+            throw UserError("--json and --location/--timestamp/--length not compatible", Here());
         }
     }
 
     if (compact_) {
         if (location_) {
             throw UserError("--compact and --location are not compatible", Here());
-        } 
+        }
         if (full_) {
             throw UserError("--compact and --full are not compatible", Here());
-        } 
+        }
         if (porcelain_) {
             throw UserError("--compact and --porcelain are not compatible", Here());
-        } 
+        }
     }
 
     /// @todo option ignore-errors
@@ -141,7 +146,7 @@ void FDBList::execute(const CmdArgs& args) {
                 treeAxes += ",";
                 treeAxes += keys[1];
 
-                std::string signature=keySignature(keys[2]);
+                std::string signature=keySignature(keys[2]);  // i.e. step:levelist:param
 
                 auto it = requests.find(treeAxes);
                 if (it == requests.end()) {
@@ -161,7 +166,11 @@ void FDBList::execute(const CmdArgs& args) {
                 if (json_) {
                     (*json) << elem;
                 } else {
-                    elem.print(Log::info(), location_, !porcelain_);
+                    if (porcelain_) {
+                        elem.print(Log::info(), location_, false, false);
+                    } else {
+                        elem.print(Log::info(), location_, length_, timestamp_, ", ");
+                    }
                     Log::info() << std::endl;
                 }
             }

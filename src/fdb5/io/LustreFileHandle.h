@@ -52,22 +52,23 @@ public: // methods
     {
     }
 
-    virtual ~LustreFileHandle() override {}
+    ~LustreFileHandle() override {}
 
-    virtual void openForAppend(const eckit::Length& len) override {
+    void openForAppend(const eckit::Length& len) override {
 
-        std::string path = HANDLE::path_;
+        std::string pathStr = HANDLE::path_;
+        eckit::PathName path{pathStr};
 
-        if(eckit::PathName(path).exists()) return; //< Lustre API outputs ioctl error messages when called on files exist
+        if(path.exists()) return; //< Lustre API outputs ioctl error messages when called on files exist
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-        eckit::Log::debug<LibFdb5>() << "Creating Lustre file " << path
+        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << pathStr
                                     << " with " << stripe_.count_ << " stripes "
                                     << "of " << eckit::Bytes(stripe_.size_)
                                     << std::endl;
 
-        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_);
+        int err = fdb5LustreapiFileCreate(path, stripe_);
 
         if(err == EINVAL) {
 

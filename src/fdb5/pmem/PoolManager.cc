@@ -49,7 +49,7 @@ static std::vector<PoolEntry> readPools(const eckit::PathName& path) {
 
     std::ifstream in(path.localPath());
 
-    eckit::Log::debug() << "Loading FDB pools from " << path << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading FDB pools from " << path << std::endl;
 
     if (!in) {
         eckit::Log::error() << path << eckit::Log::syserr << std::endl;
@@ -129,7 +129,7 @@ static PoolGroupTable readPoolGroups(const eckit::PathName& fdbHome) {
     eckit::PathName fdbPMemPoolGroupsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolGroupsFile;$FDB_PMEM_POOLGROUPS_FILE", fdbHome / "poolgroups");
     std::ifstream in(fdbPMemPoolGroupsFile.localPath());
 
-    eckit::Log::debug() << "Loading FDB file poolgroups from " << fdbPMemPoolGroupsFile << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading FDB file poolgroups from " << fdbPMemPoolGroupsFile << std::endl;
 
     if (!in) {
         throw eckit::ReadError(fdbPMemPoolGroupsFile, Here());
@@ -282,7 +282,7 @@ std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<Key>& ke
         }
     }
 
-    Log::debug<LibFdb5>() << "Visitable Pools " << pools << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Visitable Pools " << pools << std::endl;
 
     return std::vector<eckit::PathName>(pools.begin(), pools.end());
 }
@@ -292,7 +292,7 @@ std::vector<PathName> PoolManager::visitablePools(const Key& key) {
 }
 
 std::vector<PathName> PoolManager::visitablePools(const metkit::mars::MarsRequest& request) {
-    std::set<Key> keys;
+    std::set<TypedKey> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitablePools(keys);
 }

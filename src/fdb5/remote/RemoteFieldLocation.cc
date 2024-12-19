@@ -37,15 +37,15 @@ RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocati
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
     FieldLocation(eckit::URI("fdb://" + uri.hostport())),
-    internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri))) {}
+    internal_(std::shared_ptr<const FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
     FieldLocation(eckit::URI("fdb://" + uri.hostport())),
-    internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
+    internal_(std::shared_ptr<const FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
     FieldLocation(s),
-    internal_(std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
+    internal_(std::shared_ptr<const FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_),
@@ -53,7 +53,7 @@ RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     internal_(rhs.internal_) {}
 
 
-std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
     return std::make_shared<RemoteFieldLocation>(std::move(*this));
 }
 
@@ -88,20 +88,20 @@ static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 //----------------------------------------------------------------------------------------------------------------------
 
 class FdbURIManager : public eckit::URIManager {
-    virtual bool query() override { return false; }
-    virtual bool fragment() override { return false; }
+    bool query() override { return false; }
+    bool fragment() override { return false; }
 
-    virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
+    bool exists(const eckit::URI& f) override { return f.path().exists(); }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+    eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+    eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+    eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
         return f.path().partHandle(ol, ll);
     }
 
-    virtual std::string asString(const eckit::URI& uri) const override {
+    std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
         if (!q.empty())
             q = "?" + q;

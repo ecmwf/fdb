@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
@@ -65,16 +65,17 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             Config conf = config(args);
             const Schema& schema = conf.schema();
-            Key result;
+            TypedKey result{conf.schema().registry()};
             ASSERT( schema.expandFirstLevel(request.request(), result) );
+            const auto key = result.canonical();
 
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
-            std::unique_ptr<DB> db = DB::buildReader(result, conf);
+            std::unique_ptr<DB> db = DB::buildReader(key, conf);
 
             if (!db->exists() && create_db) {
-                db = DB::buildWriter(result, conf);
+                db = DB::buildWriter(key, conf);
             }
 
             if (db->exists()) {

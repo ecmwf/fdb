@@ -23,7 +23,6 @@
 #include "fdb5/toc/RootManager.h"
 
 #include <dirent.h>
-#include <errno.h>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
 #include <sys/file.h>
@@ -57,11 +56,11 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
     MoveVisitor::visitDatabase(catalogue_, store);
 
     // TOC specific checks: index files not locked
-    DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());
+    DIR* dirp = ::opendir(catalogue_.basePath().c_str());
     struct dirent* dp;
     while ((dp = readdir(dirp)) != NULL) {
         if (strstr( dp->d_name, ".index")) {
-            eckit::PathName src_ = catalogue_.basePath() / dp->d_name;
+            eckit::PathName src_ = PathName(catalogue_.basePath()) / dp->d_name;
             int fd = ::open(src_.asString().c_str(), O_RDWR);
             if(::flock(fd, LOCK_EX)) {
                 std::stringstream ss;
@@ -123,7 +122,7 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
             
-            DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());
+            DIR* dirp = ::opendir(catalogue_.basePath().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".index") ||
@@ -139,7 +138,7 @@ void TocMoveVisitor::move() {
             FileCopy toc(catalogue_.basePath(), dest_db, "toc", true);
             queue_.emplace(toc);
 
-            dirp = ::opendir(catalogue_.basePath().asString().c_str());
+            dirp = ::opendir(catalogue_.basePath().c_str());
             while ((dp = readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".lock") ||
                     strstr( dp->d_name, "duplicates.allow")) {

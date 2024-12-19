@@ -21,7 +21,6 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
@@ -34,15 +33,14 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Schema& schema, const Key& key, const Config& config);
-    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
     eckit::URI uri() const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> storeUnitURIs() const override;
-    std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;
@@ -54,6 +52,10 @@ public: // methods
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override;
+    bool auxiliaryURIExists(const eckit::URI&) const override;
+    std::set<std::string> auxFileExtensions() const;
+
 protected: // methods
 
     std::string type() const override { return "file"; }
@@ -61,7 +63,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -71,11 +73,14 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key) const;
+    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::PathName getDataPath(const Key& key) const;
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;
+
+private: // methods
+    eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
 
 private: // types
 
@@ -87,6 +92,8 @@ private: // members
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     mutable PathStore   dataPaths_;
+
+    std::set<std::string> auxFileExtensions_;
 
 };
 

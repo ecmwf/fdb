@@ -39,6 +39,14 @@ TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdenti
     dbKey_ = databaseKey();
 }
 
+
+std::vector<Index> TocCatalogue::loadIndexes(bool sorted,
+                                           std::set<std::string>* subTocs,
+                                           std::vector<bool>* indexInSubtoc,
+                                           std::vector<Key>* remapKeys) const {
+    return TocHandler::loadIndexes(*this, sorted, subTocs, indexInSubtoc,remapKeys);
+}
+
 bool TocCatalogue::exists() const {
     return TocHandler::exists();
 }
@@ -57,11 +65,8 @@ eckit::URI TocCatalogue::uri() const {
 }
 
 const Schema& TocCatalogue::schema() const {
-    return schema_;
-}
-
-const eckit::PathName& TocCatalogue::basePath() const {
-    return directory_;
+    ASSERT(schema_);
+    return *schema_;
 }
 
 std::vector<PathName> TocCatalogue::metadataPaths() const {
@@ -77,30 +82,9 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
     return paths;
 }
 
-void TocCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
-
-    std::vector<Index> all = indexes(sorted);
-
-    // Allow the visitor to selectively reject this DB.
-    if (visitor.visitDatabase(*this, store)) {
-        if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
-                if (visitor.visitEntries()) {
-                    idx.entries(visitor); // contains visitIndex
-                } else {
-                    visitor.visitIndex(idx);
-                }
-            }
-        }
-
-        visitor.catalogueComplete(*this);
-    }
-
-}
-
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
-    schema_.load( schemaPath() );
+    schema_ = &SchemaRegistry::instance().get(schemaPath());
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
@@ -130,7 +114,7 @@ std::vector<Index> TocCatalogue::indexes(bool sorted) const {
 
 void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
                       std::set<URI>& data) const {
-    enumerateMasked(metadata, data);
+    enumerateMasked(*this, metadata, data);
 }
 
 std::string TocCatalogue::type() const

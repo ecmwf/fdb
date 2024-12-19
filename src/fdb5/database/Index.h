@@ -15,6 +15,10 @@
 #ifndef fdb5_Index_H
 #define fdb5_Index_H
 
+#include <memory>
+#include <optional>
+#include <functional>
+
 #include "eckit/eckit.h"
 
 #include "eckit/io/Length.h"
@@ -53,14 +57,14 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s, const int version);
+    IndexBase(const Key& key, const std::string& type, const Catalogue& catalogue);
+    IndexBase(eckit::Stream& s, const int version, const Catalogue& catalogue);
 
-    virtual ~IndexBase() override;
+    ~IndexBase() override;
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual const std::vector<eckit::URI> dataPaths() const { NOTIMP; }
+    virtual const std::vector<eckit::URI> dataURIs() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
 
@@ -80,8 +84,8 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
-    virtual void put(const Key &key, const Field &field);
+    virtual bool get(const Key& key, const Key& remapKey, Field &field) const = 0;
+    virtual void put(const Key& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
@@ -108,7 +112,9 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const Key &key, const Field &field) = 0;
+    virtual void add(const Key& key, const Field &field) = 0;
+
+    const TypesRegistry& registry() const;
 
 protected: // members
 
@@ -124,6 +130,12 @@ protected: // members
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
     }
+
+private: // members
+
+    const Catalogue& catalogue_;
+    mutable std::optional<std::reference_wrapper<const TypesRegistry>> registry_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -142,7 +154,7 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::URI> dataPaths() const { return content_->dataPaths(); }
+    const std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
 
     bool dirty() const { return content_->dirty(); }
 

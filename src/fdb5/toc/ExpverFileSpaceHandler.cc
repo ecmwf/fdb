@@ -42,7 +42,7 @@ ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
 
 void ExpverFileSpaceHandler::load() const {
 
-    Log::debug<LibFdb5>() << "Loading " << fdbExpverFileSystems_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading " << fdbExpverFileSystems_ << std::endl;
 
     std::ifstream in(fdbExpverFileSystems_.localPath());
 
@@ -138,7 +138,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         }
 
         if(s[0] == expver) {
-            Log::debug<LibFdb5>() << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
             return PathName(s[1]);
         }
     }
@@ -156,7 +156,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     // append to the file
 
-    Log::debug<LibFdb5>() << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
 
     of << expver << " " << path << std::endl;
 
@@ -171,8 +171,9 @@ PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) con
 }
 
 static bool expver_is_valid(const std::string& str) {
-    Log::debug<LibFdb5>() << "Validating expver string [" << str << "]" << std::endl;
-    return (str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end();
+    LOG_DEBUG_LIB(LibFdb5) << "Validating expver string [" << str << "]" << std::endl;
+    return ((str.size() <= 4) and std::find_if_not(str.begin(), str.end(), isdigit) == str.end()) ||
+        ((str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end());
 }
 
 eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
@@ -194,11 +195,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     if(not expver_is_valid(expver))
         throw eckit::BadValue("Invalid expver value " + expver, Here());
 
-    Log::debug<LibFdb5>() << "Selecting file system for expver [" << expver << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Selecting file system for expver [" << expver << "]" << std::endl;
 
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
-        Log::debug<LibFdb5>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
 
         if (!fdbRootDirectory.empty() && itr->second != fdbRootDirectory) {
             Log::warning() << "Existing root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
@@ -222,7 +223,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
             throw BadParameter(msg.str());
         }
 
-        Log::debug<LibFdb5>() << "Using root directory specified by FDB5_ROOT: " << fdbRootDirectory << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Using root directory specified by FDB5_ROOT: " << fdbRootDirectory << std::endl;
         maybe = fdbRootDirectory;
     }
 

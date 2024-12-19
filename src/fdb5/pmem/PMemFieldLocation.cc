@@ -50,11 +50,11 @@ PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dat
     dataPool_(pool) {}
 
 
-std::shared_ptr<FieldLocation> PMemFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> PMemFieldLocation::make_shared() const {
     return std::make_shared<PMemFieldLocation>(*this);
 }
 
-std::shared_ptr<FieldLocation> PMemFieldLocation::stableLocation() const {
+std::shared_ptr<const FieldLocation> PMemFieldLocation::stableLocation() const {
     return std::make_shared<TocFieldLocation>(url(), node().offset(), node()->length());
 }
 

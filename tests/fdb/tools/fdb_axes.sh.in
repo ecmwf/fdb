@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -eux
+
+export PATH=@CMAKE_BINARY_DIR@/bin:${ECCODES_BINARY_PATH}:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+cd $bindir
+
+mkdir -p axes_test
+cd axes_test
+
+rm -rf localroot || true
+mkdir localroot
+
+for f in local.yaml x.grib
+do
+  cp $srcdir/$f ./
+done
+
+export FDB5_CONFIG_FILE=local.yaml
+
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
+grib_set -s type=an 6.grib an6.grib
+grib_set -s type=an 9.grib an9.grib
+
+fdb-write 6.grib
+fdb-write 9.grib
+fdb-write an6.grib
+fdb-write an9.grib
+grib_ls -m 9.grib
+
+####### Check lots of content
+
+fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --json > axes.out
+echo '{"class":["rd"],"date":["20201102"],"domain":["g"],"expver":["xxxx"],"levelist":[""],"levtype":["sfc"],"param":["166"],"step":["6","9"],"stream":["oper"],"time":["0000"],"type":["an","fc"]}' > expected.out
+cat axes.out
+cat expected.out
+cmp axes.out expected.out
+
+fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g > axes.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levelist=(),levtype=(sfc),param=(166),step=(6,9),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
+cat axes.out
+cat expected.out
+cmp axes.out expected.out
+
+fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --level=2 > axes.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levtype=(sfc),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
+cat axes.out
+cat expected.out
+cmp axes.out expected.out
+
+fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --level=1 > axes.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),stream=(oper),time=(0000)}]' > expected.out
+cat axes.out
+cat expected.out
+cmp axes.out expected.out
+
+####### Sub-selection by index
+
+fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,step=6 > axes.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levelist=(),levtype=(sfc),param=(166),step=(6),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
+cat axes.out
+cat expected.out
+cmp axes.out expected.out

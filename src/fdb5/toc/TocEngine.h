@@ -41,22 +41,20 @@ private:  // methods
 
 protected: // methods
 
-    virtual std::string name() const override;
+    std::string name() const override;
 
-    virtual std::string dbType() const override;
+    std::string dbType() const override;
 
-    virtual eckit::URI location(const Key &key, const Config& config) const override;
+    eckit::URI location(const Key& key, const Config& config) const override;
 
-    virtual bool canHandle(const eckit::URI& path) const override;
+    bool canHandle(const eckit::URI&, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
+    std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override;
-
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 };
 

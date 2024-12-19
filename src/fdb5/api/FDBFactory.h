@@ -28,7 +28,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
@@ -37,6 +37,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/Callback.h"
 
 namespace eckit {
 namespace message {
@@ -65,7 +66,7 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
-
+    
     virtual void flush() = 0;
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
@@ -87,6 +88,10 @@ public: // methods
                                     ControlIdentifiers identifier) = 0;
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
+
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
+
+    void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
@@ -123,6 +128,8 @@ protected: // members
     ControlIdentifiers controlIdentifiers_;
 
     bool disabled_;
+
+    ArchiveCallback callback_ = CALLBACK_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -178,7 +185,7 @@ public: // methods
 
 private: // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const override {
+    std::unique_ptr<FDBBase> make(const Config& config) const override {
         return std::unique_ptr<T>(new T(config, name_));
     }
 };

@@ -9,6 +9,7 @@
  */
 
 #include "eckit/config/Resource.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
 namespace fdb5 {
@@ -19,7 +20,7 @@ static unsigned getUserEnvSerialisationVersion() {
         eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
     
     if (fdbSerialisationVersion && fdbSerialisationVersion != TocSerialisationVersion::defaulted()) {
-        eckit::Log::debug() << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
     }
     return fdbSerialisationVersion; // default is 0 (not defined by user/service)
 }
@@ -31,7 +32,7 @@ TocSerialisationVersion::TocSerialisationVersion(const fdb5::Config& config) {
     } else {
         static int tocSerialisationVersion = config.getInt("tocSerialisationVersion", 0);
         if (tocSerialisationVersion && tocSerialisationVersion != TocSerialisationVersion::defaulted()) {
-            eckit::Log::debug() << "tocSerialisationVersion overidde to version: " << tocSerialisationVersion << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "tocSerialisationVersion overidde to version: " << tocSerialisationVersion << std::endl;
             used_ = tocSerialisationVersion;
         } else {
             used_ = defaulted();

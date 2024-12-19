@@ -17,16 +17,21 @@
 #define fdb5_Schema_H
 
 #include <iosfwd>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <string>
 #include <vector>
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/types/TypesRegistry.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -48,7 +53,7 @@ public: // methods
 
     ~Schema();
 
-    void expand(const Key &field, WriteVisitor &visitor) const;
+    void expand(const Key& field, WriteVisitor &visitor) const;
     void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
 
     // Each database has its own internal schema. So expand() above results in
@@ -57,12 +62,11 @@ public: // methods
     void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
     void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
 
-    bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;
-    void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result) const ;
+    void matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
-    const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
+    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
     void load(std::istream& s, bool replace = false);
@@ -77,7 +81,6 @@ public: // methods
 
     const TypesRegistry& registry() const;
 
-
 private: // methods
 
     void clear();
@@ -90,9 +93,24 @@ private: // methods
 private: // members
 
     TypesRegistry registry_;
+    
     std::vector<Rule *>  rules_;
     std::string path_;
 
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+    static SchemaRegistry& instance();
+    const Schema& get(const eckit::PathName& path);
+
+private:
+    std::mutex m_;
+    std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -189,8 +189,8 @@ TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
 
     std::swap(activeDataFiles_, intersect);
 
-    for(std::map<eckit::PathName, size_t>::const_iterator i = rhs.dataUsage_.begin(); i != rhs.dataUsage_.end(); ++i) {
-        dataUsage_[i->first] += i->second;
+    for(const auto& [path, size] : rhs.dataUsage_) {
+        dataUsage_[path] += size;
     }
 
     return *this;
@@ -225,8 +225,6 @@ bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Stor
 
 
 void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
-
-//    ASSERT(currIndex_ != 0);
 
     TocDbStats* dbStats = new TocDbStats();
 

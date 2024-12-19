@@ -9,11 +9,13 @@
  */
 
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/config/YAMLConfiguration.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/MarsExpension.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
@@ -45,11 +47,27 @@ public:
     fdb_request_t(std::string str) {
         request_ = metkit::mars::MarsRequest(str);
     }
+    size_t values(const char* name, char** values[]) {
+        std::string n(name);
+        std::vector<std::string> vv = request_.values(name);
+
+        *values = new char*[vv.size()];
+        for (size_t i = 0; i < vv.size(); i++) {
+            (*values)[i] = new char[vv[i].size()+1];
+            strncpy((*values)[i], vv[i].c_str(), vv[i].size());
+            (*values)[i][vv[i].size()] = '\0';
+        }
+        return vv.size();
+    }
     void values(const char* name, const char* values[], int numValues) {
         std::string n(name);
         std::vector<std::string> vv;
+        Tokenizer parse("/");
+
         for (int i=0; i<numValues; i++) {
-            vv.push_back(std::string(values[i]));
+            std::vector<std::string> result;
+            parse(values[i], result);
+            vv.insert(std::end(vv), std::begin(result), std::end(result));
         }
         request_.values(n, vv);
     }
@@ -57,6 +75,12 @@ public:
         fdb_request_t* req = new fdb_request_t();
         req->request_ = metkit::mars::MarsRequest::parse(str);
         return req;
+    }
+    void expand() {
+        bool inherit = false;
+        bool strict = true;
+        metkit::mars::MarsExpension expand(inherit, strict);
+        request_ = expand.expand(request_);
     }
     const metkit::mars::MarsRequest request() const { return request_; }
 private:
@@ -85,7 +109,7 @@ public:
             } else {
                 return FDB_ITERATION_COMPLETE;
             }
-        } 
+        }
         while (it_ == key_->at(level_).end()) {
             if (level_<key_->size()-1) {
                 level_++;
@@ -168,12 +192,15 @@ public:
         ASSERT(dh_);
         return dh_->read(buf, length);
     }
+    long size() {
+        ASSERT(dh_);
+        return dh_->size();
+    }
     void set(DataHandle* dh) {
-        if (dh_)
-            delete dh_;
+        delete dh_;
         dh_ = dh;
     }
-    
+
 private:
     DataHandle* dh_;
 };
@@ -307,6 +334,16 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     });
 }
 
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config) {
+    return wrapApiFunction([fdb, system_config, user_config] {
+        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(user_config))};
+        cfg.set("configSource", "yaml");
+        cfg.expandConfig();
+        *fdb = new fdb_handle_t(cfg);
+    });
+
+}
+
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
         ASSERT(fdb);
@@ -401,6 +438,18 @@ int fdb_request_add(fdb_request_t* req, const char* param, const char* values[],
         ASSERT(param);
         ASSERT(values);
         req->values(param, values, numValues);
+    });
+}
+int fdb_request_get(fdb_request_t* req, const char* param, char** values[], size_t* numValues) {
+    return wrapApiFunction([req, param, values, numValues] {
+        ASSERT(req);
+        ASSERT(param);
+        *numValues = req->values(param, values);
+    });
+}
+int fdb_expand_request(fdb_request_t* req) {
+    return wrapApiFunction([req]{
+        req->expand();
     });
 }
 int fdb_delete_request(fdb_request_t* req) {
@@ -505,6 +554,12 @@ int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read)
         ASSERT(buf);
         ASSERT(read);
         *read = dr->read(buf, count);
+    });
+}
+int fdb_datareader_size(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([=]{
+        ASSERT(dr);
+        *size = dr->size();
     });
 }
 int fdb_delete_datareader(fdb_datareader_t* dr) {

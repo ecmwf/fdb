@@ -19,10 +19,11 @@
 #include <vector>
 
 #include "eckit/runtime/Tool.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/config/Configuration.h"
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 
-#include "fdb5/database/DB.h"
-#include "eckit/option/SimpleOption.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
     namespace option {
@@ -43,10 +44,10 @@ class FDBTool : public eckit::Tool {
 protected: // methods
 
     FDBTool(int argc, char **argv);
-    virtual ~FDBTool() override {}
+    ~FDBTool() override {}
 
-    virtual void run() override;
-    Config config(const eckit::option::CmdArgs& args) const;
+    void run() override;
+    Config config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig = eckit::LocalConfiguration()) const;
 
 public: // methods
 
@@ -55,6 +56,8 @@ public: // methods
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
+    /// Set this to false in tool subclass if your tool does not require access to 'config.yaml'
+    bool needsConfig_{true};
 
 protected: // methods
 

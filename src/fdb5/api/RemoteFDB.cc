@@ -175,13 +175,13 @@ void RemoteFDB::connect() {
         try {
             // Connect to server, and check that the server is happy on the response
 
-            Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
             controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries);
             writeControlStartupMessage();
             SessionID serverSession = verifyServerStartupResponse();
 
             // Connect to the specified data port
-            Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
             dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
             writeDataStartupMessage(serverSession);
 
@@ -968,7 +968,7 @@ public: // methods
         overallPosition_(0),
         currentBuffer_(0),
         complete_(false) {}
-    virtual bool canSeek() const override { return false; }
+    bool canSeek() const override { return false; }
 
 private: // methods
 

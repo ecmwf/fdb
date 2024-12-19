@@ -47,9 +47,9 @@ public:
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+TocIndex::TocIndex(const Key& key, const Catalogue& catalogue, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     UriStoreWrapper(path.dirName()),
-    IndexBase(key, type),
+    IndexBase(key, type, catalogue),
     btree_(nullptr),
     dirty_(false),
     mode_(mode),
@@ -57,10 +57,10 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     preloadBTree_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path,
+TocIndex::TocIndex(eckit::Stream &s, const Catalogue& catalogue, const int version, const eckit::PathName &directory, const eckit::PathName &path,
                    off_t offset, bool preloadBTree):
     UriStoreWrapper(directory, s),
-    IndexBase(s, version),
+    IndexBase(s, version, catalogue),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
@@ -78,7 +78,7 @@ void TocIndex::encode(eckit::Stream& s, const int version) const {
 }
 
 
-bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
+bool TocIndex::get(const Key& key, const Key& remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
@@ -95,7 +95,7 @@ bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        eckit::Log::debug<LibFdb5>() << "Opening " << *this << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
         if (mode_ == TocIndex::READ && preloadBTree_) btree_->preload();
     }
@@ -119,12 +119,12 @@ void TocIndex::reopen() {
 
 void TocIndex::close() {
     if (btree_) {
-        eckit::Log::debug<LibFdb5>() << "Closing " << *this << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Closing " << *this << std::endl;
         btree_.reset();
     }
 }
 
-void TocIndex::add(const Key &key, const Field &field) {
+void TocIndex::add(const Key& key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == TocIndex::WRITE );
 
@@ -199,7 +199,7 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::URI> TocIndex::dataPaths() const {
+const std::vector<eckit::URI> TocIndex::dataURIs() const {
     return files_.paths();
 }
 

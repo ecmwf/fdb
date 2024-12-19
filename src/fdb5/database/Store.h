@@ -15,13 +15,15 @@
 #ifndef fdb5_Store_H
 #define fdb5_Store_H
 
+#include <memory>
+
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/DB.h"
+// #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
@@ -33,10 +35,10 @@ public:
 
     Store(const Schema& schema) : schema_(schema) {}
 
-    virtual ~Store() {}
+    virtual ~Store() = default;
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) = 0;
+    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void *data, eckit::Length length) = 0;
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -59,8 +61,11 @@ public:
     virtual eckit::URI uri() const = 0;
     virtual bool uriBelongs(const eckit::URI&) const = 0;
     virtual bool uriExists(const eckit::URI& uri) const = 0;
-    virtual std::vector<eckit::URI> storeUnitURIs() const = 0;
-    virtual std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const = 0;
+    virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
+    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
+
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
+    virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
 
 protected: // members
     const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
@@ -76,13 +81,11 @@ public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
-    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
-    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) override { return std::unique_ptr<T>(new T(schema, uri, config)); }
+    std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -104,12 +107,6 @@ public:
     /// @param config    the fdb config
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
-
-    /// @param schema    the schema read by the catalog
-    /// @param uri       search uri
-    /// @param config    the fdb config
-    /// @returns         store built by specified builder
-    std::unique_ptr<Store> build(const Schema& schema, const eckit::URI& uri, const Config& config);
 
 private:
     StoreFactory();

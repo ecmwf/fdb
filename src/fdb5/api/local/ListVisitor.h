@@ -21,8 +21,12 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Rule.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 namespace api {
@@ -66,25 +70,31 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-        // Subselect the parts of the request
-        datumRequest_ = indexRequest_;
-        for (const auto& kv : index.key()) {
-            datumRequest_.unsetValues(kv.first);
-        }
 
         if (index.partialMatch(request_)) {
+
+            // Subselect the parts of the request
+            datumRequest_ = indexRequest_;
+            for (const auto& kv : index.key()) {
+                datumRequest_.unsetValues(kv.first);
+            }
+
+            // Take into account any rule-specific behaviour in the request
+            datumRequest_ = rule_->registry().canonicalise(datumRequest_);
+
             return true; // Explore contained entries
         }
+
         return false; // Skip contained entries
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const Key& key) override {
+    void visitDatum(const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
+        if (datumKey.match(datumRequest_)) {
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey}, field.stableLocation(), field.timestamp()));
         }
     }
 

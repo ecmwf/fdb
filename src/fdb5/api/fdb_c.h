@@ -139,6 +139,21 @@ int fdb_new_request(fdb_request_t** req);
  */
 int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 
+/** Get the Metadata values associated to a Request metadata
+ * \param req Request instance
+ * \param param Metadata name
+ * \param values Metadata values
+ * \param numValues number of metadata values
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_request_get(fdb_request_t* req, const char* param, char** values[], size_t* numValues);
+
+/** Expand a Request
+ * \param req Request instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_expand_request(fdb_request_t* req);
+
 /** Deallocates Request object and associated resources.
  * \param req Request instance
  * \returns Return code (#FdbErrorValues)
@@ -264,6 +279,13 @@ int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
  */
 int fdb_datareader_skip(fdb_datareader_t* dr, long count);
 
+/** Return size of internal datahandle in bytes.
+ * \param dr DataReader instance
+ * \param size Size of the DataReader
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_size(fdb_datareader_t* dr, long* size);
+
 /** Read binary data from a DataReader to a given memory buffer.
  * \param dr DataReader instance
  * \param buf Pointer of the target memory buffer.
@@ -294,6 +316,14 @@ typedef struct fdb_handle_t fdb_handle_t;
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_new_handle(fdb_handle_t** fdb);
+
+/** Creates a FDB instance from a YAML configuration.
+ * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
+ * \param system_config Override the system config with this YAML string
+ * \param user_config Supply user level config with this YAML string
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config);
 
 /** Archives binary data to a FDB instance.
  * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency

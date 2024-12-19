@@ -18,8 +18,10 @@
 
 #include <map>
 #include <string>
-#include <vector>
+#include <utility>
 #include <set>
+#include <memory>
+#include <functional>
 
 #include "eckit/types/Types.h"
 
@@ -41,17 +43,26 @@ class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Key {
+class BaseKey {
 
 public: // methods
 
-    Key();
+    BaseKey() = default;
+    BaseKey(const BaseKey &key) = default;
 
-    explicit Key(eckit::Stream &);
-    explicit Key(const std::string &request);
-    explicit Key(const std::string &keys, const Rule* rule);
+    explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
+        for (const auto& k : keys) {
+            names_.emplace_back(k.first);
+        }
+    }
+    BaseKey(std::initializer_list<std::pair<const std::string, std::string>> l) : keys_(l) {
+        for (const auto& k : l) {
+            names_.emplace_back(k.first);
+        }
+    }
+    BaseKey(const std::string& fingerprint, const Rule& rule);
 
-    explicit Key(const eckit::StringDict &keys);
+    virtual ~BaseKey() = default;
 
     std::set<std::string> keys() const;
 
@@ -65,48 +76,36 @@ public: // methods
 
     void clear();
 
-    bool match(const Key& other) const;
+    bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
 
-    bool match(const Key& other, const eckit::StringList& ignore) const;
-
-    bool match(const std::string& key, const std::set<std::string>& values) const;
     bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key &other) const {
+    bool operator< (const BaseKey& other) const {
         return keys_ < other.keys_;
     }
 
-    bool operator!= (const Key &other) const {
+    bool operator!= (const BaseKey& other) const {
         return keys_ != other.keys_;
     }
 
-    bool operator== (const Key &other) const {
+    bool operator== (const BaseKey& other) const {
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
+    friend std::ostream& operator<<(std::ostream &s, const BaseKey& x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
+    friend eckit::Stream& operator<<(eckit::Stream &s, const BaseKey& x) {
         x.encode(s);
         return s;
     }
-
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
-        return s;
-    }
-
-    void rule(const Rule *rule);
-    const Rule *rule() const;
-    const TypesRegistry& registry() const;
 
     std::string valuesToString() const;
 
@@ -130,21 +129,19 @@ public: // methods
 
     bool empty() const { return keys_.empty(); }
 
-    /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
-
     const eckit::StringDict& keyDict() const;
 
-    metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
+    metkit::mars::MarsRequest request(const std::string& verb = "retrieve") const;
 
     operator std::string() const;
 
     operator eckit::StringDict() const;
 
-private: // members
+protected: // members
 
     //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const;
+    virtual std::string canonicalise(const std::string& keyword, const std::string& value) const = 0;
+    virtual std::string type(const std::string& keyword) const = 0;
 
     void print( std::ostream &out ) const;
     void decode(eckit::Stream& s);
@@ -154,9 +151,69 @@ private: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
+};
 
-    const Rule *rule_;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+class Key : public BaseKey {
+
+public: // methods
+
+    explicit Key() = default;
+    explicit Key(eckit::Stream &);
+    explicit Key(const eckit::StringDict &keys);
+    explicit Key(const std::string& fingerprint, const Rule& rule);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>);
+
+    static Key parseString(const std::string& s);
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
+        x = Key(s);
+        return s;
+    }
+
+private: // members
+
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+    std::string type(const std::string& keyword) const override;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class TypedKey : public BaseKey {
+
+public: // methods
+
+    explicit TypedKey(const Key& key, const TypesRegistry& reg);
+    explicit TypedKey(const TypesRegistry& reg);
+    explicit TypedKey(eckit::Stream &, const TypesRegistry& reg);
+    explicit TypedKey(const std::string &keys, const Rule& rule);
+    explicit TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg);
+    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const TypesRegistry& reg);
+
+    static TypedKey parseString(const std::string&, const TypesRegistry& reg);
+
+    Key canonical() const;
+
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeys(const BaseKey& other, bool checkAlsoValues = false) const;
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x);
+
+    // Registry is needed before we can stringise/canonicalise.
+    void registry(const TypesRegistry& reg);
+    [[ nodiscard ]]
+    const TypesRegistry& registry() const;
+
+private: // members
+
+    //TODO add unit test for each type
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+    std::string type(const std::string& keyword) const override;
+
+    std::reference_wrapper<const TypesRegistry> registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

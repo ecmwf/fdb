@@ -32,17 +32,17 @@ namespace pmem {
 //-----------------------------------------------------------------------------
 
 
-PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
+PMemIndex::PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
     IndexBase(key, type),
     location_(node, mgr) {
 
     if (!location_.node().axis_.null()) {
 
-        Log::debug<LibFdb5>() << "PMemIndex Loading axes from buffer" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "PMemIndex Loading axes from buffer" << std::endl;
         const ::pmem::PersistentBuffer& buf(*location_.node().axis_);
         MemoryStream s(buf.data(), buf.size());
         axes_.decode(s);
-        Log::debug<LibFdb5>() << "PMemIndex axes = " << axes_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "PMemIndex axes = " << axes_ << std::endl;
     }
 }
 
@@ -55,7 +55,7 @@ void PMemIndex::visit(IndexLocationVisitor& visitor) const {
 }
 
 
-bool PMemIndex::get(const Key &key, Field &field) const {
+bool PMemIndex::get(const Key& key, Field &field) const {
 
     ::pmem::PersistentPtr<PDataNode> node = location_.node().getDataNode(key, location_.pool_manager());
 
@@ -80,7 +80,7 @@ void PMemIndex::close() {
     // Intentionally left blank. Indices neither opened nor closed (part of open DB).
 }
 
-void PMemIndex::add(const Key &key, const Field &field) {
+void PMemIndex::add(const Key& key, const Field &field) {
 
     struct Inserter : FieldLocationVisitor {
         Inserter(PBranchingNode& indexNode, const Key& key, DataPoolManager& poolManager) :
@@ -141,10 +141,15 @@ std::string PMemIndex::defaulType() {
     return "PMemIndex";
 }
 
-const std::vector<PathName> PMemIndex::dataPaths() const {
+const std::vector<eckit::URI> PMemIndex::dataURIs() const {
     // n.b. this lists the pools that _could_ be referenced, not those that
     // necessarily are. That would need proper enumeration of all contents.
-    return location_.pool_manager().dataPoolPaths();
+
+    std::vector<eckit::URI> result;
+    for (auto path : location_.pool_manager().dataPoolPaths())
+        result.push_back(eckit::URI{"pmem", path});
+
+    return result;
 }
 
 void PMemIndex::dump(std::ostream& out, const char* indent, bool simple, bool dumpFields) const {

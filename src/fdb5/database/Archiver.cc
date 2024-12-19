@@ -11,6 +11,8 @@
 
 #include "fdb5/database/Archiver.h"
 
+#include <ctime>
+
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"
@@ -24,9 +26,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Archiver::Archiver(const Config& dbConfig) :
+Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
     dbConfig_(dbConfig),
-    current_(nullptr) {
+    current_(nullptr),
+    callback_(callback) {
 }
 
 Archiver::~Archiver() {
@@ -36,16 +39,15 @@ Archiver::~Archiver() {
     databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
 }
 
-void Archiver::archive(const Key &key, const void* data, size_t len) {
-    ArchiveVisitor visitor(*this, key, data, len);
+void Archiver::archive(const Key& key, const void* data, size_t len) {
+    ArchiveVisitor visitor(*this, key, data, len, callback_);
     archive(key, visitor);
 }
 
-void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
     
-
     dbConfig_.schema().expand(key, visitor);
 
     const Rule* rule = visitor.rule();
@@ -65,7 +67,7 @@ void Archiver::flush() {
 }
 
 
-DB& Archiver::database(const Key &key) {
+DB& Archiver::database(const Key& key) {
 
     store_t::iterator i = databases_.find(key);
 
@@ -110,7 +112,7 @@ DB& Archiver::database(const Key &key) {
     return out;
 }
 
-void Archiver::print(std::ostream &out) const {
+void Archiver::print(std::ostream& out) const {
     out << "Archiver["
         << "]"
         << std::endl;

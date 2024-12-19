@@ -54,7 +54,7 @@ public: // methods
 
     Key combinedKey() const;
 
-    void print(std::ostream& out, bool withLocation=false, bool withLength=false) const;
+    void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false, const char* sep = " ") const;
     void json(eckit::JSON& json) const;
 
 private: // methods
@@ -103,9 +103,9 @@ public:
         APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
 
     ListIterator& operator=(ListIterator&& iter) {
-        APIIterator<ListElement>::operator=(std::forward<ListIterator>(iter));
         seenKeys_ = std::move(iter.seenKeys_);
         deduplicate_ = iter.deduplicate_;
+        APIIterator<ListElement>::operator=(std::move(iter));
         return *this;
     }
 

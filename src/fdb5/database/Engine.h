@@ -25,6 +25,8 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/URI.h"
 
+#include "fdb5/database/DB.h"
+
 
 namespace fdb5 {
 
@@ -48,13 +50,10 @@ public: // methods
     virtual std::string dbType() const = 0;
 
     /// @returns if an Engine is capable of opening this path
-    virtual bool canHandle(const eckit::URI& uri) const = 0;
+    virtual bool canHandle(const eckit::URI& uri, const Config&) const = 0;
 
     /// Uniquely selects a location where the Key will be put or already exists
-    virtual eckit::URI location(const Key &key, const Config& config) const = 0;
-
-    /// Lists the roots that can be visited given a DB key
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const = 0;
+    virtual eckit::URI location(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;

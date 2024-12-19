@@ -14,7 +14,6 @@
 #include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -66,8 +65,6 @@ void FDBWipe::usage(const std::string &tool) const {
                 << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
                 << std::endl
                 << std::endl;
-
-    FDBTool::usage(tool);
 }
 
 void FDBWipe::init(const CmdArgs &args) {

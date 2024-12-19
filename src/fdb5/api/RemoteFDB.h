@@ -126,9 +126,9 @@ private: // methods
     void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
     long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
 
-    virtual void print(std::ostream& s) const override;
+    void print(std::ostream& s) const override;
 
-    virtual FDBStats stats() const override;
+    FDBStats stats() const override;
 
 private: // members
 

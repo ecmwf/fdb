@@ -19,7 +19,6 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/LibFdb5.h"
 
-#include <stdlib.h>
 #include <random>
 
 using namespace eckit;
@@ -52,7 +51,7 @@ private:
         std::random_device rd;
         int choice = std::uniform_int_distribution<int>(0, fdbConfigs.size()-1)(rd);
 
-        Log::debug<LibFdb5>() << "Constructing random API instance: " << choice+1
+        LOG_DEBUG_LIB(LibFdb5) << "Constructing random API instance: " << choice+1
                               << " / " << fdbConfigs.size() << std::endl;
 
         ASSERT(choice >= 0);

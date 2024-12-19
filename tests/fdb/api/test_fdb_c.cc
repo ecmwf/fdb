@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
@@ -120,7 +120,13 @@ CASE( "fdb_c - archive & list" ) {
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
+    std::vector<fdb5::Key> k1test {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
+    };
+//    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
     key_compare(k1test, it);
 
     err = fdb_listiterator_next(it);
@@ -162,7 +168,13 @@ CASE( "fdb_c - archive & list" ) {
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
+    std::vector<fdb5::Key> k2test {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
+    };
+//    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
     key_compare(k2test, it, false);
     key_compare(k2test, it);
 
@@ -214,8 +226,16 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::vector<fdb5::Key> k1{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
-    std::vector<fdb5::Key> k2{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
+    std::vector<fdb5::Key> k1 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
+    };
+    std::vector<fdb5::Key> k2 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
+    };
 
     eckit::PathName grib1("x138-300.grib");
     length1 = grib1.size();
@@ -426,6 +446,94 @@ CASE( "fdb_c - retrieve" ) {
     EXPECT_EQUAL(4, read);
     fdb_delete_datareader(dr);
 
+}
+
+
+CASE( "fdb_c - expand" ) {
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    const char* dates[] = {"20191110", "to", "20191111"};
+    fdb_request_add(request, "date", dates, 3);
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    char buf[1000];
+    char grib[4];
+    long read = 0;
+    long size;
+    fdb_datareader_t* dr;
+    fdb_new_datareader(&dr);
+    EXPECT_EQUAL(fdb_retrieve(fdb, request, dr), FDB_ERROR_GENERAL_EXCEPTION);
+
+    EXPECT_EQUAL(fdb_expand_request(request), FDB_SUCCESS);
+
+    size_t numValues;
+    char** values;
+    
+    fdb_request_get(request, "date", &values, &numValues);
+    EXPECT_EQUAL(numValues, 2);
+    EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
+    EXPECT_EQUAL(0, strncmp(values[1], "20191111", 8));
+    delete values[0];
+    delete values[1];
+    delete values;
+
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
+    fdb_datareader_open(dr, &size);
+    EXPECT_NOT_EQUAL(0, size);
+    fdb_datareader_read(dr, grib, 4, &read);
+    EXPECT_EQUAL(4, read);
+    EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(4, read);
+    fdb_datareader_seek(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(3, read);
+    fdb_datareader_skip(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(6, read);
+    fdb_datareader_read(dr, buf, 1000, &read);
+    EXPECT_EQUAL(1000, read);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(1006, read);
+    fdb_delete_datareader(dr);
+
+    fdb_request_add1(request, "date", "20191110/to/20191115/by/2");
+
+    fdb_request_get(request, "date", &values, &numValues);
+    EXPECT_EQUAL(numValues, 5);
+    EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
+    EXPECT_EQUAL(0, strncmp(values[1], "to", 2));
+    EXPECT_EQUAL(0, strncmp(values[2], "20191115", 8));
+    EXPECT_EQUAL(0, strncmp(values[3], "by", 2));
+    EXPECT_EQUAL(0, strncmp(values[4], "2", 1));
+    for (size_t i = 0; i<numValues; i++) {
+        delete values[i];
+    }
+    delete values;
+
+    EXPECT(fdb_expand_request(request) == FDB_SUCCESS);
+
+    fdb_request_get(request, "date", &values, &numValues);
+    EXPECT_EQUAL(numValues, 3);
+    EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
+    EXPECT_EQUAL(0, strncmp(values[1], "20191112", 8));
+    EXPECT_EQUAL(0, strncmp(values[2], "20191114", 8));
+    for (size_t i = 0; i<numValues; i++) {
+        delete values[i];
+    }
+    delete values;
 }
 
 

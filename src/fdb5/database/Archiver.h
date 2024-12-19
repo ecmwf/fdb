@@ -16,7 +16,6 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
-#include <time.h>
 #include <utility>
 
 #include "eckit/memory/NonCopyable.h"
@@ -42,27 +41,27 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig());
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
 
     virtual ~Archiver();
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    friend std::ostream &operator<<(std::ostream &s, const Archiver &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) {
         x.print(s);
         return s;
     }
 
 private: // methods
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
 
-    DB& database(const Key &key);
+    DB& database(const Key& key);
 
 private: // members
 
@@ -77,6 +76,8 @@ private: // members
     std::vector<Key> prev_;
 
     DB* current_;
+
+    const ArchiveCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

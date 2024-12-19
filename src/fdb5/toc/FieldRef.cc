@@ -43,7 +43,7 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
     if(!tocfloc && !s3floc) {
         throw eckit::NotImplemented(
             "Field location is not of TocFieldLocation or S3FieldLocation type "
-            "-- indexing other locations is not supported", 
+            "-- indexing other locations is not supported",
             Here());
     }
 #else
@@ -51,7 +51,7 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
     if(!tocfloc) {
         throw eckit::NotImplemented(
             "Field location is not of TocFieldLocation type "
-            "-- indexing other locations is not supported", 
+            "-- indexing other locations is not supported",
             Here());
     }
 #endif

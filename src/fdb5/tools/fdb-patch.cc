@@ -12,7 +12,6 @@
 
 #include "eccodes.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"
@@ -42,7 +41,7 @@ public: // methods
 
 private: // methods
 
-    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
+    eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private: // members
 

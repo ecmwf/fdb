@@ -18,6 +18,7 @@
 
 #include <iosfwd>
 #include <vector>
+#include <memory>
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
@@ -35,7 +36,9 @@ class Schema;
 class Predicate;
 class ReadVisitor;
 class WriteVisitor;
+class BaseKey;
 class Key;
+class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,7 +56,7 @@ public: // methods
 
     ~Rule();
 
-    bool match(const Key &key) const;
+    bool match(const Key& key) const;
 
     eckit::StringList keys(size_t level) const;
 
@@ -62,17 +65,17 @@ public: // methods
     void expand(const metkit::mars::MarsRequest &request,
                 ReadVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+                std::vector<fdb5::TypedKey> &keys,
+                TypedKey& fullComputedKey) const;
 
-    void expand(const Key &field,
+    void expand(const Key& initialFieldKey,
                 WriteVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+                std::vector<fdb5::TypedKey> &keys,
+                TypedKey& fullComputedKey) const;
 
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
-    void fill(Key& key, const eckit::StringList& values) const;
+    void fill(BaseKey& key, const eckit::StringList& values) const;
 
 
     size_t depth() const;
@@ -81,7 +84,7 @@ public: // methods
     const Rule &topRule() const;
 
     const Schema &schema() const;
-    const TypesRegistry &registry() const;
+    const TypesRegistry& registry() const;
 
     void check(const Key& key) const;
 
@@ -90,25 +93,23 @@ private: // methods
     void expand(const metkit::mars::MarsRequest &request,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
+                std::vector<TypedKey> &keys,
+                TypedKey& fullComputedKey,
                 ReadVisitor &Visitor) const;
 
-    void expand(const Key &field,
+    void expand(const Key& initialFieldKey,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
+                std::vector<TypedKey> &keys,
+                TypedKey& fullComputedKey,
                 WriteVisitor &Visitor) const;
 
-    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result, bool& done) const;
 
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
     void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
 
 

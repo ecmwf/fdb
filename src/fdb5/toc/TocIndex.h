@@ -61,13 +61,15 @@ public: // types
 
 public: // methods
 
-    TocIndex(const Key &key,
+    TocIndex(const Key& key,
+             const Catalogue& catalogue,
              const eckit::PathName &path,
              off_t offset,
              Mode mode,
              const std::string& type = defaulType());
 
     TocIndex(eckit::Stream &,
+             const Catalogue& catalogue,
              const int version,
              const eckit::PathName &directory,
              const eckit::PathName &path,
@@ -87,7 +89,7 @@ public: // methods
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::URI> dataPaths() const override;
+    const std::vector<eckit::URI> dataURIs() const override;
 
     bool dirty() const override;
 
@@ -97,8 +99,8 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get( const Key &key, const Key &remapKey, Field &field ) const override;
-    void add( const Key &key, const Field &field ) override;
+    bool get(const Key& key, const Key& remapKey, Field& field ) const override;
+    void add(const Key& key, const Field& field ) override;
     void flush() override;
     void encode(eckit::Stream& s, const int version) const override;
     void entries(EntryVisitor& visitor) const override;

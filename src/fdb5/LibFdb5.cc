@@ -40,12 +40,20 @@ LibFdb5& LibFdb5::instance() {
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig() { 
+const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) { 
     if(!config_) {
         Config cfg;
-        config_.reset( new Config( std::move(cfg.expandConfig()) ) );
+        config_.reset( new Config( std::move(cfg.expandConfig()), userConfig ) );
     }
     return *config_;
+}
+
+ConstructorCallback LibFdb5::constructorCallback() {
+    return constructorCallback_;
+}
+
+void LibFdb5::registerConstructorCallback(ConstructorCallback cb) {
+    constructorCallback_ = cb;
 }
 
 bool LibFdb5::dontDeregisterFactories() const {
@@ -74,6 +82,10 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
 }
 
 
+const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
+    static std::set<std::string> auxiliaryRegistry(eckit::Resource<std::set<std::string>>("$FDB_AUX_EXTENSIONS;fdbAuxExtensions", {"gribjump"}));
+    return auxiliaryRegistry;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 static unsigned getUserEnvRemoteProtocol() {
@@ -81,7 +93,7 @@ static unsigned getUserEnvRemoteProtocol() {
     static unsigned fdbRemoteProtocolVersion =
         eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
     if (fdbRemoteProtocolVersion) {
-        eckit::Log::debug() << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
+        LOG_DEBUG_LIB(LibFdb5) << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
                             << std::endl;
     }
     return 0;  // no version override

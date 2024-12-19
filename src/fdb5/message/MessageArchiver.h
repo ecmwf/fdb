@@ -53,8 +53,6 @@ public: // methods
 
 private: // protected
 
-    eckit::Channel& logVerbose() const;
-
     bool filterOut(const Key& k) const;
 
     eckit::message::Message transform(eckit::message::Message&);

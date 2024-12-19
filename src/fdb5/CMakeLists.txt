@@ -32,6 +32,8 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
+    api/helpers/AxesIterator.cc
+    api/helpers/AxesIterator.h
     api/helpers/ControlIterator.cc
     api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
@@ -46,10 +48,13 @@ list( APPEND fdb5_srcs
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
     api/helpers/StatsIterator.h
+    api/helpers/Callback.h
 
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h
+    api/local/AxesVisitor.cc
+    api/local/AxesVisitor.h
     api/local/ControlVisitor.cc
     api/local/ControlVisitor.h
     api/local/DumpVisitor.h
@@ -77,6 +82,8 @@ list( APPEND fdb5_srcs
     database/Catalogue.h
     database/DB.cc
     database/DB.h
+    database/DatabaseNotFoundException.cc
+    database/DatabaseNotFoundException.h
     database/DataStats.cc
     database/DataStats.h
     database/DbStats.cc
@@ -209,7 +216,7 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_FDB_REMOTE)
-    list( APPEND fdb5_srcs 
+    list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
 
@@ -364,13 +371,67 @@ if( HAVE_RADOSFDB )
     )
 endif()
 
+if( HAVE_DAOSFDB )
+    list( APPEND fdb5_srcs
+        daos/DaosOID.cc
+        daos/DaosOID.h
+        daos/DaosName.cc
+        daos/DaosName.h
+        daos/DaosObject.cc
+        daos/DaosObject.h
+        daos/DaosContainer.cc
+        daos/DaosContainer.h
+        daos/DaosPool.cc
+        daos/DaosPool.h
+        daos/DaosSession.cc
+        daos/DaosSession.h
+        daos/DaosArrayHandle.cc
+        daos/DaosArrayHandle.h
+        daos/DaosKeyValueHandle.cc
+        daos/DaosKeyValueHandle.h
+        daos/DaosStore.h
+        daos/DaosStore.cc
+        daos/DaosFieldLocation.h
+        daos/DaosFieldLocation.cc
+        daos/DaosException.h
+        daos/DaosException.cc
+        daos/DaosEngine.h
+        daos/DaosEngine.cc
+        daos/DaosCatalogue.h
+        daos/DaosCatalogue.cc
+        daos/DaosCatalogueWriter.h
+        daos/DaosCatalogueWriter.cc
+        daos/DaosCatalogueReader.h
+        daos/DaosCatalogueReader.cc
+        daos/DaosIndex.h
+        daos/DaosIndex.cc
+        daos/DaosIndexLocation.h
+        daos/DaosIndexLocation.cc
+        daos/DaosCommon.h
+        daos/DaosCommon.cc
+        daos/DaosWipeVisitor.h
+        daos/DaosWipeVisitor.cc
+        daos/DaosArrayPartHandle.h
+        daos/DaosArrayPartHandle.cc
+        daos/DaosLazyFieldLocation.h
+        daos/DaosLazyFieldLocation.cc
+        daos/UUID.h
+        daos/UUID.cc
+    )
+else()
+    set( DAOS_LIBRARIES "" )
+    set( DAOS_INCLUDE_DIRS "" )
+    set( UUID_LIBRARIES "" )
+    set( UUID_INCLUDE_DIRS "" )
+endif()
+
 if( HAVE_S3FDB )
     list( APPEND fdb5_srcs
-        s3/S3FieldLocation.h 
-        s3/S3FieldLocation.cc 
-        s3/S3Store.h 
-        s3/S3Store.cc 
-        s3/S3Common.h 
+        s3/S3FieldLocation.h
+        s3/S3FieldLocation.cc
+        s3/S3Store.h
+        s3/S3Store.cc
+        s3/S3Common.h
         s3/S3Common.cc
     )
 endif()
@@ -378,7 +439,7 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
-    
+
     TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES
@@ -397,15 +458,20 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
+        "${UUID_LIBRARIES}"
 
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
+        "${DAOS_INCLUDE_DIRS}"
+        "${DAOS_TESTS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
+        "${DAOS_LIBRARIES}"
+        "${DAOS_TESTS_LIBRARIES}"
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
@@ -419,6 +485,7 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
+    fdb-axes
     fdb-write
     fdb-copy
     fdb-dump

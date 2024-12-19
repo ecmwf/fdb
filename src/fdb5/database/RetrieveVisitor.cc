@@ -35,17 +35,17 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
+bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
 
     if(db_) {
-        if(key == db_->key()) {
+        if(dbKey == db_->key()) {
             return true;
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "RetrieveVisitor::selectDatabase " << dbKey << std::endl;
 //    db_.reset(DBFactory::buildReader(key));
-    db_ = DB::buildReader(key);
+    db_ = DB::buildReader(dbKey);
 
     // If this database is locked for retrieval then it "does not exist"
     if (!db_->enabled(ControlIdentifier::Retrieve)) {
@@ -57,24 +57,24 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     }
 
     if (!db_->open()) {
-        eckit::Log::info() << "Database does not exists " << key << std::endl;
+        eckit::Log::info() << "Database does not exists " << dbKey << std::endl;
         return false;
     } else {
         return true;
     }
 }
 
-bool RetrieveVisitor::selectIndex(const Key& key, const Key&) {
+bool RetrieveVisitor::selectIndex(const Key& idxKey, const TypedKey&) {
     ASSERT(db_);
-    // eckit::Log::info() << "selectIndex " << key << std::endl;
-    return db_->selectIndex(key);
+    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
+    return db_->selectIndex(idxKey);
 }
 
-bool RetrieveVisitor::selectDatum(const Key& key, const Key&) {
+bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&) {
     ASSERT(db_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(key);
+    eckit::DataHandle *dh = db_->retrieve(datumKey.canonical());
 
     if (dh) {
         gatherer_.add(dh);
@@ -96,10 +96,10 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = db_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
-        std::string v = registry.lookupType(keyword).toKey(keyword, l);
+    for(const auto& value: list) {
+        std::string v = registry.lookupType(keyword).toKey(value);
         if (!toFilter || filter.find(v) != filter.end()) {
-            values.push_back(l);
+            values.push_back(value);
         }
     }
 }
