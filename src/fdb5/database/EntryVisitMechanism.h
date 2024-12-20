@@ -62,7 +62,7 @@ protected:  // members
     /// Non-owning
     const Catalogue* currentCatalogue_ = nullptr;
     /// Owned store
-    mutable std::unique_ptr<Store> currentStore_ = nullptr;
+    mutable Store* currentStore_ = nullptr;
     /// Non-owning
     const Index* currentIndex_ = nullptr;
     /// Non-owning
