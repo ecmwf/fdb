@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_QueryVisitor_H
 #define fdb5_api_local_QueryVisitor_H
 
-#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 
 #include "eckit/container/Queue.h"
 

@@ -15,9 +15,9 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/Store.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/Store.h"
 
 using namespace eckit;
 

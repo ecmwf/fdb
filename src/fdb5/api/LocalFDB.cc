@@ -22,7 +22,6 @@
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Store.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Inspector.h"
