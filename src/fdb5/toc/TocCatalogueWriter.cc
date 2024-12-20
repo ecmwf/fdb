@@ -15,6 +15,7 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/io/EmptyHandle.h"
 
+#include "fdb5/database/Store.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/LibFdb5.h"
