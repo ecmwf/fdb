@@ -10,8 +10,6 @@
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpDir.h"
-#include "eckit/filesystem/TmpFile.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"

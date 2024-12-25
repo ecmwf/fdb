@@ -24,7 +24,6 @@
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/s3/S3Root.h"
 
 #include <ostream>
 #include <string>
@@ -59,10 +58,6 @@ auto loadS3(const Config& config) -> eckit::LocalConfiguration {
         std::string configPath;
         if (s3Config.has("configuration")) { configPath = s3Config.getString("configuration"); }
         session.loadClients(configPath);
-
-        //         const auto roots = s3Config.getSubConfigurations("roots");
-        //         eckit::Log::info() << "----------> serversPath: " << serversPath << std::endl;
-        //         session.loadClients(serversPath);
     }
 
     return s3Config;
