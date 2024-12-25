@@ -16,11 +16,12 @@
 #pragma once
 
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/s3/S3ObjectName.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/s3/S3Common.h"
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -29,14 +30,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class S3Store : public Store, public S3Common {
-
+class S3Store : public Store, private S3Common {
 public:  // methods
     S3Store(const Schema& schema, const Key& key, const Config& config);
 
-    S3Store(const Schema& schema, const eckit::URI& uri, const Config& config);
+    ~S3Store() override = default;
 
-    ~S3Store() override { }
+    std::string type() const override { return "s3"; }
 
     eckit::URI uri() const override;
 
@@ -61,8 +61,6 @@ public:  // methods
     void checkUID() const override { /* nothing to do */ }
 
 private:  // methods
-    std::string type() const override { return "s3"; }
-
     bool exists() const override;
 
     eckit::DataHandle*                   retrieve(Field& field) const override;
@@ -72,12 +70,10 @@ private:  // methods
 
     void print(std::ostream& out) const override;
 
-    eckit::S3ObjectName generateDataKey(const Key& key) const;
-
     eckit::URI getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const;
 
-private:  // members
-    const Config& config_;
+    // private:  // members
+    //     S3Root root_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

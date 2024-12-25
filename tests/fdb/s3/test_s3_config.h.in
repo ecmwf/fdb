@@ -1,0 +1,80 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+#pragma once
+
+#include "eckit/io/Buffer.h"
+#include "eckit/io/s3/S3BucketName.h"
+#include "eckit/io/s3/S3BucketPath.h"
+#include "eckit/io/s3/S3Client.h"
+#include "eckit/io/s3/S3Config.h"
+#include "eckit/io/s3/S3Credential.h"
+#include "eckit/io/s3/S3ObjectName.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Timer.h"
+#include "eckit/net/Endpoint.h"
+
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#cmakedefine S3_TEST_ROOT "@S3_TEST_ROOT@"
+#cmakedefine S3_TEST_HOST "@S3_TEST_HOST@"
+#cmakedefine S3_TEST_PORT "@S3_TEST_PORT@"
+#cmakedefine S3_TEST_ENDPOINT "@S3_TEST_ENDPOINT@"
+#cmakedefine S3_TEST_REGION "@S3_TEST_REGION@"
+#cmakedefine S3_TEST_BUCKET "@S3_TEST_BUCKET@"
+#cmakedefine S3_TEST_OBJECT "@S3_TEST_OBJECT@"
+
+namespace fdb::test::s3 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+const eckit::net::Endpoint TEST_ENDPOINT {S3_TEST_ENDPOINT};
+
+const eckit::S3Config TEST_CONFIG {TEST_ENDPOINT, S3_TEST_REGION};
+
+const eckit::S3Credential TEST_CRED {TEST_ENDPOINT, "minio", "minio1234"};
+
+inline bool findString(const std::vector<std::string>& list, const std::string& item) {
+    return (std::find(list.begin(), list.end(), item) != list.end());
+}
+
+inline void cleanup(const std::vector<std::string>& bucketPaths) {
+    auto client = eckit::S3Client::makeUnique(TEST_CONFIG);
+    for (const auto& path : bucketPaths) {
+        if (client->bucketExists(path)) {
+            client->emptyBucket(path);
+            client->deleteBucket(path);
+        }
+    }
+}
+
+inline void writePerformance(eckit::S3BucketName& bucket, const int count) {
+    eckit::Timer timer;
+
+    eckit::Buffer buffer(1024 * 1024);
+    buffer.zero();
+
+    timer.start();
+    for (int i = 0; i < count; i++) {
+        const auto objName = S3_TEST_OBJECT + std::to_string(i);
+        bucket.makeObject(objName)->put(buffer.data(), buffer.size());
+    }
+    timer.stop();
+
+    std::cout << "Write performance: " << eckit::Bytes(buffer.size()) << " x " << count
+              << " objects, rate: " << eckit::Bytes(buffer.size() * 1000, timer) << std::endl;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb::test::s3

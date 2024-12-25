@@ -13,25 +13,43 @@
  * (Grant agreement: 101128693) https://www.dafab-ai.eu/
  */
 
-/// @file   S3Config.h
+/// @file   S3RootManager.h
 /// @author Metin Cakircali
 /// @date   Dec 2024
 
-#pragma once
-
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/s3/S3BucketName.h"
+#include "fdb5/config/Config.h"
+
+#include <vector>
 
 namespace fdb5 {
 
 class Key;
-class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct S3Common {
-    S3Common(const Key& databaseKey, const Config& config);
+class S3RootManager {
+public:  // methods
+    explicit S3RootManager(const Config& config);
 
-    eckit::S3BucketName root_;
+    // rules
+    S3RootManager(const S3RootManager&)            = default;
+    S3RootManager& operator=(const S3RootManager&) = default;
+
+    S3RootManager(S3RootManager&&)            = delete;
+    S3RootManager& operator=(S3RootManager&&) = delete;
+
+    virtual ~S3RootManager() = default;
+
+    /// Uniquely selects a root using the databaseKey
+    eckit::S3BucketName root(const Key& databaseKey) const;
+
+protected:  // methods
+    virtual std::vector<eckit::S3BucketName> parseRoots() const;
+
+private:  // members
+    eckit::LocalConfiguration config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

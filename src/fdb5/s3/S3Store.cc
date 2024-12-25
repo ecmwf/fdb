@@ -16,6 +16,8 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/s3/S3BucketName.h"
 #include "eckit/io/s3/S3Name.h"
+#include "eckit/io/s3/S3ObjectName.h"
+#include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/thread/AutoLock.h"
@@ -46,23 +48,55 @@ namespace fdb5 {
 
 static StoreBuilder<S3Store> builder("s3");
 
-S3Store::S3Store(const Schema& schema, const Key& key, const Config& config)
-    : Store(schema), S3Common(config, "store", key), config_(config) { }
+namespace {
 
-S3Store::S3Store(const Schema& schema, const eckit::URI& uri, const Config& config)
-    : Store(schema), S3Common(config, "store", uri), config_(config) { }
+/// @note: unique name generation copied from LocalPathName::unique.
+static eckit::StaticMutex local_mutex;
+
+std::string generateObject(const Key& key) {
+    eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
+
+    std::string hostname = eckit::Main::hostname();
+
+    static unsigned long long nnn = (((unsigned long long)::getpid()) << 32);
+
+    static std::string format = "%Y%m%d.%H%M%S";
+    std::ostringstream os;
+    os << eckit::TimeStamp(format) << '.' << hostname << '.' << nnn++;
+
+    std::string name = os.str();
+
+    while (::access(name.c_str(), F_OK) == 0) {
+        std::ostringstream oss;
+        oss << eckit::TimeStamp(format) << '.' << hostname << '.' << nnn++;
+        name = oss.str();
+    }
+
+    eckit::MD5 md5(name);
+
+    std::string keyStr = key.valuesToString();
+    std::replace(keyStr.begin(), keyStr.end(), ':', '-');
+
+    return keyStr + "." + md5.digest() + ".data";
+}
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+S3Store::S3Store(const Schema& schema, const Key& key, const Config& config) : Store(schema), S3Common(key, config) { }
 
 eckit::URI S3Store::uri() const {
-    return eckit::S3BucketName(endpoint_, db_bucket_).uri();
+    return root_.uri();
 }
 
 bool S3Store::uriBelongs(const eckit::URI& uri) const {
-    const auto uriBucket = eckit::S3Name::parse(uri.name())[0];
-    return uri.scheme() == type() && uriBucket == db_bucket_;
+    const auto uriBucket = eckit::S3BucketName::parse(uri.name()).bucket;
+    return uri.scheme() == type() && uriBucket == root_.bucket();
 }
 
 bool S3Store::uriExists(const eckit::URI& uri) const {
-    return eckit::S3Name::make(endpoint_, uri.name())->exists();
+    return eckit::S3Name::make(root_.endpoint(), uri.name())->exists();
 }
 
 bool S3Store::auxiliaryURIExists(const eckit::URI& uri) const {
@@ -71,16 +105,13 @@ bool S3Store::auxiliaryURIExists(const eckit::URI& uri) const {
 
 std::vector<eckit::URI> S3Store::collocatedDataURIs() const {
 
-    std::vector<eckit::URI> store_unit_uris;
+    std::vector<eckit::URI> storeUnitUris;
 
-    eckit::S3BucketName bucket {endpoint_, db_bucket_};
-    if (!bucket.exists()) { return store_unit_uris; }
+    if (!root_.exists()) { return storeUnitUris; }
 
-    /// @note if an S3Catalogue is implemented, some filtering will need to
-    ///   be done here to discriminate store keys from catalogue keys
-    for (const auto& key : bucket.listObjects()) { store_unit_uris.push_back(bucket.makeObject(key)->uri()); }
+    for (const auto& object : root_.listObjects()) { storeUnitUris.push_back(root_.makeObject(object)->uri()); }
 
-    return store_unit_uris;
+    return storeUnitUris;
 }
 
 std::set<eckit::URI> S3Store::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
@@ -88,7 +119,7 @@ std::set<eckit::URI> S3Store::asCollocatedDataURIs(const std::vector<eckit::URI>
 }
 
 bool S3Store::exists() const {
-    return eckit::S3BucketName(endpoint_, db_bucket_).exists();
+    return root_.exists();
 }
 
 eckit::URI S3Store::getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const {
@@ -99,36 +130,37 @@ eckit::URI S3Store::getAuxiliaryURI(const eckit::URI& uri, const std::string& ex
 std::vector<eckit::URI> S3Store::getAuxiliaryURIs(const eckit::URI& uri) const {
     ASSERT(uri.scheme() == type());
     std::vector<eckit::URI> uris;
-    for (const auto& ext : LibFdb5::instance().auxiliaryRegistry()) { uris.push_back(getAuxiliaryURI(uri, ext)); }
+    for (const auto& ext : LibFdb5::auxiliaryRegistry()) { uris.push_back(getAuxiliaryURI(uri, ext)); }
     return uris;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @todo: never used in actual fdb-read?
+/// @todo ever used in actual fdb-read?
 eckit::DataHandle* S3Store::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
 std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void* data, eckit::Length length) {
 
-    eckit::S3ObjectName n = generateDataKey(key);
+    auto object = root_.makeObject(generateObject(key));
 
-    /// @todo: ensure bucket if not yet seen by this process
-    static std::set<std::string> knownBuckets;
-    if (knownBuckets.find(n.bucket()) == knownBuckets.end()) {
-        eckit::S3BucketName(n.endpoint(), n.bucket()).ensureCreated();
-        knownBuckets.insert(n.bucket());
-    }
+    LOG_DEBUG_LIB(LibFdb5) << "Archiving to S3 object: " << object->uri() << std::endl;
 
-    std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
+    // static std::set<std::string> knownBuckets;
+    // if (knownBuckets.find(object.bucket()) == knownBuckets.end()) {
+    //     eckit::S3BucketName(object.endpoint(), object.bucket()).ensureCreated();
+    //     knownBuckets.insert(object.bucket());
+    // }
 
-    h->openForWrite(length);
-    eckit::AutoClose closer(*h);
+    auto dataHandle = std::unique_ptr<eckit::DataHandle>(object->dataHandle());
 
-    h->write(data, length);
+    dataHandle->openForWrite(length);
+    eckit::AutoClose closer(*dataHandle);
 
-    return std::unique_ptr<const S3FieldLocation>(new S3FieldLocation(n.uri(), 0, length, fdb5::Key()));
+    dataHandle->write(data, length);
+
+    return std::make_unique<const S3FieldLocation>(object->uri(), 0, length, fdb5::Key());
 }
 
 void S3Store::flush() {
@@ -149,53 +181,25 @@ void S3Store::close() {
     // closeDataHandles();
 }
 
-void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, const bool doit) const {
 
-    auto item = eckit::S3Name::make(endpoint_, uri.name());
+    auto name = eckit::S3Name::make(root_.endpoint(), uri.name());
 
-    if (auto* object = dynamic_cast<eckit::S3ObjectName*>(item.get())) {
-        logVerbose << "Removing S3 object: " << object->asString() << '\n';
+    if (auto* object = dynamic_cast<eckit::S3ObjectName*>(name.get())) {
+        logVerbose << "Removing S3 object: ";
+        logAlways << object->asString() << '\n';
         if (doit) { object->remove(); }
-    } else if (auto* bucket = dynamic_cast<eckit::S3BucketName*>(item.get())) {
-        logVerbose << "Removing S3 bucket: " << bucket->asString() << '\n';
+    } else if (auto* bucket = dynamic_cast<eckit::S3BucketName*>(name.get())) {
+        logVerbose << "Removing S3 bucket: ";
+        logAlways << bucket->asString() << '\n';
         if (doit) { bucket->ensureDestroyed(); }
     } else {
-        throw eckit::SeriousBug("S3Store::remove: unknown URI type: " + uri.asString(), Here());
+        throw eckit::SeriousBug("S3Store::remove() unknown URI type: " + uri.asString(), Here());
     }
 }
 
 void S3Store::print(std::ostream& out) const {
-    out << "S3Store(" << endpoint_ << "/" << db_bucket_ << ")";
-}
-
-/// @note: unique name generation copied from LocalPathName::unique.
-static eckit::StaticMutex local_mutex;
-
-eckit::S3ObjectName S3Store::generateDataKey(const Key& key) const {
-    eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
-
-    std::string hostname = eckit::Main::hostname();
-
-    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
-
-    static std::string format = "%Y%m%d.%H%M%S";
-    std::ostringstream os;
-    os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
-
-    std::string name = os.str();
-
-    while (::access(name.c_str(), F_OK) == 0) {
-        std::ostringstream os;
-        os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
-        name = os.str();
-    }
-
-    eckit::MD5 md5(name);
-
-    std::string keyStr = key.valuesToString();
-    std::replace(keyStr.begin(), keyStr.end(), ':', '-');
-
-    return eckit::S3ObjectName {endpoint_, {db_bucket_, keyStr + "." + md5.digest() + ".data"}};
+    out << "S3Store[root=" << root_ << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------

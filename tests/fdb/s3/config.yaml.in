@@ -1,0 +1,17 @@
+---
+type: local
+engine: toc
+schema: ./schema
+store: s3
+spaces:
+- handler: Default
+  roots:
+  - path: @S3_TEST_ROOT@
+    writable: true
+    visit: true
+s3:
+  configuration: ./S3Config.yaml
+  credentials: ./S3Credentials.yaml
+  roots:
+  - endpoint: @S3_TEST_ENDPOINT@
+    bucket: @S3_TEST_BUCKET@

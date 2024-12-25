@@ -1,0 +1,4 @@
+---
+servers:
+  - endpoint: @S3_TEST_ENDPOINT@
+    region: @S3_TEST_REGION@

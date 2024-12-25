@@ -425,16 +425,7 @@ else()
     set( UUID_INCLUDE_DIRS "" )
 endif()
 
-if( HAVE_S3FDB )
-    list( APPEND fdb5_srcs
-        s3/S3FieldLocation.h
-        s3/S3FieldLocation.cc
-        s3/S3Store.h
-        s3/S3Store.cc
-        s3/S3Common.h
-        s3/S3Common.cc
-    )
-endif()
+add_subdirectory( s3 )
 
 ecbuild_add_library(
 

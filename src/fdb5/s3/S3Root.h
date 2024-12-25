@@ -13,15 +13,28 @@
  * (Grant agreement: 101128693) https://www.dafab-ai.eu/
  */
 
-#include "fdb5/s3/S3Common.h"
+/// @file   S3Config.h
+/// @author Metin Cakircali
+/// @date   Dec 2024
 
-#include "fdb5/s3/S3RootManager.h"
+#pragma once
+
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/net/Endpoint.h"
+
+#include <string>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-S3Common::S3Common(const Key& databaseKey, const Config& config) : root_ {S3RootManager(config).root(databaseKey)} { }
+struct S3Root {
+
+    explicit S3Root(const eckit::LocalConfiguration& root);
+
+    eckit::net::Endpoint endpoint_;
+    std::string          bucket_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
