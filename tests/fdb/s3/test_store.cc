@@ -134,7 +134,7 @@ CASE("S3Store tests") {
         // remove
         const URI           fieldURI = field.location().uri();
         eckit::S3ObjectName field_name {fieldURI};
-        eckit::S3BucketName store_name {fieldURI, field_name.bucket()};
+        eckit::S3BucketName store_name {fieldURI, field_name.path().bucket};
         eckit::URI          store_uri(store_name.uri());
         std::ostream        out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
@@ -219,7 +219,7 @@ CASE("S3Store tests") {
 
         const URI           fieldURI = field.location().uri();
         eckit::S3ObjectName field_name {fieldURI};
-        eckit::S3BucketName store_name {fieldURI, field_name.bucket()};
+        eckit::S3BucketName store_name {fieldURI, field_name.path().bucket};
         eckit::URI          store_uri(store_name.uri());
         std::ostream        out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);

@@ -91,8 +91,8 @@ eckit::URI S3Store::uri() const {
 }
 
 bool S3Store::uriBelongs(const eckit::URI& uri) const {
-    const auto uriBucket = eckit::S3BucketName::parse(uri.name()).bucket;
-    return uri.scheme() == type() && uriBucket == root_.bucket();
+    const auto uriBucket = eckit::S3BucketName::parse(uri.name());
+    return uri.scheme() == type() && uriBucket == root_.path();
 }
 
 bool S3Store::uriExists(const eckit::URI& uri) const {
