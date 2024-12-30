@@ -488,6 +488,7 @@ list( APPEND fdb5_tools
     fdb-status
     fdb-lock
     fdb-unlock
+    fdb-s3
 )
 
 if ( HAVE_GRIB )
