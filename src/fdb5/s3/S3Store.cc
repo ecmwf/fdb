@@ -145,14 +145,6 @@ std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void
 
     auto object = root_.makeObject(generateObject(key));
 
-    LOG_DEBUG_LIB(LibFdb5) << "Archiving to S3 object: " << object->uri() << std::endl;
-
-    // static std::set<std::string> knownBuckets;
-    // if (knownBuckets.find(object.bucket()) == knownBuckets.end()) {
-    //     eckit::S3BucketName(object.endpoint(), object.bucket()).ensureCreated();
-    //     knownBuckets.insert(object.bucket());
-    // }
-
     auto dataHandle = std::unique_ptr<eckit::DataHandle>(object->dataHandle());
 
     dataHandle->openForWrite(length);
