@@ -80,7 +80,7 @@ private: // members
 
     Database* db_;
 
-    std::mutex flushMutex_;
+    std::recursive_mutex flushMutex_;
     std::mutex cacheMutex_;
     const ArchiveCallback& callback_;
 };
