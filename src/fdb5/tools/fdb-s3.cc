@@ -65,8 +65,6 @@ private:  // members
     bool lookup_ {false};
     bool create_ {false};
     bool delete_ {false};
-
-    // std::unique_ptr<eckit::S3Name> item_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -74,9 +72,9 @@ private:  // members
 void FDBS3::usage(const std::string& tool) const {
 
     eckit::Log::info() << "\nUsage: " << tool << " [options] [path] ..." << "\n\n\nExamples:\n=========\n\n"
-                       << tool << " --endpoint=127.0.0.1:9000 --lookup <my_path>\n\n"
-                       << tool << " --endpoint=127.0.0.1:9000 --create --size=1024 --perm=0640 <my_path>\n\n"
-                       << tool << " --endpoint=127.0.0.1:9000 --delete <my_path>\n\n";
+                       << tool << " --endpoint=127.0.0.1:9000 --lookup <path>\n\n"
+                       << tool << " --endpoint=127.0.0.1:9000 --create <bucket path>\n\n"
+                       << tool << " --endpoint=127.0.0.1:9000 --delete <path>\n\n";
 
     FDBTool::usage(tool);  // show the rest of the usage
 }
@@ -154,23 +152,9 @@ void FDBS3::execute(const eckit::option::CmdArgs& args) {
                 eckit::Log::info() << "Failed to delete: " << object->path() << std::endl;
             }
         } else if (create_) {
-            NOTIMP;
-            // std::size_t itemSize = 0;
-            // try {
-            //     itemSize = args.getUnsigned("size");
-            //     // item_ = eckit::FamProperty {args.getUnsigned("size"), args.getString("perm", "0640")};
-            // } catch (const eckit::Exception& e) {
-            //     eckit::Log::info() << "!!! missing option [size] (see usage below) !!!\n";
-            //     usage(args.tool());
-            //     exit(1);
-            // }
-            //
-            // try {
-            //     object->put(nullptr, itemSize);
-            //     bucket.eckit::Log::info() << "Created " << object->path() << std::endl;
-            // } catch (const eckit::Exception& e) {
-            //     eckit::Log::info() << "Failed to create: " << object->path()  << std::endl;
-            // }
+            eckit::Log::info() << "The option \"--create\" requires a bucket path.\n";
+            usage(args.tool());
+            exit(1);
         }
     }
 }
