@@ -147,6 +147,8 @@ public:  // methods
     /// @note same as keyDict but throws when value.empty()
     operator eckit::StringDict() const;
 
+    size_t encodeSize() const;
+
 protected:  // methods
     void decode(eckit::Stream& stream);
 

@@ -44,8 +44,9 @@ bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*s
 EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr), currentIndex_(nullptr) {}
 
 EntryVisitor::~EntryVisitor() {
-    if (currentStore_)
+    if (currentStore_) {
         delete currentStore_;
+    }
 }
 
 Store& EntryVisitor::store() const {

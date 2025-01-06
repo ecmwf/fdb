@@ -39,9 +39,7 @@ public:  // methods
     void dump(std::ostream& out, const std::string& keyword, const TypesRegistry& registry) const override;
 
     // streamable
-
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods

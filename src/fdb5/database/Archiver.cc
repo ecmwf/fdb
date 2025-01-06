@@ -42,7 +42,7 @@ void Archiver::archive(const Key& key, const void* data, size_t len) {
 
 void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
-    std::lock_guard<std::mutex> lock(flushMutex_);
+    std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     visitor.rule(nullptr);
     
     dbConfig_.schema().expand(key, visitor);
@@ -58,7 +58,7 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 }
 
 void Archiver::flush() {
-    std::lock_guard<std::mutex> lock(flushMutex_);
+    std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
         // flush the store, pass the number of flushed fields to the catalogue
         i->second.catalogue_->flush(i->second.store_->flush());
@@ -77,37 +77,43 @@ void Archiver::selectDatabase(const Key& dbKey) {
 
     static size_t fdbMaxNbDBsOpen = eckit::Resource<size_t>("fdbMaxNbDBsOpen", 64);
 
-    if (databases_.size() >= fdbMaxNbDBsOpen) {
-        bool found = false;
-        time_t oldest = ::time(0) + 24 * 60 * 60;
-        Key oldK;
-        for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-            if (i->second.time_ <= oldest) {
-                found = true;
-                oldK = i->first;
-                oldest = i->second.time_;
+    {
+        std::lock_guard<std::mutex> cacheLock(cacheMutex_);
+        if (databases_.size() >= fdbMaxNbDBsOpen) {
+            bool found = false;
+            time_t oldest = ::time(0) + 24 * 60 * 60;
+            Key oldK;
+            for (auto i = databases_.begin(); i != databases_.end(); ++i) {
+                if (i->second.time_ <= oldest) {
+                    found = true;
+                    oldK = i->first;
+                    oldest = i->second.time_;
+                }
+            }
+            if (found) {
+                // flushing before evicting from cache
+                std::lock_guard<std::recursive_mutex> lock(flushMutex_);
+
+                databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
+                
+                eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
+                databases_.erase(oldK);
             }
         }
-        if (found) {
-            databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
-            
-            eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
-            databases_.erase(oldK);
+
+        std::unique_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
+        ASSERT(cat);
+
+        // If this database is locked for writing then this is an error
+        if (!cat->enabled(ControlIdentifier::Archive)) {
+            std::ostringstream ss;
+            ss << "Database " << *cat << " matched for archived is LOCKED against archiving";
+            throw eckit::UserError(ss.str(), Here());
         }
+
+        std::unique_ptr<Store> str = cat->buildStore();
+        db_ = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
     }
-
-    std::unique_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
-    ASSERT(cat);
-
-    // If this database is locked for writing then this is an error
-    if (!cat->enabled(ControlIdentifier::Archive)) {
-        std::ostringstream ss;
-        ss << "Database " << *cat << " matched for archived is LOCKED against archiving";
-        throw eckit::UserError(ss.str(), Here());
-    }
-
-    std::unique_ptr<Store> str = cat->buildStore();
-    db_ = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
 }
 
 void Archiver::print(std::ostream& out) const {
