@@ -46,7 +46,6 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
             Here());
     }
 #else
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
     if(!tocfloc) {
         throw eckit::NotImplemented(
             "Field location is not of TocFieldLocation type "
