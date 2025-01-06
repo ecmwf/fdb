@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
@@ -29,7 +30,7 @@ struct StoreHelper {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-class StoreHandler : public ServerConnection {
+class StoreHandler : public ServerConnection, public CallbackInterface {
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);

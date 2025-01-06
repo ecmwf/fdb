@@ -169,9 +169,16 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     
     Store& ss = store(clientID, dbKey);
 
-    std::unique_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+
+    std::promise<std::shared_ptr<const FieldLocation>> promise;
+    promise.set_value(location);
+
+    Key fullkey = Key::parseString(ss_key.str());
+    archiveCallback_(fullkey, data, length, promise.get_future());
+
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
-    
+
     eckit::Buffer buffer(16 * 1024);
     MemoryStream stream(buffer);
     stream << (*location);

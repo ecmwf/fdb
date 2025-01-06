@@ -51,7 +51,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {
         LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_, callback_));
+        archiver_.reset(new Archiver(config_, archiveCallback_));
     }
 
     archiver_->archive(key, data, length);
@@ -133,6 +133,7 @@ AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
 void LocalFDB::flush() {
     if (archiver_) {
         archiver_->flush();
+        flushCallback_();
     }
 }
 
