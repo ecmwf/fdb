@@ -24,19 +24,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexAxis::IndexAxis(bool ignoreregistry) :
+IndexAxis::IndexAxis() :
     readOnly_(false),
     dirty_(false) {
-    ignoreregistry_ = ignoreregistry;
 }
 
 IndexAxis::~IndexAxis() {
    if (!readOnly_)
       return;
-
-    if (ignoreregistry_) {
-        return;
-    }
 
     for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
        AxisRegistry::instance().release(it->first, it->second);
@@ -390,18 +385,13 @@ void IndexAxis::json(eckit::JSON& json) const {
 void IndexAxis::merge(const fdb5::IndexAxis& other) {
 
     ASSERT(!readOnly_);
-    ASSERT(ignoreregistry_); // xxx: lhs modifies the hash by merging values.
     for (const auto& kv : other.axis_) {
 
         auto it = axis_.find(kv.first);
         if (it == axis_.end()) {
-            // NB: Have to make a copy, otherwise we risk corrupting the registry.
-            std::shared_ptr<eckit::DenseSet<std::string>> new_set(new eckit::DenseSet<std::string>(*kv.second));
-            axis_.emplace(kv.first, new_set);
+            axis_.emplace(kv.first, std::make_shared<eckit::DenseSet<std::string>>(*kv.second));
         } else {
-            // NB: The AxisRegistry hashes based on the values. Hence, it is not safe to modify the values when they are in the registry.
-            // Which is why we make the copy above. We are free to do whatever we want to this object.
-            it->second->merge(*kv.second); 
+            it->second->merge(*kv.second);
         };
     }
 }
