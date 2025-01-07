@@ -19,7 +19,6 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/KeyChain.h"
 
 #include <ctime>
 #include <iosfwd>
@@ -44,34 +43,29 @@ public:  // types
     using TimeStamp = std::time_t;
 
 public:  // methods
-    ListElement(Key dbKey, const eckit::URI& uri, const TimeStamp& timestamp);
+    ListElement() = default;
+    ListElement(Key dbKey, const TimeStamp& timestamp);
 
-    ListElement(Key dbKey, Key indexKey, const eckit::URI& uri, const TimeStamp& timestamp);
+    ListElement(Key dbKey, Key indexKey, const TimeStamp& timestamp);
 
     ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
                 const TimeStamp& timestamp);
 
-    ListElement(const KeyChain& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp);
+    ListElement(const std::array<Key,3>& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp);
 
     explicit ListElement(eckit::Stream& stream);
 
-    ListElement() = default;
-
-    const KeyChain& keys() const { return keys_; }
-
-    const Key& combinedKey() const { return keys_.combine(); }
-
-    const eckit::URI& uri() const;
-
-    const TimeStamp& timestamp() const { return timestamp_; }
-
-    std::shared_ptr<const FieldLocation> sharedLocation() const { return loc_; }
+    const std::array<Key,3>& keys() const { return keyParts_; }
+    Key combinedKey() const;
 
     const FieldLocation& location() const;
+    std::shared_ptr<const FieldLocation> sharedLocation() const { return loc_; }
+    const eckit::URI& uri() const;
 
     eckit::Offset offset() const;
-
     eckit::Length length() const;
+
+    const TimeStamp& timestamp() const { return timestamp_; }
 
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
@@ -81,15 +75,11 @@ private:  // methods
     void json(eckit::JSON& json) const;
 
     friend std::ostream& operator<<(std::ostream& out, const ListElement& elem);
-
     friend eckit::Stream& operator<<(eckit::Stream& stream, const ListElement& elem);
-
     friend eckit::JSON& operator<<(eckit::JSON& json, const ListElement& elem);
 
 private:  // members
-    KeyChain keys_;
-
-    // eckit::URI uri_;
+    std::array<Key, 3> keyParts_;
 
     std::shared_ptr<const FieldLocation> loc_;
 

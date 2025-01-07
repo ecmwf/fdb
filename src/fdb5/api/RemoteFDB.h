@@ -77,8 +77,8 @@ private: // methods
     FDBStats stats() const override { NOTIMP; }
 
     // Client
-    bool handle(remote::Message message, bool control, uint32_t requestID) override;
-    bool handle(remote::Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(remote::Message message, uint32_t requestID) override;
+    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private: // members
 

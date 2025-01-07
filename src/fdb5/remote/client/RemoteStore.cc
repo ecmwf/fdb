@@ -305,7 +305,7 @@ void RemoteStore::print(std::ostream &out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
 
-bool RemoteStore::handle(Message message, bool control, uint32_t requestID) {
+bool RemoteStore::handle(Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
@@ -346,7 +346,7 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID) {
             return false;
     }
 }
-bool RemoteStore::handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
+bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
 
     switch (message) {
 

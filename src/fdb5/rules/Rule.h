@@ -67,8 +67,8 @@ public:  // methods
     void dump(std::ostream& out) const;
 
     const Rule& parent() const;
-    bool isTopRule() const;
     const Rule& topRule() const;
+    bool isTopRule() const;
 
     const TypesRegistry& registry() const;
 
@@ -103,7 +103,7 @@ private:  // methods
 
     friend std::ostream& operator<<(std::ostream& out, const Rule& rule);
 
-protected: // members
+protected:  // members
     const Rule* parent_ {nullptr};
 
     std::size_t line_ {0};
@@ -138,6 +138,8 @@ public:  // methods
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+    void encode(eckit::Stream& out) const override;
 
 private:  // methods
     void dumpChildren(std::ostream& /* out */) const override { }

@@ -49,7 +49,7 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
 
 bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    // If the DB is locked for wiping, then it "doesn't exist"
+    // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }

@@ -9,6 +9,9 @@
  */
 
 // #include "eckit/exception/Exceptions.h"
+#include <iomanip>
+#include <sstream>
+
 #include "eckit/utils/Translator.h"
 #include "eckit/types/Date.h"
 
@@ -32,7 +35,12 @@ TypeMonth::~TypeMonth() {
 std::string TypeMonth::toKey(const std::string& value) const {
 
     eckit::Date date(value);
-    return std::to_string(date.month());
+    // return std::to_string(date.year() * 100 + date.month());
+
+    std::ostringstream ss;
+    ss << std::setw(2) << std::setfill('0') << date.month();
+    return ss.str();
+    // return std::to_string(date.month());
 }
 
 void TypeMonth::getValues(const metkit::mars::MarsRequest& request,

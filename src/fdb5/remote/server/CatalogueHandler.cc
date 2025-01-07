@@ -166,6 +166,8 @@ struct ListHelper : public BaseHelper<ListElement> {
 };
 
 struct AxesHelper : public BaseHelper<AxesElement> {
+    virtual size_t encodeBufferSize(const AxesElement& el) const { return el.encodeSize(); }
+
     void extraDecode(eckit::Stream& s) {
         s >> level_;
     }
@@ -297,7 +299,6 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
-    // std::vector<std::pair<std::string, eckit::net::Endpoint>> stores;
     for (const auto& configStore: config_.getSubConfigurations("stores")) {
         ASSERT(configStore.has("default"));
         eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};

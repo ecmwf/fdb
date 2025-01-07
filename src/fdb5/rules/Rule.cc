@@ -55,7 +55,7 @@ class RuleGraph {
 
         explicit RuleNode(const std::string& keyword) : keyword_ {keyword} { }
 
-        const std::string& keyword_;
+        std::string keyword_;
 
         eckit::StringList values_;
     };
@@ -121,23 +121,6 @@ private:  // members
     value_type nodes_;
 };
 
-// template<typename T, typename R>
-// R decodeRules(eckit::Stream& stream) {
-
-//     size_t numRules = 0;
-//     stream >> numRules;
-
-//     R rules;
-//     rules.reserve(numRules);
-
-//     for (size_t i = 0; i < numRules; ++i) {
-//         auto* rule = eckit::Reanimator<T>::reanimate(stream);
-//         rules.emplace_back(rule);
-//     }
-
-//     return rules;
-// }
-
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -160,40 +143,17 @@ Rule::Rule(const std::size_t line, Predicates& predicates, const eckit::StringDi
 }
 
 void Rule::decode(eckit::Stream& stream) {
-  
     size_t numPred = 0;
-
 
     registry_.decode(stream);
     stream >> line_;
     stream >> numPred;
+    
     predicates_.reserve(numPred);
-    std::cout << "liune num: " << line_ << "  pred num decoded: " << numPred << std::endl;
-
     for (size_t i = 0; i < numPred; ++i) {
         predicates_.emplace_back(eckit::Reanimator<Predicate>::reanimate(stream));
-        std::cout << "pred " << i << " decoded" << std::endl;
     }
 }
-
-// Rule::Rule(Rule&& other) noexcept
-//     : parent_ {other.parent_},
-//       line_ {other.line_},
-//       predicates_ {std::move(other.predicates_)},
-//       registry_ {std::move(other.registry_)} {
-//     other.parent_ = nullptr;
-// }
-//
-// Rule& Rule::operator=(Rule&& other) noexcept {
-//     if (this != &other) {
-//         parent_       = other.parent_;
-//         line_         = other.line_;
-//         predicates_   = std::move(other.predicates_);
-//         registry_     = std::move(other.registry_);
-//         other.parent_ = nullptr;
-//     }
-//     return *this;
-// }
 
 void Rule::encode(eckit::Stream& out) const {
     registry_.encode(out);
@@ -521,6 +481,11 @@ RuleDatum::RuleDatum(eckit::Stream& stream) : Rule() {
     size_t numRules;
     stream >> numRules;
     ASSERT(numRules == 0);
+}
+
+void RuleDatum::encode(eckit::Stream& out) const {
+    Rule::encode(out);
+    out << 0ul;
 }
 
 void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {

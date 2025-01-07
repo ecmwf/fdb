@@ -57,7 +57,7 @@ public:
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
             if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
-                queue_.emplace(*dbKey, eckit::URI {}, 0);
+                queue_.emplace(*dbKey, 0);
                 return false;
             }
         }
@@ -77,7 +77,9 @@ public:
         bool ret = QueryVisitor::visitDatabase(catalogue);
 
         auto dbRequest = catalogue.rule().registry().canonicalise(request_);
-        ASSERT(currentCatalogue_->key().partialMatch(dbRequest));
+        if (!currentCatalogue_->key().partialMatch(dbRequest)) {
+            return false;
+        }
 
         // Subselect the parts of the request
         indexRequest_ = request_;
@@ -91,7 +93,7 @@ public:
         // }
 
         if (level_ == 1) {
-            queue_.emplace(currentCatalogue_->key(), eckit::URI {}, 0);
+            queue_.emplace(currentCatalogue_->key(), 0);
             ret = false;
         }
 
@@ -119,7 +121,7 @@ public:
             // }
 
             if (level_ == 2) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), eckit::URI {}, 0);
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
                 return false;
             }
 

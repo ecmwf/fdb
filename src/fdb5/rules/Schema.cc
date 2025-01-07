@@ -58,11 +58,9 @@ Schema::Schema(std::istream& stream) {
 Schema::Schema(eckit::Stream& stream) : registry_ {stream} {
 
     size_t numRules = 0;
-
     stream >> path_;
     stream >> numRules;
     rules_.reserve(numRules);
-
     for (size_t i = 0; i < numRules; i++) {
         rules_.emplace_back(new RuleDatabase(stream));
     }

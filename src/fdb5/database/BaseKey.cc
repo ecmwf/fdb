@@ -155,6 +155,22 @@ void BaseKey::encode(eckit::Stream& stream) const {
     for (const auto& keyword : names_) { stream << keyword << ""; }  // << type(keyword)
 }
 
+size_t encodeString(const std::string& str) {
+    return (1 + 4 + str.length());
+}
+
+size_t BaseKey::encodeSize() const {
+    size_t size = 1 + 4;
+    for (const auto& [keyword, value] : keys_) {
+        size += encodeString(keyword) + encodeString(value);
+    }
+    size += (1 + 4);
+    for (const auto& keyword : names_) {
+        size += encodeString(keyword) + encodeString("");
+    }
+    return size;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 BaseKey::operator eckit::StringDict() const {

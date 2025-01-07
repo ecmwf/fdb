@@ -19,7 +19,7 @@ public:
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
-    ~RemoteCatalogue() override;
+    ~RemoteCatalogue() override = default;
 
     // From CatalogueWriter
     const Index& currentIndex() override;
@@ -67,8 +67,8 @@ protected:
 private:
     // From Client
     // handlers for incoming messages - to be defined in the client class
-    bool handle(Message message, bool control, uint32_t requestID) override;
-    bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(Message message, uint32_t requestID) override;
+    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
 

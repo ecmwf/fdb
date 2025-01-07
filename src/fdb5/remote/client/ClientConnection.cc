@@ -360,10 +360,10 @@ void ClientConnection::listeningControlThreadLoop() {
                         }
 
                         if (hdr.payloadSize == 0) {
-                            handled = client->handle(hdr.message, hdr.control(), hdr.requestID);
+                            handled = client->handle(hdr.message, hdr.requestID);
                         }
                         else {
-                            handled = client->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
+                            handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
                         }
                     }
 
@@ -425,10 +425,10 @@ void ClientConnection::listeningDataThreadLoop() {
                     ASSERT(client);
                     ASSERT(!hdr.control());
                     if (hdr.payloadSize == 0) {
-                        handled = client->handle(hdr.message, hdr.control(), hdr.requestID);
+                        handled = client->handle(hdr.message, hdr.requestID);
                     }
                     else {
-                        handled = client->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
+                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
                     }
 
                     if (!handled) {

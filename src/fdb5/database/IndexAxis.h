@@ -59,6 +59,7 @@ public: // methods
     void insert(const Key& key);
     /// @note: the values are required to be cannonicalised
     void insert(const std::string& axis, const std::vector<std::string>& values);
+    size_t encodeSize(const int version) const;
     void encode(eckit::Stream &s, const int version) const;
     static int currentVersion() { return 3; }
 
