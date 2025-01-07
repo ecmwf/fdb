@@ -89,6 +89,18 @@ cat > req12 <<EOF
 retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,date=20021130/20021201,time=1200,levelist=1000,param=129
 EOF
 
+cat > req12year <<EOF
+retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,year=2002,date=20021130/20021201,time=1200,levelist=1000,param=129
+EOF
+
+cat > req12month <<EOF
+retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,month=11/12,date=20021130/20021201,time=1200,levelist=1000,param=129
+EOF
+
+cat > req12year_month <<EOF
+retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,year=2002,month=11/12,date=20021130/20021201,time=1200,levelist=1000,param=129
+EOF
+
 cat > reqDec <<EOF
 retrieve,class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,resolution=standard,type=fc,levtype=pl,date=20021201/to/20021231,time=0000/1200,levelist=1000,param=129
 EOF
@@ -241,6 +253,21 @@ cat > readDec <<EOF
 EOF
 
 $fdbread req12 out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat read12                     | post_process | tee expected
+diff out expected
+
+$fdbread req12year out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat read12                     | post_process | tee expected
+diff out expected
+
+$fdbread req12year_month out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat read12                     | post_process | tee expected
+diff out expected
+
+$fdbread req12month out.grib
 $gribls -jm out.grib           | post_process | tee out
 cat read12                     | post_process | tee expected
 diff out expected
