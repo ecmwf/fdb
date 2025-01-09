@@ -21,7 +21,7 @@ include(FindPackageHandleStandardArgs)
 # uuid
 
 find_path(UUID_INCLUDE_DIR
-    NAMES uuid/uuid.h
+    NAMES uuid.h
     HINTS
         ${UUID_ROOT}
         ${UUID_DIR}
@@ -30,11 +30,10 @@ find_path(UUID_INCLUDE_DIR
         ENV UUID_DIR
         ENV UUID_PATH
     PATH_SUFFIXES include include/uuid
-    NO_DEFAULT_PATH
 )
 
 find_library(UUID_LIBRARY
-    NAMES uuid
+    NAMES uuid libuuid
     HINTS
         ${UUID_ROOT}
         ${UUID_DIR}
