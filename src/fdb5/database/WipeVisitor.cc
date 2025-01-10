@@ -15,13 +15,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request,
-                         std::ostream& out,
+                        //  std::ostream& out,
+                         eckit::Queue<WipeElement>& queue,
                          bool doit,
                          bool porcelain,
                          bool unsafeWipeAll) :
     EntryVisitor(),
     request_(request),
-    out_(out),
+    queue_(queue),
+    // out_(out),
     doit_(doit),
     porcelain_(porcelain),
     unsafeWipeAll_(unsafeWipeAll) {}

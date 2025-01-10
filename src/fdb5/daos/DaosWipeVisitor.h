@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/daos/DaosCatalogue.h"
 
@@ -27,7 +28,8 @@ public:
     DaosWipeVisitor(const DaosCatalogue& catalogue,
                     const Store& store,
                     const metkit::mars::MarsRequest& request,
-                    std::ostream& out,
+                    eckit::Queue<WipeElement>& queue,
+                    // std::ostream& out,
                     bool doit,
                     bool porcelain,
                     bool unsafeWipeAll);

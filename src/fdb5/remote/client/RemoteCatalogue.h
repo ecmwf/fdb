@@ -43,7 +43,7 @@ public:
     void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
     std::vector<fdb5::Index> indexes(bool sorted=false) const override;

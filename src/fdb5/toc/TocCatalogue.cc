@@ -97,8 +97,8 @@ PurgeVisitor *TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new TocWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
+WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const {
+    return new TocWipeVisitor(*this, store, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
 }
 
 MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {

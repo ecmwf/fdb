@@ -15,9 +15,11 @@
 #define fdb5_database_WipeVisitor_H
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/container/Queue.h"
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 
 namespace fdb5 {
@@ -29,7 +31,8 @@ class WipeVisitor : public EntryVisitor {
 public: // methods
 
     WipeVisitor(const metkit::mars::MarsRequest& request,
-                std::ostream& out,
+                eckit::Queue<WipeElement>& queue,
+                // std::ostream& out,
                 bool doit,
                 bool porcelain,
                 bool unsafeWipeAll);
@@ -44,7 +47,8 @@ protected: // members
 
     const metkit::mars::MarsRequest& request_;
 
-    std::ostream& out_;
+    eckit::Queue<WipeElement>& queue_;
+    // std::ostream& out_;
     const bool doit_;
     const bool porcelain_;
     const bool unsafeWipeAll_;

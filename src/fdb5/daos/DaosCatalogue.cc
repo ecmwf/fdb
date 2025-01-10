@@ -104,8 +104,8 @@ void DaosCatalogue::loadSchema() {
 
 }
 
-WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new DaosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
+WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const {
+    return new DaosWipeVisitor(*this, store, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
 }
 
 std::vector<Index> DaosCatalogue::indexes(bool) const {

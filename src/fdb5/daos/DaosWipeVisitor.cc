@@ -27,11 +27,12 @@ namespace fdb5 {
 DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue,
                                  const Store& store,
                                  const metkit::mars::MarsRequest& request,
-                                 std::ostream& out,
+                                 eckit::Queue<WipeElement>& queue,
+                                //  std::ostream& out,
                                  bool doit,
                                  bool porcelain,
                                  bool unsafeWipeAll) :
-    WipeVisitor(request, out, doit, porcelain, unsafeWipeAll),
+    WipeVisitor(request, queue, /*out,*/ doit, porcelain, unsafeWipeAll),
     catalogue_(catalogue),
     store_(store), 
     dbKvName_("") {}
@@ -256,59 +257,65 @@ void DaosWipeVisitor::report(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
-    if (wipeAll) {
-
-        out_ << "DB container to delete:" << std::endl;
-        const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue(); 
-        out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.containerName()}.URI() << std::endl;
-        out_ << std::endl;
-
-        out_ << "DB KV to delete:" << std::endl;
-        out_ << "    " << db_kv.URI() << std::endl;
-        out_ << std::endl;
-
-        if (store_.type() != "daos") {
-            out_ << "Store URI to delete:" << std::endl;
-            out_ << "    " << store_.uri() << std::endl;
-            out_ << std::endl;
-        }
-
-    } else {
-
-        out_ << "DB container to delete:" << std::endl;
-        out_ << " - NONE -" << std::endl;
-        out_ << std::endl;
-        out_ << "DB KV to delete:" << std::endl;
-        out_ << " - NONE -" << std::endl;
-        out_ << std::endl;
-        if (store_.type() != "daos") {
-            out_ << "Store URI to delete:" << std::endl;
-            out_ << " - NONE -" << std::endl;
-            out_ << std::endl;
-        }
-
+    {
+        std::vector<eckit::URI> uris;
+        queue_.emplace(WIPE_CATALOGUE, "DB container to delete:", uris);
     }
 
-    out_ << "Index KVs to delete: " << std::endl;
-    if (indexNames_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& n : indexNames_) {
-        out_ << "    " << n.URI() << std::endl;
-    }
-    out_ << std::endl;
 
-    out_ << "Axis KVs to delete: " << std::endl;
-    if (axisNames_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& n : axisNames_) {
-        out_ << "    " << n.URI() << std::endl;
-    }
-    out_ << std::endl;
+    // if (wipeAll) {
 
-    out_ << "Store units (store files or arrays) to delete: " << std::endl;
-    if (storeURIs_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& f : storeURIs_) {
-        out_ << "    " << f << std::endl;
-    }
-    out_ << std::endl;
+    //     out_ << "DB container to delete:" << std::endl;
+    //     const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue(); 
+    //     out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.containerName()}.URI() << std::endl;
+    //     out_ << std::endl;
+
+    //     out_ << "DB KV to delete:" << std::endl;
+    //     out_ << "    " << db_kv.URI() << std::endl;
+    //     out_ << std::endl;
+
+    //     if (store_.type() != "daos") {
+    //         out_ << "Store URI to delete:" << std::endl;
+    //         out_ << "    " << store_.uri() << std::endl;
+    //         out_ << std::endl;
+    //     }
+
+    // } else {
+
+    //     out_ << "DB container to delete:" << std::endl;
+    //     out_ << " - NONE -" << std::endl;
+    //     out_ << std::endl;
+    //     out_ << "DB KV to delete:" << std::endl;
+    //     out_ << " - NONE -" << std::endl;
+    //     out_ << std::endl;
+    //     if (store_.type() != "daos") {
+    //         out_ << "Store URI to delete:" << std::endl;
+    //         out_ << " - NONE -" << std::endl;
+    //         out_ << std::endl;
+    //     }
+
+    // }
+
+    // out_ << "Index KVs to delete: " << std::endl;
+    // if (indexNames_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& n : indexNames_) {
+    //     out_ << "    " << n.URI() << std::endl;
+    // }
+    // out_ << std::endl;
+
+    // out_ << "Axis KVs to delete: " << std::endl;
+    // if (axisNames_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& n : axisNames_) {
+    //     out_ << "    " << n.URI() << std::endl;
+    // }
+    // out_ << std::endl;
+
+    // out_ << "Store units (store files or arrays) to delete: " << std::endl;
+    // if (storeURIs_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& f : storeURIs_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
 
 }
 
@@ -316,8 +323,9 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
-    std::ostream& logAlways(out_);
-    std::ostream& logVerbose(porcelain_ ? Log::debug<LibFdb5>() : out_);
+    std::ostream& logAlways(Log::info());
+    std::ostream& logVerbose(Log::debug<LibFdb5>());
+    // std::ostream& logVerbose(porcelain_ ? Log::debug<LibFdb5>() : out_);
 
     // Now we want to do the actual deletion
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
@@ -419,21 +427,21 @@ void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         // This is here as it needs to run whatever combination of doit/porcelain/...
         if (wipeAll && !residualKvNames_.empty()) {
 
-            out_ << "Unexpected KVs present in DB container: " << std::endl;
-            for (const auto& n : residualKvNames_) out_ << "    " << n.URI() << std::endl;
-            out_ << std::endl;
+            // out_ << "Unexpected KVs present in DB container: " << std::endl;
+            // for (const auto& n : residualKvNames_) out_ << "    " << n.URI() << std::endl;
+            // out_ << std::endl;
 
         }
         if (wipeAll && !residualStoreURIs_.empty()) {
 
-            out_ << "Unexpected store units (store files or arrays) present in store: " << std::endl;
-            for (const auto& u : residualStoreURIs_) out_ << "    " << store_.type() << "://" << u << std::endl;
-            out_ << std::endl;
+            // out_ << "Unexpected store units (store files or arrays) present in store: " << std::endl;
+            // for (const auto& u : residualStoreURIs_) out_ << "    " << store_.type() << "://" << u << std::endl;
+            // out_ << std::endl;
 
         }
         if (wipeAll && (!residualKvNames_.empty() || !residualStoreURIs_.empty())) {
             if (!unsafeWipeAll_) {
-                out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
+                // out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
                 if (doit_)
                     throw Exception("Cannot fully wipe unclean Daos DB", Here());
             }

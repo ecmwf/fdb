@@ -56,7 +56,7 @@ public: // methods
 
 private: // members
 
-    eckit::Channel out_;
+    // eckit::Channel out_;
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;

@@ -152,7 +152,7 @@ void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {NOTIMP;}
 void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {NOTIMP;}
 StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {NOTIMP;}
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {NOTIMP;}
-WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {NOTIMP;}
+WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const {NOTIMP;}
 MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {NOTIMP;}
 void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {NOTIMP;}
 std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {NOTIMP;}

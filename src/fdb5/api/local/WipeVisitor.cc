@@ -41,8 +41,8 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
                          bool porcelain,
                          bool unsafeWipeAll) :
     QueryVisitor<WipeElement>(queue, request),
-    out_(new QueueStringLogTarget(queue)),
-    doit_(doit),
+    // out_(new QueueStringLogTarget(queue)),
+    doit_(doit),                                        
     porcelain_(porcelain),
     unsafeWipeAll_(unsafeWipeAll) {}
 
@@ -57,7 +57,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
     EntryVisitor::visitDatabase(catalogue);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.wipeVisitor(store(), request_, out_, doit_, porcelain_, unsafeWipeAll_));
+    internalVisitor_.reset(catalogue.wipeVisitor(store(), request_, queue_, /*out_,*/ doit_, porcelain_, unsafeWipeAll_));
     internalVisitor_->visitDatabase(catalogue);
 
     return true; // Explore contained indexes

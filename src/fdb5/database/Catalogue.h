@@ -21,13 +21,13 @@
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
@@ -66,7 +66,7 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
-    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
     virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
@@ -272,7 +272,7 @@ public:
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; }
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, /*std::ostream& out,*/ bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; }
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
 
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; }

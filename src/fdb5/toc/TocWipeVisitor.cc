@@ -19,6 +19,7 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
@@ -87,11 +88,12 @@ public:
 TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
                                const Store& store,
                                const metkit::mars::MarsRequest& request,
-                               std::ostream& out,
+                               eckit::Queue<WipeElement>& queue,
+                            //    std::ostream& out,
                                bool doit,
                                bool porcelain,
                                bool unsafeWipeAll) :
-    WipeVisitor(request, out, doit, porcelain, unsafeWipeAll),
+    WipeVisitor(request, queue, /*out,*/ doit, porcelain, unsafeWipeAll),
     catalogue_(catalogue),
     store_(store),
     tocPath_(""),
@@ -379,69 +381,133 @@ void TocWipeVisitor::report(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
-    out_ << "FDB owner: " << catalogue_.owner() << std::endl
-         << std::endl;
+    // out_ << "FDB owner: " << catalogue_.owner() << std::endl
+    //      << std::endl;
+    std::stringstream ss;
+    ss << "FDB owner: " << catalogue_.owner();
+    queue_.emplace(WIPE_CATALOGUE_INFO, ss.str(), std::vector<eckit::URI>{});
 
-    out_ << "Toc files to delete:" << std::endl;
-    if (!tocPath_.asString().size() && subtocPaths_.empty()) out_ << " - NONE -" << std::endl;
-    if (tocPath_.asString().size()) out_ << "    " << tocPath_ << std::endl;
-    for (const auto& f : subtocPaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Toc files to delete:" << std::endl;
+    // if (!tocPath_.asString().size() && subtocPaths_.empty()) out_ << " - NONE -" << std::endl;
+    // if (tocPath_.asString().size()) out_ << "    " << tocPath_ << std::endl;
+    // for (const auto& f : subtocPaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        if (tocPath_.asString().size()) {
+            uris.emplace_back(tocPath_);
+        }
+        for (const auto& f : subtocPaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_CATALOGUE, "Toc files to delete:", uris);
     }
-    out_ << std::endl;
 
-    out_ << "Control files to delete:" << std::endl;
-    if (!schemaPath_.asString().size() && lockfilePaths_.empty()) out_ << " - NONE -" << std::endl;
-    if (schemaPath_.asString().size()) out_ << "    " << schemaPath_ << std::endl;
-    for (const auto& f : lockfilePaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Control files to delete:" << std::endl;
+    // if (!schemaPath_.asString().size() && lockfilePaths_.empty()) out_ << " - NONE -" << std::endl;
+    // if (schemaPath_.asString().size()) out_ << "    " << schemaPath_ << std::endl;
+    // for (const auto& f : lockfilePaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        if (schemaPath_.asString().size()) {
+            uris.emplace_back(schemaPath_);
+        }
+        for (const auto& f : lockfilePaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_CATALOGUE_AUX, "Control files to delete:", uris);
     }
-    out_ << std::endl;
-
-    out_ << "Index files to delete: " << std::endl;
-    if (indexPaths_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& f : indexPaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Index files to delete: " << std::endl;
+    // if (indexPaths_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& f : indexPaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        for (const auto& f : indexPaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_CATALOGUE, "Index files to delete:", uris);
     }
-    out_ << std::endl;
 
-    out_ << "Data files to delete: " << std::endl;
-    if (dataPaths_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& f : dataPaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Data files to delete: " << std::endl;
+    // if (dataPaths_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& f : dataPaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        for (const auto& f : dataPaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_STORE, "Data files to delete:", uris);
     }
-    out_ << std::endl;
 
-    out_ << "Auxiliary files to delete: " << std::endl;
-    if (auxiliaryDataPaths_.empty()) out_ << " - NONE -" << std::endl;
-    for (const auto& f : auxiliaryDataPaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Auxiliary files to delete: " << std::endl;
+    // if (auxiliaryDataPaths_.empty()) out_ << " - NONE -" << std::endl;
+    // for (const auto& f : auxiliaryDataPaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        for (const auto& f : auxiliaryDataPaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_STORE_AUX, "Auxiliary files to delete:", uris);
     }
-    out_ << std::endl;
 
+    // if (store_.type() != "file") {
+    //     out_ << "Store URI to delete:" << std::endl;
+    //     if (wipeAll) {
+    //         out_ << "    " << store_.uri() << std::endl;
+    //     } else {
+    //         out_ << " - NONE -" << std::endl;
+    //     }
+    //     out_ << std::endl;
+    // }
     if (store_.type() != "file") {
-        out_ << "Store URI to delete:" << std::endl;
+        std::vector<eckit::URI> uris;
         if (wipeAll) {
-            out_ << "    " << store_.uri() << std::endl;
-        } else {
-            out_ << " - NONE -" << std::endl;
+            uris.push_back(store_.uri());
         }
-        out_ << std::endl;
+        queue_.emplace(WIPE_STORE_INFO, "Store URI to delete:", uris);
     }
 
-    out_ << "Protected files (explicitly untouched):" << std::endl;
-    if (safePaths_.empty()) out_ << " - NONE - " << std::endl;
-    for (const auto& f : safePaths_) {
-        out_ << "    " << f << std::endl;
+    // out_ << "Protected files (explicitly untouched):" << std::endl;
+    // if (safePaths_.empty()) out_ << " - NONE - " << std::endl;
+    // for (const auto& f : safePaths_) {
+    //     out_ << "    " << f << std::endl;
+    // }
+    // out_ << std::endl;
+    {
+        std::vector<eckit::URI> uris;
+        for (const auto& f : safePaths_) {
+            uris.emplace_back(f);
+        }
+        queue_.emplace(WIPE_CATALOGUE_INFO, "Protected files (explicitly untouched):", uris);
     }
-    out_ << std::endl;
 
-    if (!safePaths_.empty()) {
-        out_ << "Indexes to mask:" << std::endl;
-        if (indexesToMask_.empty()) out_ << " - NONE - " << std::endl;
+    // if (!safePaths_.empty()) {
+    //     out_ << "Indexes to mask:" << std::endl;
+    //     if (indexesToMask_.empty()) out_ << " - NONE - " << std::endl;
+    //     for (const auto& i : indexesToMask_) {
+    //         out_ << "    " << i.location() << std::endl;
+    //     }
+    // }
+    {
+        std::vector<eckit::URI> uris;
         for (const auto& i : indexesToMask_) {
-            out_ << "    " << i.location() << std::endl;
+            uris.push_back(i.location().uri());
         }
+        queue_.emplace(WIPE_CATALOGUE_INFO, "Indexes to mask:", uris);
     }
 }
 
@@ -449,8 +515,8 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
-    std::ostream& logAlways(out_);
-    std::ostream& logVerbose(porcelain_ ? Log::debug<LibFdb5>() : out_);
+    std::ostream& logAlways(Log::info());
+    std::ostream& logVerbose(/*porcelain_ ? */Log::debug<LibFdb5>() /*: out_*/);
 
     // Sanity checks...
 
@@ -564,21 +630,22 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         // This is here as it needs to run whatever combination of doit/porcelain/...
         if (wipeAll && !residualPaths_.empty()) {
 
-            out_ << "Unexpected files present in directory: " << std::endl;
-            for (const auto& p : residualPaths_) out_ << "    " << p << std::endl;
-            out_ << std::endl;
+            // out_ << "Unexpected files present in directory: " << std::endl;
+            // for (const auto& p : residualPaths_) out_ << "    " << p << std::endl;
+            // out_ << std::endl;
 
         }
         if (wipeAll && !residualDataPaths_.empty()) {
 
-            out_ << "Unexpected store units present in store: " << std::endl;
-            for (const auto& p : residualDataPaths_) out_ << "    " << store_.type() << "://" << p << std::endl;
-            out_ << std::endl;
+            // out_ << "Unexpected store units present in store: " << std::endl;
+            // for (const auto& p : residualDataPaths_) out_ << "    " << store_.type() << "://" << p << std::endl;
+            // out_ << std::endl;
 
         }
         if (wipeAll && (!residualPaths_.empty() || !residualDataPaths_.empty())) {
             if (!unsafeWipeAll_) {
-                out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
+                // out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
+                queue_.emplace(WIPE_CATALOGUE_INFO, "Full wipe will not proceed without --unsafe-wipe-all", std::vector<eckit::URI>{});
                 if (doit_)
                     throw Exception("Cannot fully wipe unclean TocDB", Here());
             }

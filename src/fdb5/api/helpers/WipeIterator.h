@@ -14,14 +14,20 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
 /// @date   November 2018
 
 #ifndef fdb5_api_WipeIterator_H
 #define fdb5_api_WipeIterator_H
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
 
 #include <string>
+
+namespace eckit {
+class Stream;
+}
 
 /*
  * Define a standard object which can be used to iterate the results of a
@@ -32,7 +38,46 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using WipeElement = std::string;
+enum WipeElementType {
+    WIPE_CATALOGUE_INFO,
+    WIPE_CATALOGUE,
+    WIPE_CATALOGUE_AUX,
+    WIPE_STORE_INFO,
+    WIPE_STORE_URI,
+    WIPE_STORE,
+    WIPE_STORE_AUX,
+};
+
+class WipeElement {
+public: // methods
+
+    WipeElement() = default;
+    WipeElement(WipeElementType type, const std::string& msg, const std::vector<eckit::URI>& uris);
+    explicit WipeElement(eckit::Stream& s);
+
+    void print(std::ostream& out) const;
+    size_t encodeSize() const;
+
+private: // methods
+
+    void encode(eckit::Stream& s) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const WipeElement& e) {
+        e.print(os);
+        return os;
+    }
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const WipeElement& r) {
+        r.encode(s);
+        return s;
+    }
+
+private: // members
+
+    WipeElementType type_;
+    std::string msg_;
+    std::vector<eckit::URI> uris_;
+};
 
 using WipeIterator = APIIterator<WipeElement>;
 

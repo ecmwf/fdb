@@ -353,9 +353,10 @@ CASE("DaosCatalogue tests") {
         {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-            std::ostream out(std::cout.rdbuf());
+            // std::ostream out(std::cout.rdbuf());
+            eckit::Queue<fdb5::WipeElement> queue(200);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, queue, /*out,*/ true, false, false));
             cat.visitEntries(*wv, false);
         }
 
@@ -459,9 +460,10 @@ CASE("DaosCatalogue tests") {
         {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-            std::ostream out(std::cout.rdbuf());
+            // std::ostream out(std::cout.rdbuf());
+            eckit::Queue<fdb5::WipeElement> queue(200);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, queue, /*out,*/ true, false, false));
             cat.visitEntries(*wv, false);
         }
 

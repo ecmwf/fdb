@@ -19,6 +19,7 @@
 #include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
+class WipeElement;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -29,7 +30,8 @@ public:
     TocWipeVisitor(const TocCatalogue& catalogue,
                    const Store& store,
                    const metkit::mars::MarsRequest& request,
-                   std::ostream& out,
+                   eckit::Queue<WipeElement>& queue,
+                //    std::ostream& out,
                    bool doit,
                    bool porcelain,
                    bool unsafeWipeAll);
