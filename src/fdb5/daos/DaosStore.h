@@ -46,6 +46,9 @@ public: // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
     bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
+    bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
+    WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const override;
+
 protected: // methods
 
     std::string type() const override { return "daos"; }

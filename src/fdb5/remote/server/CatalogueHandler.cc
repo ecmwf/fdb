@@ -95,7 +95,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 list(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
-            case Message::Axes: // list request. Location are sent aynchronously over the data connection
+            case Message::Axes: // axes request.
                 axes(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
@@ -109,6 +109,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 
             case Message::Flush: // flush catalogue
                 flush(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::Wipe: // wipe request. URIs of affected elements are sent aynchronously over the data connection - requires direct visibility of the stores
+                wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             default: {
@@ -176,6 +180,23 @@ struct AxesHelper : public BaseHelper<AxesElement> {
     }
 private:
     int level_;
+};
+
+struct WipeHelper : public BaseHelper<WipeElement> {
+    virtual size_t encodeBufferSize(const WipeElement& el) const { return el.encodeSize(); }
+
+    void extraDecode(eckit::Stream& s) {
+        s >> doit_;
+        s >> porcelain_;
+        s >> unsafeWipeAll_;
+    }
+    WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
+    }
+private:
+    bool doit_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {
@@ -247,6 +268,10 @@ void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer
 
 void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     forwardApiCall<AxesHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    forwardApiCall<WipeHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

@@ -29,6 +29,8 @@
 
 namespace fdb5 {
 
+class WipeIterator;
+
 class Store {
 public:
 
@@ -64,8 +66,11 @@ public:
     virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
-    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
-    virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const = 0;
+    virtual bool auxiliaryURIExists(const eckit::URI&) const = 0;
+
+    virtual bool canWipe(std::vector<eckit::URI> uris, bool all) const = 0;
+    virtual WipeIterator wipe(std::vector<eckit::URI> uris, bool all) const = 0;
 };
 
 

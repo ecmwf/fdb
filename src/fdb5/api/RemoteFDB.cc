@@ -85,6 +85,28 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     }
 };
 
+struct WipeHelper : BaseAPIHelper<fdb5::WipeElement, fdb5::remote::Message::Wipe> {
+
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
+        doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+
+    void encodeExtra(eckit::Stream& s) const {
+        s << doit_;
+        s << porcelain_;
+        s << unsafeWipeAll_;
+    }
+
+    static fdb5::WipeElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        fdb5::WipeElement elem{s};
+        return elem;
+    }
+
+private:
+    bool doit_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
+};
+
 }
 
 namespace fdb5 {
@@ -239,6 +261,10 @@ ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
+}
+
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

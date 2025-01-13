@@ -132,6 +132,9 @@ public: // methods
     std::vector<eckit::URI> collocatedDataURIs() const override;
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
+    bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
+    WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const override;
+
    const Config& config() { return config_; }
    
 
