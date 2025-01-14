@@ -47,7 +47,7 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
     virtual ~Archiver();
 

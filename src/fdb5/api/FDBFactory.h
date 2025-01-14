@@ -60,7 +60,7 @@ class FDBToolRequest;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable {
+class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
 
 public: // methods
 
@@ -94,8 +94,6 @@ public: // methods
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
     virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
-
-    void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
@@ -133,7 +131,6 @@ protected: // members
 
     bool disabled_;
 
-    ArchiveCallback callback_ = CALLBACK_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

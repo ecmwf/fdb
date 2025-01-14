@@ -21,7 +21,9 @@ using metkit::mars::MarsRequest;
 namespace fdb5::remote {
 
 StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {}
+    ServerConnection(socket, config) {
+        LibFdb5::instance().constructorCallback()(*this);
+    }
 
 StoreHandler::~StoreHandler() {}
 
@@ -169,9 +171,19 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     
     Store& ss = store(clientID, dbKey);
 
-    std::unique_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+
+    std::promise<std::shared_ptr<const FieldLocation>> promise;
+    promise.set_value(location);
+
+    eckit::StringDict dict = dbKey.keyDict();
+    dict.insert(idxKey.keyDict().begin(), idxKey.keyDict().end());
+    const Key fullkey(dict); /// @note: we do not have the third level of the key.
+
+    archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
+
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
-    
+
     eckit::Buffer buffer(16 * 1024);
     MemoryStream stream(buffer);
     stream << (*location);
@@ -196,6 +208,8 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         auto it = stores_.find(clientID);
         ASSERT(it != stores_.end());
         it->second.store->flush();
+
+        flushCallback_();
     }
 
     Log::info() << "Flush complete" << std::endl;
