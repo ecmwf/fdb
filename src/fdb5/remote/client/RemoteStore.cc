@@ -20,11 +20,12 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/remote/client/RemoteStore.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/client/RemoteStore.h"
+#include "fdb5/rules/Rule.h"
 
 #include <unordered_map>
 
@@ -251,7 +252,7 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     keyStream << dbKey_;
     keyStream << key;
 
-    std::vector<std::pair<const void*, uint32_t>> payloads;
+    Connection::Payload payloads;
     payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
     payloads.push_back(std::pair<const void*, uint32_t>{data, length});
 

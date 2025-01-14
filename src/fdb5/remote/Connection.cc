@@ -3,13 +3,13 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Connection::Connection() : single_(false) {}
-Connection::~Connection() {}
+Connection::Connection() : single_(false) { }
 
 void Connection::teardown() {
 
@@ -19,20 +19,20 @@ void Connection::teardown() {
             // all done - disconnecting
             Connection::write(Message::Exit, false, 0, 0);
         } catch(...) {
-            // if connection is already down, no need to escalate 
+            // if connection is already down, no need to escalate
         }
     }
     try {
         // all done - disconnecting
         Connection::write(Message::Exit, true, 0, 0);
     } catch(...) {
-        // if connection is already down, no need to escalate 
+        // if connection is already down, no need to escalate
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Connection::writeUnsafe(bool control, const void* data, size_t length) {
+void Connection::writeUnsafe(const bool control, const void* data, const size_t length) const {
     long written = 0;
     if (control || single_) {
         written = controlSocket().write(data, length);
@@ -51,7 +51,7 @@ void Connection::writeUnsafe(bool control, const void* data, size_t length) {
     }
 }
 
-void Connection::readUnsafe(bool control, void* data, size_t length) {
+void Connection::readUnsafe(bool control, void* data, size_t length) const {
     long read = 0;
     if (control || single_) {
         read = controlSocket().read(data, length);
@@ -70,7 +70,7 @@ void Connection::readUnsafe(bool control, void* data, size_t length) {
     }
 }
 
-eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
+eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     eckit::FixedString<4> tail;
 
     std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
@@ -99,11 +99,7 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
     return payload;
 }
 
-void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) {
-    write(msg, control, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
-}
-
-void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void Connection::write(Message msg, const bool control, const uint32_t clientID, const uint32_t requestID, Payload data) const {
 
     uint32_t payloadLength = 0;
     for (auto d: data) {
@@ -123,16 +119,25 @@ void Connection::write(remote::Message msg, bool control, uint32_t clientID, uin
     writeUnsafe(control, &EndMarker, sizeof(EndMarker));
 }
 
-void Connection::error(const std::string& msg, uint32_t clientID, uint32_t requestID) {
-    eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{msg.c_str(), msg.length()}});
+void Connection::write(Message        msg,
+                       const bool     control,
+                       const uint32_t clientID,
+                       const uint32_t requestID,
+                       const void*    data,
+                       const uint32_t length) const {
+    write(msg, control, clientID, requestID, {{data, length}});
 }
 
-eckit::Buffer Connection::readControl(MessageHeader& hdr) {
+void Connection::error(const std::string& msg, uint32_t clientID, uint32_t requestID) const {
+    eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
+    write(Message::Error, false, clientID, requestID, {{msg.c_str(), msg.length()}});
+}
+
+eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
     return read(true, hdr);
 }
 
-eckit::Buffer Connection::readData(MessageHeader& hdr) {
+eckit::Buffer Connection::readData(MessageHeader& hdr) const {
     return read(false, hdr);
 }
 

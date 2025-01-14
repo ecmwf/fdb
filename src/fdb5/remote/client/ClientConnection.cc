@@ -1,23 +1,33 @@
 
-
-#include <functional>
-#include <unistd.h>
+#include "fdb5/remote/client/ClientConnection.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
-#include "eckit/runtime/Main.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "eckit/utils/Translator.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/remote/client/ClientConnection.h"
-#include "fdb5/remote/client/ClientConnectionRouter.h"
+#include <unistd.h>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace fdb5::remote {
 
@@ -162,9 +172,13 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
     return conf;
 }
 
-// -----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+std::future<eckit::Buffer> ClientConnection::controlWrite(const Client&  client,
+                                                          Message        msg,
+                                                          const uint32_t requestID,
+                                                          const bool /*dataListener*/,
+                                                          Payload data) const {
     std::future<eckit::Buffer> f;
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
@@ -176,11 +190,12 @@ std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Messag
     return f;
 }
 
-void ClientConnection::dataWrite(DataWriteRequest& r) {
-    Connection::write(r.msg_, false, r.client_->clientId(), r.id_, r.data_.data(), r.data_.size());
+void ClientConnection::dataWrite(DataWriteRequest& request) const {
+    Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
+                      request.data_.size());
 }
 
-void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, Payload data) {
 
     static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
     {
