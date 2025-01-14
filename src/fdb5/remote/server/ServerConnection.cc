@@ -98,17 +98,6 @@ ServerConnection::~ServerConnection() {
     eckit::Log::info() << "Done" << std::endl;
 }
 
-// //----------------------------------------------------------------------------------------------------------------------
-//
-// uint32_t ServerConnection::writeSocketControl(const void* buf, const uint32_t length) {
-//     return controlSocket_.write(buf, length);
-// }
-//
-// uint32_t ServerConnection::writeSocketData(const void* buf, const uint32_t length) {
-//     ASSERT(dataSocket_);
-//     return dataSocket_->write(buf, length);
-// }
-
 //----------------------------------------------------------------------------------------------------------------------
 
 Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_t requestID) {
