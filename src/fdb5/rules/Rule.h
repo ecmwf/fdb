@@ -20,9 +20,10 @@
 #include <vector>
 #include <memory>
 
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
 #include "eckit/types/Types.h"
 #include "fdb5/types/TypesRegistry.h"
+#include "eckit/serialisation/Reanimator.h"
 
 namespace metkit {
 namespace mars {
@@ -42,7 +43,7 @@ class TypedKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Rule : public eckit::NonCopyable {
+class Rule : public eckit::Streamable {
 
 public: // methods
 
@@ -53,6 +54,8 @@ public: // methods
          std::vector<Rule *> &rules,
          const std::map<std::string, std::string> &types
         );
+    Rule(eckit::Stream& s);
+    Rule(const Schema &schema, eckit::Stream& s);
 
     ~Rule();
 
@@ -86,6 +89,9 @@ public: // methods
     const Schema &schema() const;
     const TypesRegistry& registry() const;
 
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
     void check(const Key& key) const;
 
 private: // methods
@@ -117,10 +123,14 @@ private: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const Rule &x);
 
+    void encode(eckit::Stream& s) const override;
+
     void print( std::ostream &out ) const;
 
-
 private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Rule> reanimator_;
 
     const Schema& schema_;
     const Rule* parent_;

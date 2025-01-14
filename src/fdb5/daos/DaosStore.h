@@ -26,7 +26,7 @@ class DaosStore : public Store, public DaosCommon {
 
 public: // methods
 
-    DaosStore(const Schema& schema, const Key& key, const Config& config);
+    DaosStore(const Key& key, const Config& config);
 
     ~DaosStore() override {}
 
@@ -37,7 +37,7 @@ public: // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override {};
 
     void checkUID() const override { /* nothing to do */ }
@@ -62,6 +62,7 @@ protected: // methods
 private: // members
 
     std::string db_str_;
+    size_t archivedFields_;
 
 };
 

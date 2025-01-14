@@ -159,7 +159,7 @@ public:
 
 private: // methods
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field& field, const Key& datumKey) override { NOTIMP; }
 

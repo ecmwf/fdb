@@ -52,11 +52,11 @@ protected: // methods
     void deselectIndex() override;
 
     bool open() override { NOTIMP; }
-    void flush() override;
+    void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
 
-    void archive(const Key& key, std::shared_ptr<const FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
 
     void print( std::ostream &out ) const override { NOTIMP; }
 

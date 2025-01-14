@@ -12,8 +12,10 @@
 #include <memory>
 #include <utility>
 
+#include "eckit/config/Resource.h"
 #include "eckit/container/DenseSet.h"
 #include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -47,7 +49,7 @@ void BaseKey::decode(eckit::Stream& s) {
     for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v;
-        keys_[k] = v;
+        keys_[k] = eckit::StringTools::lower(v);
     }
 
     s >> n;
@@ -57,6 +59,22 @@ void BaseKey::decode(eckit::Stream& s) {
         s >> v; // this is the type (ignoring FTM)
         names_.push_back(k);
     }
+}
+
+size_t encodeString(const std::string& str) {
+    return (5 + str.length());
+}
+
+size_t BaseKey::encodeSize() const {
+    size_t size = 5;
+    for (const auto& [key_name, key_value] : keys_) {
+        size += encodeString(key_name) + encodeString(canonicalise(key_name, key_value));
+    }
+    size += 5;
+    for (const auto& name : names_) {
+        size += encodeString(name) + encodeString(type(name));
+    }
+    return size;
 }
 
 void BaseKey::encode(eckit::Stream& s) const {
@@ -95,9 +113,9 @@ void BaseKey::set(const std::string &k, const std::string &v) {
     eckit::StringDict::iterator it = keys_.find(k);
     if (it == keys_.end()) {
         names_.push_back(k);
-        keys_[k] = v;
+        keys_[k] = eckit::StringTools::lower(v);
     } else {
-        it->second = v;
+        it->second = eckit::StringTools::lower(v);
     }
 }
 
@@ -199,7 +217,6 @@ std::string BaseKey::canonicalValue(const std::string& keyword) const {
 
     eckit::StringDict::const_iterator it = keys_.find(keyword);
     ASSERT(it != keys_.end());
-
     return canonicalise(keyword, it->second);
 }
 
@@ -223,10 +240,9 @@ std::string BaseKey::valuesToString() const {
 
         oss << sep;
         oss << canonicalise(*j, i->second);
-
+        
         sep = ":";
     }
-
     return oss.str();
 }
 

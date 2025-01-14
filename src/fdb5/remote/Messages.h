@@ -16,29 +16,25 @@
 /// @author Simon Smart
 /// @date   Apr 2018
 
-#ifndef fdb5_remote_Messages_H
-#define fdb5_remote_Messages_H
-
-#include "eckit/types/FixedString.h"
-#include "eckit/serialisation/Streamable.h"
+#pragma once
 
 #include <cstdint>
+#include <cmath>
+
+#include "eckit/types/FixedString.h"
 
 namespace eckit {
     class Stream;
 }
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 9;
-
+constexpr uint16_t CurrentVersion = 12;
 
 enum class Message : uint16_t {
 
@@ -47,6 +43,9 @@ enum class Message : uint16_t {
     Exit,
     Startup,
     Error,
+    Stores,
+    Schema,
+    Stop,
 
     // API calls to forward
     Flush = 100,
@@ -62,6 +61,8 @@ enum class Message : uint16_t {
     Inspect,
     Read,
     Move,
+    Store,
+    Axes,
 
     // Responses
     Received = 200,
@@ -69,46 +70,52 @@ enum class Message : uint16_t {
 
     // Data communication
     Blob = 300,
-    MultiBlob,
+    MultiBlob
+
 };
 
+std::ostream& operator<<(std::ostream& s, const Message& m);
 
 // Header used for all messages
-
-struct MessageHeader {
+class MessageHeader {
 
 public: // methods
 
     MessageHeader() :
         version(CurrentVersion),
         message(Message::None),
+        clientID_(0),
         requestID(0),
         payloadSize(0) {}
 
-    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
-        marker(StartMarker),
-        version(CurrentVersion),
-        message(message),
-        requestID(requestID),
-        payloadSize(payloadSize) {}
+
+    MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
+    
+    bool control() const {
+        return ((clientID_ & 0x00000001) == 1);
+    }
+    uint32_t clientID() const {
+        return (clientID_>>1);
+    }
+
+public:
 
     eckit::FixedString<4> marker;   // 4 bytes  --> 4
 
     uint16_t version;               // 2 bytes  --> 6
 
     Message message;                // 2 bytes  --> 8
+ 
+    uint32_t clientID_;             // 4 bytes  --> 12
 
-    uint32_t requestID;             // 4 bytes  --> 12
+    uint32_t requestID;             // 4 bytes  --> 16
 
-    uint32_t payloadSize;           // 4 bytes  --> 16
+    uint32_t payloadSize;           // 4 bytes  --> 20
 
-    eckit::FixedString<16> hash;    // 16 bytes --> 32
+    eckit::FixedString<16> hash;    // 16 bytes --> 36
+
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
-
-#endif // fdb5_remote_Messages_H
+} // namespace fdb5::remote

@@ -85,7 +85,7 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     const auto dbCanonicalKey = dbkey.canonical();
 
-    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbCanonicalKey, conf, true);
+    std::unique_ptr<CatalogueReader> db = CatalogueReaderFactory::instance().build(dbCanonicalKey, conf);
     if (!db->exists()) {
         std::stringstream ss;
         ss << "Database not found: " << dbkey << std::endl;
@@ -100,8 +100,9 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
     if (doit_) {
-        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbCanonicalKey, conf, false);
+        std::unique_ptr<CatalogueWriter> dbWriter = CatalogueWriterFactory::instance().build(dbCanonicalKey, conf);
         TocCatalogueWriter* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
+        ASSERT(tocDB);
         tocDB->hideContents();
     } else {
         eckit::Log::info() << "Run with --doit to make changes" << std::endl;

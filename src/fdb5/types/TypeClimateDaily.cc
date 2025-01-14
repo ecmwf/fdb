@@ -72,7 +72,7 @@ void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
                                  const Notifier&,
-                                 const DB*) const {
+                                 const CatalogueReader*) const {
   std::vector<eckit::Date> dates;
 
   request.getValues(keyword, dates, true);
@@ -90,7 +90,7 @@ bool TypeClimateDaily::match(const std::string&,
                    const std::string& value1,
                    const std::string& value2) const {
 
-    return month(value1) == month(value2);
+  return month(value1) == month(value2);
 }
 
 void TypeClimateDaily::print(std::ostream &out) const {

@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/daos/DaosCommon.h"
 #include "fdb5/daos/DaosEngine.h"
@@ -25,15 +25,13 @@ namespace fdb5 {
 
 /// DB that implements the FDB on DAOS
 
-class DaosCatalogue : public Catalogue, public DaosCommon {
+class DaosCatalogue : public CatalogueImpl, public DaosCommon {
 
 public: // methods
 
     DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
-    static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
-    
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 

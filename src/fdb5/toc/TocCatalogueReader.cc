@@ -16,13 +16,14 @@
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config) {
+TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
+    TocCatalogue(dbKey, config) {
     loadIndexesAndRemap();
 }
 
@@ -142,7 +143,7 @@ std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
     return returnedIndexes;
 }
 
-static CatalogueBuilder<TocCatalogueReader> builder("toc.reader");
+static CatalogueReaderBuilder<TocCatalogueReader> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -51,7 +51,7 @@ Report& Report::operator+=(const Report& rhs) {
                    dbtypes_.end(),
                    rhs.dbtypes_.begin(),
                    rhs.dbtypes_.end(),
-                   std::insert_iterator< std::set<dbtype_t> >(join, join.begin()));
+                   std::insert_iterator< std::set<dbtype_t>>(join, join.begin()));
 
     std::swap(dbtypes_, join);
 

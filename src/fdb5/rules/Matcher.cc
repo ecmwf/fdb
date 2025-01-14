@@ -19,7 +19,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec Matcher::classSpec_ = { &eckit::Streamable::classSpec(), "Matcher", };
+
 Matcher::Matcher() {
+}
+
+Matcher::Matcher(eckit::Stream&) {
+}
+
+void Matcher::encode(eckit::Stream& s) const {
 }
 
 Matcher::~Matcher() {

@@ -46,8 +46,7 @@ public: // methods
 
     bool visitEntries() override { return false; }
     bool visitIndexes() override;
-
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }

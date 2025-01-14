@@ -28,7 +28,7 @@ class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 
 public: // methods
 
-    TocCatalogueReader(const Key& key, const fdb5::Config& config);
+    TocCatalogueReader(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     ~TocCatalogueReader() override;
@@ -43,7 +43,7 @@ private: // methods
     void deselectIndex() override;
 
     bool open() override;
-    void flush() override {}
+    void flush(size_t archivedFields) override {}
     void clean() override {}
     void close() override;
     

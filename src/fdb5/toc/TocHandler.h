@@ -26,7 +26,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
@@ -103,9 +103,6 @@ public: // typedefs
     typedef std::vector< eckit::LocalPathName > TocPaths;
 
 public: // methods
-
-    TocHandler( const Key& key, const Config& config);
-
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
@@ -272,6 +269,8 @@ private: // members
     mutable bool enumeratedMaskedEntries_;
     mutable int numSubtocsRaw_;
     mutable bool writeMode_;
+
+    mutable bool dirty_;
 };
 
 

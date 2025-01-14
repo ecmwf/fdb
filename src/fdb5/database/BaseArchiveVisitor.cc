@@ -14,6 +14,7 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 
@@ -26,16 +27,14 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldK
 
 bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
     LOG_DEBUG_LIB(LibFdb5) << "BaseArchiveVisitor::selectDatabase " << dbKey << std::endl;
-    owner_.current_ = &owner_.database(dbKey);
-    owner_.current_->deselectIndex();
+    owner_.selectDatabase(dbKey);
+    catalogue()->deselectIndex();
 
     return true;
 }
 
 bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
-    // eckit::Log::info() << "selectIndex " << idxKey << std::endl;
-    ASSERT(owner_.current_);
-    return owner_.current_->selectIndex(idxKey);
+    return catalogue()->selectIndex(idxKey);
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const TypedKey& fullComputedKey) {
@@ -45,12 +44,19 @@ void BaseArchiveVisitor::checkMissingKeys(const TypedKey& fullComputedKey) {
 }
 
 const Schema& BaseArchiveVisitor::databaseSchema() const {
-    ASSERT(current());
-    return current()->schema();
+    return catalogue()->schema();
 }
 
-DB* BaseArchiveVisitor::current() const {
-    return owner_.current_;
+CatalogueWriter* BaseArchiveVisitor::catalogue() const {
+    ASSERT(owner_.db_);
+    ASSERT(owner_.db_->catalogue_);
+    return owner_.db_->catalogue_.get();
+}
+
+Store* BaseArchiveVisitor::store() const {
+    ASSERT(owner_.db_);
+    ASSERT(owner_.db_->store_);
+    return owner_.db_->store_.get();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

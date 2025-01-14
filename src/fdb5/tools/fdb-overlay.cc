@@ -121,25 +121,25 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source.canonical(), conf);
+    std::unique_ptr<CatalogueReader> dbSource = CatalogueReaderFactory::instance().build(source.canonical(), conf);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
         throw UserError(ss.str(), Here());
     }
 
-    if (dbSource->dbType() != TocEngine::typeName()) {
+    if (dbSource->type() != TocEngine::typeName()) {
         std::stringstream ss;
         ss << "Only TOC DBs currently supported" << std::endl;
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildReader(target.canonical(), conf);
+    std::unique_ptr<CatalogueReader> dbTarget = CatalogueReaderFactory::instance().build(target.canonical(), conf);
 
     if (remove_) {
         if (!dbTarget->exists()) {
             std::stringstream ss;
-            ss << "Target database must already already exist: " << target << std::endl;
+            ss << "Target database must already exist: " << target << std::endl;
             throw UserError(ss.str(), Here());
         }
     } else {
@@ -154,16 +154,10 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<DB> newDB = DB::buildWriter(target.canonical(), conf);
-
-    // This only works for tocDBs
-
-/*    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
-    TocDBWriter* tocTargetDB = dynamic_cast<TocDBWriter*>(newDB.get());
-    ASSERT(tocSourceDB);
-    ASSERT(tocTargetDB);*/
-
-    newDB->overlayDB(*dbSource, vkeys, remove_);
+    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target.canonical(), conf);
+    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
+        newCatalogue->overlayDB(*dbSource, vkeys, remove_);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

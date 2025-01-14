@@ -37,8 +37,7 @@ TocCommon::TocCommon(const eckit::PathName& directory) :
     directory_(findRealPath(eckit::LocalPathName{directory})),
     schemaPath_(directory_ / "schema"),
     dbUID_(static_cast<uid_t>(-1)),
-    userUID_(::getuid()),
-    dirty_(false) {}
+    userUID_(::getuid()) {}
 
 void TocCommon::checkUID() const {
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
@@ -47,7 +46,7 @@ void TocCommon::checkUID() const {
     }
 
     static std::vector<std::string> fdbSuperUsers =
-        eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+        eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
         if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) ==
