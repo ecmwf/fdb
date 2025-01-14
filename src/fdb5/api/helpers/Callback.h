@@ -21,20 +21,20 @@
 namespace fdb5 {
 
 class FDB;
-class CallbackInterface;
+class CallbackRegistry;
 
 using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length, std::future<std::shared_ptr<const FieldLocation>>)>;
 using FlushCallback = std::function<void()>;
-using ConstructorCallback = std::function<void(CallbackInterface&)>;
+using ConstructorCallback = std::function<void(CallbackRegistry&)>;
 
-static const ArchiveCallback CALLBACK_ARCHIVE_NOOP = [](const Key& key, const void* data, size_t length, std::future<std::shared_ptr<const FieldLocation>>) {};
+static const ArchiveCallback CALLBACK_ARCHIVE_NOOP = [](auto&&...) {};
 static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
-static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](CallbackInterface&) {};
+static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](auto&&...) {};
 
 // -------------------------------------------------------------------------------------------------
 
 // This class provides a common interface for registering callbacks with an FDB object or a Store/Catalogue Handler.
-class CallbackInterface {
+class CallbackRegistry {
 public:
 
     void registerFlushCallback(FlushCallback callback) {flushCallback_ = callback;}

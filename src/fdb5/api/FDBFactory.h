@@ -60,7 +60,7 @@ class FDBToolRequest;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable, public CallbackInterface {
+class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
 
 public: // methods
 
