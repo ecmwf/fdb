@@ -41,7 +41,7 @@ FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)) {
-    LibFdb5::instance().constructorCallback()(*this);
+    LibFdb5::instance().constructorCallback()(*internal_);
 }
 
 
@@ -290,7 +290,6 @@ void FDB::flush() {
         timer.start();
 
         internal_->flush();
-        flushCallback_();
         dirty_ = false;
 
         timer.stop();
@@ -328,12 +327,12 @@ bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
 }
 
-void FDB::registerArchiveCallback(ArchiveCallback callback) { // todo rename
+void FDB::registerArchiveCallback(ArchiveCallback callback) {
     internal_->registerArchiveCallback(callback);
 }
 
-void FDB::registerFlushCallback(FlushCallback callback) { // todo rename
-    flushCallback_ = callback;
+void FDB::registerFlushCallback(FlushCallback callback) {
+    internal_->registerFlushCallback(callback);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
