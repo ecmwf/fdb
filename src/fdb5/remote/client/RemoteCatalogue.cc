@@ -8,17 +8,34 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
+#include "fdb5/remote/client/RemoteCatalogue.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/remote/Messages.h"
+
+#include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/client/RemoteCatalogue.h"
-
-#include <unordered_map>
+#include <cstddef>
+#include <mutex>
+#include <vector>
 
 using namespace eckit;
+
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+constexpr size_t archivePayloadSize = 8192;
+constexpr size_t keyPayloadSize     = 4096;
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
@@ -49,14 +66,14 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::share
         numLocations_++;
     }
 
-    Buffer buffer(8192);
+    Buffer       buffer(archivePayloadSize);
     MemoryStream stream(buffer);
     stream << idxKey;
     stream << datumKey;
     stream << *fieldLocation;
 
-    std::vector<std::pair<const void*, uint32_t>> payloads;
-    payloads.push_back(std::pair<const void*, uint32_t>{buffer, stream.position()});
+    std::vector<Payload> payloads;
+    payloads.emplace_back(stream.position(), buffer.data());
 
     dataWrite(Message::Blob, id, payloads);
 
@@ -124,7 +141,7 @@ void RemoteCatalogue::loadSchema() {
         LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
 
         // send dbkey to remote.
-        eckit::Buffer keyBuffer(4096);
+        eckit::Buffer       keyBuffer(keyPayloadSize);
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
 
@@ -139,6 +156,7 @@ bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
     Log::warning() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
     return false;
 }
+
 bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
     LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
     return false;
@@ -162,14 +180,19 @@ void RemoteCatalogue::print( std::ostream &out ) const {
     out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
 }
 
-
 std::string RemoteCatalogue::type() const {
     return "remote";
 }
+
 bool RemoteCatalogue::open() {
     return true;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 static CatalogueReaderBuilder<RemoteCatalogue> reader("remote");
 static CatalogueWriterBuilder<RemoteCatalogue> writer("remote");
+
+//----------------------------------------------------------------------------------------------------------------------
+
 } // namespace fdb5::remote

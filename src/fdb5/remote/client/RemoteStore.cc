@@ -8,26 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-#include <dirent.h>
-#include <fcntl.h>
-
-#include "eckit/log/Timer.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/AIOHandle.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/runtime/Main.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/remote/client/RemoteStore.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/remote/client/RemoteStore.h"
+#include "fdb5/remote/client/Client.h"
 #include "fdb5/rules/Rule.h"
 
-#include <unordered_map>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/log/Log.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Reanimator.h"
+
+#include <dirent.h>
+#include <fcntl.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 
@@ -252,9 +270,9 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     keyStream << dbKey_;
     keyStream << key;
 
-    Connection::Payload payloads;
-    payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
-    payloads.push_back(std::pair<const void*, uint32_t>{data, length});
+    std::vector<Payload> payloads;
+    payloads.emplace_back(keyStream.position(), keyBuffer.data());
+    payloads.emplace_back(length, data);
 
     dataWrite(Message::Blob, id, payloads);
 

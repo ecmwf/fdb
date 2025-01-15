@@ -15,8 +15,6 @@
 
 #include "fdb5/remote/Messages.h"
 
-using namespace eckit;
-
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -62,7 +60,7 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
 
 MessageHeader::MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize) :
     marker(StartMarker),
-    version(CurrentVersion),
+    version(currentVersion),
     message(message),
     clientID_((clientID<<1) + (control ? 1 : 0)),
     requestID(requestID),

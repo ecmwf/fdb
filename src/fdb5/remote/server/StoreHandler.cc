@@ -34,7 +34,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Store: // notification that the client is starting to send data for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
-            
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -132,7 +132,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
                               << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-            write(Message::Blob, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{writeBuffer, dataRead}});
+            write(Message::Blob, false, clientID, requestID, writeBuffer, dataRead);
         }
 
         // And when we are done, add a complete message.
@@ -157,7 +157,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
 
 void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
-    
+
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -168,7 +168,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
-    
+
     Store& ss = store(clientID, dbKey);
 
     std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
@@ -217,7 +217,7 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 }
 
 bool StoreHandler::remove(bool control, uint32_t clientID) {
-    
+
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {

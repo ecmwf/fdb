@@ -1,11 +1,21 @@
 
 #pragma once
 
-#include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/client/Client.h"
+
+#include "eckit/filesystem/URI.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace fdb5::remote {
 
@@ -29,8 +39,8 @@ public:
     void reconsolidate() override;
 
     //From CatalogueReader
-    DbStats stats() const override { return DbStats(); }
-    bool retrieve(const Key& key, Field& field) const override { return false; }
+    DbStats stats() const override { return {}; }
+    bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;

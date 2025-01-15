@@ -4,6 +4,9 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include <cstdint>
+#include <mutex>
+#include <string_view>
 
 namespace fdb5::remote {
 
@@ -32,7 +35,7 @@ void Connection::teardown() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Connection::writeUnsafe(const bool control, const void* data, const size_t length) const {
+void Connection::writeUnsafe(const bool control, const void* const data, const size_t length) const {
     long written = 0;
     if (control || single_) {
         written = controlSocket().write(data, length);
@@ -70,14 +73,14 @@ void Connection::readUnsafe(bool control, void* data, size_t length) const {
     }
 }
 
-eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
+eckit::Buffer Connection::read(const bool control, MessageHeader& hdr) const {
     eckit::FixedString<4> tail;
 
     std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
     readUnsafe(control, &hdr, sizeof(hdr));
 
-    ASSERT(hdr.marker == StartMarker);
-    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.marker == MessageHeader::StartMarker);
+    ASSERT(hdr.version == MessageHeader::currentVersion);
     ASSERT(single_ || hdr.control() == control);
 
     eckit::Buffer payload{hdr.payloadSize};
@@ -86,7 +89,7 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     }
     // Ensure we have consumed exactly the correct amount from the socket.
     readUnsafe(control, &tail, sizeof(tail));
-    ASSERT(tail == EndMarker);
+    ASSERT(tail == MessageHeader::EndMarker);
 
     if (hdr.message == Message::Error) {
 
@@ -99,38 +102,36 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     return payload;
 }
 
-void Connection::write(Message msg, const bool control, const uint32_t clientID, const uint32_t requestID, Payload data) const {
+void Connection::write(const Message     msg,
+                       const bool        control,
+                       const uint32_t    clientID,
+                       const uint32_t    requestID,
+                       const PayloadList payloads) const {
 
     uint32_t payloadLength = 0;
-    for (auto d: data) {
-        ASSERT(d.first);
-        payloadLength += d.second;
+    for (const auto& payload : payloads) {
+        ASSERT(payload.data);
+        payloadLength += payload.length;
     }
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID() << ",control=" << control << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID()
+                           << ",control=" << control << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
+                           << ",payloadLength=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
+
     writeUnsafe(control, &message, sizeof(message));
-    for (auto d: data) {
-        writeUnsafe(control, d.first, d.second);
-    }
-    writeUnsafe(control, &EndMarker, sizeof(EndMarker));
+
+    for (const auto& payload : payloads) { writeUnsafe(control, payload.data, payload.length); }
+
+    writeUnsafe(control, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
-void Connection::write(Message        msg,
-                       const bool     control,
-                       const uint32_t clientID,
-                       const uint32_t requestID,
-                       const void*    data,
-                       const uint32_t length) const {
-    write(msg, control, clientID, requestID, {{data, length}});
-}
-
-void Connection::error(const std::string& msg, uint32_t clientID, uint32_t requestID) const {
+void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, {{msg.c_str(), msg.length()}});
+    write(Message::Error, false, clientID, requestID, msg.data(), msg.length());
 }
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {

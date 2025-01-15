@@ -55,45 +55,43 @@ Client::~Client() {
     connection_.remove(id_);
 }
 
-void Client::controlWriteCheckResponse(Message     msg,
-                                       uint32_t    requestID,
-                                       bool        dataListener,
-                                       const void* payload,
-                                       uint32_t    payloadLength) const {
+void Client::controlWriteCheckResponse(const Message     msg,
+                                       const uint32_t    requestID,
+                                       const bool        dataListener,
+                                       const void* const payload,
+                                       const uint32_t    payloadLength) const {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
-    Connection::Payload data;
-    if (payloadLength != 0) { data.push_back(std::make_pair(payload, payloadLength)); }
+    PayloadList payloads;
+    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
 
-    auto f = connection_.controlWrite(*this, msg, requestID, dataListener, data);
+    auto f = connection_.controlWrite(*this, msg, requestID, dataListener, payloads);
     f.wait();
     ASSERT(f.get().size() == 0);
 }
 
-eckit::Buffer Client::controlWriteReadResponse(Message     msg,
-                                               uint32_t    requestID,
-                                               const void* payload,
-                                               uint32_t    payloadLength) const {
+eckit::Buffer Client::controlWriteReadResponse(const Message     msg,
+                                               const uint32_t    requestID,
+                                               const void* const payload,
+                                               const uint32_t    payloadLength) const {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
-    Connection::Payload data {};
-    if (payloadLength) {
-        data.push_back(std::make_pair(payload, payloadLength));
-    }
+    PayloadList payloads;
+    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
 
-    std::future<eckit::Buffer> f = connection_.controlWrite(*this, msg, requestID, false, data);
+    auto f = connection_.controlWrite(*this, msg, requestID, false, payloads);
     f.wait();
     return eckit::Buffer{f.get()};
 }
 
-void Client::dataWrite(remote::Message msg, uint32_t requestID, Connection::Payload data) {
-    connection_.dataWrite(*this, msg, requestID, data);
+void Client::dataWrite(remote::Message msg, uint32_t requestID, PayloadList payloads) {
+    connection_.dataWrite(*this, msg, requestID, std::move(payloads));
 }
 
 } // namespace fdb5::remote

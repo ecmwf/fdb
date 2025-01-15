@@ -17,6 +17,10 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include <mutex>
+#include <utility>  // std::pair
+#include <vector>
+
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -30,6 +34,8 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client : eckit::NonCopyable {
+    using PayloadList = Connection::PayloadList;
+
 public:
     Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
 
@@ -59,7 +65,7 @@ public:
                                            const void* payload       = nullptr,
                                            uint32_t    payloadLength = 0) const;
 
-    void dataWrite(Message msg, uint32_t requestID, Connection::Payload data = {});
+    void dataWrite(Message msg, uint32_t requestID, PayloadList payloads = {});
 
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID)                          = 0;

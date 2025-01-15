@@ -40,10 +40,10 @@ public: // methods
     std::future<eckit::Buffer> controlWrite(const Client& client,
                                             Message       msg,
                                             uint32_t      requestID,
-                                            bool          startDataListener,
-                                            Payload       data = {}) const;
+                                            bool /*dataListener*/,
+                                            PayloadList payload = {}) const;
 
-    void dataWrite(Client& client, Message msg, uint32_t requestID, Payload data = {});
+    void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
 
     void add(Client& client);
     bool remove(uint32_t clientID);

@@ -278,7 +278,7 @@ void ServerConnection::initialiseConnections() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
-    write(Message::Startup, true, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{startupBuffer.data(), s.position()}});
+    write(Message::Startup, true, 0, 0, startupBuffer.data(), s.position());
 
     if (!single_) {
         ASSERT(dataSocketFuture.valid());
@@ -292,7 +292,7 @@ void ServerConnection::initialiseConnections() {
         MessageHeader dataHdr;
         eckit::Buffer payload2 = readData(dataHdr);
 
-        ASSERT(dataHdr.version == CurrentVersion);
+        ASSERT(dataHdr.version == MessageHeader::currentVersion);
         ASSERT(dataHdr.message == Message::Startup);
         ASSERT(dataHdr.requestID == 0);
 
@@ -355,9 +355,9 @@ size_t ServerConnection::archiveThreadLoop() {
                     const void* payloadData = charData;
                     charData += hdr->payloadSize;
 
-                    const decltype(EndMarker)* e = static_cast<const decltype(EndMarker)*>(static_cast<const void*>(charData));
-                    ASSERT(*e == EndMarker);
-                    charData += sizeof(EndMarker);
+                    const auto* e = static_cast<const MessageHeader::MarkerType*>(static_cast<const void*>(charData));
+                    ASSERT(*e == MessageHeader::EndMarker);
+                    charData += MessageHeader::markerBytes;
 
                     archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr->payloadSize);
                     totalArchived += 1;

@@ -23,6 +23,7 @@
 #include <exception>
 #include <future>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -175,17 +176,17 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 std::future<eckit::Buffer> ClientConnection::controlWrite(const Client&  client,
-                                                          Message        msg,
+                                                          const Message  msg,
                                                           const uint32_t requestID,
                                                           const bool /*dataListener*/,
-                                                          Payload data) const {
+                                                          const PayloadList payloads) const {
     std::future<eckit::Buffer> f;
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<eckit::Buffer>{}).first;
         f = pp->second.get_future();
     }
-    Connection::write(msg, true, client.clientId(), requestID, data);
+    Connection::write(msg, true, client.clientId(), requestID, payloads);
 
     return f;
 }
@@ -195,41 +196,42 @@ void ClientConnection::dataWrite(DataWriteRequest& request) const {
                       request.data_.size());
 }
 
-void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, Payload data) {
+void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
 
     static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
+
     {
         // retrieve or add client to the list
-        std::lock_guard<std::mutex> lock(clientsMutex_);
-        auto it = clients_.find(client.clientId());
-        ASSERT(it != clients_.end());
+        std::lock_guard lock(clientsMutex_);
+        ASSERT(clients_.find(client.clientId()) != clients_.end());
     }
+
     {
         std::lock_guard<std::mutex> lock(dataWriteMutex_);
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
 
-            dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+            dataWriteQueue_  = std::make_unique<eckit::Queue<DataWriteRequest>>(maxQueueLength);
             dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
         }
     }
+
     uint32_t payloadLength = 0;
-    for (auto d: data) {
-        ASSERT(d.first);
-        payloadLength += d.second;
+    for (auto payload : payloads) {
+        ASSERT(payload.data);
+        payloadLength += payload.length;
     }
 
     eckit::Buffer buffer{payloadLength};
     uint32_t offset = 0;
-    for (auto d: data) {
-        buffer.copy(d.first, d.second, offset);
-        offset += d.second;
+    for (auto payload : payloads) {
+        buffer.copy(payload.data, payload.length, offset);
+        offset += payload.length;
     }
 
     dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
 }
-
 
 void ClientConnection::dataWriteThreadLoop() {
 

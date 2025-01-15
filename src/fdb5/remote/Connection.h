@@ -10,16 +10,18 @@
 
 #pragma once
 
+#include "eckit/serialisation/MemoryStream.h"
 #include "fdb5/remote/Messages.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/os/BackTrace.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <mutex>
-#include <utility>
+#include <string_view>
 #include <vector>
 
 namespace eckit {
@@ -47,18 +49,20 @@ public:
 class Connection : eckit::NonCopyable {
 
 public:  // types
-    using Payload = std::vector<std::pair<const void*, uint32_t>>;
+    using PayloadList = std::vector<Payload>;
 
 public: // methods
     Connection();
 
     virtual ~Connection() = default;
 
-    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, Payload data = {}) const;
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, PayloadList payloads = {}) const;
 
-    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) const;
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) const {
+        write(msg, control, clientID, requestID, {{length, data}});
+    }
 
-    void error(const std::string& msg, uint32_t clientID, uint32_t requestID) const;
+    void error(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
     eckit::Buffer readControl(MessageHeader& hdr) const;
 
@@ -66,7 +70,7 @@ public: // methods
 
     void teardown();
 
-private: // methods
+private:  // methods
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
@@ -77,11 +81,10 @@ private: // methods
 
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
 
-protected: // members
-
+protected:  // members
     bool single_;
 
-private: // members
+private:  // members
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
     mutable std::mutex readControlMutex_;
