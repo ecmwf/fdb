@@ -23,8 +23,8 @@
 namespace py = pybind11;
 
 
-PYBIND11_MODULE(example, module) {
-    module.doc() = "pybind11 example plugin"; // optional module docstring
+PYBIND11_MODULE(_core, module) {
+    module.doc() = "pyfdb c++ api"; // optional module docstring
 
     py::class_<eckit::PathName>(module, "PathName")
        .def(py::init<const std::string&, bool>())
@@ -32,6 +32,10 @@ PYBIND11_MODULE(example, module) {
 
     py::class_<eckit::LocalConfiguration>(module, "LocalConfiguration")
         .def(py::init<const eckit::Configuration&, const eckit::PathName&>());
+        .def(py::init([](const std::unordered_map<std::string, std::string> key_value_map){
+                    auto result_map = eckit::LocalConfiguration();
+                    for()
+                    }))
 
     py::class_<fdb5::Config>(module, "Config")
         .def(py::init<>())

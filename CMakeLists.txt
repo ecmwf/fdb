@@ -70,6 +70,10 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
+ecbuild_add_option( FEATURE PYBIND
+                    DEFAULT ON
+                    DESCRIPTION "Support for PyFDB generation" )
+
 find_package(UUID QUIET)
 
 find_package(DAOS QUIET)
@@ -168,11 +172,7 @@ add_subdirectory( tests )
 
 ecbuild_install_project( NAME fdb )
 
-install(FILES src/fdb5/api/FDB.h ESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
 ecbuild_print_summary()
-
-## Exports for pybind
 
 
 # set(PYBIND11_FINDPYTHON ON)

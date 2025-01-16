@@ -540,3 +540,11 @@ if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
 endif()
+
+
+## Exports headers for pyfdb
+if ( HAVE_PYBIND ) 
+    install(FILES api/fdb_py.cc DESTINATION include/fdb5/api)
+    target_include_directories(fdb5 PRIVATE ${INSTALL_INCLUDE_DIR})
+endif()
+
