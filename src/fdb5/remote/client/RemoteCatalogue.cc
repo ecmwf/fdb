@@ -28,14 +28,6 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-
-constexpr size_t archiveBufferSize = 8192;
-constexpr size_t keyBufferSize     = 4096;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
@@ -65,7 +57,7 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::share
         numLocations_++;
     }
 
-    Buffer       buffer(archiveBufferSize);
+    Buffer       buffer(defaultBufferSizeArchive);
     MemoryStream stream(buffer);
     stream << idxKey;
     stream << datumKey;
@@ -107,8 +99,8 @@ void RemoteCatalogue::flush(size_t archivedFields) {
     // Flush only does anything if there is an ongoing archive();
     if (numLocations_ > 0) {
 
-        Buffer sendBuf(1024);
-        MemoryStream s(sendBuf);
+        eckit::Buffer       sendBuf(defaultBufferSizeFlush);
+        eckit::MemoryStream s(sendBuf);
         s << numLocations_;
 
         LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
@@ -126,18 +118,18 @@ void RemoteCatalogue::close() {NOTIMP;}
 
 bool RemoteCatalogue::exists() const {
 
-    bool exists = false;
+    bool result = false;
 
-    Buffer       sendBuf(keyBufferSize);
-    MemoryStream sms(sendBuf);
+    eckit::Buffer       sendBuf(defaultBufferSizeKey);
+    eckit::MemoryStream sms(sendBuf);
     sms << dbKey_;
 
     eckit::Buffer recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
 
     eckit::MemoryStream rms(recvBuf);
-    rms >> exists;
+    rms >> result;
 
-    return exists;
+    return result;
 }
 
 void RemoteCatalogue::checkUID() const {
@@ -156,7 +148,7 @@ void RemoteCatalogue::loadSchema() {
         LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
 
         // send dbkey to remote.
-        eckit::Buffer       keyBuffer(keyBufferSize);
+        eckit::Buffer       keyBuffer(defaultBufferSizeKey);
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
 

@@ -196,18 +196,16 @@ private: // members
     bool complete_;
 };
 
-using EndPointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
-
-EndPointList storeEndpoints(const Config& config) {
+Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
     ASSERT(config.has("fieldLocationEndpoints"));
-    std::vector<std::string> stores = config.getStringVector("stores");
-    std::vector<std::string> fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+    const auto stores                 = config.getStringVector("stores");
+    const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
 
-    EndPointList out;
+    Client::EndpointList out;
     out.reserve(stores.size());
     for (size_t i = 0; i < stores.size(); ++i) {
         out.emplace_back(eckit::net::Endpoint {stores.at(i)}, fieldLocationEndpoints.at(i));
@@ -269,8 +267,8 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
 
-    Buffer keyBuffer(4096);
-    MemoryStream keyStream(keyBuffer);
+    eckit::Buffer       keyBuffer(defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
     keyStream << dbKey_;
     keyStream << key;
 
@@ -300,7 +298,7 @@ size_t RemoteStore::flush() {
 
     size_t locations = complete ? locations_.archived() : locations_.wait();
 
-    Buffer sendBuf(1024);
+    Buffer       sendBuf(defaultBufferSizeFlush);
     MemoryStream s(sendBuf);
     s << locations;
 

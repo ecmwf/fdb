@@ -35,12 +35,17 @@ public:
 
 class Client : eckit::NonCopyable {
 public:  // types
-    using PayloadList = Connection::PayloadList;
+    using PayloadList  = Connection::PayloadList;
+    using EndpointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
+
+    static constexpr size_t defaultBufferSizeArchive = 8192;
+    static constexpr size_t defaultBufferSizeFlush   = 1024;
+    static constexpr size_t defaultBufferSizeKey     = 4096;
 
 public:  // methods
     Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
 
-    Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+    Client(const EndpointList& endpoints);
 
     virtual ~Client();
 

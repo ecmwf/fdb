@@ -361,8 +361,8 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
     bool exists = false;
 
     {
-        MemoryStream stream(payload);
-        const Key    dbKey(stream);
+        eckit::MemoryStream stream(payload);
+        const Key dbKey(stream);
         exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
     }
 

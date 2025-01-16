@@ -8,24 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "eckit/serialisation/MemoryStream.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/Store.h"
 #include "fdb5/remote/server/StoreHandler.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/server/ServerConnection.h"
+
+#include "eckit/net/TCPSocket.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <utility>
+
 using namespace eckit;
-using metkit::mars::MarsRequest;
 
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
     ServerConnection(socket, config) {
         LibFdb5::instance().constructorCallback()(*this);
     }
-
-StoreHandler::~StoreHandler() {}
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
