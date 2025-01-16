@@ -196,7 +196,9 @@ private: // members
     bool complete_;
 };
 
-std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const Config& config) {
+using EndPointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
+
+EndPointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
     ASSERT(config.has("fieldLocationEndpoints"));
@@ -204,9 +206,11 @@ std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const C
     std::vector<std::string> fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
-    std::vector<std::pair<eckit::net::Endpoint, std::string>> out;
-    for (size_t i=0; i<stores.size(); i++) {
-        out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, fieldLocationEndpoints.at(i)));
+
+    EndPointList out;
+    out.reserve(stores.size());
+    for (size_t i = 0; i < stores.size(); ++i) {
+        out.emplace_back(eckit::net::Endpoint {stores.at(i)}, fieldLocationEndpoints.at(i));
     }
     return out;
 }
