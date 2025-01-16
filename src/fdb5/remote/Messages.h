@@ -66,6 +66,7 @@ enum class Message : uint16_t {
     Move,
     Store,
     Axes,
+    Exists,
 
     // Responses
     Received = 200,

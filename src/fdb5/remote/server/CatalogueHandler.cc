@@ -11,6 +11,8 @@
 #include "fdb5/remote/server/CatalogueHandler.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
@@ -116,6 +118,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
             case Message::Flush: // flush catalogue
                 flush(clientID, requestID, std::move(payload));
                 return Handled::Yes;
+
+            case Message::Exists:  // check if catalogue exists
+                exists(clientID, requestID, std::move(payload));
+                return Handled::Replied;
 
             default: {
                 std::stringstream ss;
@@ -348,11 +354,24 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
     }
 }
 
+void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
+    ASSERT(payload.size() > 0);
 
+    bool exists = false;
 
+    {
+        MemoryStream stream(payload);
+        const Key    dbKey(stream);
+        exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
+    }
 
+    eckit::Buffer       existBuf(5);
+    eckit::MemoryStream stream(existBuf);
+    stream << exists;
 
+    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 

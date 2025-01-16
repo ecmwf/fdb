@@ -124,9 +124,25 @@ void RemoteCatalogue::clean() {NOTIMP;}
 
 void RemoteCatalogue::close() {NOTIMP;}
 
-bool RemoteCatalogue::exists() const {NOTIMP;}
+bool RemoteCatalogue::exists() const {
 
-void RemoteCatalogue::checkUID() const {}
+    bool exists = false;
+
+    Buffer       sendBuf(keyBufferSize);
+    MemoryStream sms(sendBuf);
+    sms << dbKey_;
+
+    eckit::Buffer recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> exists;
+
+    return exists;
+}
+
+void RemoteCatalogue::checkUID() const {
+    LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::checkUID() is noop!" << std::endl;
+}
 
 eckit::URI RemoteCatalogue::uri() const {
     return eckit::URI("fdb", controlEndpoint().host(), controlEndpoint().port());
