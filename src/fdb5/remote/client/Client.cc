@@ -90,7 +90,7 @@ eckit::Buffer Client::controlWriteReadResponse(const Message     msg,
     return eckit::Buffer{f.get()};
 }
 
-void Client::dataWrite(remote::Message msg, uint32_t requestID, PayloadList payloads) {
+void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {
     connection_.dataWrite(*this, msg, requestID, std::move(payloads));
 }
 

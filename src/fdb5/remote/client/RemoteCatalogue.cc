@@ -30,9 +30,8 @@ namespace fdb5::remote {
 
 namespace {
 
-constexpr size_t archivePayloadSize = 8192;
-constexpr size_t keyPayloadSize     = 4096;
-
+constexpr size_t archiveBufferSize = 8192;
+constexpr size_t keyBufferSize     = 4096;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -66,13 +65,13 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::share
         numLocations_++;
     }
 
-    Buffer       buffer(archivePayloadSize);
+    Buffer       buffer(archiveBufferSize);
     MemoryStream stream(buffer);
     stream << idxKey;
     stream << datumKey;
     stream << *fieldLocation;
 
-    std::vector<Payload> payloads;
+    PayloadList payloads;
     payloads.emplace_back(stream.position(), buffer.data());
 
     dataWrite(Message::Blob, id, payloads);
@@ -141,7 +140,7 @@ void RemoteCatalogue::loadSchema() {
         LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
 
         // send dbkey to remote.
-        eckit::Buffer       keyBuffer(keyPayloadSize);
+        eckit::Buffer       keyBuffer(keyBufferSize);
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
 
@@ -180,18 +179,14 @@ void RemoteCatalogue::print( std::ostream &out ) const {
     out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
 }
 
-std::string RemoteCatalogue::type() const {
-    return "remote";
-}
-
 bool RemoteCatalogue::open() {
     return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static CatalogueReaderBuilder<RemoteCatalogue> reader("remote");
-static CatalogueWriterBuilder<RemoteCatalogue> writer("remote");
+static CatalogueReaderBuilder<RemoteCatalogue> reader(RemoteCatalogue::typeName());
+static CatalogueWriterBuilder<RemoteCatalogue> writer(RemoteCatalogue::typeName());
 
 //----------------------------------------------------------------------------------------------------------------------
 

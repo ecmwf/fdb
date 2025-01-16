@@ -34,9 +34,10 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client : eckit::NonCopyable {
+public:  // types
     using PayloadList = Connection::PayloadList;
 
-public:
+public:  // methods
     Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
 
     Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);

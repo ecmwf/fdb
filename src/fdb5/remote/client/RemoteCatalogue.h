@@ -24,12 +24,12 @@ namespace fdb5::remote {
 
 class RemoteCatalogue : public CatalogueReader, public CatalogueWriter, public CatalogueImpl, public Client {
 
-public:
+public:  // types
+    static const char* typeName() { return "remote"; }
 
+public:  // methods
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
-
-    ~RemoteCatalogue() override = default;
 
     // From CatalogueWriter
     const Index& currentIndex() override;
@@ -59,8 +59,10 @@ public:
     std::vector<fdb5::Index> indexes(bool sorted=false) const override;
     void maskIndexEntry(const Index& index) const override;
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
-    void print( std::ostream &out ) const override;
-    std::string type() const override;
+    void print(std::ostream& out) const override;
+
+    std::string type() const override { return typeName(); }
+
     bool open() override;
     void flush(size_t archivedFields) override;
     void clean() override;

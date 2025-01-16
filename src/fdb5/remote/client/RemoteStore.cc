@@ -270,7 +270,7 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     keyStream << dbKey_;
     keyStream << key;
 
-    std::vector<Payload> payloads;
+    PayloadList payloads;
     payloads.emplace_back(keyStream.position(), keyBuffer.data());
     payloads.emplace_back(length, data);
 
