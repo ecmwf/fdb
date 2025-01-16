@@ -244,7 +244,19 @@ eckit::URI RemoteStore::uri() const {
 }
 
 bool RemoteStore::exists() const {
-    return true;
+
+    bool result = false;
+
+    eckit::Buffer       sendBuf(defaultBufferSizeKey);
+    eckit::MemoryStream sms(sendBuf);
+    sms << dbKey_;
+
+    eckit::Buffer recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
 
 eckit::DataHandle* RemoteStore::retrieve(Field& field) const {

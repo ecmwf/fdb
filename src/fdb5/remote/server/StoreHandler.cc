@@ -75,6 +75,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 flush(clientID, requestID, payload);
                 return Handled::Yes;
 
+            case Message::Exists:  // given key (payload), check if store exists
+                exists(clientID, requestID, payload);
+                return Handled::Replied;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -93,6 +97,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     return Handled::No;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
@@ -271,5 +277,26 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     }
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
+
+void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
+
+    ASSERT(payload.size() > 0);
+
+    bool exists = false;
+
+    {
+        eckit::MemoryStream stream(payload);
+        const Key           dbKey(stream);
+        exists = StoreFactory::instance().build(dbKey, config_)->exists();
+    }
+
+    eckit::Buffer       existBuf(5);
+    eckit::MemoryStream stream(existBuf);
+    stream << exists;
+
+    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote
