@@ -11,9 +11,9 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -26,26 +26,25 @@ namespace tools {
 class FDBWipe : public FDBVisitTool {
 
 public: // methods
-
-    FDBWipe(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false),
-        ignoreNoData_(false),
-        porcelain_(false),
-        unsafeWipeAll_(false) {
+    FDBWipe(int argc, char** argv)
+        : FDBVisitTool(argc, argv, "class,expver,stream,date,time")
+        , doit_(false)
+        , ignoreNoData_(false)
+        , porcelain_(false)
+        , unsafeWipeAll_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
         options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
-        options_.push_back(new SimpleOption<bool>("unsafe-wipe-all", "Wipe all (unowned) contents of an unclean database"));
+        options_.push_back(
+            new SimpleOption<bool>("unsafe-wipe-all", "Wipe all (unowned) contents of an unclean database"));
     }
 
 private: // methods
-
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const CmdArgs &args);
+    virtual void usage(const std::string& tool) const;
+    virtual void init(const CmdArgs& args);
     virtual void execute(const CmdArgs& args);
-    virtual void finish(const CmdArgs &args);
+    virtual void finish(const CmdArgs& args);
 
 private: // members
     bool doit_;
@@ -54,20 +53,20 @@ private: // members
     bool unsafeWipeAll_;
 };
 
-void FDBWipe::usage(const std::string &tool) const {
+void FDBWipe::usage(const std::string& tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [DB request]" << std::endl
                 << std::endl
                 << std::endl
                 << "Examples:" << std::endl
-                << "=========" << std::endl << std::endl
-                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+                << "=========" << std::endl
                 << std::endl
+                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00" << std::endl
                 << std::endl;
 }
 
-void FDBWipe::init(const CmdArgs &args) {
+void FDBWipe::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
@@ -106,14 +105,10 @@ void FDBWipe::execute(const CmdArgs& args) {
     }
 }
 
-
 void FDBWipe::finish(const CmdArgs&) {
 
     if (!doit_ && !porcelain_) {
-        Log::info() << std::endl
-                    << "Rerun command with --doit flag to delete unused files"
-                    << std::endl
-                    << std::endl;
+        Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl << std::endl;
     }
 }
 
@@ -122,7 +117,7 @@ void FDBWipe::finish(const CmdArgs&) {
 } // namespace tools
 } // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBWipe app(argc, argv);
     return app.start();
 }

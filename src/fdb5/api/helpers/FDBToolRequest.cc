@@ -25,17 +25,13 @@
 
 #include "fdb5/LibFdb5.h"
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
 std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string& request_str,
-                                                               const std::vector<std::string> minimumKeys,
-                                                               bool raw,
+                                                               const std::vector<std::string> minimumKeys, bool raw,
                                                                const std::string& verb) {
-
 
     std::string full_string = verb + "," + request_str; // Use a dummy verb
     std::istringstream in(full_string);
@@ -83,18 +79,15 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
     return requests;
 }
 
-
-FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r,
-                               bool all,
-                               const std::vector<std::string>& minimumKeySet) :
-    request_(r),
-    all_(all) {
+FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r, bool all,
+                               const std::vector<std::string>& minimumKeySet)
+    : request_(r)
+    , all_(all) {
 
     checkMinimumKeys(request_, minimumKeySet);
 }
 
-FDBToolRequest::FDBToolRequest(eckit::Stream& s) :
-    request_(s) {
+FDBToolRequest::FDBToolRequest(eckit::Stream& s) : request_(s) {
     s >> all_;
 }
 
@@ -104,10 +97,9 @@ const metkit::mars::MarsRequest& FDBToolRequest::request() const {
 
 bool FDBToolRequest::all() const {
     return all_;
-
 }
 
-void FDBToolRequest::print(std::ostream &s, const char* cr, const char* tab) const {
+void FDBToolRequest::print(std::ostream& s, const char* cr, const char* tab) const {
 
     if (all_) {
         s << " -- ALL --";
@@ -121,7 +113,8 @@ void FDBToolRequest::encode(eckit::Stream& s) const {
     s << all_;
 }
 
-void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys) {
+void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request,
+                                      const std::vector<std::string>& minimumKeys) {
     for (std::vector<std::string>::const_iterator j = minimumKeys.begin(); j != minimumKeys.end(); ++j) {
         if (!request.has(*j)) {
             throw eckit::UserError("Please provide a value for '" + (*j) + "'");
@@ -132,4 +125,3 @@ void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request, 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-

@@ -18,21 +18,21 @@
 
 #pragma once
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 
 #include "eckit/types/FixedString.h"
 
 namespace eckit {
-    class Stream;
+class Stream;
 }
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const static eckit::FixedString<4> StartMarker {"SFDB"};
-const static eckit::FixedString<4> EndMarker {"EFDB"};
+const static eckit::FixedString<4> StartMarker{"SFDB"};
+const static eckit::FixedString<4> EndMarker{"EFDB"};
 
 constexpr uint16_t CurrentVersion = 12;
 
@@ -80,40 +80,27 @@ std::ostream& operator<<(std::ostream& s, const Message& m);
 class MessageHeader {
 
 public: // methods
-
-    MessageHeader() :
-        version(CurrentVersion),
-        message(Message::None),
-        clientID_(0),
-        requestID(0),
-        payloadSize(0) {}
-
+    MessageHeader() : version(CurrentVersion), message(Message::None), clientID_(0), requestID(0), payloadSize(0) {}
 
     MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
-    
-    bool control() const {
-        return ((clientID_ & 0x00000001) == 1);
-    }
-    uint32_t clientID() const {
-        return (clientID_>>1);
-    }
+
+    bool control() const { return ((clientID_ & 0x00000001) == 1); }
+    uint32_t clientID() const { return (clientID_ >> 1); }
 
 public:
+    eckit::FixedString<4> marker; // 4 bytes  --> 4
 
-    eckit::FixedString<4> marker;   // 4 bytes  --> 4
+    uint16_t version; // 2 bytes  --> 6
 
-    uint16_t version;               // 2 bytes  --> 6
+    Message message; // 2 bytes  --> 8
 
-    Message message;                // 2 bytes  --> 8
- 
-    uint32_t clientID_;             // 4 bytes  --> 12
+    uint32_t clientID_; // 4 bytes  --> 12
 
-    uint32_t requestID;             // 4 bytes  --> 16
+    uint32_t requestID; // 4 bytes  --> 16
 
-    uint32_t payloadSize;           // 4 bytes  --> 20
+    uint32_t payloadSize; // 4 bytes  --> 20
 
-    eckit::FixedString<16> hash;    // 16 bytes --> 36
-
+    eckit::FixedString<16> hash; // 16 bytes --> 36
 };
 
 //----------------------------------------------------------------------------------------------------------------------

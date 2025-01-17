@@ -25,11 +25,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchOptional : public Matcher{
+class MatchOptional : public Matcher {
 
 public: // methods
-
-    MatchOptional(const std::string &def);
+    MatchOptional(const std::string& def);
     MatchOptional(eckit::Stream& s);
 
     ~MatchOptional() override;
@@ -39,26 +38,24 @@ public: // methods
     void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private: // methods
-
     void encode(eckit::Stream&) const override;
 
     bool optional() const override;
     const std::string& value(const Key&, const std::string& keyword) const override;
-    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    void print( std::ostream& out ) const override;
+    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
+                                           const std::string& keyword) const override;
+    void print(std::ostream& out) const override;
     const std::string& defaultValue() const override;
     void fill(BaseKey& key, const std::string& keyword, const std::string& value) const override;
 
 private: // members
-
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchOptional> reanimator_;
 
     std::vector<std::string> default_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

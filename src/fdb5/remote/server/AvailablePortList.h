@@ -19,8 +19,8 @@
 #ifndef fdb5_remote_AvailablePortList_H
 #define fdb5_remote_AvailablePortList_H
 
-#include <sys/types.h>
 #include <ctime>
+#include <sys/types.h>
 #include <utility>
 
 #include "eckit/container/SharedMemArray.h"
@@ -33,7 +33,6 @@ namespace remote {
 class AvailablePortList {
 
 private: // types
-
     // TODO: Cleanup with reaper
 
     struct Entry {
@@ -43,7 +42,6 @@ private: // types
     };
 
 public: // methods
-
     /// Create and populate the port list if it does not exist
     AvailablePortList(int startPort, size_t count);
 
@@ -55,12 +53,11 @@ public: // methods
 
     /// Clean up any processes that have been been dead for deadTime seconds.
     /// Any newly dead processes should be marked with the current time.
-    void reap(int deadTime=60);
+    void reap(int deadTime = 60);
 
     void initialise();
 
 private: // members
-
     eckit::SharedMemArray<Entry> shared_;
 
     int startPort_;

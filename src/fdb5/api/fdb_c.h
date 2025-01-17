@@ -25,7 +25,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 
-
 /** \defgroup Initialisation */
 /** @{ */
 
@@ -36,7 +35,6 @@ extern "C" {
 int fdb_initialise();
 
 /** @} */
-
 
 /** \defgroup Version Accessors */
 /** @{ */
@@ -54,16 +52,15 @@ int fdb_vcs_version(const char** version);
 
 ///@}
 
-
 /** \defgroup Error Handling */
 /** @{ */
 
 /** Return codes */
 enum FdbErrorValues {
-    FDB_SUCCESS                  = 0,
-    FDB_ERROR_GENERAL_EXCEPTION  = 1,
-    FDB_ERROR_UNKNOWN_EXCEPTION  = 2,
-    FDB_ITERATION_COMPLETE       = 3
+    FDB_SUCCESS = 0,
+    FDB_ERROR_GENERAL_EXCEPTION = 1,
+    FDB_ERROR_UNKNOWN_EXCEPTION = 2,
+    FDB_ITERATION_COMPLETE = 3
 };
 
 /** Returns a human-readable error message for the last error given an error code
@@ -85,7 +82,6 @@ typedef void (*fdb_failure_handler_t)(void* context, int error_code);
 int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context);
 
 /** @} */
-
 
 /** \defgroup Key */
 /** @{ */
@@ -115,7 +111,6 @@ int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
 int fdb_delete_key(fdb_key_t* key);
 
 /** @} */
-
 
 /** \defgroup Request */
 /** @{ */
@@ -162,7 +157,6 @@ int fdb_delete_request(fdb_request_t* req);
 
 /** @} */
 
-
 /** \defgroup SplitKey */
 /** @{ */
 
@@ -176,8 +170,8 @@ typedef struct fdb_split_key_t fdb_split_key_t;
  */
 int fdb_new_splitkey(fdb_split_key_t** key);
 
-/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
- * Supports multiple fdb_split_key_t iterating over the same key.
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys
+ * associated with each level of the FDB index. Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
  * \param key Key metadata name
  * \param value Key metadata value
@@ -193,7 +187,6 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
 int fdb_delete_splitkey(fdb_split_key_t* key);
 
 /** @} */
-
 
 /** \defgroup ListIterator */
 /** @{ */
@@ -230,7 +223,6 @@ int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t* key);
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
 /** @} */
-
 
 /** \defgroup DataReader */
 /** @{ */
@@ -293,7 +285,7 @@ int fdb_datareader_size(fdb_datareader_t* dr, long* size);
  * \param read Actual size of the data read from the DataReader into the memory buffer
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
+int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read);
 
 /** Deallocates DataReader object and associated resources.
  * \param key DataReader instance
@@ -302,7 +294,6 @@ int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read)
 int fdb_delete_datareader(fdb_datareader_t* dr);
 
 /** @} */
-
 
 /** \defgroup FDB API */
 /** @{ */
@@ -337,7 +328,8 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
 
 /** Archives multiple messages to a FDB instance.
  * \param fdb FDB instance.
- * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided request 
+ * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided
+ * request
  * \param data Pointer to the binary data to archive. Metadata are extracted from data headers
  * \param length Size of the data to archive
  * \returns Return code (#FdbErrorValues)
@@ -347,7 +339,8 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
 /** List all available data whose metadata matches a given user request.
  * \param fdb FDB instance.
  * \param req User Request
- * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user Request #req
+ * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user
+ * Request #req
  * \param duplicates Boolean flag used to specify if duplicated ListElements are to be reported or not.
  * \returns Return code (#FdbErrorValues)
  */

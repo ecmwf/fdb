@@ -16,7 +16,6 @@
 #ifndef fdb5_TocPurgeVisitor_H
 #define fdb5_TocPurgeVisitor_H
 
-
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocStats.h"
@@ -25,10 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
 class TocPurgeVisitor : public PurgeVisitor, public TocStatsReportVisitor {
 public:
-
     TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store);
     ~TocPurgeVisitor() override;
 
@@ -39,7 +36,6 @@ public:
     void gatherAuxiliaryURIs() override;
 
 private: // members
-
     const Store& store_;
     std::set<eckit::PathName> deleteAuxFiles_;
     std::set<eckit::PathName> keepAuxFiles_;

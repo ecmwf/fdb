@@ -8,15 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "fdb5/io/SingleGribMungePartFileHandle.h"
 
 #include <algorithm>
 
 #include "eckit/log/Log.h"
 
-#include <cstdio>
 #include "eccodes.h"
+#include <cstdio>
 
 using namespace eckit;
 
@@ -30,39 +29,31 @@ namespace fdb5 {
 };
 ::eckit::Reanimator<SingleGribMungePartFileHandle> SingleGribMungePartFileHandle::reanimator_;
 
-void SingleGribMungePartFileHandle::print(std::ostream& s) const
-{
+void SingleGribMungePartFileHandle::print(std::ostream& s) const {
     if (format(s) == Log::compactFormat)
         s << "SingleGribMungePartFileHandle";
     else
-        s << "SingleGribMungePartFileHandle[path=" << name_
-          << ",offset=" << offset_
-          << ",length=" << length_ << ']';
+        s << "SingleGribMungePartFileHandle[path=" << name_ << ",offset=" << offset_ << ",length=" << length_ << ']';
 }
 
-SingleGribMungePartFileHandle::SingleGribMungePartFileHandle(const PathName& name,
-                                                             const Offset& offset,
-                                                             const Length& length,
-                                                             const Key& substitute):
-    name_(name),
-    file_(nullptr),
-    pos_(0),
-    offset_(offset),
-    length_(length),
-    substitute_(substitute) {}
-
+SingleGribMungePartFileHandle::SingleGribMungePartFileHandle(const PathName& name, const Offset& offset,
+                                                             const Length& length, const Key& substitute)
+    : name_(name)
+    , file_(nullptr)
+    , pos_(0)
+    , offset_(offset)
+    , length_(length)
+    , substitute_(substitute) {}
 
 DataHandle* SingleGribMungePartFileHandle::clone() const {
     return new SingleGribMungePartFileHandle(name_, offset_, length_, substitute_);
 }
 
-
 bool SingleGribMungePartFileHandle::compress(bool) {
     return false;
 }
 
-SingleGribMungePartFileHandle::~SingleGribMungePartFileHandle()
-{
+SingleGribMungePartFileHandle::~SingleGribMungePartFileHandle() {
     if (file_) {
         Log::warning() << "Closing SingleGribMungePartFileHandle " << name_ << std::endl;
         ::fclose(file_);
@@ -142,8 +133,7 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
     return readLength;
 }
 
-void SingleGribMungePartFileHandle::close()
-{
+void SingleGribMungePartFileHandle::close() {
     if (file_) {
         ::fclose(file_);
         file_ = 0;
@@ -171,5 +161,4 @@ std::string SingleGribMungePartFileHandle::title() const {
 
 //--------------------------------------------------------------------------------------------------
 
-} // namespace eckit
-
+} // namespace fdb5

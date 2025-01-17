@@ -34,11 +34,9 @@ class Archiver;
 class RemoteFDB : public LocalFDB, public remote::Client {
 
 public: // types
-
     using MessageQueue = eckit::Queue<eckit::Buffer>;
 
 public: // method
-
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
     ~RemoteFDB() override {}
 
@@ -46,7 +44,7 @@ public: // method
 
     ListIterator list(const FDBToolRequest& request) override;
 
-    AxesIterator axesIterator(const FDBToolRequest& request, int level=3) override;
+    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 
@@ -58,9 +56,10 @@ public: // method
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
-                            ControlIdentifiers identifiers) override { NOTIMP; }
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
+                            ControlIdentifiers identifiers) override {
+        NOTIMP;
+    }
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
@@ -68,9 +67,9 @@ public: // method
     const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
 
 private: // methods
-
     template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+        -> APIIterator<typename HelperClass::ValueType>;
 
     void print(std::ostream& s) const override;
 
@@ -81,7 +80,6 @@ private: // methods
     bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private: // members
-
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
     std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
     std::vector<eckit::net::Endpoint> storesLocalFields_;

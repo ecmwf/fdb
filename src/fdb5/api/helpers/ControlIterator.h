@@ -21,9 +21,9 @@
 #include "fdb5/database/Key.h"
 
 namespace eckit {
-    class Stream;
-    class PathName;
-}
+class Stream;
+class PathName;
+} // namespace eckit
 
 namespace fdb5 {
 
@@ -45,20 +45,16 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
 enum class ControlIdentifier : uint16_t {
     None = 0,
 
-    List       = 1 << 0,
-    Retrieve   = 1 << 1,
-    Archive    = 1 << 2,
-    Wipe       = 1 << 3,
+    List = 1 << 0,
+    Retrieve = 1 << 1,
+    Archive = 1 << 2,
+    Wipe = 1 << 3,
     UniqueRoot = 1 << 4
 };
 
-static const std::initializer_list<ControlIdentifier> ControlIdentifierList {
-    ControlIdentifier::List,
-    ControlIdentifier::Retrieve,
-    ControlIdentifier::Archive,
-    ControlIdentifier::Wipe,
-    ControlIdentifier::UniqueRoot
-};
+static const std::initializer_list<ControlIdentifier> ControlIdentifierList{
+    ControlIdentifier::List, ControlIdentifier::Retrieve, ControlIdentifier::Archive, ControlIdentifier::Wipe,
+    ControlIdentifier::UniqueRoot};
 //----------------------------------------------------------------------------------------------------------------------
 
 // An iterator to facilitate working with the ControlIdentifiers structure
@@ -71,7 +67,6 @@ class ControlIdentifierIterator {
     value_type remaining_;
 
 public: // methods
-
     ControlIdentifierIterator(const ControlIdentifiers& identifiers);
 
     ControlIdentifier operator*() const;
@@ -82,7 +77,6 @@ public: // methods
     ControlIdentifierIterator& operator++();
 
 private: // methods
-
     void nextValue();
 };
 
@@ -108,9 +102,8 @@ public:
     ControlIdentifierIterator end() const;
 
 protected: // methods
-
-    friend std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x);
-    void print( std::ostream &out ) const;
+    friend std::ostream& operator<<(std::ostream& s, const ControlIdentifiers& x);
+    void print(std::ostream& out) const;
 
 private:
     void encode(eckit::Stream& s) const;
@@ -145,7 +138,6 @@ struct ControlElement {
     ControlIdentifiers controlIdentifiers;
 
 protected: // methods
-
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const ControlElement& e) {

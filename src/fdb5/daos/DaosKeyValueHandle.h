@@ -31,7 +31,6 @@ class DaosKeyValueName;
 class DaosKeyValueHandle : public eckit::DataHandle {
 
 public: // methods
-
     DaosKeyValueHandle(const fdb5::DaosKeyValueName&, const std::string& key);
 
     ~DaosKeyValueHandle();
@@ -54,20 +53,17 @@ public: // methods
     std::string title() const override;
 
 private: // methods
-
     fdb5::DaosSession& session();
 
 private: // members
-
     mutable fdb5::DaosKeyValueName name_;
     std::string key_;
     std::optional<fdb5::DaosSession> session_;
     std::optional<fdb5::DaosKeyValue> kv_;
     bool open_;
     eckit::Offset offset_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

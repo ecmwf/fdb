@@ -18,10 +18,10 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
-#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 namespace api {
@@ -29,15 +29,12 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                           const metkit::mars::MarsRequest& request,
-                           bool doit,
-                           bool porcelain) :
-    QueryVisitor<PurgeElement>(queue, request),
-    out_(new QueueStringLogTarget(queue)),
-    doit_(doit),
-    porcelain_(porcelain) {}
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
+                           bool porcelain)
+    : QueryVisitor<PurgeElement>(queue, request)
+    , out_(new QueueStringLogTarget(queue))
+    , doit_(doit)
+    , porcelain_(porcelain) {}
 
 bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
@@ -45,7 +42,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
-    
+
     EntryVisitor::visitDatabase(catalogue);
 
     // If the request is overspecified relative to the DB key, then we
@@ -54,8 +51,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     if (!catalogue.key().match(request_)) {
         std::stringstream ss;
         ss << "Purging not supported for over-specified requests. "
-           << "db=" << catalogue.key()
-           << ", request=" << request_;
+           << "db=" << catalogue.key() << ", request=" << request_;
         throw eckit::UserError(ss.str(), Here());
     }
 

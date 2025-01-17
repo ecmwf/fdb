@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "fdb5/database/Archiver.h"
 
 #include <ctime>
@@ -18,18 +17,18 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
-    dbConfig_(dbConfig),
-    db_(nullptr),
-    callback_(callback) {}
+Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback)
+    : dbConfig_(dbConfig)
+    , db_(nullptr)
+    , callback_(callback) {}
 
 Archiver::~Archiver() {
     flush(); // certify that all sessions are flushed before closing them
@@ -44,7 +43,7 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     visitor.rule(nullptr);
-    
+
     dbConfig_.schema().expand(key, visitor);
 
     const Rule* rule = visitor.rule();
@@ -69,7 +68,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
 
     auto i = databases_.find(dbKey);
 
-    if (i != databases_.end() ) {
+    if (i != databases_.end()) {
         db_ = &(i->second);
         i->second.time_ = ::time(0);
         return;
@@ -95,7 +94,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
                 std::lock_guard<std::recursive_mutex> lock(flushMutex_);
 
                 databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
-                
+
                 eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
                 databases_.erase(oldK);
             }
@@ -118,8 +117,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
 
 void Archiver::print(std::ostream& out) const {
     out << "Archiver["
-        << "]"
-        << std::endl;
+        << "]" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -27,15 +27,17 @@
 
 namespace fdb5 {
 
-
 // class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
 class FileCopy : public eckit::ThreadPoolTask {
 
 public:
     FileCopy() : src_(""), dest_(""), sync_(false) {}
 
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName, bool sync=false) :
-        src_(srcPath / fileName), dest_(destPath / fileName), sync_(sync) {}
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName,
+             bool sync = false)
+        : src_(srcPath / fileName)
+        , dest_(destPath / fileName)
+        , sync_(sync) {}
 
     FileCopy(eckit::Stream& s) {
         s >> src_;
@@ -47,7 +49,7 @@ public:
         s << src_;
         s << dest_;
         s << sync_;
-    } 
+    }
 
     bool sync() { return sync_; }
 
@@ -66,10 +68,7 @@ public:
     }
 
 private: // methods
-
-    void print(std::ostream& s) const {
-        s << "FileCopy(src=" << src_ << ",dest=" << dest_ << ",sync=" << sync_ << ")";
-    }
+    void print(std::ostream& s) const { s << "FileCopy(src=" << src_ << ",dest=" << dest_ << ",sync=" << sync_ << ")"; }
 
     friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
         f.print(s);

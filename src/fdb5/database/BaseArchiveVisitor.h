@@ -18,7 +18,9 @@
 
 #include "fdb5/database/WriteVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -32,11 +34,9 @@ class Schema;
 class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
-
     BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey);
 
 protected: // methods
-
     bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
 
     bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
@@ -48,10 +48,9 @@ protected: // methods
     fdb5::CatalogueWriter* catalogue() const;
     fdb5::Store* store() const;
 
-    const Key& initialFieldKey() const { return initialFieldKey_; } 
+    const Key& initialFieldKey() const { return initialFieldKey_; }
 
 private: // members
-
     Archiver& owner_;
 
     const Key initialFieldKey_;

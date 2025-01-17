@@ -15,26 +15,25 @@
 #ifndef fdb5_Index_H
 #define fdb5_Index_H
 
+#include <functional>
 #include <memory>
 #include <optional>
-#include <functional>
 
 #include "eckit/eckit.h"
 
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
+#include "eckit/memory/Counted.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
 #include "eckit/types/Types.h"
-#include "eckit/memory/Counted.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
+#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Indexer.h"
-
 
 namespace eckit {
 class Stream;
@@ -55,7 +54,6 @@ class Schema;
 class IndexBase : public eckit::Counted {
 
 public: // methods
-
     IndexBase(const Key& key, const std::string& type, const Catalogue& catalogue);
     IndexBase(eckit::Stream& s, const int version, const Catalogue& catalogue);
 
@@ -83,8 +81,8 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key& key, const Key& remapKey, Field &field) const = 0;
-    virtual void put(const Key& key, const Field &field);
+    virtual bool get(const Key& key, const Key& remapKey, Field& field) const = 0;
+    virtual void put(const Key& key, const Field& field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
@@ -95,7 +93,7 @@ public: // methods
 
     virtual IndexStats statistics() const = 0;
 
-    virtual void print( std::ostream &out ) const = 0;
+    virtual void print(std::ostream& out) const = 0;
 
     virtual void flock() const = 0;
     virtual void funlock() const = 0;
@@ -104,37 +102,34 @@ protected: // methods
     void takeTimestamp() { time(&timestamp_); }
 
 private: // methods
-
     void encodeCurrent(eckit::Stream& s, const int version) const;
     void encodeLegacy(eckit::Stream& s, const int version) const;
 
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const Key& key, const Field &field) = 0;
+    virtual void add(const Key& key, const Field& field) = 0;
 
     const TypesRegistry& registry() const;
 
 protected: // members
-
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis     axes_;      ///< This Index spans along these axis
-    Key           key_;       ///< key that selected this index
-    time_t        timestamp_; ///< timestamp when this Index was flushed
+    IndexAxis axes_;   ///< This Index spans along these axis
+    Key key_;          ///< key that selected this index
+    time_t timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer   indexer_;
+    Indexer indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
-        o.print(s); return s;
+        o.print(s);
+        return s;
     }
 
 private: // members
-
     const Catalogue& catalogue_;
     mutable std::optional<std::reference_wrapper<const TypesRegistry>> registry_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -142,7 +137,6 @@ private: // members
 class Index {
 
 public: // methods
-
     Index();
     Index(IndexBase* i);
 
@@ -157,10 +151,10 @@ public: // methods
 
     bool dirty() const { return content_->dirty(); }
 
-    void open()   { return content_->open();   }
+    void open() { return content_->open(); }
     void reopen() { return content_->reopen(); }
-    void close()  { return content_->close();  }
-    void flush()  { return content_->flush();  }
+    void close() { return content_->close(); }
+    void flush() { return content_->flush(); }
 
     void visit(IndexLocationVisitor& visitor) const { content_->visit(visitor); }
 
@@ -176,7 +170,7 @@ public: // methods
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
-    void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const {
+    void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const {
         content_->dump(out, indent, simple, dumpFields);
     }
 
@@ -190,22 +184,21 @@ public: // methods
 
     bool null() const { return null_; }
 
-    friend bool operator<  (const Index& i1, const Index& i2) { return i1.content_ <  i2.content_; }
-    friend bool operator== (const Index& i1, const Index& i2) { return i1.content_ == i2.content_; }
+    friend bool operator<(const Index& i1, const Index& i2) { return i1.content_ < i2.content_; }
+    friend bool operator==(const Index& i1, const Index& i2) { return i1.content_ == i2.content_; }
 
     void flock() const { content_->flock(); }
     void funlock() const { content_->funlock(); }
 
 private: // methods
-
     void print(std::ostream& s) const { content_->print(s); }
 
     friend std::ostream& operator<<(std::ostream& s, const Index& o) {
-        o.print(s); return s;
+        o.print(s);
+        return s;
     }
 
 private: // members
-
     IndexBase* content_;
     bool null_;
 };

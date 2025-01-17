@@ -11,21 +11,21 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Matcher.h"
+#include "fdb5/rules/Predicate.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec Predicate::classSpec_ = { &eckit::Streamable::classSpec(), "Predicate", };
+eckit::ClassSpec Predicate::classSpec_ = {
+    &eckit::Streamable::classSpec(),
+    "Predicate",
+};
 
 eckit::Reanimator<Predicate> Predicate::reanimator_;
 
-Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
-    matcher_(matcher),
-    keyword_(keyword) {
-}
+Predicate::Predicate(const std::string& keyword, Matcher* matcher) : matcher_(matcher), keyword_(keyword) {}
 
 Predicate::Predicate(eckit::Stream& s) {
     s >> keyword_;
@@ -37,18 +37,17 @@ void Predicate::encode(eckit::Stream& s) const {
     s << *matcher_;
 }
 
-Predicate::~Predicate() {
-}
+Predicate::~Predicate() {}
 
 bool Predicate::match(const Key& key) const {
     return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream &s, const TypesRegistry &registry) const {
+void Predicate::dump(std::ostream& s, const TypesRegistry& registry) const {
     matcher_->dump(s, keyword_, registry);
 }
 
-void Predicate::print(std::ostream &out) const {
+void Predicate::print(std::ostream& out) const {
     out << "Predicate[keyword=" << keyword_ << ",matcher=" << *matcher_ << "]";
 }
 
@@ -60,7 +59,7 @@ bool Predicate::optional() const {
     return matcher_->optional();
 }
 
-const std::string &Predicate::value(const Key& key) const {
+const std::string& Predicate::value(const Key& key) const {
     return matcher_->value(key, keyword_);
 }
 
@@ -72,15 +71,14 @@ void Predicate::fill(BaseKey& key, const std::string& value) const {
     matcher_->fill(key, keyword_, value);
 }
 
-const std::string &Predicate::defaultValue() const {
+const std::string& Predicate::defaultValue() const {
     return matcher_->defaultValue();
 }
 
-std::ostream &operator<<(std::ostream &s, const Predicate &x) {
+std::ostream& operator<<(std::ostream& s, const Predicate& x) {
     x.print(s);
     return s;
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

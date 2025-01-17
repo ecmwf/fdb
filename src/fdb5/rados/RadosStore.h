@@ -29,7 +29,6 @@ namespace fdb5 {
 class RadosStore : public Store {
 
 public: // methods
-
     RadosStore(const Schema& schema, const Key& key, const Config& config);
 
     ~RadosStore() override {}
@@ -43,40 +42,38 @@ public: // methods
     void checkUID() const override { /* nothing to do */ }
 
 protected: // methods
-
     std::string type() const override { return "rados"; }
 
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
-    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void *data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void* data,
+                                                 eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
+    eckit::DataHandle* getCachedHandle(const eckit::PathName& path) const;
     void closeDataHandles();
-    eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
-    eckit::DataHandle *createDataHandle(const eckit::PathName &path);
-    eckit::DataHandle& getDataHandle( const eckit::PathName &path );
+    eckit::DataHandle* createFileHandle(const eckit::PathName& path);
+    eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
+    eckit::DataHandle* createDataHandle(const eckit::PathName& path);
+    eckit::DataHandle& getDataHandle(const eckit::PathName& path);
     eckit::PathName generateDataPath(const Key& key) const;
     eckit::PathName getDataPath(const Key& key);
     void flushDataHandles();
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
 private: // types
+    typedef std::map<std::string, eckit::DataHandle*> HandleStore;
+    typedef std::map<Key, std::string> PathStore;
 
-    typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< Key, std::string > PathStore;
+private:                  // members
+    HandleStore handles_; ///< stores the DataHandles being used by the Session
 
-private: // members
-
-    HandleStore handles_;    ///< stores the DataHandles being used by the Session
-
-    PathStore   dataPaths_;
+    PathStore dataPaths_;
     eckit::PathName directory_;
-    
+
     size_t archivedFields_;
 };
 
@@ -84,4 +81,4 @@ private: // members
 
 } // namespace fdb5
 
-#endif //fdb5_RadosStore_H
+#endif // fdb5_RadosStore_H

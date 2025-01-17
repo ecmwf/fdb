@@ -16,18 +16,17 @@
 
 #include "fdb5/api/local/MoveVisitor.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/LibFdb5.h"
 
 #include "eckit/os/Stat.h"
 
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 using namespace eckit;
-
 
 namespace fdb5 {
 namespace api {
@@ -35,17 +34,15 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue,
-                         const metkit::mars::MarsRequest& request,
-                         const eckit::URI& dest) :
-    QueryVisitor<MoveElement>(queue, request),
-    dest_(dest) {}
+MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request,
+                         const eckit::URI& dest)
+    : QueryVisitor<MoveElement>(queue, request)
+    , dest_(dest) {}
 
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue) {
     if (catalogue.key().match(request_)) {
-        catalogue.control(
-            ControlAction::Disable,
-            ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
+        catalogue.control(ControlAction::Disable,
+                          ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
 
         // assert the source is locked for archival...
         ASSERT(!catalogue.enabled(ControlIdentifier::Archive));

@@ -8,14 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "fdb5/toc/FileSpace.h"
+#include "eckit/config/Resource.h"
 #include "eckit/filesystem/StdDir.h"
 #include "eckit/utils/StringTools.h"
 
-#include "eckit/os/BackTrace.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/FileSpaceStrategies.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
@@ -29,15 +29,18 @@ template <>
 struct VectorPrintSelector<fdb5::Root> {
     typedef VectorPrintSimple selector;
 };
-}  // namespace eckit
+} // namespace eckit
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 FileSpace::FileSpace(const std::string& name, const std::string& re, const std::string& handler,
-                     const std::vector<Root>& roots) :
-    name_(name), handler_(handler), re_(re), roots_(roots) {}
+                     const std::vector<Root>& roots)
+    : name_(name)
+    , handler_(handler)
+    , re_(re)
+    , roots_(roots) {}
 
 TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
@@ -87,7 +90,8 @@ bool FileSpace::match(const std::string& s) const {
 
 eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
 
-    static bool searchCaseSensitiveDB = eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
+    static bool searchCaseSensitiveDB =
+        eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
     if (searchCaseSensitiveDB) {
 
@@ -97,15 +101,14 @@ eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
             throw eckit::FailedSystemCall("opendir");
         }
 
-        // Once readdir_r finally gets deprecated and removed, we may need to 
+        // Once readdir_r finally gets deprecated and removed, we may need to
         // protecting readdir() as not yet guarranteed thread-safe by POSIX
         // technically it should only be needed on a per-directory basis
         // this should be a resursive mutex
-        // AutoLock<Mutex> lock(mutex_); 
+        // AutoLock<Mutex> lock(mutex_);
         std::string ldb = eckit::StringTools::lower(db);
 
-        for(;;)
-        {
+        for (;;) {
             struct dirent* e = d.dirent();
             if (e == nullptr) {
                 break;
@@ -120,7 +123,6 @@ eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
     return path / db;
 }
 
-
 bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const {
     unsigned count = 0;
     bool found = false;
@@ -133,7 +135,8 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& exi
             if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
-                bool allowMultipleDbs = (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
+                bool allowMultipleDbs =
+                    (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
                 if (!count || allowMultipleDbs) { // take last
                     existsDB.directory_ = fullDB;
                     existsDB.controlIdentifiers_ = i->controlIdentifiers();
@@ -155,17 +158,15 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& exi
 
 void FileSpace::print(std::ostream& out) const {
     out << "FileSpace("
-        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_
-        << ")";
+        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_ << ")";
 }
 
 std::vector<eckit::PathName> FileSpace::roots() const {
     std::vector<eckit::PathName> result;
-    std::transform(roots_.begin(), roots_.end(), std::back_inserter(result),
-                   [](const Root& r) { return r.path(); });
+    std::transform(roots_.begin(), roots_.end(), std::back_inserter(result), [](const Root& r) { return r.path(); });
     return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

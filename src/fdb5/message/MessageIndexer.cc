@@ -8,28 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Timer.h"
-#include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
-#include "eckit/log/Seconds.h"
+#include "eckit/log/Plural.h"
 #include "eckit/log/Progress.h"
+#include "eckit/log/Seconds.h"
+#include "eckit/log/Timer.h"
 
-#include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
 
 #include "fdb5/message/MessageIndexer.h"
 #include "fdb5/toc/AdoptVisitor.h"
-
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MessageIndexer::MessageIndexer(bool checkDuplicates) :
-    MessageDecoder(checkDuplicates) {
-}
+MessageIndexer::MessageIndexer(bool checkDuplicates) : MessageDecoder(checkDuplicates) {}
 
-void MessageIndexer::index(const eckit::PathName &path) {
+void MessageIndexer::index(const eckit::PathName& path) {
     eckit::Timer timer("fdb::service::archive");
 
     eckit::message::Reader reader(path);
@@ -44,7 +41,7 @@ void MessageIndexer::index(const eckit::PathName &path) {
     eckit::PathName full(path.realName());
 
     eckit::message::Message msg;
-    while ( (msg = reader.next()) ) {
+    while ((msg = reader.next())) {
 
         Key key;
 
@@ -66,9 +63,8 @@ void MessageIndexer::index(const eckit::PathName &path) {
 
     eckit::Log::info() << "FDB indexer " << eckit::Plural(count, "message") << ","
                        << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed())
-                       << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
-
+                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
+                       << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

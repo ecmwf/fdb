@@ -20,20 +20,18 @@
 
 #include "metkit/mars/TypeAny.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
 
 #include "ApiSpy.h"
 
 using namespace eckit::testing;
 using namespace eckit;
 
-
 namespace fdb {
 namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 fdb5::Config defaultConfig() {
 
@@ -53,13 +51,12 @@ fdb5::Config defaultConfig() {
 
     fdb5::Config cfg;
     cfg.set("type", "dist");
-    cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
+    cfg.set("lanes", {cfg_od, cfg_rd1, cfg_rd2});
 
     return cfg;
 }
 
-
-CASE( "archives_distributed_according_to_dist" ) {
+CASE("archives_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -96,9 +93,9 @@ CASE( "archives_distributed_according_to_dist" ) {
             k.set("f", eckit::Translator<int, std::string>()(f));
             k.set("a", eckit::Translator<int, std::string>()(a));
 
-            data.assign(data.size(), 100*f + a);
+            data.assign(data.size(), 100 * f + a);
 
-            size_t len = data.size()*sizeof(int);
+            size_t len = data.size() * sizeof(int);
 
             fdb.archive(k, data.data(), len);
 
@@ -108,7 +105,7 @@ CASE( "archives_distributed_according_to_dist" ) {
 
         fdb.flush();
 
-        EXPECT(spy1.counts().flush + spy2.counts().flush + spy3.counts().flush <= flush_count+3);
+        EXPECT(spy1.counts().flush + spy2.counts().flush + spy3.counts().flush <= flush_count + 3);
 
         flush_count = (spy1.counts().flush + spy2.counts().flush + spy3.counts().flush);
     }
@@ -129,8 +126,7 @@ CASE( "archives_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "retrieves_distributed_according_to_dist" ) {
+CASE("retrieves_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -201,7 +197,7 @@ CASE( "retrieves_distributed_according_to_dist" ) {
     }
 }
 
-CASE( "lists_distributed_according_to_dist" ) {
+CASE("lists_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -267,8 +263,7 @@ CASE( "lists_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "dump_distributed_according_to_dist" ) {
+CASE("dump_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -334,7 +329,7 @@ CASE( "dump_distributed_according_to_dist" ) {
     }
 }
 
-CASE( "status_distributed_according_to_dist" ) {
+CASE("status_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -400,8 +395,7 @@ CASE( "status_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "wipe_distributed_according_to_dist" ) {
+CASE("wipe_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -467,8 +461,7 @@ CASE( "wipe_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "purge_distributed_according_to_dist" ) {
+CASE("purge_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -534,8 +527,7 @@ CASE( "purge_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "stats_distributed_according_to_dist" ) {
+CASE("stats_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -601,8 +593,7 @@ CASE( "stats_distributed_according_to_dist" ) {
     }
 }
 
-
-CASE( "control_distributed_according_to_dist" ) {
+CASE("control_distributed_according_to_dist") {
 
     // Build FDB from default config
 
@@ -614,15 +605,15 @@ CASE( "control_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0],
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy1.counts().control == 1);
     EXPECT(spy2.counts().control == 1);
     EXPECT(spy3.counts().control == 1);
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0],
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0], fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
 
     EXPECT(spy1.counts().control == 2);
     EXPECT(spy2.counts().control == 2);
@@ -631,8 +622,8 @@ CASE( "control_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0],
-                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0], fdb5::ControlAction::Enable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
 
     EXPECT(spy1.counts().control == 3);
     EXPECT(spy2.counts().control == 3);
@@ -640,8 +631,8 @@ CASE( "control_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd")[0],
-                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd")[0], fdb5::ControlAction::Enable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
 
     EXPECT(spy1.counts().control == 4);
     EXPECT(spy2.counts().control == 4);
@@ -649,8 +640,8 @@ CASE( "control_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.control(fdb5::FDBToolRequest({}, true),
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+    fdb.control(fdb5::FDBToolRequest({}, true), fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy1.counts().control == 5);
     EXPECT(spy2.counts().control == 5);
@@ -673,10 +664,9 @@ CASE( "control_distributed_according_to_dist" ) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+} // namespace test
+} // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

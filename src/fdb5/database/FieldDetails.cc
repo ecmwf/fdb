@@ -15,16 +15,11 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 void FieldDetails::print(std::ostream& out) const {
-    out
-    << "(referenceValue=" <<       referenceValue_
-    << ",binaryScaleFactor=" <<    binaryScaleFactor_
-    << ",decimalScaleFactor=" <<   decimalScaleFactor_
-    << ",bitsPerValue=" <<         bitsPerValue_
-    << ",offsetBeforeData=" <<     offsetBeforeData_
-    << ",offsetBeforeBitmap=" <<   offsetBeforeBitmap_
-    << ",numberOfValues=" <<       numberOfValues_
-    << ",numberOfDataPoints=" <<   numberOfDataPoints_
-    << ",sphericalHarmonics=" <<   sphericalHarmonics_ << ")";
+    out << "(referenceValue=" << referenceValue_ << ",binaryScaleFactor=" << binaryScaleFactor_
+        << ",decimalScaleFactor=" << decimalScaleFactor_ << ",bitsPerValue=" << bitsPerValue_
+        << ",offsetBeforeData=" << offsetBeforeData_ << ",offsetBeforeBitmap=" << offsetBeforeBitmap_
+        << ",numberOfValues=" << numberOfValues_ << ",numberOfDataPoints=" << numberOfDataPoints_
+        << ",sphericalHarmonics=" << sphericalHarmonics_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

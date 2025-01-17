@@ -15,8 +15,8 @@
 #ifndef fdb5_FDBFileHandle_h
 #define fdb5_FDBFileHandle_h
 
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 
 namespace fdb5 {
 
@@ -30,35 +30,31 @@ namespace fdb5 {
 ///   * this is not thread-safe neither multi-process safe
 
 class FDBFileHandle : public eckit::DataHandle {
-public:  // methods
-
+public: // methods
     FDBFileHandle(const std::string&, size_t buffer);
 
     ~FDBFileHandle();
 
     eckit::Length openForRead() override;
-    void   openForWrite(const eckit::Length &) override;
-    void   openForAppend(const eckit::Length &) override;
+    void openForWrite(const eckit::Length&) override;
+    void openForAppend(const eckit::Length&) override;
 
-    long   read(void *, long) override;
-    long   write(const void *, long) override;
-    void   close() override;
-    void   flush() override;
-    void print(std::ostream &) const override;
+    long read(void*, long) override;
+    long write(const void*, long) override;
+    void close() override;
+    void flush() override;
+    void print(std::ostream&) const override;
     eckit::Offset position() override;
     std::string title() const override;
     bool canSeek() const override { return false; }
 
 protected: // members
-
-    std::string      path_;
+    std::string path_;
 
 private: // members
-
-    FILE            *file_;
-    eckit::Buffer    buffer_;
+    FILE* file_;
+    eckit::Buffer buffer_;
     off_t pos_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

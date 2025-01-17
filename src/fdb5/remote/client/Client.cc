@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/remote/client/Client.h"
@@ -26,15 +25,15 @@ void Client::setClientID() {
     id_ = ++clientId_;
 }
 
-Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
-    connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
+Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint)
+    : connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
 
     setClientID();
     connection_.add(*this);
 }
 
-Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
-    connection_(ClientConnectionRouter::instance().connection(endpoints)) {
+Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints)
+    : connection_(ClientConnectionRouter::instance().connection(endpoints)) {
 
     setClientID();
     connection_.add(*this);
@@ -44,7 +43,8 @@ Client::~Client() {
     connection_.remove(id_);
 }
 
-void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload, uint32_t payloadLength) {
+void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload,
+                                       uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
@@ -60,12 +60,13 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dat
     ASSERT(f.get().size() == 0);
 }
 
-eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload,
+                                               uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
-    
+
     std::vector<std::pair<const void*, uint32_t>> data{};
     if (payloadLength) {
         data.push_back(std::make_pair(payload, payloadLength));

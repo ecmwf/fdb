@@ -26,11 +26,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatsContent : public eckit::Counted,
-                          public eckit::Statistics,
-                          public eckit::Streamable {
+class IndexStatsContent : public eckit::Counted, public eckit::Statistics, public eckit::Streamable {
 public:
-
     ~IndexStatsContent() override;
 
     virtual size_t fieldsCount() const = 0;
@@ -50,12 +47,10 @@ public:
     virtual void report(std::ostream& out, const char* indent) const = 0;
 
 public: // For Streamable
-
     void encode(eckit::Stream& s) const override = 0;
 
 protected: // For Streamable
-
-    static eckit::ClassSpec                  classSpec_;
+    static eckit::ClassSpec classSpec_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -65,7 +60,6 @@ protected: // For Streamable
 class IndexStats {
 
 public: // methods
-
     IndexStats();
     IndexStats(IndexStatsContent*);
 
@@ -75,7 +69,7 @@ public: // methods
 
     IndexStats& operator=(const IndexStats&);
 
-    IndexStats& operator+= (const IndexStats& rhs);
+    IndexStats& operator+=(const IndexStats& rhs);
 
     size_t fieldsCount() const { return content_->fieldsCount(); }
     size_t duplicatesCount() const { return content_->duplicatesCount(); }
@@ -93,18 +87,18 @@ public: // methods
 
     void report(std::ostream& out, const char* indent = "") const;
 
-//    template <class T>
-//    T& as() {
-//        return dynamic_cast<T&>(*content_);
-//    }
+    //    template <class T>
+    //    T& as() {
+    //        return dynamic_cast<T&>(*content_);
+    //    }
 
 private: // methods
-
     void print(std::ostream&) const;
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexStats& o) {
-        o.print(s); return s;
+        o.print(s);
+        return s;
     }
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const IndexStats& r) {
@@ -113,7 +107,6 @@ private: // methods
     }
 
 private: // members
-
     IndexStatsContent* content_;
 };
 

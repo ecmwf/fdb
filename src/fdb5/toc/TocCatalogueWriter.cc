@@ -11,18 +11,18 @@
 #include "fdb5/fdb5_config.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/log/Log.h"
-#include "eckit/log/Bytes.h"
 #include "eckit/io/EmptyHandle.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Log.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/LibFdb5.h"
+#include "fdb5/io/LustreSettings.h"
+#include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
-#include "fdb5/toc/RootManager.h"
-#include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
 
@@ -30,20 +30,19 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
-    TocCatalogue(dbKey, config),
-    umask_(config.umask()),
-    archivedLocations_(0) {
+TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config)
+    : TocCatalogue(dbKey, config)
+    , umask_(config.umask())
+    , archivedLocations_(0) {
     writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }
 
-TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers{}, config),
-    umask_(config.umask()),
-    archivedLocations_(0) {
+TocCatalogueWriter::TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config)
+    : TocCatalogue(uri.path(), ControlIdentifiers{}, config)
+    , umask_(config.umask())
+    , archivedLocations_(0) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -125,7 +124,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {
     archivedLocations_++;
 
     if (current_.null()) {
@@ -151,16 +150,15 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     class ConsolidateIndexVisitor : public EntryVisitor {
     public:
-        ConsolidateIndexVisitor(TocCatalogueWriter& writer) :
-            writer_(writer) {}
+        ConsolidateIndexVisitor(TocCatalogueWriter& writer) : writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
+
     private:
         void visitDatum(const Field& field, const Key& datumKey) override {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(datumKey, location.uri(), location.offset(), location.length());
-
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
             EntryVisitor::visitDatum(field, keyFingerprint);
@@ -188,7 +186,8 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         Log::info() << "Visiting index: " << idx.location().uri() << std::endl;
 
         // We need to explicitly mask indexes in the master TOC
-        if (!indexInSubtoc[i]) maskable_indexes += 1;
+        if (!indexInSubtoc[i])
+            maskable_indexes += 1;
     }
 
     // Flush the new indexes and add relevant entries!
@@ -265,7 +264,8 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
                 std::stringstream ss;
-                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
+                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : "
+                   << otherKey;
                 throw UserError(ss.str(), Here());
             }
         }
@@ -303,15 +303,17 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+                                 std::shared_ptr<const FieldLocation> fieldLocation) {
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     } else {
-        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the indexKey used for store archival. Reset it
-        if(currentIndexKey_ != idxKey) {
+        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
+        // indexKey used for store archival. Reset it
+        if (currentIndexKey_ != idxKey) {
             selectIndex(idxKey);
         }
     }
@@ -339,7 +341,7 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
 }
 
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
-    eckit::PathName tocPath ( directory_ );
+    eckit::PathName tocPath(directory_);
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";
     return tocPath;
@@ -351,7 +353,7 @@ eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
 // the data that is indexes thorughout the lifetime of the DBWriter, which can be
 // compacted later for read performance.
 void TocCatalogueWriter::flushIndexes() {
-    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         Index& idx = j->second;
 
         if (idx.dirty()) {
@@ -362,19 +364,18 @@ void TocCatalogueWriter::flushIndexes() {
     }
 }
 
-
 void TocCatalogueWriter::closeIndexes() {
-    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         Index& idx = j->second;
         idx.close();
     }
 
-    for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j ) {
+    for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {
         Index& idx = j->second;
         idx.close();
     }
 
-    indexes_.clear(); // all indexes instances destroyed
+    indexes_.clear();     // all indexes instances destroyed
     fullIndexes_.clear(); // all indexes instances destroyed
 }
 
@@ -414,8 +415,7 @@ void TocCatalogueWriter::compactSubTocIndexes() {
     }
 }
 
-
-void TocCatalogueWriter::print(std::ostream &out) const {
+void TocCatalogueWriter::print(std::ostream& out) const {
     out << "TocCatalogueWriter(" << directory() << ")";
 }
 

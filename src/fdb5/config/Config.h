@@ -15,13 +15,12 @@
 #ifndef fdb5_config_Config_H
 #define fdb5_config_Config_H
 
-#include <sys/stat.h>   // for mode_t
+#include <sys/stat.h> // for mode_t
 
 #include <string>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
-
 
 namespace fdb5 {
 
@@ -30,10 +29,11 @@ class Schema;
 //----------------------------------------------------------------------------------------------------------------------
 
 class Config : public eckit::LocalConfiguration {
-public:  // static methods
-    static Config make(const eckit::PathName& path, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+public: // static methods
+    static Config make(const eckit::PathName& path,
+                       const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
-public:  // methods
+public: // methods
     Config();
     Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
@@ -46,7 +46,6 @@ public:  // methods
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
-
 
     void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
     const eckit::PathName& schemaPath() const;
@@ -61,10 +60,10 @@ public:  // methods
     std::vector<Config> getSubConfigs(const std::string& name) const;
     std::vector<Config> getSubConfigs() const;
 
-private:  // methods
+private: // methods
     void initializeSchemaPath() const;
 
-private:  // members
+private: // members
     mutable eckit::PathName schemaPath_;
     mutable bool schemaPathInitialised_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
@@ -72,6 +71,6 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5
 
-#endif  // fdb5_config_Config_H
+#endif // fdb5_config_Config_H

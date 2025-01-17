@@ -15,33 +15,31 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
-#include "fdb5/message/MessageDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/message/MessageDecoder.h"
 #include "fdb5/tools/FDBTool.h"
 
-
 class FDBUrl : public fdb5::FDBTool {
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
-  public:
-    FDBUrl(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+
+public:
+    FDBUrl(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("uri", "Inspect -> URI -> Read"));
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
-        options_.push_back(
-                    new eckit::option::SimpleOption<bool>("statistics",
-                                                          "Report timing statistics"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report timing statistics"));
     }
 };
 
-void FDBUrl::usage(const std::string &tool) const {
+void FDBUrl::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " request.mars target.grib" << std::endl
                        << "       " << tool << " --raw request.mars target.grib" << std::endl
@@ -51,7 +49,7 @@ void FDBUrl::usage(const std::string &tool) const {
     fdb5::FDBTool::usage(tool);
 }
 
-void FDBUrl::execute(const eckit::option::CmdArgs &args) {
+void FDBUrl::execute(const eckit::option::CmdArgs& args) {
 
     bool extract = args.getBool("extract", false);
     bool raw = args.getBool("raw", false);
@@ -120,9 +118,7 @@ void FDBUrl::execute(const eckit::option::CmdArgs &args) {
     dh->saveInto(out);
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBUrl app(argc, argv);
     return app.start();
 }
-

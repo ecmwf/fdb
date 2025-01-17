@@ -186,5 +186,4 @@ void FDBInspect::usage(const std::string &tool) const {
 
 } // namespace fdb5
 
-
 #endif

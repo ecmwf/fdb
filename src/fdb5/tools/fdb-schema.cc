@@ -10,8 +10,8 @@
 
 #include <memory>
 
-#include "eckit/option/CmdArgs.h"
 #include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
@@ -26,20 +26,19 @@ namespace tools {
 //----------------------------------------------------------------------------------------------------------------------
 
 class FdbSchema : public FDBTool {
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
+
 public:
-    FdbSchema(int argc, char **argv): FDBTool(argc, argv) {}
+    FdbSchema(int argc, char** argv) : FDBTool(argc, argv) {}
 };
 
-void FdbSchema::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " [shema] ..." << std::endl;
+void FdbSchema::usage(const std::string& tool) const {
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [shema] ..." << std::endl;
     FDBTool::usage(tool);
 }
 
-void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
-
+void FdbSchema::execute(const eckit::option::CmdArgs& args) {
 
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
@@ -56,7 +55,8 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
             eckit::PathName path(args(i));
 
             if (path.isDir()) {
-                std::unique_ptr<CatalogueReader> cat = CatalogueReaderFactory::instance().build(eckit::URI("toc", path), fdb5::Config());
+                std::unique_ptr<CatalogueReader> cat =
+                    CatalogueReaderFactory::instance().build(eckit::URI("toc", path), fdb5::Config());
                 ASSERT(cat->open());
                 cat->schema().dump(Log::info());
             } else {
@@ -73,8 +73,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 } // namespace tools
 } // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbSchema app(argc, argv);
     return app.start();
 }
-

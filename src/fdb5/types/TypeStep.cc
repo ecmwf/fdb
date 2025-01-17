@@ -14,48 +14,45 @@
 #include "metkit/mars/StepRange.h"
 #include "metkit/mars/StepRangeNormalise.h"
 
-#include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeStep.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/types/TypeStep.h"
+#include "fdb5/types/TypesFactory.h"
 
 using metkit::mars::StepRange;
 using metkit::mars::StepRangeNormalise;
-
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeStep::TypeStep(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeStep::TypeStep(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeStep::~TypeStep() {
-}
-
+TypeStep::~TypeStep() {}
 
 std::string TypeStep::toKey(const std::string& value) const {
     return StepRange(value);
 }
 
-bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const
-{
-    if(value1 == value2) { return true; }
+bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const {
+    if (value1 == value2) {
+        return true;
+    }
 
     std::string z1 = "0-" + value1;
-    if(z1 == value2) { return true; }
+    if (z1 == value2) {
+        return true;
+    }
 
     std::string z2 = "0-" + value2;
-    if(z2 == value1) { return true; }
+    if (z2 == value1) {
+        return true;
+    }
 
     return false;
 }
 
-void TypeStep::getValues(const metkit::mars::MarsRequest& request,
-                         const std::string& keyword,
-                         eckit::StringList& values,
-                         const Notifier&,
-                         const CatalogueReader* cat) const {
+void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                         eckit::StringList& values, const Notifier&, const CatalogueReader* cat) const {
 
     // Get the steps / step ranges from the request
 
@@ -75,7 +72,7 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
         cat->axis("step", ax);
 
         std::vector<StepRange> axis;
-        for (auto step: ax) {
+        for (auto step : ax) {
             if (!step.empty()) {
                 axis.push_back(StepRange(step));
             }
@@ -92,11 +89,10 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
     eckit::Translator<StepRange, std::string> t;
 
     values.reserve(ranges.size());
-    std::transform(ranges.begin(), ranges.end(), std::back_inserter(values),
-                   [&](const StepRange& r) { return t(r); });
+    std::transform(ranges.begin(), ranges.end(), std::back_inserter(values), [&](const StepRange& r) { return t(r); });
 }
 
-void TypeStep::print(std::ostream &out) const {
+void TypeStep::print(std::ostream& out) const {
     out << "TypeStep[name=" << name_ << "]";
 }
 

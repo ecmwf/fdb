@@ -16,8 +16,8 @@
 #ifndef fdb5_FieldLocation_H
 #define fdb5_FieldLocation_H
 
-#include <memory>
 #include <eckit/filesystem/URI.h>
+#include <memory>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
@@ -27,7 +27,7 @@
 #include "fdb5/database/Key.h"
 
 namespace eckit {
-    class DataHandle;
+class DataHandle;
 }
 
 namespace fdb5 {
@@ -39,7 +39,6 @@ class FieldLocationVisitor;
 class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
-
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
     FieldLocation(const eckit::URI& uri);
     FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
@@ -55,7 +54,7 @@ public: // methods
     virtual eckit::Length length() const { return length_; }
     const Key& remapKey() const { return remapKey_; }
 
-    virtual eckit::DataHandle *dataHandle() const = 0;
+    virtual eckit::DataHandle* dataHandle() const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
     virtual std::shared_ptr<const FieldLocation> make_shared() const = 0;
@@ -64,28 +63,24 @@ public: // methods
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
-    virtual void dump(std::ostream &out) const;
+    virtual void dump(std::ostream& out) const;
 
 private: // methods
-
-    virtual void print( std::ostream &out ) const;
+    virtual void print(std::ostream& out) const;
 
 protected: // For Streamable
-
     void encode(eckit::Stream&) const override;
 
-    static eckit::ClassSpec                  classSpec_;
+    static eckit::ClassSpec classSpec_;
 
 protected: // members
-
     eckit::URI uri_;
     eckit::Offset offset_;
     eckit::Length length_;
     Key remapKey_;
 
 private: // friends
-
-    friend std::ostream &operator<<(std::ostream &s, const FieldLocation &x) {
+    friend std::ostream& operator<<(std::ostream& s, const FieldLocation& x) {
         x.print(s);
         return s;
     }
@@ -97,68 +92,67 @@ private: // friends
 
 //----------------------------------------------------------------------------------------------------------------------
 
-    class FieldLocationBuilderBase {
-        std::string name_;
-    public:
-        FieldLocationBuilderBase(const std::string &);
-        virtual ~FieldLocationBuilderBase();
-        virtual FieldLocation* make(const eckit::URI &uri) = 0;
-        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
-    };
+class FieldLocationBuilderBase {
+    std::string name_;
 
-    template< class T>
-    class FieldLocationBuilder : public FieldLocationBuilderBase {
-        FieldLocation* make(const eckit::URI &uri) override {
-            return new T(uri);
-        }
-        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) override {
-            return new T(uri, offset, length, remapKey);
-        }
-    public:
-        FieldLocationBuilder(const std::string &name) : FieldLocationBuilderBase(name) {}
-        virtual ~FieldLocationBuilder() = default;
-    };
+public:
+    FieldLocationBuilderBase(const std::string&);
+    virtual ~FieldLocationBuilderBase();
+    virtual FieldLocation* make(const eckit::URI& uri) = 0;
+    virtual FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                const Key& remapKey) = 0;
+};
 
-    class FieldLocationFactory {
-    public:
+template <class T>
+class FieldLocationBuilder : public FieldLocationBuilderBase {
+    FieldLocation* make(const eckit::URI& uri) override { return new T(uri); }
+    FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                        const Key& remapKey) override {
+        return new T(uri, offset, length, remapKey);
+    }
 
-        static FieldLocationFactory& instance();
+public:
+    FieldLocationBuilder(const std::string& name) : FieldLocationBuilderBase(name) {}
+    virtual ~FieldLocationBuilder() = default;
+};
 
-        void add(const std::string& name, FieldLocationBuilderBase* builder);
-        void remove(const std::string& name);
+class FieldLocationFactory {
+public:
+    static FieldLocationFactory& instance();
 
-        bool has(const std::string& name);
-        void list(std::ostream &);
+    void add(const std::string& name, FieldLocationBuilderBase* builder);
+    void remove(const std::string& name);
 
-        /// @returns a specialized FieldLocation built by specified builder
-        FieldLocation* build(const std::string &, const eckit::URI &);
-        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    bool has(const std::string& name);
+    void list(std::ostream&);
 
-    private:
+    /// @returns a specialized FieldLocation built by specified builder
+    FieldLocation* build(const std::string&, const eckit::URI&);
+    FieldLocation* build(const std::string&, const eckit::URI&, eckit::Offset offset, eckit::Length length,
+                         const Key& remapKey);
 
-        FieldLocationFactory();
+private:
+    FieldLocationFactory();
 
-        std::map<std::string, FieldLocationBuilderBase*> builders_;
-        eckit::Mutex mutex_;
-    };
+    std::map<std::string, FieldLocationBuilderBase*> builders_;
+    eckit::Mutex mutex_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 class FieldLocationVisitor : private eckit::NonCopyable {
 
 public: // methods
-
     virtual ~FieldLocationVisitor();
 
-    virtual void operator() (const FieldLocation& location) = 0;
-
+    virtual void operator()(const FieldLocation& location) = 0;
 };
 
 class FieldLocationPrinter : public FieldLocationVisitor {
 public:
     FieldLocationPrinter(std::ostream& out) : out_(out) {}
-    virtual void operator() (const FieldLocation& location);
+    virtual void operator()(const FieldLocation& location);
+
 private:
     std::ostream& out_;
 };

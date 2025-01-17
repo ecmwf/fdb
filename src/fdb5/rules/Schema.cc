@@ -25,26 +25,28 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema", };
+eckit::ClassSpec Schema::classSpec_ = {
+    &eckit::Streamable::classSpec(),
+    "Schema",
+};
 
 eckit::Reanimator<Schema> Schema::reanimator_;
 
 Schema::Schema() = default;
 
-Schema::Schema(const eckit::PathName &path) {
+Schema::Schema(const eckit::PathName& path) {
     load(path);
 }
 
 Schema::Schema(std::istream& s) {
     load(s);
 }
-Schema::Schema(eckit::Stream& s) :
-    registry_(s) {
+Schema::Schema(eckit::Stream& s) : registry_(s) {
 
     size_t numRules;
     s >> path_;
     s >> numRules;
-    for (size_t i=0; i < numRules; i++) {
+    for (size_t i = 0; i < numRules; i++) {
         rules_.push_back(new Rule(*this, s));
     }
 
@@ -64,13 +66,13 @@ Schema::~Schema() {
     clear();
 }
 
-const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
+const Rule* Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     std::vector<Key> keys;
     keys.push_back(dbKey);
     keys.push_back(idxKey);
 
     for (const Rule* rule : rules_) {
-        const Rule* r = rule->ruleFor(keys , 0);
+        const Rule* r = rule->ruleFor(keys, 0);
         if (r) {
             return r;
         }
@@ -78,16 +80,16 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
-void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
+void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
     TypedKey fullComputedKey{registry()};
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
     for (Rule* r : rules_) {
-		r->expand(request, visitor, 0, keys, fullComputedKey);
+        r->expand(request, visitor, 0, keys, fullComputedKey);
     }
 }
 
-void Schema::expand(const Key& field, WriteVisitor &visitor) const {
+void Schema::expand(const Key& field, WriteVisitor& visitor) const {
     TypedKey fullComputedKey{registry()};
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
 
@@ -112,7 +114,7 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
     TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+    for (std::vector<Rule*>::const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(request, visitor, 1, keys, fullComputedKey);
     }
 }
@@ -131,7 +133,7 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     std::vector<TypedKey> keys(3, TypedKey{{}, registry()});
     TypedKey fullComputedKey = keys[0] = TypedKey{dbKey, registry()};
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+    for (std::vector<Rule*>::const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(field, visitor, 1, keys, fullComputedKey);
     }
 }
@@ -148,19 +150,20 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey
     return found;
 }
 
-void Schema::matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const {
+void Schema::matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
-void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result,
+                             const char* missing) const {
     for (const Rule* rule : rules_) {
         rule->matchFirstLevel(request, result, missing);
     }
 }
 
-void Schema::load(const eckit::PathName &path, bool replace) {
+void Schema::load(const eckit::PathName& path, bool replace) {
 
     path_ = path;
 
@@ -189,14 +192,14 @@ void Schema::load(std::istream& s, bool replace) {
 }
 
 void Schema::clear() {
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i) {
         delete *i;
     }
 }
 
-void Schema::dump(std::ostream &s) const {
+void Schema::dump(std::ostream& s) const {
     registry_.dump(s);
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
         (*i)->dump(s);
         s << std::endl;
     }
@@ -211,20 +214,19 @@ void Schema::check() {
     }
 }
 
-void Schema::print(std::ostream &out) const {
+void Schema::print(std::ostream& out) const {
     out << "Schema[path=" << path_ << "]";
 }
 
-const Type &Schema::lookupType(const std::string &keyword) const {
+const Type& Schema::lookupType(const std::string& keyword) const {
     return registry_.lookupType(keyword);
 }
-
 
 bool Schema::empty() const {
     return rules_.empty();
 }
 
-const std::string &Schema::path() const {
+const std::string& Schema::path() const {
     return path_;
 }
 
@@ -232,7 +234,7 @@ const TypesRegistry& Schema::registry() const {
     return registry_;
 }
 
-std::ostream &operator<<(std::ostream &s, const Schema &x) {
+std::ostream& operator<<(std::ostream& s, const Schema& x) {
     x.print(s);
     return s;
 }

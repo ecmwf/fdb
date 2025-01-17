@@ -17,8 +17,8 @@
 #define fdb5_HandleGatherer_H
 
 #include <cstdlib>
-#include <vector>
 #include <iosfwd>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
@@ -26,40 +26,33 @@ namespace eckit {
 class DataHandle;
 }
 
-
 namespace fdb5 {
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class HandleGatherer : public eckit::NonCopyable {
 
 public: // methods
-
     HandleGatherer(bool sorted);
 
     ~HandleGatherer();
 
-    void add(eckit::DataHandle *);
+    void add(eckit::DataHandle*);
 
-    eckit::DataHandle *dataHandle();
+    eckit::DataHandle* dataHandle();
 
     size_t count() const;
 
-
 private: // members
-
     bool sorted_;
-    std::vector<eckit::DataHandle *> handles_;
+    std::vector<eckit::DataHandle*> handles_;
     size_t count_;
 
-    void print( std::ostream &out ) const;
-    friend std::ostream &operator<<(std::ostream &s, const HandleGatherer &x) {
+    void print(std::ostream& out) const;
+    friend std::ostream& operator<<(std::ostream& s, const HandleGatherer& x) {
         x.print(s);
         return s;
     }
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

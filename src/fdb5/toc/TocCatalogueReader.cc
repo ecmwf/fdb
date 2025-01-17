@@ -13,22 +13,21 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
-    TocCatalogue(dbKey, config) {
+TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) : TocCatalogue(dbKey, config) {
     loadIndexesAndRemap();
 }
 
-TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers{}, config) {
+TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config)
+    : TocCatalogue(uri.path(), ControlIdentifiers{}, config) {
     loadIndexesAndRemap();
 }
 
@@ -50,7 +49,7 @@ void TocCatalogueReader::loadIndexesAndRemap() {
 
 bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
-    if(currentIndexKey_ == idxKey) {
+    if (currentIndexKey_ == idxKey) {
         return true;
     }
 
@@ -63,8 +62,8 @@ bool TocCatalogueReader::selectIndex(const Key& idxKey) {
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found "
-                                << matching_.size() << " matche(s)" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found " << matching_.size()
+                           << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
 }
@@ -87,7 +86,7 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool TocCatalogueReader::axis(const std::string& keyword, eckit::StringSet& s) const {
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {
@@ -123,7 +122,7 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     return false;
 }
 
-void TocCatalogueReader::print(std::ostream &out) const {
+void TocCatalogueReader::print(std::ostream& out) const {
     out << "TocCatalogueReader(" << directory() << ")";
 }
 

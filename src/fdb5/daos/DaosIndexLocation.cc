@@ -16,10 +16,9 @@ namespace fdb5 {
 
 DaosIndexLocation::DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t offset) : name_(name), offset_(offset) {}
 
-void DaosIndexLocation::print(std::ostream &out) const {
+void DaosIndexLocation::print(std::ostream& out) const {
 
     out << "(" << name_.URI().asString() << ":" << offset_ << ")";
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------

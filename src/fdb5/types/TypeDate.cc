@@ -13,22 +13,18 @@
 #include "eckit/types/Date.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeDate.h"
+#include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDate::TypeDate(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeDate::TypeDate(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeDate::~TypeDate() {
-}
+TypeDate::~TypeDate() {}
 
-
-std::string TypeDate::tidy(const std::string &value) const {
+std::string TypeDate::tidy(const std::string& value) const {
 
     if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
         eckit::Translator<std::string, long> t;
@@ -40,14 +36,10 @@ std::string TypeDate::tidy(const std::string &value) const {
         }
     }
     return value;
-
 }
 
-void TypeDate::getValues(const metkit::mars::MarsRequest & request,
-                         const std::string & keyword,
-                         eckit::StringList & values,
-                         const Notifier&,
-                         const CatalogueReader*) const {
+void TypeDate::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                         eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);
@@ -61,7 +53,7 @@ void TypeDate::getValues(const metkit::mars::MarsRequest & request,
     }
 }
 
-void TypeDate::print(std::ostream & out) const {
+void TypeDate::print(std::ostream& out) const {
     out << "TypeDate[name=" << name_ << "]";
 }
 

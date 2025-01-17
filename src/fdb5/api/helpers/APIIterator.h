@@ -21,10 +21,10 @@
 
 #include "eckit/container/Queue.h"
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <queue>
-#include <exception>
 
 /*
  * Given a standard, copyable, element, provide a mechanism for iterating over
@@ -39,7 +39,6 @@ template <typename ValueType>
 class APIIteratorBase {
 
 public: // methods
-
     APIIteratorBase() {}
     virtual ~APIIteratorBase() {}
 
@@ -52,22 +51,19 @@ template <typename ValueType>
 class APIIterator {
 
 public: // types
-
     using value_type = ValueType;
 
 public: // methods
-
-    APIIterator(APIIteratorBase<ValueType>* impl) :
-        impl_(impl) {}
+    APIIterator(APIIteratorBase<ValueType>* impl) : impl_(impl) {}
 
     /// Get the next element. Return false if at end
     bool next(ValueType& elem) {
-        if (!impl_) return false;
+        if (!impl_)
+            return false;
         return impl_->next(elem);
     }
 
 private: // members
-
     std::unique_ptr<APIIteratorBase<ValueType>> impl_;
 };
 
@@ -79,9 +75,7 @@ template <typename ValueType>
 class APIAggregateIterator : public APIIteratorBase<ValueType> {
 
 public: // methods
-
-    APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) :
-        iterators_(std::move(iterators)) {}
+    APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) : iterators_(std::move(iterators)) {}
 
     ~APIAggregateIterator() override {}
 
@@ -99,10 +93,8 @@ public: // methods
     }
 
 private: // members
-
     std::queue<APIIterator<ValueType>> iterators_;
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -117,10 +109,8 @@ template <typename ValueType>
 class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public: // methods
-
-    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn,
-                     size_t queueSize=100) :
-        queue_(queueSize) {
+    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn, size_t queueSize = 100)
+        : queue_(queueSize) {
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {
@@ -144,17 +134,13 @@ public: // methods
         workerThread_.join();
     }
 
-    bool next(ValueType& elem) override {
-        return !(queue_.pop(elem) == -1);
-    }
+    bool next(ValueType& elem) override { return !(queue_.pop(elem) == -1); }
 
 private: // members
-
     eckit::Queue<ValueType> queue_;
 
     std::thread workerThread_;
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

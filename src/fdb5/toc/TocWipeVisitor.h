@@ -14,7 +14,6 @@
 #ifndef fdb5_TocWipeVisitor_H
 #define fdb5_TocWipeVisitor_H
 
-
 #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/toc/TocCatalogue.h"
 
@@ -25,18 +24,11 @@ namespace fdb5 {
 class TocWipeVisitor : public WipeVisitor {
 
 public:
-
-    TocWipeVisitor(const TocCatalogue& catalogue,
-                   const Store& store,
-                   const metkit::mars::MarsRequest& request,
-                   std::ostream& out,
-                   bool doit,
-                   bool porcelain,
-                   bool unsafeWipeAll);
+    TocWipeVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+                   std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll);
     ~TocWipeVisitor() override;
 
 private: // methods
-
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
@@ -53,7 +45,6 @@ private: // methods
     void wipe(bool wipeAll);
 
 private: // members
-
     // What are the parameters of the wipe operation
     const TocCatalogue& catalogue_;
     const Store& store_;

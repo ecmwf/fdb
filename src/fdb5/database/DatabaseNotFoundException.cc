@@ -16,9 +16,9 @@ namespace fdb5 {
 
 DatabaseNotFoundException::DatabaseNotFoundException(const std::string& w) : Exception(w) {}
 
-DatabaseNotFoundException::DatabaseNotFoundException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+DatabaseNotFoundException::DatabaseNotFoundException(const std::string& w, const eckit::CodeLocation& l)
+    : Exception(w, l) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

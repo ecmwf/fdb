@@ -1,4 +1,4 @@
- /*
+/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -20,11 +20,14 @@
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/Parameter.h"
 
- namespace fdb5 {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec TypesRegistry::classSpec_ = { &eckit::Streamable::classSpec(), "TypesRegistry", };
+eckit::ClassSpec TypesRegistry::classSpec_ = {
+    &eckit::Streamable::classSpec(),
+    "TypesRegistry",
+};
 
 eckit::Reanimator<TypesRegistry> TypesRegistry::reanimator_;
 
@@ -37,7 +40,7 @@ TypesRegistry::TypesRegistry(eckit::Stream& s) {
     std::string type;
 
     s >> numTypes;
-    for (size_t i=0; i<numTypes; i++) {
+    for (size_t i = 0; i < numTypes; i++) {
         s >> name;
         s >> type;
         types_[name] = type;
@@ -47,29 +50,30 @@ TypesRegistry::TypesRegistry(eckit::Stream& s) {
 void TypesRegistry::encode(eckit::Stream& s) const {
 
     s << types_.size();
-    for (auto t: types_) {
+    for (auto t : types_) {
         s << t.first;
         s << t.second;
     }
 }
 
-
 TypesRegistry::~TypesRegistry() {
-    for (auto& item : cache_) { delete item.second; }
+    for (auto& item : cache_) {
+        delete item.second;
+    }
 }
 
 void TypesRegistry::updateParent(const TypesRegistry& parent) {
     parent_ = std::cref(parent);
 }
 
-void TypesRegistry::addType(const std::string &keyword, const std::string &type) {
+void TypesRegistry::addType(const std::string& keyword, const std::string& type) {
     ASSERT(types_.find(keyword) == types_.end());
     types_[keyword] = type;
 }
 
-const Type &TypesRegistry::lookupType(const std::string &keyword) const {
+const Type& TypesRegistry::lookupType(const std::string& keyword) const {
 
-    std::map<std::string, Type *>::const_iterator j = cache_.find(keyword);
+    std::map<std::string, Type*>::const_iterator j = cache_.find(keyword);
 
     if (j != cache_.end()) {
         return *(*j).second;
@@ -106,23 +110,22 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
     return result;
 }
 
-std::ostream &operator<<(std::ostream &s, const TypesRegistry &x) {
+std::ostream& operator<<(std::ostream& s, const TypesRegistry& x) {
     x.print(s);
     return s;
 }
 
-void TypesRegistry::print( std::ostream &out ) const {
+void TypesRegistry::print(std::ostream& out) const {
     out << this << "(" << types_ << ")";
 }
 
-void TypesRegistry::dump( std::ostream &out ) const {
+void TypesRegistry::dump(std::ostream& out) const {
     for (std::map<std::string, std::string>::const_iterator i = types_.begin(); i != types_.end(); ++i) {
         out << i->first << ":" << i->second << ";" << std::endl;
     }
 }
 
-
-void TypesRegistry::dump( std::ostream &out, const std::string &keyword ) const {
+void TypesRegistry::dump(std::ostream& out, const std::string& keyword) const {
     std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
 
     out << keyword;
@@ -133,4 +136,4 @@ void TypesRegistry::dump( std::ostream &out, const std::string &keyword ) const 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

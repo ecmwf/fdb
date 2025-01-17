@@ -32,9 +32,9 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlIdentifierIterator::ControlIdentifierIterator(const ControlIdentifiers& identifiers) :
-    value_(0),
-    remaining_(identifiers.value_) {
+ControlIdentifierIterator::ControlIdentifierIterator(const ControlIdentifiers& identifiers)
+    : value_(0)
+    , remaining_(identifiers.value_) {
 
     if (remaining_ != 0) {
         nextValue();
@@ -65,7 +65,8 @@ void ControlIdentifierIterator::nextValue() {
         return;
     }
 
-    if (value_ == 0) value_ = 1;
+    if (value_ == 0)
+        value_ = 1;
 
     while ((remaining_ & value_) == 0) {
         value_ <<= 1;
@@ -77,14 +78,11 @@ void ControlIdentifierIterator::nextValue() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlIdentifiers::ControlIdentifiers() :
-    value_(0) {}
+ControlIdentifiers::ControlIdentifiers() : value_(0) {}
 
-ControlIdentifiers::ControlIdentifiers(const ControlIdentifier& val) :
-    value_(static_cast<value_type>(val)) {
-}
+ControlIdentifiers::ControlIdentifiers(const ControlIdentifier& val) : value_(static_cast<value_type>(val)) {}
 
-ControlIdentifiers::ControlIdentifiers(eckit::Stream &s) {
+ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
 }
 
@@ -117,8 +115,8 @@ ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifi
     return (ControlIdentifiers(lhs) |= rhs);
 }
 
-void ControlIdentifiers::print( std::ostream &out ) const {
-    std::string separator="";
+void ControlIdentifiers::print(std::ostream& out) const {
+    std::string separator = "";
 
     out << "ControlIdentifiers[";
 
@@ -131,7 +129,7 @@ void ControlIdentifiers::print( std::ostream &out ) const {
     out << "]";
 }
 
-std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
+std::ostream& operator<<(std::ostream& s, const ControlIdentifiers& x) {
     x.print(s);
     return s;
 }
@@ -140,22 +138,18 @@ std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
 
 using value_type = typename std::underlying_type<ControlIdentifier>::type;
 
-ControlElement::ControlElement() : 
-    location() {}
+ControlElement::ControlElement() : location() {}
 
-ControlElement::ControlElement(const Catalogue& catalogue) :
-    key(catalogue.key()), location(catalogue.uri()) {
-        
+ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()), location(catalogue.uri()) {
+
     controlIdentifiers = ControlIdentifier::None;
     for (auto id : ControlIdentifierList) {
-        if (!catalogue.enabled(id)) controlIdentifiers |= id;
+        if (!catalogue.enabled(id))
+            controlIdentifiers |= id;
     }
 }
 
-ControlElement::ControlElement(eckit::Stream &s) :
-    key(s),
-    location(s),
-    controlIdentifiers(s) {}
+ControlElement::ControlElement(eckit::Stream& s) : key(s), location(s), controlIdentifiers(s) {}
 
 void ControlElement::encode(eckit::Stream& s) const {
     s << key;

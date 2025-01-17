@@ -20,10 +20,9 @@ using metkit::mars::MarsRequest;
 
 namespace fdb5::remote {
 
-StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {
-        LibFdb5::instance().constructorCallback()(*this);
-    }
+StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config) : ServerConnection(socket, config) {
+    LibFdb5::instance().constructorCallback()(*this);
+}
 
 StoreHandler::~StoreHandler() {}
 
@@ -34,7 +33,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Store: // notification that the client is starting to send data for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
-            
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -43,14 +42,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 throw SeriousBug(ss.str(), Here());
             }
         }
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         error(e.what(), clientID, requestID);
-    }
-    catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
-    }
+    } catch (...) { error("Caught unexpected and unknown error", clientID, requestID); }
     return Handled::No;
 }
 
@@ -75,14 +70,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 throw SeriousBug(ss.str(), Here());
             }
         }
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         error(e.what(), clientID, requestID);
-    }
-    catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
-    }
+    } catch (...) { error("Caught unexpected and unknown error", clientID, requestID); }
     return Handled::No;
 }
 
@@ -119,45 +110,43 @@ void StoreHandler::readLocationThreadLoop() {
     }
 }
 
-void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
-   try {
+void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID,
+                                 std::unique_ptr<eckit::DataHandle> dh) {
+    try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
 
-        Buffer writeBuffer(4 * 1024 * 1024 - 2048); // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
+        Buffer writeBuffer(4 * 1024 * 1024 -
+                           2048); // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
         long dataRead;
 
         dh->openForRead();
-        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size() << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-            write(Message::Blob, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{writeBuffer, dataRead}});
+            write(Message::Blob, false, clientID, requestID,
+                  std::vector<std::pair<const void*, uint32_t>>{{writeBuffer, dataRead}});
         }
 
         // And when we are done, add a complete message.
 
-        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID << std::endl;
 
         write(Message::Complete, false, clientID, requestID);
 
         Log::status() << "Done retrieve: " << requestID << std::endl;
         LOG_DEBUG_LIB(LibFdb5) << "Done retrieve: " << requestID << std::endl;
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         error(e.what(), clientID, requestID);
-    }
-    catch (...) {
+    } catch (...) {
         // We really don't want to std::terminate the thread
         error("Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
-
 void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
-    
+
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -166,9 +155,9 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     std::stringstream ss_key;
     ss_key << dbKey << idxKey;
 
-    const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
+    const char* charData = static_cast<const char*>(data); // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
-    
+
     Store& ss = store(clientID, dbKey);
 
     std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
@@ -194,7 +183,6 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 
     size_t numArchived = 0;
 
-
     if (requestID != 0) {
         ASSERT(payload.size() > 0);
         MemoryStream stream(payload);
@@ -217,7 +205,7 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 }
 
 bool StoreHandler::remove(bool control, uint32_t clientID) {
-    
+
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {
@@ -264,4 +252,4 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

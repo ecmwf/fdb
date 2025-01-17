@@ -11,10 +11,10 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocEngine.h"
@@ -31,30 +31,22 @@ namespace tools {
 class FdbHide : public FDBTool {
 
 public: // methods
-
-    FdbHide(int argc, char **argv) :
-        FDBTool(argc, argv),
-        doit_(false) {
+    FdbHide(int argc, char** argv) : FDBTool(argc, argv), doit_(false) {
         options_.push_back(new SimpleOption<bool>("doit", "Do the actual change"));
     }
 
 private: // methods
-
     virtual void init(const option::CmdArgs& args);
     virtual void execute(const option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
 private: // members
-
     bool doit_;
 };
 
-void FdbHide::usage(const std::string &tool) const {
+void FdbHide::usage(const std::string& tool) const {
 
-    Log::info() << std::endl
-                << "Usage: " << tool << " [options] [DB request]" << std::endl
-                << std::endl
-                << std::endl;
+    Log::info() << std::endl << "Usage: " << tool << " [options] [DB request]" << std::endl << std::endl << std::endl;
     FDBTool::usage(tool);
 }
 
@@ -112,9 +104,9 @@ void FdbHide::execute(const option::CmdArgs& args) {
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace tools
-} // namespace fbb5
+} // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbHide app(argc, argv);
     return app.start();
 }

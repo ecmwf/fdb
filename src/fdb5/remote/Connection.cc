@@ -18,15 +18,15 @@ void Connection::teardown() {
         try {
             // all done - disconnecting
             Connection::write(Message::Exit, false, 0, 0);
-        } catch(...) {
-            // if connection is already down, no need to escalate 
+        } catch (...) {
+            // if connection is already down, no need to escalate
         }
     }
     try {
         // all done - disconnecting
         Connection::write(Message::Exit, true, 0, 0);
-    } catch(...) {
-        // if connection is already down, no need to escalate 
+    } catch (...) {
+        // if connection is already down, no need to escalate
     }
 }
 
@@ -90,34 +90,38 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
 
     if (hdr.message == Message::Error) {
 
-        char msg[hdr.payloadSize+1];
+        char msg[hdr.payloadSize + 1];
         if (hdr.payloadSize) {
-            char msg[hdr.payloadSize+1];
+            char msg[hdr.payloadSize + 1];
         }
     }
 
     return payload;
 }
 
-void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) {
+void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data,
+                       uint32_t length) {
     write(msg, control, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{data, length}});
 }
 
-void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void Connection::write(remote::Message msg, bool control, uint32_t clientID, uint32_t requestID,
+                       std::vector<std::pair<const void*, uint32_t>> data) {
 
     uint32_t payloadLength = 0;
-    for (auto d: data) {
+    for (auto d : data) {
         ASSERT(d.first);
         payloadLength += d.second;
     }
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID() << ",control=" << control << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID()
+                           << ",control=" << control << ",requestID=" << requestID << ",data=" << data.size()
+                           << ",payload=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
     writeUnsafe(control, &message, sizeof(message));
-    for (auto d: data) {
+    for (auto d : data) {
         writeUnsafe(control, d.first, d.second);
     }
     writeUnsafe(control, &EndMarker, sizeof(EndMarker));
@@ -125,7 +129,8 @@ void Connection::write(remote::Message msg, bool control, uint32_t clientID, uin
 
 void Connection::error(const std::string& msg, uint32_t clientID, uint32_t requestID) {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{msg.c_str(), msg.length()}});
+    write(Message::Error, false, clientID, requestID,
+          std::vector<std::pair<const void*, uint32_t>>{{msg.c_str(), msg.length()}});
 }
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) {
@@ -136,4 +141,4 @@ eckit::Buffer Connection::readData(MessageHeader& hdr) {
     return read(false, hdr);
 }
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

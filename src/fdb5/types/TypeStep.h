@@ -25,25 +25,19 @@ namespace fdb5 {
 class TypeStep : public Type {
 
 public: // methods
-
-    TypeStep(const std::string &name, const std::string &type);
+    TypeStep(const std::string& name, const std::string& type);
 
     ~TypeStep() override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const CatalogueReader* cat) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
     std::string toKey(const std::string& value) const override;
 
     bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
 
 private: // methods
-
-    void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

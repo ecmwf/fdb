@@ -28,8 +28,8 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
@@ -48,7 +48,6 @@ enum class Handled {
 class Handler {
 
 public:
-
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) = 0;
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
@@ -66,9 +65,11 @@ struct readLocationElem {
     std::unique_ptr<eckit::DataHandle> readLocation;
 
     readLocationElem() : clientID(0), requestID(0), readLocation(nullptr) {}
-    
-    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation) :
-        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
+
+    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation)
+        : clientID(clientID)
+        , requestID(requestID)
+        , readLocation(std::move(readLocation)) {}
 };
 
 struct ArchiveElem {
@@ -80,12 +81,15 @@ struct ArchiveElem {
 
     ArchiveElem() : clientID_(0), requestID_(0), payload_(0), multiblob_(false) {}
 
-    ArchiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload, bool multiblob) :
-        clientID_(clientID), requestID_(requestID), payload_(std::move(payload)), multiblob_(multiblob) {}
+    ArchiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload, bool multiblob)
+        : clientID_(clientID)
+        , requestID_(requestID)
+        , payload_(std::move(payload))
+        , multiblob_(multiblob) {}
 };
 
 class ServerConnection : public Connection, public Handler {
-public:  // methods
+public: // methods
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection() override;
 
@@ -101,11 +105,10 @@ public:  // methods
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
-
     // socket methods
     int selectDataPort();
     eckit::LocalConfiguration availableFunctionality() const;
-    
+
     // Worker functionality
     void tidyWorkers();
     void waitForWorkers();
@@ -121,17 +124,15 @@ protected:
     void handleException(std::exception_ptr e) override;
 
 private:
-
     void listeningThreadLoopData();
 
     eckit::net::TCPSocket& controlSocket() override { return controlSocket_; }
-    eckit::net::TCPSocket& dataSocket() override { 
+    eckit::net::TCPSocket& dataSocket() override {
         ASSERT(dataSocket_);
         return *dataSocket_;
     }
 
 protected:
-
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
@@ -143,7 +144,7 @@ protected:
     eckit::LocalConfiguration agreedConf_;
     std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
-    
+
     std::map<uint32_t, std::future<void>> workerThreads_;
     eckit::Queue<ArchiveElem> archiveQueue_;
     std::future<size_t> archiveFuture_;
@@ -155,7 +156,6 @@ protected:
     size_t numDataConnection_;
 
 private:
-
     std::mutex dataPortMutex_;
 
     // data connection
@@ -165,4 +165,4 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote
