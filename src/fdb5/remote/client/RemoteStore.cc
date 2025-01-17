@@ -20,11 +20,11 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/remote/client/RemoteStore.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/client/RemoteStore.h"
+#include "fdb5/rules/Rule.h"
 
 #include <unordered_map>
 
@@ -48,33 +48,25 @@ namespace fdb5::remote {
 ///
 /// --> Retrieve is a _streaming_ service.
 
-
 class FDBRemoteDataHandle : public DataHandle {
 
 public: // methods
-
-    FDBRemoteDataHandle(uint32_t requestID, Length estimate,
-                        std::shared_ptr<RemoteStore::MessageQueue> queue,
-                        const net::Endpoint& remoteEndpoint) :
-        requestID_(requestID),
-        estimate_(estimate),
-        queue_(queue),
-        remoteEndpoint_(remoteEndpoint),
-        pos_(0),
-        overallPosition_(0),
-        currentBuffer_(0),
-        complete_(false) {}
+    FDBRemoteDataHandle(uint32_t requestID, Length estimate, std::shared_ptr<RemoteStore::MessageQueue> queue,
+                        const net::Endpoint& remoteEndpoint)
+        : requestID_(requestID)
+        , estimate_(estimate)
+        , queue_(queue)
+        , remoteEndpoint_(remoteEndpoint)
+        , pos_(0)
+        , overallPosition_(0)
+        , currentBuffer_(0)
+        , complete_(false) {}
     virtual bool canSeek() const override { return false; }
 
 private: // methods
+    void print(std::ostream& s) const override { s << "FDBRemoteDataHandle(id=" << requestID_ << ")"; }
 
-    void print(std::ostream& s) const override {
-        s << "FDBRemoteDataHandle(id=" << requestID_ << ")";
-    }
-
-    Length openForRead() override {
-        return estimate();
-    }
+    Length openForRead() override { return estimate(); }
     void openForWrite(const Length&) override { NOTIMP; }
     void openForAppend(const Length&) override { NOTIMP; }
     long write(const void*, long) override { NOTIMP; }
@@ -82,16 +74,17 @@ private: // methods
 
     long read(void* pos, long sz) override {
 
-        if (complete_) return 0;
+        if (complete_)
+            return 0;
 
         long total = 0;
         long n;
-        char* p    = static_cast<char*>(pos);
+        char* p = static_cast<char*>(pos);
         if (currentBuffer_.size() != 0) {
             n = bufferRead(pos, sz);
             sz -= n;
             total += n;
-            p+=n;
+            p += n;
         }
 
         while (sz > 0 && !complete_) {
@@ -124,8 +117,7 @@ private: // methods
             n = bufferRead(p, sz);
             sz -= n;
             total += n;
-            p+=n;
-
+            p += n;
         }
         return total;
     }
@@ -134,7 +126,6 @@ private: // methods
     // already been retrieved.
 
     long bufferRead(void* pos, long sz) {
-
 
         ASSERT(currentBuffer_.size() != 0);
         ASSERT(pos_ < currentBuffer_.size());
@@ -157,16 +148,11 @@ private: // methods
         return read;
     }
 
-    Length estimate() override {
-        return estimate_;
-    }
+    Length estimate() override { return estimate_; }
 
-    Offset position() override {
-        return overallPosition_;
-    }
+    Offset position() override { return overallPosition_; }
 
 private: // members
-
     uint32_t requestID_;
     Length estimate_;
     std::shared_ptr<RemoteStore::MessageQueue> queue_;
@@ -186,7 +172,7 @@ std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const C
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
     std::vector<std::pair<eckit::net::Endpoint, std::string>> out;
-    for (size_t i=0; i<stores.size(); i++) {
+    for (size_t i = 0; i < stores.size(); i++) {
         out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, fieldLocationEndpoints.at(i)));
     }
     return out;
@@ -194,16 +180,16 @@ std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const C
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)),
-    dbKey_(dbKey), config_(config)
-    {}
+RemoteStore::RemoteStore(const Key& dbKey, const Config& config)
+    : Client(storeEndpoints(config))
+    , dbKey_(dbKey)
+    , config_(config) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
-RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
-    dbKey_(Key()), config_(config)
-    {
+RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config)
+    : Client(eckit::net::Endpoint(uri.hostport()), uri.hostport())
+    , dbKey_(Key())
+    , config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -230,14 +216,16 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-void RemoteStore::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+void RemoteStore::archive(
+    const Key& key, const void* data, eckit::Length length,
+    std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
 
     ASSERT(!key.empty());
     ASSERT(data);
     ASSERT(length != 0);
 
     uint32_t id = generateRequestID();
-    {   // send the archival request
+    { // send the archival request
         std::lock_guard<std::mutex> lock(locations_.mutex());
         if (locations_.archived() == 0) { // if this is the first archival request, notify the server
             controlWriteCheckResponse(Message::Store, id, true);
@@ -290,8 +278,7 @@ size_t RemoteStore::flush() {
     return locations;
 }
 
-void RemoteStore::close() {
-}
+void RemoteStore::close() {}
 
 void RemoteStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
     NOTIMP;
@@ -301,7 +288,7 @@ void RemoteStore::remove(const Key& key) const {
     NOTIMP;
 }
 
-void RemoteStore::print(std::ostream &out) const {
+void RemoteStore::print(std::ostream& out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
 
@@ -320,7 +307,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
             } else {
                 std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
                 auto id = retrieveMessageQueues_.find(requestID);
-                ASSERT (id != retrieveMessageQueues_.end());
+                ASSERT(id != retrieveMessageQueues_.end());
 
                 id->second->emplace(std::make_pair(message, Buffer(0)));
 
@@ -338,7 +325,6 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
                 // goes out of scope in the worker thread).
                 messageQueues_.erase(it);
                 return true;
-
             }
             return false;
         }
@@ -350,13 +336,15 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
 
     switch (message) {
 
-        case Message::Store: { // received a Field location from the remote store, can forward to the archiver for the indexing
+        case Message::Store: { // received a Field location from the remote store, can forward to the archiver for the
+                               // indexing
             MemoryStream s(payload);
             std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
             if (defaultEndpoint().empty()) {
                 return locations_.location(requestID, std::move(location));
             } else {
-                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
+                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(
+                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
                 return locations_.location(requestID, std::move(remoteLocation));
             }
         }
@@ -367,7 +355,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             } else {
                 std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
                 auto id = retrieveMessageQueues_.find(requestID);
-                ASSERT (id != retrieveMessageQueues_.end());
+                ASSERT(id != retrieveMessageQueues_.end());
                 id->second->emplace(std::make_pair(message, std::move(payload)));
             }
             return true;
@@ -384,7 +372,6 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
                 messageQueues_.erase(it);
-
             }
             return true;
         }
@@ -437,18 +424,18 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
 }
 
-    bool RemoteStore::uriBelongs(const eckit::URI&) const {
-        NOTIMP;
-    }
-    bool RemoteStore::uriExists(const eckit::URI&) const {
-        NOTIMP;
-    }
-    std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
-        NOTIMP;
-    }
-    std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
-        NOTIMP;
-    }
+bool RemoteStore::uriBelongs(const eckit::URI&) const {
+    NOTIMP;
+}
+bool RemoteStore::uriExists(const eckit::URI&) const {
+    NOTIMP;
+}
+std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+    NOTIMP;
+}
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
+    NOTIMP;
+}
 
 static StoreBuilder<RemoteStore> builder("remote");
 

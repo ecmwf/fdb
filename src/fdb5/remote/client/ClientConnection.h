@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <thread>
 #include <future>
+#include <thread>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
@@ -21,8 +21,8 @@
 #include "eckit/net/TCPStream.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
@@ -35,11 +35,12 @@ class DataWriteRequest;
 class ClientConnection : protected Connection {
 
 public: // methods
-
     virtual ~ClientConnection();
 
-    std::future<eckit::Buffer> controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
-    void dataWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    std::future<eckit::Buffer> controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener,
+                                            std::vector<std::pair<const void*, uint32_t>> data = {});
+    void dataWrite(Client& client, Message msg, uint32_t requestID,
+                   std::vector<std::pair<const void*, uint32_t>> data = {});
 
     void add(Client& client);
     bool remove(uint32_t clientID);
@@ -52,7 +53,6 @@ public: // methods
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
 private: // methods
-
     friend class ClientConnectionRouter;
 
     ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
@@ -77,7 +77,6 @@ private: // methods
     eckit::net::TCPSocket& dataSocket() override { return dataClient_; }
 
 private: // members
-
     eckit::SessionID sessionID_;
 
     eckit::net::Endpoint controlEndpoint_;
@@ -114,4 +113,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

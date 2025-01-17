@@ -15,29 +15,28 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 namespace fdb5::remote {
-    
+
 //----------------------------------------------------------------------------------------------------------------------
 
 struct StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true), dataConnection(dataConnection),
-        store(StoreFactory::instance().build(dbKey, config)) {}
+    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config)
+        : controlConnection(true)
+        , dataConnection(dataConnection)
+        , store(StoreFactory::instance().build(dbKey, config)) {}
 
     bool controlConnection;
     bool dataConnection;
-    
+
     std::unique_ptr<Store> store;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection, public CallbackRegistry {
-public:  // methods
-
+public: // methods
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~StoreHandler() override;
 
-private:  // methods
-
+private: // methods
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
@@ -54,12 +53,11 @@ private:  // methods
     Store& store(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
 
-private:  // members
-
+private: // members
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

@@ -17,14 +17,13 @@
 #define fdb5_Engine_H
 
 #include <iosfwd>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/URI.h"
-
+#include "eckit/memory/NonCopyable.h"
 
 namespace fdb5 {
 
@@ -36,11 +35,9 @@ class Config;
 class Engine : private eckit::NonCopyable {
 
 public: // methods
-
     static Engine& backend(const std::string& name);
 
 public: // methods
-
     virtual ~Engine();
 
     /// @returns the named identifier of this engine
@@ -55,14 +52,13 @@ public: // methods
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const = 0;
+    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                                       const Config& config) const = 0;
 
-    friend std::ostream &operator<<(std::ostream &s, const Engine& x);
+    friend std::ostream& operator<<(std::ostream& s, const Engine& x);
 
 protected: // methods
-
-    virtual void print( std::ostream &out ) const = 0;
-
+    virtual void print(std::ostream& out) const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,7 +68,6 @@ protected: // methods
 class EngineRegistry : private eckit::NonCopyable {
 
 public: // methods
-
     static bool has(const std::string& name);
 
     static Engine& engine(const std::string& name);
@@ -81,22 +76,18 @@ public: // methods
 
     static std::vector<std::string> list();
 
-    static void list(std::ostream &);
+    static void list(std::ostream&);
 
 protected: // methods
-
     static void add(Engine*);
     static Engine* remove(const std::string&);
-
 };
-
 
 /// Templated for self-registering engines that does the self-registration into the registry
 
-template< class T>
+template <class T>
 class EngineBuilder : public EngineRegistry {
 public:
-
     EngineBuilder() {
         Engine* e = new T();
         name_ = e->name();
@@ -109,7 +100,6 @@ public:
     }
 
     std::string name_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -31,13 +31,11 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
-    if(needsConfig_) {
+    if (needsConfig_) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
     }
 
-    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
-                                minimumPositionalArguments());
-
+    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
     init(args);
     execute(args);
@@ -78,10 +76,8 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
 FDBToolException::FDBToolException(const std::string& w) : Exception(w) {}
 
-FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
-
+FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

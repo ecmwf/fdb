@@ -24,9 +24,9 @@
 class MarsTask;
 namespace metkit {
 namespace mars {
-    class MarsRequest;
+class MarsRequest;
 }
-}
+} // namespace metkit
 
 namespace fdb5 {
 
@@ -39,7 +39,6 @@ class TypesRegistry;
 class Matcher : public eckit::Streamable {
 
 public: // methods
-
     Matcher();
     Matcher(eckit::Stream& s);
 
@@ -47,31 +46,28 @@ public: // methods
 
     virtual bool optional() const;
 
-    virtual const std::string &value(const Key& , const std::string &keyword) const;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
-    virtual const std::string &defaultValue() const;
+    virtual const std::string& value(const Key&, const std::string& keyword) const;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
+                                                   const std::string& keyword) const;
+    virtual const std::string& defaultValue() const;
 
-    virtual bool match(const std::string &keyword, const Key& key) const = 0;
-    virtual void fill(BaseKey& key, const std::string &keyword, const std::string& value) const;
+    virtual bool match(const std::string& keyword, const Key& key) const = 0;
+    virtual void fill(BaseKey& key, const std::string& keyword, const std::string& value) const;
 
+    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
+    friend std::ostream& operator<<(std::ostream& s, const Matcher& x);
 
-    friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
-
-	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private: // methods
-
     void encode(eckit::Stream&) const override;
 
-    virtual void print( std::ostream &out ) const = 0;
+    virtual void print(std::ostream& out) const = 0;
 
 private: // members
-
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Matcher> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

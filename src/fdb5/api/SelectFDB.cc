@@ -15,14 +15,14 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
-#include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Tokenizer.h"
 
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -31,7 +31,6 @@ namespace fdb5 {
 static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfiguration& config) {
 
@@ -62,9 +61,7 @@ std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfigurati
     return selectDict;
 }
 
-
-SelectFDB::SelectFDB(const Config& config, const std::string& name) :
-    FDBBase(config, name) {
+SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "select");
 
@@ -76,7 +73,6 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
         subFdbs_.emplace_back(std::make_pair(parseFDBSelect(c), FDB(c)));
     }
 }
-
 
 SelectFDB::~SelectFDB() {}
 
@@ -117,7 +113,8 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 }
 
 template <typename QueryFN>
-auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
+auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
+    -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
     using ValueType = typename QueryIterator::value_type;
@@ -139,69 +136,51 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
 
 ListIterator SelectFDB::list(const FDBToolRequest& request) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::list() >> " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
-                         });
+    return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.list(request); });
 }
 
 DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::dump() >> " << request << std::endl;
     return queryInternal(request,
-                         [simple](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.dump(request, simple);
-                         });
+                         [simple](FDB& fdb, const FDBToolRequest& request) { return fdb.dump(request, simple); });
 }
 
 StatusIterator SelectFDB::status(const FDBToolRequest& request) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::status() >> " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.status(request);
-    });
+    return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
 WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
-    return queryInternal(request,
-                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::purge() >> " << request << std::endl;
-    return queryInternal(request,
-                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, porcelain);
+    return queryInternal(request, [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.purge(request, doit, porcelain);
     });
 }
 
-StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
+StatsIterator SelectFDB::stats(const FDBToolRequest& request) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::stats() >> " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.stats(request);
-    });
+    return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.stats(request); });
 }
 
-ControlIterator SelectFDB::control(const FDBToolRequest& request,
-                                   ControlAction action,
+ControlIterator SelectFDB::control(const FDBToolRequest& request, ControlAction action,
                                    ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::control >> " << request << std::endl;
-    return queryInternal(request,
-                         [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.control(request, action, identifiers);
-
+    return queryInternal(request, [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.control(request, action, identifiers);
     });
 }
 
 AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::axesIterator() >> " << request << std::endl;
     return queryInternal(request,
-                         [level](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.axesIterator(request, level);
-    });
+                         [level](FDB& fdb, const FDBToolRequest& request) { return fdb.axesIterator(request, level); });
 }
 
 void SelectFDB::flush() {
@@ -211,12 +190,11 @@ void SelectFDB::flush() {
     }
 }
 
-
-void SelectFDB::print(std::ostream &s) const {
+void SelectFDB::print(std::ostream& s) const {
     s << "SelectFDB()";
 }
 
-bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const Key& key, const SelectMap& select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 
@@ -225,7 +203,8 @@ bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMis
 
         eckit::StringDict::const_iterator i = key.find(k);
         if (i == key.end()) {
-            if (requireMissing) return false;
+            if (requireMissing)
+                return false;
         } else if (!re.match(i->second)) {
             return false;
         }
@@ -234,7 +213,7 @@ bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMis
     return true;
 }
 
-bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 
@@ -244,7 +223,8 @@ bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMa
         const std::vector<std::string>& request_values = request.values(k, /* emptyOK */ true);
 
         if (request_values.size() == 0) {
-            if (requireMissing) return false;
+            if (requireMissing)
+                return false;
         } else {
 
             bool re_match = false;
@@ -254,7 +234,8 @@ bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMa
                     break;
                 }
             }
-            if (!re_match) return false;
+            if (!re_match)
+                return false;
         }
     }
 

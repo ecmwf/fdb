@@ -21,35 +21,29 @@
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
 
-
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
-                                           InspectIterator& iterator,
-                                           eckit::CacheLRU<Key,CatalogueReader*>& databases,
-                                           const Config& config) :
-    wind_(wind),
-    databases_(databases),
-    iterator_(iterator),
-    config_(config) {
-}
+MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, InspectIterator& iterator,
+                                           eckit::CacheLRU<Key, CatalogueReader*>& databases, const Config& config)
+    : wind_(wind)
+    , databases_(databases)
+    , iterator_(iterator)
+    , config_(config) {}
 
-MultiRetrieveVisitor::~MultiRetrieveVisitor() {
-}
+MultiRetrieveVisitor::~MultiRetrieveVisitor() {}
 
 // From Visitor
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
 
-	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey  << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << dbKey << std::endl;
 
     /* is it the current DB ? */
 
-    if(catalogue_) {
-        if(dbKey == catalogue_->key()) {
+    if (catalogue_) {
+        if (dbKey == catalogue_->key()) {
             eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
@@ -57,7 +51,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& full
 
     /* is the DB already open ? */
 
-    if(databases_.exists(dbKey)) {
+    if (databases_.exists(dbKey)) {
         LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << dbKey << std::endl;
         catalogue_ = databases_.access(dbKey);
         return true;
@@ -75,7 +69,8 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey& full
         return false;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey << " (type=" << newCatalogue->type() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey
+                           << " (type=" << newCatalogue->type() << ")" << std::endl;
 
     if (!newCatalogue->open()) {
         LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << dbKey << std::endl;
@@ -106,17 +101,16 @@ bool MultiRetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&
                 simplifiedKey.set(k->first, k->second);
         }
 
-        iterator_.emplace(ListElement({catalogue_->key(), catalogue_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
+        iterator_.emplace(ListElement({catalogue_->key(), catalogue_->indexKey(), simplifiedKey},
+                                      field.stableLocation(), field.timestamp()));
         return true;
     }
 
     return false;
 }
 
-void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
-                             const std::string &keyword,
-                             const TypesRegistry &registry,
-                             eckit::StringList &values) {
+void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                                  const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
@@ -126,7 +120,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = catalogue_->axis(keyword, filter);
     }
 
-    for(const auto& l: list) {
+    for (const auto& l : list) {
         std::string v = registry.lookupType(keyword).toKey(l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);
@@ -134,7 +128,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 }
 
-void MultiRetrieveVisitor::print( std::ostream &out ) const {
+void MultiRetrieveVisitor::print(std::ostream& out) const {
     out << "MultiRetrieveVisitor[]";
 }
 

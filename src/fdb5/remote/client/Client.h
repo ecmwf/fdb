@@ -24,8 +24,8 @@ namespace fdb5::remote {
 
 class RemoteFDBException : public eckit::RemoteException {
 public:
-    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
-        eckit::RemoteException(msg, endpoint) {}
+    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint)
+        : eckit::RemoteException(msg, endpoint) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,17 +44,18 @@ public:
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
 
     // blocking requests
-    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload=nullptr, uint32_t payloadLength=0);
-    eckit::Buffer controlWriteReadResponse (Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload = nullptr,
+                                   uint32_t payloadLength = 0);
+    eckit::Buffer controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload = nullptr,
+                                           uint32_t payloadLength = 0);
 
-    void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
-    
+    void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
+
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
 
 protected:
-    
     ClientConnection& connection_;
 
 private:
@@ -66,4 +67,4 @@ private:
     std::mutex blockingRequestMutex_;
 };
 
-}
+} // namespace fdb5::remote

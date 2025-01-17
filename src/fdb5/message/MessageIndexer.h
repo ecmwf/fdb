@@ -21,7 +21,9 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/message/MessageDecoder.h"
 
-namespace eckit   { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 namespace fdb5 {
 
@@ -30,14 +32,11 @@ namespace fdb5 {
 class MessageIndexer : public Archiver, public MessageDecoder {
 
 public: // methods
-
     MessageIndexer(bool checkDuplicates = false);
 
     void index(const eckit::PathName& path);
 
 private: // members
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

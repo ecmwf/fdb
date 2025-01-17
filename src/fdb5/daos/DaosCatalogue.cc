@@ -13,14 +13,14 @@
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
+#include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
@@ -29,18 +29,20 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
-    CatalogueImpl(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
+DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config)
+    : CatalogueImpl(key, ControlIdentifiers{}, config)
+    , DaosCommon(config, "catalogue", key) {
 
     // TODO: apply the mechanism in RootManager::directory, using
     //   FileSpaceTables to determine root_pool_name_ according to key
     //   and using DbPathNamerTables to determine db_cont_name_ according
     //   to key
-
 }
 
-DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
-    CatalogueImpl(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
+DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
+                             const fdb5::Config& config)
+    : CatalogueImpl(Key(), controlIdentifiers, config)
+    , DaosCommon(config, "catalogue", uri) {
 
     // Read the real DB key into the DB base object
     try {
@@ -55,32 +57,25 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
     } catch (fdb5::DaosEntityNotFoundException& e) {
 
-        throw fdb5::DatabaseNotFoundException(
-            std::string("DaosCatalogue database not found ") +
-            "(pool: '" + pool_ + "', container: '" + db_cont_ + "')"
-        );
-
+        throw fdb5::DatabaseNotFoundException(std::string("DaosCatalogue database not found ") + "(pool: '" + pool_ +
+                                              "', container: '" + db_cont_ + "')");
     }
-
 }
 
 bool DaosCatalogue::exists() const {
 
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
     return catalogue_kv_name.exists();
-
 }
 
 eckit::URI DaosCatalogue::uri() const {
 
     return fdb5::DaosName{db_kv_->poolName(), db_kv_->containerName()}.URI();
-
 }
 
 const Schema& DaosCatalogue::schema() const {
 
     return schema_;
-
 }
 
 void DaosCatalogue::loadSchema() {
@@ -101,10 +96,10 @@ void DaosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
-
 }
 
-WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
+                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new DaosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
 
@@ -118,7 +113,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
     /// @note: performed RPCs:
     /// - db kv open (daos_kv_open)
     /// - db kv list keys (daos_kv_list)
-    fdb5::DaosKeyValue catalogue_kv{s, catalogue_kv_name};  /// @note: throws if not exists
+    fdb5::DaosKeyValue catalogue_kv{s, catalogue_kv_name}; /// @note: throws if not exists
 
     std::vector<fdb5::Index> res;
 
@@ -126,7 +121,8 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
         /// @todo: document these well. Single source these reserved values.
         ///    Ensure where appropriate that user-provided keys do not collide.
-        if (key == "schema" || key == "key") continue;
+        if (key == "schema" || key == "key")
+            continue;
 
         /// @note: performed RPCs:
         /// - db kv get index location size (daos_kv_get without a buffer)
@@ -141,10 +137,10 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
         /// - index kv open (daos_kv_open)
         /// - index kv get size (daos_kv_get without a buffer)
         /// - index kv get key (daos_kv_get)
-        /// @note: the following three lines intend to check whether the index kv exists 
+        /// @note: the following three lines intend to check whether the index kv exists
         ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
         ///   so it is not useful on its own to check whether the index KV existed or not.
-        ///   Instead, presence of a "key" key in the KV is used to determine if the index 
+        ///   Instead, presence of a "key" key in the KV is used to determine if the index
         ///   KV existed.
         fdb5::DaosKeyValue index_kv{s, index_kv_name};
         std::optional<fdb5::Key> index_key;
@@ -158,11 +154,9 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
         }
 
         res.push_back(Index(new fdb5::DaosIndex(index_key.value(), *this, index_kv_name, false)));
-
     }
 
     return res;
-    
 }
 
 std::string DaosCatalogue::type() const {
@@ -176,8 +170,8 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 
     logVerbose << "Removing " << (n.hasOID() ? "KV" : "container") << ": ";
     logAlways << n.URI() << std::endl;
-    if (doit) n.destroy();
-
+    if (doit)
+        n.destroy();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

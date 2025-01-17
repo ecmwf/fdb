@@ -19,19 +19,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Indexer::Indexer() :
-    pid_(::getpid()),
-    thread_(::pthread_self())
-{
+Indexer::Indexer() : pid_(::getpid()), thread_(::pthread_self()) {
     hostname_ = eckit::Main::hostname();
 }
 
-void Indexer::print(std::ostream& out) const
-{
-    out << "(host=" << hostname_
-        << ",pid=" << pid_
-        << ",thread=" << thread_
-        << ")";
+void Indexer::print(std::ostream& out) const {
+    out << "(host=" << hostname_ << ",pid=" << pid_ << ",thread=" << thread_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

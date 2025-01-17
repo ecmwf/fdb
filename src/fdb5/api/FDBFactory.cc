@@ -13,27 +13,21 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/LibFdb5.h"
-
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-FDBBase::FDBBase(const Config& config, const std::string& name) :
-    name_(name),
-    config_(config),
-    disabled_(false) {
+FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config), disabled_(false) {
 
     bool writable = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
@@ -53,7 +47,6 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
 
-
 FDBBase::~FDBBase() {}
 
 std::string FDBBase::id() const {
@@ -67,7 +60,7 @@ FDBStats FDBBase::stats() const {
     return FDBStats();
 }
 
-const std::string &FDBBase::name() const {
+const std::string& FDBBase::name() const {
     return name_;
 }
 
@@ -88,14 +81,12 @@ bool FDBBase::disabled() {
     return disabled_;
 }
 
-FDBFactory& FDBFactory::instance()
-{
+FDBFactory& FDBFactory::instance() {
     static FDBFactory fdbfactory;
     return fdbfactory;
 }
 
-void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
-{
+void FDBFactory::add(const std::string& name, const FDBBuilderBase* b) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
     ASSERT(registry_.find(name) == registry_.end());
@@ -131,14 +122,12 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     return ret;
 }
 
-FDBBuilderBase::FDBBuilderBase(const std::string &name) :
-    name_(name) {
+FDBBuilderBase::FDBBuilderBase(const std::string& name) : name_(name) {
 
     FDBFactory::instance().add(name, this);
 }
 
-FDBBuilderBase::~FDBBuilderBase() {
-}
+FDBBuilderBase::~FDBBuilderBase() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

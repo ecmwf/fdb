@@ -13,14 +13,13 @@
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
+#include "fdb5/database/Archiver.h"
 
 #include "fdb5/rules/Rule.h"
 
 using namespace eckit::testing;
 using namespace eckit;
-
 
 namespace fdb {
 namespace test {
@@ -28,7 +27,7 @@ namespace test {
 fdb5::Config config;
 char data[4];
 
-CASE( "ClimateDaily - no expansion" ) {
+CASE("ClimateDaily - no expansion") {
 
     fdb5::Key key{};
     EXPECT(key.valuesToString() == "");
@@ -42,10 +41,9 @@ CASE( "ClimateDaily - no expansion" ) {
     key.set("stream", "dacl");
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
-
 }
 
-CASE( "Step & ClimateDaily - expansion" ) {
+CASE("Step & ClimateDaily - expansion") {
 
     fdb5::TypedKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
@@ -159,8 +157,7 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("step") == "1-2");
 }
 
-
-CASE( "Levelist" ) {
+CASE("Levelist") {
     eckit::DenseSet<std::string> values;
     values.insert("100");
     values.insert("200");
@@ -217,15 +214,16 @@ CASE( "Levelist" ) {
 
     // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
     /// @note don't use to_string when canonicalising Keys
-    key.set("levelist", std::to_string(double(1./3.)));
+    key.set("levelist", std::to_string(double(1. / 3.)));
     EXPECT(key.canonicalValue("levelist") == "0.333333");
     EXPECT(key.match("levelist", values));
 }
 
-CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
+CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
 
     fdb5::TypedKey key = fdb5::TypedKey::parseString(
-        "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128",
+        "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,"
+        "levelist=50,param=129.128",
         config.schema().registry());
 
     EXPECT(key.canonicalValue("date") == "20210427");
@@ -241,7 +239,7 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
     EXPECT(key.valuesToString() == "ei:0001:dacl:g:pb:pl:0427:0600:0:99:100:50:129.128");
 }
 
-CASE( "ClimateMonthly - string ctor - expansion" ) {
+CASE("ClimateMonthly - string ctor - expansion") {
 
     fdb5::TypedKey key = fdb5::TypedKey::parseString(
         "class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128",
@@ -257,21 +255,20 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 
     EXPECT(key.canonicalValue("date") == "4");
     EXPECT(key.valuesToString() == "op:0001:mnth:g:cl:pl:4:0000:50:129.128");
-
 }
 
 // do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from TypedKey?
-CASE( "Date - string ctor - expansion" ) {
+CASE("Date - string ctor - expansion") {
 
     fdb5::TypedKey key = fdb5::TypedKey::parseString(
-            "class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
-            config.schema().registry());
+        "class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
+        config.schema().registry());
 
     eckit::Date now(-2);
     eckit::Translator<long, std::string> t;
 
-    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));    
-    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001");
+    EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
+    EXPECT(key.valuesToString() == "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 
     fdb5::Archiver archiver;
     fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
@@ -279,17 +276,14 @@ CASE( "Date - string ctor - expansion" ) {
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
-    EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:mhs:3001");
-
+    EXPECT(key.valuesToString() == "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+} // namespace test
+} // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

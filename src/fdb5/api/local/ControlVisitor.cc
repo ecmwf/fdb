@@ -18,14 +18,11 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue,
-                               const metkit::mars::MarsRequest& request,
-                               ControlAction action,
-                               ControlIdentifiers identifiers) :
-    QueryVisitor<ControlElement>(queue, request),
-    action_(action),
-    identifiers_(identifiers) {}
-
+ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request,
+                               ControlAction action, ControlIdentifiers identifiers)
+    : QueryVisitor<ControlElement>(queue, request)
+    , action_(action)
+    , identifiers_(identifiers) {}
 
 bool ControlVisitor::visitDatabase(const Catalogue& catalogue) {
 

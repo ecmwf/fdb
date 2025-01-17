@@ -25,14 +25,14 @@ namespace fdb5 {
 class TocEngine : public fdb5::Engine {
 
 public: // methods
-
     static const char* typeName() { return "toc"; }
 
-private:  // methods
+private: // methods
     std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
                                         const Config& config) const;
 
-    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
+    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs,
+                                      const Config& config) const;
 
     std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
                                       const Config& config) const;
@@ -40,7 +40,6 @@ private:  // methods
     void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
 
 protected: // methods
-
     std::string name() const override;
 
     std::string dbType() const override;
@@ -50,14 +49,13 @@ protected: // methods
     bool canHandle(const eckit::URI&, const Config& config) const override;
 
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                               const Config& config) const override;
 
-    void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 } // namespace fdb5
 

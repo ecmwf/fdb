@@ -28,8 +28,8 @@ namespace fdb5::remote {
 
 class TCPException : public eckit::Exception {
 public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
+    TCPException(const std::string& msg, const eckit::CodeLocation& here)
+        : eckit::Exception(std::string("TCPException: ") + msg, here) {
 
         std::cerr << "TCP Exception; backtrace(): " << std::endl;
         std::cerr << eckit::BackTrace::dump() << std::endl;
@@ -45,7 +45,8 @@ public: // methods
     virtual ~Connection();
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
-    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID,
+               std::vector<std::pair<const void*, uint32_t>> data = {});
 
     void error(const std::string& msg, uint32_t clientID, uint32_t requestID);
 
@@ -55,7 +56,6 @@ public: // methods
     void teardown();
 
 private: // methods
-
     eckit::Buffer read(bool control, MessageHeader& hdr);
 
     void writeUnsafe(bool control, const void* data, size_t length);
@@ -65,18 +65,15 @@ private: // methods
     virtual eckit::net::TCPSocket& dataSocket() = 0;
 
 protected: // members
-
     bool single_;
 
 private: // members
-
     std::mutex controlMutex_;
     std::mutex dataMutex_;
     std::mutex readControlMutex_;
     std::mutex readDataMutex_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

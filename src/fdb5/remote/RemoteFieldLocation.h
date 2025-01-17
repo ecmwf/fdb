@@ -29,11 +29,11 @@ class RemoteStore;
 
 class RemoteFieldLocation : public FieldLocation {
 public:
-
     RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation);
     RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
+    RemoteFieldLocation(const eckit::URI& uri);
+    RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
+                        const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
@@ -43,25 +43,20 @@ public:
     void visit(FieldLocationVisitor& visitor) const override;
 
 public: // For Streamable
-
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected: // For Streamable
-
     void encode(eckit::Stream&) const override;
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec                       classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
 private: // methods
-
     void print(std::ostream& out) const override;
 
 private: // members
-
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

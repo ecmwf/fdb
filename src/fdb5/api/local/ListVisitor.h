@@ -19,12 +19,12 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ListIterator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -70,7 +70,6 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-
         if (index.partialMatch(request_)) {
 
             // Subselect the parts of the request
@@ -94,7 +93,8 @@ public:
         ASSERT(currentIndex_);
 
         if (datumKey.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey}, field.stableLocation(), field.timestamp()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey},
+                                       field.stableLocation(), field.timestamp()));
         }
     }
 
@@ -103,7 +103,6 @@ public:
     }
 
 private: // members
-
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
 };

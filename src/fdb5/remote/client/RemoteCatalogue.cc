@@ -20,22 +20,29 @@
 using namespace eckit;
 namespace fdb5::remote {
 
-RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
-    CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
-    config_(config), schema_(nullptr), numLocations_(0) {
+RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config)
+    : CatalogueImpl(key, ControlIdentifiers(), config)
+    , // xxx what are control identifiers? Setting empty here...
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "")
+    , config_(config)
+    , schema_(nullptr)
+    , numLocations_(0) {
 
     loadSchema();
 }
 
-// Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB for catalogue traversal
-// this ctor is here only to comply with the factory
-RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0) {
+// Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB
+// for catalogue traversal this ctor is here only to comply with the factory
+RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config)
+    : Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "")
+    , config_(config)
+    , schema_(nullptr)
+    , numLocations_(0) {
     NOTIMP;
 }
 
-void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
+                              std::shared_ptr<const FieldLocation> fieldLocation) {
 
     ASSERT(!datumKey.empty());
     ASSERT(fieldLocation);
@@ -68,7 +75,7 @@ bool RemoteCatalogue::selectIndex(const Key& idxKey) {
     return true; // xxx whats the return used for? TOC always returns true
 }
 
-const Index& RemoteCatalogue::currentIndex(){
+const Index& RemoteCatalogue::currentIndex() {
     NOTIMP;
 }
 const Key RemoteCatalogue::currentIndexKey() {
@@ -104,11 +111,17 @@ void RemoteCatalogue::flush(size_t archivedFields) {
     }
 }
 
-void RemoteCatalogue::clean() {NOTIMP;}
+void RemoteCatalogue::clean() {
+    NOTIMP;
+}
 
-void RemoteCatalogue::close() {NOTIMP;}
+void RemoteCatalogue::close() {
+    NOTIMP;
+}
 
-bool RemoteCatalogue::exists() const {NOTIMP;}
+bool RemoteCatalogue::exists() const {
+    NOTIMP;
+}
 
 void RemoteCatalogue::checkUID() const {}
 
@@ -128,7 +141,8 @@ void RemoteCatalogue::loadSchema() {
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
 
-        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, generateRequestID(), keyBuffer, keyStream.position());
+        eckit::Buffer buf =
+            controlWriteReadResponse(Message::Schema, generateRequestID(), keyBuffer, keyStream.position());
 
         eckit::MemoryStream s(buf);
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));
@@ -136,32 +150,65 @@ void RemoteCatalogue::loadSchema() {
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
-    Log::warning() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+    Log::warning() << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID << "]"
+                   << std::endl;
     return false;
 }
 bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
-    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID
+                           << ",payloadSize=" << payload.size() << "]" << std::endl;
     return false;
 }
 
-void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
-void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
-void RemoteCatalogue::reconsolidate(){NOTIMP;}
-std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {NOTIMP;}
-void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {NOTIMP;}
-void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {NOTIMP;}
-StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {NOTIMP;}
-PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {NOTIMP;}
-WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {NOTIMP;}
-MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {NOTIMP;}
-void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {NOTIMP;}
-std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {NOTIMP;}
-void RemoteCatalogue::maskIndexEntry(const Index& index) const {NOTIMP;}
-void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const {NOTIMP;}
-void RemoteCatalogue::print( std::ostream &out ) const {
+void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys,
+                                bool unmount) {
+    NOTIMP;
+}
+void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {
+    NOTIMP;
+}
+void RemoteCatalogue::reconsolidate() {
+    NOTIMP;
+}
+std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
+    NOTIMP;
+}
+void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
+    NOTIMP;
+}
+void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
+    NOTIMP;
+}
+StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {
+    NOTIMP;
+}
+PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {
+    NOTIMP;
+}
+WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                          std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+    NOTIMP;
+}
+MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                          const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
+    NOTIMP;
+}
+void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+    NOTIMP;
+}
+std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {
+    NOTIMP;
+}
+void RemoteCatalogue::maskIndexEntry(const Index& index) const {
+    NOTIMP;
+}
+void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                                std::set<eckit::URI>& data) const {
+    NOTIMP;
+}
+void RemoteCatalogue::print(std::ostream& out) const {
     out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
 }
-
 
 std::string RemoteCatalogue::type() const {
     return "remote";

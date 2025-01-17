@@ -21,7 +21,6 @@
 
 #include "fdb5/api/FDBFactory.h"
 
-
 namespace fdb5 {
 
 class Inspector;
@@ -33,7 +32,6 @@ class FDB;
 class LocalFDB : public FDBBase {
 
 public: // methods
-
     using FDBBase::FDBBase;
     using FDBBase::stats;
 
@@ -53,8 +51,7 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
@@ -64,16 +61,13 @@ public: // methods
     void flush() override;
 
 protected: // methods
-
-    template <typename VisitorType, typename ... Ts>
-    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
+    template <typename VisitorType, typename... Ts>
+    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts... args);
 
 private: // methods
-
     void print(std::ostream& s) const override;
 
 protected: // members
-
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;

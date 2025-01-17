@@ -34,7 +34,6 @@ namespace fdb5 {
 
 class BTreeIndex;
 
-
 /// FileStoreWrapper exists _only_ so that the uris_ member can be initialised from the stream
 /// before the Index base class is initialised, for the TocIndex class. This order is required
 /// to preserve the order that data is stored/read from streams from before the uris_ object
@@ -50,31 +49,17 @@ struct UriStoreWrapper {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-class TocIndex :
-        private UriStoreWrapper,
-        public IndexBase {
+class TocIndex : private UriStoreWrapper, public IndexBase {
 
 public: // types
-
     enum Mode { WRITE, READ };
 
 public: // methods
-
-    TocIndex(const Key& key,
-             const Catalogue& catalogue,
-             const eckit::PathName &path,
-             off_t offset,
-             Mode mode,
+    TocIndex(const Key& key, const Catalogue& catalogue, const eckit::PathName& path, off_t offset, Mode mode,
              const std::string& type = defaulType());
 
-    TocIndex(eckit::Stream &,
-             const Catalogue& catalogue,
-             const int version,
-             const eckit::PathName &directory,
-             const eckit::PathName &path,
-             off_t offset,
-             bool preloadBTree=false);
+    TocIndex(eckit::Stream&, const Catalogue& catalogue, const int version, const eckit::PathName& directory,
+             const eckit::PathName& path, off_t offset, bool preloadBTree = false);
 
     ~TocIndex() override;
 
@@ -85,9 +70,8 @@ public: // methods
 
     void flock() const override;
     void funlock() const override;
-    
-private: // methods
 
+private: // methods
     const IndexLocation& location() const override { return location_; }
     const std::vector<eckit::URI> dataURIs() const override;
 
@@ -99,20 +83,19 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get(const Key& key, const Key& remapKey, Field& field ) const override;
-    void add(const Key& key, const Field& field ) override;
+    bool get(const Key& key, const Key& remapKey, Field& field) const override;
+    void add(const Key& key, const Field& field) override;
     void flush() override;
     void encode(eckit::Stream& s, const int version) const override;
     void entries(EntryVisitor& visitor) const override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override;
 
     IndexStats statistics() const override;
 
 private: // members
-
-    std::unique_ptr<BTreeIndex>  btree_;
+    std::unique_ptr<BTreeIndex> btree_;
 
     bool dirty_;
 
@@ -135,7 +118,7 @@ private: // members
 struct TocIndexFileSort {
 
     // Return true if first argument is earlier than the second, and false otherwise.
-    bool operator() (const Index& lhs, const Index& rhs) {
+    bool operator()(const Index& lhs, const Index& rhs) {
 
         const TocIndex* idx1 = dynamic_cast<const TocIndex*>(lhs.content());
         const TocIndex* idx2 = dynamic_cast<const TocIndex*>(rhs.content());

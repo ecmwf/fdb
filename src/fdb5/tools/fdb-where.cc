@@ -19,29 +19,23 @@
 using namespace eckit::option;
 using namespace eckit;
 
-
 namespace fdb5 {
 namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWhere : public FDBVisitTool {
-  public: // methods
-
-    FDBWhere(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver"),
-        porcelain_(false) {
+public: // methods
+    FDBWhere(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
     }
 
-  private: // methods
-
+private: // methods
     void execute(const CmdArgs& args) override;
-    void init(const CmdArgs &args) override;
+    void init(const CmdArgs& args) override;
 
-  private: // members
-
+private: // members
     bool porcelain_;
 };
 
@@ -50,7 +44,6 @@ void FDBWhere::init(const CmdArgs& args) {
 
     porcelain_ = args.getBool("porcelain", false);
 }
-
 
 void FDBWhere::execute(const CmdArgs& args) {
 
@@ -80,8 +73,7 @@ void FDBWhere::execute(const CmdArgs& args) {
 } // namespace tools
 } // namespace fdb5
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBWhere app(argc, argv);
     return app.start();
 }

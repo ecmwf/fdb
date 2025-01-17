@@ -8,18 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "fdb5/database/Notifier.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Notifier::Notifier() {
-}
+Notifier::Notifier() {}
 
-Notifier::~Notifier() {
-}
+Notifier::~Notifier() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

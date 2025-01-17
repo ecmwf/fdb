@@ -10,21 +10,24 @@
 
 #pragma once
 
-#include "fdb5/remote/server/ServerConnection.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/remote/server/ServerConnection.h"
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 struct CatalogueArchiver {
-    CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true), dataConnection(dataConnection),
-        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(0), locationsArchived(0) {}
+    CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config)
+        : controlConnection(true)
+        , dataConnection(dataConnection)
+        , catalogue(CatalogueWriterFactory::instance().build(dbKey, config))
+        , locationsExpected(0)
+        , locationsArchived(0) {}
 
     bool controlConnection;
     bool dataConnection;
-    
+
     std::unique_ptr<CatalogueWriter> catalogue;
     size_t locationsExpected;
     size_t locationsArchived;
@@ -35,13 +38,11 @@ struct CatalogueArchiver {
 
 //----------------------------------------------------------------------------------------------------------------------
 class CatalogueHandler : public ServerConnection {
-public:  // methods
-
+public: // methods
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~CatalogueHandler() override;
 
-private:  // methods
-
+private: // methods
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
@@ -63,8 +64,7 @@ private:  // methods
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
-private:  // member
-
+private: // member
     // clientID --> <catalogue, locationsExpected, locationsArchived>
     std::map<uint32_t, CatalogueArchiver> catalogues_;
     std::map<uint32_t, FDB> fdbs_;
@@ -78,4 +78,4 @@ private:  // member
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5::remote
+} // namespace fdb5::remote

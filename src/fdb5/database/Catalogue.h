@@ -25,13 +25,12 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
-#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -42,7 +41,6 @@ typedef std::map<Key, Index> IndexStore;
 
 class Catalogue {
 public:
-
     Catalogue() {}
     virtual ~Catalogue() {}
 
@@ -62,18 +60,21 @@ public:
 
     virtual void hideContents() = 0;
 
-    virtual void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const = 0;
+    virtual void dump(std::ostream& out, bool simple = false,
+                      const eckit::Configuration& conf = eckit::LocalConfiguration()) const = 0;
 
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
-    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
-    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
+    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
+                                     bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                     const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
     virtual bool enabled(const ControlIdentifier& controlIdentifier) const = 0;
 
-    virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
+    virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
 
     /// For use by the WipeVisitor
     virtual void maskIndexEntry(const Index& index) const = 0;
@@ -82,8 +83,8 @@ public:
     virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                            std::set<eckit::URI>& data) const = 0;
 
-    friend std::ostream &operator<<(std::ostream &s, const Catalogue &x);
-    virtual void print( std::ostream &out ) const = 0;
+    friend std::ostream& operator<<(std::ostream& s, const Catalogue& x);
+    virtual void print(std::ostream& out) const = 0;
 
     virtual std::string type() const = 0;
     virtual bool open() = 0;
@@ -97,16 +98,15 @@ public:
     virtual eckit::URI uri() const = 0;
 
 protected: // methods
-
     virtual void loadSchema() = 0;
-
 };
 
 class CatalogueImpl : virtual public Catalogue {
 public:
-
     CatalogueImpl(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
+        : dbKey_(key)
+        , config_(config)
+        , controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~CatalogueImpl() {}
 
@@ -121,23 +121,19 @@ public:
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
 protected: // methods
-
     CatalogueImpl() : dbKey_(Key()), config_(Config()), controlIdentifiers_(ControlIdentifiers()) {}
 
 protected: // members
-
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
-
 };
 
 class CatalogueReader : virtual public Catalogue {
 
 public:
-
     CatalogueReader() {}
-    
+
     virtual ~CatalogueReader() {}
 
     virtual DbStats stats() const = 0;
@@ -145,18 +141,18 @@ public:
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
-
-class CatalogueWriter : virtual public Catalogue  {
+class CatalogueWriter : virtual public Catalogue {
 
 public:
-
     CatalogueWriter() {}
     virtual ~CatalogueWriter() {}
 
     virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();
-    virtual void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) = 0;
-    virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
+    virtual void archive(const Key& idxKey, const Key& datumKey,
+                         std::shared_ptr<const FieldLocation> fieldLocation) = 0;
+    virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys,
+                           bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
 };
@@ -175,8 +171,12 @@ public:
 
 template <class T>
 class CatalogueReaderBuilder : public CatalogueReaderBuilderBase {
-    virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
-    virtual std::unique_ptr<CatalogueReader> make(const eckit::URI& uri, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
+    virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config) override {
+        return std::unique_ptr<T>(new T(key, config));
+    }
+    virtual std::unique_ptr<CatalogueReader> make(const eckit::URI& uri, const fdb5::Config& config) override {
+        return std::unique_ptr<T>(new T(uri, config));
+    }
 
 public:
     CatalogueReaderBuilder(const std::string& name) : CatalogueReaderBuilderBase(name) {}
@@ -219,8 +219,12 @@ public:
 
 template <class T>
 class CatalogueWriterBuilder : public CatalogueWriterBuilderBase {
-    virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
-    virtual std::unique_ptr<CatalogueWriter> make(const eckit::URI& uri, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
+    virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config) override {
+        return std::unique_ptr<T>(new T(key, config));
+    }
+    virtual std::unique_ptr<CatalogueWriter> make(const eckit::URI& uri, const fdb5::Config& config) override {
+        return std::unique_ptr<T>(new T(uri, config));
+    }
 
 public:
     CatalogueWriterBuilder(const std::string& name) : CatalogueWriterBuilderBase(name) {}
@@ -251,7 +255,6 @@ private:
 
 class NullCatalogue : public Catalogue {
 public:
-
     const Key& key() const override { NOTIMP; }
     const Key& indexKey() const override { NOTIMP; }
     const Config& config() const override { NOTIMP; }
@@ -267,27 +270,38 @@ public:
 
     void hideContents() override { NOTIMP; }
 
-    void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override { NOTIMP; }
+    void dump(std::ostream& out, bool simple = false,
+              const eckit::Configuration& conf = eckit::LocalConfiguration()) const override {
+        NOTIMP;
+    }
     bool enabled(const ControlIdentifier& controlIdentifier) const override { NOTIMP; }
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; }
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
+                             bool porcelain, bool unsafeWipeAll) const override {
+        NOTIMP;
+    }
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
+                             eckit::Queue<MoveElement>& queue) const override {
+        NOTIMP;
+    }
 
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; }
 
-    std::vector<fdb5::Index> indexes(bool sorted=false) const override { NOTIMP; }
+    std::vector<fdb5::Index> indexes(bool sorted = false) const override { NOTIMP; }
 
     /// For use by the WipeVisitor
     void maskIndexEntry(const Index& index) const override { NOTIMP; }
 
     /// For use by purge/wipe
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                           std::set<eckit::URI>& data) const override { NOTIMP; }
+                   std::set<eckit::URI>& data) const override {
+        NOTIMP;
+    }
 
-    friend std::ostream &operator<<(std::ostream &s, const Catalogue &x);
-    void print( std::ostream &out ) const override { NOTIMP; }
+    friend std::ostream& operator<<(std::ostream& s, const Catalogue& x);
+    void print(std::ostream& out) const override { NOTIMP; }
 
     std::string type() const override { NOTIMP; }
     bool open() override { NOTIMP; }
@@ -301,9 +315,7 @@ public:
     eckit::URI uri() const override { NOTIMP; }
 
 protected: // methods
-
     void loadSchema() override { NOTIMP; }
-
 };
 
-}
+} // namespace fdb5

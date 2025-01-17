@@ -13,8 +13,8 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/toc/TocHandler.h"
 
 using namespace eckit;
 
@@ -22,10 +22,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store) :
-    PurgeVisitor(),
-    TocStatsReportVisitor(catalogue, false),
-    store_(store) {}
+TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store)
+    : PurgeVisitor()
+    , TocStatsReportVisitor(catalogue, false)
+    , store_(store) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
@@ -73,7 +73,8 @@ void TocPurgeVisitor::gatherAuxiliaryURIs() {
         // Add auxiliary files to the corresponding set
         eckit::URI uri(store_.type(), eckit::PathName(it.first));
         for (const auto& auxURI : store_.getAuxiliaryURIs(uri)) {
-            if (!store_.auxiliaryURIExists(auxURI)) continue;
+            if (!store_.auxiliaryURIExists(auxURI))
+                continue;
             // Todo: in future can we just use URIs, not paths?
             eckit::PathName auxPath = auxURI.path();
             if (deletable) {
@@ -207,7 +208,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
             if (path.dirName().sameAs(directory)) {
                 currentCatalogue->remove(path, logAlways, logVerbose, doit);
             }
-       }
+        }
     }
 }
 

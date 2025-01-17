@@ -10,10 +10,9 @@
 
 #include <unordered_set>
 
+#include "eckit/log/JSON.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/log/JSON.h"
 
 #include "metkit/hypercube/HyperCube.h"
 
@@ -33,30 +32,29 @@ namespace tools {
 
 class FDBList : public FDBVisitTool {
 
-  public: // methods
-
-    FDBList(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver"),
-        location_(false),
-        timestamp_(false),
-        length_(false),
-        full_(false),
-        porcelain_(false),
-        json_(false) {
+public: // methods
+    FDBList(int argc, char** argv)
+        : FDBVisitTool(argc, argv, "class,expver")
+        , location_(false)
+        , timestamp_(false)
+        , length_(false)
+        , full_(false)
+        , porcelain_(false)
+        , json_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
-        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
+        options_.push_back(
+            new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
     }
 
-  private: // methods
-
+private: // methods
     virtual void execute(const CmdArgs& args);
-    virtual void init(const CmdArgs &args);
+    virtual void init(const CmdArgs& args);
 
     bool location_;
     bool timestamp_;
@@ -67,17 +65,15 @@ class FDBList : public FDBVisitTool {
     bool compact_;
 };
 
-
 std::string keySignature(const fdb5::Key& key) {
     std::string signature;
     std::string separator;
     for (auto k : key.keys()) {
-        signature += separator+k;
-        separator=":";
+        signature += separator + k;
+        separator = ":";
     }
     return signature;
 }
-
 
 void FDBList::init(const CmdArgs& args) {
 
@@ -133,7 +129,8 @@ void FDBList::execute(const CmdArgs& args) {
 
         // If --full is supplied, then include all entries including duplicates.
         auto listObject = fdb.list(request, !full_ && !compact_);
-        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
+        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>>
+            requests;
 
         ListElement elem;
         while (listObject.next(elem)) {
@@ -146,7 +143,7 @@ void FDBList::execute(const CmdArgs& args) {
                 treeAxes += ",";
                 treeAxes += keys[1];
 
-                std::string signature=keySignature(keys[2]);  // i.e. step:levelist:param
+                std::string signature = keySignature(keys[2]); // i.e. step:levelist:param
 
                 auto it = requests.find(treeAxes);
                 if (it == requests.end()) {
@@ -159,7 +156,8 @@ void FDBList::execute(const CmdArgs& args) {
                         h->second.first.merge(keys[2].request());
                         h->second.second.insert(keys[2]);
                     } else {
-                        it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
+                        it->second.emplace(signature,
+                                           std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     }
                 }
             } else {
@@ -176,18 +174,18 @@ void FDBList::execute(const CmdArgs& args) {
             }
         }
         if (compact_) {
-            for (const auto& tree: requests) {
-                for (const auto& leaf: tree.second) {
+            for (const auto& tree : requests) {
+                for (const auto& leaf : tree.second) {
                     metkit::hypercube::HyperCube h{leaf.second.first};
                     if (h.size() == leaf.second.second.size()) {
                         Log::info() << "retrieve," << tree.first << ",";
                         leaf.second.first.dump(Log::info(), "", "", false);
                         Log::info() << std::endl;
                     } else {
-                        for (const auto& k: leaf.second.second) {
+                        for (const auto& k : leaf.second.second) {
                             h.clear(k.request());
                         }
-                        for (const auto& r: h.requests()) {
+                        for (const auto& r : h.requests()) {
                             Log::info() << "retrieve," << tree.first << ",";
                             r.dump(Log::info(), "", "", false);
                             Log::info() << std::endl;
@@ -209,8 +207,7 @@ void FDBList::execute(const CmdArgs& args) {
 } // namespace tools
 } // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBList app(argc, argv);
     return app.start();
 }
-

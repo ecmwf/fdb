@@ -32,8 +32,7 @@ class TypedKey;
 
 class EntryVisitor : public eckit::NonCopyable {
 
-public:  // methods
-
+public: // methods
     EntryVisitor();
     virtual ~EntryVisitor();
 
@@ -41,8 +40,8 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual bool visitDatabase(const Catalogue& catalogue);    // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index); // return true if index should be explored
+    virtual bool visitDatabase(const Catalogue& catalogue); // return true if Catalogue should be explored
+    virtual bool visitIndex(const Index& index);            // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
@@ -51,14 +50,12 @@ public:  // methods
     time_t indexTimestamp() const;
 
 protected:
-
     Store& store() const;
 
 private: // methods
-
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
-protected:  // members
+protected: // members
     /// Non-owning
     const Catalogue* currentCatalogue_ = nullptr;
     /// Owned store
@@ -73,14 +70,12 @@ protected:  // members
 
 class EntryVisitMechanism : public eckit::NonCopyable {
 
-public:  // methods
-
+public: // methods
     EntryVisitMechanism(const Config& config);
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 
-private:  // members
-
+private: // members
     const Config& dbConfig_;
 
     // Fail on error
@@ -89,6 +84,6 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5
 
 #endif

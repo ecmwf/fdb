@@ -12,10 +12,10 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
@@ -31,33 +31,29 @@ namespace tools {
 class FdbOverlay : public FDBTool {
 
 public: // methods
-
-    FdbOverlay(int argc, char **argv) :
-        FDBTool(argc, argv),
-        variableKeys_{"class", "expver"},
-        remove_(false),
-        force_(false) {
-        options_.push_back(new VectorOption<std::string>("variable-keys",
-                                                         "The keys that may vary between mounted DBs",
-                                                         0, ","));
+    FdbOverlay(int argc, char** argv)
+        : FDBTool(argc, argv)
+        , variableKeys_{"class", "expver"}
+        , remove_(false)
+        , force_(false) {
+        options_.push_back(
+            new VectorOption<std::string>("variable-keys", "The keys that may vary between mounted DBs", 0, ","));
         options_.push_back(new SimpleOption<bool>("remove", "Remove a previously FDB overlay"));
         options_.push_back(new SimpleOption<bool>("force", "Apply overlay even if target already exists"));
     }
 
 private: // methods
-
     virtual void init(const option::CmdArgs& args);
     virtual void execute(const option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
 private: // members
-
     std::vector<std::string> variableKeys_;
     bool remove_;
     bool force_;
 };
 
-void FdbOverlay::usage(const std::string &tool) const {
+void FdbOverlay::usage(const std::string& tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [source DB request] [target DB request]" << std::endl
@@ -155,7 +151,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(dbTarget->uri() != dbSource->uri());
 
     std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target.canonical(), conf);
-    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
+    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName()) {
         newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }
 }
@@ -163,9 +159,9 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace tools
-} // namespace fbb5
+} // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbOverlay app(argc, argv);
     return app.start();
 }

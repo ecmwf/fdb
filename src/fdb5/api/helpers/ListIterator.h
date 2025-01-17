@@ -19,20 +19,20 @@
 #ifndef fdb5_ListIterator_H
 #define fdb5_ListIterator_H
 
-#include <vector>
-#include <unordered_set>
-#include <memory>
-#include <iosfwd>
 #include <chrono>
+#include <iosfwd>
+#include <memory>
+#include <unordered_set>
+#include <vector>
 
-#include "fdb5/database/Key.h"
-#include "fdb5/database/FieldLocation.h"
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
-    class Stream;
-    class JSON;
-}
+class Stream;
+class JSON;
+} // namespace eckit
 
 namespace fdb5 {
 
@@ -43,7 +43,6 @@ namespace fdb5 {
 
 class ListElement {
 public: // methods
-
     ListElement() = default;
     ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
     ListElement(eckit::Stream& s);
@@ -54,11 +53,11 @@ public: // methods
 
     Key combinedKey() const;
 
-    void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false, const char* sep = " ") const;
+    void print(std::ostream& out, bool withLocation = false, bool withLength = false, bool withTimestamp = false,
+               const char* sep = " ") const;
     void json(eckit::JSON& json) const;
 
 private: // methods
-
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ListElement& e) {
@@ -77,11 +76,9 @@ private: // methods
     }
 
 public: // members
-
     std::vector<Key> keyParts_;
 
 private: // members
-
     std::shared_ptr<const FieldLocation> location_;
     time_t timestamp_;
 };
@@ -96,11 +93,15 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 class ListIterator : public APIIterator<ListElement> {
 public:
-    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
+    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false)
+        : APIIterator<ListElement>(std::move(iter))
+        , seenKeys_({})
+        , deduplicate_(deduplicate) {}
 
-    ListIterator(ListIterator&& iter) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
+    ListIterator(ListIterator&& iter)
+        : APIIterator<ListElement>(std::move(iter))
+        , seenKeys_(std::move(iter.seenKeys_))
+        , deduplicate_(iter.deduplicate_) {}
 
     ListIterator& operator=(ListIterator&& iter) {
         seenKeys_ = std::move(iter.seenKeys_);
@@ -112,7 +113,7 @@ public:
     bool next(ListElement& elem) {
         ListElement tmp;
         while (APIIterator<ListElement>::next(tmp)) {
-            if(deduplicate_) {
+            if (deduplicate_) {
                 Key combinedKey = tmp.combinedKey();
                 if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
                     seenKeys_.emplace(std::move(combinedKey));

@@ -24,24 +24,24 @@ static std::string empty;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchOptional::classSpec_ = { &Matcher::classSpec(), "MatchOptional", };
+eckit::ClassSpec MatchOptional::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchOptional",
+};
 
 eckit::Reanimator<MatchOptional> MatchOptional::reanimator_;
 
-
-MatchOptional::MatchOptional(const std::string &def) :
-    Matcher() {
+MatchOptional::MatchOptional(const std::string& def) : Matcher() {
     default_.push_back(def);
 }
 
-MatchOptional::MatchOptional(eckit::Stream& s) :
-    Matcher() {
-        
+MatchOptional::MatchOptional(eckit::Stream& s) : Matcher() {
+
     size_t numValues;
     std::string value;
 
     s >> numValues;
-    for (size_t i=0; i < numValues; i++) {
+    for (size_t i = 0; i < numValues; i++) {
         s >> value;
         default_.push_back(value);
     }
@@ -54,8 +54,7 @@ void MatchOptional::encode(eckit::Stream& s) const {
     }
 }
 
-MatchOptional::~MatchOptional() {
-}
+MatchOptional::~MatchOptional() {}
 
 bool MatchOptional::match(const std::string&, const Key&) const {
     return true;
@@ -65,13 +64,13 @@ bool MatchOptional::optional() const {
     return true;
 }
 
-void MatchOptional::fill(BaseKey& key, const std::string &keyword, const std::string& value) const {
+void MatchOptional::fill(BaseKey& key, const std::string& keyword, const std::string& value) const {
     if (!value.empty()) {
         key.push(keyword, value);
     }
 }
 
-const std::string &MatchOptional::value(const Key& key, const std::string &keyword) const {
+const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
     Key::const_iterator i = key.find(keyword);
 
     if (i == key.end()) {
@@ -81,7 +80,8 @@ const std::string &MatchOptional::value(const Key& key, const std::string &keywo
     return key.get(keyword);
 }
 
-const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
+const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq,
+                                                      const std::string& keyword) const {
 
     if (rq.has(keyword)) {
         return rq.values(keyword);
@@ -89,16 +89,16 @@ const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRe
     return default_;
 }
 
-const std::string &MatchOptional::defaultValue() const {
+const std::string& MatchOptional::defaultValue() const {
     return default_[0];
 }
 
-void MatchOptional::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchOptional::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
     s << '?' << default_[0];
 }
 
-void MatchOptional::print(std::ostream &out) const {
+void MatchOptional::print(std::ostream& out) const {
     out << "MatchOptional[default=" << default_[0] << "]";
 }
 

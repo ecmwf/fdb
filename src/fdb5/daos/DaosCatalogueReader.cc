@@ -10,11 +10,11 @@
 
 #include "fdb5/LibFdb5.h"
 
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
-#include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosCatalogueReader.h"
+#include "fdb5/daos/DaosIndex.h"
 
 namespace fdb5 {
 
@@ -23,16 +23,14 @@ namespace fdb5 {
 /// @note: as opposed to the TOC catalogue, the DAOS catalogue does not pre-load all indexes from storage.
 ///   Instead, it selects and loads only those indexes that are required to fulfil the request.
 
-DaosCatalogueReader::DaosCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
-    DaosCatalogue(dbKey, config) {
+DaosCatalogueReader::DaosCatalogueReader(const Key& dbKey, const fdb5::Config& config) : DaosCatalogue(dbKey, config) {
 
     /// @todo: schema is being loaded at DaosCatalogueWriter creation for write, but being loaded
     ///        at DaosCatalogueReader::open for read. Is this OK?
-
 }
 
-DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
-    DaosCatalogue(uri, ControlIdentifiers{}, config) {}
+DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config)
+    : DaosCatalogue(uri, ControlIdentifiers{}, config) {}
 
 bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
 
@@ -54,8 +52,8 @@ bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
         /// - ensure catalogue kv exists (daos_kv_open)
         fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
 
-        int idx_loc_max_len = 512;  /// @todo: take from config
-        std::vector<char> n((long) idx_loc_max_len);
+        int idx_loc_max_len = 512; /// @todo: take from config
+        std::vector<char> n((long)idx_loc_max_len);
         long res;
 
         try {
@@ -70,7 +68,6 @@ bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
             /// - close catalogue kv (daos_obj_close)
 
             return false;
-
         }
 
         fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}};
@@ -79,19 +76,16 @@ bool DaosCatalogueReader::selectIndex(const Key& idxKey) {
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
-
     }
 
     current_ = indexes_[idxKey];
 
     return true;
-
 }
 
 void DaosCatalogueReader::deselectIndex() {
 
     NOTIMP; //< should not be called
-    
 }
 
 bool DaosCatalogueReader::open() {
@@ -107,10 +101,9 @@ bool DaosCatalogueReader::open() {
 
     DaosCatalogue::loadSchema();
     return true;
-
 }
 
-bool DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool DaosCatalogueReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 
     bool found = false;
     if (current_.axes().has(keyword)) {
@@ -119,7 +112,6 @@ bool DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) 
         s.insert(a.begin(), a.end());
     }
     return found;
-
 }
 
 bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
@@ -127,10 +119,10 @@ bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
 
-    if (!current_.mayContain(key)) return false;
+    if (!current_.mayContain(key))
+        return false;
 
     return current_.get(key, fdb5::Key(), field);
-
 }
 
 static fdb5::CatalogueReaderBuilder<fdb5::DaosCatalogueReader> builder("daos");

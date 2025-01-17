@@ -12,15 +12,14 @@
 
 #include "eckit/io/AutoCloser.h"
 
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Manager.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Manager.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/rules/Schema.h"
 
 using namespace eckit;
-
 
 namespace fdb5 {
 
@@ -83,16 +82,13 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     visitDatum(field, key);
 }
 
-
 time_t EntryVisitor::indexTimestamp() const {
     return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
-    dbConfig_(config),
-    fail_(true) {}
+EntryVisitMechanism::EntryVisitMechanism(const Config& config) : dbConfig_(config), fail_(true) {}
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
 
@@ -122,14 +118,10 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
             std::unique_ptr<CatalogueReader> catalogue;
             try {
-                
+
                 catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
 
-            } catch (fdb5::DatabaseNotFoundException& e) {
-
-                visitor.onDatabaseNotFound(e);
-
-            }
+            } catch (fdb5::DatabaseNotFoundException& e) { visitor.onDatabaseNotFound(e); }
 
             ASSERT(catalogue->open());
 
@@ -138,15 +130,13 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
             catalogue->visitEntries(visitor, /* *store, */ false);
         }
 
-    } catch (eckit::UserError&) {
-        throw;
-    } catch (eckit::Exception& e) {
+    } catch (eckit::UserError&) { throw; } catch (eckit::Exception& e) {
         Log::warning() << e.what() << std::endl;
-        if (fail_) throw;
+        if (fail_)
+            throw;
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

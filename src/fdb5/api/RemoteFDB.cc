@@ -6,13 +6,13 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/RemoteFDB.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Inspector.h"
-#include "fdb5/LibFdb5.h"
 
-#include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 using namespace fdb5::remote;
 using namespace eckit;
@@ -24,7 +24,7 @@ struct BaseAPIHelper {
 
     typedef T ValueType;
 
-    static size_t bufferSize() { return 1024*1024; }
+    static size_t bufferSize() { return 1024 * 1024; }
     static size_t queueSize() { return 100; }
     static fdb5::remote::Message message() { return msgID; }
 
@@ -47,10 +47,14 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-            std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
+                fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                                  static_cast<const RemoteFieldLocation&>(elem.location()))
+                    .make_shared();
             return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
-        std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+        std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
+            fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
@@ -58,9 +62,8 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
     AxesHelper(int level) : level_(level) {}
 
-    void encodeExtra(eckit::Stream& s) const {
-        s << level_;
-    }
+    void encodeExtra(eckit::Stream& s) const { s << level_; }
+
 private:
     int level_;
 };
@@ -77,15 +80,19 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-            std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
+                fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                                  static_cast<const RemoteFieldLocation&>(elem.location()))
+                    .make_shared();
             return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
-        std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+        std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
+            fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
 
-}
+} // namespace
 
 namespace fdb5 {
 
@@ -110,9 +117,9 @@ const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const eckit::net::Endpoint&
     return it->second;
 }
 
-RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
-    LocalFDB(config, name),
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
+RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name)
+    : LocalFDB(config, name)
+    , Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
 
     eckit::Buffer buf = controlWriteReadResponse(remote::Message::Stores, generateRequestID());
     eckit::MemoryStream s(buf);
@@ -124,8 +131,8 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 
     std::vector<std::string> stores;
     std::vector<std::string> fieldLocationEndpoints;
-    
-    for (size_t i=0; i<numStores; i++) {
+
+    for (size_t i = 0; i < numStores; i++) {
         std::string store;
         s >> store;
         size_t numAliases;
@@ -134,9 +141,10 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         if (numAliases == 0) {
             eckit::net::Endpoint storeEndpoint{store};
             storesReadMapping_[storeEndpoint] = storeEndpoint;
-            LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << storeEndpoint << " default data location endpoint: " << storeEndpoint << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << storeEndpoint
+                                   << " default data location endpoint: " << storeEndpoint << std::endl;
         } else {
-            for (size_t j=0; j<numAliases; j++) {
+            for (size_t j = 0; j < numAliases; j++) {
                 eckit::net::Endpoint alias(s);
                 if (store.empty()) {
                     storesLocalFields_.push_back(alias);
@@ -145,18 +153,19 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
                     eckit::net::Endpoint fieldLocationEndpoint{store};
                     storesReadMapping_[fieldLocationEndpoint] = alias;
                 }
-                LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << alias << " default data location endpoint: " << store << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << alias << " default data location endpoint: " << store
+                                       << std::endl;
             }
         }
     }
-    for(const auto& s: storesReadMapping_) {
+    for (const auto& s : storesReadMapping_) {
         if (localFields.find(s.second) == localFields.end()) {
             storesArchiveMapping_.push_back(std::make_pair(s.second, s.first));
             stores.push_back(s.second);
             fieldLocationEndpoints.push_back(s.first);
         }
     }
-    for (const auto& s: storesLocalFields_) {
+    for (const auto& s : storesLocalFields_) {
         stores.push_back(s);
         fieldLocationEndpoints.push_back("");
     }
@@ -168,7 +177,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
-    config_.overrideSchema(static_cast<std::string>(controlEndpoint())+"/schema", schema);
+    config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -179,9 +188,9 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 // ii) Encode the request+arguments and send them to the server
 // iii) Return an AsyncIterator that pulls messages off the queue, and returns them to the caller.
 
-
 template <typename HelperClass>
-auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType> {
+auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+    -> APIIterator<typename HelperClass::ValueType> {
 
     using ValueType = typename HelperClass::ValueType;
     using IteratorType = APIIterator<ValueType>;
@@ -211,18 +220,17 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
         new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
-                eckit::Buffer msg{0};
-                while (true) {
-                    if (messageQueue->pop(msg) == -1) {
-                        break;
-                    } else {
-                        MemoryStream s(msg);
-                        queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
-                    }
+            eckit::Buffer msg{0};
+            while (true) {
+                if (messageQueue->pop(msg) == -1) {
+                    break;
+                } else {
+                    MemoryStream s(msg);
+                    queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
                 }
-                // messageQueue goes out of scope --> destructed
-            })
-        );
+            }
+            // messageQueue goes out of scope --> destructed
+        }));
 }
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
@@ -247,7 +255,7 @@ void RemoteFDB::print(std::ostream& s) const {
 
 // Client
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
-    
+
     switch (message) {
         case fdb5::remote::Message::Complete: {
 

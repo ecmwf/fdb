@@ -12,25 +12,19 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeInteger.h"
+#include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeInteger::TypeInteger(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeInteger::~TypeInteger() {
-}
+TypeInteger::~TypeInteger() {}
 
-void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
-                            const std::string& keyword,
-                            eckit::StringList& values,
-                            const Notifier&,
-                            const CatalogueReader*) const {
+void TypeInteger::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                            eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues, true);
@@ -44,7 +38,7 @@ void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
     }
 }
 
-void TypeInteger::print(std::ostream &out) const {
+void TypeInteger::print(std::ostream& out) const {
     out << "TypeInteger[name=" << name_ << "]";
 }
 

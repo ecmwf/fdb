@@ -25,7 +25,7 @@
 
 namespace fdb5 {
 
-std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
+std::ostream& operator<<(std::ostream& s, const Catalogue& x) {
     x.print(s);
     return s;
 }
@@ -59,7 +59,6 @@ void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     }
 
     visitor.catalogueComplete(*this);
-
 }
 
 const Key CatalogueWriter::currentIndexKey() {
@@ -106,7 +105,8 @@ bool CatalogueReaderFactory::has(const std::string& name) {
 void CatalogueReaderFactory::list(std::ostream& out) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     const char* sep = "";
-    for (std::map<std::string, CatalogueReaderBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+    for (std::map<std::string, CatalogueReaderBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end();
+         ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
@@ -159,10 +159,10 @@ CatalogueReaderBuilderBase::CatalogueReaderBuilderBase(const std::string& name) 
 }
 
 CatalogueReaderBuilderBase::~CatalogueReaderBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     CatalogueReaderFactory::instance().remove(name_);
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -200,7 +200,8 @@ bool CatalogueWriterFactory::has(const std::string& name) {
 void CatalogueWriterFactory::list(std::ostream& out) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     const char* sep = "";
-    for (std::map<std::string, CatalogueWriterBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+    for (std::map<std::string, CatalogueWriterBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end();
+         ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
@@ -253,10 +254,11 @@ CatalogueWriterBuilderBase::CatalogueWriterBuilderBase(const std::string& name) 
 }
 
 CatalogueWriterBuilderBase::~CatalogueWriterBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     CatalogueWriterFactory::instance().remove(name_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

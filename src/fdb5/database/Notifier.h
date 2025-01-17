@@ -16,17 +16,13 @@
 #ifndef fdb5_Notifier_H
 #define fdb5_Notifier_H
 
-
-
 namespace fdb5 {
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Notifier {
 
 public: // methods
-
     Notifier();
 
     virtual ~Notifier();

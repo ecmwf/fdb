@@ -52,7 +52,7 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     // Construct the object to push onto the queue
 
-    queue_.emplace(StatsElement { internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics() });
+    queue_.emplace(StatsElement{internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics()});
 
     // Cleanup
 

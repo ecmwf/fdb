@@ -18,13 +18,11 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue,
-                         const metkit::mars::MarsRequest& request,
-                         const Config& config,
-                         int level) :
-        QueryVisitor<AxesElement>(queue, request),
-        schema_(config.schema()),
-        level_(level) {}
+AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request,
+                         const Config& config, int level)
+    : QueryVisitor<AxesElement>(queue, request)
+    , schema_(config.schema())
+    , level_(level) {}
 
 #if 0
 
@@ -62,7 +60,7 @@ bool AxesVisitor::visitIndex(const Index& index) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
-        axes_.merge(tmpAxis);   // avoid sorts on the (growing) main Axes object
+        axes_.merge(tmpAxis); // avoid sorts on the (growing) main Axes object
 
         if (level_ > 2) {
             axes_.merge(index.axes());

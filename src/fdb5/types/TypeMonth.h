@@ -25,23 +25,17 @@ namespace fdb5 {
 class TypeMonth : public Type {
 
 public: // methods
-
-    TypeMonth(const std::string &name, const std::string &type);
+    TypeMonth(const std::string& name, const std::string& type);
 
     ~TypeMonth() override;
 
     std::string toKey(const std::string& value) const override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const CatalogueReader* cat) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
 private: // methods
-
-    void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

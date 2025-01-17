@@ -17,26 +17,24 @@
 #include <map>
 #include <memory>
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
-
-
 namespace eckit {
 class Configuration;
 class MemoryHandle;
-}
+} // namespace eckit
 
 namespace fdb5 {
 
@@ -65,16 +63,14 @@ class TocCopyWatcher : public eckit::TransferWatcher {
         tocCopyStats_.push_back(std::make_pair(now - time_, len));
         time_ = now;
     }
-    
-public:
-    TocCopyWatcher(): idx_(0) {}
 
-    size_t size() const {
-        return tocCopyStats_.size();
-    }
+public:
+    TocCopyWatcher() : idx_(0) {}
+
+    size_t size() const { return tocCopyStats_.size(); }
 
     bool next(double& time, eckit::Length& len) {
-        if (tocCopyStats_.size()>idx_) {
+        if (tocCopyStats_.size() > idx_) {
             time = tocCopyStats_[idx_].first;
             len = tocCopyStats_[idx_].second;
 
@@ -90,7 +86,6 @@ private:
 
     size_t idx_;
     std::vector<std::pair<double, eckit::Length>> tocCopyStats_;
-
 };
 
 //-----------------------------------------------------------------------------
@@ -98,15 +93,14 @@ private:
 class TocHandler : public TocCommon, private eckit::NonCopyable {
 
 public: // typedefs
-
     typedef std::vector<TocRecord> TocVec;
-    typedef std::vector< eckit::LocalPathName > TocPaths;
+    typedef std::vector<eckit::LocalPathName> TocPaths;
 
 public: // methods
-    TocHandler( const eckit::PathName &dir, const Config& config);
+    TocHandler(const eckit::PathName& dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc=nullptr);
+    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr);
 
     ~TocHandler() override;
 
@@ -114,10 +108,10 @@ public: // methods
     void checkUID() const override;
 
     void writeInitRecord(const Key& tocKey);
-    void writeClearRecord(const Index &);
+    void writeClearRecord(const Index&);
     void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);
-    void writeIndexRecord(const Index &);
+    void writeIndexRecord(const Index&);
     void writeSubTocMaskRecord(const TocHandler& subToc);
 
     void reconsolidateIndexesAndTocs();
@@ -127,10 +121,8 @@ public: // methods
 
     /// Return a list of existent indexes. If supplied, also supply a list of associated
     /// subTocs that were read to get these indexes
-    std::vector<Index> loadIndexes(const Catalogue& catalogue,
-                                   bool sorted=false,
-                                   std::set<std::string>* subTocs = nullptr,
-                                   std::vector<bool>* indexInSubtoc = nullptr,
+    std::vector<Index> loadIndexes(const Catalogue& catalogue, bool sorted = false,
+                                   std::set<std::string>* subTocs = nullptr, std::vector<bool>* indexInSubtoc = nullptr,
                                    std::vector<Key>* remapKeys = nullptr) const;
 
     Key databaseKey();
@@ -146,8 +138,7 @@ public: // methods
 
     DbStats stats() const;
 
-    void enumerateMasked(const Catalogue& catalogue,
-                         std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+    void enumerateMasked(const Catalogue& catalogue, std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                          std::set<eckit::URI>& data) const;
 
     std::vector<eckit::PathName> subTocPaths() const;
@@ -155,9 +146,7 @@ public: // methods
     std::vector<eckit::PathName> lockfilePaths() const;
 
 protected: // methods
-
     size_t tocFilesSize() const;
-
 
     // Access and control of locks
 
@@ -166,19 +155,16 @@ protected: // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private: // methods
-
     eckit::LocalPathName fullControlFilePath(const std::string& name) const;
     void createControlFile(const std::string& name) const;
     void removeControlFile(const std::string& name) const;
 
-protected: // members
-
+protected:                  // members
     mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
 
     uid_t dbUID() const override;
 
 protected: // methods
-
     // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::LocalPathName& currentDirectory() const;
     const eckit::LocalPathName& currentTocPath() const;
@@ -193,14 +179,13 @@ protected: // methods
 
     // Given the payload size, returns the record size
 
-    static size_t roundRecord(TocRecord &r, size_t payloadSize);
+    static size_t roundRecord(TocRecord& r, size_t payloadSize);
 
     void appendBlock(const void* data, size_t size);
 
     const TocSerialisationVersion& serialisationVersion() const;
 
 private: // methods
-
     friend class TocHandlerCloser;
 
     void openForAppend();
@@ -218,19 +203,18 @@ private: // methods
     void populateMaskedEntriesList() const;
     void preloadSubTocs(bool readMasked) const;
 
-    void append(TocRecord &r, size_t payloadSize);
+    void append(TocRecord& r, size_t payloadSize);
 
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
     // readMasked=true will walk subtocs and read indexes even if they are masked. This is
     // useful for dumping indexes which are cleared, or only referred to in cleared subtocs.
-    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true,
-                  bool hideClearEntries = true, bool readMasked = false,
-                  const TocRecord** data=nullptr, size_t* length=nullptr) const;
+    bool readNext(TocRecord& r, bool walkSubTocs = true, bool hideSubTocEntries = true, bool hideClearEntries = true,
+                  bool readMasked = false, const TocRecord** data = nullptr, size_t* length = nullptr) const;
 
     void selectSubTocRead(const eckit::LocalPathName& path) const;
 
-    bool readNextInternal(TocRecord &r, const TocRecord** data=nullptr, size_t* length=nullptr) const;
+    bool readNextInternal(TocRecord& r, const TocRecord** data = nullptr, size_t* length = nullptr) const;
 
     std::string userName(long) const;
 
@@ -239,7 +223,6 @@ private: // methods
     void dumpTocCache() const;
 
 private: // members
-
     eckit::LocalPathName tocPath_;
     Config dbConfig_;
 
@@ -253,7 +236,7 @@ private: // members
     // remapping key?
     Key remapKey_;
 
-    mutable int fd_;      ///< file descriptor, if zero file is not yet open.
+    mutable int fd_; ///< file descriptor, if zero file is not yet open.
 
     mutable TocCopyWatcher tocReadStats_;
     mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
@@ -272,7 +255,6 @@ private: // members
 
     mutable bool dirty_;
 };
-
 
 //-----------------------------------------------------------------------------
 

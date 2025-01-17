@@ -24,7 +24,6 @@
 
 using namespace eckit;
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -42,8 +41,9 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
     return cfg;
 }
 
-Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config), schemaPathInitialised_(false) {
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig)
+    : LocalConfiguration(config)
+    , schemaPathInitialised_(false) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
@@ -109,9 +109,7 @@ Config Config::expandConfig() const {
     return *this;
 }
 
-
 Config::~Config() {}
-
 
 // TODO: We could add this to expandTilde.
 
@@ -153,7 +151,7 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
-    schemaPath_=schemaPath;
+    schemaPath_ = schemaPath;
     schemaPathInitialised_ = true;
 }
 
@@ -167,8 +165,7 @@ void Config::initializeSchemaPath() const {
 
     if (has("schema")) {
         schemaPath_ = expandPath(getString("schema"));
-    }
-    else {
+    } else {
         // TODO: deduplicate this with the library-level schemaPath()
         //       N.B. this uses Config expandPath()
         static std::string fdbSchemaFile =
@@ -194,8 +191,7 @@ mode_t Config::umask() const {
     if (has("permissions")) {
         return FileMode(getString("permissions")).mask();
     }
-    static eckit::FileMode fdbFileMode(
-        eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
 
@@ -221,7 +217,6 @@ std::vector<Config> Config::getSubConfigs() const {
     return out;
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5

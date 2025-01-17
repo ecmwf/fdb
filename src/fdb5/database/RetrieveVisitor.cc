@@ -19,25 +19,23 @@
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
 
-
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer) :
-    store_(nullptr), wind_(wind), gatherer_(gatherer) {
-}
+RetrieveVisitor::RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer)
+    : store_(nullptr)
+    , wind_(wind)
+    , gatherer_(gatherer) {}
 
-RetrieveVisitor::~RetrieveVisitor() {
-}
+RetrieveVisitor::~RetrieveVisitor() {}
 
 // From Visitor
 
 bool RetrieveVisitor::selectDatabase(const Key& dbKey, const TypedKey&) {
 
-    if(catalogue_) {
-        if(dbKey == catalogue_->key()) {
+    if (catalogue_) {
+        if (dbKey == catalogue_->key()) {
             return true;
         }
     }
@@ -71,7 +69,7 @@ bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&) {
     ASSERT(catalogue_);
 
     Field field;
-    eckit::DataHandle *dh = nullptr;
+    eckit::DataHandle* dh = nullptr;
     if (catalogue_->retrieve(datumKey.canonical(), field)) {
         dh = store().retrieve(field);
     }
@@ -83,10 +81,8 @@ bool RetrieveVisitor::selectDatum(const TypedKey& datumKey, const TypedKey&) {
     return (dh != 0);
 }
 
-void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
-                             const std::string &keyword,
-                             const TypesRegistry &registry,
-                             eckit::StringList &values) {
+void RetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                             const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
@@ -96,7 +92,7 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = catalogue_->axis(keyword, filter);
     }
 
-    for(const auto& value: list) {
+    for (const auto& value : list) {
         std::string v = registry.lookupType(keyword).toKey(value);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(value);
@@ -113,7 +109,7 @@ Store& RetrieveVisitor::store() {
     return *store_;
 }
 
-void RetrieveVisitor::print( std::ostream &out ) const {
+void RetrieveVisitor::print(std::ostream& out) const {
     out << "RetrieveVisitor[]";
 }
 
