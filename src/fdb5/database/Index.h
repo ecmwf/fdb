@@ -89,7 +89,6 @@ public: // methods
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const;
-    // virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
     virtual bool mayContain(const Key& key) const;
     virtual bool mayContainPartial(const Key& key) const;
 

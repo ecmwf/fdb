@@ -277,7 +277,6 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
-            // std::string value = type.toKey(val);
             if (pred->match(value)) { node.emplace_back(value); }
         }
 
@@ -309,7 +308,6 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
-            //std::string value = type.toKey(val);
             if (pred->match(value)) { node.emplace_back(value); }
         }
 

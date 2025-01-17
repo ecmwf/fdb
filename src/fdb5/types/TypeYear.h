@@ -9,9 +9,8 @@
  */
 
 /// @file   TypeYear.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
+/// @author Emanuele Danovaro
+/// @date   January 2025
 
 #ifndef fdb5_TypeYear_H
 #define fdb5_TypeYear_H

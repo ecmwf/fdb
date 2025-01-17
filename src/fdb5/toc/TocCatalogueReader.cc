@@ -110,10 +110,8 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
         Key tmpKey = key;
         tmpKey.unset(name);
 
-        // if (std::map<Key, MatchList>::const_iterator iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
         if (const auto& iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
             matching = &(iter->second);
-            //break;
         }
 
         // make refined list

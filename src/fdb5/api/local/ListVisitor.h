@@ -68,7 +68,6 @@ public:
     /// request so we can test request is used in its entirety
     bool visitDatabase(const Catalogue& catalogue) override {
 
-
         // If the DB is locked for listing, then it "doesn't exist"
         if (!catalogue.enabled(ControlIdentifier::List)) {
             return false;
@@ -86,11 +85,6 @@ public:
         for (const auto& [k,v] : currentCatalogue_->key()) {
             indexRequest_.unsetValues(k);
         }
-        // for (const auto& p : request_.parameters()) {
-        //     if (currentCatalogue_->key().find(p.name()).second) {
-        //         partialRequest_.setValuesTyped(&p.type(), p.values());
-        //     }
-        // }
 
         if (level_ == 1) {
             queue_.emplace(currentCatalogue_->key(), 0);
@@ -113,12 +107,9 @@ public:
             // Subselect the parts of the request
             datumRequest_ = indexRequest_;
 
-            for (const auto& kv : index.key()) { datumRequest_.unsetValues(kv.first); }
-            // for (const auto& p : request_.parameters()) {
-            //     if (index.key().find(p.name()).second) {
-            //         partialRequest_.setValuesTyped(&p.type(), p.values());
-            //     }
-            // }
+            for (const auto& kv : index.key()) {
+                datumRequest_.unsetValues(kv.first);
+            }
 
             if (level_ == 2) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
@@ -156,8 +147,6 @@ public:
 
 private: // members
 
-
-    // metkit::mars::MarsRequest partialRequest_;
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
     const int level_;
