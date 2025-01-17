@@ -10,19 +10,19 @@
 
 #pragma once
 
-#include <thread>
-#include <future>
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
-#include "eckit/io/Length.h"
+#include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPClient.h"
-#include "eckit/net/TCPStream.h"
+#include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/Connection.h"
+#include <future>
+#include <thread>
 
 namespace fdb5::remote {
 
@@ -35,11 +35,15 @@ class DataWriteRequest;
 class ClientConnection : protected Connection {
 
 public: // methods
+    ~ClientConnection() override;
 
-    virtual ~ClientConnection();
+    std::future<eckit::Buffer> controlWrite(const Client& client,
+                                            Message       msg,
+                                            uint32_t      requestID,
+                                            bool /*dataListener*/,
+                                            PayloadList payload = {}) const;
 
-    std::future<eckit::Buffer> controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
-    void dataWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
 
     void add(Client& client);
     bool remove(uint32_t clientID);
@@ -57,7 +61,7 @@ private: // methods
 
     ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
 
-    void dataWrite(DataWriteRequest& dataWriteRequest);
+    void dataWrite(DataWriteRequest& request) const;
 
     // construct dictionary for protocol negotiation - to be defined in the client class
     eckit::LocalConfiguration availableFunctionality() const;
@@ -73,8 +77,9 @@ private: // methods
     void listeningDataThreadLoop();
     void dataWriteThreadLoop();
 
-    eckit::net::TCPSocket& controlSocket() override { return controlClient_; }
-    eckit::net::TCPSocket& dataSocket() override { return dataClient_; }
+    const eckit::net::TCPSocket& controlSocket() const override { return controlClient_; }
+
+    const eckit::net::TCPSocket& dataSocket() const override { return dataClient_; }
 
 private: // members
 
@@ -104,8 +109,9 @@ private: // members
     bool controlStopping_;
     bool dataStopping_;
 
-    std::mutex promisesMutex_;
-    std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
+    mutable std::mutex promisesMutex_;
+
+    mutable std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
 
     std::mutex dataWriteMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
