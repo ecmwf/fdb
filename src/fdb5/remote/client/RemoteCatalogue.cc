@@ -17,8 +17,10 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/rules/Schema.h"
 
 #include <cstddef>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -28,18 +30,38 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
-    CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
-    config_(config), schema_(nullptr), numLocations_(0) {
+namespace {
 
-    loadSchema();
+Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
+    LOG_DEBUG_LIB(LibFdb5) << "Fetching schema from remote catalogue: " << catalogue.controlEndpoint() << std::endl;
+
+    // send dbkey to remote
+    eckit::Buffer       keyBuffer(RemoteCatalogue::defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
+    keyStream << dbKey;
+
+    const auto requestID = catalogue.generateRequestID();
+
+    // receive schema from remote
+    auto recvBuf = catalogue.controlWriteReadResponse(Message::Schema, requestID, keyBuffer, keyStream.position());
+
+    eckit::MemoryStream schemaStream(recvBuf);
+    return eckit::Reanimator<Schema>::reanimate(schemaStream);
 }
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config)
+    : CatalogueImpl(key, {}, config),  // xxx what are control identifiers? Setting empty here...
+      Client({config.getString("host"), config.getInt("port")}, ""),
+      config_(config) { }
 
 // Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB for catalogue traversal
 // this ctor is here only to comply with the factory
-RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0) {
+RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config)
+    : Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {
     NOTIMP;
 }
 
@@ -87,7 +109,11 @@ void RemoteCatalogue::deselectIndex() {
     currentIndexKey_ = Key();
 }
 const Schema& RemoteCatalogue::schema() const {
-    ASSERT(schema_);
+    // lazy loading schema
+    if (!schema_) {
+        schema_.reset(fetchSchema(dbKey_, *this));
+        ASSERT(schema_);
+    }
     return *schema_;
 }
 
@@ -124,7 +150,7 @@ bool RemoteCatalogue::exists() const {
     eckit::MemoryStream sms(sendBuf);
     sms << dbKey_;
 
-    eckit::Buffer recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
 
     eckit::MemoryStream rms(recvBuf);
     rms >> result;
@@ -143,20 +169,7 @@ eckit::URI RemoteCatalogue::uri() const {
 void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
     // (outside of the catalogue)
-
-    if (!schema_) {
-        LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
-
-        // send dbkey to remote.
-        eckit::Buffer       keyBuffer(defaultBufferSizeKey);
-        eckit::MemoryStream keyStream(keyBuffer);
-        keyStream << dbKey_;
-
-        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, generateRequestID(), keyBuffer, keyStream.position());
-
-        eckit::MemoryStream s(buf);
-        schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));
-    }
+    if (!schema_) { schema_.reset(fetchSchema(dbKey_, *this)); }
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {

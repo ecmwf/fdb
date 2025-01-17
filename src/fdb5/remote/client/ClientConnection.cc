@@ -218,14 +218,14 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     uint32_t payloadLength = 0;
-    for (auto payload : payloads) {
+    for (const auto& payload : payloads) {
         ASSERT(payload.data);
         payloadLength += payload.length;
     }
 
     eckit::Buffer buffer{payloadLength};
     uint32_t offset = 0;
-    for (auto payload : payloads) {
+    for (const auto& payload : payloads) {
         buffer.copy(payload.data, payload.length, offset);
         offset += payload.length;
     }

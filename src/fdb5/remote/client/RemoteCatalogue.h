@@ -6,6 +6,7 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/client/Client.h"
 
@@ -14,6 +15,7 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -89,10 +91,10 @@ protected:
 private:
 
     Key currentIndexKey_;
-    std::unique_ptr<Schema> schema_;
+    mutable std::unique_ptr<Schema> schema_;
 
     std::mutex archiveMutex_;
-    size_t numLocations_;
+    size_t     numLocations_ {0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

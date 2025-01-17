@@ -251,7 +251,7 @@ bool RemoteStore::exists() const {
     eckit::MemoryStream sms(sendBuf);
     sms << dbKey_;
 
-    eckit::Buffer recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
 
     eckit::MemoryStream rms(recvBuf);
     rms >> result;
