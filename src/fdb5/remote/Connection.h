@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "eckit/serialisation/MemoryStream.h"
 #include "fdb5/remote/Messages.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -52,7 +51,7 @@ public:  // types
     using PayloadList = std::vector<Payload>;
 
 public: // methods
-    Connection();
+    Connection() = default;
 
     virtual ~Connection() = default;
 
@@ -82,7 +81,7 @@ private:  // methods
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
 
 protected:  // members
-    bool single_;
+    bool single_ {false};
 
 private:  // members
     mutable std::mutex controlMutex_;

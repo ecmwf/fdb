@@ -55,35 +55,33 @@ Client::~Client() {
     connection_.remove(id_);
 }
 
-void Client::controlWriteCheckResponse(const Message     msg,
-                                       const uint32_t    requestID,
-                                       const bool        dataListener,
-                                       const void* const payload,
-                                       const uint32_t    payloadLength) const {
+//----------------------------------------------------------------------------------------------------------------------
+
+void Client::controlWriteCheckResponse(const Message  msg,
+                                       const uint32_t requestID,
+                                       const bool     dataListener,
+                                       const Payload  payload) const {
 
     ASSERT(requestID);
-    ASSERT(!(!payloadLength ^ !payload));
-    std::lock_guard<std::mutex> lock(blockingRequestMutex_);
+    ASSERT(payload.consistent());
+    std::lock_guard lock(blockingRequestMutex_);
 
     PayloadList payloads;
-    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
+    if (!payload.empty()) { payloads.emplace_back(payload); }
 
     auto f = connection_.controlWrite(*this, msg, requestID, dataListener, payloads);
     f.wait();
     ASSERT(f.get().size() == 0);
 }
 
-eckit::Buffer Client::controlWriteReadResponse(const Message     msg,
-                                               const uint32_t    requestID,
-                                               const void* const payload,
-                                               const uint32_t    payloadLength) const {
+eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t requestID, const Payload payload) const {
 
     ASSERT(requestID);
-    ASSERT(!(!payloadLength ^ !payload));
-    std::lock_guard<std::mutex> lock(blockingRequestMutex_);
+    ASSERT(payload.consistent());
+    std::lock_guard lock(blockingRequestMutex_);
 
     PayloadList payloads;
-    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
+    if (!payload.empty()) { payloads.emplace_back(payload); }
 
     auto f = connection_.controlWrite(*this, msg, requestID, false, payloads);
     f.wait();
@@ -93,5 +91,7 @@ eckit::Buffer Client::controlWriteReadResponse(const Message     msg,
 void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {
     connection_.dataWrite(*this, msg, requestID, std::move(payloads));
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5::remote

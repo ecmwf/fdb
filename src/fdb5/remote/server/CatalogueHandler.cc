@@ -9,6 +9,8 @@
  */
 
 #include "fdb5/remote/server/CatalogueHandler.h"
+#include "eckit/log/Log.h"
+#include "eckit/types/Types.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Catalogue.h"
@@ -21,6 +23,7 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include <cstdint>  // uint32_t
 #include <future>
 #include <mutex>
 #include <utility>
@@ -28,6 +31,8 @@
 using namespace eckit;
 
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 // ***************************************************************************************
 //
@@ -39,8 +44,6 @@ namespace fdb5::remote {
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config):
     ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
-
-CatalogueHandler::~CatalogueHandler() {}
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
@@ -123,6 +126,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 exists(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
+            case Message::Overlay:  // overlay catalogue
+                overlay(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -142,6 +149,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     return Handled::No;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 // API forwarding logic, adapted from original remoteHandler
 // Used for Inspect and List
@@ -179,7 +187,7 @@ struct ListHelper : public BaseHelper<ListElement> {
 };
 
 struct AxesHelper : public BaseHelper<AxesElement> {
-    virtual size_t encodeBufferSize(const AxesElement& el) const { return el.encodeSize(); }
+    size_t encodeBufferSize(const AxesElement& el) const override { return el.encodeSize(); }
 
     void extraDecode(eckit::Stream& s) {
         s >> level_;
@@ -253,6 +261,8 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
             }
         }));
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     forwardApiCall<ListHelper>(clientID, requestID, std::move(payload));
@@ -366,11 +376,34 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
         exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
     }
 
-    eckit::Buffer       existBuf(5);
-    eckit::MemoryStream stream(existBuf);
-    stream << exists;
+    BufferStream existsBuf(5);  // 5 bytes (4-byte int + 1-byte tag)
+    existsBuf << exists;
+    // reply to the client
+    write(Message::Received, true, clientID, requestID, {existsBuf.payload()});
+}
 
-    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+void CatalogueHandler::overlay(uint32_t /*clientID*/, uint32_t /*requestID*/, eckit::Buffer&& payload) const {
+
+    ASSERT(payload.size() > 0);
+
+    eckit::MemoryStream stream(payload);
+
+    const Key srcKey(stream);
+    const Key tgtKey(stream);
+
+    eckit::StringSet variableKeys;
+    stream >> variableKeys;
+
+    bool unmount = false;
+    stream >> unmount;
+
+    auto srcDB = CatalogueReaderFactory::instance().build(srcKey, config_);
+    auto tgtDB = CatalogueWriterFactory::instance().build(tgtKey, config_);
+
+    tgtDB->overlayDB(srcDB.get(), variableKeys, unmount);
+
+    eckit::Log::info() << "Overlay completed!" << std::endl;
+    eckit::Log::status() << "Overlay completed!" << std::endl;
 }
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -486,5 +519,7 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     }
     return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote

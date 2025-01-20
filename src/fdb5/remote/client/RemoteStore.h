@@ -108,6 +108,9 @@ public: // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
+    static constexpr size_t defaultEncodeBufferSize    = 4096;
+    static constexpr size_t defaultRetrieveQueueLength = 320;
+
     static const char* typeName() { return "remote"; }
 
 public: // methods

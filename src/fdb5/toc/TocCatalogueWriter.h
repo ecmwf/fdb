@@ -19,8 +19,6 @@
 #include "eckit/os/AutoUmask.h"
 
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/TocRecord.h"
-
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
@@ -50,7 +48,7 @@ public: // methods
     /// Mount an existing TocCatalogue, which has a different metadata key (within
     /// constraints) to allow on-line rebadging of data
     /// variableKeys: The keys that are allowed to differ between the two DBs
-    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
+    void overlayDB(const Catalogue* srcCatalogue, const eckit::StringSet& variableKeys, bool unmount) override;
 
     // Hide the contents of the DB!!!
     void hideContents() override;

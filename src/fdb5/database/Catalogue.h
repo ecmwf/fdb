@@ -137,7 +137,7 @@ class CatalogueReader : virtual public Catalogue {
 public:
 
     CatalogueReader() {}
-    
+
     virtual ~CatalogueReader() {}
 
     virtual DbStats stats() const = 0;
@@ -156,7 +156,7 @@ public:
     virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();
     virtual void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) = 0;
-    virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
+    virtual void overlayDB(const Catalogue* srcCatalogue, const eckit::StringSet& variableKeys, bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
 };

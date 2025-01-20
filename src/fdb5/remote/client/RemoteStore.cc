@@ -247,11 +247,10 @@ bool RemoteStore::exists() const {
 
     bool result = false;
 
-    eckit::Buffer       sendBuf(defaultBufferSizeKey);
-    eckit::MemoryStream sms(sendBuf);
-    sms << dbKey_;
+    BufferStream sendBuf(defaultBufferSizeKey);
+    sendBuf << dbKey_;
 
-    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf);
 
     eckit::MemoryStream rms(recvBuf);
     rms >> result;
@@ -279,13 +278,12 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
 
-    eckit::Buffer       keyBuffer(defaultBufferSizeKey);
-    eckit::MemoryStream keyStream(keyBuffer);
-    keyStream << dbKey_;
-    keyStream << key;
+    BufferStream keyBuffer(defaultBufferSizeKey);
+    keyBuffer << dbKey_;
+    keyBuffer << key;
 
     PayloadList payloads;
-    payloads.emplace_back(keyStream.position(), keyBuffer.data());
+    payloads.emplace_back(keyBuffer);
     payloads.emplace_back(length, data);
 
     dataWrite(Message::Blob, id, payloads);
@@ -387,14 +385,10 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
     switch (message) {
 
         case Message::Store: { // received a Field location from the remote store, can forward to the archiver for the indexing
-            MemoryStream s(payload);
+            eckit::MemoryStream            s(payload);
             std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-            if (defaultEndpoint().empty()) {
-                return locations_.location(requestID, std::move(location));
-            } else {
-                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
-                return locations_.location(requestID, std::move(remoteLocation));
-            }
+            if (defaultEndpoint().empty()) { return locations_.location(requestID, std::move(location)); }
+            return locations_.location(requestID, std::make_unique<RemoteFieldLocation>(defaultEndpoint(), *location));
         }
         case Message::Blob: {
             auto it = messageQueues_.find(requestID);
@@ -435,25 +429,23 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << fieldLocation;
-    s << remapKey;
+    BufferStream encodeBuffer(defaultEncodeBufferSize);
+    encodeBuffer << fieldLocation;
+    encodeBuffer << remapKey;
 
     uint32_t id = generateRequestID();
 
-    static size_t queueSize = 320;
     std::shared_ptr<MessageQueue> queue = nullptr;
     {
         std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
 
-        auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
+        auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(defaultRetrieveQueueLength));
         ASSERT(entry.second);
 
         queue = entry.first->second;
     }
 
-    controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
+    controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer);
 
     return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
 }

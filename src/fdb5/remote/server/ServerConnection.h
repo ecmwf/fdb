@@ -84,7 +84,14 @@ struct ArchiveElem {
         clientID_(clientID), requestID_(requestID), payload_(std::move(payload)), multiblob_(multiblob) {}
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class ServerConnection : public Connection, public Handler {
+
+    static constexpr size_t defaultRetrieveQueueLength = 320;
+
+    static constexpr size_t defaultArchiveQueueLength = 10000;
+
 public:  // methods
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection() override;

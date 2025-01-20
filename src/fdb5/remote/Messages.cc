@@ -15,7 +15,24 @@
 
 #include "fdb5/remote/Messages.h"
 
+#include <cstddef>
+#include <ostream>
+
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+Payload::Payload(const BufferStream& buffer) : length {buffer.length()}, data {buffer.data()} { }
+
+Payload::Payload(const std::size_t length, const void* data) : length {length}, data {data} { }
+
+bool Payload::empty() const {
+    return data == nullptr && length == 0;
+}
+
+bool Payload::consistent() const {
+    return ((length == 0) ^ (data == nullptr)) == 0;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -46,6 +63,7 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Store: s << "Store"; break;
         case Message::Axes: s << "Axes"; break;
         case Message::Exists: s << "Exists"; break;
+        case Message::Overlay: s << "Overlay"; break;
 
     // Responses
         case Message::Received: s << "Received"; break;

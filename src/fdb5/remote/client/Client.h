@@ -10,14 +10,18 @@
 
 #pragma once
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/net/Endpoint.h"
-
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include "eckit/memory/NonCopyable.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::uint32_t
 #include <mutex>
+#include <string>
 #include <utility>  // std::pair
 #include <vector>
 
@@ -45,7 +49,7 @@ public:  // types
 public:  // methods
     Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
 
-    Client(const EndpointList& endpoints);
+    explicit Client(const EndpointList& endpoints);
 
     virtual ~Client();
 
@@ -60,21 +64,42 @@ public:  // methods
     uint32_t generateRequestID() const { return connection_.generateRequestID(); }
 
     // blocking requests
+
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, Payload payload = {}) const;
+
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const BufferStream& buffer) const {
+        controlWriteCheckResponse(msg, requestID, dataListener, buffer.payload());
+    }
+
     void controlWriteCheckResponse(Message     msg,
                                    uint32_t    requestID,
                                    bool        dataListener,
-                                   const void* payload       = nullptr,
-                                   uint32_t    payloadLength = 0) const;
+                                   const void* payload,
+                                   uint32_t    payloadLength) const {
+        controlWriteCheckResponse(msg, requestID, dataListener, {payloadLength, payload});
+    }
 
+    [[nodiscard]]
+    eckit::Buffer controlWriteReadResponse(Message msg, uint32_t requestID, Payload payload = {}) const;
+
+    [[nodiscard]]
+    eckit::Buffer controlWriteReadResponse(Message msg, uint32_t requestID, const BufferStream& buffer) const {
+        return controlWriteReadResponse(msg, requestID, buffer.payload());
+    }
+
+    [[nodiscard]]
     eckit::Buffer controlWriteReadResponse(Message     msg,
                                            uint32_t    requestID,
-                                           const void* payload       = nullptr,
-                                           uint32_t    payloadLength = 0) const;
-
+                                           const void* payload,
+                                           uint32_t    payloadLength) const {
+        return controlWriteReadResponse(msg, requestID, {payloadLength, payload});
+    }
     void dataWrite(Message msg, uint32_t requestID, PayloadList payloads = {});
 
     // handlers for incoming messages - to be defined in the client class
-    virtual bool handle(Message message, uint32_t requestID)                          = 0;
+
+    virtual bool handle(Message message, uint32_t requestID) = 0;
+
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
 
 protected:
@@ -88,5 +113,7 @@ private:
 
     mutable std::mutex blockingRequestMutex_;
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote

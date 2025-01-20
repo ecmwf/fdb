@@ -10,6 +10,7 @@
 
 #include "fdb5/remote/client/RemoteCatalogue.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
@@ -36,14 +37,13 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
     LOG_DEBUG_LIB(LibFdb5) << "Fetching schema from remote catalogue: " << catalogue.controlEndpoint() << std::endl;
 
     // send dbkey to remote
-    eckit::Buffer       keyBuffer(RemoteCatalogue::defaultBufferSizeKey);
-    eckit::MemoryStream keyStream(keyBuffer);
-    keyStream << dbKey;
+    BufferStream keyBuffer(RemoteCatalogue::defaultBufferSizeKey);
+    keyBuffer << dbKey;
 
     const auto requestID = catalogue.generateRequestID();
 
     // receive schema from remote
-    auto recvBuf = catalogue.controlWriteReadResponse(Message::Schema, requestID, keyBuffer, keyStream.position());
+    auto recvBuf = catalogue.controlWriteReadResponse(Message::Schema, requestID, keyBuffer);
 
     eckit::MemoryStream schemaStream(recvBuf);
     return eckit::Reanimator<Schema>::reanimate(schemaStream);
@@ -79,14 +79,13 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, std::share
         numLocations_++;
     }
 
-    Buffer       buffer(defaultBufferSizeArchive);
-    MemoryStream stream(buffer);
-    stream << idxKey;
-    stream << datumKey;
-    stream << *fieldLocation;
+    BufferStream buffer(defaultBufferSizeArchive);
+    buffer << idxKey;
+    buffer << datumKey;
+    buffer << *fieldLocation;
 
     PayloadList payloads;
-    payloads.emplace_back(stream.position(), buffer.data());
+    payloads.emplace_back(buffer);
 
     dataWrite(Message::Blob, id, payloads);
 
@@ -125,14 +124,13 @@ void RemoteCatalogue::flush(size_t archivedFields) {
     // Flush only does anything if there is an ongoing archive();
     if (numLocations_ > 0) {
 
-        eckit::Buffer       sendBuf(defaultBufferSizeFlush);
-        eckit::MemoryStream s(sendBuf);
-        s << numLocations_;
+        BufferStream sendBuf(defaultBufferSizeFlush);
+        sendBuf << numLocations_;
 
         LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
 
         // The flush call is blocking
-        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
+        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf);
 
         numLocations_ = 0;
     }
@@ -146,11 +144,10 @@ bool RemoteCatalogue::exists() const {
 
     bool result = false;
 
-    eckit::Buffer       sendBuf(defaultBufferSizeKey);
-    eckit::MemoryStream sms(sendBuf);
-    sms << dbKey_;
+    BufferStream sendBuf(defaultBufferSizeKey);
+    sendBuf << dbKey_;
 
-    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf);
 
     eckit::MemoryStream rms(recvBuf);
     rms >> result;
@@ -182,7 +179,27 @@ bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&
     return false;
 }
 
-void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
+void RemoteCatalogue::overlayDB(const Catalogue* srcCatalogue, const eckit::StringSet& variableKeys, bool unmount) {
+
+    const auto* source = dynamic_cast<const RemoteCatalogue*>(srcCatalogue);
+
+    if (!source) { throw eckit::UserError("Cannot overlay this DB with a non-remote source catalogue!", Here()); }
+
+    if (source->controlEndpoint() != controlEndpoint()) {
+        throw eckit::UserError("Cannot overlay DBs from different servers!", Here());
+    }
+
+    LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::overlayDB srcDB:" << *srcCatalogue << " dbKey: " << dbKey_ << std::endl;
+
+    BufferStream sendBuf(3 * defaultBufferSizeKey);
+    sendBuf << source->key();
+    sendBuf << dbKey_;
+    sendBuf << variableKeys;
+    sendBuf << unmount;
+
+    controlWriteCheckResponse(Message::Overlay, generateRequestID(), false, sendBuf);
+}
+
 void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
 void RemoteCatalogue::reconsolidate(){NOTIMP;}
 std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {NOTIMP;}
