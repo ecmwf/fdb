@@ -336,18 +336,42 @@ void TocHandler::dumpTocCache() const {
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
+    LOG_DEBUG_LIB(LibFdb5) << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+
+    appendRound(r, payloadSize);
+}
+
+void TocHandler::appendRound(TocRecord &r, size_t payloadSize) {
+    // Obtain the rounded size, and set it in the record header.
+    auto [realSize, roundedSize] = roundRecord(r, payloadSize);
+ 
+    eckit::Buffer buf(roundedSize);
+    buf.zero();
+    buf.copy(static_cast<const void*>(&r), realSize);
+    
+    appendRaw(buf, roundedSize);
+}
+
+void TocHandler::appendRaw(const void *data, size_t size) {
+
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
-
-    // Obtain the rounded size, and set it in the record header.
-    size_t roundedSize = roundRecord(r, payloadSize);
+    ASSERT(size % recordRoundSize() == 0);
 
     size_t len;
-    SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
     dirty_ = true;
-    ASSERT( len == roundedSize);
+    ASSERT( len == size);
+
+}
+
+void TocHandler::appendBlock(TocRecord &r, size_t payloadSize) {
+
+    openForAppend();
+    TocHandlerCloser close(*this);
+
+    appendRound(r, payloadSize);
 }
 
 void TocHandler::appendBlock(const void *data, size_t size) {
@@ -355,17 +379,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     openForAppend();
     TocHandlerCloser close(*this);
 
-    ASSERT(fd_ != -1);
-    ASSERT(not cachedToc_);
-
-    // Ensure that this block is appropriately rounded.
-
-    ASSERT(size % recordRoundSize() == 0);
-
-    size_t len;
-    SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
-    dirty_ = true;
-    ASSERT( len == size );
+    appendRaw(data, size);
 }
 
 const TocSerialisationVersion& TocHandler::serialisationVersion() const {
@@ -378,11 +392,12 @@ size_t TocHandler::recordRoundSize() {
     return fdbRoundTocRecords;
 }
 
-size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
+std::pair<size_t, size_t> TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
 
-    r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, recordRoundSize());
+    size_t dataSize = sizeof(TocRecord::Header) + payloadSize;
+    r.header_.size_ = eckit::round(dataSize, recordRoundSize());
 
-    return r.header_.size_;
+    return {dataSize, r.header_.size_};
 }
 
 // readNext wraps readNextInternal.
@@ -1003,8 +1018,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    size_t sz = roundRecord(*r, buildClearRecord(*r, index));
-    appendBlock(r.get(), sz);
+    appendBlock(*r, buildClearRecord(*r, index));
 }
 
 void TocHandler::writeClearAllRecord() {
@@ -1015,8 +1029,7 @@ void TocHandler::writeClearAllRecord() {
     s << std::string {"*"};
     s << off_t{0};
 
-    size_t sz = roundRecord(*r, s.position());
-    appendBlock(r.get(), sz);
+    appendBlock(*r, s.position());
 }
 
 
@@ -1111,8 +1124,7 @@ void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
     const PathName& absPath = subToc.tocPath();
     PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
-    size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, path));
-    appendBlock(r.get(), sz);
+    appendBlock(*r, buildSubTocMaskRecord(*r, path));
 }
 
 bool TocHandler::useSubToc() const {

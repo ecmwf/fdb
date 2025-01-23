@@ -193,9 +193,10 @@ protected: // methods
 
     // Given the payload size, returns the record size
 
-    static size_t roundRecord(TocRecord &r, size_t payloadSize);
+    static std::pair<size_t, size_t> roundRecord(TocRecord &r, size_t payloadSize);
 
     void appendBlock(const void* data, size_t size);
+    void appendBlock(TocRecord &r, size_t payloadSize);
 
     const TocSerialisationVersion& serialisationVersion() const;
 
@@ -208,6 +209,9 @@ private: // methods
     void openForRead() const;
 
     void close() const;
+
+    void appendRaw(const void* data, size_t size);
+    void appendRound(TocRecord &r, size_t payloadSize);
 
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
