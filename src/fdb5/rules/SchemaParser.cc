@@ -62,7 +62,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     }
 }
 
-Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &types) {
+std::unique_ptr<Predicate> SchemaParser::parsePredicate(std::map<std::string, std::string> &types) {
 
     std::set<std::string> values;
     std::string k = parseIdent(false, false);
@@ -78,7 +78,7 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
 
     if (c == '?') {
         consume(c);
-        return new Predicate(k, new MatchOptional(parseIdent(true, true)));
+        return std::unique_ptr<Predicate>(new Predicate(k, new MatchOptional(parseIdent(true, true))));
     }
 
     if (c == '-') {
@@ -87,7 +87,7 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
             // Register ignore type
             types[k] = "Ignore";
         }
-        return new Predicate(k, new MatchHidden(parseIdent(true, true)));
+        return std::unique_ptr<Predicate>(new Predicate(k, new MatchHidden(parseIdent(true, true))));
     }
 
     if (c != ',' && c != '[' && c != ']') {
@@ -103,15 +103,15 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
 
     switch (values.size()) {
     case 0:
-        return new Predicate(k, new MatchAlways());
+        return std::unique_ptr<Predicate>(new Predicate(k, new MatchAlways()));
         break;
 
     case 1:
-        return new Predicate(k, new MatchValue(*values.begin()));
+        return std::unique_ptr<Predicate>(new Predicate(k, new MatchValue(*values.begin())));
         break;
 
     default:
-        return new Predicate(k, new MatchAny(values));
+        return std::unique_ptr<Predicate>(new Predicate(k, new MatchAny(values)));
         break;
     }
 }
@@ -130,9 +130,9 @@ void SchemaParser::parseTypes(std::map<std::string, std::string> &types) {
     }
 }
 
-Rule *SchemaParser::parseRule(const Schema &owner) {
-    std::vector<Predicate *> predicates;
-    std::vector<Rule *> rules;
+std::unique_ptr<Rule> SchemaParser::parseRule(const Schema &owner) {
+    std::vector<std::unique_ptr<Predicate>> predicates;
+    std::vector<std::unique_ptr<Rule>> rules;
     std::map<std::string, std::string> types;
 
     consume('[');
@@ -142,7 +142,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return new Rule(owner, line, predicates, rules, types);
+        return std::unique_ptr<Rule>(new Rule(owner, line, predicates, rules, types));
     }
 
 
@@ -152,32 +152,30 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
 
         if ( c == '[') {
             while ( c == '[') {
-                rules.push_back(parseRule(owner));
+                rules.push_back(std::move(parseRule(owner)));
                 c = peek();
             }
         } else {
-            predicates.push_back(parsePredicate(types));
+            predicates.push_back(std::move(parsePredicate(types)));
             while ( (c = peek()) == ',') {
                 consume(c);
-                predicates.push_back(parsePredicate(types));
+                predicates.push_back(std::move(parsePredicate(types)));
             }
         }
 
         c = peek();
         if (c == ']') {
             consume(c);
-            return new Rule(owner, line, predicates, rules, types);
+            return std::unique_ptr<Rule>(new Rule(owner, line, predicates, rules, types));
         }
-
-
     }
 }
 
 SchemaParser::SchemaParser(std::istream &in) : StreamParser(in, true) {
 }
 
-void SchemaParser::parse(const Schema &owner,
-                         std::vector<Rule *> &result, TypesRegistry &registry) {
+void SchemaParser::parse(const Schema& owner,
+                         std::vector<std::unique_ptr<Rule>>& result, TypesRegistry& registry) {
     char c;
     std::map<std::string, std::string> types;
 
@@ -187,7 +185,7 @@ void SchemaParser::parse(const Schema &owner,
     }
 
     while ((c = peek()) == '[') {
-        result.push_back(parseRule(owner));
+        result.emplace_back(parseRule(owner));
     }
     if (c) {
         throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);

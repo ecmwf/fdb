@@ -103,11 +103,11 @@ private: // members
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Schema> reanimator_;
 
-    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+    friend void Config::overrideSchema(const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema);
 
     TypesRegistry registry_;
     
-    std::vector<Rule *>  rules_;
+    std::vector<std::unique_ptr<Rule>>  rules_;
     std::string path_;
 
 };
@@ -119,7 +119,7 @@ private: // members
 class SchemaRegistry {
 public:
     static SchemaRegistry& instance();
-    const Schema& add(const eckit::PathName& path, Schema* schema);
+    const Schema& add(const eckit::PathName& path, std::unique_ptr<Schema> schema);
     const Schema& get(const eckit::PathName& path);
 
 private:

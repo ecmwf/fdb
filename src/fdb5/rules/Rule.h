@@ -19,6 +19,8 @@
 #include <iosfwd>
 #include <vector>
 #include <memory>
+#include <optional>
+#include <functional>
 
 #include "eckit/serialisation/Streamable.h"
 #include "eckit/types/Types.h"
@@ -50,14 +52,13 @@ public: // methods
     /// Takes ownership of vectors
     Rule(const Schema &schema,
          size_t line,
-         std::vector<Predicate *> &predicates,
-         std::vector<Rule *> &rules,
+         std::vector<std::unique_ptr<Predicate>> &predicates,
+         std::vector<std::unique_ptr<Rule>> &rules,
          const std::map<std::string, std::string> &types
         );
     Rule(eckit::Stream& s);
-    Rule(const Schema &schema, eckit::Stream& s);
 
-    ~Rule();
+    ~Rule() = default;
 
     bool match(const Key& key) const;
 
@@ -80,9 +81,9 @@ public: // methods
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
     void fill(BaseKey& key, const eckit::StringList& values) const;
 
-
     size_t depth() const;
-    void updateParent(const Rule *parent);
+    void resetParent();
+    void updateParent(const Rule& parent);
 
     const Rule &topRule() const;
 
@@ -97,25 +98,25 @@ public: // methods
 private: // methods
 
     void expand(const metkit::mars::MarsRequest &request,
-                std::vector<Predicate *>::const_iterator cur,
+                std::vector<std::unique_ptr<Predicate>>::const_iterator cur,
                 size_t depth,
                 std::vector<TypedKey> &keys,
                 TypedKey& fullComputedKey,
                 ReadVisitor &Visitor) const;
 
     void expand(const Key& initialFieldKey,
-                std::vector<Predicate *>::const_iterator cur,
+                std::vector<std::unique_ptr<Predicate>>::const_iterator cur,
                 size_t depth,
                 std::vector<TypedKey> &keys,
                 TypedKey& fullComputedKey,
                 WriteVisitor &Visitor) const;
 
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, TypedKey& result, bool& done) const;
     void expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result, bool& done) const;
 
-    void matchFirstLevel(const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
     void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
     void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
 
 
@@ -132,11 +133,10 @@ private: // members
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Rule> reanimator_;
 
-    const Schema& schema_;
-    const Rule* parent_;
+    std::optional<std::reference_wrapper<const Rule>> parent_;
 
-    std::vector<Predicate *> predicates_;
-    std::vector<Rule *>      rules_;
+    std::vector<std::unique_ptr<Predicate>> predicates_;
+    std::vector<std::unique_ptr<Rule>>      rules_;
 
     TypesRegistry registry_;
 

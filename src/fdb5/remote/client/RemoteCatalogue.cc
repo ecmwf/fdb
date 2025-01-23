@@ -32,7 +32,7 @@ namespace fdb5::remote {
 
 namespace {
 
-Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
+std::unique_ptr<Schema> fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
     LOG_DEBUG_LIB(LibFdb5) << "Fetching schema from remote catalogue: " << catalogue.controlEndpoint() << std::endl;
 
     // send dbkey to remote
@@ -46,7 +46,7 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
     auto recvBuf = catalogue.controlWriteReadResponse(Message::Schema, requestID, keyBuffer, keyStream.position());
 
     eckit::MemoryStream schemaStream(recvBuf);
-    return eckit::Reanimator<Schema>::reanimate(schemaStream);
+    return std::unique_ptr<Schema>(eckit::Reanimator<Schema>::reanimate(schemaStream));
 }
 
 }  // namespace
@@ -111,7 +111,7 @@ void RemoteCatalogue::deselectIndex() {
 const Schema& RemoteCatalogue::schema() const {
     // lazy loading schema
     if (!schema_) {
-        schema_.reset(fetchSchema(dbKey_, *this));
+        schema_ = fetchSchema(dbKey_, *this);
         ASSERT(schema_);
     }
     return *schema_;
@@ -169,7 +169,9 @@ eckit::URI RemoteCatalogue::uri() const {
 void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
     // (outside of the catalogue)
-    if (!schema_) { schema_.reset(fetchSchema(dbKey_, *this)); }
+    if (!schema_) {
+        schema_ = fetchSchema(dbKey_, *this);
+    }
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {

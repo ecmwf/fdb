@@ -164,11 +164,11 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     eckit::Buffer buf2 = controlWriteReadResponse(remote::Message::Schema, generateRequestID());
     eckit::MemoryStream s2(buf2);
 
-    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s2);
+    std::unique_ptr<Schema> schema(eckit::Reanimator<fdb5::Schema>::reanimate(s2));
 
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
-    config_.overrideSchema(static_cast<std::string>(controlEndpoint())+"/schema", schema);
+    config_.overrideSchema(static_cast<std::string>(controlEndpoint())+"/schema", std::move(schema));
 }
 
 // -----------------------------------------------------------------------------------------------------

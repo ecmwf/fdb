@@ -67,11 +67,11 @@ protected: // methods
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
+    eckit::DataHandle* getCachedHandle( const eckit::PathName &path ) const;
     void closeDataHandles();
-    eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
-    eckit::DataHandle *createDataHandle(const eckit::PathName &path);
+    std::unique_ptr<eckit::DataHandle> createFileHandle(const eckit::PathName &path);
+    std::unique_ptr<eckit::DataHandle> createAsyncHandle(const eckit::PathName &path);
+    std::unique_ptr<eckit::DataHandle> createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
     eckit::PathName generateDataPath(const Key& key) const;
     eckit::PathName getDataPath(const Key& key) const;
@@ -84,11 +84,12 @@ private: // methods
 
 private: // types
 
-    typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
+    typedef std::map< std::string, std::unique_ptr<eckit::DataHandle>>  HandleStore;
     typedef std::map< Key, std::string > PathStore;
 
 private: // members
 
+    mutable std::recursive_mutex handlesMutex_;
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     mutable PathStore   dataPaths_;

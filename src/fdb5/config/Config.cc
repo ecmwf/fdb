@@ -147,11 +147,11 @@ const PathName& Config::schemaPath() const {
     return schemaPath_;
 }
 
-void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
+void Config::overrideSchema(const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema) {
     ASSERT(schema);
 
     schema->path_ = schemaPath;
-    SchemaRegistry::instance().add(schemaPath, schema);
+    SchemaRegistry::instance().add(schemaPath, std::move(schema));
 
     schemaPath_=schemaPath;
     schemaPathInitialised_ = true;

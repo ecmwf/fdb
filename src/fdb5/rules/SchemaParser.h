@@ -14,6 +14,8 @@
 #ifndef fdb5_SchemaParser_h
 #define fdb5_SchemaParser_h
 
+#include <memory>
+
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
@@ -32,15 +34,15 @@ public: // methods
 
     SchemaParser(std::istream &in);
 
-    void parse(const Schema &owner, std::vector<Rule *> &, TypesRegistry &registry);
+    void parse(const Schema &owner, std::vector<std::unique_ptr<Rule>> &, TypesRegistry &registry);
 
 private: // methods
 
     std::string parseIdent(bool value, bool emptyOK);
 
-    Rule *parseRule(const Schema &owner);
+    std::unique_ptr<Rule> parseRule(const Schema &owner);
 
-    Predicate *parsePredicate(std::map<std::string, std::string> &types);
+    std::unique_ptr<Predicate> parsePredicate(std::map<std::string, std::string> &types);
     void parseTypes(std::map<std::string, std::string> &);
 
 };

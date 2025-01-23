@@ -34,9 +34,9 @@ eckit::Reanimator<Rule> Rule::reanimator_;
 
 Rule::Rule(const Schema &schema,
            size_t line,
-           std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
+           std::vector<std::unique_ptr<Predicate>> &predicates, std::vector<std::unique_ptr<Rule>> &rules,
            const std::map<std::string, std::string> &types):
-    schema_(schema), line_(line) {
+    line_(line) {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
@@ -45,12 +45,7 @@ Rule::Rule(const Schema &schema,
 }
 
 Rule::Rule(eckit::Stream& s):
-    Rule(Schema(""), s) {
-    NOTIMP;
-}
-
-Rule::Rule(const Schema &schema, eckit::Stream& s):
-    schema_(schema), registry_(s) {
+    registry_(s) {
 
     size_t numPredicates;
     size_t numRules;
@@ -58,12 +53,13 @@ Rule::Rule(const Schema &schema, eckit::Stream& s):
     s >> line_;
     s >> numPredicates;
     for (size_t i=0; i < numPredicates; i++) {
-        predicates_.push_back(eckit::Reanimator<Predicate>::reanimate(s));
+        std::unique_ptr<Predicate> pred(eckit::Reanimator<Predicate>::reanimate(s));
+        predicates_.push_back(std::move(pred));
     }
 
     s >> numRules;
     for (size_t i=0; i < numRules; i++) {
-        rules_.push_back(new Rule(schema, s));
+        rules_.push_back(std::unique_ptr<Rule>(new Rule(s)));
     }
 }
 
@@ -73,27 +69,17 @@ void Rule::encode(eckit::Stream& s) const {
 
     s << line_;
     s << predicates_.size();
-    for (const Predicate* predicate : predicates_) {
+    for (const auto& predicate : predicates_) {
         s << *predicate;
     }
     s << rules_.size();
-    for (const Rule* rule : rules_) {
+    for (const auto& rule : rules_) {
         rule->encode(s);
     }
 }
 
-Rule::~Rule() {
-    for (std::vector<Predicate *>::iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-        delete *i;
-    }
-
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        delete *i;
-    }
-}
-
 void Rule::expand( const metkit::mars::MarsRequest &request,
-                   std::vector<Predicate *>::const_iterator cur,
+                   std::vector<std::unique_ptr<Predicate>>::const_iterator cur,
                    size_t depth,
                    std::vector<TypedKey> &keys,
                    TypedKey& fullComputedKey,
@@ -101,7 +87,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
 	ASSERT(depth < 3);
 
-    if (cur == predicates_.end()) {
+    if (cur == predicates_.cend()) {
 
         keys[depth].registry(registry());
 
@@ -135,14 +121,14 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
                 break;
             }
 
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(request, visitor, depth + 1, keys, fullComputedKey);
+            for (const auto& r : rules_) {
+                r->expand(request, visitor, depth + 1, keys, fullComputedKey);
             }
         }
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<std::unique_ptr<Predicate>>::const_iterator next = cur;
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
@@ -179,7 +165,7 @@ void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor
 }
 
 void Rule::expand( const Key& initialFieldKey,
-                   std::vector<Predicate *>::const_iterator cur,
+                   std::vector<std::unique_ptr<Predicate>>::const_iterator cur,
                    size_t depth,
                    std::vector<TypedKey> &keys,
                    TypedKey& fullComputedKey,
@@ -193,7 +179,7 @@ void Rule::expand( const Key& initialFieldKey,
 
     ASSERT(depth < 3);
 
-    if (cur == predicates_.end()) {
+    if (cur == predicates_.cend()) {
 
         keys[depth].registry(registry());
 
@@ -237,14 +223,14 @@ void Rule::expand( const Key& initialFieldKey,
                 break;
             }
 
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(initialFieldKey, visitor, depth + 1, keys, fullComputedKey);
+            for (const auto& r : rules_) {
+                r->expand(initialFieldKey, visitor, depth + 1, keys, fullComputedKey);
             }
         }
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<std::unique_ptr<Predicate>>::const_iterator next = cur;
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
@@ -267,14 +253,14 @@ void Rule::expand(const Key& initialFieldKey, WriteVisitor &visitor, size_t dept
     expand(initialFieldKey, predicates_.begin(), depth, keys, fullComputedKey, visitor);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, TypedKey& result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<std::unique_ptr<Predicate>>::const_iterator next = cur;
     ++next;
 
     const std::string& keyword = (*cur)->keyword();
@@ -304,7 +290,7 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& 
 }
 
 
-void Rule::matchFirstLevel( const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel( const Key& dbKey, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
@@ -313,7 +299,7 @@ void Rule::matchFirstLevel( const Key& dbKey, std::vector<Predicate *>::const_it
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<std::unique_ptr<Predicate>>::const_iterator next = cur;
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
@@ -341,7 +327,7 @@ void Rule::matchFirstLevel(const Key& dbKey,  std::set<Key>& result, const char*
 }
 
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<std::unique_ptr<Predicate>>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
 //        if (tmp.match(request)) {
@@ -350,7 +336,7 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<std::unique_ptr<Predicate>>::const_iterator next = cur;
     ++next;
 
     const std::string& keyword = (*cur)->keyword();
@@ -380,8 +366,8 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<K
 
 
 bool Rule::match(const Key& key) const {
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-        if (!(*i)->match(key)) {
+    for (const auto& p : predicates_) {
+        if (!p->match(key)) {
             return false;
         }
     }
@@ -397,10 +383,10 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
 
     if (match(keys[depth])) {
 
-        for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-            const Rule *r = (*i)->ruleFor(keys, depth + 1);
-            if (r) {
-                return r;
+        for (const auto& r : rules_) {
+            const Rule *rule = r->ruleFor(keys, depth + 1);
+            if (rule) {
+                return rule;
             }
         }
     }
@@ -453,35 +439,38 @@ void Rule::fill(BaseKey& key, const eckit::StringList& values) const {
 void Rule::dump(std::ostream &s, size_t depth) const {
     s << "[";
     const char *sep = "";
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
+    for (const auto& p : predicates_) {
         s << sep;
-        (*i)->dump(s, registry_);
+        p->dump(s, registry_);
         sep = ",";
     }
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->dump(s, depth + 1);
+    for (const auto& r : rules_) {
+        r->dump(s, depth + 1);
     }
     s << "]";
 }
 
 size_t Rule::depth() const {
     size_t result = 0;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        result = std::max(result, (*i)->depth());
+    for (const auto& r : rules_) {
+        result = std::max(result, r->depth());
     }
     return result + 1;
 }
 
-void Rule::updateParent(const Rule *parent) {
-    parent_ = parent;
+void Rule::resetParent() {
+    parent_.reset();
+}
+
+void Rule::updateParent(const Rule& parent) {
+    parent_ = std::cref(parent);
     // if (parent && (&registry_ != &parent->registry_)) {
-    if (parent) {
-        registry_.updateParent(parent_->registry_);
+    if (parent_) {
+        registry_.updateParent(parent_.value().get().registry_);
     }
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        // if (&(*i)->registry_ != &registry_)
-            (*i)->updateParent(this);
+    for (const auto& r : rules_) {
+        r->updateParent(*this);
     }
 }
 
@@ -496,14 +485,10 @@ void Rule::print(std::ostream &out) const {
 
 const Rule &Rule::topRule() const {
     if (parent_) {
-        return parent_->topRule();
+        return parent_.value().get().topRule();
     } else {
         return *this;
     }
-}
-
-const Schema &Rule::schema() const {
-    return schema_;
 }
 
 void Rule::check(const Key& key) const {
@@ -520,8 +505,8 @@ void Rule::check(const Key& key) const {
             }
         }
     }
-    if (parent_ != nullptr) {
-        parent_->check(key);
+    if (parent_) {
+        parent_.value().get().check(key);
     }
 }
 
