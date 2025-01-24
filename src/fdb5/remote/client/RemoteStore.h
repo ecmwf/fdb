@@ -14,11 +14,16 @@
 
 #pragma once
 
-#include "fdb5/api/FDBStats.h"
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
+
+#include <map>
+#include <mutex>
+#include <set>
+#include <vector>
 
 namespace fdb5::remote {
 
@@ -100,9 +105,10 @@ private:
 class RemoteStore : public Store, public Client {
 
 public: // types
+    using StoredMessage = std::pair<Message, eckit::Buffer>;
+    using MessageQueue  = eckit::Queue<StoredMessage>;
 
-    using StoredMessage = std::pair<Message, eckit::Buffer >;
-    using MessageQueue = eckit::Queue<StoredMessage>;
+    static const char* typeName() { return "remote"; }
 
 public: // methods
 
@@ -135,12 +141,10 @@ public: // methods
     bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
     WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const override;
 
-   const Config& config() { return config_; }
-   
+    const Config& config() const { return config_; }
 
 protected: // methods
-
-    std::string type() const override { return "remote"; }
+    std::string type() const override { return typeName(); }
 
     bool exists() const override;
 

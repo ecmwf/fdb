@@ -1,11 +1,23 @@
 
 #pragma once
 
-#include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/client/Client.h"
+
+#include "eckit/filesystem/URI.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace fdb5::remote {
 
@@ -14,12 +26,12 @@ namespace fdb5::remote {
 
 class RemoteCatalogue : public CatalogueReader, public CatalogueWriter, public CatalogueImpl, public Client {
 
-public:
+public:  // types
+    static const char* typeName() { return "remote"; }
 
+public:  // methods
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
-
-    ~RemoteCatalogue() override = default;
 
     // From CatalogueWriter
     const Index& currentIndex() override;
@@ -29,8 +41,8 @@ public:
     void reconsolidate() override;
 
     //From CatalogueReader
-    DbStats stats() const override { return DbStats(); }
-    bool retrieve(const Key& key, Field& field) const override { return false; }
+    DbStats stats() const override { return {}; }
+    bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;
@@ -49,8 +61,10 @@ public:
     std::vector<fdb5::Index> indexes(bool sorted=false) const override;
     void maskIndexEntry(const Index& index) const override;
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
-    void print( std::ostream &out ) const override;
-    std::string type() const override;
+    void print(std::ostream& out) const override;
+
+    std::string type() const override { return typeName(); }
+
     bool open() override;
     void flush(size_t archivedFields) override;
     void clean() override;
@@ -77,10 +91,10 @@ protected:
 private:
 
     Key currentIndexKey_;
-    std::unique_ptr<Schema> schema_;
+    mutable std::unique_ptr<Schema> schema_;
 
     std::mutex archiveMutex_;
-    size_t numLocations_;
+    size_t     numLocations_ {0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
