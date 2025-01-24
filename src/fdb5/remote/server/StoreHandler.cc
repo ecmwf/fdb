@@ -290,11 +290,11 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
         exists = StoreFactory::instance().build(dbKey, config_)->exists();
     }
 
-    eckit::Buffer       existBuf(5);
-    eckit::MemoryStream stream(existBuf);
-    stream << exists;
+    BufferStream existsBuf(5);
+    existsBuf << exists;
 
-    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+    // reply to the client
+    write(Message::Received, true, clientID, requestID, {existsBuf.payload()});
 }
 
 //----------------------------------------------------------------------------------------------------------------------

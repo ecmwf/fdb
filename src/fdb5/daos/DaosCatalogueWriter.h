@@ -37,7 +37,7 @@ public: // methods
     /// Mount an existing TocCatalogue, which has a different metadata key (within
     /// constraints) to allow on-line rebadging of data
     /// variableKeys: The keys that are allowed to differ between the two DBs
-    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override { NOTIMP; };
+    void overlayDB(const Catalogue* srcCatalogue, const eckit::StringSet& variableKeys, bool unmount) override { NOTIMP; };
 
 //     // Hide the contents of the DB!!!
 //     void hideContents() override;

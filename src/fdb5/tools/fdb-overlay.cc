@@ -8,56 +8,56 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/tools/FDBTool.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
+#include "eckit/types/Types.h"
 
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocEngine.h"
-#include "fdb5/tools/FDBTool.h"
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FdbOverlay : public FDBTool {
 
-public: // methods
-
-    FdbOverlay(int argc, char **argv) :
-        FDBTool(argc, argv),
-        variableKeys_{"class", "expver"},
-        remove_(false),
-        force_(false) {
+public:  // methods
+    FdbOverlay(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(new VectorOption<std::string>("variable-keys",
-                                                         "The keys that may vary between mounted DBs",
-                                                         0, ","));
-        options_.push_back(new SimpleOption<bool>("remove", "Remove a previously FDB overlay"));
-        options_.push_back(new SimpleOption<bool>("force", "Apply overlay even if target already exists"));
+                                                         "The keywords that should vary between mounted DBs", 0, ","));
+        options_.push_back(new SimpleOption<bool>("remove", "Remove/unmount existing FDB overlay"));
+        options_.push_back(new SimpleOption<bool>("force", "Apply overlay even if target DB already exists"));
     }
 
-private: // methods
+private:  // methods
+    void init(const option::CmdArgs& args) override;
+    void execute(const option::CmdArgs& args) override;
+    void usage(const std::string& tool) const override;
 
-    virtual void init(const option::CmdArgs& args);
-    virtual void execute(const option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+private:  // members
+    eckit::StringSet variableKeys_ {"class", "expver"};
 
-private: // members
-
-    std::vector<std::string> variableKeys_;
-    bool remove_;
-    bool force_;
+    bool remove_ {false};
+    bool force_ {false};
 };
 
-void FdbOverlay::usage(const std::string &tool) const {
+void FdbOverlay::usage(const std::string& tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [source DB request] [target DB request]" << std::endl
@@ -68,9 +68,13 @@ void FdbOverlay::usage(const std::string &tool) const {
 
 void FdbOverlay::init(const option::CmdArgs& args) {
     FDBTool::init(args);
-    args.get("variable-keys", variableKeys_);
-    remove_ = args.getBool("remove", false);
-    force_ = args.getBool("force", false);
+    {
+        eckit::StringList keys;
+        args.get("variable-keys", keys);
+        variableKeys_ = {keys.begin(), keys.end()};
+    }
+    remove_ = args.getBool("remove", remove_);
+    force_  = args.getBool("force", force_);
 }
 
 void FdbOverlay::execute(const option::CmdArgs& args) {
@@ -90,82 +94,63 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(!sourceRequest.all());
     ASSERT(!targetRequest.all());
 
-    Config conf = config(args);
-    const Schema& schema = conf.schema();
+    ASSERT(sourceRequest.request().count() == targetRequest.request().count());
 
-    TypedKey source{conf.schema().registry()};
-    TypedKey target{conf.schema().registry()};
-    ASSERT(schema.expandFirstLevel(sourceRequest.request(), source));
-    ASSERT(schema.expandFirstLevel(targetRequest.request(), target));
+    //------------------------------------------------------------------------------------------------------------------
 
-    if (remove_) {
-        Log::info() << "Removing " << source << " from " << target << std::endl;
-    } else {
-        Log::info() << "Applying " << source << " onto " << target << std::endl;
-    }
+    FDB fdb(config(args));
 
-    if (source.keys() != target.keys()) {
-        std::stringstream ss;
-        ss << "Keys insufficiently matching for mount: " << source << " : " << target << std::endl;
-        throw UserError(ss.str(), Here());
-    }
+    const auto& conf = fdb.config();
 
-    std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
-    for (const auto& kv : target) {
-        auto it = source.find(kv.first);
-        ASSERT(it != source.end());
-        if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
-            std::stringstream ss;
-            ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
-            throw UserError(ss.str(), Here());
-        }
-    }
+    const auto& schema = conf.schema();
 
-    std::unique_ptr<CatalogueReader> dbSource = CatalogueReaderFactory::instance().build(source.canonical(), conf);
-    if (!dbSource->exists()) {
-        std::stringstream ss;
-        ss << "Source database not found: " << source << std::endl;
-        throw UserError(ss.str(), Here());
-    }
+    TypedKey srcKey {schema.registry()};
+    TypedKey tgtKey {schema.registry()};
 
-    if (dbSource->type() != TocEngine::typeName()) {
-        std::stringstream ss;
-        ss << "Only TOC DBs currently supported" << std::endl;
-        throw UserError(ss.str(), Here());
-    }
-
-    std::unique_ptr<CatalogueReader> dbTarget = CatalogueReaderFactory::instance().build(target.canonical(), conf);
+    ASSERT(schema.expandFirstLevel(sourceRequest.request(), srcKey));
+    ASSERT(schema.expandFirstLevel(targetRequest.request(), tgtKey));
 
     if (remove_) {
-        if (!dbTarget->exists()) {
-            std::stringstream ss;
-            ss << "Target database must already exist: " << target << std::endl;
-            throw UserError(ss.str(), Here());
-        }
+        Log::info() << "Removing " << srcKey << " from " << tgtKey << std::endl;
     } else {
-        if (dbTarget->exists() && !force_) {
-            std::stringstream ss;
-            ss << "Target database already exists: " << target << std::endl;
-            eckit::Log::error() << ss.str() << std::endl;
-            eckit::Log::error() << "To mount to existing target, rerun with --force" << std::endl;
-            throw UserError(ss.str(), Here());
+        Log::info() << "Applying " << srcKey << " onto " << tgtKey << std::endl;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    {
+        auto dbTarget = CatalogueReaderFactory::instance().build(tgtKey.canonical(), conf);
+
+        const auto& exists = dbTarget->exists();
+
+        if (remove_) {
+            if (!exists) {
+                std::ostringstream oss;
+                oss << "The '--remove' option expects an existing target database! Key: " << tgtKey << std::endl;
+                throw eckit::UserError(oss.str(), Here());
+            }
+        } else {
+            if (exists && !force_) {
+                std::ostringstream oss;
+                oss << "The target database already exists! Key: " << tgtKey << std::endl;
+                eckit::Log::error() << oss.str() << std::endl;
+                eckit::Log::error() << "To overlay an existing target database, re-run with `--force`" << std::endl;
+                throw eckit::UserError(oss.str(), Here());
+            }
         }
     }
 
-    ASSERT(dbTarget->uri() != dbSource->uri());
+    auto dbTarget = CatalogueWriterFactory::instance().build(tgtKey.canonical(), conf);
+    auto dbSource = CatalogueReaderFactory::instance().build(srcKey.canonical(), conf);
 
-    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target.canonical(), conf);
-    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
-        newCatalogue->overlayDB(*dbSource, vkeys, remove_);
-    }
+    dbTarget->overlayDB(dbSource.get(), variableKeys_, remove_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fbb5
+}  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbOverlay app(argc, argv);
     return app.start();
 }

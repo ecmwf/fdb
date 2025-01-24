@@ -18,26 +18,49 @@
 
 #pragma once
 
+#include "eckit/io/Buffer.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/types/FixedString.h"
+
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-
-#include "eckit/types/FixedString.h"
-
-namespace eckit {
-    class Stream;
-}
+#include <iosfwd>
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct BufferStream;
+
 struct Payload {
-    Payload(std::size_t length, const void* data) : length {length}, data {data} { }
+    Payload() = default;
+
+    explicit Payload(const BufferStream& buffer);
+
+    Payload(std::size_t length, const void* data);
+
+    bool empty() const;
+
+    /// @brief  Checks if this object is in a consistent state.
+    /// @returns True if (length & data) is (zero & null) or (non-zero & non-null).
+    bool consistent() const;
 
     std::size_t length {0};
     const void* data {nullptr};
 };
+
+struct BufferStream : private eckit::Buffer, public eckit::MemoryStream {
+    explicit BufferStream(const size_t size) : eckit::Buffer(size), eckit::MemoryStream(data(), size) { }
+
+    size_t length() const { return eckit::MemoryStream::position(); }
+
+    const void* data() const { return eckit::Buffer::data(); }
+
+    Payload payload() const { return {length(), data()}; }
+};
+
+//----------------------------------------------------------------------------------------------------------------------
 
 enum class Message : uint16_t {
 
@@ -67,6 +90,7 @@ enum class Message : uint16_t {
     Store,
     Axes,
     Exists,
+    Overlay,
 
     // Responses
     Received = 200,
@@ -86,11 +110,11 @@ std::ostream& operator<<(std::ostream& s, const Message& m);
 class MessageHeader {
 
 public:  // types
-    constexpr static uint16_t currentVersion = 12;
+    static constexpr uint16_t currentVersion = 12;
 
-    constexpr static const auto hashBytes = 16;
+    static constexpr uint16_t hashBytes = 16;
 
-    constexpr static const auto markerBytes = 4;
+    static constexpr uint16_t markerBytes = 4;
 
     using MarkerType = eckit::FixedString<markerBytes>;
 

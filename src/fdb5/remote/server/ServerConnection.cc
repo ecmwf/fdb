@@ -55,9 +55,6 @@ namespace fdb5::remote {
 
 namespace {
 
-constexpr const auto defaultRetrieveQueueSize = 10000;
-constexpr const auto defaultArchiveQueueSize = 320;
-
 std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2, const std::string& field){
 
     std::vector<int> v1 = c1.getIntVector(field);
@@ -80,8 +77,8 @@ std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::
 ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config)
     : config_(config),
       dataListenHostname_(config.getString("dataListenHostname", "")),
-      readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
-      archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
+      readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueLength)),
+      archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueLength)),
       controlSocket_(socket) {
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;

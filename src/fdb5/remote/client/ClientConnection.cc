@@ -198,7 +198,8 @@ void ClientConnection::dataWrite(DataWriteRequest& request) const {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
 
-    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
+    static const size_t maxQueueLength =
+        eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", defaultDataWriteQueueLength);
 
     {
         // retrieve or add client to the list

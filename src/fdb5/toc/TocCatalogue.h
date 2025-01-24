@@ -21,7 +21,6 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
@@ -45,6 +44,8 @@ public: // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
+    bool exists() const override;
+
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
@@ -60,7 +61,7 @@ protected: // methods
                                    std::vector<Key>* remapKeys = nullptr) const;
 
     void checkUID() const override;
-    bool exists() const override;
+
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;

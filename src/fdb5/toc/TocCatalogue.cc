@@ -14,10 +14,11 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocEngine.h"
+#include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocWipeVisitor.h"
-#include "fdb5/toc/TocMoveVisitor.h"
 
 using namespace eckit;
 

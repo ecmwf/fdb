@@ -38,10 +38,9 @@ struct CatalogueArchiver {
 
 //----------------------------------------------------------------------------------------------------------------------
 class CatalogueHandler : public ServerConnection {
-public:  // methods
 
+public:  // methods
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
-    ~CatalogueHandler() override;
 
 private:  // methods
 
@@ -60,6 +59,7 @@ private:  // methods
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stores(uint32_t clientID, uint32_t requestID);
     void exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
+    void overlay(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 

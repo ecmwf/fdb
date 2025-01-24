@@ -34,6 +34,8 @@ class DataWriteRequest;
 
 class ClientConnection : protected Connection {
 
+    static constexpr size_t defaultDataWriteQueueLength = 320;
+
 public: // methods
     ~ClientConnection() override;
 

@@ -8,21 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
-
-#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/io/EmptyHandle.h"
+#include "eckit/types/Types.h"
 
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/io/LustreSettings.h"
+#include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
-#include "fdb5/toc/RootManager.h"
-#include "fdb5/io/LustreSettings.h"
+#include <sstream>
 
 using namespace eckit;
 
@@ -241,34 +240,49 @@ const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const 
     return TocHandler::serialisationVersion();
 }
 
-void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
+void TocCatalogueWriter::overlayDB(const Catalogue* srcCatalogue, const eckit::StringSet& variableKeys, bool unmount) {
 
-    const TocCatalogue& otherCatalogue = dynamic_cast<const TocCatalogue&>(otherCat);
-    const Key& otherKey(otherCatalogue.key());
+    const auto* source = dynamic_cast<const TocCatalogue*>(srcCatalogue);
 
-    if (otherKey.size() != TocCatalogue::dbKey_.size()) {
-        std::stringstream ss;
-        ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
-        throw UserError(ss.str(), Here());
+    if (!source) { throw eckit::UserError("Cannot overlay toc DB with a non-toc source DB!", Here()); }
+
+    if (!source->exists()) {
+        std::ostringstream oss;
+        oss << "Source database is not found: " << *source << std::endl;
+        throw eckit::UserError(oss.str(), Here());
     }
 
-    // Build the difference map from the old to the new key
+    if (source->uri() == uri()) {
+        std::ostringstream oss;
+        oss << "Source and target cannot be same! " << source->uri() << " : " << uri();
+        throw eckit::UserError(oss.str(), Here());
+    }
 
-    for (const auto& kv : TocCatalogue::dbKey_) {
+    const auto& srcKey = source->key();
 
-        auto it = otherKey.find(kv.first);
-        if (it == otherKey.end()) {
-            std::stringstream ss;
-            ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
-            throw UserError(ss.str(), Here());
+    // check keywords are matching
+    if (srcKey.keys() != dbKey_.keys()) {
+        std::ostringstream oss;
+        oss << "Keys are not matching! " << srcKey << " : " << dbKey_ << std::endl;
+        throw eckit::UserError(oss.str(), Here());
+    }
+
+    // check values are as expected
+    for (const auto& [keyword, value] : dbKey_) {
+
+        const auto isDifferent = srcKey.find(keyword)->second != value;
+        const auto isVariable  = variableKeys.find(keyword) != variableKeys.end();
+
+        if (isDifferent && !isVariable) {
+            std::ostringstream oss;
+            oss << "Keyword [" << keyword << "] must not differ between DBs: " << srcKey << " : " << dbKey_;
+            throw eckit::UserError(oss.str(), Here());
         }
 
-        if (kv.second != it->second) {
-            if (variableKeys.find(kv.first) == variableKeys.end()) {
-                std::stringstream ss;
-                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
-                throw UserError(ss.str(), Here());
-            }
+        if (isVariable && !isDifferent) {
+            std::ostringstream oss;
+            oss << "Variable Keyword [" << keyword << "] must differ between DBs: " << srcKey << " : " << dbKey_;
+            throw eckit::UserError(oss.str(), Here());
         }
     }
 
@@ -277,19 +291,19 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
         // First sanity check that we are already mounted
 
-        std::set<std::string> subtocs;
+        eckit::StringSet subtocs;
         loadIndexes(false, &subtocs);
 
-        eckit::PathName stPath(otherCatalogue.tocPath());
+        eckit::PathName stPath(source->tocPath());
         if (subtocs.find(stPath) == subtocs.end()) {
             std::stringstream ss;
-            ss << "Cannot unmount DB: " << otherCatalogue << ". Not currently mounted";
-            throw UserError(ss.str(), Here());
+            ss << "Cannot unmount source DB [" << source << "] that is already unmounted!";
+            throw eckit::UserError(ss.str(), Here());
         }
 
-        writeSubTocMaskRecord(otherCatalogue);
+        writeSubTocMaskRecord(*source);
     } else {
-        writeSubTocRecord(otherCatalogue);
+        writeSubTocRecord(*source);
     }
 }
 
@@ -425,4 +439,4 @@ static CatalogueWriterBuilder<TocCatalogueWriter> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
