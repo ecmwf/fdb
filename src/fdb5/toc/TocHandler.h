@@ -16,6 +16,7 @@
 
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -193,7 +194,7 @@ protected: // methods
 
     // Given the payload size, returns the record size
 
-    static std::pair<size_t, size_t> roundRecord(TocRecord &r, size_t payloadSize);
+    static std::pair<size_t, size_t> recordSizes(TocRecord &r, size_t payloadSize);
 
     void appendBlock(const void* data, size_t size);
     void appendBlock(TocRecord &r, size_t payloadSize);

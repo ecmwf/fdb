@@ -10,6 +10,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <memory>
 
 #include "eckit/log/Timer.h"
 
@@ -128,7 +129,7 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
 
     ASSERT(len == length);
 
-    return std::unique_ptr<const FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    return std::make_unique<TocFieldLocation>(dataPath, position, length, Key());
 }
 
 size_t TocStore::flush() {
@@ -165,16 +166,15 @@ void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
 }
 
 eckit::DataHandle* TocStore::getCachedHandle( const eckit::PathName &path ) const {
-    std::lock_guard<std::recursive_mutex> lock(handlesMutex_);
-    HandleStore::const_iterator j = handles_.find( path );
-    if ( j != handles_.end() )
+    std::lock_guard lock(handlesMutex_);
+    if (auto j = handles_.find(path); j != handles_.end()) {
         return j->second.get();
-    else
-        return nullptr;
+    }
+    return nullptr;
 }
 
 void TocStore::closeDataHandles() {
-    std::lock_guard<std::recursive_mutex> lock(handlesMutex_);
+    std::lock_guard lock(handlesMutex_);
     for (const auto& [p, dh] : handles_) {
         dh->close();
     }
@@ -191,14 +191,14 @@ std::unique_ptr<eckit::DataHandle> TocStore::createFileHandle(const eckit::PathN
                                      << " buffer size " << sizeBuffer
                                      << std::endl;
 
-        return std::unique_ptr<eckit::DataHandle>(new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings()));
+        return std::make_unique<LustreFileHandle<FDBFileHandle>>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Creating FDBFileHandle to " << path
                                  << " with buffer of " << eckit::Bytes(sizeBuffer)
                                  << std::endl;
 
-    return std::unique_ptr<eckit::DataHandle>(new FDBFileHandle(path, sizeBuffer));
+    return std::make_unique<FDBFileHandle>(path, sizeBuffer);
 }
 
 std::unique_ptr<eckit::DataHandle> TocStore::createAsyncHandle(const eckit::PathName &path) {
@@ -213,17 +213,18 @@ std::unique_ptr<eckit::DataHandle> TocStore::createAsyncHandle(const eckit::Path
                                      << " buffer each with " << eckit::Bytes(sizeBuffer)
                                      << std::endl;
 
-        return std::unique_ptr<eckit::DataHandle>(new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings()));
+        return std::make_unique<LustreFileHandle<eckit::AIOHandle>>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
     }
 
-    return std::unique_ptr<eckit::DataHandle>(new eckit::AIOHandle(path, nbBuffers, sizeBuffer));
+    return std::make_unique<eckit::AIOHandle>(path, nbBuffers, sizeBuffer);
 }
 
 std::unique_ptr<eckit::DataHandle> TocStore::createDataHandle(const eckit::PathName &path) {
 
     static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if(fdbWriteToNull)
-        return std::unique_ptr<eckit::DataHandle>(new eckit::EmptyHandle());
+    if(fdbWriteToNull) {
+        return std::make_unique<eckit::EmptyHandle>();
+    }
 
     static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
     if(fdbAsyncWrite)
@@ -233,16 +234,15 @@ std::unique_ptr<eckit::DataHandle> TocStore::createDataHandle(const eckit::PathN
 }
 
 eckit::DataHandle& TocStore::getDataHandle( const eckit::PathName &path ) {
-    std::lock_guard<std::recursive_mutex> lock(handlesMutex_);
+    std::lock_guard lock(handlesMutex_);
     eckit::DataHandle* dh = getCachedHandle(path);
-    if ( !dh ) {
-        auto dataHandle = createDataHandle(path);
-        ASSERT(dataHandle);
-        dataHandle->openForAppend(0);
-        dh = dataHandle.get();
-        handles_[path] = std::move(dataHandle);
+    if (dh) {
+        return *dh;
     }
-    return *dh;
+    auto dataHandle = createDataHandle(path);
+    ASSERT(dataHandle);
+    dataHandle->openForAppend(0);
+    return *(handles_[path] = std::move(dataHandle));
 }
 
 eckit::PathName TocStore::generateDataPath(const Key& key) const {
@@ -266,7 +266,7 @@ eckit::PathName TocStore::getDataPath(const Key& key) const {
 }
 
 void TocStore::flushDataHandles() {
-    std::lock_guard<std::recursive_mutex> lock(handlesMutex_);
+    std::lock_guard lock(handlesMutex_);
     for (const auto& [p, dh] : handles_) {
         dh->flush();
     }

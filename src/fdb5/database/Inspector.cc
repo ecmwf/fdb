@@ -64,7 +64,7 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
                                 const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
 
-    std::unique_ptr<InspectIterator> iterator(new InspectIterator());
+    auto iterator = std::make_unique<InspectIterator>();
     MultiRetrieveVisitor visitor(notifyee, *iterator, databases_, dbConfig_);
 
     LOG_DEBUG_LIB(LibFdb5) << "Using schema: " << schema << std::endl;
