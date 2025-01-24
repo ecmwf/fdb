@@ -11,6 +11,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <utility>
+#include <cstddef>
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
@@ -336,18 +338,42 @@ void TocHandler::dumpTocCache() const {
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
+    LOG_DEBUG_LIB(LibFdb5) << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+
+    appendRound(r, payloadSize);
+}
+
+void TocHandler::appendRound(TocRecord &r, size_t payloadSize) {
+    // Obtain the rounded size, and set it in the record header.
+    auto [realSize, roundedSize] = recordSizes(r, payloadSize);
+ 
+    eckit::Buffer buf(roundedSize);
+    buf.zero();
+    buf.copy(static_cast<const void*>(&r), realSize);
+    
+    appendRaw(buf, buf.size());
+}
+
+void TocHandler::appendRaw(const void *data, size_t size) {
+
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
-
-    // Obtain the rounded size, and set it in the record header.
-    size_t roundedSize = roundRecord(r, payloadSize);
+    ASSERT(size % recordRoundSize() == 0);
 
     size_t len;
-    SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
     dirty_ = true;
-    ASSERT( len == roundedSize);
+    ASSERT( len == size);
+
+}
+
+void TocHandler::appendBlock(TocRecord &r, size_t payloadSize) {
+
+    openForAppend();
+    TocHandlerCloser close(*this);
+
+    appendRound(r, payloadSize);
 }
 
 void TocHandler::appendBlock(const void *data, size_t size) {
@@ -355,17 +381,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     openForAppend();
     TocHandlerCloser close(*this);
 
-    ASSERT(fd_ != -1);
-    ASSERT(not cachedToc_);
-
-    // Ensure that this block is appropriately rounded.
-
-    ASSERT(size % recordRoundSize() == 0);
-
-    size_t len;
-    SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
-    dirty_ = true;
-    ASSERT( len == size );
+    appendRaw(data, size);
 }
 
 const TocSerialisationVersion& TocHandler::serialisationVersion() const {
@@ -378,11 +394,12 @@ size_t TocHandler::recordRoundSize() {
     return fdbRoundTocRecords;
 }
 
-size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
+std::pair<size_t, size_t> TocHandler::recordSizes(TocRecord &r, size_t payloadSize) {
 
-    r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, recordRoundSize());
+    size_t dataSize = sizeof(TocRecord::Header) + payloadSize;
+    r.header_.size_ = eckit::round(dataSize, recordRoundSize());
 
-    return r.header_.size_;
+    return {dataSize, r.header_.size_};
 }
 
 // readNext wraps readNextInternal.
@@ -513,7 +530,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     std::vector<eckit::PathName> paths;
 
@@ -592,7 +609,7 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
     Offset ret = proxy.seek(startOffset);
     ASSERT(ret == startOffset);
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while (proxy.position() < endOffset) {
 
@@ -823,8 +840,7 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
 
     eckit::Timer preloadTimer("subtocs.preload", Log::debug<LibFdb5>());
     {
-        std::unique_ptr<TocRecord> r(
-                new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+        auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
         // n.b. we call databaseKey() directly, as this preload will normally be called before we have walked
         //      the toc at all --> TOC_INIT not yet read --> parentKey_ not yet set.
@@ -870,7 +886,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
     maskedEntries_.clear();
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t countSubTocs = 0;
 
@@ -948,7 +964,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t len = readNext(*r);
     if (len == 0) {
@@ -984,7 +1000,7 @@ void TocHandler::writeInitRecord(const Key& key) {
             eckit::LocalPathName::rename(tmp, schemaPath_);
         }
 
-        std::unique_ptr<TocRecord> r2(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_INIT)); // allocate TocRecord on heap (MARS-779)
+        auto r2 = std::make_unique<TocRecord>(serialisationVersion_.used(), TocRecord::TOC_INIT); // allocate (large) TocRecord on heap not stack (MARS-779)
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
@@ -1001,22 +1017,20 @@ void TocHandler::writeInitRecord(const Key& key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used(), TocRecord::TOC_CLEAR); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    size_t sz = roundRecord(*r, buildClearRecord(*r, index));
-    appendBlock(r.get(), sz);
+    appendBlock(*r, buildClearRecord(*r, index));
 }
 
 void TocHandler::writeClearAllRecord() {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used(), TocRecord::TOC_CLEAR); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
     s << off_t{0};
 
-    size_t sz = roundRecord(*r, s.position());
-    appendBlock(r.get(), sz);
+    appendBlock(*r, s.position());
 }
 
 
@@ -1025,7 +1039,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used(), TocRecord::TOC_SUB_TOC); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -1053,7 +1067,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            std::unique_ptr<TocRecord> r(new TocRecord(handler_.serialisationVersion_.used(), TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
+            auto r = std::make_unique<TocRecord>(handler_.serialisationVersion_.used(), TocRecord::TOC_INDEX); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -1104,15 +1118,14 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used(), TocRecord::TOC_CLEAR); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
     const PathName& absPath = subToc.tocPath();
     PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
-    size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, path));
-    appendBlock(r.get(), sz);
+    appendBlock(*r, buildSubTocMaskRecord(*r, path));
 }
 
 bool TocHandler::useSubToc() const {
@@ -1153,8 +1166,7 @@ uid_t TocHandler::dbUID() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while ( readNext(*r) ) {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
@@ -1170,8 +1182,7 @@ Key TocHandler::databaseKey() {
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     bool walkSubTocs = false;
     while ( readNext(*r, walkSubTocs) ) {
@@ -1191,8 +1202,7 @@ size_t TocHandler::numberOfRecords() const {
         openForRead();
         TocHandlerCloser close(*this);
 
-        // Allocate (large) TocRecord on heap not stack (MARS-779)
-        std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+        auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
         bool walkSubTocs = true;
         bool hideSubTocEntries = false;
@@ -1232,8 +1242,7 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
     count_ = 0;
 
     // A record of all the index entries found (to process later)
@@ -1396,8 +1405,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     bool hideSubTocEntries = false;
     bool hideClearEntries = false;
@@ -1466,8 +1474,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     bool walkSubTocs = true;
     bool hideSubTocEntries = true;
@@ -1579,8 +1586,7 @@ void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
+    auto r = std::make_unique<TocRecord>(serialisationVersion_.used()); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while ( readNextInternal(*r) ) {
         if (r->header_.tag_ == TocRecord::TOC_INDEX) {
