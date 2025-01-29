@@ -228,7 +228,8 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
         try {
             /// @todo we don't have to open tocs to check if they match the request
             if (p.exists()) {
-                eckit::PathName path = p.isDir() ? p.realName() : p.dirName();
+                eckit::PathName path =  p.isDir() ? p : p.dirName();
+                path = path.realName();
 
                 LOG_DEBUG_LIB(LibFdb5) << "FDB processing Path " << path << std::endl;
 

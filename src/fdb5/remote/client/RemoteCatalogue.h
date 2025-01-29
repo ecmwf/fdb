@@ -92,7 +92,7 @@ protected:
 private:
 
     Key currentIndexKey_;
-    const RuleDatabase* rule_;
+    mutable std::optional<std::reference_wrapper<const RuleDatabase>> rule_;
     mutable std::unique_ptr<Schema> schema_;
 
     std::mutex archiveMutex_;

@@ -48,9 +48,8 @@ void TypeYear::getValues(const metkit::mars::MarsRequest& request,
 
     eckit::Translator<eckit::Date, std::string> t;
 
-    for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        const eckit::Date &date = *i;
-        values.push_back(t(date));
+    for (const eckit::Date& date : dates) {
+        values.emplace_back(t(date));
     }
 }
 

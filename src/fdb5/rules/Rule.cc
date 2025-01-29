@@ -83,12 +83,12 @@ public:  // methods
     }
 
     void canonicalise(const TypesRegistry& registry) {
-        for (auto it = nodes_.begin(); it != nodes_.end(); it++) {
-            const auto& type = registry.lookupType(it->keyword_);
-            for (auto& value : it->values_) {
+        for (auto& [keyword, values] : nodes_) {
+            const auto& type = registry.lookupType(keyword);
+            for (auto& value : values) {
                 if (!value.empty()) { value = type.toKey(value); }
             }
-            it->keyword_ = type.alias();
+            keyword = type.alias();
         }
     }
 

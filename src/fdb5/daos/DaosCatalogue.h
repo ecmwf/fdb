@@ -69,7 +69,7 @@ protected: // members
 private: // members
 
     Schema schema_;
-    const RuleDatabase* rule_;
+    const RuleDatabase* rule_ {nullptr};
 
 };
 

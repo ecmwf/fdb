@@ -42,9 +42,10 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
 }
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
-    if (level_>1)
+    if (level_>1) {
         EntryVisitor::visitDatabase(catalogue);
-
+    }
+    
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
