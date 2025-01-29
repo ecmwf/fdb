@@ -313,6 +313,7 @@ CASE ( "test_fdb_service" ) {
                 while ((dp = ::readdir(dirp)) != nullptr) {
                     EXPECT_NOT(strstr( dp->d_name, "toc."));
                 }
+                ::closedir(dirp);
 
                 // consuming the rest of the queue
                 while (iter.next(el));
@@ -500,6 +501,7 @@ CASE ( "test_fdb_service_subtoc" ) {
                     }
                 }
                 EXPECT(subtoc);
+                ::closedir(dirp);
 
                 // consuming the rest of the queue
                 while (iter.next(el));
@@ -579,7 +581,7 @@ CASE( "schemaSerialisation" ) {
         eckit::FileStream sin(filepath.c_str(), "r");
         auto c = eckit::closer(sin);
 
-        fdb5::Schema* clone = eckit::Reanimator<fdb5::Schema>::reanimate(sin);
+        std::unique_ptr<fdb5::Schema> clone(eckit::Reanimator<fdb5::Schema>::reanimate(sin));
 
         std::stringstream ss;
         clone->dump(ss);

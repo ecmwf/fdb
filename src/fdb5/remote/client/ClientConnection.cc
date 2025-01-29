@@ -1,23 +1,34 @@
 
-
-#include <functional>
-#include <unistd.h>
+#include "fdb5/remote/client/ClientConnection.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
-#include "eckit/runtime/Main.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "eckit/utils/Translator.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/remote/client/ClientConnection.h"
-#include "fdb5/remote/client/ClientConnectionRouter.h"
+#include <unistd.h>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace fdb5::remote {
 
@@ -162,59 +173,65 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
     return conf;
 }
 
-// -----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+std::future<eckit::Buffer> ClientConnection::controlWrite(const Client&  client,
+                                                          const Message  msg,
+                                                          const uint32_t requestID,
+                                                          const bool /*dataListener*/,
+                                                          const PayloadList payloads) const {
     std::future<eckit::Buffer> f;
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<eckit::Buffer>{}).first;
         f = pp->second.get_future();
     }
-    Connection::write(msg, true, client.clientId(), requestID, data);
+    Connection::write(msg, true, client.clientId(), requestID, payloads);
 
     return f;
 }
 
-void ClientConnection::dataWrite(DataWriteRequest& r) {
-    Connection::write(r.msg_, false, r.client_->clientId(), r.id_, r.data_.data(), r.data_.size());
+void ClientConnection::dataWrite(DataWriteRequest& request) const {
+    Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
+                      request.data_.size());
 }
 
-void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
 
     static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 320);
+
     {
         // retrieve or add client to the list
-        std::lock_guard<std::mutex> lock(clientsMutex_);
-        auto it = clients_.find(client.clientId());
-        ASSERT(it != clients_.end());
+        std::lock_guard lock(clientsMutex_);
+        ASSERT(clients_.find(client.clientId()) != clients_.end());
     }
+
     {
         std::lock_guard<std::mutex> lock(dataWriteMutex_);
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
 
-            dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+            dataWriteQueue_  = std::make_unique<eckit::Queue<DataWriteRequest>>(maxQueueLength);
             dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
         }
     }
+
     uint32_t payloadLength = 0;
-    for (auto d: data) {
-        ASSERT(d.first);
-        payloadLength += d.second;
+    for (const auto& payload : payloads) {
+        ASSERT(payload.data);
+        payloadLength += payload.length;
     }
 
     eckit::Buffer buffer{payloadLength};
     uint32_t offset = 0;
-    for (auto d: data) {
-        buffer.copy(d.first, d.second, offset);
-        offset += d.second;
+    for (const auto& payload : payloads) {
+        buffer.copy(payload.data, payload.length, offset);
+        offset += payload.length;
     }
 
     dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
 }
-
 
 void ClientConnection::dataWriteThreadLoop() {
 

@@ -8,33 +8,52 @@
  * does it submit to any jurisdiction.
  */
 
-#include <dirent.h>
-#include <fcntl.h>
-
-#include "eckit/log/Timer.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/AIOHandle.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/runtime/Main.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/remote/client/RemoteStore.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Rule.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/remote/client/RemoteStore.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/remote/client/Client.h"
+#include "fdb5/rules/Rule.h"
 
-#include <unordered_map>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/log/Log.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Reanimator.h"
+
+#include <dirent.h>
+#include <fcntl.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 
-//----------------------------------------------------------------------------------------------------------------------
-
 namespace fdb5::remote {
 
-// -----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
 
 //
 /// @note The DataHandles returned by retrieve() MUST STRICTLY be read in order.
@@ -177,20 +196,24 @@ private: // members
     bool complete_;
 };
 
-std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const Config& config) {
+Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
     ASSERT(config.has("fieldLocationEndpoints"));
-    std::vector<std::string> stores = config.getStringVector("stores");
-    std::vector<std::string> fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+    const auto stores                 = config.getStringVector("stores");
+    const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
-    std::vector<std::pair<eckit::net::Endpoint, std::string>> out;
-    for (size_t i=0; i<stores.size(); i++) {
-        out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, fieldLocationEndpoints.at(i)));
+
+    Client::EndpointList out;
+    out.reserve(stores.size());
+    for (size_t i = 0; i < stores.size(); ++i) {
+        out.emplace_back(eckit::net::Endpoint {stores.at(i)}, fieldLocationEndpoints.at(i));
     }
     return out;
 }
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -200,10 +223,8 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
-RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
-    dbKey_(Key()), config_(config)
-    {
+RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config)
+    : Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -223,7 +244,19 @@ eckit::URI RemoteStore::uri() const {
 }
 
 bool RemoteStore::exists() const {
-    return true;
+
+    bool result = false;
+
+    eckit::Buffer       sendBuf(defaultBufferSizeKey);
+    eckit::MemoryStream sms(sendBuf);
+    sms << dbKey_;
+
+    auto recvBuf = controlWriteReadResponse(Message::Exists, generateRequestID(), sendBuf, sms.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
 
 eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
@@ -246,14 +279,14 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
 
-    Buffer keyBuffer(4096);
-    MemoryStream keyStream(keyBuffer);
+    eckit::Buffer       keyBuffer(defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
     keyStream << dbKey_;
     keyStream << key;
 
-    std::vector<std::pair<const void*, uint32_t>> payloads;
-    payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
-    payloads.push_back(std::pair<const void*, uint32_t>{data, length});
+    PayloadList payloads;
+    payloads.emplace_back(keyStream.position(), keyBuffer.data());
+    payloads.emplace_back(length, data);
 
     dataWrite(Message::Blob, id, payloads);
 
@@ -277,7 +310,7 @@ size_t RemoteStore::flush() {
 
     size_t locations = complete ? locations_.archived() : locations_.wait();
 
-    Buffer sendBuf(1024);
+    Buffer       sendBuf(defaultBufferSizeFlush);
     MemoryStream s(sendBuf);
     s << locations;
 
@@ -293,11 +326,14 @@ size_t RemoteStore::flush() {
 void RemoteStore::close() {
 }
 
-void RemoteStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+void RemoteStore::remove(const eckit::URI& /*uri*/,
+                         std::ostream& /*logAlways*/,
+                         std::ostream& /*logVerbose*/,
+                         const bool /*doit*/) const {
     NOTIMP;
 }
 
-void RemoteStore::remove(const Key& key) const {
+void RemoteStore::remove(const Key& /*key*/) const {
     NOTIMP;
 }
 
@@ -434,24 +470,29 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
         return *(it->second);
     }
 
-    return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
+    return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));
 }
 
-    bool RemoteStore::uriBelongs(const eckit::URI&) const {
-        NOTIMP;
-    }
-    bool RemoteStore::uriExists(const eckit::URI&) const {
-        NOTIMP;
-    }
-    std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
-        NOTIMP;
-    }
-    std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
-        NOTIMP;
-    }
+bool RemoteStore::uriBelongs(const eckit::URI&) const {
+    NOTIMP;
+}
 
-static StoreBuilder<RemoteStore> builder("remote");
+bool RemoteStore::uriExists(const eckit::URI&) const {
+    NOTIMP;
+}
+
+std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+    NOTIMP;
+}
+
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
+    NOTIMP;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::remote
+static StoreBuilder<RemoteStore> builder(RemoteStore::typeName());
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5::remote

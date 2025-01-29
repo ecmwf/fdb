@@ -8,22 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "eckit/serialisation/MemoryStream.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/Store.h"
 #include "fdb5/remote/server/StoreHandler.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/server/ServerConnection.h"
+
+#include "eckit/net/TCPSocket.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <utility>
+
 using namespace eckit;
-using metkit::mars::MarsRequest;
 
 namespace fdb5::remote {
 
-StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {}
+//----------------------------------------------------------------------------------------------------------------------
 
-StoreHandler::~StoreHandler() {}
+StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
+    ServerConnection(socket, config) {
+        LibFdb5::instance().constructorCallback()(*this);
+    }
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
@@ -32,7 +42,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Store: // notification that the client is starting to send data for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
-            
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -65,6 +75,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 flush(clientID, requestID, payload);
                 return Handled::Yes;
 
+            case Message::Exists:  // given key (payload), check if store exists
+                exists(clientID, requestID, payload);
+                return Handled::Replied;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -83,6 +97,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     return Handled::No;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
@@ -130,7 +146,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
                               << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-            write(Message::Blob, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{writeBuffer, dataRead}});
+            write(Message::Blob, false, clientID, requestID, writeBuffer, dataRead);
         }
 
         // And when we are done, add a complete message.
@@ -155,7 +171,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
 
 void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
-    
+
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -166,12 +182,22 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
-    
+
     Store& ss = store(clientID, dbKey);
 
-    std::unique_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+
+    std::promise<std::shared_ptr<const FieldLocation>> promise;
+    promise.set_value(location);
+
+    eckit::StringDict dict = dbKey.keyDict();
+    dict.insert(idxKey.keyDict().begin(), idxKey.keyDict().end());
+    const Key fullkey(dict); /// @note: we do not have the third level of the key.
+
+    archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
+
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
-    
+
     eckit::Buffer buffer(16 * 1024);
     MemoryStream stream(buffer);
     stream << (*location);
@@ -196,6 +222,8 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         auto it = stores_.find(clientID);
         ASSERT(it != stores_.end());
         it->second.store->flush();
+
+        flushCallback_();
     }
 
     Log::info() << "Flush complete" << std::endl;
@@ -203,7 +231,7 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 }
 
 bool StoreHandler::remove(bool control, uint32_t clientID) {
-    
+
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {
@@ -249,5 +277,26 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     }
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
+
+void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
+
+    ASSERT(payload.size() > 0);
+
+    bool exists = false;
+
+    {
+        eckit::MemoryStream stream(payload);
+        const Key           dbKey(stream);
+        exists = StoreFactory::instance().build(dbKey, config_)->exists();
+    }
+
+    eckit::Buffer       existBuf(5);
+    eckit::MemoryStream stream(existBuf);
+    stream << exists;
+
+    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote

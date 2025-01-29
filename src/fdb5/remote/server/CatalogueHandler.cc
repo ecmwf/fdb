@@ -8,16 +8,24 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "eckit/net/NetMask.h"
-#include "eckit/serialisation/MemoryStream.h"
-
+#include "fdb5/remote/server/CatalogueHandler.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/remote/server/CatalogueHandler.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/server/ServerConnection.h"
+
+#include "eckit/net/NetMask.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <future>
+#include <mutex>
+#include <utility>
 
 using namespace eckit;
-using metkit::mars::MarsRequest;
 
 namespace fdb5::remote {
 
@@ -111,6 +119,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 flush(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::Exists:  // check if catalogue exists
+                exists(clientID, requestID, std::move(payload));
+                return Handled::Replied;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -161,6 +173,7 @@ struct BaseHelper {
 
 struct ListHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        /// @todo remember to add level_ to this helper
         return fdb.list(request);
     }
 };
@@ -226,7 +239,7 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
                 typename decltype(iterator)::value_type elem;
                 while (iterator.next(elem)) {
                     auto encoded(helper.encode(elem, *this));
-                    write(Message::Blob, false, clientID, requestID, std::vector<std::pair<const void*, uint32_t>>{{encoded.buf, encoded.position}});
+                    write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
                 }
                 write(Message::Complete, false, clientID, requestID);
             }
@@ -341,11 +354,24 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
     }
 }
 
+void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
+    ASSERT(payload.size() > 0);
 
+    bool exists = false;
 
+    {
+        eckit::MemoryStream stream(payload);
+        const Key dbKey(stream);
+        exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
+    }
 
+    eckit::Buffer       existBuf(5);
+    eckit::MemoryStream stream(existBuf);
+    stream << exists;
 
+    write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 

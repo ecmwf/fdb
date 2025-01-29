@@ -409,7 +409,8 @@ void IndexAxis::merge(const fdb5::IndexAxis& other) {
 
         auto it = axis_.find(kv.first);
         if (it == axis_.end()) {
-            axis_.emplace(kv.first, kv.second);
+            /// @note: Have to make a copy, otherwise we risk modifying cached axes in the AxisRegistry.
+            axis_.emplace(kv.first, std::make_shared<eckit::DenseSet<std::string>>(*kv.second));
         } else {
             it->second->merge(*kv.second);
         };

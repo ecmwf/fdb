@@ -10,8 +10,11 @@
 
 #pragma once
 
-#include "fdb5/remote/server/ServerConnection.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/remote/server/ServerConnection.h"
+
+#include <memory>
 
 namespace fdb5::remote {
 
@@ -24,7 +27,7 @@ struct CatalogueArchiver {
 
     bool controlConnection;
     bool dataConnection;
-    
+
     std::unique_ptr<CatalogueWriter> catalogue;
     size_t locationsExpected;
     size_t locationsArchived;
@@ -56,6 +59,7 @@ private:  // methods
     void stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stores(uint32_t clientID, uint32_t requestID);
+    void exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 

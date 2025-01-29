@@ -10,30 +10,20 @@
 
 #pragma once
 
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
+#include <cstdint>
+#include <map>
+#include <memory>
+
 namespace fdb5::remote {
-    
-//----------------------------------------------------------------------------------------------------------------------
-
-struct StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true), dataConnection(dataConnection),
-        store(StoreFactory::instance().build(dbKey, config)) {}
-
-    bool controlConnection;
-    bool dataConnection;
-    
-    std::unique_ptr<Store> store;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
-class StoreHandler : public ServerConnection {
+class StoreHandler : public ServerConnection, public CallbackRegistry {
 public:  // methods
-
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
-    ~StoreHandler() override;
 
 private:  // methods
 
@@ -41,22 +31,39 @@ private:  // methods
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
     void flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
+
     void read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
 
-    void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
+    void exists(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) const;
+
+    void archiveBlob(uint32_t clientID, uint32_t requestID, const void* data, size_t length) override;
 
     void readLocationThreadLoop();
-    void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
+
+    void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     bool remove(bool control, uint32_t clientID) override;
 
     Store& store(uint32_t clientID);
+
     Store& store(uint32_t clientID, const Key& dbKey);
 
 private:  // members
-
+    struct StoreHelper;
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct StoreHandler::StoreHelper {
+    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config)
+        : dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) { }
+
+    bool controlConnection {true};
+    bool dataConnection {false};
+
+    std::unique_ptr<Store> store;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

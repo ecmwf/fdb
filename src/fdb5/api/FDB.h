@@ -159,8 +159,6 @@ private: // members
     bool reportStats_;
 
     FDBStats stats_;
-
-    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
