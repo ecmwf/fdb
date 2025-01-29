@@ -54,7 +54,7 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config)
-    : CatalogueImpl(key, {}, config),  // xxx what are control identifiers? Setting empty here...
+    : CatalogueImpl(key, {}, config),
       Client({config.getString("host"), config.getInt("port")}, ""),
       config_(config) { }
 
@@ -108,6 +108,7 @@ const Key RemoteCatalogue::currentIndexKey() {
 void RemoteCatalogue::deselectIndex() {
     currentIndexKey_ = Key();
 }
+
 const Schema& RemoteCatalogue::schema() const {
     // lazy loading schema
     if (!schema_) {
@@ -115,6 +116,14 @@ const Schema& RemoteCatalogue::schema() const {
         ASSERT(schema_);
     }
     return *schema_;
+}
+
+const Rule& RemoteCatalogue::rule() const {
+    // lazy loading rule
+    if (!rule_) {
+        rule_ = std::cref(schema().matchingRule(dbKey_));
+    }
+    return rule_.value().get();
 }
 
 void RemoteCatalogue::flush(size_t archivedFields) {
@@ -169,7 +178,7 @@ eckit::URI RemoteCatalogue::uri() const {
 void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
     // (outside of the catalogue)
-    if (!schema_) { schema_.reset(fetchSchema(dbKey_, *this)); }
+    schema();
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {

@@ -40,10 +40,12 @@ class Type : private eckit::NonCopyable {
 
 public: // methods
 
-    Type(const std::string &name, const std::string &type);
+    Type(const std::string &name, const std::string& type, const std::string& alias = "");
 
-    virtual ~Type();
+    virtual ~Type() = default;
 
+    const std::string& alias() const;
+    
     virtual std::string tidy(const std::string &value) const ;
 
     virtual std::string toKey(const std::string &value) const ;
@@ -72,6 +74,7 @@ protected: // members
 
     std::string name_;
     std::string type_;
+    std::string alias_;
 
 };
 

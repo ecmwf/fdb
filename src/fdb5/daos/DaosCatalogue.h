@@ -44,6 +44,7 @@ public: // methods
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;
+    const Rule& rule() const override;
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
@@ -68,6 +69,7 @@ protected: // members
 private: // members
 
     Schema schema_;
+    const RuleDatabase* rule_ {nullptr};
 
 };
 

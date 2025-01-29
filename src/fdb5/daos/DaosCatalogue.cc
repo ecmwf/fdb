@@ -83,6 +83,10 @@ const Schema& DaosCatalogue::schema() const {
 
 }
 
+const Rule& DaosCatalogue::rule() const {
+    return *rule_;
+}
+
 void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
@@ -101,6 +105,8 @@ void DaosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
+
+    rule_ = &schema_.matchingRule(dbKey_);
 
 }
 

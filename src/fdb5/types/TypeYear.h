@@ -8,13 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeMonth.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
+/// @file   TypeYear.h
+/// @author Emanuele Danovaro
+/// @date   January 2025
 
-#ifndef fdb5_TypeMonth_H
-#define fdb5_TypeMonth_H
+#ifndef fdb5_TypeYear_H
+#define fdb5_TypeYear_H
 
 #include "fdb5/types/Type.h"
 
@@ -22,13 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeMonth : public Type {
+class TypeYear : public Type {
 
 public: // methods
 
-    TypeMonth(const std::string& name, const std::string& type, const std::string& alias = "month");
+    TypeYear(const std::string &name, const std::string &type, const std::string& alias = "year");
 
-    ~TypeMonth() override;
+    ~TypeYear() override;
 
     std::string toKey(const std::string& value) const override;
 

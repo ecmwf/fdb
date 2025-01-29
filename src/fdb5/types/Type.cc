@@ -16,13 +16,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Type::Type(const std::string &name, const std::string &type) :
-    name_(name),
-    type_(type) {
-}
-
-Type::~Type() {
-}
+Type::Type(const std::string& name, const std::string& type, const std::string& alias) :
+    name_(name), type_(type), alias_(alias) { }
 
 void Type::getValues(const metkit::mars::MarsRequest &request,
                      const std::string &keyword,
@@ -32,7 +27,11 @@ void Type::getValues(const metkit::mars::MarsRequest &request,
     request.getValues(keyword, values, true);
 }
 
-const std::string &Type::type() const {
+const std::string& Type::alias() const {
+    return alias_.empty() ? name_ : alias_;
+}
+
+const std::string& Type::type() const {
     return type_;
 }
 

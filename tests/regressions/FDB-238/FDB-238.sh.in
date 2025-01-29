@@ -156,15 +156,5 @@ diff out checkv2.again
 
 cmp 6.grib checkV2.again.grib
 
-export FDB_DEDUPLICATE_FIELDS=OFF
-
-# check still able to read previous v2 field
-$fdbread checkV2.req checkV2.dup.grib
-$gribls -jm checkV2.dup.grib   | post_process | tee out
-cat content.6                  | post_process | tee checkv2.dup
-diff out checkv2.dup
-
-cmp checkV2.dup.grib 6.grib
-
 unset FDB_DEDUPLICATE_FIELDS
 

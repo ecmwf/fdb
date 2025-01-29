@@ -49,6 +49,7 @@ public:  // methods
     const Key currentIndexKey() override;
     void deselectIndex() override;
     const Schema& schema() const override;
+    const Rule& rule() const override;
 
     std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
@@ -91,6 +92,7 @@ protected:
 private:
 
     Key currentIndexKey_;
+    mutable std::optional<std::reference_wrapper<const RuleDatabase>> rule_;
     mutable std::unique_ptr<Schema> schema_;
 
     std::mutex archiveMutex_;

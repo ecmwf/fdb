@@ -38,6 +38,9 @@ public:  // methods
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
+    
+    void decode(eckit::Stream& stream);
+    void encode(eckit::Stream& out) const override;
 
     const Type& lookupType(const std::string& keyword) const;
 
@@ -53,8 +56,6 @@ public:  // methods
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
-    void encode(eckit::Stream& out) const override;
-    void decode(eckit::Stream& stream);
 
 private:  // methods
 

@@ -129,21 +129,15 @@ void IndexBase::put(const Key& key, const Field& field) {
     add(key, field);
 }
 
-// const TypesRegistry& IndexBase::registry() const {
-//     if (!registry_) {
-//         const auto& rule = catalogue_.schema().matchingRule(catalogue_.key(), key_);
-//         registry_        = std::ref(rule.registry());
-//     }
-//     return registry_.value().get();
-// }
+bool IndexBase::partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const {
 
-bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
+    // rule is the Datum rule (3rd level)
+    // to match the index key, we need to canonicalise the request with the rule at Index level (2nd level) aka rule.parent()
+    auto canonical = rule.parent().registry().canonicalise(request);
+    if (!key_.partialMatch(canonical)) { return false; }
 
-    if (!key_.partialMatch(request)) { return false; }
-
-    if (!axes_.partialMatch(request)) { return false; }
-
-    return true;
+    canonical = rule.registry().canonicalise(request);
+    return axes_.partialMatch(canonical);
 }
 
 bool IndexBase::mayContain(const Key& key) const {

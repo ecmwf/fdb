@@ -56,6 +56,7 @@ public:
 
     virtual std::unique_ptr<Store> buildStore() const = 0;
     virtual const Schema& schema() const = 0;
+    virtual const Rule& rule() const = 0;
 
     virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex() = 0;
@@ -259,7 +260,8 @@ public:
     std::unique_ptr<Store> buildStore() const override { NOTIMP; }
 
     const Schema& schema() const override { NOTIMP; }
-
+    const Rule& rule() const override { NOTIMP; }
+    
     bool selectIndex(const Key& idxKey) override { NOTIMP; }
     void deselectIndex() override { NOTIMP; }
 

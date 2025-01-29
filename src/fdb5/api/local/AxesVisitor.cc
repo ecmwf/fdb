@@ -42,6 +42,10 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
 }
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
+    if (level_>1) {
+        EntryVisitor::visitDatabase(catalogue);
+    }
+    
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
@@ -50,8 +54,9 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
 }
 
 bool AxesVisitor::visitIndex(const Index& index) {
+    EntryVisitor::visitIndex(index);
 
-    if (index.partialMatch(request_)) {
+    if (index.partialMatch(*rule_, request_)) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();

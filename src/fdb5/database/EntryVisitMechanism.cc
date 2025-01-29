@@ -62,7 +62,7 @@ bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
-    rule_ = nullptr;
+    rule_ = &currentCatalogue_->rule();
     return true;
 }
 

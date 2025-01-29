@@ -52,6 +52,7 @@ public:
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
+
         // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
@@ -74,11 +75,16 @@ public:
 
         bool ret = QueryVisitor::visitDatabase(catalogue);
 
-        ASSERT(currentCatalogue_->key().partialMatch(request_));
+        auto dbRequest = catalogue.rule().registry().canonicalise(request_);
+        if (!currentCatalogue_->key().partialMatch(dbRequest)) {
+            return false;
+        }
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : currentCatalogue_->key()) { indexRequest_.unsetValues(kv.first); }
+        for (const auto& [k,v] : currentCatalogue_->key()) {
+            indexRequest_.unsetValues(k);
+        }
 
         if (level_ == 1) {
             queue_.emplace(currentCatalogue_->key(), 0);
@@ -96,15 +102,14 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-        if (index.partialMatch(request_)) {
+        if (index.partialMatch(*rule_, request_)) {
 
             // Subselect the parts of the request
             datumRequest_ = indexRequest_;
 
-            for (const auto& kv : index.key()) { datumRequest_.unsetValues(kv.first); }
-
-            // Take into account any rule-specific behaviour in the request
-            datumRequest_ = rule_->registry().canonicalise(datumRequest_);
+            for (const auto& kv : index.key()) {
+                datumRequest_.unsetValues(kv.first);
+            }
 
             if (level_ == 2) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
@@ -122,9 +127,17 @@ public:
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (datumKey.match(datumRequest_)) {
-            queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                           field.timestamp());
+        // Take into account any rule-specific behaviour in the request
+        auto canonical = rule_->registry().canonicalise(request_);
+
+        if (datumKey.partialMatch(canonical)) {
+            for (const auto& k : datumKey.keys()) {
+                datumRequest_.unsetValues(k);
+            }
+            if (datumRequest_.parameters().size() == 0) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
+                            field.timestamp());
+            }
         }
     }
 

@@ -71,6 +71,11 @@ const Schema& TocCatalogue::schema() const {
     return *schema_;
 }
 
+const Rule& TocCatalogue::rule() const {
+    ASSERT(rule_);
+    return *rule_;
+}
+
 std::vector<PathName> TocCatalogue::metadataPaths() const {
 
     std::vector<PathName> paths(subTocPaths());
@@ -87,6 +92,7 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
+    rule_ = &schema_->matchingRule(dbKey_);
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {

@@ -55,7 +55,7 @@ class RuleGraph {
 
         explicit RuleNode(const std::string& keyword) : keyword_ {keyword} { }
 
-        const std::string& keyword_;
+        std::string keyword_;
 
         eckit::StringList values_;
     };
@@ -88,6 +88,7 @@ public:  // methods
             for (auto& value : values) {
                 if (!value.empty()) { value = type.toKey(value); }
             }
+            keyword = type.alias();
         }
     }
 
@@ -265,6 +266,8 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
+        const auto& type = registry_.lookupType(keyword);
+
 
         const auto& values = pred->values(request);
 
@@ -292,6 +295,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
+        const auto& type = registry_.lookupType(keyword);
 
         // performance optimization to avoid calling values() on visitor
         if (!pred->optional() && request.countValues(keyword) == 0) { return {}; }
@@ -312,7 +316,17 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
 
     graph.canonicalise(registry_);
 
-    return graph.makeKeys();
+    auto out = graph.makeKeys();
+
+    LOG_DEBUG_LIB(LibFdb5) << "findMatchingKeys  " << request << " ==> ";
+    std::string sep;
+    for (const auto& k: out) {
+        LOG_DEBUG_LIB(LibFdb5) << sep << k;
+        sep = " | ";
+    }
+    LOG_DEBUG_LIB(LibFdb5) << std::endl;
+
+    return out;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -410,7 +424,18 @@ const TypesRegistry& Rule::registry() const {
 }
 
 void Rule::print(std::ostream& out) const {
-    out << type() << "[line=" << line_ << "]";
+    out << type() << "[line=" << line_ << ",predicates=[";
+    std::string sep;
+    for (const auto& p : predicates_) {
+        out << sep << *p;
+        sep = ",";
+    }
+    out << "]]";
+}
+
+const Rule& Rule::parent() const {
+    ASSERT(parent_);
+    return *parent_;
 }
 
 bool Rule::isTopRule() const {
@@ -455,7 +480,6 @@ RuleDatum::RuleDatum(eckit::Stream& stream) : Rule() {
     stream >> numRules;
     ASSERT(numRules == 0);
 }
-
 
 void RuleDatum::encode(eckit::Stream& out) const {
     Rule::encode(out);
@@ -535,8 +559,11 @@ void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
         full.pushFrom(key);
 
+        bool idx = visitor.selectIndex(key, full);
         if (visitor.selectIndex(key, full)) {
-            for (const auto& rule : rules_) { rule->expand(request, visitor, full); }
+            for (const auto& rule : rules_) {
+                rule->expand(request, visitor, full);
+            }
         }
 
         full.popFrom(key);

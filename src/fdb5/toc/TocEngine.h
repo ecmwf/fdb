@@ -20,6 +20,8 @@
 
 namespace fdb5 {
 
+class Rule;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocEngine : public fdb5::Engine {
@@ -29,7 +31,7 @@ public: // methods
     static const char* typeName() { return "toc"; }
 
 private:  // methods
-    std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
+    std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys, const std::vector<eckit::PathName>& dirs,
                                         const Config& config) const;
 
     std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;

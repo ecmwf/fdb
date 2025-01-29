@@ -97,8 +97,9 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
         const std::vector<std::string>& srcVals = param.values();
         std::vector<std::string>        vals;
         vals.reserve(srcVals.size());
-        for (const auto& v : srcVals) { vals.push_back(lookupType(param.name()).toKey(v)); }
-        result.values(param.name(), vals);
+        const Type& type = lookupType(param.name());
+        for (const auto& v : srcVals) { vals.push_back(type.toKey(v)); }
+        result.values(type.alias(), vals);
     }
 
     return result;

@@ -49,10 +49,8 @@ public:  // types
     using Predicates = std::vector<std::unique_ptr<Predicate>>;
 
 public:  // methods
+    
     Rule(std::size_t line, Predicates& predicates, const eckit::StringDict& types);
-
-    explicit Rule(eckit::Stream& stream);
-
 
     virtual const char* type() const = 0;
 
@@ -114,8 +112,9 @@ protected:  // members
 
     TypesRegistry registry_;
 
-    // streamable
+private:  // members
 
+    // streamable
     static eckit::ClassSpec classSpec_;
 };
 
@@ -183,7 +182,6 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 private:  // methods
-
     void dumpChildren(std::ostream& out) const override {
         for (const auto& rule : rules_) { rule->dump(out); }
     }

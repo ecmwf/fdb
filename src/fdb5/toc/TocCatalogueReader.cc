@@ -58,8 +58,7 @@ bool TocCatalogueReader::selectIndex(const Key& idxKey) {
         if (pair.first.key() == idxKey) { matching_.emplace_back(&pair); }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found "
-                                << matching_.size() << " matche(s)" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << ", found " << matching_.size() << " matche(s)" << std::endl;
 
     return !matching_.empty();
 }
@@ -101,7 +100,7 @@ void TocCatalogueReader::close() {
 }
 
 bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
-    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << "  " << key.names() << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 
     const MatchList* matching = nullptr;
@@ -111,10 +110,8 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
         Key tmpKey = key;
         tmpKey.unset(name);
 
-        // if (std::map<Key, MatchList>::const_iterator iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
         if (const auto& iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
             matching = &(iter->second);
-            break;
         }
 
         // make refined list
