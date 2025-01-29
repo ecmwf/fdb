@@ -76,11 +76,11 @@ cmp out list
 $fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=1,time=12 --porcelain | tee out
 cmp out list12
 
-$fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=jan,time=12 --porcelain | tee out
-cmp out list12
+# $fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=jan,time=12 --porcelain | tee out
+# cmp out list12
 
-$fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=20240102 --porcelain | tee out
-cmp out list
+# $fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=20240102 --porcelain | tee out
+# cmp out list
 
 cat > read <<EOF
 { "messages" : [

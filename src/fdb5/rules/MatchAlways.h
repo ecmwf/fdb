@@ -16,6 +16,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <string>
 
 #include "fdb5/rules/Matcher.h"
 
@@ -26,13 +27,12 @@ namespace fdb5 {
 class MatchAlways : public Matcher {
 
 public: // methods
+    MatchAlways() = default;
 
-    MatchAlways();
     MatchAlways(eckit::Stream& s);
+    bool match(const std::string& /*keyword*/, const Key& /*key*/) const override { return true; }
 
-    ~MatchAlways() override;
-
-    bool match(const std::string& keyword, const Key& key) const override;
+    bool match(const std::string& /*value*/) const override { return true; }
 
     void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 

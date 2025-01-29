@@ -22,16 +22,13 @@
 #include "fdb5/database/Catalogue.h"
 #include "eckit/types/Types.h"
 
-namespace metkit {
-namespace mars {
-    class MarsRequest;
-}
+namespace metkit::mars {
+class MarsRequest;
 }
 
 namespace fdb5 {
 
 class Key;
-class TypedKey;
 class TypesRegistry;
 class Store;
 class Schema;
@@ -46,9 +43,9 @@ public: // methods
 
     virtual ~ReadVisitor() {}
 
-    virtual bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) = 0;
-    virtual bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) = 0;
-    virtual bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) = 0;
+    virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
+    virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
+    virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;

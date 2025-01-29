@@ -38,7 +38,7 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
                           const CatalogueReader* cat) const {
     ASSERT(cat);
 
-    eckit::StringSet ax;
+    eckit::DenseSet<std::string> ax;
 
     cat->axis(keyword, ax);
 

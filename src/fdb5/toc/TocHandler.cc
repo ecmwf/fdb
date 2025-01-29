@@ -190,12 +190,15 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
             }
 
             for (const auto& kv : parentKey) {
-                auto it = key.find(kv.first);
-                if (it == key.end()) {
+                const auto [it, found] = key.find(kv.first);
+
+                if (!found) {
                     std::stringstream ss;
                     ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                     throw UserError(ss.str(), Here());
-                } else if (kv.second != it->second) {
+                }
+
+                if (kv.second != it->second) {
                     remapKey_.set(kv.first, kv.second);
                 }
             }

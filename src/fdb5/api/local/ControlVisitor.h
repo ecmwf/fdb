@@ -39,6 +39,7 @@ public:
 
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index&) override { NOTIMP; }
+    
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
 private: // members

@@ -44,9 +44,9 @@ public: // method
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int depth) override;
 
-    AxesIterator axesIterator(const FDBToolRequest& request, int level=3) override;
+    AxesIterator axesIterator(const FDBToolRequest& request, int depth = 3) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 

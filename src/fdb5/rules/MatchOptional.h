@@ -25,14 +25,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchOptional : public Matcher{
+class MatchOptional : public Matcher {
 
 public: // methods
+    MatchOptional(std::string def);
 
-    MatchOptional(const std::string &def);
     MatchOptional(eckit::Stream& s);
 
-    ~MatchOptional() override;
+    bool match(const std::string& value) const override;
 
     bool match(const std::string& keyword, const Key& key) const override;
 
@@ -48,9 +48,9 @@ private: // methods
     bool optional() const override;
     const std::string& value(const Key&, const std::string& keyword) const override;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    void print( std::ostream& out ) const override;
+    void print(std::ostream& out) const override;
     const std::string& defaultValue() const override;
-    void fill(BaseKey& key, const std::string& keyword, const std::string& value) const override;
+    void fill(Key& key, const std::string& keyword, const std::string& value) const override;
 
 private: // members
 

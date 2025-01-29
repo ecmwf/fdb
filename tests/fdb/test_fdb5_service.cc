@@ -18,9 +18,7 @@
 #include <fcntl.h>
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/MultiHandle.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
@@ -28,8 +26,8 @@
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/io/AutoCloser.h"
 
-#include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/database/Key.h"
@@ -308,7 +306,7 @@ CASE ( "test_fdb_service" ) {
                 fdb5::ListElement el;
                 EXPECT(iter.next(el));
 
-                eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
                 DIR* dirp = ::opendir(path.asString().c_str());
                 struct dirent* dp;
@@ -492,7 +490,7 @@ CASE ( "test_fdb_service_subtoc" ) {
                 fdb5::ListElement el;
                 EXPECT(iter.next(el));
 
-                eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
                 DIR* dirp = ::opendir(path.asString().c_str());
                 struct dirent* dp;

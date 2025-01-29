@@ -36,7 +36,7 @@ std::unique_ptr<Store> CatalogueImpl::buildStore() const {
 
 void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
 
-    std::vector<Index> all = indexes(sorted);
+    auto all = indexes(sorted);  // Deferred reading indexes.
 
     // It is likely that many indexes in the same database share resources/files/etc.
     // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)

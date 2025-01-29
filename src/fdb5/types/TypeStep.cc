@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/container/DenseSet.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -17,6 +18,7 @@
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeStep.h"
 #include "fdb5/database/Catalogue.h"
+#include <string>
 
 using metkit::mars::StepRange;
 using metkit::mars::StepRangeNormalise;
@@ -71,7 +73,7 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
 
         // Get the axis
 
-        eckit::StringSet ax;
+        eckit::DenseSet<std::string> ax;
         cat->axis("step", ax);
 
         std::vector<StepRange> axis;

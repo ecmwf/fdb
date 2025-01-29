@@ -6,10 +6,11 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/RemoteFDB.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Inspector.h"
-#include "fdb5/LibFdb5.h"
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
@@ -36,6 +37,8 @@ using StatsHelper = BaseAPIHelper<fdb5::StatsElement, fdb5::remote::Message::Sta
 
 struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List> {
 
+    ListHelper(const int depth) : depth_(depth) { }
+
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
@@ -48,11 +51,16 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
             std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
-            return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+            return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
         }
         std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
-        return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+        return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
+
+    void encodeExtra(eckit::Stream& s) const { s << depth_; }
+
+private:
+    int depth_ {3};
 };
 
 struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes> {
@@ -78,10 +86,10 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
             std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
-            return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+            return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
         }
         std::shared_ptr<const fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
-        return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+        return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 };
 
@@ -124,7 +132,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 
     std::vector<std::string> stores;
     std::vector<std::string> fieldLocationEndpoints;
-    
+
     for (size_t i=0; i<numStores; i++) {
         std::string store;
         s >> store;
@@ -225,12 +233,12 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         );
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
-    return forwardApiCall(ListHelper(), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const int depth) {
+    return forwardApiCall(ListHelper(depth), request);
 }
 
-AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, int level) {
-    return forwardApiCall(AxesHelper(level), request);
+AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const int depth) {
+    return forwardApiCall(AxesHelper(depth), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
@@ -247,7 +255,7 @@ void RemoteFDB::print(std::ostream& s) const {
 
 // Client
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
-    
+
     switch (message) {
         case fdb5::remote::Message::Complete: {
 

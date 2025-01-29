@@ -137,12 +137,10 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
     return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
-ListIterator SelectFDB::list(const FDBToolRequest& request) {
+ListIterator SelectFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::list() >> " << request << std::endl;
     return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
-                         });
+                         [level](FDB& fdb, const FDBToolRequest& request) { return fdb.list(request, false, level); });
 }
 
 DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
@@ -217,20 +215,13 @@ void SelectFDB::print(std::ostream &s) const {
 }
 
 bool SelectFDB::matches(const Key& key, const SelectMap &select, bool requireMissing) const {
+    for (const auto& [keyword, regex] : select) {
+        const auto [iter, found] = key.find(keyword);
 
-    for (const auto& kv : select) {
+        if (!found && requireMissing) { return false; }
 
-        const std::string& k(kv.first);
-        const eckit::Regex& re(kv.second);
-
-        eckit::StringDict::const_iterator i = key.find(k);
-        if (i == key.end()) {
-            if (requireMissing) return false;
-        } else if (!re.match(i->second)) {
-            return false;
-        }
+        if (!regex.match(iter->second)) { return false; }
     }
-
     return true;
 }
 

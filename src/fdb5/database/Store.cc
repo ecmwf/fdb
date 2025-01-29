@@ -28,11 +28,11 @@ void Store::archive(const Key& key, const void *data, eckit::Length length, std:
     catalogue_archive(archive(key, data, length));
 }
 
-std::unique_ptr<const FieldLocation> Store::archive(const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const void* /*data*/, eckit::Length /*length*/) {
     NOTIMP;
 }
 
-bool Store::canMoveTo(const Key&, const Config&, const eckit::URI& dest) const {
+bool Store::canMoveTo(const Key& /*key*/, const Config& /*config*/, const eckit::URI& /*dest*/) const {
     std::stringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
     throw eckit::UserError(ss.str(), Here());

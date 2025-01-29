@@ -17,6 +17,7 @@
 
 #include <iosfwd>
 #include <set>
+#include <string>
 
 #include "fdb5/rules/Matcher.h"
 
@@ -31,7 +32,7 @@ public: // methods
     MatchAny(const std::set<std::string> &values);
     MatchAny(eckit::Stream& s);
 
-    ~MatchAny() override;
+    bool match(const std::string& value) const override;
 
     bool match(const std::string& keyword, const Key& key) const override;
 

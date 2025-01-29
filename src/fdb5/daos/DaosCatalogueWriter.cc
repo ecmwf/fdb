@@ -83,19 +83,19 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& con
         int db_key_max_len = 512;  // @todo: take from config
         if (hs.bytesWritten() > db_key_max_len)
             throw eckit::Exception("Serialised db key exceeded configured maximum db key length.");
-        
-        fdb5::DaosKeyValue{s, catalogue_kv_name}.put("key", h.data(), hs.bytesWritten());   
+
+        fdb5::DaosKeyValue{s, catalogue_kv_name}.put("key", h.data(), hs.bytesWritten());
 
         /// index newly created catalogue kv in main kv
         int db_loc_max_len = 512;  // @todo: take from config
         std::string nstr = catalogue_kv_name.URI().asString();
-        if (nstr.length() > db_loc_max_len) 
+        if (nstr.length() > db_loc_max_len)
             throw eckit::Exception("Serialised db location exceeded configured maximum db location length.");
 
         main_kv.put(db_cont_, nstr.data(), nstr.length());
 
     }
-    
+
     /// @todo: record or read dbUID
 
     /// @note: performed RPCs:
@@ -159,7 +159,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
         } catch (fdb5::DaosEntityNotFoundException& e) {
 
             firstIndexWrite_ = true;
- 
+
             indexes_[idxKey] = Index(
                 new fdb5::DaosIndex(
                     idxKey,
@@ -251,9 +251,8 @@ void DaosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, std::s
 
     for (Key::const_iterator i = datumKey.begin(); i != datumKey.end(); ++i) {
 
-        const std::string &keyword = i->first;
-
-        std::string value = datumKey.canonicalValue(keyword);
+        const std::string& keyword = i->first;
+        const std::string& value = i->second;
 
         if (value.length() == 0) continue;
 

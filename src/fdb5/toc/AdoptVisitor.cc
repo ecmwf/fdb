@@ -30,14 +30,14 @@ AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const Pa
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) {
-    checkMissingKeys(fullComputedKey);
+bool AdoptVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
+    checkMissingKeys(fullKey);
 
     CatalogueWriter* cat = catalogue();
     ASSERT(cat);
 
     if (cat->type() == TocEngine::typeName()) {
-        cat->index(datumKey.canonical(), eckit::URI("file", path_), offset_, length_);
+        cat->index(datumKey, eckit::URI("file", path_), offset_, length_);
         return true;
     }
     return false;

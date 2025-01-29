@@ -25,39 +25,39 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchValue : public Matcher{
+class MatchValue : public Matcher {
 
-public: // methods
+public:  // methods
+    MatchValue(std::string value);
 
-    MatchValue(const std::string &value);
-    MatchValue(eckit::Stream& s);
+    MatchValue(eckit::Stream& stream);
 
-    ~MatchValue() override;
+    bool match(const std::string& value) const override;
 
-    bool match(const std::string &keyword, const Key& key) const override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& out, const std::string& keyword, const TypesRegistry& registry) const override;
 
+    // streamable
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
+private:  // methods
+    void encode(eckit::Stream& out) const override;
 
-    void encode(eckit::Stream&) const override;
+    void print(std::ostream& out) const override;
 
-    void print( std::ostream &out ) const override;
-
-private: // members
-
-    static eckit::ClassSpec classSpec_;
-    static eckit::Reanimator<MatchValue> reanimator_;
-
+private:  // members
     std::string value_;
 
+    // streamable
+
+    static eckit::ClassSpec              classSpec_;
+    static eckit::Reanimator<MatchValue> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -156,11 +156,10 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         ~ConsolidateIndexVisitor() override {}
     private:
         void visitDatum(const Field& field, const Key& datumKey) override {
-            // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
+            /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(datumKey, location.uri(), location.offset(), location.length());
-
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
             EntryVisitor::visitDatum(field, keyFingerprint);
@@ -256,8 +255,8 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
     for (const auto& kv : TocCatalogue::dbKey_) {
 
-        auto it = otherKey.find(kv.first);
-        if (it == otherKey.end()) {
+        const auto [it, found] = otherKey.find(kv.first);
+        if (!found) {
             std::stringstream ss;
             ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());

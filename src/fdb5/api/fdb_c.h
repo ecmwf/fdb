@@ -50,7 +50,7 @@ int fdb_version(const char** version);
  * \param version Return variable for version control checksum. Returned pointer valid throughout program lifetime.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_vcs_version(const char** version);
+int fdb_vcs_version(const char** sha1);
 
 ///@}
 
@@ -351,7 +351,7 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
  * \param duplicates Boolean flag used to specify if duplicated ListElements are to be reported or not.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates, int depth);
 
 /** Return all available data whose metadata matches a given user request.
  * \param fdb FDB instance.

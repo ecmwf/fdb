@@ -14,10 +14,16 @@
 
 #pragma once
 
+#include <iosfwd>
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
-#include "eckit/types/Types.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
@@ -25,13 +31,12 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
-#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -42,9 +47,8 @@ typedef std::map<Key, Index> IndexStore;
 
 class Catalogue {
 public:
-
-    Catalogue() {}
-    virtual ~Catalogue() {}
+    Catalogue() = default;
+    virtual ~Catalogue() = default;
 
     virtual const Key& key() const = 0;
     virtual const Key& indexKey() const = 0;
@@ -108,7 +112,7 @@ public:
     CatalogueImpl(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
         : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
-    virtual ~CatalogueImpl() {}
+    ~CatalogueImpl() override {}
 
     const Key& key() const override { return dbKey_; }
     const Key& indexKey() const override { NOTIMP; }
@@ -135,13 +139,11 @@ protected: // members
 class CatalogueReader : virtual public Catalogue {
 
 public:
-
-    CatalogueReader() {}
-    
-    virtual ~CatalogueReader() {}
+    ~CatalogueReader() override {}
 
     virtual DbStats stats() const = 0;
-    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const { NOTIMP; }
+
+    virtual bool axis(const std::string& /*keyword*/, eckit::DenseSet<std::string>& /*string*/) const { NOTIMP; }
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
@@ -149,9 +151,7 @@ public:
 class CatalogueWriter : virtual public Catalogue  {
 
 public:
-
-    CatalogueWriter() {}
-    virtual ~CatalogueWriter() {}
+    ~CatalogueWriter() override {}
 
     virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();

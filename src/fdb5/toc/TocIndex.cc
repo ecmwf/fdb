@@ -8,14 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/BigNum.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
 
@@ -47,26 +45,34 @@ public:
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
-TocIndex::TocIndex(const Key& key, const Catalogue& catalogue, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
-    UriStoreWrapper(path.dirName()),
-    IndexBase(key, type, catalogue),
-    btree_(nullptr),
-    dirty_(false),
-    mode_(mode),
-    location_(path, offset),
-    preloadBTree_(false) {
-}
+TocIndex::TocIndex(const Key&             key,
+                   const Catalogue&       catalogue,
+                   const eckit::PathName& path,
+                   off_t                  offset,
+                   Mode                   mode,
+                   const std::string&     type)
+    : UriStoreWrapper(path.dirName()),
+      IndexBase(key, type),
+      btree_(nullptr),
+      dirty_(false),
+      mode_(mode),
+      location_(path, offset),
+      preloadBTree_(false) { }
 
-TocIndex::TocIndex(eckit::Stream &s, const Catalogue& catalogue, const int version, const eckit::PathName &directory, const eckit::PathName &path,
-                   off_t offset, bool preloadBTree):
-    UriStoreWrapper(directory, s),
-    IndexBase(s, version, catalogue),
-    btree_(nullptr),
-    dirty_(false),
-    mode_(TocIndex::READ),
-    location_(path, offset),
-    preloadBTree_(preloadBTree) {
-}
+TocIndex::TocIndex(eckit::Stream&         s,
+                   const Catalogue&       catalogue,
+                   const int              version,
+                   const eckit::PathName& directory,
+                   const eckit::PathName& path,
+                   off_t                  offset,
+                   bool                   preloadBTree)
+    : UriStoreWrapper(directory, s),
+      IndexBase(s, version),
+      btree_(nullptr),
+      dirty_(false),
+      mode_(TocIndex::READ),
+      location_(path, offset),
+      preloadBTree_(preloadBTree) { }
 
 TocIndex::~TocIndex() {
     close();
@@ -200,7 +206,7 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::URI> TocIndex::dataURIs() const {
+std::vector<eckit::URI> TocIndex::dataURIs() const {
     return uris_.paths();
 }
 

@@ -15,7 +15,6 @@
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -34,7 +33,6 @@
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
@@ -83,9 +81,9 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     return QueryIterator(new AsyncIterator(async_worker));
 }
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request);
+    return queryInternal<ListVisitor>(request, level);
 }
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
@@ -127,7 +125,7 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
 
 AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axesIterator() : " << request << std::endl;
-    return queryInternal<AxesVisitor>(request, config_, level);
+    return queryInternal<AxesVisitor>(request, level);
 }
 
 void LocalFDB::flush() {

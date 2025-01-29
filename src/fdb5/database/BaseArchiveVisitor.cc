@@ -25,7 +25,7 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldK
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) {
+bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     LOG_DEBUG_LIB(LibFdb5) << "BaseArchiveVisitor::selectDatabase " << dbKey << std::endl;
     owner_.selectDatabase(dbKey);
     catalogue()->deselectIndex();
@@ -33,14 +33,12 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const TypedKey& fullCo
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) {
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key&) {
     return catalogue()->selectIndex(idxKey);
 }
 
-void BaseArchiveVisitor::checkMissingKeys(const TypedKey& fullComputedKey) {
-    if (checkMissingKeysOnWrite_) {
-        fullComputedKey.validateKeys(initialFieldKey_);
-    }
+void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {
+    if (checkMissingKeysOnWrite_) { fullKey.validateKeys(initialFieldKey_); }
 }
 
 const Schema& BaseArchiveVisitor::databaseSchema() const {

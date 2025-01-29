@@ -44,11 +44,11 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 
     eckit::StdDir d(path.c_str());
 
-    // Once readdir_r finally gets deprecated and removed, we may need to 
+    // Once readdir_r finally gets deprecated and removed, we may need to
     // protecting readdir() as not yet guarranteed thread-safe by POSIX
     // technically it should only be needed on a per-directory basis
     // this should be a resursive mutex
-    // AutoLock<Mutex> lock(mutex_); 
+    // AutoLock<Mutex> lock(mutex_);
 
     for(;;)
     {
@@ -115,13 +115,13 @@ bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const
 static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
-    schema.matchFirstLevel(key, keys, missing);
+    schema.matchDatabase(key, keys, missing);
 }
 
 static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
-    schema.matchFirstLevel(rq, keys, missing);
+    schema.matchDatabase(rq, keys, missing);
 }
 
 static constexpr const char* regexForMissingValues = "[^:/]*";
@@ -221,6 +221,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     std::vector<eckit::URI> result;
     for (eckit::PathName path : databasesMatchRegex) {
         try {
+            /// @todo we don't have to open tocs to check if they match the request
             if (path.exists()) {
                 if (!path.isDir())
                     path = path.dirName();

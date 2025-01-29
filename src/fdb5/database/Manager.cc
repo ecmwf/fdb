@@ -223,7 +223,7 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
 
             // Match all possible expansions of the first level according to the schema
             std::set<Key> keys;
-            config_.schema().matchFirstLevel(rq, keys, "");
+            config_.schema().matchDatabase(rq, keys, "");
 
             std::set<std::string> expandedKeys;
             for (auto k = keys.begin(); k != keys.end(); ++k) {
@@ -273,7 +273,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
 
     std::set<std::string> engines = Manager::engines(rq, all);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << " -> " << engines << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << (all ? " ALL" : "") << " -> " << engines << std::endl;
 
     std::vector<URI> r; // union of all locations
 
