@@ -197,6 +197,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     // Add masking entries for all the indexes and subtocs visited so far
 
     Buffer buf(sizeof(TocRecord) * (subtocs.size() + maskable_indexes));
+    buf.zero();
     size_t combinedSize = 0;
 
     for (size_t i = 0; i < readIndexes.size(); i++) {
@@ -204,14 +205,14 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         if (!indexInSubtoc[i]) {
             Index& idx(readIndexes[i]);
             TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-            combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
+            combinedSize += recordSizes(*r, buildClearRecord(*r, idx)).second;
             Log::info() << "Masking index: " << idx.location().uri() << std::endl;
         }
     }
 
     for (const std::string& subtoc_path : subtocs) {
         TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r, subtoc_path));
+        combinedSize += recordSizes(*r, buildSubTocMaskRecord(*r, subtoc_path)).second;
         Log::info() << "Masking sub-toc: " << subtoc_path << std::endl;
     }
 
@@ -383,6 +384,7 @@ void TocCatalogueWriter::compactSubTocIndexes() {
     // subtoc, written by this process. Then we append a masking entry.
 
     Buffer buf(sizeof(TocRecord) * (fullIndexes_.size() + 1));
+    buf.zero();
     size_t combinedSize = 0;
 
     // n.b. we only need to compact the subtocs if we are actually writing something...
@@ -398,14 +400,14 @@ void TocCatalogueWriter::compactSubTocIndexes() {
 
                 idx.flush();
                 TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_INDEX);
-                combinedSize += roundRecord(*r, buildIndexRecord(*r, idx));
+                combinedSize += recordSizes(*r, buildIndexRecord(*r, idx)).second;
             }
         }
 
         // And add the masking record for the subtoc
 
         TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r));
+        combinedSize += recordSizes(*r, buildSubTocMaskRecord(*r)).second;
 
         // Write all of these  records to the toc in one go.
 

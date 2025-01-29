@@ -19,8 +19,8 @@
 
 #include <future>
 #include <mutex>
-#include <unordered_map>
 
+#include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/net/TCPServer.h"
@@ -66,7 +66,7 @@ struct readLocationElem {
     std::unique_ptr<eckit::DataHandle> readLocation;
 
     readLocationElem() : clientID(0), requestID(0), readLocation(nullptr) {}
-    
+
     readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation) :
         clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
 };
@@ -105,14 +105,15 @@ protected:
     // socket methods
     int selectDataPort();
     eckit::LocalConfiguration availableFunctionality() const;
-    
+
     // Worker functionality
     void tidyWorkers();
     void waitForWorkers();
 
     // archival thread
     size_t archiveThreadLoop();
-    virtual void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) = 0;
+
+    virtual void archiveBlob(uint32_t clientID, uint32_t requestID, const void* data, size_t length) = 0;
 
     // archival helper methods
     void archiver();
@@ -124,8 +125,9 @@ private:
 
     void listeningThreadLoopData();
 
-    eckit::net::TCPSocket& controlSocket() override { return controlSocket_; }
-    eckit::net::TCPSocket& dataSocket() override { 
+    const eckit::net::TCPSocket& controlSocket() const override { return controlSocket_; }
+
+    const eckit::net::TCPSocket& dataSocket() const override {
         ASSERT(dataSocket_);
         return *dataSocket_;
     }
@@ -143,7 +145,7 @@ protected:
     eckit::LocalConfiguration agreedConf_;
     std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
-    
+
     std::map<uint32_t, std::future<void>> workerThreads_;
     eckit::Queue<ArchiveElem> archiveQueue_;
     std::future<size_t> archiveFuture_;
@@ -151,8 +153,8 @@ protected:
     eckit::net::TCPSocket controlSocket_;
 
     std::mutex handlerMutex_;
-    size_t numControlConnection_;
-    size_t numDataConnection_;
+    size_t     numControlConnection_ {0};
+    size_t     numDataConnection_ {0};
 
 private:
 
@@ -160,7 +162,8 @@ private:
 
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;
-    size_t dataListener_;
+
+    size_t numDataListener_ {0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

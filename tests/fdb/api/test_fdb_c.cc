@@ -93,6 +93,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->openForRead();
     dh->read(buf1, length);
     dh->close();
+    delete dh;
 
     EXPECT(FDB_SUCCESS == fdb_archive(fdb, key, buf1, length));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
@@ -152,6 +153,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->openForRead();
     dh->read(buf2, length);
     dh->close();
+    delete dh;
 
     EXPECT(FDB_SUCCESS == fdb_archive(fdb, key, buf2, length));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
@@ -217,9 +219,12 @@ CASE( "fdb_c - archive & list" ) {
     dh->openForRead();
     dh->read(buf3, length);
     dh->close();
+    delete dh;
 
+    fdb_delete_request(request);
+    fdb_delete_key(key);
+    fdb_delete_handle(fdb);
 }
-
 
 #if fdb5_HAVE_GRIB
 CASE( "fdb_c - multiple archive & list" ) {
@@ -253,11 +258,13 @@ CASE( "fdb_c - multiple archive & list" ) {
     dh->openForRead();
     dh->read(buf, length1);
     dh->close();
+    delete dh;
 
     dh = grib2.fileHandle();
     dh->openForRead();
     dh->read(buf+length1, length2);
     dh->close();
+    delete dh;
 
     fdb_request_t* req;
     fdb_new_request(&req);
@@ -294,6 +301,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     dh->openForRead();
     dh->read(buf+length1+length2, length3);
     dh->close();
+    delete dh;
 
     const char* expvers[] = {"xxxx", "xxxy"};
     fdb_request_add(req, "expver", expvers, 2);
@@ -306,6 +314,7 @@ CASE( "fdb_c - multiple archive & list" ) {
 
     EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, nullptr, buf, length1+length2+length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+    fdb_delete_request(req);
 
     fdb_request_t* request;
     fdb_new_request(&request);
@@ -357,6 +366,9 @@ CASE( "fdb_c - multiple archive & list" ) {
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
+
+    fdb_delete_request(request);
+    fdb_delete_handle(fdb);
 }
 
 CASE("fdb_c - list depth=1,2,3") {
@@ -459,7 +471,11 @@ CASE( "fdb_c - retrieve bad request" ) {
     fdb_new_datareader(&dr);
 //  thrown by deduplication (now deactivted)
 //    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
+    fdb_delete_datareader(dr);
+    fdb_delete_request(request);
+    fdb_delete_handle(fdb);
 }
+
 
 CASE( "fdb_c - retrieve" ) {
 
@@ -522,9 +538,10 @@ CASE( "fdb_c - retrieve" ) {
     fdb_datareader_read(dr, grib, 6, &read);
     EXPECT_EQUAL(4, read);
     fdb_delete_datareader(dr);
+    fdb_delete_request(request);
+    fdb_delete_handle(fdb);
 
 }
-
 
 CASE( "fdb_c - expand" ) {
 
@@ -562,9 +579,9 @@ CASE( "fdb_c - expand" ) {
     EXPECT_EQUAL(numValues, 2);
     EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
     EXPECT_EQUAL(0, strncmp(values[1], "20191111", 8));
-    delete values[0];
-    delete values[1];
-    delete values;
+    delete [] values[0];
+    delete [] values[1];
+    delete [] values;
 
     EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
     fdb_datareader_open(dr, &size);
@@ -596,9 +613,9 @@ CASE( "fdb_c - expand" ) {
     EXPECT_EQUAL(0, strncmp(values[3], "by", 2));
     EXPECT_EQUAL(0, strncmp(values[4], "2", 1));
     for (size_t i = 0; i<numValues; i++) {
-        delete values[i];
+        delete [] values[i];
     }
-    delete values;
+    delete [] values;
 
     EXPECT(fdb_expand_request(request) == FDB_SUCCESS);
 
@@ -608,9 +625,12 @@ CASE( "fdb_c - expand" ) {
     EXPECT_EQUAL(0, strncmp(values[1], "20191112", 8));
     EXPECT_EQUAL(0, strncmp(values[2], "20191114", 8));
     for (size_t i = 0; i<numValues; i++) {
-        delete values[i];
+        delete [] values[i];
     }
-    delete values;
+    delete [] values;
+    
+    fdb_delete_request(request);
+    fdb_delete_handle(fdb);
 }
 
 
