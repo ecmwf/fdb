@@ -72,7 +72,12 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
         throw eckit::UserError("fdbs not specified for select FDB", Here());
     }
 
-    for (const auto& c : config.getSubConfigs("fdbs")) {
+    std::string schema = config.getString("schema", "");
+    for (auto& c : config.getSubConfigs("fdbs")) {
+        // inherit default schema from the SelectFDB
+        if (!schema.empty() && !c.has("schema")) {
+            c.set("schema", schema);
+        }
         subFdbs_.emplace_back(std::make_pair(parseFDBSelect(c), FDB(c)));
     }
 }

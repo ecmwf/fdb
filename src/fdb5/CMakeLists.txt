@@ -162,6 +162,8 @@ list( APPEND fdb5_srcs
     rules/Matcher.h
     rules/MatchHidden.cc
     rules/MatchHidden.h
+    rules/MatchNone.cc
+    rules/MatchNone.h
     rules/MatchOptional.cc
     rules/MatchOptional.h
     rules/MatchValue.cc
