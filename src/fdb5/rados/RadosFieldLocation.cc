@@ -20,8 +20,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//RadosFieldLocation::RadosFieldLocation() {}
-
 RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length ) :
         FieldLocation(eckit::URI("rados", path), offset, length) {}
 
@@ -34,9 +32,6 @@ RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri, eckit::Offset offs
 
 RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
     FieldLocation(rhs.uri_) {}
-
-RadosFieldLocation::RadosFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}

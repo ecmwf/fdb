@@ -222,12 +222,12 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
         } else {
 
             // Match all possible expansions of the first level according to the schema
-            std::set<Key> keys;
-            config_.schema().matchFirstLevel(rq, keys, "");
+            std::map<Key, const Rule*> keys;
+            config_.schema().matchDatabase(rq, keys, "");
 
             std::set<std::string> expandedKeys;
-            for (auto k = keys.begin(); k != keys.end(); ++k) {
-                expandedKeys.insert(k->valuesToString());
+            for (const auto& [k,r] : keys) {
+                expandedKeys.insert(k.valuesToString());
             }
 
             for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) {
@@ -269,18 +269,11 @@ std::string Manager::engine(const URI& uri)
     throw eckit::BadParameter(oss.str(), Here());
 }
 
-eckit::URI Manager::location(const Key& key) {
-
-    const std::string& name = Manager::engine(key);
-
-    return Engine::backend(name).location(key, config_);
-}
-
 std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequest& rq, bool all) {
 
     std::set<std::string> engines = Manager::engines(rq, all);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << " -> " << engines << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for request " << rq << (all ? " ALL" : "") << " -> " << engines << std::endl;
 
     std::vector<URI> r; // union of all locations
 
@@ -298,23 +291,6 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
 
     return r;
 
-}
-
-std::vector<eckit::URI> Manager::writableLocations(const Key& key) {
-
-    std::set<std::string> engines = Manager::engines(key);
-
-    LOG_DEBUG_LIB(LibFdb5) << "Matching engines for key " << key << " -> " << engines << std::endl;
-
-    std::vector<URI> r; // union of all locations
-
-    for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        LOG_DEBUG_LIB(LibFdb5) << "Selected FDB engine " << *i << std::endl;
-        std::vector<URI> p = Engine::backend(*i).writableLocations(key, config_);
-        r.insert(r.end(), p.begin(), p.end());
-    }
-
-    return r;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

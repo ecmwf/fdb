@@ -25,8 +25,6 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/URI.h"
 
-#include "fdb5/database/DB.h"
-
 
 namespace fdb5 {
 
@@ -58,9 +56,6 @@ public: // methods
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const = 0;
-
-    /// Lists the roots where a DB key would be able to be written
-    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Engine& x);
 

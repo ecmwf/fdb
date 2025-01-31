@@ -25,7 +25,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
@@ -39,13 +39,17 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 
-namespace eckit {
-namespace message {
-class Message;
-}
-}  // namespace eckit
+namespace eckit::message {
 
-namespace metkit { class MarsRequest; }
+class Message;
+
+}  // namespace eckit::message
+
+namespace metkit {
+
+class MarsRequest;
+
+} // namespace metkit
 
 namespace fdb5 {
 
@@ -56,7 +60,7 @@ class FDBToolRequest;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable {
+class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
 
 public: // methods
 
@@ -71,7 +75,7 @@ public: // methods
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
 
-    virtual ListIterator list(const FDBToolRequest& request) = 0;
+    virtual ListIterator list(const FDBToolRequest& request, int level) = 0;
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
 
@@ -89,9 +93,7 @@ public: // methods
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) { NOTIMP; }
-
-    void registerArchiveCallback(ArchiveCallback callback) {callback_ = callback;}
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
 
     // -------------- API management ----------------------------
 
@@ -129,7 +131,6 @@ protected: // members
 
     bool disabled_;
 
-    ArchiveCallback callback_ = CALLBACK_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

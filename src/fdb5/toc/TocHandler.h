@@ -16,6 +16,7 @@
 
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -26,7 +27,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
@@ -103,9 +104,6 @@ public: // typedefs
     typedef std::vector< eckit::LocalPathName > TocPaths;
 
 public: // methods
-
-    TocHandler( const Key& key, const Config& config);
-
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
@@ -196,9 +194,10 @@ protected: // methods
 
     // Given the payload size, returns the record size
 
-    static size_t roundRecord(TocRecord &r, size_t payloadSize);
+    static std::pair<size_t, size_t> recordSizes(TocRecord &r, size_t payloadSize);
 
     void appendBlock(const void* data, size_t size);
+    void appendBlock(TocRecord &r, size_t payloadSize);
 
     const TocSerialisationVersion& serialisationVersion() const;
 
@@ -211,6 +210,9 @@ private: // methods
     void openForRead() const;
 
     void close() const;
+
+    void appendRaw(const void* data, size_t size);
+    void appendRound(TocRecord &r, size_t payloadSize);
 
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
@@ -272,6 +274,8 @@ private: // members
     mutable bool enumeratedMaskedEntries_;
     mutable int numSubtocsRaw_;
     mutable bool writeMode_;
+
+    mutable bool dirty_;
 };
 
 

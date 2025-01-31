@@ -26,7 +26,7 @@ class TypeMonth : public Type {
 
 public: // methods
 
-    TypeMonth(const std::string &name, const std::string &type);
+    TypeMonth(const std::string& name, const std::string& type, const std::string& alias = "month");
 
     ~TypeMonth() override;
 
@@ -36,7 +36,7 @@ public: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const override;
+                           const CatalogueReader* cat) const override;
 
 private: // methods
 

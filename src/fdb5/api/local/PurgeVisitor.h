@@ -43,12 +43,13 @@ public:
                  bool doit,
                  bool porcelain);
 
-    //bool visitCatalogue(const Catalogue& catalogue) override;
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
+
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
 private: // members
 

@@ -23,8 +23,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), DaosCommon(config, "store", key), db_str_(db_cont_) {}
+DaosStore::DaosStore(const Key& key, const Config& config) :
+    Store(), DaosCommon(config, "store", key), db_str_(db_cont_) {}
 
 eckit::URI DaosStore::uri() const {
 
@@ -105,7 +105,7 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 }
 
-std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void*data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* data, eckit::Length length) {
 
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped as it is cached after selectDatabase.
@@ -132,14 +132,19 @@ std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void*d
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
+    archivedFields_++;
+
+    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed
-
 }
 
-void DaosStore::flush() {}
+size_t DaosStore::flush() {
+    size_t archived = archivedFields_;
+    archivedFields_ = 0;
+    return archived;
+}
 
 void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
 

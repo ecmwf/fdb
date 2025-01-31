@@ -25,8 +25,6 @@ namespace fdb5 {
 class HandleGatherer;
 class Notifier;
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class RetrieveVisitor : public ReadVisitor {
@@ -35,18 +33,14 @@ public: // methods
 
     RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer);
 
-    ~RetrieveVisitor();
-
-
-private:  // methods
-
+protected:  // methods
     // From Visitor
 
-    bool selectDatabase(const Key& dbKey, const TypedKey& fullComputedKey) override;
+    bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
 
-    bool selectIndex(const Key& idxKey, const TypedKey& fullComputedKey) override;
+    bool selectIndex(const Key& idxKey, const Key& fullKey) override;
 
-    bool selectDatum(const TypedKey& datumKey, const TypedKey& fullComputedKey) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void values(const metkit::mars::MarsRequest& request,
                         const std::string& keyword,
@@ -55,13 +49,14 @@ private:  // methods
 
     void print( std::ostream &out ) const override;
 
+    Store& store();
     const Schema& databaseSchema() const override;
 
 private:
 
-    const Notifier &wind_;
+    std::unique_ptr<Store> store_;
 
-    std::unique_ptr<DB> db_;
+    const Notifier &wind_;
 
     HandleGatherer &gatherer_;
 };

@@ -15,13 +15,12 @@
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Inspector.h"
@@ -34,7 +33,6 @@
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
@@ -51,7 +49,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {
         LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_, callback_));
+        archiver_.reset(new Archiver(config_, archiveCallback_));
     }
 
     archiver_->archive(key, data, length);
@@ -83,9 +81,9 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     return QueryIterator(new AsyncIterator(async_worker));
 }
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request);
+    return queryInternal<ListVisitor>(request, level);
 }
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
@@ -127,12 +125,13 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
 
 AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axesIterator() : " << request << std::endl;
-    return queryInternal<AxesVisitor>(request, config_, level);
+    return queryInternal<AxesVisitor>(request, level);
 }
 
 void LocalFDB::flush() {
     if (archiver_) {
         archiver_->flush();
+        flushCallback_();
     }
 }
 
@@ -143,7 +142,7 @@ void LocalFDB::print(std::ostream &s) const {
 
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
-
+static FDBBuilder<LocalFDB> builder("catalogue"); // Enable type=catalogue to build localFDB (serverside).
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

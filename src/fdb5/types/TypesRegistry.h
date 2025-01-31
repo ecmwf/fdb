@@ -16,13 +16,13 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
-#include <string>
 #include <map>
 #include <memory>
-#include <optional>
-#include <functional>
+#include <string>
 
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
+
+#include "fdb5/types/Type.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -30,44 +30,55 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class Type;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypesRegistry : private eckit::NonCopyable {
+class TypesRegistry : public eckit::Streamable {
 
-public: // methods
+public:  // methods
+    TypesRegistry() = default;
 
-    TypesRegistry();
+    explicit TypesRegistry(eckit::Stream& stream);
+    
+    void decode(eckit::Stream& stream);
+    void encode(eckit::Stream& out) const override;
 
-    ~TypesRegistry();
+    const Type& lookupType(const std::string& keyword) const;
 
-    const Type &lookupType(const std::string &keyword) const;
-
-    void addType(const std::string &, const std::string &);
+    void addType(const std::string&, const std::string&);
     void updateParent(const TypesRegistry& parent);
-    void dump( std::ostream &out ) const;
-    void dump( std::ostream &out, const std::string &keyword ) const;
+    void dump(std::ostream& out) const;
+    void dump(std::ostream& out, const std::string& keyword) const;
 
     metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
-private: // members
+    // streamable
 
-    typedef std::map<std::string, Type *> TypeMap;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+private:  // methods
+
+    void print(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
+
+private:  // members
+    std::map<std::string, std::string> types_;
+
+    const TypesRegistry* parent_ {nullptr};
+
+    using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
     mutable TypeMap cache_;
 
-    std::map<std::string, std::string> types_;
-    std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
+    // streamable
 
-    friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
-
-    void print( std::ostream &out ) const;
-
+    static eckit::ClassSpec                 classSpec_;
+    static eckit::Reanimator<TypesRegistry> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

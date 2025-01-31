@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <iosfwd>
+#include <string>
 
 #include "eckit/distributed/Transport.h"
 
@@ -95,7 +96,7 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
-    ListIterator list(const FDBToolRequest& request, bool deduplicate=false);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate=false, int level=3);
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
@@ -158,8 +159,6 @@ private: // members
     bool reportStats_;
 
     FDBStats stats_;
-
-    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/container/DenseSet.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -16,7 +17,8 @@
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeStep.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
+#include <string>
 
 using metkit::mars::StepRange;
 using metkit::mars::StepRangeNormalise;
@@ -55,7 +57,7 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
                          const std::string& keyword,
                          eckit::StringList& values,
                          const Notifier&,
-                         const DB *db) const {
+                         const CatalogueReader* cat) const {
 
     // Get the steps / step ranges from the request
 
@@ -65,14 +67,14 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
     std::vector<StepRange> ranges;
     std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
-    // If this is before knowing the DB, we are constrained on what we can do.
+    // If this is before knowing the Catalogue, we are constrained on what we can do.
 
-    if (db) {
+    if (cat) {
 
         // Get the axis
 
-        eckit::StringSet ax;
-        db->axis("step", ax);
+        eckit::DenseSet<std::string> ax;
+        cat->axis("step", ax);
 
         std::vector<StepRange> axis;
         for (auto step: ax) {
