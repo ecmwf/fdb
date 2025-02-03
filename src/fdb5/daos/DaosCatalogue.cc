@@ -30,7 +30,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
-    Catalogue(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
+    CatalogueImpl(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
 
     // TODO: apply the mechanism in RootManager::directory, using
     //   FileSpaceTables to determine root_pool_name_ according to key
@@ -40,7 +40,7 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
 }
 
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
+    CatalogueImpl(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
     // Read the real DB key into the DB base object
     try {
@@ -83,6 +83,10 @@ const Schema& DaosCatalogue::schema() const {
 
 }
 
+const Rule& DaosCatalogue::rule() const {
+    return *rule_;
+}
+
 void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
@@ -101,6 +105,8 @@ void DaosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
+
+    rule_ = &schema_.matchingRule(dbKey_);
 
 }
 
@@ -167,8 +173,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
 std::string DaosCatalogue::type() const {
 
-    return DaosCatalogue::catalogueTypeName();
-    
+    return fdb5::DaosEngine::typeName();
 }
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {

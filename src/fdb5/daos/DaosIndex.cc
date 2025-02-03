@@ -35,7 +35,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name) : 
-    IndexBase(key, "daosKeyValue", catalogue), 
+    IndexBase(key, "daosKeyValue"), 
     location_(buildIndexKvName(key, name), 0) {
 
     fdb5::DaosSession s{};
@@ -66,7 +66,7 @@ DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::Dao
 }
 
 DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosKeyValueName& name, bool readAxes) :
-    IndexBase(key, "daosKeyValue", catalogue),
+    IndexBase(key, "daosKeyValue"),
     location_(name, 0) {
 
     if (readAxes) updateAxes();
@@ -230,7 +230,7 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
     }
 }
 
-const std::vector<eckit::URI> DaosIndex::dataURIs() const {
+std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
     /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files

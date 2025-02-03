@@ -34,11 +34,11 @@ public: // methods
     void deselectIndex() override;
 
     bool open() override;
-    void flush() override {}
+    void flush(size_t archivedFields) override {}
     void clean() override {}
     void close() override {}
     
-    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
+    bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 

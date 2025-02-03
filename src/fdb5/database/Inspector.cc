@@ -48,13 +48,13 @@ bool InspectIterator::next(ListElement& elem) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static void purgeDB(Key& key, DB*& db) {
+static void purgeCatalogue(Key& key, CatalogueReader*& db) {
     LOG_DEBUG_LIB(LibFdb5) << "Purging DB with key " << key << std::endl;
     delete db;
 }
 
 Inspector::Inspector(const Config& dbConfig) :
-    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB),
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue),
     dbConfig_(dbConfig) {}
 
 Inspector::~Inspector() {
@@ -64,7 +64,7 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
                                 const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
 
-    InspectIterator* iterator = new InspectIterator();
+    auto iterator = std::make_unique<InspectIterator>();
     MultiRetrieveVisitor visitor(notifyee, *iterator, databases_, dbConfig_);
 
     LOG_DEBUG_LIB(LibFdb5) << "Using schema: " << schema << std::endl;
@@ -72,7 +72,7 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
     schema.expand(request, visitor);
 
     using QueryIterator = APIIterator<ListElement>;
-    return QueryIterator(iterator);
+    return QueryIterator(iterator.release());
 }
 
 ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request) const {

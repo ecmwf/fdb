@@ -76,7 +76,7 @@ std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& s
 
     if(str.empty()) return {};
 
-    std::set<std::string> keys = fdb5::Key::parseString(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = Key::parse(str).keys();  //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -191,7 +191,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
             messageToKey(msg, key);
 
             LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
-                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
+                                   << " key: " << key << " length:" << msg.length()
                                    << std::endl;
 
             ASSERT(key.match(key_));

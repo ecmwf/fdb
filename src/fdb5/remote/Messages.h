@@ -16,29 +16,28 @@
 /// @author Simon Smart
 /// @date   Apr 2018
 
-#ifndef fdb5_remote_Messages_H
-#define fdb5_remote_Messages_H
+#pragma once
+
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 
 #include "eckit/types/FixedString.h"
-#include "eckit/serialisation/Streamable.h"
-
-#include <cstdint>
 
 namespace eckit {
     class Stream;
 }
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const static eckit::FixedString<4> StartMarker {"SFDB"};
-const static eckit::FixedString<4> EndMarker {"EFDB"};
+struct Payload {
+    Payload(std::size_t length, const void* data) : length {length}, data {data} { }
 
-constexpr uint16_t CurrentVersion = 9;
-
+    std::size_t length {0};
+    const void* data {nullptr};
+};
 
 enum class Message : uint16_t {
 
@@ -47,6 +46,9 @@ enum class Message : uint16_t {
     Exit,
     Startup,
     Error,
+    Stores,
+    Schema,
+    Stop,
 
     // API calls to forward
     Flush = 100,
@@ -62,6 +64,9 @@ enum class Message : uint16_t {
     Inspect,
     Read,
     Move,
+    Store,
+    Axes,
+    Exists,
 
     // Responses
     Received = 200,
@@ -69,46 +74,54 @@ enum class Message : uint16_t {
 
     // Data communication
     Blob = 300,
-    MultiBlob,
+    MultiBlob
+
 };
 
-
-// Header used for all messages
-
-struct MessageHeader {
-
-public: // methods
-
-    MessageHeader() :
-        version(CurrentVersion),
-        message(Message::None),
-        requestID(0),
-        payloadSize(0) {}
-
-    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
-        marker(StartMarker),
-        version(CurrentVersion),
-        message(message),
-        requestID(requestID),
-        payloadSize(payloadSize) {}
-
-    eckit::FixedString<4> marker;   // 4 bytes  --> 4
-
-    uint16_t version;               // 2 bytes  --> 6
-
-    Message message;                // 2 bytes  --> 8
-
-    uint32_t requestID;             // 4 bytes  --> 12
-
-    uint32_t payloadSize;           // 4 bytes  --> 16
-
-    eckit::FixedString<16> hash;    // 16 bytes --> 32
-};
-
+std::ostream& operator<<(std::ostream& s, const Message& m);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+// Header used for all messages
+class MessageHeader {
 
-#endif // fdb5_remote_Messages_H
+public:  // types
+    constexpr static uint16_t currentVersion = 12;
+
+    constexpr static const auto hashBytes = 16;
+
+    constexpr static const auto markerBytes = 4;
+
+    using MarkerType = eckit::FixedString<markerBytes>;
+
+    using HashType = eckit::FixedString<hashBytes>;
+
+    inline static const MarkerType StartMarker {"SFDB"};
+
+    inline static const MarkerType EndMarker {"EFDB"};
+
+public:  // methods
+    MessageHeader() = default;
+
+    MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
+
+    bool control() const {
+        return ((clientID_ & 0x00000001) == 1);
+    }
+    uint32_t clientID() const {
+        return (clientID_>>1);
+    }
+
+public:
+    MarkerType marker;                    // 4 bytes  --> 4
+    uint16_t   version {currentVersion};  // 2 bytes  --> 6
+    Message    message {Message::None};   // 2 bytes  --> 8
+    uint32_t   clientID_ {0};             // 4 bytes  --> 12
+    uint32_t   requestID {0};             // 4 bytes  --> 16
+    uint32_t   payloadSize {0};           // 4 bytes  --> 20
+    HashType   hash;                      // 16 bytes --> 36
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace fdb5::remote

@@ -17,7 +17,8 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/RootManager.h"
@@ -48,12 +49,12 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
 
 TocMoveVisitor::~TocMoveVisitor() {}
 
-bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // Overall checks
     ASSERT(&catalogue_ == &catalogue);
 
-    MoveVisitor::visitDatabase(catalogue_, store);
+    MoveVisitor::visitDatabase(catalogue_);
 
     // TOC specific checks: index files not locked
     DIR* dirp = ::opendir(catalogue_.basePath().c_str());

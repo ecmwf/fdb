@@ -31,7 +31,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class DB;
+class CatalogueReader;
 class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -40,10 +40,12 @@ class Type : private eckit::NonCopyable {
 
 public: // methods
 
-    Type(const std::string &name, const std::string &type);
+    Type(const std::string &name, const std::string& type, const std::string& alias = "");
 
-    virtual ~Type();
+    virtual ~Type() = default;
 
+    const std::string& alias() const;
+    
     virtual std::string tidy(const std::string &value) const ;
 
     virtual std::string toKey(const std::string &value) const ;
@@ -52,7 +54,7 @@ public: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const CatalogueReader* cat) const;
 
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
 
@@ -72,6 +74,7 @@ protected: // members
 
     std::string name_;
     std::string type_;
+    std::string alias_;
 
 };
 

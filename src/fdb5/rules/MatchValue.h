@@ -27,28 +27,37 @@ namespace fdb5 {
 
 class MatchValue : public Matcher {
 
-public: // methods
+public:  // methods
+    MatchValue(std::string value);
 
-    MatchValue(const std::string &value);
+    MatchValue(eckit::Stream& stream);
 
-    ~MatchValue() override;
+    bool match(const std::string& value) const override;
 
-    bool match(const std::string &keyword, const Key& key) const override;
+    bool match(const std::string& keyword, const Key& key) const override;
 
-    void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream& out, const std::string& keyword, const TypesRegistry& registry) const override;
 
-private: // methods
+    // streamable
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-    void print( std::ostream &out ) const override;
+private:  // methods
+    void encode(eckit::Stream& out) const override;
 
-private: // members
+    void print(std::ostream& out) const override;
 
+private:  // members
     std::string value_;
 
+    // streamable
+
+    static eckit::ClassSpec              classSpec_;
+    static eckit::Reanimator<MatchValue> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

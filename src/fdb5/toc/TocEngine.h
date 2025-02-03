@@ -20,6 +20,8 @@
 
 namespace fdb5 {
 
+class Rule;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocEngine : public fdb5::Engine {
@@ -29,7 +31,7 @@ public: // methods
     static const char* typeName() { return "toc"; }
 
 private:  // methods
-    std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
+    std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys, const std::vector<eckit::PathName>& dirs,
                                         const Config& config) const;
 
     std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
@@ -51,8 +53,6 @@ protected: // methods
 
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
-
-    std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override;
 
     void print( std::ostream &out ) const override;
 

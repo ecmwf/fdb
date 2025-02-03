@@ -8,33 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+#include <ostream>
+#include <string>
+#include <utility>
 
 #include "fdb5/rules/MatchHidden.h"
 #include "fdb5/database/Key.h"
-#include "eckit/types/Types.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
-static std::string empty;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchHidden::MatchHidden(const std::string &def) :
-    Matcher() {
-    default_.push_back(def);
+eckit::ClassSpec MatchHidden::classSpec_ = { &Matcher::classSpec(), "MatchHidden", };
+
+eckit::Reanimator<MatchHidden> MatchHidden::reanimator_;
+
+
+MatchHidden::MatchHidden(std::string def): default_ {std::move(def)} { }
+
+MatchHidden::MatchHidden(eckit::Stream& stream) : Matcher() {
+
+    size_t numValues;
+    std::string value;
+
+    stream >> numValues;
+    for (size_t i=0; i < numValues; i++) {
+        stream >> value;
+        default_.push_back(value);
+    }
 }
 
-MatchHidden::~MatchHidden() {
-}
-
-bool MatchHidden::match(const std::string&, const Key&) const {
-    return true;
-}
-
-bool MatchHidden::optional() const {
-    return true;
+void MatchHidden::encode(eckit::Stream& s) const {
+    s << default_.size();
+    for (const std::string& value : default_) {
+        s << value;
+    }
 }
 
 const std::string &MatchHidden::value(const Key&, const std::string&) const {

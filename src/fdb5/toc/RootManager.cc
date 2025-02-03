@@ -153,25 +153,22 @@ private: // methods
                     }
                     var = false;
 
-                    j = k.find(word);
-                    if(j != k.end()) {
-                        if(!missing) {
-                            result += (*j).second;
-                        }
-                        else {
-                            if((*j).second == missing || (*j).second.empty()) {
-                                result += keyregex_.find(word)->second; // we know it exists because it is ensured in match()
-                            }
-                            else
-                            {
+                    if (const auto [iter, found] = k.find(word); found) {
+                        if (!missing) {
+                            result += iter->second;
+                        } else {
+                            if (iter->second == missing || iter->second.empty()) {
+                                // we know it exists because it is ensured in match()
+                                result += keyregex_.find(word)->second;
+                            } else {
                                 result += (*j).second;
                             }
                         }
-                    }
-                    else {
-                        std::ostringstream os;
-                        os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
-                        throw UserError(os.str());
+                    } else {
+                        std::ostringstream oss;
+                        oss << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " << s
+                            << " at position " << i;
+                        throw UserError(oss.str());
                     }
                     break;
 
@@ -584,11 +581,10 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
     std::ostringstream oss;
     const char *sep = "";
-
-    for (auto& k : key.names()) {
-        auto& v = key.get(k);
+    for (const auto& k : key.names()) {
+        const auto& v = key.get(k);
         oss << sep;
-        oss << (v == missing || v.empty() ? missing : key.canonicalValue(k));
+        oss << (v == missing || v.empty() ? missing : v);
         sep = ":";
     }
     result.push_back(oss.str());
@@ -619,9 +615,9 @@ TocPath RootManager::directory(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
-            TocPath root = i->filesystem(key, dbpath);
-            LOG_DEBUG_LIB(LibFdb5) << "Directory root " << root.directory_ << " dbpath " << dbpath <<  std::endl;
-            return TocPath{root.directory_ / dbpath, root.controlIdentifiers_};
+            TocPath db = i->filesystem(key, dbpath);
+            LOG_DEBUG_LIB(LibFdb5) << "Database directory " << db.directory_ << std::endl;
+            return db;
         }
     }
 
@@ -667,8 +663,11 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
+    std::map<Key, const Rule*> results;
     std::set<Key> keys;
-    config_.schema().matchFirstLevel(request, keys, "");
+    config_.schema().matchDatabase(request, results, "");
+    for (const auto& [key, rule] : results)
+        keys.insert(key);
     return visitableRoots(keys);
 }
 

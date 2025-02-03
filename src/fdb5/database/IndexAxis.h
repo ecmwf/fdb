@@ -22,7 +22,7 @@
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
+// #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
 namespace eckit {
@@ -36,7 +36,8 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class TypesRegistry;
+
+// class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -58,6 +59,7 @@ public: // methods
     void insert(const Key& key);
     /// @note: the values are required to be cannonicalised
     void insert(const std::string& axis, const std::vector<std::string>& values);
+    size_t encodeSize(const int version) const;
     void encode(eckit::Stream &s, const int version) const;
     static int currentVersion() { return 3; }
 
@@ -73,8 +75,9 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
-    bool partialMatch(const metkit::mars::MarsRequest& request, const TypesRegistry& registry) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request) const;
     bool contains(const Key& key) const;
+    bool containsPartial(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.
@@ -110,7 +113,7 @@ private: // methods
 
 private: // members
 
-    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
+    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string>>> AxisMap;
     AxisMap axis_;
 
     bool readOnly_;

@@ -8,16 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/EntryVisitMechanism.h"
-
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/log/Log.h"
 
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Manager.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/Store.h"
+
+#include <memory>
+#include <vector>
 
 using namespace eckit;
 
@@ -33,11 +37,32 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
+    return true;
+}
+
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr), currentIndex_(nullptr) {}
+
+EntryVisitor::~EntryVisitor() {
+    if (currentStore_) {
+        delete currentStore_;
+    }
+}
+
+Store& EntryVisitor::store() const {
+    if (!currentStore_) {
+        ASSERT(currentCatalogue_);
+        currentStore_ = currentCatalogue_->buildStore().release();
+        ASSERT(currentStore_);
+    }
+    return *currentStore_;
+}
+
+bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_ = &store;
+    currentStore_ = nullptr;
     currentIndex_ = nullptr;
-    rule_ = nullptr;
+    rule_ = &currentCatalogue_->rule();
     return true;
 }
 
@@ -46,25 +71,27 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
+    delete currentStore_;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
     rule_ = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
+    ASSERT(currentCatalogue_);
     currentIndex_ = &index;
-    rule_ = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
+    rule_         = &currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
     return true;
 }
 
 void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
-    ASSERT(rule_);
-    Key key(keyFingerprint, *rule_);
-    visitDatum(field, key);
-}
 
+    const auto datumKey = rule_->makeKey(keyFingerprint);
+
+    visitDatum(field, datumKey);
+}
 
 time_t EntryVisitor::indexTimestamp() const {
     return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
@@ -86,41 +113,37 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     ASSERT(request.all() == request.request().empty());
 
-    // TODO: Put minimim keys check into FDBToolRequest.
+    /// @todo Put minimim keys check into FDBToolRequest.
 
     LOG_DEBUG_LIB(LibFdb5) << "REQUEST ====> " << request.request() << std::endl;
 
     try {
-
-        fdb5::Manager mg{dbConfig_};
+        fdb5::Manager    mg {dbConfig_};
         std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
+        for (const URI& uri : uris) {
+            if (!visitor.preVisitDatabase(uri, dbConfig_.schema())) { continue; }
 
-        for (URI uri : uris) {
-            /// @note: the schema of a URI returned by visitableLocations 
+            /// @note: the schema of a URI returned by visitableLocations
             ///   matches the corresponding Engine type name
             // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
+            LOG_DEBUG_LIB(LibFdb5) << "FDB processing URI " << uri << std::endl;
 
-            std::unique_ptr<DB> db;
-
+            std::unique_ptr<CatalogueReader> catalogue;
             try {
-                
-                db = DB::buildReader(uri, dbConfig_);
 
-            } catch (fdb5::DatabaseNotFoundException& e) {
+                catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
 
-                visitor.onDatabaseNotFound(e);
+            } catch (fdb5::DatabaseNotFoundException& e) { visitor.onDatabaseNotFound(e); }
 
-            }
+            ASSERT(catalogue->open());
 
-            ASSERT(db->open());
-            eckit::AutoCloser<DB> closer(*db);
+            eckit::AutoCloser<Catalogue> closer(*catalogue);
 
-            db->visitEntries(visitor, false);
-
+            catalogue->visitEntries(visitor, /* *store, */ false);
         }
 
     } catch (eckit::UserError&) {

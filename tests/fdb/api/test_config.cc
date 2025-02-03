@@ -38,7 +38,7 @@ CASE( "config_expands_from_environment_variable_json" ) {
     const std::string config_str(R"XX(
         {
             "type": "local",
-            "engine": "pmem",
+            "engine": "toc",
             "groups": [{
                 "pools": [{
                     "path": "/a/path/is/something"
@@ -52,7 +52,7 @@ CASE( "config_expands_from_environment_variable_json" ) {
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
     EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "pmem");
+    EXPECT(expanded.getString("engine") == "toc");
     EXPECT(expanded.getSubConfigurations("groups").size() == 1);
     EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
     EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") == "/a/path/is/something");

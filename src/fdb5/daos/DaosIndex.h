@@ -35,9 +35,9 @@ public: // methods
     void funlock() const override { NOTIMP; }
 
 private: // methods
-
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::URI> dataURIs() const override;
+
+    std::vector<eckit::URI> dataURIs() const override;
 
     bool dirty() const override { NOTIMP; }
 

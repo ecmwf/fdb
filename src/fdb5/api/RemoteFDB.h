@@ -14,165 +14,86 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
+/// @author Chris Bradley
 /// @date   Mar 2018
 
-#ifndef fdb5_remote_RemoteFDB_H
-#define fdb5_remote_RemoteFDB_H
+#pragma once
 
-#include <future>
 #include <thread>
+#include <unordered_map>
 
-#include "eckit/container/Queue.h"
-#include "eckit/io/Buffer.h"
-#include "eckit/net/Endpoint.h"
-#include "eckit/net/TCPClient.h"
-#include "eckit/net/TCPStream.h"
-#include "eckit/runtime/SessionID.h"
-
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/remote/Messages.h"
+#include "fdb5/api/LocalFDB.h"
+#include "fdb5/remote/client/Client.h"
 
 namespace fdb5 {
 
-class FDB;
-
 //----------------------------------------------------------------------------------------------------------------------
+class Archiver;
 
-class RemoteFDB : public FDBBase {
+class RemoteFDB : public LocalFDB, public remote::Client {
 
 public: // types
 
-    using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
-    using MessageQueue = eckit::Queue<StoredMessage>;
-    using ArchiveQueue = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
+    using MessageQueue = eckit::Queue<eckit::Buffer>;
 
 public: // method
 
-    using FDBBase::stats;
-
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-    ~RemoteFDB() override;
-
-    /// Archive writes data into aggregation buffer
-    void archive(const Key& key, const void* data, size_t length) override;
-
-    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
-    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+    ~RemoteFDB() override {}
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int depth) override;
 
-    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    AxesIterator axesIterator(const FDBToolRequest& request, int depth = 3) override;
 
-    StatusIterator status(const FDBToolRequest& request) override;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override { NOTIMP; }
+
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override { NOTIMP; }
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
-                            ControlIdentifiers identifiers) override;
+                            ControlIdentifiers identifiers) override { NOTIMP; }
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    void flush() override;
-
-    const eckit::net::Endpoint& controlEndpoint() const { return controlEndpoint_; }
+    const eckit::net::Endpoint& storeEndpoint() const;
+    const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
 
 private: // methods
-
-    // Methods to control the connection
-
-    void connect();
-    void disconnect();
-
-    // Session negotiation with the server
-    void writeControlStartupMessage();
-    eckit::SessionID verifyServerStartupResponse();
-    void writeDataStartupMessage(const eckit::SessionID& serverSession);
-
-    // Construct dictionary for protocol negotiation
-
-    eckit::LocalConfiguration availableFunctionality() const;
-
-    // Listen to the dataClient for incoming messages, and push them onto
-    // appropriate queues.
-    void listeningThreadLoop();
-
-    // Handle data going in either direction on the wire
-    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(const void* data, size_t length);
-    void controlRead(void* data, size_t length);
-    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void dataWrite(const void* data, size_t length);
-    void dataRead(void* data, size_t length);
-    void handleError(const remote::MessageHeader& hdr);
-
-    // Worker for the API functions
 
     template <typename HelperClass>
     auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
 
-    // Workers for archiving
-
-    FDBStats archiveThreadLoop(uint32_t requestID);
-
-    void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
-    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
-
     void print(std::ostream& s) const override;
 
-    FDBStats stats() const override;
+    FDBStats stats() const override { NOTIMP; }
+
+    // Client
+    bool handle(remote::Message message, uint32_t requestID) override;
+    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private: // members
 
-    eckit::SessionID sessionID_;
-
-    eckit::net::Endpoint controlEndpoint_;
-    eckit::net::Endpoint dataEndpoint_;
-
-    eckit::net::TCPClient controlClient_;
-    eckit::net::TCPClient dataClient_;
-
-    FDBStats internalStats_;
-
-    // Listen on the dataClient for incoming messages.
-    std::thread listeningThread_;
+    std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
+    std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
+    std::vector<eckit::net::Endpoint> storesLocalFields_;
 
     // Where do we put received messages
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
-
-    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-
-    // Asynchronised helpers for archiving
-
-    friend class FDBRemoteDataHandle;
-
-    std::future<FDBStats> archiveFuture_;
-
-    // Helpers for retrievals
-
-    uint32_t archiveID_;
-    size_t maxArchiveQueueLength_;
-    size_t maxArchiveBatchSize_;
-    std::mutex archiveQueuePtrMutex_;
-    std::unique_ptr<ArchiveQueue> archiveQueue_;
-    MessageQueue retrieveMessageQueue_;
-
-    bool connected_;
+    std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif // fdb5_remote_RemoteFDB_H

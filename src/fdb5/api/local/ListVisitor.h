@@ -19,18 +19,26 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
-#include "fdb5/database/DB.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/Rule.h"
-#include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/types/Type.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+#include <string>
+#include <vector>
+
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -39,24 +47,48 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    using QueryVisitor<ListElement>::QueryVisitor;
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
+        QueryVisitor<ListElement>(queue, request), level_(level) { }
+
+    /// @todo remove this with better logic
+    bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
+
+        // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
+        if (level_ == 1 && uri.scheme() == "toc") {
+            /// @todo only works with the toc backend
+            if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
+                queue_.emplace(*dbKey, 0);
+                return false;
+            }
+        }
+        return true;
+    }
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+    bool visitDatabase(const Catalogue& catalogue) override {
 
         // If the DB is locked for listing, then it "doesn't exist"
         if (!catalogue.enabled(ControlIdentifier::List)) {
             return false;
         }
 
-        bool ret = QueryVisitor::visitDatabase(catalogue, store);
-        ASSERT(catalogue.key().partialMatch(request_));
+        bool ret = QueryVisitor::visitDatabase(catalogue);
+
+        auto dbRequest = catalogue.rule().registry().canonicalise(request_);
+        if (!currentCatalogue_->key().partialMatch(dbRequest)) {
+            return false;
+        }
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : catalogue.key()) {
-            indexRequest_.unsetValues(kv.first);
+        for (const auto& [k,v] : currentCatalogue_->key()) {
+            indexRequest_.unsetValues(k);
+        }
+
+        if (level_ == 1) {
+            queue_.emplace(currentCatalogue_->key(), 0);
+            ret = false;
         }
 
         return ret;
@@ -70,22 +102,24 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-
-        if (index.partialMatch(request_)) {
+        if (index.partialMatch(*rule_, request_)) {
 
             // Subselect the parts of the request
             datumRequest_ = indexRequest_;
+
             for (const auto& kv : index.key()) {
                 datumRequest_.unsetValues(kv.first);
             }
 
-            // Take into account any rule-specific behaviour in the request
-            datumRequest_ = rule_->registry().canonicalise(datumRequest_);
+            if (level_ == 2) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
+                return false;
+            }
 
-            return true; // Explore contained entries
+            return true;  // Explore contained entries
         }
 
-        return false; // Skip contained entries
+        return false;  // Skip contained entries
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
@@ -93,8 +127,17 @@ public:
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (datumKey.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey}, field.stableLocation(), field.timestamp()));
+        // Take into account any rule-specific behaviour in the request
+        auto canonical = rule_->registry().canonicalise(request_);
+
+        if (datumKey.partialMatch(canonical)) {
+            for (const auto& k : datumKey.keys()) {
+                datumRequest_.unsetValues(k);
+            }
+            if (datumRequest_.parameters().size() == 0) {
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
+                            field.timestamp());
+            }
         }
     }
 
@@ -106,12 +149,11 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
+    const int level_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace fdb5::api::local
 
 #endif

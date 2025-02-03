@@ -65,8 +65,6 @@ void FDBWipe::usage(const std::string &tool) const {
                 << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
                 << std::endl
                 << std::endl;
-
-    FDBTool::usage(tool);
 }
 
 void FDBWipe::init(const CmdArgs &args) {
