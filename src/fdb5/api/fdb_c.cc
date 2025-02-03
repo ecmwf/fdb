@@ -400,6 +400,25 @@ int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
         dr->set(fdb->retrieve(req->request()));
     });
 }
+
+int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return wrapApiFunction([fdb, req, doit, porcelain, unsafeWipeAll] {
+        ASSERT(fdb);
+        ASSERT(req);
+
+        fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll);
+    });
+}
+
+int fdb_purge(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain) {
+    return wrapApiFunction([fdb, req, doit, porcelain] {
+        ASSERT(fdb);
+        ASSERT(req);
+
+        fdb->purge(req->request(), doit, porcelain);
+    });
+}
+
 int fdb_flush(fdb_handle_t* fdb) {
     return wrapApiFunction([fdb] {
         ASSERT(fdb);
