@@ -27,8 +27,6 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/hypercube/HyperCubePayloaded.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -154,13 +152,6 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 
     return sorted;
 }
-
-class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
-public:
-    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.timestamp() < replacement.timestamp();
-    }
-};
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
     auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));

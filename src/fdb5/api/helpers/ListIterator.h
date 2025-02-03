@@ -22,11 +22,22 @@
 #include <unordered_set>
 #include <utility>
 
+#include "metkit/hypercube/HyperCubePayloaded.h"
+
 #include "fdb5/database/Key.h"
 #include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/api/helpers/ListElement.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
