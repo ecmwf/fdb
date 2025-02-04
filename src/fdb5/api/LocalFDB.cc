@@ -55,6 +55,15 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
     archiver_->archive(key, data, length);
 }
 
+void LocalFDB::reindex(const Key& key, const FieldLocation& location) {
+    if (!reindexer_) {
+        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new reindexer" << std::endl;
+        reindexer_.reset(new Reindexer(config_));
+    }
+
+    reindexer_->reindex(key, location);
+}
+
 ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
 
     if (!inspector_) {
@@ -129,9 +138,13 @@ AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
 }
 
 void LocalFDB::flush() {
+    ASSERT(!(archiver_ && reindexer_));
     if (archiver_) {
         archiver_->flush();
         flushCallback_();
+    }
+    else if (reindexer_) {
+        reindexer_->flush();
     }
 }
 

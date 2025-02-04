@@ -82,6 +82,8 @@ public: // methods
     // Optional callback function is called upon receiving field location from the store.
     void archive(const Key& key, const void* data, size_t length);
 
+    void reindex(const Key& key, const FieldLocation& location);
+
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();

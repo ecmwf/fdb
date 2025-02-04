@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbreindex="$<TARGET_FILE:fdb-reindex>"
+gribset="$<TARGET_FILE:grib_set>"
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+cd $bindir
+
+mkdir -p reindex_test
+cd reindex_test
+
+rm -rf reindex_sink || true
+mkdir reindex_sink
+
+rm -rf reindex_source || true
+mkdir reindex_source
+
+for f in sink_config.yaml source_config.yaml sink_schema source_schema x.grib
+do
+  cp $srcdir/$f ./
+done
+
+$gribset -s step=6 x.grib 6.grib
+$gribset -s step=9 x.grib 9.grib
+$gribset -s type=an 6.grib an6.grib
+$gribset -s date=20010101 6.grib 20010101_6.grib
+
+$fdbwrite 6.grib --config=source_config.yaml
+$fdbwrite 9.grib --config=source_config.yaml
+$fdbwrite an6.grib --config=source_config.yaml
+$fdbwrite 20010101_6.grib --config=source_config.yaml
+
+rm 6.grib 9.grib an6.grib 20010101_6.grib
+
+####### Check lots of content
+
+$fdbreindex --all --minimum-keys="" --sink_config=sink_config.yaml --source_config=source_config.yaml
+
+# Check the content
+$fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml > source_list.txt
+$fdblist --all --minimum-keys="" --porcelain --config=sink_config.yaml > sink_list.txt
+
+test $(wc -l < sink_list.txt) -eq 4
+
+cat > expected_source <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20010101,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+EOF
+
+cat > expected_sink <<EOF
+{class=rd,expver=xxxx,stream=oper,year=2001,domain=g}{month=01,type=fc,levtype=sfc}{date=20010101,time=0000,param=166,step=6}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=6}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=9}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=an,levtype=sfc}{date=20201102,time=0000,param=166,step=6}
+EOF
+
+diff expected_source source_list.txt
+diff expected_sink sink_list.txt
+
+# Expect no data files in the sink
+test $(find reindex_sink -name "*.data" | wc -l) -eq 0
