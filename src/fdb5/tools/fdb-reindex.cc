@@ -68,6 +68,7 @@ void FDBReindex::execute(const CmdArgs& args) {
     FDB source(Config::make(source_config_));
     FDB sink(Config::make(sink_config_));
 
+    std::map<Key, ListElement::TimeStamp> timestamps;
     for (const FDBToolRequest& request : requests()) {
 
         if (LibFdb5::instance().debug()) {
@@ -77,13 +78,24 @@ void FDBReindex::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
+        // Only reindex if the timestamp is newer than the one we have.
         auto it = source.list(request, !full_);
         ListElement elem;
+
         while (it.next(elem)) {
             LOG_DEBUG_LIB(LibFdb5) << "Reindexing ListElement: " << elem << std::endl;
+
             const FieldLocation& location = elem.location();
             const Key& key = elem.combinedKey();
-            sink.reindex(key, location);
+            ListElement::TimeStamp timestamp = elem.timestamp();
+
+            // And only reindex if the timestamp is newer than the one we have. 
+            /// @XXX: We should not use full at all then, unless we want to also reindex the masked data. 
+            /// @XXX: If so, this solution is not correct as it will ignore anything older than the newest timestamp.
+            if (timestamps.find(key) == timestamps.end() || timestamps[key] < timestamp) {
+                timestamps[key] = timestamp;
+                sink.reindex(key, location);
+            }
         }
 
         sink.flush();
