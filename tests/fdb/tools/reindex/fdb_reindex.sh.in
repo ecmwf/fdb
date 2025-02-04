@@ -38,7 +38,7 @@ rm 6.grib 9.grib an6.grib 20010101_6.grib
 
 ####### Check lots of content
 
-$fdbreindex --all --minimum-keys="" --sink_config=sink_config.yaml --source_config=source_config.yaml
+$fdbreindex --all --minimum-keys="" --sink-config=sink_config.yaml --source-config=source_config.yaml
 
 # Check the content
 $fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml > source_list.txt

@@ -145,6 +145,7 @@ void LocalFDB::flush() {
     }
     else if (reindexer_) {
         reindexer_->flush();
+        flushCallback_();
     }
 }
 

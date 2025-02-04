@@ -31,8 +31,8 @@ public:  // methods
     FDBReindex(int argc, char** argv): FDBVisitTool(argc, argv, "class,expver") {
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain","Streamlined and stable output. Useful as input for other tools or scripts."));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("source_config", "Required: FDB configuration filename. This FDB will be listed"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("sink_config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("source-config", "Required: FDB configuration filename. This FDB will be listed"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("sink-config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
     }
 
 protected:
@@ -43,8 +43,6 @@ private:
     void init(const CmdArgs& args) override;
 
     bool full_ {false};
-    bool porcelain_ {false};
-
     std::string source_config_;
     std::string sink_config_;
 };
@@ -56,9 +54,8 @@ void FDBReindex::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     full_      = args.getBool("full", full_);
-    porcelain_ = args.getBool("porcelain", porcelain_);
-    source_config_ = args.getString("source_config", "");
-    sink_config_ = args.getString("sink_config", "");
+    source_config_ = args.getString("source-config", "");
+    sink_config_ = args.getString("sink-config", "");
 
     // not optional
     if (source_config_.empty() || sink_config_.empty()) {
