@@ -13,14 +13,7 @@
 
 #pragma once
 
-#include <utility>
-
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/database/Archiver.h"
-#include "fdb5/api/helpers/Callback.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {

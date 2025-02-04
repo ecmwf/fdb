@@ -8,11 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include <ctime>
-#include "eckit/config/Resource.h"
 #include "fdb5/database/Reindexer.h"
 #include "fdb5/database/ReindexVisitor.h"
-#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 

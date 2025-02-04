@@ -8,10 +8,6 @@
  * does it submit to any jurisdiction.
  */
 #include "fdb5/database/ReindexVisitor.h"
-#include "fdb5/database/Archiver.h"
-#include "fdb5/database/Catalogue.h"
-
-#include <functional>
 
 namespace fdb5 {
 
