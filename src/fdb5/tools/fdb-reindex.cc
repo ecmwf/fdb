@@ -32,10 +32,10 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("porcelain","Streamlined and stable output. Useful as input for other tools or scripts."));
         options_.push_back(new eckit::option::SimpleOption<std::string>("source-config", "Required: FDB configuration filename. This FDB will be listed"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("sink-config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
+        needsConfig_ = false; // we use source-config and sink-config instead
     }
 
 protected:
-    bool needsConfig_{false}; // because we need two!
 
 private:
     void execute(const CmdArgs& args) override;
