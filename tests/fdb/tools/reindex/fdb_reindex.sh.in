@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+# -- Description -------------------------------------------------------------
+# Test fdb-reindex tool by writing to a source database, then reindexing
+# to a sink database. Check that the sink database contains the same
+# content as the source database.
+# Also make sure masked and unmasked locations are handled correctly.
+
+# -- Environment -------------------------------------------------------------
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbreindex="$<TARGET_FILE:fdb-reindex>"
+gribset="$<TARGET_FILE:grib_set>"
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+extract_locations() {
+    awk -F'TocFieldLocation' '/TocFieldLocation/ {print "TocFieldLocation" $2}'
+}
+
+compare_arrays() {
+    local i
+    local -n a1=$1
+    local -n a2=$2
+
+    # Check if the lengths are different
+    if [ ${#a1[@]} -ne ${#a2[@]} ]; then
+        return 1
+    fi
+
+    # Check if elements are different
+    for i in "${!a1[@]}"; do
+        if [ "${a1[$i]}" != "${a2[$i]}" ]; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+# -- Setup -------------------------------------------------------------------
+cd $bindir
+
+mkdir -p reindex_test
+cd reindex_test
+
+rm -rf reindex_sink || true
+mkdir reindex_sink
+
+rm -rf reindex_source || true
+mkdir reindex_source
+
+for f in sink_config.yaml source_config.yaml sink_schema source_schema x.grib
+do
+  cp $srcdir/$f ./
+done
+
+rm -f tmp.grib data.grib
+
+$gribset -s step=1 x.grib tmp.grib && cat tmp.grib >> data.grib
+$gribset -s step=2 x.grib tmp.grib && cat tmp.grib >> data.grib
+$gribset -s type=an x.grib tmp.grib && cat tmp.grib >> data.grib
+$gribset -s date=20010101 x.grib tmp.grib && cat tmp.grib >> data.grib
+
+$fdbwrite data.grib --config=source_config.yaml
+expectedCount=4
+
+
+# Two fdb writes to create 4 masked locations and 4 unmasked locations.
+mapfile -t source_masked_locations < <($fdblist --all --minimum-keys="" --location --config=source_config.yaml | sort | extract_locations)
+test ${#source_masked_locations[@]} -eq $expectedCount
+
+$fdbwrite data.grib --config=source_config.yaml
+mapfile -t source_unmasked_locations < <($fdblist --all --minimum-keys="" --location --config=source_config.yaml | sort | extract_locations)
+
+# ensure these are different
+if compare_arrays source_masked_locations source_unmasked_locations; then exit 1; fi
+
+# 8 distinct locations
+test $($fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml --full | wc -l) -eq $((expectedCount * 2))
+
+cat > expected_source <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20010101,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=1,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=2,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > expected_sink <<EOF
+{class=rd,expver=xxxx,stream=oper,year=2001,domain=g}{month=01,type=fc,levtype=sfc}{date=20010101,time=0000,param=166,step=12}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=1}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=2}
+{class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=an,levtype=sfc}{date=20201102,time=0000,param=166,step=12}
+EOF
+
+
+# -- Test --------------------------------------------------------------------
+# TEST: reindex only copies unmasked locations
+
+$fdbreindex --all --minimum-keys="" --sink-config=sink_config.yaml --source-config=source_config.yaml
+
+mapfile -t sink_locations < <($fdblist --all --minimum-keys="" --location --config=sink_config.yaml | sort | extract_locations)
+test ${#sink_locations[@]} -eq $expectedCount
+
+# Check locations match the unmasked source
+if ! compare_arrays source_unmasked_locations sink_locations; then exit 1; fi
+
+# Check also the keys are as expected for the two schemas
+$fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml > source_list.txt
+$fdblist --all --minimum-keys="" --porcelain --config=sink_config.yaml > sink_list.txt
+diff expected_source source_list.txt
+diff expected_sink sink_list.txt
