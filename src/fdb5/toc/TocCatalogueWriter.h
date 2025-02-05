@@ -61,6 +61,8 @@ public: // methods
     const Key currentIndexKey() override;
     const TocSerialisationVersion& serialisationVersion() const;
 
+    size_t archivedLocations() const override { return archivedLocations_; }
+
 protected: // methods
 
     bool selectIndex(const Key& idxKey) override;

@@ -57,11 +57,15 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
     rule->check(key);
 }
 
+void Archiver::flushDatabase(Database& db) {
+    // flush the store, pass the number of flushed fields to the catalogue
+    db.catalogue_->flush(db.store_->flush());
+}
+
 void Archiver::flush() {
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        // flush the store, pass the number of flushed fields to the catalogue
-        i->second.catalogue_->flush(i->second.store_->flush());
+        flushDatabase(i->second);
     }
 }
 
@@ -94,7 +98,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
                 // flushing before evicting from cache
                 std::lock_guard<std::recursive_mutex> lock(flushMutex_);
 
-                databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
+                flushDatabase(databases_[oldK]);
                 
                 eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
                 databases_.erase(oldK);

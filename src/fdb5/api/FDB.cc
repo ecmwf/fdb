@@ -138,6 +138,11 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     stats_.addArchive(length, timer);
 }
 
+void FDB::reindex(const Key& key, const FieldLocation& location) {
+    internal_->reindex(key, location);
+    dirty_ = true;
+}
+
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 
     bool sorted = false;

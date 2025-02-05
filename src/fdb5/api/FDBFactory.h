@@ -70,6 +70,8 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
+
+    virtual void reindex(const Key& key, const FieldLocation& location) {NOTIMP;}
     
     virtual void flush() = 0;
 

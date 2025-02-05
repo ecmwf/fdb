@@ -63,18 +63,22 @@ public: // methods
         return s;
     }
 
+protected: // methods
+    virtual void flushDatabase(Database& db);
+
 private: // methods
 
     void print(std::ostream& out) const;
 
     void selectDatabase(const Key& key);
 
+protected: // members
+    std::map<Key, Database> databases_;
+
 private: // members
     friend class BaseArchiveVisitor;
 
     Config dbConfig_;
-
-    std::map<Key, Database> databases_;
 
     std::vector<Key> prev_;
 
