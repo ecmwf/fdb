@@ -75,6 +75,9 @@ test ${#source_masked_locations[@]} -eq $expectedCount
 $fdbwrite data.grib --config=source_config.yaml
 mapfile -t source_unmasked_locations < <($fdblist --all --minimum-keys="" --location --config=source_config.yaml | sort | extract_locations)
 
+# ensure these are different
+if compare_arrays source_masked_locations source_unmasked_locations; then exit 1; fi
+
 # 8 distinct locations
 test $($fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml --full | wc -l) -eq $((expectedCount * 2))
 
@@ -93,8 +96,8 @@ cat > expected_sink <<EOF
 EOF
 
 
-# -- Test 1 ------------------------------------------------------------------
-# TEST: reindex without --full only copies unmasked locations
+# -- Test --------------------------------------------------------------------
+# TEST: reindex only copies unmasked locations
 
 $fdbreindex --all --minimum-keys="" --sink-config=sink_config.yaml --source-config=source_config.yaml
 
@@ -109,17 +112,3 @@ $fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml > sourc
 $fdblist --all --minimum-keys="" --porcelain --config=sink_config.yaml > sink_list.txt
 diff expected_source source_list.txt
 diff expected_sink sink_list.txt
-
-# -- Test 2 ------------------------------------------------------------------
-
-# TEST: reindex with --full copies all locations
-# Importantly, must do so in the correct order i.e. do not accidentally swapping masked and unmasked locations
-
-rm -rf reindex_sink/*
-$fdbreindex --all --minimum-keys="" --full --sink-config=sink_config.yaml --source-config=source_config.yaml
-
-mapfile -t sink_locations < <($fdblist --all --minimum-keys="" --location --config=sink_config.yaml | sort | extract_locations)
-test ${#sink_locations[@]} -eq $expectedCount
-if ! compare_arrays source_unmasked_locations sink_locations; then exit 1; fi
-
-# @XXX: TO BE DECIDED WHAT THE CORRECT BEHAVIOUR SHOULD BE. SHOULD WE COPY MASKED DATA OR NOT?

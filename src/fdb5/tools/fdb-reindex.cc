@@ -29,7 +29,6 @@ namespace fdb5::tools {
 class FDBReindex: public FDBVisitTool {
 public:  // methods
     FDBReindex(int argc, char** argv): FDBVisitTool(argc, argv, "class,expver") {
-        options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain","Streamlined and stable output. Useful as input for other tools or scripts."));
         options_.push_back(new eckit::option::SimpleOption<std::string>("source-config", "Required: FDB configuration filename. This FDB will be listed"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("sink-config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
@@ -42,7 +41,6 @@ private:
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
-    bool full_ {false};
     std::string source_config_;
     std::string sink_config_;
 };
@@ -53,7 +51,6 @@ void FDBReindex::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    full_      = args.getBool("full", full_);
     source_config_ = args.getString("source-config", "");
     sink_config_ = args.getString("sink-config", "");
 
@@ -77,9 +74,7 @@ void FDBReindex::execute(const CmdArgs& args) {
             LOG_DEBUG_LIB(LibFdb5) << std::endl;
         }
 
-        // If --full is supplied, then include all entries including duplicates.
-        // Only reindex if the timestamp is newer than the one we have.
-        auto it = source.list(request, !full_);
+        auto it = source.list(request, true);
         ListElement elem;
 
         while (it.next(elem)) {
@@ -89,9 +84,7 @@ void FDBReindex::execute(const CmdArgs& args) {
             const Key& key = elem.combinedKey();
             ListElement::TimeStamp timestamp = elem.timestamp();
 
-            // And only reindex if the timestamp is newer than the one we have. 
-            /// @XXX: We should not use full at all then, unless we want to also reindex the masked data. 
-            /// @XXX: If so, this solution is not correct as it will ignore anything older than the newest timestamp.
+            // Only reindex if the timestamp is newer than the one we have. 
             if (timestamps.find(key) == timestamps.end() || timestamps[key] < timestamp) {
                 timestamps[key] = timestamp;
                 sink.reindex(key, location);
