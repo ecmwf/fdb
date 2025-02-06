@@ -46,7 +46,6 @@ public:
 ///       the members of TocIndex
 
 TocIndex::TocIndex(const Key&             key,
-                   const Catalogue&       catalogue,
                    const eckit::PathName& path,
                    off_t                  offset,
                    Mode                   mode,
@@ -60,7 +59,6 @@ TocIndex::TocIndex(const Key&             key,
       preloadBTree_(false) { }
 
 TocIndex::TocIndex(eckit::Stream&         s,
-                   const Catalogue&       catalogue,
                    const int              version,
                    const eckit::PathName& directory,
                    const eckit::PathName& path,
