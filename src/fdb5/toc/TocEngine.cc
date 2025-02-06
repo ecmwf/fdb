@@ -42,7 +42,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
+void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs, bool lowercase) const {
 
     eckit::StdDir d(path.c_str());
 
@@ -73,7 +73,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 #if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
-            dbs.push_back(full);
+            dbs.push_back(lowercase ? eckit::StringTools::lower(full) : full);
         } else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
@@ -83,7 +83,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             if(eckit::Stat::stat(full.c_str(), &info) == 0)
             {
                 if(S_ISDIR(info.st_mode)) {
-                    dbs.push_back(full);
+                    dbs.push_back(lowercase ? eckit::StringTools::lower(full) : full);
                 }
             }
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
@@ -138,8 +138,9 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
         LOG_DEBUG_LIB(LibFdb5) << "Scanning for TOC FDBs in root " << *j << std::endl;
 
+        std::string regex_prefix = "^" + eckit::StringTools::lower(Regex::escape(j->asString())) + "/";
         std::list<std::string> dbs;
-        scan_dbs(*j, dbs);
+        scan_dbs(*j, dbs, true);
 
         for (const auto& [key, rule] : keys) {
 
@@ -147,8 +148,8 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
             for(const std::string& dbpath : dbpaths) {
 
-                std::string regex = "^" + Regex::escape(j->asString()) + "/" + dbpath + "$";
-                std::regex reg(regex, std::regex::icase | std::regex::optimize);
+                std::string regex = regex_prefix + eckit::StringTools::lower(dbpath) + "$";
+                eckit::Regex reg(regex);
 
                 LOG_DEBUG_LIB(LibFdb5) << " -> key " << key
                                      << " dbpath " << dbpath
@@ -163,7 +164,7 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
                         continue;
                     }
 
-                    if (std::regex_match(*k, m, reg)) {
+                    if (reg.match(*k)) {
                         result[*k] = rule;
                     }
                 }

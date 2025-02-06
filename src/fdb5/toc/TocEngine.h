@@ -39,7 +39,7 @@ private:  // methods
     std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
                                       const Config& config) const;
 
-    void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
+    void scan_dbs(const std::string& path, std::list<std::string>& dbs, bool lowercase = false) const;
 
 protected: // methods
 
