@@ -36,6 +36,7 @@ class DaosContainer;
 class DaosNameBase {
 
 public:  // methods
+
     /// @todo: implement DaosName::containerName to return a container DaosName,
     ///   and rename poolName and containerName to something else
     // DaosName poolName() const;
@@ -71,6 +72,7 @@ public:  // methods
     bool operator>=(const DaosNameBase& other) const;
 
 protected:  // methods
+
     DaosNameBase(const std::string& pool);
     DaosNameBase(const std::string& pool, const std::string& cont);
     DaosNameBase(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid);
@@ -80,9 +82,11 @@ protected:  // methods
     fdb5::DaosOID allocOID(const daos_otype_t&, const daos_oclass_id_t&) const;
 
 private:  // methods
+
     std::unique_ptr<fdb5::DaosObject> buildObject(fdb5::DaosSession&) const;
 
 protected:  // members
+
     std::string pool_;
     eckit::Optional<std::string> cont_;
     mutable eckit::Optional<fdb5::DaosOID> oid_;
@@ -92,6 +96,7 @@ protected:  // members
 class DaosArrayName : public DaosNameBase {
 
 public:  // methods
+
     DaosArrayName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid);
     DaosArrayName(const eckit::URI&);
     DaosArrayName(const fdb5::DaosArray&);
@@ -104,6 +109,7 @@ public:  // methods
 class DaosKeyValueName : public DaosNameBase {
 
 public:  // methods
+
     DaosKeyValueName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid);
     DaosKeyValueName(const eckit::URI&);
     DaosKeyValueName(const fdb5::DaosKeyValue&);
@@ -118,6 +124,7 @@ public:  // methods
 class DaosName : public DaosNameBase {
 
 public:  // methods
+
     DaosName(const std::string& pool);
     DaosName(const std::string& pool, const std::string& cont);
     DaosName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid);

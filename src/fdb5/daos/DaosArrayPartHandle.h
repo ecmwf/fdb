@@ -36,6 +36,7 @@ class DaosArrayName;
 class DaosArrayPartHandle : public eckit::DataHandle {
 
 public:  // methods
+
     DaosArrayPartHandle(const fdb5::DaosArrayName&, const eckit::Offset&, const eckit::Length&);
 
     ~DaosArrayPartHandle();
@@ -70,9 +71,11 @@ public:  // methods
     // static const ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     fdb5::DaosSession& session();
 
 private:  // members
+
     // mutable because title() calls DaosArrayName::asString which may update (generate) OID
     mutable fdb5::DaosArrayName name_;
     std::optional<fdb5::DaosSession> session_;

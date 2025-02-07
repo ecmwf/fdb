@@ -38,6 +38,7 @@ class Key;
 class EntryVisitor : public eckit::NonCopyable {
 
 public:  // methods
+
     EntryVisitor();
     virtual ~EntryVisitor();
 
@@ -56,12 +57,15 @@ public:  // methods
     time_t indexTimestamp() const;
 
 protected:
+
     Store& store() const;
 
 private:  // methods
+
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
+
     /// Non-owning
     const Catalogue* currentCatalogue_{nullptr};
     /// Owned store
@@ -77,11 +81,13 @@ protected:  // members
 class EntryVisitMechanism : public eckit::NonCopyable {
 
 public:  // methods
+
     EntryVisitMechanism(const Config& config);
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 
 private:  // members
+
     const Config& dbConfig_;
 
     // Fail on error

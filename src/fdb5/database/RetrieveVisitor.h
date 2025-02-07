@@ -30,9 +30,11 @@ class Notifier;
 class RetrieveVisitor : public ReadVisitor {
 
 public:  // methods
+
     RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer);
 
 protected:  // methods
+
     // From Visitor
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
@@ -50,6 +52,7 @@ protected:  // methods
     const Schema& databaseSchema() const override;
 
 private:
+
     std::unique_ptr<Store> store_;
 
     const Notifier& wind_;

@@ -30,6 +30,7 @@ namespace fdb5 {
 ///   FieldLocations before any RPC is performed for them.
 class DaosLazyFieldLocation : public FieldLocation {
 public:
+
     DaosLazyFieldLocation(const fdb5::DaosLazyFieldLocation& rhs);
     DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index, const std::string& key);
 
@@ -42,11 +43,13 @@ public:
     std::shared_ptr<const FieldLocation> stableLocation() const override;
 
 private:  // methods
+
     std::unique_ptr<fdb5::FieldLocation>& realise() const;
 
     void print(std::ostream& out) const override;
 
 private:  // members
+
     fdb5::DaosKeyValueName index_;
     std::string key_;
     mutable std::unique_ptr<fdb5::FieldLocation> fl_;

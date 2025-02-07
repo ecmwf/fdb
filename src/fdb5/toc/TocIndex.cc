@@ -25,6 +25,7 @@ class TocIndexCloser {
     bool opened_;
 
 public:
+
     TocIndexCloser(const TocIndex& index) : index_(index), opened_(index.btree_) {
         if (!opened_) {
             const_cast<TocIndex&>(index_).open();
@@ -167,6 +168,7 @@ class TocIndexVisitor : public BTreeIndexVisitor {
     EntryVisitor& visitor_;
 
 public:
+
     TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor) : uris_(uris), visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
@@ -211,6 +213,7 @@ class DumpBTreeVisitor : public BTreeIndexVisitor {
     std::string indent_;
 
 public:
+
     DumpBTreeVisitor(std::ostream& out, const std::string& indent) : out_(out), indent_(indent) {}
     virtual ~DumpBTreeVisitor() {}
 

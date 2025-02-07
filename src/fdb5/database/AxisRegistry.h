@@ -30,6 +30,7 @@ namespace fdb5 {
 
 class AxisRegistry {
 public:  // types
+
     typedef std::string keyword_t;
     typedef eckit::DenseSet<std::string> axis_t;
     typedef std::shared_ptr<axis_t> ptr_axis_t;
@@ -51,17 +52,20 @@ public:  // types
     };
 
 private:  // types
+
     typedef std::string axis_key_t;
     typedef std::unordered_set<ptr_axis_t, HashDenseSet, EqualsDenseSet> axis_store_t;
     typedef std::map<keyword_t, axis_store_t> axis_map_t;
 
 public:  // methods
+
     static AxisRegistry& instance();
 
     void deduplicate(const keyword_t& key, std::shared_ptr<axis_t>& ptr);
     void release(const keyword_t& key, std::shared_ptr<axis_t>& ptr);
 
 private:  // members
+
     axis_map_t axes_;
 
     mutable eckit::Mutex mutex_;

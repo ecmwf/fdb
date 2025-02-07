@@ -30,6 +30,7 @@ namespace fdb5::remote {
 class Locations {
 
 public:
+
     Locations() : fieldsArchived_(0), locationsReceived_(0) {}
 
     std::mutex& mutex() { return locationMutex_; }
@@ -88,6 +89,7 @@ public:
     }
 
 private:
+
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
     size_t fieldsArchived_;
@@ -102,12 +104,14 @@ private:
 class RemoteStore : public Store, public Client {
 
 public:  // types
+
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
     static const char* typeName() { return "remote"; }
 
 public:  // methods
+
     RemoteStore(const Key& key, const Config& config);
     RemoteStore(const eckit::URI& uri, const Config& config);
 
@@ -140,6 +144,7 @@ public:  // methods
     const Config& config() const { return config_; }
 
 protected:  // methods
+
     std::string type() const override { return typeName(); }
 
     bool exists() const override;
@@ -154,11 +159,13 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // methods
+
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private:  // members
+
     Key dbKey_;
 
     const Config& config_;

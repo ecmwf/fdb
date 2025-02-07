@@ -27,6 +27,7 @@ namespace fdb5 {
 
 class DataStatsContent : public eckit::Counted, public eckit::Statistics {
 public:
+
     ~DataStatsContent() override;
 
     virtual void add(const DataStatsContent&) = 0;
@@ -41,6 +42,7 @@ public:
 class DataStats {
 
 public:  // methods
+
     DataStats();
     DataStats(DataStatsContent*);
 
@@ -60,6 +62,7 @@ public:  // methods
     //    }
 
 private:  // methods
+
     void print(std::ostream&) const;
 
     friend std::ostream& operator<<(std::ostream& s, const DataStats& o) {
@@ -68,6 +71,7 @@ private:  // methods
     }
 
 private:  // members
+
     DataStatsContent* content_;
 };
 

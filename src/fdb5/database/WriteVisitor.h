@@ -37,6 +37,7 @@ class Schema;
 class WriteVisitor : public eckit::NonCopyable {
 
 public:  // methods
+
     WriteVisitor(std::vector<Key>&);
 
     virtual ~WriteVisitor() = default;
@@ -52,9 +53,11 @@ public:  // methods
     const Rule* rule() const { return rule_; }
 
 protected:  // methods
+
     virtual void print(std::ostream& out) const = 0;
 
 private:  // members
+
     friend std::ostream& operator<<(std::ostream& s, const WriteVisitor& x) {
         x.print(s);
         return s;

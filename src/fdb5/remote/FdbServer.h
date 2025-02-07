@@ -36,10 +36,12 @@ namespace fdb5::remote {
 class FDBForker : public eckit::ProcessControler {
 
 public:  // methods
+
     FDBForker(eckit::net::TCPSocket& socket, const Config& config);
     ~FDBForker() override;
 
 private:  // methods
+
     void run() override;
 
     eckit::net::TCPSocket socket_;
@@ -50,6 +52,7 @@ private:  // methods
 
 class FdbServerBase {
 public:
+
     FdbServerBase();
 
     virtual ~FdbServerBase();
@@ -57,6 +60,7 @@ public:
     virtual void doRun();
 
 private:
+
     int port_;
     std::thread reaperThread_;
 
@@ -72,6 +76,7 @@ private:
 
 class FdbServer : public eckit::Application, public FdbServerBase {
 public:
+
     FdbServer(int argc, char** argv, const char* home);
 
     ~FdbServer() override;

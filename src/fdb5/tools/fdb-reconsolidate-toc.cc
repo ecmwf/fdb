@@ -22,9 +22,11 @@ using namespace eckit;
 class FDBReconsolidateToc : public fdb5::FDBTool {
 
 public:  // methods
+
     FDBReconsolidateToc(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 
 private:  // methods
+
     virtual void usage(const std::string& tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
 };

@@ -54,12 +54,14 @@ struct UriStoreWrapper {
 class TocIndex : private UriStoreWrapper, public IndexBase {
 
 public:  // types
+
     enum Mode {
         WRITE,
         READ
     };
 
 public:  // methods
+
     TocIndex(const Key& key, const Catalogue& catalogue, const eckit::PathName& path, off_t offset, Mode mode,
              const std::string& type = defaulType());
 
@@ -77,6 +79,7 @@ public:  // methods
     void funlock() const override;
 
 private:  // methods
+
     const IndexLocation& location() const override { return location_; }
 
     std::vector<eckit::URI> dataURIs() const override;
@@ -101,6 +104,7 @@ private:  // methods
     IndexStats statistics() const override;
 
 private:  // members
+
     std::unique_ptr<BTreeIndex> btree_;
 
     bool dirty_;

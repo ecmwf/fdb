@@ -37,12 +37,14 @@ namespace fdb5 {
 class UriStore : private eckit::NonCopyable {
 
 public:  // types
+
     typedef size_t UriID;
 
     typedef std::map<UriStore::UriID, eckit::URI> URIStore;
     typedef std::map<eckit::URI, UriStore::UriID> IdStore;
 
 public:  // methods
+
     UriStore(const eckit::PathName& directory);
     UriStore(const eckit::PathName& directory, eckit::Stream&);
 
@@ -69,9 +71,11 @@ public:  // methods
     }
 
 private:  // members
+
     void print(std::ostream& out) const;
 
 private:  // members
+
     UriStore::UriID next_;
     bool readOnly_;
 

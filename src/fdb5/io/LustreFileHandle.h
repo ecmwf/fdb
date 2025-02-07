@@ -33,6 +33,7 @@ template <class HANDLE>
 class LustreFileHandle : public HANDLE {
 
 public:  // methods
+
     LustreFileHandle(const std::string& path, LustreStripe stripe) : HANDLE(path), stripe_(stripe) {}
 
     LustreFileHandle(const std::string& path, size_t buffsize, LustreStripe stripe) :
@@ -75,6 +76,7 @@ public:  // methods
     }
 
 private:  // members
+
     LustreStripe stripe_;
 };
 

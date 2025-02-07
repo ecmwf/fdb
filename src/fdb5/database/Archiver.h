@@ -46,6 +46,7 @@ struct Database {
 class Archiver : public eckit::NonCopyable {
 
 public:  // methods
+
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
     virtual ~Archiver();
@@ -63,17 +64,21 @@ public:  // methods
     }
 
 protected:  // methods
+
     virtual void flushDatabase(Database& db);
 
 private:  // methods
+
     void print(std::ostream& out) const;
 
     void selectDatabase(const Key& key);
 
 protected:  // members
+
     std::map<Key, Database> databases_;
 
 private:  // members
+
     friend class BaseArchiveVisitor;
 
     Config dbConfig_;

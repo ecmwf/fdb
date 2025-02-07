@@ -28,6 +28,7 @@ namespace fdb5 {
 class MoveVisitor : public EntryVisitor {
 
 public:  // methods
+
     MoveVisitor(const metkit::mars::MarsRequest& request, const eckit::URI& dest);
 
     ~MoveVisitor() override;
@@ -42,6 +43,7 @@ public:  // methods
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
 protected:  // members
+
     const metkit::mars::MarsRequest& request_;
     const eckit::URI& dest_;
 };

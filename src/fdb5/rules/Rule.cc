@@ -61,11 +61,13 @@ class RuleGraph {
     };
 
 public:  // types
+
     using value_type     = std::list<RuleNode>;
     using reference      = eckit::StringList&;
     using const_iterator = value_type::const_iterator;
 
 public:  // methods
+
     reference push(const std::string& keyword) { return nodes_.emplace_back(keyword).values_; }
 
     std::size_t size() const { return nodes_.size(); }
@@ -95,6 +97,7 @@ public:  // methods
     }
 
 private:  // methods
+
     // Recursive DFS (depth-first search) to generate all possible keys
     void visit(const_iterator iter, Key& key, std::set<Key>& seen, std::vector<Key>& keys) const {
 
@@ -120,6 +123,7 @@ private:  // methods
     }
 
 private:  // members
+
     value_type nodes_;
 };
 

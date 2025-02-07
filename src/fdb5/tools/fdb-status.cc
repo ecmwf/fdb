@@ -26,9 +26,11 @@ namespace tools {
 
 class FDBStatus : public FDBVisitTool {
 public:  // methods
+
     FDBStatus(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {}
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
 };
 

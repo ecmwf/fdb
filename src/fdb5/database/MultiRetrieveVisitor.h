@@ -36,12 +36,14 @@ class Notifier;
 class MultiRetrieveVisitor : public ReadVisitor {
 
 public:  // methods
+
     MultiRetrieveVisitor(const Notifier& wind, InspectIterator& queue,
                          eckit::CacheLRU<Key, CatalogueReader*>& databases, const Config& config);
 
     ~MultiRetrieveVisitor();
 
 private:  // methods
+
     // From Visitor
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
@@ -58,6 +60,7 @@ private:  // methods
     const Schema& databaseSchema() const override;
 
 private:
+
     const Notifier& wind_;
 
     eckit::CacheLRU<Key, CatalogueReader*>& databases_;

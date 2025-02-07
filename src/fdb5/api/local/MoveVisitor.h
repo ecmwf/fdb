@@ -34,6 +34,7 @@ namespace local {
 class MoveVisitor : public QueryVisitor<MoveElement> {
 
 public:  // methods
+
     MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request, const eckit::URI& dest);
 
     bool visitIndexes() override { return false; }
@@ -48,6 +49,7 @@ public:  // methods
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
 private:  // members
+
     const eckit::URI& dest_;
     std::unique_ptr<fdb5::MoveVisitor> internalVisitor_;
 };

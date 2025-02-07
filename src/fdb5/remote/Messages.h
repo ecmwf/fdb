@@ -85,6 +85,7 @@ std::ostream& operator<<(std::ostream& s, const Message& m);
 class MessageHeader {
 
 public:  // types
+
     constexpr static uint16_t currentVersion = 12;
 
     constexpr static const auto hashBytes = 16;
@@ -100,6 +101,7 @@ public:  // types
     inline static const MarkerType EndMarker{"EFDB"};
 
 public:  // methods
+
     MessageHeader() = default;
 
     MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
@@ -108,6 +110,7 @@ public:  // methods
     uint32_t clientID() const { return (clientID_ >> 1); }
 
 public:
+
     MarkerType marker;                 // 4 bytes  --> 4
     uint16_t version{currentVersion};  // 2 bytes  --> 6
     Message message{Message::None};    // 2 bytes  --> 8

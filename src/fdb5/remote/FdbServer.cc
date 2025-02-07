@@ -70,12 +70,15 @@ void FDBForker::run() {
 class FDBServerThread : public eckit::Thread {
 
 public:  // methods
+
     FDBServerThread(eckit::net::TCPSocket& socket, const Config& config);
 
 private:  // methods
+
     virtual void run();
 
 private:  // members
+
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
 };

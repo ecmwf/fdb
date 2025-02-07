@@ -33,6 +33,7 @@ class Key;
 class Manager {
 
 public:  // methods
+
     Manager(const Config& config);
     ~Manager();
 
@@ -50,6 +51,7 @@ public:  // methods
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
 
 private:  // members
+
     eckit::PathName enginesFile_;
 
     // If the engine is specified explicitly in the

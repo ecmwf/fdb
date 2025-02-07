@@ -35,17 +35,20 @@ namespace fdb5::tools {
 
 struct fdb_moveiterator_t {
 public:
+
     fdb_moveiterator_t(fdb5::MoveIterator&& iter) : iter_(std::move(iter)) {}
 
     bool next(fdb5::MoveElement& elem) { return iter_.next(elem); }
 
 private:
+
     fdb5::MoveIterator iter_;
 };
 
 
 class MoveProducer : public eckit::distributed::Producer {
 public:  // methods
+
     MoveProducer(eckit::distributed::Transport& transport, const Config& config,
                  const std::vector<fdb5::FDBToolRequest>& requests, const eckit::option::CmdArgs& args) :
         eckit::distributed::Producer(transport), fdb_(config), keep_(false), removeDelay_(0) {
@@ -127,6 +130,7 @@ public:  // methods
     ~MoveProducer() {}
 
 private:  // methods
+
     virtual bool produce(eckit::distributed::Message& message) {
         ASSERT(moveIterator_);
 
@@ -165,6 +169,7 @@ private:  // methods
     void messageFromWorker(eckit::distributed::Message& message, int worker) const {}
 
 private:  // attributes
+
     fdb5::FDB fdb_;
     fdb5::MoveElement last_;
     std::vector<fdb5::MoveElement> list_;
@@ -178,11 +183,13 @@ private:  // attributes
 class MoveWorker : public eckit::distributed::Consumer {
 
 public:  // methods
+
     MoveWorker(eckit::distributed::Transport& transport, const eckit::option::CmdArgs& args) :
         eckit::distributed::Consumer(transport), count_(0) {}
     ~MoveWorker() {}
 
 protected:  // members
+
     void consume(eckit::distributed::Message& message) override {
         fdb5::FileCopy fileCopy(message);
         LOG_DEBUG_LIB(LibFdb5) << "MoveWorker " << fileCopy << std::endl;
@@ -202,6 +209,7 @@ protected:  // members
     void getNextMessage(eckit::distributed::Message& message) const override { getNextWorkMessage(message); }
 
 private:  // attributes
+
     size_t count_;
 };
 
@@ -209,11 +217,13 @@ private:  // attributes
 
 class MoveLoner : public eckit::distributed::Actor {
 public:  // methods
+
     MoveLoner(eckit::distributed::Transport& transport, eckit::distributed::Producer* producer,
               eckit::distributed::Consumer* consumer, size_t numThreads = 1) :
         eckit::distributed::Actor(transport), producer_(producer), consumer_(consumer), numThreads_(numThreads) {}
 
 private:  // methods
+
     virtual void run() {
         eckit::distributed::Message message;
 
@@ -250,6 +260,7 @@ private:  // methods
     }
 
 private:  // members
+
     std::unique_ptr<eckit::distributed::Producer> producer_;
     std::unique_ptr<eckit::distributed::Consumer> consumer_;
     size_t numThreads_;
@@ -260,14 +271,17 @@ private:  // members
 
 class FDBMove : public FDBVisitTool {
 public:  // methods
+
     FDBMove(int argc, char** argv);
     ~FDBMove() override;
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
 private:  // members
+
     std::unique_ptr<eckit::distributed::Transport> transport_;
     int threads_;
 };

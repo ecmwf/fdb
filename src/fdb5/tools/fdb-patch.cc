@@ -36,12 +36,15 @@ namespace tools {
 class PatchArchiver : public MessageArchiver {
 
 public:  // methods
+
     explicit PatchArchiver(const Key& key) : key_(key) {}
 
 private:  // methods
+
     eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private:  // members
+
     const Key& key_;
 };
 
@@ -69,6 +72,7 @@ eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg)
 class FDBPatch : public FDBVisitTool {
 
 public:  // methods
+
     FDBPatch(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
         options_.push_back(new SimpleOption<std::string>("expver", "Set the expver"));
@@ -76,11 +80,13 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void execute(const CmdArgs& args);
     virtual void init(const CmdArgs& args);
     virtual int minimumPositionalArguments() const;
 
 private:  // members
+
     fdb5::Key key_;
 };
 

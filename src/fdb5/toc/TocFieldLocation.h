@@ -29,6 +29,7 @@ namespace fdb5 {
 
 class TocFieldLocation : public FieldLocation {
 public:
+
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const eckit::URI& uri);
@@ -43,9 +44,11 @@ public:
     void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
+
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected:  // For Streamable
+
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     void encode(eckit::Stream&) const override;
 
@@ -53,6 +56,7 @@ protected:  // For Streamable
     static eckit::Reanimator<TocFieldLocation> reanimator_;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

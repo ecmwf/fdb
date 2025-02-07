@@ -36,9 +36,11 @@ class Config;
 class Engine : private eckit::NonCopyable {
 
 public:  // methods
+
     static Engine& backend(const std::string& name);
 
 public:  // methods
+
     virtual ~Engine();
 
     /// @returns the named identifier of this engine
@@ -59,6 +61,7 @@ public:  // methods
     friend std::ostream& operator<<(std::ostream& s, const Engine& x);
 
 protected:  // methods
+
     virtual void print(std::ostream& out) const = 0;
 };
 
@@ -69,6 +72,7 @@ protected:  // methods
 class EngineRegistry : private eckit::NonCopyable {
 
 public:  // methods
+
     static bool has(const std::string& name);
 
     static Engine& engine(const std::string& name);
@@ -80,6 +84,7 @@ public:  // methods
     static void list(std::ostream&);
 
 protected:  // methods
+
     static void add(Engine*);
     static Engine* remove(const std::string&);
 };
@@ -90,6 +95,7 @@ protected:  // methods
 template <class T>
 class EngineBuilder : public EngineRegistry {
 public:
+
     EngineBuilder() {
         Engine* e = new T();
         name_     = e->name();

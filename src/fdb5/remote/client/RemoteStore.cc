@@ -71,6 +71,7 @@ namespace {
 class FDBRemoteDataHandle : public DataHandle {
 
 public:  // methods
+
     FDBRemoteDataHandle(uint32_t requestID, Length estimate, std::shared_ptr<RemoteStore::MessageQueue> queue,
                         const net::Endpoint& remoteEndpoint) :
         requestID_(requestID),
@@ -84,6 +85,7 @@ public:  // methods
     virtual bool canSeek() const override { return false; }
 
 private:  // methods
+
     void print(std::ostream& s) const override { s << "FDBRemoteDataHandle(id=" << requestID_ << ")"; }
 
     Length openForRead() override { return estimate(); }
@@ -175,6 +177,7 @@ private:  // methods
     Offset position() override { return overallPosition_; }
 
 private:  // members
+
     uint32_t requestID_;
     Length estimate_;
     std::shared_ptr<RemoteStore::MessageQueue> queue_;

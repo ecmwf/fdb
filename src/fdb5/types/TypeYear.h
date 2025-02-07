@@ -24,6 +24,7 @@ namespace fdb5 {
 class TypeYear : public Type {
 
 public:  // methods
+
     TypeYear(const std::string& name, const std::string& type, const std::string& alias = "year");
 
     ~TypeYear() override;
@@ -34,6 +35,7 @@ public:  // methods
                            eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

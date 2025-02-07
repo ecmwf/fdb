@@ -42,6 +42,7 @@ using PoolCache = std::deque<fdb5::DaosPool>;
 class DaosManager : private eckit::NonCopyable {
 
 public:  // methods
+
     static DaosManager& instance() {
         static DaosManager instance;
         return instance;
@@ -52,11 +53,13 @@ public:  // methods
     void configure(const eckit::LocalConfiguration&);
 
 private:  // methods
+
     DaosManager();
 
     ~DaosManager();
 
 private:  // members
+
     friend class DaosSession;
 
     std::mutex mutex_;
@@ -121,6 +124,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 class DaosSession : eckit::NonCopyable {
 
 public:  // methods
+
     DaosSession();
     ~DaosSession() {};
 
@@ -145,10 +149,12 @@ public:  // methods
 #endif
 
 private:  // methods
+
     PoolCache::iterator getCachedPool(const fdb5::UUID&);
     PoolCache::iterator getCachedPool(const std::string&);
 
 private:  // members
+
     /// @todo: add lock_guards in all DaosSession methods using pool_cache_. Same for cont_cache_ in DaosPool.
     // std::mutex& mutex_;
     PoolCache& pool_cache_;

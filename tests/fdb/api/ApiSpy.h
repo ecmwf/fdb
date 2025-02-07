@@ -36,6 +36,7 @@ namespace test {
 class ApiSpy : public fdb5::FDBBase {
 
 private:  // types
+
     struct Counts {
         Counts() :
             archive(0),
@@ -79,6 +80,7 @@ private:  // types
     };
 
 public:  // methods
+
     using FDBBase::stats;
 
     ApiSpy(const fdb5::Config& config, const std::string& name) : FDBBase(config, name) {
@@ -159,9 +161,11 @@ public:  // methods
     }
 
 private:  // methods
+
     void print(std::ostream& s) const override { s << "ApiSpy()"; }
 
 private:  // members
+
     Counts counts_;
 
     Archives archives_;

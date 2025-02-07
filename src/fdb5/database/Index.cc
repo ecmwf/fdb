@@ -168,9 +168,11 @@ const IndexAxis& IndexBase::axes() const {
 class NullIndex : public IndexBase {
 
 public:  // methods
+
     NullIndex() : IndexBase(Key{}, "null") {}
 
 private:  // methods
+
     const IndexLocation& location() const override { NOTIMP; }
 
     bool dirty() const override { NOTIMP; }

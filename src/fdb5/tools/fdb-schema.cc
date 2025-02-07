@@ -30,6 +30,7 @@ class FdbSchema : public FDBTool {
     virtual void usage(const std::string& tool) const;
 
 public:
+
     FdbSchema(int argc, char** argv) : FDBTool(argc, argv) {}
 };
 

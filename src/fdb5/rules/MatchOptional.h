@@ -28,6 +28,7 @@ namespace fdb5 {
 class MatchOptional : public Matcher {
 
 public:  // methods
+
     MatchOptional(std::string def);
 
     MatchOptional(eckit::Stream& s);
@@ -42,6 +43,7 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream&) const override;
 
     bool optional() const override;
@@ -53,6 +55,7 @@ private:  // methods
     void fill(Key& key, const std::string& keyword, const std::string& value) const override;
 
 private:  // members
+
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchOptional> reanimator_;
 

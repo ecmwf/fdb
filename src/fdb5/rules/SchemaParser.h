@@ -30,11 +30,13 @@ namespace fdb5 {
 class SchemaParser : public eckit::StreamParser {
 
 public:  // methods
+
     SchemaParser(std::istream& in) : StreamParser(in, true) {}
 
     void parse(RuleList& result, TypesRegistry& registry);
 
 private:  // methods
+
     std::string parseIdent(bool value, bool emptyOK);
 
     std::unique_ptr<RuleDatum> parseDatum();

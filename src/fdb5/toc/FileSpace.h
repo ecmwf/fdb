@@ -42,6 +42,7 @@ struct TocPath {
 class FileSpace {
 
 public:  // methods
+
     FileSpace(const std::string& name, const std::string& re, const std::string& handler,
               const std::vector<Root>& roots);
 
@@ -65,11 +66,13 @@ public:  // methods
     std::vector<eckit::PathName> roots() const;
 
 private:  // methods
+
     bool existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const;
 
     void print(std::ostream& out) const;
 
 private:  // members
+
     typedef std::vector<Root> RootVec;
 
     std::string name_;

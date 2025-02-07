@@ -35,6 +35,7 @@ class FDB;
 class DistFDB : public FDBBase {
 
 public:  // method
+
     using FDBBase::stats;
 
     DistFDB(const Config& config, const std::string& name);
@@ -68,12 +69,14 @@ public:  // method
     FDBStats stats() const override;
 
 private:  // methods
+
     void print(std::ostream& s) const override;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
 private:
+
     eckit::RendezvousHash hash_;
 
     std::vector<FDB> lanes_;

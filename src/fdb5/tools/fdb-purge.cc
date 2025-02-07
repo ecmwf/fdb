@@ -29,6 +29,7 @@ namespace tools {
 class FDBPurge : public FDBVisitTool {
 
 public:  // methods
+
     FDBPurge(int argc, char** argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false),
@@ -41,6 +42,7 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void init(const CmdArgs& args);
     virtual void execute(const CmdArgs& args);
     virtual void finish(const CmdArgs& args);

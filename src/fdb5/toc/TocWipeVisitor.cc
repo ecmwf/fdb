@@ -37,6 +37,7 @@ class StdDir {
     DIR* d_;
 
 public:
+
     StdDir(const eckit::PathName& p) : path_(p), d_(opendir(p.localPath())) {
 
         if (!d_) {

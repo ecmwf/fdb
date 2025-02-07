@@ -38,6 +38,7 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 class ListIterator : public APIIterator<ListElement> {
 public:
+
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
@@ -68,6 +69,7 @@ public:
     }
 
 private:
+
     std::unordered_set<Key> seenKeys_;
     bool deduplicate_;
 };

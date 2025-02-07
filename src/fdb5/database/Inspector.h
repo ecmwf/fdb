@@ -51,6 +51,7 @@ class EntryVisitor;
 
 class InspectIterator : public APIIteratorBase<ListElement> {
 public:
+
     InspectIterator();
     ~InspectIterator();
 
@@ -58,6 +59,7 @@ public:
     bool next(ListElement& elem) override;
 
 private:
+
     std::vector<ListElement> queue_;
     size_t index_;
 };
@@ -67,6 +69,7 @@ private:
 class Inspector : public eckit::NonCopyable {
 
 public:  // methods
+
     Inspector(const Config& dbConfig);
 
     ~Inspector();
@@ -92,12 +95,14 @@ public:  // methods
     }
 
 private:  // methods
+
     void print(std::ostream& out) const;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
                          const Notifier& notifyee) const;
 
 private:  // data
+
     mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
     Config dbConfig_;

@@ -26,6 +26,7 @@ namespace fdb5 {
 class DaosIndexLocation : public IndexLocation {
 
 public:  // methods
+
     DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t offset);
 
     eckit::URI uri() const override { return name_.URI(); }
@@ -35,12 +36,15 @@ public:  // methods
     const fdb5::DaosKeyValueName& daosName() const { return name_; };
 
 protected:  // For Streamable
+
     void encode(eckit::Stream&) const override { NOTIMP; }
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 
 private:  // members
+
     fdb5::DaosKeyValueName name_;
 
     off_t offset_;

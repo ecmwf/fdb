@@ -27,9 +27,11 @@ namespace fdb5::remote {
 class RemoteCatalogue : public CatalogueReader, public CatalogueWriter, public CatalogueImpl, public Client {
 
 public:  // types
+
     static const char* typeName() { return "remote"; }
 
 public:  // methods
+
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
@@ -78,19 +80,23 @@ public:  // methods
     eckit::URI uri() const override;
 
 protected:
+
     void loadSchema() override;
 
 private:
+
     // From Client
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
+
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
 private:
+
     Key currentIndexKey_;
     mutable std::optional<std::reference_wrapper<const RuleDatabase>> rule_;
     mutable std::unique_ptr<Schema> schema_;

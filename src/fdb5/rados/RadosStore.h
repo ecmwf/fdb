@@ -29,6 +29,7 @@ namespace fdb5 {
 class RadosStore : public Store {
 
 public:  // methods
+
     RadosStore(const Schema& schema, const Key& key, const Config& config);
 
     ~RadosStore() override {}
@@ -42,6 +43,7 @@ public:  // methods
     void checkUID() const override { /* nothing to do */ }
 
 protected:  // methods
+
     std::string type() const override { return "rados"; }
 
     bool exists() const override;
@@ -65,10 +67,12 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // types
+
     typedef std::map<std::string, eckit::DataHandle*> HandleStore;
     typedef std::map<Key, std::string> PathStore;
 
-private:                   // members
+private:  // members
+
     HandleStore handles_;  ///< stores the DataHandles being used by the Session
 
     PathStore dataPaths_;

@@ -34,9 +34,11 @@ class Schema;
 class BaseArchiveVisitor : public WriteVisitor {
 
 public:  // methods
+
     BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey);
 
 protected:  // methods
+
     bool selectDatabase(const Key& dbKey, const Key&) override;
 
     bool selectIndex(const Key& idxKey, const Key&) override;
@@ -51,6 +53,7 @@ protected:  // methods
     const Key& initialFieldKey() const { return initialFieldKey_; }
 
 private:  // members
+
     Archiver& owner_;
 
     Key initialFieldKey_;

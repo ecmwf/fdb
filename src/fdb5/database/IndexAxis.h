@@ -44,6 +44,7 @@ class Key;
 class IndexAxis : private eckit::NonCopyable {
 
 public:  // methods
+
     IndexAxis();
     IndexAxis(eckit::Stream& s, const int version);
     IndexAxis(IndexAxis&& rhs) noexcept;
@@ -100,6 +101,7 @@ public:  // methods
     }
 
 private:  // methods
+
     void encodeCurrent(eckit::Stream& s, const int version) const;
     void encodeLegacy(eckit::Stream& s, const int version) const;
 
@@ -110,6 +112,7 @@ private:  // methods
     void json(eckit::JSON& j) const;
 
 private:  // members
+
     typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string>>> AxisMap;
     AxisMap axis_;
 

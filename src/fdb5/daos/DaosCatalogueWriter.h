@@ -24,6 +24,7 @@ namespace fdb5 {
 class DaosCatalogueWriter : public DaosCatalogue, public CatalogueWriter {
 
 public:  // methods
+
     DaosCatalogueWriter(const Key& key, const fdb5::Config& config);
     DaosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
@@ -48,6 +49,7 @@ public:  // methods
     const Index& currentIndex() override;
 
 protected:  // methods
+
     bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
@@ -61,12 +63,15 @@ protected:  // methods
     void print(std::ostream& out) const override { NOTIMP; }
 
 private:  // methods
+
     void closeIndexes();
 
 private:  // types
+
     typedef std::map<Key, Index> IndexStore;
 
 private:  // members
+
     IndexStore indexes_;
 
     Index current_;

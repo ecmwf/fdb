@@ -64,6 +64,7 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
     void encodeExtra(eckit::Stream& s) const { s << depth_; }
 
 private:
+
     int depth_{3};
 };
 
@@ -73,6 +74,7 @@ struct AxesHelper : BaseAPIHelper<fdb5::AxesElement, fdb5::remote::Message::Axes
     void encodeExtra(eckit::Stream& s) const { s << level_; }
 
 private:
+
     int level_;
 };
 

@@ -4,6 +4,7 @@ namespace {
 
 class ConnectionError : public eckit::Exception {
 public:
+
     ConnectionError();
     ConnectionError(const eckit::net::Endpoint&);
 

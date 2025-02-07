@@ -28,6 +28,7 @@ namespace tools {
 class FDBStats : public FDBVisitTool {
 
 public:  // methods
+
     FDBStats(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), details_(false) {
 
         options_.push_back(new SimpleOption<bool>("details", "Print report for each database visited"));
@@ -36,10 +37,12 @@ public:  // methods
     ~FDBStats() override {}
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
 private:  // members
+
     bool details_;
 };
 

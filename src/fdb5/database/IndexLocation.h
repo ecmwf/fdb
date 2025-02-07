@@ -24,6 +24,7 @@ namespace fdb5 {
 class IndexLocation : public eckit::Streamable {
 
 public:  // methods
+
     IndexLocation();
     ~IndexLocation() override;
 
@@ -33,15 +34,18 @@ public:  // methods
     virtual IndexLocation* clone() const = 0;
 
 private:  // methods
+
     virtual void print(std::ostream& out) const = 0;
 
 
 protected:  // For streamable
+
     void encode(eckit::Stream&) const override = 0;
 
     static eckit::ClassSpec classSpec_;
 
 private:  // friends
+
     friend std::ostream& operator<<(std::ostream& s, const IndexLocation& x) {
         x.print(s);
         return s;
@@ -53,6 +57,7 @@ private:  // friends
 class IndexLocationVisitor {
 
 public:  // methods
+
     virtual ~IndexLocationVisitor();
 
     virtual void operator()(const IndexLocation&) = 0;

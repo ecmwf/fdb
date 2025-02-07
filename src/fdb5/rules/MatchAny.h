@@ -28,6 +28,7 @@ namespace fdb5 {
 class MatchAny : public Matcher {
 
 public:  // methods
+
     MatchAny(const std::set<std::string>& values);
     MatchAny(eckit::Stream& s);
 
@@ -41,11 +42,13 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream&) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
+
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchAny> reanimator_;
 

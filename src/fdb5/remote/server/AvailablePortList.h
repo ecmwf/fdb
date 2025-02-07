@@ -33,6 +33,7 @@ namespace remote {
 class AvailablePortList {
 
 private:  // types
+
     // TODO: Cleanup with reaper
 
     struct Entry {
@@ -42,6 +43,7 @@ private:  // types
     };
 
 public:  // methods
+
     /// Create and populate the port list if it does not exist
     AvailablePortList(int startPort, size_t count);
 
@@ -58,6 +60,7 @@ public:  // methods
     void initialise();
 
 private:  // members
+
     eckit::SharedMemArray<Entry> shared_;
 
     int startPort_;

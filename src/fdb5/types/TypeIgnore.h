@@ -25,6 +25,7 @@ namespace fdb5 {
 class TypeIgnore : public Type {
 
 public:  // methods
+
     TypeIgnore(const std::string& name, const std::string& type);
 
     ~TypeIgnore() override;
@@ -35,6 +36,7 @@ public:  // methods
     std::string toKey(const std::string& value) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

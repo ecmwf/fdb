@@ -32,6 +32,7 @@ namespace fdb5::tools {
 class FdbOverlay : public FDBTool {
 
 public:  // methods
+
     FdbOverlay(int argc, char** argv) : FDBTool(argc, argv), variableKeys_{"class", "expver"} {
         options_.push_back(
             new VectorOption<std::string>("variable-keys", "The keys that may vary between mounted DBs", 0, ","));
@@ -40,11 +41,13 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void init(const CmdArgs& args);
     virtual void execute(const CmdArgs& args);
     virtual void usage(const std::string& tool) const;
 
 private:  // members
+
     std::vector<std::string> variableKeys_;
 
     bool remove_{false};

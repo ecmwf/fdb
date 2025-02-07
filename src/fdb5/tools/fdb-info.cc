@@ -27,6 +27,7 @@ namespace tools {
 class FDBInfo : public FDBTool {
 
 public:  // methods
+
     FDBInfo(int argc, char** argv) :
         FDBTool(argc, argv), all_(false), version_(false), home_(false), schema_(false), config_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Print all information"));
@@ -42,6 +43,7 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void usage(const std::string& tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
     virtual void init(const eckit::option::CmdArgs& args);

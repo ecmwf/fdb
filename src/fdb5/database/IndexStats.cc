@@ -23,6 +23,7 @@ namespace fdb5 {
 
 class NullIndexStats : public IndexStatsContent {
 public:
+
     virtual size_t fieldsCount() const { return 0; }
     virtual size_t duplicatesCount() const { return 0; }
 

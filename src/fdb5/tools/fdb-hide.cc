@@ -29,16 +29,19 @@ namespace fdb5::tools {
 
 class FdbHide : public FDBTool {
 public:  // methods
+
     FdbHide(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(new SimpleOption<bool>("doit", "Do the actual change"));
     }
 
 private:  // methods
+
     void init(const CmdArgs& args) override;
     void execute(const CmdArgs& args) override;
     void usage(const std::string& tool) const override;
 
 private:  // members
+
     bool doit_{false};
 };
 

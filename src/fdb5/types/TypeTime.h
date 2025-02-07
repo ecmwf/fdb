@@ -25,6 +25,7 @@ namespace fdb5 {
 class TypeTime : public Type {
 
 public:  // methods
+
     TypeTime(const std::string& name, const std::string& type);
 
     ~TypeTime() override;
@@ -34,6 +35,7 @@ public:  // methods
     std::string toKey(const std::string& value) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

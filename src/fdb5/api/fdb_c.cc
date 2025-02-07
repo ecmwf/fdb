@@ -45,6 +45,7 @@ struct fdb_key_t : public Key {
 
 struct fdb_request_t {
 public:
+
     fdb_request_t() : request_(metkit::mars::MarsRequest()) {}
     fdb_request_t(std::string str) { request_ = metkit::mars::MarsRequest(str); }
     size_t values(const char* name, char** values[]) {
@@ -85,6 +86,7 @@ public:
     const metkit::mars::MarsRequest request() const { return request_; }
 
 private:
+
     metkit::mars::MarsRequest request_;
 };
 
@@ -135,6 +137,7 @@ struct fdb_split_key_t {
     }
 
 private:  // members
+
     const value_type* keys_{nullptr};
 
     value_type::const_iterator level_;
@@ -144,6 +147,7 @@ private:  // members
 
 struct fdb_listiterator_t {
 public:
+
     fdb_listiterator_t(ListIterator&& iter) : iter_(std::move(iter)), validEl_(false) {}
 
     int next() {
@@ -172,6 +176,7 @@ public:
     }
 
 private:
+
     ListIterator iter_;
     bool validEl_;
     ListElement el_;
@@ -179,6 +184,7 @@ private:
 
 struct fdb_datareader_t {
 public:
+
     long open() {
         ASSERT(dh_);
         return dh_->openForRead();
@@ -213,6 +219,7 @@ public:
     }
 
 private:
+
     DataHandle* dh_;
 };
 

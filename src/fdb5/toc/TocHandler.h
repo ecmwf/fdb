@@ -67,6 +67,7 @@ class TocCopyWatcher : public eckit::TransferWatcher {
     }
 
 public:
+
     TocCopyWatcher() : idx_(0) {}
 
     size_t size() const { return tocCopyStats_.size(); }
@@ -83,6 +84,7 @@ public:
     }
 
 private:
+
     eckit::Timer timer_;
     double time_;
 
@@ -95,10 +97,12 @@ private:
 class TocHandler : public TocCommon, private eckit::NonCopyable {
 
 public:  // typedefs
+
     typedef std::vector<TocRecord> TocVec;
     typedef std::vector<eckit::LocalPathName> TocPaths;
 
 public:  // methods
+
     TocHandler(const eckit::PathName& dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
@@ -148,6 +152,7 @@ public:  // methods
     std::vector<eckit::PathName> lockfilePaths() const;
 
 protected:  // methods
+
     size_t tocFilesSize() const;
 
 
@@ -158,16 +163,19 @@ protected:  // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private:  // methods
+
     eckit::LocalPathName fullControlFilePath(const std::string& name) const;
     void createControlFile(const std::string& name) const;
     void removeControlFile(const std::string& name) const;
 
-protected:                   // members
+protected:  // members
+
     mutable Key parentKey_;  // Contains the key of the first TOC explored in subtoc chain
 
     uid_t dbUID() const override;
 
 protected:  // methods
+
     // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::LocalPathName& currentDirectory() const;
     const eckit::LocalPathName& currentTocPath() const;
@@ -190,6 +198,7 @@ protected:  // methods
     const TocSerialisationVersion& serialisationVersion() const;
 
 private:  // methods
+
     friend class TocHandlerCloser;
 
     void openForAppend();
@@ -230,6 +239,7 @@ private:  // methods
     void dumpTocCache() const;
 
 private:  // members
+
     eckit::LocalPathName tocPath_;
     Config dbConfig_;
 

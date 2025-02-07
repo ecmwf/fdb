@@ -36,6 +36,7 @@ class TocAddIndex;
 class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public:  // methods
+
     TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
@@ -63,6 +64,7 @@ public:  // methods
     size_t archivedLocations() const override { return archivedLocations_; }
 
 protected:  // methods
+
     bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
@@ -77,6 +79,7 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // methods
+
     void closeIndexes();
     void flushIndexes();
     void compactSubTocIndexes();
@@ -84,11 +87,13 @@ private:  // methods
     eckit::PathName generateIndexPath(const Key& key) const;
 
 private:  // types
+
     typedef std::map<std::string, eckit::DataHandle*> HandleStore;
     typedef std::map<Key, Index> IndexStore;
     typedef std::map<Key, std::string> PathStore;
 
-private:                   // members
+private:  // members
+
     HandleStore handles_;  ///< stores the DataHandles being used by the Session
 
     // If we have multiple flush statements, then the indexes get repeatedly reset. Build and maintain

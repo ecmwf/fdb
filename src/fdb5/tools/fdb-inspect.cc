@@ -62,6 +62,7 @@ void inspect(const Config& config, const MarsRequest& request, bool output) {
 
 class FDBInspectTool : public FDBVisitTool {
 public:  // methods
+
     FDBInspectTool(int argc, char** argv) : FDBVisitTool(argc, argv, "") {
         using eckit::option::SimpleOption;
         options_.push_back(new SimpleOption<bool>("output", "Print the output of the inspection"));
@@ -69,6 +70,7 @@ public:  // methods
     }
 
 private:  // methods
+
     void init(const eckit::option::CmdArgs& args) override;
 
     void execute(const eckit::option::CmdArgs& args) override;

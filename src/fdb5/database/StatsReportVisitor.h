@@ -25,6 +25,7 @@ namespace fdb5 {
 class StatsReportVisitor : public EntryVisitor {
 
 public:  // methods
+
     using EntryVisitor::EntryVisitor;
 
     virtual IndexStats indexStatistics() const = 0;

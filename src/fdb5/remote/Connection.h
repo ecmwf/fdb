@@ -36,6 +36,7 @@ namespace fdb5::remote {
 
 class TCPException : public eckit::Exception {
 public:
+
     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
         eckit::Exception(std::string("TCPException: ") + msg, here) {
 
@@ -49,9 +50,11 @@ public:
 class Connection : eckit::NonCopyable {
 
 public:  // types
+
     using PayloadList = std::vector<Payload>;
 
 public:  // methods
+
     Connection();
 
     virtual ~Connection() = default;
@@ -72,6 +75,7 @@ public:  // methods
     void teardown();
 
 private:  // methods
+
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
@@ -83,9 +87,11 @@ private:  // methods
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
 
 protected:  // members
+
     bool single_;
 
 private:  // members
+
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
     mutable std::mutex readControlMutex_;

@@ -55,6 +55,7 @@ class FDBHammer : public fdb5::FDBTool {
     void executeList(const eckit::option::CmdArgs& args);
 
 public:
+
     FDBHammer(int argc, char** argv) : fdb5::FDBTool(argc, argv), verbose_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
@@ -75,6 +76,7 @@ public:
     ~FDBHammer() override {}
 
 private:
+
     bool verbose_;
 };
 

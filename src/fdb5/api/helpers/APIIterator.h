@@ -39,6 +39,7 @@ template <typename ValueType>
 class APIIteratorBase {
 
 public:  // methods
+
     APIIteratorBase() {}
     virtual ~APIIteratorBase() {}
 
@@ -51,9 +52,11 @@ template <typename ValueType>
 class APIIterator {
 
 public:  // types
+
     using value_type = ValueType;
 
 public:  // methods
+
     APIIterator(APIIteratorBase<ValueType>* impl) : impl_(impl) {}
 
     /// Get the next element. Return false if at end
@@ -64,6 +67,7 @@ public:  // methods
     }
 
 private:  // members
+
     std::unique_ptr<APIIteratorBase<ValueType>> impl_;
 };
 
@@ -75,6 +79,7 @@ template <typename ValueType>
 class APIAggregateIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
+
     APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) : iterators_(std::move(iterators)) {}
 
     ~APIAggregateIterator() override {}
@@ -93,6 +98,7 @@ public:  // methods
     }
 
 private:  // members
+
     std::queue<APIIterator<ValueType>> iterators_;
 };
 
@@ -110,6 +116,7 @@ template <typename ValueType>
 class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
+
     APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn, size_t queueSize = 100) :
         queue_(queueSize) {
 
@@ -139,6 +146,7 @@ public:  // methods
     bool next(ValueType& elem) override { return !(queue_.pop(elem) == -1); }
 
 private:  // members
+
     eckit::Queue<ValueType> queue_;
 
     std::thread workerThread_;

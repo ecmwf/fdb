@@ -27,6 +27,7 @@ namespace fdb5 {
 
 class RadosFieldLocation : public FieldLocation {
 public:
+
     RadosFieldLocation(const RadosFieldLocation& rhs);
     RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     RadosFieldLocation(const eckit::URI& uri);
@@ -38,14 +39,17 @@ public:
     void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
+
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected:  // For Streamable
+
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RadosFieldLocation> reanimator_;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
     eckit::URI uri(const eckit::PathName& path);
 };

@@ -28,6 +28,7 @@ namespace fdb5 {
 
 class IndexStatsContent : public eckit::Counted, public eckit::Statistics, public eckit::Streamable {
 public:
+
     ~IndexStatsContent() override;
 
     virtual size_t fieldsCount() const     = 0;
@@ -47,9 +48,11 @@ public:
     virtual void report(std::ostream& out, const char* indent) const = 0;
 
 public:  // For Streamable
+
     void encode(eckit::Stream& s) const override = 0;
 
 protected:  // For Streamable
+
     static eckit::ClassSpec classSpec_;
 };
 
@@ -60,6 +63,7 @@ protected:  // For Streamable
 class IndexStats {
 
 public:  // methods
+
     IndexStats();
     IndexStats(IndexStatsContent*);
 
@@ -93,6 +97,7 @@ public:  // methods
     //    }
 
 private:  // methods
+
     void print(std::ostream&) const;
     void encode(eckit::Stream& s) const;
 
@@ -107,6 +112,7 @@ private:  // methods
     }
 
 private:  // members
+
     IndexStatsContent* content_;
 };
 

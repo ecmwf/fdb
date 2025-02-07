@@ -27,16 +27,19 @@ namespace tools {
 
 class FDBWhere : public FDBVisitTool {
 public:  // methods
+
     FDBWhere(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
     }
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
 private:  // members
+
     bool porcelain_;
 };
 

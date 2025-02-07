@@ -37,6 +37,7 @@ namespace local {
 class WipeVisitor : public QueryVisitor<WipeElement> {
 
 public:  // methods
+
     WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
                 bool unsafeWipeAll);
 
@@ -53,6 +54,7 @@ public:  // methods
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
 private:  // members
+
     eckit::Channel out_;
     bool doit_;
     bool porcelain_;

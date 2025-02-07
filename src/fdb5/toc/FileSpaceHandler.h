@@ -34,6 +34,7 @@ class FileSpaceHandlerInstance;
 class FileSpaceHandler : private eckit::NonCopyable {
 
 public:  // methods
+
     static const FileSpaceHandler& lookup(const std::string& name);
     static void regist(const std::string& name, FileSpaceHandlerInstance* h);
     static void unregist(const std::string& name);
@@ -43,6 +44,7 @@ public:  // methods
     virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const = 0;
 
 protected:  // methods
+
     FileSpaceHandler();
 };
 
@@ -50,14 +52,17 @@ protected:  // methods
 
 class FileSpaceHandlerInstance {
 public:
+
     const FileSpaceHandler& get();
 
 protected:
+
     FileSpaceHandlerInstance(const std::string& name);
 
     virtual ~FileSpaceHandlerInstance();
 
 private:
+
     virtual FileSpaceHandler* make() const = 0;
 
     std::string name_;
@@ -67,9 +72,11 @@ private:
 template <class T>
 class FileSpaceHandlerRegister : public FileSpaceHandlerInstance {
 public:
+
     FileSpaceHandlerRegister(const std::string& name) : FileSpaceHandlerInstance(name) {}
 
 private:
+
     FileSpaceHandler* make() const override { return new T(); }
 };
 

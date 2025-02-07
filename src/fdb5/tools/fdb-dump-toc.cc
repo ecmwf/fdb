@@ -21,6 +21,7 @@ using namespace eckit;
 class FDBDumpToc : public fdb5::FDBTool {
 
 public:  // methods
+
     FDBDumpToc(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
         // FDBDumpToc does not require to read the configuration
         needsConfig_ = false;
@@ -29,6 +30,7 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void usage(const std::string& tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
 };

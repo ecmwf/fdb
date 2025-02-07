@@ -31,9 +31,11 @@ namespace fdb5 {
 class RandomFDBBuilder : public FDBBuilderBase {
 
 public:  // methods
+
     RandomFDBBuilder() : FDBBuilderBase("random") {}
 
 private:
+
     std::unique_ptr<FDBBase> make(const Config& config) const {
 
         // Get a list of FDBs to choose between

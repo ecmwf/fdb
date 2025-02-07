@@ -26,6 +26,7 @@ namespace tools {
 class FDBWipe : public FDBVisitTool {
 
 public:  // methods
+
     FDBWipe(int argc, char** argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false),
@@ -41,12 +42,14 @@ public:  // methods
     }
 
 private:  // methods
+
     virtual void usage(const std::string& tool) const;
     virtual void init(const CmdArgs& args);
     virtual void execute(const CmdArgs& args);
     virtual void finish(const CmdArgs& args);
 
 private:  // members
+
     bool doit_;
     bool ignoreNoData_;
     bool porcelain_;

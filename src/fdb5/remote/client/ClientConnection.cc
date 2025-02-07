@@ -37,6 +37,7 @@ namespace fdb5::remote {
 class DataWriteRequest {
 
 public:
+
     DataWriteRequest() : client_(nullptr), msg_(Message::None), id_(0), data_(eckit::Buffer(0)) {}
 
     DataWriteRequest(Client* client, Message msg, uint32_t id, eckit::Buffer&& data) :

@@ -25,16 +25,19 @@ namespace fdb5 {
 class TocMoveVisitor : public MoveVisitor {
 
 public:
+
     TocMoveVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
                    const eckit::URI& dest, eckit::Queue<MoveElement>& queue);
     ~TocMoveVisitor() override;
 
 private:  // methods
+
     bool visitDatabase(const Catalogue& catalogue) override;
 
     void move();
 
 private:  // members
+
     // What are the parameters of the move operation
     const TocCatalogue& catalogue_;
     const Store& store_;

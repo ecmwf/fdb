@@ -26,16 +26,19 @@ namespace tools {
 class FDBDump : public FDBVisitTool {
 
 public:  // methods
+
     FDBDump(int argc, char** argv) : FDBVisitTool(argc, argv), simple_(false) {
 
         options_.push_back(new SimpleOption<bool>("simple", "Dump one (simpler) record per line"));
     }
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
 private:  // members
+
     bool simple_;
 };
 

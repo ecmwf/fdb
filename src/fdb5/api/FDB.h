@@ -62,6 +62,7 @@ class Key;
 class FDB {
 
 public:  // methods
+
     FDB(const Config& config = Config().expandConfig());
     ~FDB();
 
@@ -144,6 +145,7 @@ public:  // methods
     bool disabled() const;
 
 private:  // methods
+
     void print(std::ostream&) const;
 
     friend std::ostream& operator<<(std::ostream& s, const FDB& f) {
@@ -154,6 +156,7 @@ private:  // methods
     bool sorted(const metkit::mars::MarsRequest& request);
 
 private:  // members
+
     std::unique_ptr<FDBBase> internal_;
 
     bool dirty_;

@@ -23,6 +23,7 @@ namespace fdb5 {
 
 class NullDbStats : public DbStatsContent {
 public:
+
     virtual void add(const DbStatsContent&) { NOTIMP; }
 
     virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }

@@ -37,6 +37,7 @@ class TypesRegistry;
 class Matcher : public eckit::Streamable {
 
 public:  // methods
+
     Matcher() = default;
 
     Matcher(eckit::Stream& stream);
@@ -61,11 +62,13 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream& out) const override;
 
     virtual void print(std::ostream& out) const = 0;
 
 private:  // members
+
     // streamable
 
     static eckit::ClassSpec classSpec_;

@@ -39,6 +39,7 @@ namespace fdb5 {
 
 class TocDbStats : public DbStatsContent {
 public:
+
     TocDbStats();
     TocDbStats(eckit::Stream& s);
 
@@ -64,9 +65,11 @@ public:
     void report(std::ostream& out, const char* indent) const override;
 
 public:  // For Streamable
+
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected:  // For Streamable
+
     void encode(eckit::Stream&) const override;
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
@@ -80,6 +83,7 @@ protected:  // For Streamable
 
 class TocIndexStats : public IndexStatsContent {
 public:
+
     TocIndexStats();
     TocIndexStats(eckit::Stream& s);
 
@@ -120,9 +124,11 @@ public:
     void report(std::ostream& out, const char* indent = "") const override;
 
 public:  // For Streamable
+
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected:  // For Streamable
+
     void encode(eckit::Stream&) const override;
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
@@ -136,6 +142,7 @@ protected:  // For Streamable
 
 class TocDataStats : public DataStatsContent {
 public:
+
     TocDataStats();
 
     std::set<eckit::PathName> allDataFiles_;
@@ -155,6 +162,7 @@ public:
 
 class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
+
     TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced = true);
     ~TocStatsReportVisitor() override;
 
@@ -162,6 +170,7 @@ public:
     DbStats dbStatistics() const override;
 
 private:  // methods
+
     bool visitDatabase(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
 
@@ -172,6 +181,7 @@ private:  // methods
 
 
 protected:  // members
+
     eckit::PathName directory_;
 
     // Use of unordered_set/unordered_map is significant here from a performance perspective

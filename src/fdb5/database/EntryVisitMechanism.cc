@@ -32,6 +32,7 @@ namespace fdb5 {
 
 class FDBVisitException : public eckit::Exception {
 public:
+
     using Exception::Exception;
 };
 

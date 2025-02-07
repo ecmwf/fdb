@@ -39,6 +39,7 @@ class Notifier;
 class Type : private eckit::NonCopyable {
 
 public:  // methods
+
     Type(const std::string& name, const std::string& type, const std::string& alias = "");
 
     virtual ~Type() = default;
@@ -57,14 +58,17 @@ public:  // methods
     friend std::ostream& operator<<(std::ostream& s, const Type& x);
 
 public:  // class methods
+
     static const Type& lookup(const std::string& keyword);
 
     const std::string& type() const;
 
 private:  // methods
+
     virtual void print(std::ostream& out) const = 0;
 
 protected:  // members
+
     std::string name_;
     std::string type_;
     std::string alias_;

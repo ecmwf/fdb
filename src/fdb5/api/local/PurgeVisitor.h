@@ -37,6 +37,7 @@ namespace local {
 
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
+
     PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                  bool porcelain);
 
@@ -49,6 +50,7 @@ public:
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
 private:  // members
+
     eckit::Channel out_;
     bool doit_;
     bool porcelain_;

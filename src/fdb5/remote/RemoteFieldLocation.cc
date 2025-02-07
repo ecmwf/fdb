@@ -144,6 +144,7 @@ class FdbURIManager : public eckit::URIManager {
     }
 
 public:
+
     FdbURIManager(const std::string& name) : eckit::URIManager(name) {}
 };
 

@@ -18,6 +18,7 @@ namespace fdb5 {
 
 class NullDataStats : public DataStatsContent {
 public:
+
     virtual void add(const DataStatsContent&) { NOTIMP; }
 
     virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }

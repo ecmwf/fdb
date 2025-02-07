@@ -28,6 +28,7 @@ namespace fdb5 {
 class DaosCatalogue : public CatalogueImpl, public DaosCommon {
 
 public:  // methods
+
     DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
@@ -68,9 +69,11 @@ public:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
 
 protected:  // members
+
     Key currentIndexKey_;
 
 private:  // members
+
     Schema schema_;
     const RuleDatabase* rule_{nullptr};
 };

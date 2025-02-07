@@ -31,6 +31,7 @@ namespace fdb5 {
 
 class Store {
 public:
+
     Store() {}
 
     virtual ~Store() = default;
@@ -80,6 +81,7 @@ class StoreBuilderBase {
     std::string name_;
 
 public:
+
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
@@ -92,12 +94,14 @@ class StoreBuilder : public StoreBuilderBase {
     }
 
 public:
+
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
     virtual ~StoreBuilder() = default;
 };
 
 class StoreFactory {
 public:
+
     static StoreFactory& instance();
 
     void add(const std::string& name, StoreBuilderBase* builder);
@@ -112,6 +116,7 @@ public:
     std::unique_ptr<Store> build(const Key& key, const Config& config);
 
 private:
+
     StoreFactory();
 
     std::map<std::string, StoreBuilderBase*> builders_;

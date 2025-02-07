@@ -29,6 +29,7 @@ namespace fdb5 {
 class MatchHidden : public Matcher {
 
 public:  // methods
+
     MatchHidden(std::string def);
 
     MatchHidden(eckit::Stream& s);
@@ -43,6 +44,7 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream& stream) const override;
 
     bool optional() const override { return true; }
@@ -55,6 +57,7 @@ private:  // methods
     void print(std::ostream& out) const override;
 
 private:  // members
+
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchHidden> reanimator_;
 

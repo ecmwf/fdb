@@ -186,6 +186,7 @@ struct AxesHelper : public BaseHelper<AxesElement> {
     AxesIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.axesIterator(request, level_); }
 
 private:
+
     int level_;
 };
 

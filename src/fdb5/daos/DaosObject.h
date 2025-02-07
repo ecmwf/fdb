@@ -39,6 +39,7 @@ class DaosObject {
     friend DaosContainer;
 
 public:  // methods
+
     DaosObject(DaosObject&&) noexcept;
     DaosObject(const DaosObject&) = default;
 
@@ -58,12 +59,15 @@ public:  // methods
     fdb5::DaosContainer& getContainer() const;
 
 protected:  // methods
+
     DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&);
 
 private:  // methods
+
     virtual void create() = 0;
 
 protected:  // members
+
     fdb5::DaosContainer& cont_;
     fdb5::DaosOID oid_;
     daos_handle_t oh_;
@@ -75,6 +79,7 @@ class DaosArray : public DaosObject {
     friend DaosContainer;
 
 public:  // methods
+
     DaosArray(DaosArray&&) noexcept;
 
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&);
@@ -94,6 +99,7 @@ public:  // methods
     uint64_t read(void*, uint64_t, const eckit::Offset&);
 
 private:  // methods
+
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
@@ -104,6 +110,7 @@ class DaosKeyValue : public DaosObject {
     friend DaosContainer;
 
 public:  // methods
+
     DaosKeyValue(DaosKeyValue&&) noexcept;
 
     DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&);
@@ -131,6 +138,7 @@ public:  // methods
                                         const std::string& kvTitle = "kv");
 
 private:  // methods
+
     DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;

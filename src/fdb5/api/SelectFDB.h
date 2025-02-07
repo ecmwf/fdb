@@ -35,9 +35,11 @@ namespace fdb5 {
 class SelectFDB : public FDBBase {
 
 private:  // types
+
     using SelectMap = std::map<std::string, eckit::Regex>;
 
 public:  // methods
+
     using FDBBase::stats;
 
     SelectFDB(const Config& config, const std::string& name);
@@ -70,6 +72,7 @@ public:  // methods
     void flush() override;
 
 private:  // methods
+
     void print(std::ostream& s) const override;
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
@@ -79,6 +82,7 @@ private:  // methods
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
 private:  // members
+
     std::vector<std::pair<SelectMap, FDB>> subFdbs_;
 };
 

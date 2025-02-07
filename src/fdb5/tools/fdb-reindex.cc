@@ -29,6 +29,7 @@ namespace fdb5::tools {
 
 class FDBReindex : public FDBVisitTool {
 public:  // methods
+
     FDBReindex(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {
         options_.push_back(new SimpleOption<bool>(
             "porcelain", "Streamlined and stable output. Useful as input for other tools or scripts."));
@@ -40,7 +41,9 @@ public:  // methods
     }
 
 protected:
+
 private:
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 

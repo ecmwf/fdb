@@ -34,6 +34,7 @@ class FDB;
 class LocalFDB : public FDBBase {
 
 public:  // methods
+
     using FDBBase::FDBBase;
     using FDBBase::stats;
 
@@ -65,13 +66,16 @@ public:  // methods
     void flush() override;
 
 protected:  // methods
+
     template <typename VisitorType, typename... Ts>
     APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts... args);
 
 private:  // methods
+
     void print(std::ostream& s) const override;
 
 protected:  // members
+
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;

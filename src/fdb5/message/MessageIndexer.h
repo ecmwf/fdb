@@ -32,6 +32,7 @@ namespace fdb5 {
 class MessageIndexer : public Archiver, public MessageDecoder {
 
 public:  // methods
+
     MessageIndexer(bool checkDuplicates = false);
 
     void index(const eckit::PathName& path);

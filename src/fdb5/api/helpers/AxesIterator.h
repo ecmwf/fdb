@@ -28,6 +28,7 @@ namespace fdb5 {
 
 class AxesElement {
 public:  // methods
+
     AxesElement() = default;
     AxesElement(Key&& dbKey, IndexAxis&& axis);
     explicit AxesElement(eckit::Stream& s);
@@ -46,6 +47,7 @@ public:  // methods
     size_t encodeSize() const;
 
 private:  // methods
+
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const AxesElement& e) {
@@ -59,6 +61,7 @@ private:  // methods
     }
 
 private:  // members
+
     Key dbKey_;
     IndexAxis axes_;
 };

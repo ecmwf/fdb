@@ -40,9 +40,11 @@ class Rule;
 
 class Key : public BaseKey {
 public:  // factory
+
     static Key parse(const std::string& keyString);
 
 public:  // methods
+
     using BaseKey::BaseKey;
 
     std::string type() const override { return "Key"; }
@@ -70,6 +72,7 @@ public:  // methods
 
 class TypedKey : public BaseKey {
 public:  // methods
+
     explicit TypedKey(const TypesRegistry& reg) : registry_{reg} {}
 
     // RULES
@@ -86,6 +89,7 @@ public:  // methods
     Key canonical() const;
 
 private:  // members
+
     const TypesRegistry& registry_;
 };
 

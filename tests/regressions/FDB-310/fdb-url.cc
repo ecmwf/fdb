@@ -32,6 +32,7 @@ class FDBUrl : public fdb5::FDBTool {
     virtual int numberOfPositionalArguments() const { return 2; }
 
 public:
+
     FDBUrl(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("uri", "Inspect -> URI -> Read"));
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));

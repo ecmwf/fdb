@@ -42,6 +42,7 @@ namespace fdb5::tools {
 
 class FDBList : public FDBVisitTool {
 public:  // methods
+
     FDBList(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
@@ -57,6 +58,7 @@ public:  // methods
     }
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 

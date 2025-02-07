@@ -47,6 +47,7 @@ typedef std::map<Key, Index> IndexStore;
 
 class Catalogue {
 public:
+
     Catalogue()          = default;
     virtual ~Catalogue() = default;
 
@@ -105,11 +106,13 @@ public:
     virtual eckit::URI uri() const = 0;
 
 protected:  // methods
+
     virtual void loadSchema() = 0;
 };
 
 class CatalogueImpl : virtual public Catalogue {
 public:
+
     CatalogueImpl(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config) :
         dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
@@ -126,9 +129,11 @@ public:
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
 protected:  // methods
+
     CatalogueImpl() : dbKey_(Key()), config_(Config()), controlIdentifiers_(ControlIdentifiers()) {}
 
 protected:  // members
+
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
@@ -137,6 +142,7 @@ protected:  // members
 class CatalogueReader : virtual public Catalogue {
 
 public:
+
     ~CatalogueReader() override {}
 
     virtual DbStats stats() const = 0;
@@ -149,6 +155,7 @@ public:
 class CatalogueWriter : virtual public Catalogue {
 
 public:
+
     ~CatalogueWriter() override {}
 
     virtual const Index& currentIndex() = 0;
@@ -168,6 +175,7 @@ class CatalogueReaderBuilderBase {
     std::string name_;
 
 public:
+
     CatalogueReaderBuilderBase(const std::string&);
     virtual ~CatalogueReaderBuilderBase();
     virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config)  = 0;
@@ -184,12 +192,14 @@ class CatalogueReaderBuilder : public CatalogueReaderBuilderBase {
     }
 
 public:
+
     CatalogueReaderBuilder(const std::string& name) : CatalogueReaderBuilderBase(name) {}
     virtual ~CatalogueReaderBuilder() = default;
 };
 
 class CatalogueReaderFactory {
 public:
+
     static CatalogueReaderFactory& instance();
 
     void add(const std::string& name, CatalogueReaderBuilderBase* builder);
@@ -204,6 +214,7 @@ public:
     std::unique_ptr<CatalogueReader> build(const eckit::URI& uri, const Config& config);
 
 private:
+
     CatalogueReaderFactory();
 
     std::map<std::string, CatalogueReaderBuilderBase*> builders_;
@@ -216,6 +227,7 @@ class CatalogueWriterBuilderBase {
     std::string name_;
 
 public:
+
     CatalogueWriterBuilderBase(const std::string&);
     virtual ~CatalogueWriterBuilderBase();
     virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config)  = 0;
@@ -232,12 +244,14 @@ class CatalogueWriterBuilder : public CatalogueWriterBuilderBase {
     }
 
 public:
+
     CatalogueWriterBuilder(const std::string& name) : CatalogueWriterBuilderBase(name) {}
     virtual ~CatalogueWriterBuilder() = default;
 };
 
 class CatalogueWriterFactory {
 public:
+
     static CatalogueWriterFactory& instance();
 
     void add(const std::string& name, CatalogueWriterBuilderBase* builder);
@@ -252,6 +266,7 @@ public:
     std::unique_ptr<CatalogueWriter> build(const eckit::URI& uri, const Config& config);
 
 private:
+
     CatalogueWriterFactory();
 
     std::map<std::string, CatalogueWriterBuilderBase*> builders_;
@@ -260,6 +275,7 @@ private:
 
 class NullCatalogue : public Catalogue {
 public:
+
     const Key& key() const override { NOTIMP; }
     const Key& indexKey() const override { NOTIMP; }
     const Config& config() const override { NOTIMP; }
@@ -321,6 +337,7 @@ public:
     eckit::URI uri() const override { NOTIMP; }
 
 protected:  // methods
+
     void loadSchema() override { NOTIMP; }
 };
 

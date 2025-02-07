@@ -27,9 +27,11 @@ class Rule;
 class TocEngine : public fdb5::Engine {
 
 public:  // methods
+
     static const char* typeName() { return "toc"; }
 
 private:  // methods
+
     std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys,
                                                      const std::vector<eckit::PathName>& dirs,
                                                      const Config& config) const;
@@ -43,6 +45,7 @@ private:  // methods
     void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
 
 protected:  // methods
+
     std::string name() const override;
 
     std::string dbType() const override;

@@ -32,6 +32,7 @@ namespace fdb5 {
 
 class Report : private eckit::NonCopyable {
 public:
+
     typedef std::string dbtype_t;
 
     ~Report();
@@ -43,6 +44,7 @@ public:
     Report& operator+=(const Report& rhs);
 
 private:  // methods
+
     void print(std::ostream&) const;
 
     friend std::ostream& operator<<(std::ostream& s, const Report& o) {
@@ -51,6 +53,7 @@ private:  // methods
     }
 
 private:  // members
+
     std::set<dbtype_t> dbtypes_;
 
     std::map<dbtype_t, fdb5::DbStats> dbStats_;

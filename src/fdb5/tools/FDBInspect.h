@@ -28,6 +28,7 @@ namespace fdb5 {
 class FDBInspect : public FDBTool {
 
 protected:  // methods
+
     FDBInspect(int argc, char** argv, std::string minimunKeys = std::string());
 
     virtual void usage(const std::string& tool) const;
@@ -39,9 +40,11 @@ protected:  // methods
     bool fail() const;
 
 private:  // methods
+
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
 protected:  // members
+
     // minimum set of keys needed to execute a query
     // these are used for safety to restrict the search space for the visitors
     std::vector<std::string> minimumKeys_;

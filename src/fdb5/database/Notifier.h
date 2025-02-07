@@ -25,6 +25,7 @@ namespace fdb5 {
 class Notifier {
 
 public:  // methods
+
     Notifier();
 
     virtual ~Notifier();

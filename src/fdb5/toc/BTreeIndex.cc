@@ -27,14 +27,17 @@ template <int KEYSIZE, int RECSIZE, typename PAYLOAD>
 class TBTreeIndex : public BTreeIndex {
 
 public:  // types
+
     typedef eckit::FixedString<KEYSIZE> BTreeKey;
     typedef eckit::BTree<BTreeKey, PAYLOAD, RECSIZE> BTreeStore;
 
 public:  // methods
+
     TBTreeIndex(const eckit::PathName& path, bool readOnly, off_t offset);
     ~TBTreeIndex();
 
 private:  // methods
+
     virtual bool get(const std::string& key, FieldRef& data) const;
     virtual bool set(const std::string& key, const FieldRef& data);
     virtual void flush();
@@ -45,6 +48,7 @@ private:  // methods
     virtual void preload();
 
 private:  // members
+
     mutable BTreeStore btree_;
 };
 
@@ -102,6 +106,7 @@ class TBTreeIndexVisitor {
     BTreeIndexVisitor& visitor_;
 
 public:
+
     TBTreeIndexVisitor(BTreeIndexVisitor& visitor) : visitor_(visitor) {}
 
     // BTree::range() expect a STL like collection

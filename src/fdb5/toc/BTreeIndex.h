@@ -34,12 +34,14 @@ class FieldRef;
 
 class BTreeIndexVisitor {
 public:
+
     virtual ~BTreeIndexVisitor();
     virtual void visit(const std::string& key, const FieldRef&) = 0;
 };
 
 class BTreeIndex {
 public:
+
     virtual ~BTreeIndex();
     virtual bool get(const std::string& key, FieldRef& data) const = 0;
     virtual bool set(const std::string& key, const FieldRef& data) = 0;
@@ -61,12 +63,14 @@ class BTreeIndexFactory {
     virtual BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0;
 
 protected:
+
     BTreeIndexFactory(const std::string&);
     virtual ~BTreeIndexFactory();
 
     std::string name_;
 
 public:
+
     static void list(std::ostream&);
     static BTreeIndex* build(const std::string& name, const eckit::PathName& path, bool readOnly, off_t offset);
 };
@@ -82,6 +86,7 @@ class BTreeIndexBuilder : public BTreeIndexFactory {
     }
 
 public:
+
     BTreeIndexBuilder(const std::string& name) : BTreeIndexFactory(name) {}
 };
 

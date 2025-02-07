@@ -147,10 +147,12 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     class ConsolidateIndexVisitor : public EntryVisitor {
     public:
+
         ConsolidateIndexVisitor(TocCatalogueWriter& writer) : writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
 
     private:
+
         void visitDatum(const Field& field, const Key& datumKey) override {
             /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.

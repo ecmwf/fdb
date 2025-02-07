@@ -25,6 +25,7 @@ namespace tools {
 class FDBVisitTool : public FDBTool {
 
 protected:  // methods
+
     FDBVisitTool(int argc, char** argv, std::string minimunKeys = std::string());
     ~FDBVisitTool() override;
 
@@ -39,6 +40,7 @@ protected:  // methods
     std::vector<FDBToolRequest> requests(const std::string& verb = "retrieve") const;
 
 private:  // members
+
     // minimum set of keys needed to execute a query
     // these are used for safety to restrict the search space for the visitors
     std::vector<std::string> minimumKeys_;

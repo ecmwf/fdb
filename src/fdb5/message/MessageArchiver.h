@@ -38,6 +38,7 @@ namespace fdb5 {
 class MessageArchiver : public MessageDecoder {
 
 public:  // methods
+
     MessageArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false,
                     const Config& config = Config().expandConfig());
 
@@ -49,11 +50,13 @@ public:  // methods
     void flush();
 
 private:  // protected
+
     bool filterOut(const Key& k) const;
 
     eckit::message::Message transform(eckit::message::Message&);
 
 private:  // members
+
     FDB fdb_;
 
     fdb5::Key key_;

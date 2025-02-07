@@ -63,6 +63,7 @@ class FDBToolRequest;
 class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
 
 public:  // methods
+
     FDBBase(const Config& config, const std::string& name);
     virtual ~FDBBase();
 
@@ -113,6 +114,7 @@ public:  // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private:  // methods
+
     virtual void print(std::ostream& s) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s, const FDBBase& f) {
@@ -121,6 +123,7 @@ private:  // methods
     }
 
 protected:  // members
+
     const std::string name_;
 
     Config config_;
@@ -136,6 +139,7 @@ class FDBBuilderBase;
 
 class FDBFactory {
 public:
+
     static FDBFactory& instance();
 
     void add(const std::string& name, const FDBBuilderBase*);
@@ -143,6 +147,7 @@ public:
     std::unique_ptr<FDBBase> build(const Config& config);
 
 private:
+
     FDBFactory() {}  ///< private constructor only used by singleton
 
     eckit::Mutex mutex_;
@@ -153,14 +158,17 @@ private:
 
 class FDBBuilderBase {
 public:  // methods
+
     virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
 
 protected:  // methods
+
     FDBBuilderBase(const std::string& name);
 
     virtual ~FDBBuilderBase();
 
 protected:  // members
+
     std::string name_;
 };
 
@@ -172,9 +180,11 @@ class FDBBuilder : public FDBBuilderBase {
                   "FDB Factorys can only build implementations of the FDB interface");
 
 public:  // methods
+
     FDBBuilder(const std::string& name) : FDBBuilderBase(name) {}
 
 private:  // methods
+
     std::unique_ptr<FDBBase> make(const Config& config) const override {
         return std::unique_ptr<T>(new T(config, name_));
     }

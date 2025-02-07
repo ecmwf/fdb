@@ -35,6 +35,7 @@ namespace local {
 
 class StatsVisitor : public QueryVisitor<StatsElement> {
 public:
+
     using QueryVisitor<StatsElement>::QueryVisitor;
 
     bool visitDatabase(const Catalogue& catalogue) override;
@@ -46,6 +47,7 @@ public:
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
 private:  // members
+
     std::unique_ptr<StatsReportVisitor> internalVisitor_;
 };
 

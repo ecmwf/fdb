@@ -22,6 +22,7 @@
 class FdbMonitor : public eckit::Application, public eckit::CmdApplication {
 
 public:
+
     FdbMonitor(int argc, char** argv) : Application(argc, argv, "FDB_HOME") {}
 
     virtual void run() { eckit::CmdApplication::execute(); }

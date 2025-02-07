@@ -25,6 +25,7 @@ namespace fdb5 {
 class TypeClimateDaily : public Type {
 
 public:  // methods
+
     TypeClimateDaily(const std::string& name, const std::string& type);
 
     ~TypeClimateDaily() override;
@@ -37,6 +38,7 @@ public:  // methods
     virtual bool match(const std::string&, const std::string& value1, const std::string& value2) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

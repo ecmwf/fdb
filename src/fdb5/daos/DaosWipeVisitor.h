@@ -23,11 +23,13 @@ namespace fdb5 {
 class DaosWipeVisitor : public WipeVisitor {
 
 public:
+
     DaosWipeVisitor(const DaosCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
                     std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll);
     ~DaosWipeVisitor() override;
 
 private:  // methods
+
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
@@ -41,6 +43,7 @@ private:  // methods
     void wipe(bool wipeAll);
 
 private:  // members
+
     // What are the parameters of the wipe operation
     const DaosCatalogue& catalogue_;
     const Store& store_;

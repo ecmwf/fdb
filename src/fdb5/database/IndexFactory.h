@@ -38,12 +38,14 @@ class BTreeIndexFactory {
     virtual BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0;
 
 protected:
+
     BTreeIndexFactory(const std::string&);
     virtual ~BTreeIndexFactory();
 
     std::string name_;
 
 public:
+
     static void list(std::ostream&);
     static BTreeIndex* build(const std::string& name, const eckit::PathName& path, bool readOnly, off_t offset);
 };
@@ -59,6 +61,7 @@ class IndexBuilder : public BTreeIndexFactory {
     }
 
 public:
+
     IndexBuilder(const std::string& name) : BTreeIndexFactory(name) {}
 };
 

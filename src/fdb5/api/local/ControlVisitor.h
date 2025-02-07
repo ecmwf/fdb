@@ -28,6 +28,7 @@ namespace local {
 
 class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
+
     ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request, ControlAction action,
                    ControlIdentifiers identifiers);
 
@@ -40,6 +41,7 @@ public:
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
 private:  // members
+
     ControlAction action_;
     ControlIdentifiers identifiers_;
 };

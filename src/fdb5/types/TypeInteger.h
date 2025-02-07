@@ -25,6 +25,7 @@ namespace fdb5 {
 class TypeInteger : public Type {
 
 public:  // methods
+
     TypeInteger(const std::string& name, const std::string& type);
 
     ~TypeInteger() override;
@@ -33,6 +34,7 @@ public:  // methods
                            eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

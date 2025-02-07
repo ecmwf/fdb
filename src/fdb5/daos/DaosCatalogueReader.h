@@ -24,6 +24,7 @@ namespace fdb5 {
 class DaosCatalogueReader : public DaosCatalogue, public CatalogueReader {
 
 public:  // methods
+
     DaosCatalogueReader(const Key& key, const fdb5::Config& config);
     DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
@@ -44,9 +45,11 @@ public:  // methods
     void print(std::ostream& out) const override { NOTIMP; }
 
 private:  // types
+
     typedef std::map<Key, Index> IndexStore;
 
 private:  // members
+
     IndexStore indexes_;
     Index current_;
 };

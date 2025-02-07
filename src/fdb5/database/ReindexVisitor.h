@@ -26,14 +26,17 @@ namespace fdb5 {
 class ReindexVisitor : public BaseArchiveVisitor {
 
 public:  // methods
+
     ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation);
 
 protected:  // methods
+
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
+
     const FieldLocation& fieldLocation_;
 };
 

@@ -38,6 +38,7 @@ class Schema;
 class ReadVisitor : public eckit::NonCopyable {
 
 public:  // methods
+
     ReadVisitor() : catalogue_(nullptr) {}
 
     virtual ~ReadVisitor() {}
@@ -53,12 +54,15 @@ public:  // methods
                         const TypesRegistry& registry, eckit::StringList& values) = 0;
 
 protected:  // methods
+
     virtual void print(std::ostream& out) const = 0;
 
 protected:  // members
+
     CatalogueReader* catalogue_;
 
 private:  // members
+
     friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);
         return s;

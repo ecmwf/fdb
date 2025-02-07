@@ -25,6 +25,7 @@ namespace fdb5 {
 class DaosIndex : public IndexBase {
 
 public:  // methods
+
     /// @note: creates a new index in DAOS, in the container pointed to by 'name'
     DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name);
     /// @note: used to represent and operate with an index which already exists in DAOS
@@ -34,6 +35,7 @@ public:  // methods
     void funlock() const override { NOTIMP; }
 
 private:  // methods
+
     const IndexLocation& location() const override { return location_; }
 
     std::vector<eckit::URI> dataURIs() const override;
@@ -63,6 +65,7 @@ private:  // methods
     void updateAxes();
 
 private:  // members
+
     fdb5::DaosIndexLocation location_;
 };
 

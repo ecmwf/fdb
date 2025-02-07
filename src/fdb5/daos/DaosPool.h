@@ -34,6 +34,7 @@ class DaosSession;
 class DaosPool {
 
 public:  // methods
+
     DaosPool(DaosPool&&) noexcept;
     ~DaosPool();
 
@@ -59,6 +60,7 @@ public:  // methods
     std::string label() const;
 
 private:  // methods
+
     friend class DaosSession;
 
     DaosPool();
@@ -79,6 +81,7 @@ private:  // methods
     ContainerCache::iterator getCachedContainer(const std::string&);
 
 private:  // members
+
     fdb5::UUID uuid_;
     bool known_uuid_;
     std::string label_ = std::string();
@@ -92,11 +95,13 @@ private:  // members
 class AutoPoolDestroy {
 
 public:  // methods
+
     AutoPoolDestroy(fdb5::DaosPool& pool) : pool_(pool) {}
 
     ~AutoPoolDestroy() noexcept(false);
 
 private:  // members
+
     fdb5::DaosPool& pool_;
 };
 #endif

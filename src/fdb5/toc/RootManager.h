@@ -42,6 +42,7 @@ typedef std::vector<fdb5::FileSpace> FileSpaceTable;
 class RootManager {
 
 public:  // methods
+
     RootManager(const Config& config);
 
     /// Uniquely selects a directory where the Key will be put or already exists
@@ -64,13 +65,16 @@ public:  // methods
     std::vector<std::string> possibleDbPathNames(const Key& key, const char* missing);
 
 protected:  // methods
+
     virtual FileSpaceTable fileSpaces();
     virtual std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) = 0;
 
 protected:  // members
+
     std::vector<FileSpace> spacesTable_;
 
 private:  // members
+
     const std::vector<DbPathNamer>& dbPathNamers_;
     Config config_;
 };
@@ -78,18 +82,22 @@ private:  // members
 class CatalogueRootManager : public RootManager {
 
 public:  // methods
+
     CatalogueRootManager(const Config& config) : RootManager(config) { spacesTable_ = fileSpaces(); }
 
 protected:  // methods
+
     std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) override;
 };
 
 class StoreRootManager : public RootManager {
 
 public:  // methods
+
     StoreRootManager(const Config& config) : RootManager(config) { spacesTable_ = fileSpaces(); }
 
 protected:  // methods
+
     std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) override;
 };
 

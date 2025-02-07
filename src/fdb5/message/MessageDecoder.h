@@ -43,6 +43,7 @@ namespace fdb5 {
 
 class MessageDecoder {
 public:
+
     MessageDecoder(bool checkDuplicates = false);
 
     virtual ~MessageDecoder();
@@ -55,6 +56,7 @@ public:
 
 
 private:
+
     virtual eckit::message::Message patch(const eckit::message::Message& msg);
     static void msgToKey(const eckit::message::Message& msg, Key& key);
 

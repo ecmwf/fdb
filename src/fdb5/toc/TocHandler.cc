@@ -66,6 +66,7 @@ class TocHandlerCloser {
     const TocHandler& handler_;
 
 public:
+
     TocHandlerCloser(const TocHandler& handler) : handler_(handler) {}
     ~TocHandlerCloser() { handler_.close(); }
 };
@@ -74,6 +75,7 @@ public:
 
 class CachedFDProxy {
 public:  // methods
+
     CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path), fd_(fd), cached_(cached.get()) {
         ASSERT((fd != -1) != (!!cached));
@@ -119,6 +121,7 @@ public:  // methods
     }
 
 private:  // members
+
     const eckit::PathName& path_;
     int fd_;
     MemoryHandle* cached_;
@@ -722,6 +725,7 @@ class SubtocPreloader {
     std::vector<eckit::LocalPathName> paths_;
 
 public:
+
     explicit SubtocPreloader(const Key& parentKey) : parentKey_(parentKey) {}
 
     decltype(subTocReadCache_)&& cache() {
@@ -1103,6 +1107,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
         }
 
     private:
+
         const Index& index_;
         TocHandler& handler_;
     };
@@ -1166,6 +1171,7 @@ class HasPath {
     off_t offset_;
 
 public:
+
     HasPath(const eckit::PathName& path, off_t offset) : path_(path), offset_(offset) {}
     bool operator()(const Index index) const {
 
@@ -1744,6 +1750,7 @@ size_t TocHandler::buildClearRecord(TocRecord& r, const Index& index) {
         size_t size() const { return sz_; }
 
     private:
+
         TocRecord& r_;
         size_t sz_;
     };

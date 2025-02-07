@@ -26,12 +26,14 @@ namespace fdb5::tools {
 
 class FdbRoot : public FDBTool {
 public:  // methods
+
     FdbRoot(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(
             new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
 private:  // methods
+
     void execute(const eckit::option::CmdArgs& args) override;
     void usage(const std::string& tool) const override;
 };

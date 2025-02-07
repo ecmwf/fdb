@@ -40,6 +40,7 @@ namespace fdb5 {
 class Field {
 
 public:  // methods
+
     Field();
 
     Field(std::shared_ptr<const FieldLocation> location, time_t timestamp,
@@ -58,6 +59,7 @@ public:  // methods
     const FieldDetails& details() const { return details_; }
 
 private:  // members
+
     std::shared_ptr<const FieldLocation> location_;
 
     time_t timestamp_;

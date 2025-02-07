@@ -54,6 +54,7 @@ namespace fdb5 {
 
 class DbPathNamer {
 public:
+
     DbPathNamer(const std::string& keyregex, const std::string& format) : format_(format) {
         crack(keyregex);
         LOG_DEBUG_LIB(LibFdb5) << "Building " << *this << std::endl;
@@ -94,6 +95,7 @@ public:
     }
 
 private:  // methods
+
     void crack(const std::string& regexstr) {
 
         eckit::Tokenizer parse1(",");

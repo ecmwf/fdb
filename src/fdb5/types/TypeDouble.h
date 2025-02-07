@@ -25,6 +25,7 @@ namespace fdb5 {
 class TypeDouble : public Type {
 
 public:  // methods
+
     TypeDouble(const std::string& name, const std::string& type);
 
     ~TypeDouble() override;
@@ -35,6 +36,7 @@ public:  // methods
                            eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 };
 

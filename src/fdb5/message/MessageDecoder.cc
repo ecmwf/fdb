@@ -37,9 +37,11 @@ class KeySetter : public eckit::message::MetadataGatherer {
     }
 
 protected:
+
     Key& key_;
 
 public:
+
     KeySetter(Key& key) : key_(key) { ASSERT(key_.empty()); }
 };
 

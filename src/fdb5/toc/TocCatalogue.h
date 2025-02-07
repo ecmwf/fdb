@@ -32,6 +32,7 @@ namespace fdb5 {
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public:  // methods
+
     TocCatalogue(const Key& dbKey, const fdb5::Config& config);
     TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers,
                  const fdb5::Config& config);
@@ -46,9 +47,11 @@ public:  // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
 public:  // constants
+
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
 protected:  // methods
+
     TocCatalogue(const Key& dbKey, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
@@ -82,9 +85,11 @@ protected:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
 protected:  // members
+
     Key currentIndexKey_;
 
 private:  // members
+
     friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 

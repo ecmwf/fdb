@@ -27,6 +27,7 @@ namespace fdb5 {
 class DaosCommon {
 
 public:  // methods
+
     DaosCommon(const fdb5::Config&, const std::string& component, const fdb5::Key&);
     DaosCommon(const fdb5::Config&, const std::string& component, const eckit::URI&);
 
@@ -34,9 +35,11 @@ public:  // methods
     const fdb5::DaosKeyValueName& dbKeyValue() const { return db_kv_.value(); }
 
 private:  // methods
+
     void readConfig(const fdb5::Config&, const std::string& component, bool readPool);
 
 protected:  // members
+
     std::string component_;
 
     std::string pool_;

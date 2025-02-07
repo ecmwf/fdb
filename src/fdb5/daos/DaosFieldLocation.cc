@@ -102,6 +102,7 @@ class DaosURIManager : public eckit::URIManager {
     }
 
 public:
+
     DaosURIManager(const std::string& name) : eckit::URIManager(name) {}
 };
 

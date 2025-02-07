@@ -48,6 +48,7 @@ class TypesRegistry;
 class Schema : public eckit::Streamable {
 
 public:  // methods
+
     Schema();
     Schema(const eckit::PathName& path);
     Schema(std::istream& stream);
@@ -101,6 +102,7 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void check();
 
     void clear();
@@ -114,6 +116,7 @@ private:  // methods
     friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
 
 private:  // members
+
     TypesRegistry registry_;
 
     RuleList rules_;
@@ -132,12 +135,14 @@ private:  // members
 ///
 class SchemaRegistry {
 public:
+
     static SchemaRegistry& instance();
 
     const Schema& add(const eckit::PathName& path, Schema* schema);
     const Schema& get(const eckit::PathName& path);
 
 private:
+
     std::mutex m_;
     std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
 };

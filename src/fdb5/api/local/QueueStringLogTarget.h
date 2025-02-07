@@ -35,11 +35,13 @@ namespace local {
 
 class QueueStringLogTarget : public eckit::LineBasedTarget {
 public:
+
     QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
 
     void line(const char* line) override { queue_.emplace(std::string(line)); }
 
 private:  // members
+
     eckit::Queue<std::string>& queue_;
 };
 

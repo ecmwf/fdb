@@ -27,6 +27,7 @@ namespace fdb5::tools {
 class FDBAxisTest : public FDBVisitTool {
 
 public:  // methods
+
     FDBAxisTest(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), level_(3), json_(false) {
         options_.push_back(
             new SimpleOption<long>("level", "Specify how many levels of the keys should be should be explored"));
@@ -34,10 +35,12 @@ public:  // methods
     }
 
 private:  // methods
+
     void execute(const CmdArgs& args) final;
     void init(const CmdArgs& args) final;
 
 private:  // members
+
     int level_;
     bool json_;
 };

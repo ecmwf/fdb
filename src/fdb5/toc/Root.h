@@ -33,6 +33,7 @@ class Key;
 class Root {
 
 public:  // methods
+
     Root(const std::string& path, const std::string& filespace, bool list, bool retrieve, bool archive, bool wipe);
 
     // Root(const Root&) = default;
@@ -58,9 +59,11 @@ public:  // methods
     }
 
 private:  // methods
+
     void print(std::ostream& out) const;
 
 private:  // members
+
     eckit::PathName path_;
 
     std::string filespace_;

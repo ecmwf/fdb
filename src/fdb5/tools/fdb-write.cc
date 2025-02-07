@@ -31,6 +31,7 @@ class FDBWrite : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs& args);
 
 public:
+
     FDBWrite(int argc, char** argv) : fdb5::FDBTool(argc, argv), archivers_(1), verbose_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>(

@@ -40,6 +40,7 @@ namespace fdb5 {
 
 class FDBToolRequest {
 public:  // methods
+
     static std::vector<FDBToolRequest> requestsFromString(const std::string& request_str,
                                                           const std::vector<std::string> minimumKeys = {},
                                                           bool raw = false, const std::string& verb = "retrieve");
@@ -56,6 +57,7 @@ public:  // methods
     void print(std::ostream& s, const char* cr = "\n", const char* tab = "\t") const;
 
 protected:  // methods
+
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
@@ -71,9 +73,11 @@ protected:  // methods
     }
 
 private:  // methods
+
     static void checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys);
 
 private:  // members
+
     metkit::mars::MarsRequest request_;
 
     bool all_;

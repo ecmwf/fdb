@@ -27,6 +27,7 @@ namespace fdb5::remote {
 
 class RemoteFDBException : public eckit::RemoteException {
 public:
+
     RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint) :
         eckit::RemoteException(msg, endpoint) {}
 };
@@ -35,6 +36,7 @@ public:
 
 class Client : eckit::NonCopyable {
 public:  // types
+
     using PayloadList  = Connection::PayloadList;
     using EndpointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
 
@@ -43,6 +45,7 @@ public:  // types
     static constexpr size_t defaultBufferSizeKey     = 4096;
 
 public:  // methods
+
     Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
 
     Client(const EndpointList& endpoints);
@@ -73,12 +76,15 @@ public:  // methods
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
 
 protected:
+
     ClientConnection& connection_;
 
 private:
+
     void setClientID();
 
 private:
+
     uint32_t id_;
 
     mutable std::mutex blockingRequestMutex_;

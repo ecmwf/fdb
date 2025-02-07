@@ -23,6 +23,7 @@ namespace fdb5 {
 class Reindexer : public Archiver {
 
 public:  // methods
+
     Reindexer(const Config& dbConfig = Config().expandConfig());
 
     virtual ~Reindexer();
@@ -31,6 +32,7 @@ public:  // methods
     void reindex(const Key& key, const FieldLocation& fieldLocation);
 
 protected:  // methods
+
     void flushDatabase(Database& db) override;
 };
 

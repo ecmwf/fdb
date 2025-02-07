@@ -52,6 +52,7 @@ class Schema;
 class IndexBase : public eckit::Counted {
 
 public:  // methods
+
     IndexBase(const Key& key, const std::string& type);
     IndexBase(eckit::Stream& s, const int version);
 
@@ -100,9 +101,11 @@ public:  // methods
     virtual void funlock() const = 0;
 
 protected:  // methods
+
     void takeTimestamp() { time(&timestamp_); }
 
 private:  // methods
+
     void encodeCurrent(eckit::Stream& s, int version) const;
     void encodeLegacy(eckit::Stream& s, int version) const;
 
@@ -112,6 +115,7 @@ private:  // methods
     virtual void add(const Key& key, const Field& field) = 0;
 
 protected:  // members
+
     std::string type_;
 
     /// @note Order of members is important here ...
@@ -132,6 +136,7 @@ protected:  // members
 class Index {
 
 public:  // methods
+
     Index();
     Index(IndexBase* i);
 
@@ -193,6 +198,7 @@ public:  // methods
     void funlock() const { content_->funlock(); }
 
 private:  // methods
+
     void print(std::ostream& s) const { content_->print(s); }
 
     friend std::ostream& operator<<(std::ostream& s, const Index& o) {
@@ -201,6 +207,7 @@ private:  // methods
     }
 
 private:  // members
+
     IndexBase* content_;
     bool null_;
 };

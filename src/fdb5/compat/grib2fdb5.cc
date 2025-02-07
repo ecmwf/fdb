@@ -25,6 +25,7 @@ class Grib2Fdb5 : public fdb5::FDBTool {
     virtual int minimumPositionalArguments() const { return 1; }
 
 public:
+
     Grib2Fdb5(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 };
 

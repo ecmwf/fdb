@@ -31,6 +31,7 @@ class FDBCopy : public fdb5::FDBTool {
     void usage(const std::string& tool) const override;
 
 public:
+
     FDBCopy(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
         options_.push_back(new SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new SimpleOption<bool>("raw", "Process the MARS request without expansion"));

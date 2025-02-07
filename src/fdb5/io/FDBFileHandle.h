@@ -31,6 +31,7 @@ namespace fdb5 {
 
 class FDBFileHandle : public eckit::DataHandle {
 public:  // methods
+
     FDBFileHandle(const std::string&, size_t buffer);
 
     ~FDBFileHandle();
@@ -49,9 +50,11 @@ public:  // methods
     bool canSeek() const override { return false; }
 
 protected:  // members
+
     std::string path_;
 
 private:  // members
+
     FILE* file_;
     eckit::Buffer buffer_;
     off_t pos_;

@@ -34,6 +34,7 @@ namespace fdb5 {
 
 class SingleGribMungePartFileHandle : public eckit::DataHandle {
 public:
+
     // -- Contructors
 
     SingleGribMungePartFileHandle(const eckit::PathName&, const eckit::Offset&, const eckit::Length&,
@@ -74,6 +75,7 @@ public:
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
 private:  // members
+
     eckit::PathName name_;
     FILE* file_;
     eckit::Offset pos_;

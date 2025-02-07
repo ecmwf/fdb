@@ -30,6 +30,7 @@ namespace fdb5 {
 class TocIndexLocation : public IndexLocation {
 
 public:  // methods
+
     TocIndexLocation(const eckit::PathName& path, off_t offset);
     TocIndexLocation(eckit::Stream&);
 
@@ -41,9 +42,11 @@ public:  // methods
     IndexLocation* clone() const override;
 
 public:  // For Streamable
+
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 protected:  // For Streamable
+
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     void encode(eckit::Stream&) const override;
 
@@ -51,14 +54,17 @@ protected:  // For Streamable
     static eckit::Reanimator<TocIndexLocation> reanimator_;
 
 private:  // methods
+
     void print(std::ostream& out) const override;
 
 private:  // members
+
     eckit::PathName path_;
 
     off_t offset_;
 
 private:  // friends
+
     friend class TocIndex;
 };
 

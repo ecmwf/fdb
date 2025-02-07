@@ -37,12 +37,14 @@ template <typename T>
 class QueryVisitor : public EntryVisitor {
 
 public:  // methods
+
     using ValueType = T;
 
     QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
         queue_(queue), request_(request) {}
 
 protected:  // members
+
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 };

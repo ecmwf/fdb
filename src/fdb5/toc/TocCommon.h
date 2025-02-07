@@ -28,6 +28,7 @@ namespace fdb5 {
 
 class TocCommon {
 public:
+
     TocCommon(const eckit::PathName& path);
     virtual ~TocCommon() = default;
 
@@ -41,9 +42,11 @@ public:
     std::string owner() const { return userName(dbUID()); }
 
 protected:  // methods
+
     virtual uid_t dbUID() const;
 
 protected:  // members
+
     const eckit::LocalPathName directory_;
     const eckit::LocalPathName schemaPath_;
 

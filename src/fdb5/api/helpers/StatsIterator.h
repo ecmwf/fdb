@@ -41,6 +41,7 @@ struct StatsElement {
     DbStats dbStatistics;
 
 private:  // methods
+
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const StatsElement& r) {

@@ -36,6 +36,7 @@ namespace fdb5 {
 class TocStore : public Store, public TocCommon {
 
 public:  // methods
+
     TocStore(const Key& key, const Config& config);
 
     ~TocStore() override {}
@@ -62,6 +63,7 @@ public:  // methods
     std::set<std::string> auxFileExtensions() const;
 
 protected:  // methods
+
     std::string type() const override { return "file"; }
 
     bool exists() const override;
@@ -84,13 +86,16 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // methods
+
     eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
 
 private:  // types
+
     typedef std::map<std::string, std::unique_ptr<eckit::DataHandle>> HandleStore;
     typedef std::map<Key, std::string> PathStore;
 
 private:  // members
+
     mutable std::recursive_mutex handlesMutex_;
     HandleStore handles_;  ///< stores the DataHandles being used by the Session
 

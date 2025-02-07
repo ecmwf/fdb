@@ -33,6 +33,7 @@ class EnvVarFileSpaceHandler : public FileSpaceHandler {
     typedef std::map<std::string, eckit::PathName> PathTable;
 
 public:  // methods
+
     EnvVarFileSpaceHandler();
 
     ~EnvVarFileSpaceHandler() override;
@@ -40,6 +41,7 @@ public:  // methods
     eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
 
 protected:  // methods
+
     void load() const;
 
     eckit::PathName append(const std::string& expver, const eckit::PathName& path) const;

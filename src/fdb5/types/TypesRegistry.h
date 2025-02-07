@@ -35,6 +35,7 @@ namespace fdb5 {
 class TypesRegistry : public eckit::Streamable {
 
 public:  // methods
+
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
@@ -58,11 +59,13 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void print(std::ostream& out) const;
 
     friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
 
 private:  // members
+
     std::map<std::string, std::string> types_;
 
     const TypesRegistry* parent_{nullptr};

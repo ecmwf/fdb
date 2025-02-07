@@ -32,6 +32,7 @@ namespace fdb5 {
 class FileCopy : public eckit::ThreadPoolTask {
 
 public:
+
     FileCopy() : src_(""), dest_(""), sync_(false) {}
 
     FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName,
@@ -68,6 +69,7 @@ public:
     }
 
 private:  // methods
+
     void print(std::ostream& s) const { s << "FileCopy(src=" << src_ << ",dest=" << dest_ << ",sync=" << sync_ << ")"; }
 
     friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
@@ -81,6 +83,7 @@ private:  // methods
     }
 
 private:
+
     eckit::PathName src_;
     eckit::PathName dest_;
     bool sync_;

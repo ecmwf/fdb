@@ -35,6 +35,7 @@ class ReverseName {
     using value_type = eckit::StringList;
 
 public:  // methods
+
     ReverseName()                              = delete;
     ReverseName(const ReverseName&)            = delete;
     ReverseName& operator=(const ReverseName&) = delete;
@@ -49,6 +50,7 @@ public:  // methods
     auto end() const -> value_type::const_reverse_iterator { return value_.rend(); }
 
 private:  // members
+
     const value_type& value_;
 };
 

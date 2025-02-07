@@ -48,6 +48,7 @@ enum class Handled {
 class Handler {
 
 public:
+
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID)                          = 0;
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID)                             = 0;
@@ -85,6 +86,7 @@ struct ArchiveElem {
 
 class ServerConnection : public Connection, public Handler {
 public:  // methods
+
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection() override;
 
@@ -100,6 +102,7 @@ public:  // methods
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
+
     // socket methods
     int selectDataPort();
     eckit::LocalConfiguration availableFunctionality() const;
@@ -120,6 +123,7 @@ protected:
     void handleException(std::exception_ptr e) override;
 
 private:
+
     void listeningThreadLoopData();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlSocket_; }
@@ -130,6 +134,7 @@ private:
     }
 
 protected:
+
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
@@ -153,6 +158,7 @@ protected:
     size_t numDataConnection_{0};
 
 private:
+
     std::mutex dataPortMutex_;
 
     // data connection

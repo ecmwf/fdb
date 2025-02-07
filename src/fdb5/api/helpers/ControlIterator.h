@@ -67,6 +67,7 @@ class ControlIdentifierIterator {
     value_type remaining_;
 
 public:  // methods
+
     ControlIdentifierIterator(const ControlIdentifiers& identifiers);
 
     ControlIdentifier operator*() const;
@@ -77,6 +78,7 @@ public:  // methods
     ControlIdentifierIterator& operator++();
 
 private:  // methods
+
     void nextValue();
 };
 
@@ -89,6 +91,7 @@ class ControlIdentifiers {
     value_type value_;
 
 public:
+
     ControlIdentifiers();
     ControlIdentifiers(const ControlIdentifier& val);
     ControlIdentifiers(eckit::Stream& s);
@@ -102,10 +105,12 @@ public:
     ControlIdentifierIterator end() const;
 
 protected:  // methods
+
     friend std::ostream& operator<<(std::ostream& s, const ControlIdentifiers& x);
     void print(std::ostream& out) const;
 
 private:
+
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const ControlIdentifiers& i) {
@@ -138,6 +143,7 @@ struct ControlElement {
     ControlIdentifiers controlIdentifiers;
 
 protected:  // methods
+
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const ControlElement& e) {

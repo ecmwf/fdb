@@ -27,14 +27,17 @@ namespace tools {
 
 class FDBLock : public FDBVisitTool {
 public:  // methods
+
     FDBLock(int argc, char** argv, bool unlock = false);
     ~FDBLock() override;
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
 private:  // members
+
     bool unlock_;
 
     bool list_;

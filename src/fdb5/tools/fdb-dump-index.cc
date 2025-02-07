@@ -22,9 +22,11 @@ using namespace eckit;
 class FDBDumpIndex : public fdb5::FDBTool {
 
 public:  // methods
+
     FDBDumpIndex(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 
 private:  // methods
+
     virtual void usage(const std::string& tool) const;
     virtual void execute(const option::CmdArgs& args);
 };

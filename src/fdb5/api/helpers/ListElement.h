@@ -40,9 +40,11 @@ class FieldLocation;
 
 class ListElement {
 public:  // types
+
     using TimeStamp = std::time_t;
 
 public:  // methods
+
     ListElement() = default;
     ListElement(Key dbKey, const TimeStamp& timestamp);
 
@@ -71,6 +73,7 @@ public:  // methods
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
 private:  // methods
+
     void encode(eckit::Stream& stream) const;
 
     void json(eckit::JSON& json) const;
@@ -80,6 +83,7 @@ private:  // methods
     friend eckit::JSON& operator<<(eckit::JSON& json, const ListElement& elem);
 
 private:  // members
+
     std::array<Key, 3> keyParts_;
 
     std::shared_ptr<const FieldLocation> loc_;

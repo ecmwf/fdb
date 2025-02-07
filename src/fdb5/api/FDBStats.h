@@ -31,6 +31,7 @@ namespace fdb5 {
 
 class FDBStats : public eckit::Statistics {
 public:
+
     FDBStats();
     ~FDBStats();
 
@@ -48,6 +49,7 @@ public:
     FDBStats& operator+=(const FDBStats& rhs);
 
 private:  // members
+
     size_t numArchive_;
     size_t numLocation_;
     size_t numFlush_;

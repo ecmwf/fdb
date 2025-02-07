@@ -159,6 +159,7 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
 
 class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
 public:
+
     bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
         return existing.timestamp() < replacement.timestamp();
     }

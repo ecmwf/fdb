@@ -33,6 +33,7 @@ namespace local {
 
 class StatusVisitor : public QueryVisitor<StatusElement> {
 public:
+
     using QueryVisitor<StatusElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }

@@ -47,6 +47,7 @@ namespace fdb5::api::local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
+
     ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
         QueryVisitor<ListElement>(queue, request), level_(level) {}
 
@@ -146,6 +147,7 @@ public:
     }
 
 private:  // members
+
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
     const int level_;

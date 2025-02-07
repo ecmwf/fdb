@@ -25,11 +25,13 @@ namespace fdb5 {
 class TypeGrid : public Type {
 
 public:  // methods
+
     TypeGrid(const std::string& name, const std::string& type);
 
     ~TypeGrid() override;
 
 private:  // methods
+
     std::string toKey(const std::string& value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
