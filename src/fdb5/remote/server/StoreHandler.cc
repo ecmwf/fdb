@@ -18,8 +18,10 @@
 
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/types/Types.h"
 
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -190,7 +192,11 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     promise.set_value(location);
 
     eckit::StringDict dict = dbKey.keyDict();
-    dict.insert(idxKey.keyDict().begin(), idxKey.keyDict().end());
+    {
+        eckit::StringDict dictIdx = idxKey.keyDict();
+        dict.insert(std::make_move_iterator(dictIdx.begin()), std::make_move_iterator(dictIdx.end()));
+    }
+
     const Key fullkey(dict);  /// @note: we do not have the third level of the key.
 
     archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
