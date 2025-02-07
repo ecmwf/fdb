@@ -36,8 +36,7 @@ struct TocRecord {
     /// then this use of TOC_CLEAR will have no impact. Therefore this is backward compatible
     /// and does not require bumping the format version (making roll-out more straightforward).
 
-    enum
-    {
+    enum {
         TOC_NULL    = 0,
         TOC_INIT    = 't',
         TOC_INDEX   = 'i',

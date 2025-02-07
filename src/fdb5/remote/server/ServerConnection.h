@@ -33,8 +33,7 @@
 
 namespace fdb5::remote {
 
-enum class Handled
-{
+enum class Handled {
     No = 0,
     Yes,
     YesAddArchiveListener,

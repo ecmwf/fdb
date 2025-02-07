@@ -54,8 +54,7 @@ struct UriStoreWrapper {
 class TocIndex : private UriStoreWrapper, public IndexBase {
 
 public:  // types
-    enum Mode
-    {
+    enum Mode {
         WRITE,
         READ
     };

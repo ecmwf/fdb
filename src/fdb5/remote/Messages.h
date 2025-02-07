@@ -39,8 +39,7 @@ struct Payload {
     const void* data{nullptr};
 };
 
-enum class Message : uint16_t
-{
+enum class Message : uint16_t {
 
     // Server instructions
     None = 0,
@@ -76,7 +75,6 @@ enum class Message : uint16_t
     // Data communication
     Blob = 300,
     MultiBlob
-
 };
 
 std::ostream& operator<<(std::ostream& s, const Message& m);

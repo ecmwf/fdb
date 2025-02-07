@@ -59,8 +59,7 @@ int fdb_vcs_version(const char** sha1);
 /** @{ */
 
 /** Return codes */
-enum FdbErrorValues
-{
+enum FdbErrorValues {
     FDB_SUCCESS                 = 0,
     FDB_ERROR_GENERAL_EXCEPTION = 1,
     FDB_ERROR_UNKNOWN_EXCEPTION = 2,

@@ -30,8 +30,7 @@ namespace fdb5 {
 class Catalogue;
 //----------------------------------------------------------------------------------------------------------------------
 
-enum class ControlAction : uint16_t
-{
+enum class ControlAction : uint16_t {
     None = 0,
 
     Disable,
@@ -43,8 +42,7 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-enum class ControlIdentifier : uint16_t
-{
+enum class ControlIdentifier : uint16_t {
     None = 0,
 
     List       = 1 << 0,

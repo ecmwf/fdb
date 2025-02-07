@@ -71,32 +71,27 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-enum daos_otype_t
-{
+enum daos_otype_t {
     DAOS_OT_KV_HASHED  = 8,
     DAOS_OT_ARRAY      = 11,
     DAOS_OT_ARRAY_BYTE = 13,
 };
 
-enum daos_pool_props
-{
+enum daos_pool_props {
     DAOS_PROP_PO_LABEL,
     DAOS_PROP_CO_LABEL
 };
 
-enum daos_snapshot_opts
-{
+enum daos_snapshot_opts {
     DAOS_SNAP_OPT_CR  = (1 << 0),
     DAOS_SNAP_OPT_OIT = (1 << 1)
 };
 
-enum daos_obj_redun
-{
+enum daos_obj_redun {
     OR_RP_1 = 1
 };
 
-enum
-{
+enum {
     OC_S1 = OBJ_CLASS_DEF(OR_RP_1, 1ULL),
     OC_S2 = OBJ_CLASS_DEF(OR_RP_1, 2ULL),
     OC_SX = OBJ_CLASS_DEF(OR_RP_1, MAX_NUM_GROUPS)
@@ -196,8 +191,7 @@ typedef struct {
     uint32_t kd_val_type;
 } daos_key_desc_t;
 
-typedef enum
-{
+typedef enum {
     DAOS_ANCHOR_TYPE_ZERO = 0,
     DAOS_ANCHOR_TYPE_HKEY = 1,
     DAOS_ANCHOR_TYPE_KEY  = 2,

@@ -137,8 +137,7 @@ void IndexAxis::decode(eckit::Stream& s, const int version) {
         decodeLegacy(s, version);
 }
 
-enum IndexAxisStreamKeys
-{
+enum IndexAxisStreamKeys {
     IndexAxisKeyUnrecognised,
     IndexAxisSize,
     IndexAxes

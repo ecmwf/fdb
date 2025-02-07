@@ -97,8 +97,7 @@ daos_obj_id_t& DaosOID::asDaosObjIdT() {
     return oid_;
 }
 
-enum daos_otype_t DaosOID::otype() const
-{
+enum daos_otype_t DaosOID::otype() const {
 
     return otype_;
 }

@@ -20,8 +20,7 @@ namespace fdb5 {
 
 IndexBase::IndexBase(const Key& key, const std::string& type) : type_(type), key_(key) {}
 
-enum IndexBaseStreamKeys
-{
+enum IndexBaseStreamKeys {
     IndexKeyUnrecognised,
     IndexKey,
     IndexType,
