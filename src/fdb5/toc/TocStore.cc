@@ -242,7 +242,12 @@ eckit::DataHandle& TocStore::getDataHandle( const eckit::PathName &path ) {
     auto dataHandle = createDataHandle(path);
     ASSERT(dataHandle);
     dataHandle->openForAppend(0);
-    return *(handles_[path] = std::move(dataHandle));
+
+    if (auto [it, success] = handles_.emplace(path, std::move(dataHandle)); success) {
+        return *it->second;
+    }
+    
+    throw eckit::SeriousBug("Failed to insert data handle into cache", Here()); 
 }
 
 eckit::PathName TocStore::generateDataPath(const Key& key) const {
