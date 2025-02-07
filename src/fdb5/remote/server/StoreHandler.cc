@@ -192,10 +192,8 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     promise.set_value(location);
 
     eckit::StringDict dict = dbKey.keyDict();
-    {
-        eckit::StringDict dictIdx = idxKey.keyDict();
-        dict.insert(std::make_move_iterator(dictIdx.begin()), std::make_move_iterator(dictIdx.end()));
-    }
+    const auto& idxKeyDict = idxKey.keyDict();
+    dict.insert(idxKeyDict.begin(), idxKeyDict.end());
 
     const Key fullkey(dict);  /// @note: we do not have the third level of the key.
 
