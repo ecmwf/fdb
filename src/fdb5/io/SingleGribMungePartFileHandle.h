@@ -34,24 +34,21 @@ namespace fdb5 {
 
 class SingleGribMungePartFileHandle : public eckit::DataHandle {
 public:
+    // -- Contructors
 
-// -- Contructors
-
-    SingleGribMungePartFileHandle(const eckit::PathName&,
-                                  const eckit::Offset&,
-                                  const eckit::Length&,
+    SingleGribMungePartFileHandle(const eckit::PathName&, const eckit::Offset&, const eckit::Length&,
                                   const Key& substitute);
     SingleGribMungePartFileHandle(eckit::Stream&) { NOTIMP; }
     ~SingleGribMungePartFileHandle() override;
 
-	// From DataHandle
+    // From DataHandle
 
     eckit::Length openForRead() override;
     void openForWrite(const eckit::Length&) override { NOTIMP; }
     void openForAppend(const eckit::Length&) override { NOTIMP; }
 
-    long read(void*,long) override;
-    long write(const void*,long) override { NOTIMP; }
+    long read(void*, long) override;
+    long write(const void*, long) override { NOTIMP; }
     void close() override;
     void rewind() override { NOTIMP; }
 
@@ -71,30 +68,29 @@ public:
     bool moveable() const override { return true; }
     eckit::DataHandle* clone() const override;
 
-	// From Streamable
+    // From Streamable
 
     void encode(eckit::Stream&) const override { NOTIMP; }
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-private: // members
-
+private:  // members
     eckit::PathName name_;
-    FILE*           file_;
-    eckit::Offset   pos_;
-    eckit::Offset   offset_;
-    eckit::Length   length_;
-    Key             substitute_;
-    std::unique_ptr<eckit::Buffer>  buffer_;
+    FILE* file_;
+    eckit::Offset pos_;
+    eckit::Offset offset_;
+    eckit::Length length_;
+    Key substitute_;
+    std::unique_ptr<eckit::Buffer> buffer_;
 
     // For Streamable
 
     static eckit::ClassSpec classSpec_;
-    static eckit:: Reanimator<SingleGribMungePartFileHandle> reanimator_;
+    static eckit::Reanimator<SingleGribMungePartFileHandle> reanimator_;
 };
 
 
 //-----------------------------------------------------------------------------
 
-} // namespace eckit
+}  // namespace fdb5
 
 #endif

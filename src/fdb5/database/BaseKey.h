@@ -39,13 +39,17 @@ public:  // types
     using const_reverse_iterator = value_type::const_reverse_iterator;
 
 public:  // methods
-    explicit BaseKey(value_type keys) : keys_ {std::move(keys)} {
+    explicit BaseKey(value_type keys) : keys_{std::move(keys)} {
         /// @note the order of keys (in map<>) is not "insertion order"
-        for (const auto& key : *this) { names_.emplace_back(key.first); }
+        for (const auto& key : *this) {
+            names_.emplace_back(key.first);
+        }
     }
 
     BaseKey(std::initializer_list<pair_type> keys) : keys_(keys) {
-        for (const auto& key : *this) { names_.emplace_back(key.first); }
+        for (const auto& key : *this) {
+            names_.emplace_back(key.first);
+        }
     }
 
     explicit BaseKey(eckit::Stream& stream) { decode(stream); }

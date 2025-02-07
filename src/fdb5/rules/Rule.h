@@ -49,7 +49,6 @@ public:  // types
     using Predicates = std::vector<std::unique_ptr<Predicate>>;
 
 public:  // methods
-    
     Rule(std::size_t line, Predicates& predicates, const eckit::StringDict& types);
 
     virtual const char* type() const = 0;
@@ -75,7 +74,6 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 protected:  // methods
-
     Rule() = default;
 
     void decode(eckit::Stream& stream);
@@ -104,16 +102,15 @@ private:  // methods
     friend std::ostream& operator<<(std::ostream& out, const Rule& rule);
 
 protected:  // members
-    const Rule* parent_ {nullptr};
+    const Rule* parent_{nullptr};
 
-    std::size_t line_ {0};
+    std::size_t line_{0};
 
     Predicates predicates_;
 
     TypesRegistry registry_;
 
 private:  // members
-
     // streamable
     static eckit::ClassSpec classSpec_;
 };
@@ -142,12 +139,12 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 private:  // methods
-    void dumpChildren(std::ostream& /* out */) const override { }
+    void dumpChildren(std::ostream& /* out */) const override {}
 
 private:  // members
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleDatum> reanimator_;
 };
 
@@ -183,7 +180,9 @@ public:  // methods
 
 private:  // methods
     void dumpChildren(std::ostream& out) const override {
-        for (const auto& rule : rules_) { rule->dump(out); }
+        for (const auto& rule : rules_) {
+            rule->dump(out);
+        }
     }
 
 private:  // members
@@ -191,7 +190,7 @@ private:  // members
 
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleIndex> reanimator_;
 };
 
@@ -226,9 +225,10 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 private:  // methods
-
     void dumpChildren(std::ostream& out) const override {
-        for (const auto& rule : rules_) { rule->dump(out); }
+        for (const auto& rule : rules_) {
+            rule->dump(out);
+        }
     }
 
 private:  // members
@@ -236,7 +236,7 @@ private:  // members
 
     // streamable
 
-    static eckit::ClassSpec                classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleDatabase> reanimator_;
 };
 

@@ -22,8 +22,11 @@ namespace fdb5::remote {
 
 struct CatalogueArchiver {
     CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true), dataConnection(dataConnection),
-        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(0), locationsArchived(0) {}
+        controlConnection(true),
+        dataConnection(dataConnection),
+        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)),
+        locationsExpected(0),
+        locationsArchived(0) {}
 
     bool controlConnection;
     bool dataConnection;
@@ -39,12 +42,10 @@ struct CatalogueArchiver {
 //----------------------------------------------------------------------------------------------------------------------
 class CatalogueHandler : public ServerConnection {
 public:  // methods
-
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~CatalogueHandler() override;
 
 private:  // methods
-
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
@@ -68,7 +69,6 @@ private:  // methods
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
 private:  // member
-
     // clientID --> <catalogue, locationsExpected, locationsArchived>
     std::map<uint32_t, CatalogueArchiver> catalogues_;
     std::map<uint32_t, FDB> fdbs_;

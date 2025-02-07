@@ -84,7 +84,7 @@ private:  // members
 
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Predicate> reanimator_;
 };
 

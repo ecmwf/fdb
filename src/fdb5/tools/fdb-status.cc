@@ -25,15 +25,11 @@ namespace tools {
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBStatus : public FDBVisitTool {
-public: // methods
+public:  // methods
+    FDBStatus(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {}
 
-    FDBStatus(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver") {}
-
-private: // methods
-
+private:  // methods
     void execute(const CmdArgs& args) override;
-
 };
 
 
@@ -52,11 +48,16 @@ void FDBStatus::execute(const CmdArgs& args) {
             Log::info() << "Database: " << elem.key << std::endl
                         << "  location: " << elem.location.asString() << std::endl;
 
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))   Log::info() << "  retrieve: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))    Log::info() << "  archive: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))       Log::info() << "  list: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))       Log::info() << "  wipe: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) Log::info() << "  multi-root: PERMITTED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))
+                Log::info() << "  retrieve: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))
+                Log::info() << "  archive: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))
+                Log::info() << "  list: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))
+                Log::info() << "  wipe: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot))
+                Log::info() << "  multi-root: PERMITTED" << std::endl;
 
             count++;
         }
@@ -71,11 +72,11 @@ void FDBStatus::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBStatus app(argc, argv);
     return app.start();
 }

@@ -28,24 +28,23 @@
 
 
 namespace eckit {
-    class Stream;
-    namespace option { class CmdArgs; }
+class Stream;
+namespace option {
+class CmdArgs;
 }
+}  // namespace eckit
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBToolRequest {
-public: // methods
-
+public:  // methods
     static std::vector<FDBToolRequest> requestsFromString(const std::string& request_str,
                                                           const std::vector<std::string> minimumKeys = {},
-                                                          bool raw=false,
-                                                          const std::string& verb="retrieve");
+                                                          bool raw = false, const std::string& verb = "retrieve");
 
-    FDBToolRequest(const metkit::mars::MarsRequest& r,
-                   bool all=false,
+    FDBToolRequest(const metkit::mars::MarsRequest& r, bool all = false,
                    const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
     FDBToolRequest(eckit::Stream&);
@@ -54,10 +53,9 @@ public: // methods
 
     bool all() const;
 
-    void print(std::ostream& s, const char* cr="\n", const char* tab="\t") const;
+    void print(std::ostream& s, const char* cr = "\n", const char* tab = "\t") const;
 
-protected: // methods
-
+protected:  // methods
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
@@ -72,12 +70,10 @@ protected: // methods
         return s;
     }
 
-private: // methods
-
+private:  // methods
     static void checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys);
 
-private: // members
-
+private:  // members
     metkit::mars::MarsRequest request_;
 
     bool all_;
@@ -85,6 +81,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

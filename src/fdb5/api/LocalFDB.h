@@ -33,8 +33,7 @@ class FDB;
 
 class LocalFDB : public FDBBase {
 
-public: // methods
-
+public:  // methods
     using FDBBase::FDBBase;
     using FDBBase::stats;
 
@@ -56,8 +55,7 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
@@ -66,17 +64,14 @@ public: // methods
 
     void flush() override;
 
-protected: // methods
+protected:  // methods
+    template <typename VisitorType, typename... Ts>
+    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts... args);
 
-    template <typename VisitorType, typename ... Ts>
-    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
-
-private: // methods
-
+private:  // methods
     void print(std::ostream& s) const override;
 
-protected: // members
-
+protected:  // members
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;
@@ -86,6 +81,6 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_LocalFDB_H
+#endif  // fdb5_api_LocalFDB_H

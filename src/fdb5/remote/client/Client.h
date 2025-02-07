@@ -27,7 +27,7 @@ namespace fdb5::remote {
 
 class RemoteFDBException : public eckit::RemoteException {
 public:
-    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
+    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint) :
         eckit::RemoteException(msg, endpoint) {}
 };
 
@@ -60,16 +60,11 @@ public:  // methods
     uint32_t generateRequestID() const { return connection_.generateRequestID(); }
 
     // blocking requests
-    void controlWriteCheckResponse(Message     msg,
-                                   uint32_t    requestID,
-                                   bool        dataListener,
-                                   const void* payload       = nullptr,
-                                   uint32_t    payloadLength = 0) const;
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload = nullptr,
+                                   uint32_t payloadLength = 0) const;
 
-    eckit::Buffer controlWriteReadResponse(Message     msg,
-                                           uint32_t    requestID,
-                                           const void* payload       = nullptr,
-                                           uint32_t    payloadLength = 0) const;
+    eckit::Buffer controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload = nullptr,
+                                           uint32_t payloadLength = 0) const;
 
     void dataWrite(Message msg, uint32_t requestID, PayloadList payloads = {});
 

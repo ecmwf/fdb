@@ -30,7 +30,7 @@ eckit::Reanimator<Predicate> Predicate::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(std::string keyword, Matcher* matcher) : keyword_ {std::move(keyword)}, matcher_ {matcher} { }
+Predicate::Predicate(std::string keyword, Matcher* matcher) : keyword_{std::move(keyword)}, matcher_{matcher} {}
 
 Predicate::Predicate(eckit::Stream& stream) {
     stream >> keyword_;

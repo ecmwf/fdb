@@ -40,8 +40,7 @@ private:  // types
     using MapList   = std::vector<IndexKey>;
     using MatchList = std::vector<const IndexKey*>;
 
-public: // methods
-
+public:  // methods
     TocCatalogueReader(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
@@ -64,11 +63,13 @@ private:  // methods
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-    template<class T>
+    template <class T>
     static auto& getOrMapIndexes(T& toc) {
-        if (toc.indexes_.empty()) { toc.loadIndexesAndRemap(); }
+        if (toc.indexes_.empty()) {
+            toc.loadIndexesAndRemap();
+        }
         return toc.indexes_;
     }
 
@@ -76,8 +77,7 @@ private:  // methods
 
     auto mappedIndexes() const -> const MapList& { return getOrMapIndexes(*this); }
 
-private: // members
-
+private:  // members
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
     MatchList matching_;
@@ -92,6 +92,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

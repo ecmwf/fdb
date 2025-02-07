@@ -27,7 +27,7 @@
 namespace eckit {
 class JSON;
 class Stream;
-}
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -51,11 +51,12 @@ public:  // methods
     ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
                 const TimeStamp& timestamp);
 
-    ListElement(const std::array<Key,3>& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp);
+    ListElement(const std::array<Key, 3>& keys, std::shared_ptr<const FieldLocation> location,
+                const TimeStamp& timestamp);
 
     explicit ListElement(eckit::Stream& stream);
 
-    const std::array<Key,3>& keys() const { return keyParts_; }
+    const std::array<Key, 3>& keys() const { return keyParts_; }
     Key combinedKey() const;
 
     const FieldLocation& location() const;
@@ -83,7 +84,7 @@ private:  // members
 
     std::shared_ptr<const FieldLocation> loc_;
 
-    TimeStamp timestamp_ {0};
+    TimeStamp timestamp_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

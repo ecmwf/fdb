@@ -27,9 +27,9 @@ namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbHide: public FDBTool {
+class FdbHide : public FDBTool {
 public:  // methods
-    FdbHide(int argc, char** argv): FDBTool(argc, argv) {
+    FdbHide(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(new SimpleOption<bool>("doit", "Do the actual change"));
     }
 
@@ -39,7 +39,7 @@ private:  // methods
     void usage(const std::string& tool) const override;
 
 private:  // members
-    bool doit_ {false};
+    bool doit_{false};
 };
 
 void FdbHide::usage(const std::string& tool) const {
@@ -71,7 +71,9 @@ void FdbHide::execute(const CmdArgs& args) {
 
     const auto& keys = conf.schema().expandDatabase(dbrequest.request());
 
-    if (keys.empty()) { throw eckit::UserError("Invalid request", Here()); }
+    if (keys.empty()) {
+        throw eckit::UserError("Invalid request", Here());
+    }
 
     /// @todo do we want to assert that expandDatabase returns only one key ?
 
@@ -84,14 +86,17 @@ void FdbHide::execute(const CmdArgs& args) {
             throw eckit::UserError(ss.str(), Here());
         }
 
-        if (db->type() != TocEngine::typeName()) { throw eckit::UserError("Only TOC DBs currently supported", Here()); }
+        if (db->type() != TocEngine::typeName()) {
+            throw eckit::UserError("Only TOC DBs currently supported", Here());
+        }
 
         eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
         if (doit_) {
-            auto  dbWriter = CatalogueWriterFactory::instance().build(key, conf);
-            auto* tocDB    = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
+            auto dbWriter = CatalogueWriterFactory::instance().build(key, conf);
+            auto* tocDB   = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
             tocDB->hideContents();
-        } else {
+        }
+        else {
             eckit::Log::info() << "Run with --doit to make changes" << std::endl;
         }
     }
@@ -101,7 +106,7 @@ void FdbHide::execute(const CmdArgs& args) {
 
 }  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbHide app(argc, argv);
     return app.start();
 }

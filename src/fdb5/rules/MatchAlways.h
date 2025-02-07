@@ -26,7 +26,7 @@ namespace fdb5 {
 
 class MatchAlways : public Matcher {
 
-public: // methods
+public:  // methods
     MatchAlways() = default;
 
     MatchAlways(eckit::Stream& s);
@@ -37,21 +37,18 @@ public: // methods
     void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
-
+private:  // methods
     void encode(eckit::Stream&) const override;
 
-    void print( std::ostream& out ) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
-
+private:  // members
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchAlways> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -8,15 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/filesystem/URIManager.h"
 #include "fdb5/daos/DaosFieldLocation.h"
+#include "eckit/filesystem/URIManager.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 
-::eckit::ClassSpec DaosFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "DaosFieldLocation",};
+::eckit::ClassSpec DaosFieldLocation::classSpec_ = {
+    &FieldLocation::classSpec(),
+    "DaosFieldLocation",
+};
 ::eckit::Reanimator<DaosFieldLocation> DaosFieldLocation::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -24,14 +27,14 @@ namespace fdb5 {
 DaosFieldLocation::DaosFieldLocation(const DaosFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri) : FieldLocation(uri) {}
+DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
 /// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
-DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                     const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
-DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :
-    FieldLocation(s) {}
+DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
 std::shared_ptr<const FieldLocation> DaosFieldLocation::make_shared() const {
     return std::make_shared<DaosFieldLocation>(std::move(*this));
@@ -40,10 +43,9 @@ std::shared_ptr<const FieldLocation> DaosFieldLocation::make_shared() const {
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
     return fdb5::DaosArrayName(uri_).dataHandle(offset(), length());
-    
 }
 
-void DaosFieldLocation::print(std::ostream &out) const {
+void DaosFieldLocation::print(std::ostream& out) const {
     out << "DaosFieldLocation[uri=" << uri_ << "]";
 }
 
@@ -61,34 +63,31 @@ class DaosURIManager : public eckit::URIManager {
 
     eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
-    bool exists(const eckit::URI& f) override {
-
-        return fdb5::DaosName(f).exists();
-
-    }
+    bool exists(const eckit::URI& f) override { return fdb5::DaosName(f).exists(); }
 
     eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
-        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+            NOTIMP;
+
         return fdb5::DaosArrayName(f).dataHandle();
-        
     }
 
     eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
-        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+            NOTIMP;
+
         return fdb5::DaosArrayName(f).dataHandle();
-        
     }
 
-    eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+    eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol,
+                                     const eckit::LengthList& ll) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
-        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+            NOTIMP;
+
         return fdb5::DaosArrayName(f).dataHandle();
-        
     }
 
     std::string asString(const eckit::URI& uri) const override {
@@ -101,10 +100,11 @@ class DaosURIManager : public eckit::URIManager {
 
         return uri.scheme() + ":" + uri.name() + q + f;
     }
+
 public:
     DaosURIManager(const std::string& name) : eckit::URIManager(name) {}
 };
 
 static DaosURIManager daos_uri_manager("daos");
 
-} // namespace fdb5
+}  // namespace fdb5

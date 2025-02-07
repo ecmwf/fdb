@@ -32,8 +32,7 @@ class DaosPool;
 
 class DaosContainer {
 
-public: // methods
-
+public:  // methods
     DaosContainer(DaosContainer&&) noexcept;
     ~DaosContainer();
 
@@ -50,8 +49,7 @@ public: // methods
     std::string label() const;
     fdb5::DaosPool& getPool() const;
 
-private: // methods
-
+private:  // methods
     friend class DaosPool;
 
     DaosContainer(fdb5::DaosPool&, const std::string&);
@@ -61,29 +59,24 @@ private: // methods
     void create();
     bool exists();
 
-private: // members
-
+private:  // members
     fdb5::DaosPool& pool_;
     std::string label_ = std::string();
     daos_handle_t coh_;
     bool open_;
 
     OidAlloc oidAlloc_{};
-
 };
 
 class AutoContainerDestroy {
 
-public: // methods
-
+public:  // methods
     AutoContainerDestroy(fdb5::DaosContainer& cont) : cont_(cont) {}
 
     ~AutoContainerDestroy() noexcept(false);
 
-private: // members
-
+private:  // members
     fdb5::DaosContainer& cont_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

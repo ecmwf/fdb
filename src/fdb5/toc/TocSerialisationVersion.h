@@ -49,10 +49,8 @@ public:
     /// Checks the serialisation version is supported by the software
     bool check(unsigned int version, bool throwOnFail = true) const;
 
-private: // members
-
-    unsigned int used_; //< version to be used for serialisation on write
-
+private:                 // members
+    unsigned int used_;  //< version to be used for serialisation on write
 };
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -19,9 +19,9 @@
 
 #include "eckit/system/Library.h"
 
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/types/TypesRegistry.h"
-#include "fdb5/api/helpers/Callback.h"
 
 namespace fdb5 {
 
@@ -57,7 +57,7 @@ public:
     bool check(unsigned int version, bool throwOnFail = true);
 
 private:
-    unsigned int used_; //< version to be used for remote protocol
+    unsigned int used_;  //< version to be used for remote protocol
 };
 
 //----------------------------------------------------------------------------------------------------------------------

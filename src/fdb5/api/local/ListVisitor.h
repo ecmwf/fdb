@@ -47,8 +47,8 @@ namespace fdb5::api::local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
-        QueryVisitor<ListElement>(queue, request), level_(level) { }
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+        QueryVisitor<ListElement>(queue, request), level_(level) {}
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
@@ -82,7 +82,7 @@ public:
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& [k,v] : currentCatalogue_->key()) {
+        for (const auto& [k, v] : currentCatalogue_->key()) {
             indexRequest_.unsetValues(k);
         }
 
@@ -136,7 +136,7 @@ public:
             }
             if (datumRequest_.parameters().size() == 0) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                            field.timestamp());
+                               field.timestamp());
             }
         }
     }
@@ -145,8 +145,7 @@ public:
         EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
-private: // members
-
+private:  // members
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
     const int level_;

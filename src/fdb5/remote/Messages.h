@@ -25,7 +25,7 @@
 #include "eckit/types/FixedString.h"
 
 namespace eckit {
-    class Stream;
+class Stream;
 }
 
 namespace fdb5::remote {
@@ -33,13 +33,14 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 struct Payload {
-    Payload(std::size_t length, const void* data) : length {length}, data {data} { }
+    Payload(std::size_t length, const void* data) : length{length}, data{data} {}
 
-    std::size_t length {0};
-    const void* data {nullptr};
+    std::size_t length{0};
+    const void* data{nullptr};
 };
 
-enum class Message : uint16_t {
+enum class Message : uint16_t
+{
 
     // Server instructions
     None = 0,
@@ -96,32 +97,28 @@ public:  // types
 
     using HashType = eckit::FixedString<hashBytes>;
 
-    inline static const MarkerType StartMarker {"SFDB"};
+    inline static const MarkerType StartMarker{"SFDB"};
 
-    inline static const MarkerType EndMarker {"EFDB"};
+    inline static const MarkerType EndMarker{"EFDB"};
 
 public:  // methods
     MessageHeader() = default;
 
     MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
 
-    bool control() const {
-        return ((clientID_ & 0x00000001) == 1);
-    }
-    uint32_t clientID() const {
-        return (clientID_>>1);
-    }
+    bool control() const { return ((clientID_ & 0x00000001) == 1); }
+    uint32_t clientID() const { return (clientID_ >> 1); }
 
 public:
-    MarkerType marker;                    // 4 bytes  --> 4
-    uint16_t   version {currentVersion};  // 2 bytes  --> 6
-    Message    message {Message::None};   // 2 bytes  --> 8
-    uint32_t   clientID_ {0};             // 4 bytes  --> 12
-    uint32_t   requestID {0};             // 4 bytes  --> 16
-    uint32_t   payloadSize {0};           // 4 bytes  --> 20
-    HashType   hash;                      // 16 bytes --> 36
+    MarkerType marker;                 // 4 bytes  --> 4
+    uint16_t version{currentVersion};  // 2 bytes  --> 6
+    Message message{Message::None};    // 2 bytes  --> 8
+    uint32_t clientID_{0};             // 4 bytes  --> 12
+    uint32_t requestID{0};             // 4 bytes  --> 16
+    uint32_t payloadSize{0};           // 4 bytes  --> 20
+    HashType hash;                     // 16 bytes --> 36
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::remote
+}  // namespace fdb5::remote

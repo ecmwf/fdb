@@ -32,17 +32,16 @@ class Locations {
 public:
     Locations() : fieldsArchived_(0), locationsReceived_(0) {}
 
-    std::mutex& mutex() {
-        return locationMutex_;
-    }
+    std::mutex& mutex() { return locationMutex_; }
 
     size_t archived() { return fieldsArchived_; }
 
-    void archive(uint32_t requestID, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+    void archive(uint32_t requestID,
+                 std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
         std::lock_guard<std::mutex> lock(locationMutex_);
         locations_[requestID] = catalogue_archive;
         fieldsArchived_++;
-        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
     }
 
     bool location(uint32_t requestID, std::unique_ptr<FieldLocation> location) {
@@ -57,7 +56,7 @@ public:
         locations_.erase(it);
         locationsReceived_++;
 
-        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
         if (archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_)) {
             promiseArchivalCompleted_.set_value(locationsReceived_);
         }
@@ -67,12 +66,12 @@ public:
     bool complete() {
         std::lock_guard<std::mutex> lock(locationMutex_);
 
-        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
+        ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
         if (fieldsArchived_ == locationsReceived_)
             return true;
 
         promiseArchivalCompleted_ = std::promise<size_t>{};
-        archivalCompleted_ = promiseArchivalCompleted_.get_future();
+        archivalCompleted_        = promiseArchivalCompleted_.get_future();
         return false;
     }
 
@@ -83,20 +82,18 @@ public:
 
     void reset() {
         std::lock_guard<std::mutex> lock(locationMutex_);
-        ASSERT(fieldsArchived_-locationsReceived_ == locations_.size());
-        fieldsArchived_ = locations_.size();
+        ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
+        fieldsArchived_    = locations_.size();
         locationsReceived_ = 0;
     }
 
 private:
-
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
     size_t fieldsArchived_;
     size_t locationsReceived_;
     std::promise<size_t> promiseArchivalCompleted_;
     std::future<size_t> archivalCompleted_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -104,14 +101,13 @@ private:
 /// Store that connects to a remote Store
 class RemoteStore : public Store, public Client {
 
-public: // types
+public:  // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
     static const char* typeName() { return "remote"; }
 
-public: // methods
-
+public:  // methods
     RemoteStore(const Key& key, const Config& config);
     RemoteStore(const eckit::URI& uri, const Config& config);
 
@@ -125,13 +121,16 @@ public: // methods
     size_t flush() override;
     void close() override;
 
-    void checkUID() const override { }
+    void checkUID() const override {}
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
-    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest,
+                eckit::Queue<MoveElement>& queue) const override {
+        NOTIMP;
+    }
     void remove(const Key& key) const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
@@ -140,26 +139,26 @@ public: // methods
 
     const Config& config() const { return config_; }
 
-protected: // methods
+protected:  // methods
     std::string type() const override { return typeName(); }
 
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    void archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
+    void archive(
+        const Key& key, const void* data, eckit::Length length,
+        std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-private: // methods
-
+private:  // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
-private: // members
-
+private:  // members
     Key dbKey_;
 
     const Config& config_;
@@ -178,4 +177,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::remote
+}  // namespace fdb5::remote

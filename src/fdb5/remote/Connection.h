@@ -51,14 +51,15 @@ class Connection : eckit::NonCopyable {
 public:  // types
     using PayloadList = std::vector<Payload>;
 
-public: // methods
+public:  // methods
     Connection();
 
     virtual ~Connection() = default;
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, PayloadList payloads = {}) const;
 
-    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) const {
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data,
+               uint32_t length) const {
         write(msg, control, clientID, requestID, {{length, data}});
     }
 

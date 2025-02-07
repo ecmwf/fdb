@@ -52,7 +52,7 @@ private:  // members
 
     // streamable
 
-    static eckit::ClassSpec              classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchValue> reanimator_;
 };
 

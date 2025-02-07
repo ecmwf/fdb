@@ -28,7 +28,6 @@ namespace fdb5 {
 
 class TocPurgeVisitor : public PurgeVisitor, public TocStatsReportVisitor {
 public:
-
     TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store);
     ~TocPurgeVisitor() override;
 
@@ -38,8 +37,7 @@ public:
 
     void gatherAuxiliaryURIs() override;
 
-private: // members
-
+private:  // members
     const Store& store_;
     std::set<eckit::PathName> deleteAuxFiles_;
     std::set<eckit::PathName> keepAuxFiles_;
@@ -47,6 +45,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

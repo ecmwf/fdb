@@ -71,13 +71,16 @@ void TypesRegistry::addType(const std::string& keyword, const std::string& type)
 
 const Type& TypesRegistry::lookupType(const std::string& keyword) const {
 
-    if (auto iter = cache_.find(keyword); iter != cache_.end()) { return *iter->second; }
+    if (auto iter = cache_.find(keyword); iter != cache_.end()) {
+        return *iter->second;
+    }
 
     std::string type = "Default";
 
     if (auto iter = types_.find(keyword); iter != types_.end()) {
         type = iter->second;
-    } else if (parent_) {
+    }
+    else if (parent_) {
         return parent_->lookupType(keyword);
     }
 
@@ -95,10 +98,12 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
 
     for (const auto& param : request.parameters()) {
         const std::vector<std::string>& srcVals = param.values();
-        std::vector<std::string>        vals;
+        std::vector<std::string> vals;
         vals.reserve(srcVals.size());
         const Type& type = lookupType(param.name());
-        for (const auto& v : srcVals) { vals.push_back(type.toKey(v)); }
+        for (const auto& v : srcVals) {
+            vals.push_back(type.toKey(v));
+        }
         result.values(type.alias(), vals);
     }
 
@@ -110,12 +115,16 @@ void TypesRegistry::print(std::ostream& out) const {
 }
 
 void TypesRegistry::dump(std::ostream& out) const {
-    for (const auto& [keyword, type] : types_) { out << keyword << ":" << type << ";" << std::endl; }
+    for (const auto& [keyword, type] : types_) {
+        out << keyword << ":" << type << ";" << std::endl;
+    }
 }
 
 void TypesRegistry::dump(std::ostream& out, const std::string& keyword) const {
     out << keyword;
-    if (auto iter = types_.find(keyword); iter != types_.end()) { out << ":" << iter->second; }
+    if (auto iter = types_.find(keyword); iter != types_.end()) {
+        out << ":" << iter->second;
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const TypesRegistry& registry) {

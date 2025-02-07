@@ -21,20 +21,16 @@ using namespace eckit;
 
 class FDBDumpIndex : public fdb5::FDBTool {
 
-  public: // methods
+public:  // methods
+    FDBDumpIndex(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 
-    FDBDumpIndex(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {}
-
-  private: // methods
-
-    virtual void usage(const std::string &tool) const;
+private:  // methods
+    virtual void usage(const std::string& tool) const;
     virtual void execute(const option::CmdArgs& args);
 };
 
-void FDBDumpIndex::usage(const std::string &tool) const {
-    Log::info() << std::endl
-                << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
+void FDBDumpIndex::usage(const std::string& tool) const {
+    Log::info() << std::endl << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
@@ -57,8 +53,7 @@ void FDBDumpIndex::execute(const option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBDumpIndex app(argc, argv);
     return app.start();
 }
-

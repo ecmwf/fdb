@@ -11,8 +11,8 @@
 #include <memory>
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/option/CmdArgs.h"
 #include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBTool.h"
@@ -20,23 +20,21 @@
 using namespace eckit;
 
 class Grib2Fdb5 : public fdb5::FDBTool {
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual int minimumPositionalArguments() const {
-        return 1;
-    }
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
+    virtual int minimumPositionalArguments() const { return 1; }
 
-  public:
-    Grib2Fdb5(int argc, char **argv): fdb5::FDBTool(argc, argv) {}
+public:
+    Grib2Fdb5(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 };
 
-void Grib2Fdb5::usage(const std::string &tool) const {
+void Grib2Fdb5::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [-c class] [-e expver] [-T type] [-s stream] [-f file]" << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
-void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
+void Grib2Fdb5::execute(const eckit::option::CmdArgs& args) {
 
     fdb5::Key check;
 
@@ -60,7 +58,7 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (k == "-1") {
-            Log::info() << "Option -1 ignored" <<  std::endl;
+            Log::info() << "Option -1 ignored" << std::endl;
             i++;
             continue;
         }
@@ -100,15 +98,13 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
     for (const auto& path : paths) {
         Log::info() << "Processing " << path << std::endl;
         Log::info() << "Key " << check << std::endl;
-        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
-        archiver.archive( *dh );
+        std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
+        archiver.archive(*dh);
     }
-
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     Grib2Fdb5 app(argc, argv);
     return app.start();
 }
-

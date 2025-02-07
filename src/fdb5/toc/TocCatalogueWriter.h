@@ -35,15 +35,14 @@ class TocAddIndex;
 
 class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
-public: // methods
-
+public:  // methods
     TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
     ~TocCatalogueWriter() override;
 
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override;
+    void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
 
     void reconsolidate() override { reconsolidateIndexesAndTocs(); }
 
@@ -63,8 +62,7 @@ public: // methods
 
     size_t archivedLocations() const override { return archivedLocations_; }
 
-protected: // methods
-
+protected:  // methods
     bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
@@ -76,33 +74,30 @@ protected: // methods
     void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
     void reconsolidateIndexesAndTocs();
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-private: // methods
-
+private:  // methods
     void closeIndexes();
     void flushIndexes();
     void compactSubTocIndexes();
 
     eckit::PathName generateIndexPath(const Key& key) const;
 
-private: // types
+private:  // types
+    typedef std::map<std::string, eckit::DataHandle*> HandleStore;
+    typedef std::map<Key, Index> IndexStore;
+    typedef std::map<Key, std::string> PathStore;
 
-    typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< Key, Index> IndexStore;
-    typedef std::map< Key, std::string > PathStore;
-
-private: // members
-
-    HandleStore handles_;    ///< stores the DataHandles being used by the Session
+private:                   // members
+    HandleStore handles_;  ///< stores the DataHandles being used by the Session
 
     // If we have multiple flush statements, then the indexes get repeatedly reset. Build and maintain
     // a full copy of the indexes associated with the process as well, for use when masking out
     // subtocs. See compactSubTocIndexes.
-    IndexStore  indexes_;
-    IndexStore  fullIndexes_;
+    IndexStore indexes_;
+    IndexStore fullIndexes_;
 
-    PathStore   dataPaths_;
+    PathStore dataPaths_;
 
     Index current_;
     Index currentFull_;
@@ -113,6 +108,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

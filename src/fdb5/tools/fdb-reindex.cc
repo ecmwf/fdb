@@ -23,20 +23,23 @@
 using namespace eckit;
 using namespace eckit::option;
 
-// Reindex the contents of one FDB into another, by listing the contents of the first and rewriting the indexes in the second
+// Reindex the contents of one FDB into another, by listing the contents of the first and rewriting the indexes in the
+// second
 namespace fdb5::tools {
 
-class FDBReindex: public FDBVisitTool {
+class FDBReindex : public FDBVisitTool {
 public:  // methods
-    FDBReindex(int argc, char** argv): FDBVisitTool(argc, argv, "class,expver") {
-        options_.push_back(new SimpleOption<bool>("porcelain","Streamlined and stable output. Useful as input for other tools or scripts."));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("source-config", "Required: FDB configuration filename. This FDB will be listed"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("sink-config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
-        needsConfig_ = false; // we use source-config and sink-config instead
+    FDBReindex(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {
+        options_.push_back(new SimpleOption<bool>(
+            "porcelain", "Streamlined and stable output. Useful as input for other tools or scripts."));
+        options_.push_back(new eckit::option::SimpleOption<std::string>(
+            "source-config", "Required: FDB configuration filename. This FDB will be listed"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>(
+            "sink-config", "Required: FDB configuration filename. Indexes will be written to this FDB."));
+        needsConfig_ = false;  // we use source-config and sink-config instead
     }
 
 protected:
-
 private:
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
@@ -52,7 +55,7 @@ void FDBReindex::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     source_config_ = args.getString("source-config", "");
-    sink_config_ = args.getString("sink-config", "");
+    sink_config_   = args.getString("sink-config", "");
 
     // not optional
     if (source_config_.empty() || sink_config_.empty()) {
@@ -80,11 +83,11 @@ void FDBReindex::execute(const CmdArgs& args) {
         while (it.next(elem)) {
             LOG_DEBUG_LIB(LibFdb5) << "Reindexing ListElement: " << elem << std::endl;
 
-            const FieldLocation& location = elem.location();
-            const Key& key = elem.combinedKey();
+            const FieldLocation& location    = elem.location();
+            const Key& key                   = elem.combinedKey();
             ListElement::TimeStamp timestamp = elem.timestamp();
 
-            // Only reindex if the timestamp is newer than the one we have. 
+            // Only reindex if the timestamp is newer than the one we have.
             if (timestamps.find(key) == timestamps.end() || timestamps[key] < timestamp) {
                 timestamps[key] = timestamp;
                 sink.reindex(key, location);
@@ -98,8 +101,7 @@ void FDBReindex::execute(const CmdArgs& args) {
 
 }  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBReindex app(argc, argv);
     return app.start();
 }
-

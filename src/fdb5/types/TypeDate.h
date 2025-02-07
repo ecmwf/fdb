@@ -24,28 +24,22 @@ namespace fdb5 {
 
 class TypeDate : public Type {
 
-public: // methods
-
-    TypeDate(const std::string &name, const std::string &type);
+public:  // methods
+    TypeDate(const std::string& name, const std::string& type);
 
     ~TypeDate() override;
 
-    std::string tidy(const std::string &value) const override;
+    std::string tidy(const std::string& value) const override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const CatalogueReader* cat) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
-private: // methods
-
-    void print( std::ostream &out ) const override;
-
+private:  // methods
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

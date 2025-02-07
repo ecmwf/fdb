@@ -16,16 +16,16 @@
 #ifndef fdb5_Inspector_H
 #define fdb5_Inspector_H
 
-#include <iosfwd>
 #include <cstdlib>
+#include <iosfwd>
 #include <map>
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/container/CacheLRU.h"
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/container/CacheLRU.h"
+#include "eckit/memory/NonCopyable.h"
 
 namespace eckit {
 class DataHandle;
@@ -33,8 +33,9 @@ class DataHandle;
 
 namespace metkit {
 namespace mars {
-    class MarsRequest;
-}}
+class MarsRequest;
+}
+}  // namespace metkit
 
 namespace fdb5 {
 
@@ -55,6 +56,7 @@ public:
 
     void emplace(ListElement&& elem);
     bool next(ListElement& elem) override;
+
 private:
     std::vector<ListElement> queue_;
     size_t index_;
@@ -64,8 +66,7 @@ private:
 
 class Inspector : public eckit::NonCopyable {
 
-public: // methods
-
+public:  // methods
     Inspector(const Config& dbConfig);
 
     ~Inspector();
@@ -85,26 +86,25 @@ public: // methods
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const Inspector &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Inspector& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+private:  // methods
+    void print(std::ostream& out) const;
 
-    void print(std::ostream &out) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
+                         const Notifier& notifyee) const;
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema &schema, const Notifier& notifyee) const;
-
-private: // data
-
-    mutable eckit::CacheLRU<Key,CatalogueReader*> databases_;
+private:  // data
+    mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
     Config dbConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

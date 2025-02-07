@@ -29,11 +29,10 @@ namespace fdb5 {
 
 class TocFieldLocation : public FieldLocation {
 public:
-
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
-    TocFieldLocation(const eckit::URI &uri);
-    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    TocFieldLocation(const eckit::URI& uri);
+    TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const UriStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
@@ -43,27 +42,23 @@ public:
 
     void visit(FieldLocationVisitor& visitor) const override;
 
-public: // For Streamable
+public:  // For Streamable
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
-
-protected: // For Streamable
-
+protected:  // For Streamable
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     void encode(eckit::Stream&) const override;
 
-    static eckit::ClassSpec                    classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TocFieldLocation> reanimator_;
 
-private: // methods
-
-    void print(std::ostream &out) const override;
-
+private:  // methods
+    void print(std::ostream& out) const override;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_TocFieldLocation_H
+#endif  // fdb5_TocFieldLocation_H

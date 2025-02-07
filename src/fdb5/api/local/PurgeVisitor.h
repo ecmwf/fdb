@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_PurgeVisitor_H
 #define fdb5_api_local_PurgeVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/Store.h"
 
@@ -37,10 +37,7 @@ namespace local {
 
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
-
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                 const metkit::mars::MarsRequest& request,
-                 bool doit,
+    PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                  bool porcelain);
 
     bool visitDatabase(const Catalogue& catalogue) override;
@@ -51,8 +48,7 @@ public:
 
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
-private: // members
-
+private:  // members
     eckit::Channel out_;
     bool doit_;
     bool porcelain_;
@@ -62,8 +58,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

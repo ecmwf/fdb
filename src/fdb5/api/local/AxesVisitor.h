@@ -52,8 +52,7 @@ public:
 
     void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
-private: // members
-
+private:  // members
     Key dbKey_;
     IndexAxis axes_;
     int level_;
@@ -63,4 +62,4 @@ private: // members
 
 }  // namespace api::local
 
-} // namespace fdb5
+}  // namespace fdb5

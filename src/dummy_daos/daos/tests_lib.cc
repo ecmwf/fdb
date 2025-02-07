@@ -17,35 +17,35 @@
 #include <unistd.h>
 #include <cstring>
 
-#include "eckit/filesystem/TmpDir.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/MD5.h"
 
-#include "tests_lib.h"
 #include "../dummy_daos.h"
+#include "tests_lib.h"
 
-namespace{
-    void deldir(eckit::PathName& p) {
-        if (!p.exists()) {
-            return;
-        }
+namespace {
+void deldir(eckit::PathName& p) {
+    if (!p.exists()) {
+        return;
+    }
 
-        std::vector<eckit::PathName> files;
-        std::vector<eckit::PathName> dirs;
-        p.children(files, dirs);
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    p.children(files, dirs);
 
-        for (auto& f : files) {
-            f.unlink();
-        }
-        for (auto& d : dirs) {
-            deldir(d);
-        }
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
 
-        p.rmdir();
-    };
-}
+    p.rmdir();
+};
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ extern "C" {
 
 daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
 
-    daos_prop_t *prop;
+    daos_prop_t* prop;
 
     if (entries_nr > DAOS_PROP_ENTRIES_MAX_NR) {
         eckit::Log::error() << "Too many property entries requested.";
@@ -73,20 +73,20 @@ daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
     }
     prop->dpp_nr = entries_nr;
     return prop;
-
 }
 
-void daos_prop_fini(daos_prop_t *prop) {
+void daos_prop_fini(daos_prop_t* prop) {
     int i;
 
     if (!prop->dpp_entries)
         goto out;
 
     for (i = 0; i < prop->dpp_nr; i++) {
-        struct daos_prop_entry *entry;
+        struct daos_prop_entry* entry;
 
         entry = &prop->dpp_entries[i];
-        if (entry->dpe_type != DAOS_PROP_PO_LABEL) NOTIMP;
+        if (entry->dpe_type != DAOS_PROP_PO_LABEL)
+            NOTIMP;
         D_FREE(entry->dpe_str);
     }
 
@@ -95,7 +95,7 @@ out:
     prop->dpp_nr = 0;
 }
 
-void daos_prop_free(daos_prop_t *prop) {
+void daos_prop_free(daos_prop_t* prop) {
     if (prop == NULL)
         return;
 
@@ -103,37 +103,36 @@ void daos_prop_free(daos_prop_t *prop) {
     D_FREE(prop);
 }
 
-/// @note: pools are implemented as directories. Upon creation, a new random and unique string 
+/// @note: pools are implemented as directories. Upon creation, a new random and unique string
 ///        is generated, a pool UUID is generated from that string, and a directory is created
-///        with the UUID as directory name. If a label is specified, a symlink is created with 
+///        with the UUID as directory name. If a label is specified, a symlink is created with
 ///        the label as origin file name and the UUID directory as destination. If no label is
 ///        specified, no symlink is created.
 
-int dmg_pool_create(const char *dmg_config_file,
-                    uid_t uid, gid_t gid, const char *grp,
-                    const d_rank_list_t *tgts,
-                    daos_size_t scm_size, daos_size_t nvme_size,
-                    daos_prop_t *prop,
-                    d_rank_list_t *svc, uuid_t uuid) {
+int dmg_pool_create(const char* dmg_config_file, uid_t uid, gid_t gid, const char* grp, const d_rank_list_t* tgts,
+                    daos_size_t scm_size, daos_size_t nvme_size, daos_prop_t* prop, d_rank_list_t* svc, uuid_t uuid) {
 
     std::string pool_name;
     eckit::PathName label_symlink_path;
 
     if (prop != NULL) {
 
-        if (prop->dpp_nr != 1) NOTIMP;
-        if (prop->dpp_entries[0].dpe_type != DAOS_PROP_PO_LABEL) NOTIMP;
+        if (prop->dpp_nr != 1)
+            NOTIMP;
+        if (prop->dpp_entries[0].dpe_type != DAOS_PROP_PO_LABEL)
+            NOTIMP;
 
-        struct daos_prop_entry *entry = &prop->dpp_entries[0];
+        struct daos_prop_entry* entry = &prop->dpp_entries[0];
 
-        if (entry == NULL) NOTIMP;
+        if (entry == NULL)
+            NOTIMP;
 
         pool_name = std::string(entry->dpe_str);
 
         label_symlink_path = dummy_daos_root() / pool_name;
 
-        if (label_symlink_path.exists()) return -1;
-
+        if (label_symlink_path.exists())
+            return -1;
     }
 
     /// @note: copied from LocalPathName::unique. Ditched StaticMutex as dummy DAOS is not thread safe
@@ -165,65 +164,64 @@ int dmg_pool_create(const char *dmg_config_file,
 
     eckit::PathName pool_path = dummy_daos_root() / pool_uuid_cstr;
 
-    if (pool_path.exists()) throw eckit::SeriousBug("UUID clash in pool create");
+    if (pool_path.exists())
+        throw eckit::SeriousBug("UUID clash in pool create");
 
     pool_path.mkdir();
 
-    if (prop == NULL) return 0;
-    
+    if (prop == NULL)
+        return 0;
+
     if (::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str()) < 0) {
 
         if (errno == EEXIST) {  // link path already exists due to race condition
 
             deldir(pool_path);
             return -1;
-
-        } else {  // symlink fails for unknown reason
+        }
+        else {  // symlink fails for unknown reason
 
             throw eckit::FailedSystemCall(std::string("symlink ") + pool_path.path() + " " + label_symlink_path.path());
-            
         }
-
     }
 
     return 0;
-
 }
 
-int dmg_pool_destroy(const char *dmg_config_file,
-                     const uuid_t uuid, const char *grp, int force) {
-    
+int dmg_pool_destroy(const char* dmg_config_file, const uuid_t uuid, const char* grp, int force) {
+
     char uuid_str[37] = "";
 
     uuid_unparse(uuid, uuid_str);
 
     eckit::PathName pool_path = dummy_daos_root() / uuid_str;
 
-    if (!pool_path.exists()) return -1;
+    if (!pool_path.exists())
+        return -1;
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
     dummy_daos_root().children(files, dirs);
 
-    /// @note: all pool labels (symlinks) are visited and deleted if they point to the 
+    /// @note: all pool labels (symlinks) are visited and deleted if they point to the
     ///        specified pool UUID. None will match if the pool was not labelled.
 
     for (auto& f : files) {
         try {
 
-            if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
+            if (f.isLink() && f.realName().baseName() == pool_path.baseName())
+                f.unlink();
+        }
+        catch (eckit::FailedSystemCall& e) {
 
-        } catch (eckit::FailedSystemCall& e) {
-
-            if (f.exists()) throw;
-
+            if (f.exists())
+                throw;
         }
     }
 
     deldir(pool_path);
 
     return 0;
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------

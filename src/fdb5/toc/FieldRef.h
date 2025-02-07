@@ -17,11 +17,11 @@
 
 #include "eckit/eckit.h"
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/io/Offset.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/database/FieldDetails.h"
 
@@ -40,21 +40,21 @@ public:
     typedef size_t UriID;
 
     FieldRefLocation();
-    FieldRefLocation(UriStore &, const Field &);
+    FieldRefLocation(UriStore&, const Field&);
 
 
     UriID uriId() const { return uriId_; }
-    const eckit::Offset &offset() const { return offset_; }
-    const eckit::Length &length() const { return length_; }
+    const eckit::Offset& offset() const { return offset_; }
+    const eckit::Length& length() const { return length_; }
 
 protected:
-    UriID           uriId_;
-    eckit::Offset   offset_;
-    eckit::Length   length_;
+    UriID uriId_;
+    eckit::Offset offset_;
+    eckit::Length length_;
 
-    void print(std::ostream &s) const;
+    void print(std::ostream& s) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const FieldRefLocation &x) {
+    friend std::ostream& operator<<(std::ostream& s, const FieldRefLocation& x) {
         x.print(s);
         return s;
     }
@@ -69,43 +69,42 @@ class FieldRef;
 
 class FieldRefReduced {
     FieldRefLocation location_;
+
 public:
     FieldRefReduced();
     FieldRefReduced(const FieldRef&);
     const FieldRefLocation& location() const { return location_; }
 
-private: // methods
+private:  // methods
+    void print(std::ostream& s) const;
 
-    void print(std::ostream &s) const;
-
-    friend std::ostream &operator<<(std::ostream &s, const FieldRefReduced &x) {
+    friend std::ostream& operator<<(std::ostream& s, const FieldRefReduced& x) {
         x.print(s);
         return s;
     }
 };
 
-class FieldRef  {
+class FieldRef {
     FieldRefLocation location_;
     FieldDetails details_;
-public:
 
+public:
     FieldRef();
-    FieldRef(UriStore &, const Field &);
+    FieldRef(UriStore&, const Field&);
 
     FieldRef(const FieldRefReduced&);
 
     FieldRefLocation::UriID uriId() const { return location_.uriId(); }
-    const eckit::Offset &offset() const { return location_.offset(); }
-    const eckit::Length &length() const { return location_.length(); }
+    const eckit::Offset& offset() const { return location_.offset(); }
+    const eckit::Length& length() const { return location_.length(); }
 
     const FieldRefLocation& location() const { return location_; }
     const FieldDetails& details() const { return details_; }
 
-private: // methods
+private:  // methods
+    void print(std::ostream& s) const;
 
-    void print(std::ostream &s) const;
-
-    friend std::ostream &operator<<(std::ostream &s, const FieldRef &x) {
+    friend std::ostream& operator<<(std::ostream& s, const FieldRef& x) {
         x.print(s);
         return s;
     }
@@ -115,6 +114,6 @@ typedef FieldRef FieldRefFull;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

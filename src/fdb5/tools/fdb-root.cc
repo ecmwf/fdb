@@ -60,7 +60,9 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             const auto& keys = conf.schema().expandDatabase(request.request());
 
-            if (keys.empty()) { throw eckit::UserError("Invalid request", Here()); }
+            if (keys.empty()) {
+                throw eckit::UserError("Invalid request", Here());
+            }
 
             /// @todo this is running over keys, which needs more thoughts
 
@@ -72,9 +74,13 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
                 std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
 
-                if (!cat->exists() && create) { cat = CatalogueWriterFactory::instance().build(key, conf); }
+                if (!cat->exists() && create) {
+                    cat = CatalogueWriterFactory::instance().build(key, conf);
+                }
 
-                if (cat->exists()) { eckit::Log::info() << (*cat) << std::endl; }
+                if (cat->exists()) {
+                    eckit::Log::info() << (*cat) << std::endl;
+                }
             }
         }
     }

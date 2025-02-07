@@ -22,8 +22,7 @@ namespace fdb5 {
 // Used for writing fields into a catalogue without writin any data to a store.
 class Reindexer : public Archiver {
 
-public: // methods
-
+public:  // methods
     Reindexer(const Config& dbConfig = Config().expandConfig());
 
     virtual ~Reindexer();
@@ -31,11 +30,10 @@ public: // methods
     // Write a field location to the catalogue without touching the store
     void reindex(const Key& key, const FieldLocation& fieldLocation);
 
-protected: // methods
+protected:  // methods
     void flushDatabase(Database& db) override;
-    
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

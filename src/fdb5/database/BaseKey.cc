@@ -42,7 +42,7 @@ public:  // methods
     ReverseName& operator=(ReverseName&&)      = delete;
     ~ReverseName()                             = default;
 
-    explicit ReverseName(const value_type& value) : value_ {value} { }
+    explicit ReverseName(const value_type& value) : value_{value} {}
 
     auto begin() const -> value_type::const_reverse_iterator { return value_.rbegin(); }
 
@@ -59,7 +59,9 @@ private:  // members
 
 const std::string& BaseKey::get(const std::string& keyword) const {
 
-    if (const auto [iter, found] = find(keyword); found) { return iter->second; }
+    if (const auto [iter, found] = find(keyword); found) {
+        return iter->second;
+    }
 
     std::ostringstream oss;
     oss << "Could not find [" + keyword + "] in " << *this;
@@ -68,7 +70,9 @@ const std::string& BaseKey::get(const std::string& keyword) const {
 
 eckit::StringSet BaseKey::keys() const {
     eckit::StringSet result;
-    for (const auto& pair : *this) { result.insert(pair.first); }
+    for (const auto& pair : *this) {
+        result.insert(pair.first);
+    }
     return result;
 }
 
@@ -90,7 +94,8 @@ void BaseKey::set(const std::string& keyword, const std::string& value) {
 
     if (const auto iter = keys_.find(keyword); iter != keys_.end()) {
         iter->second = eckit::StringTools::lower(value);
-    } else {
+    }
+    else {
         names_.push_back(keyword);
         keys_[keyword] = eckit::StringTools::lower(value);
     }
@@ -119,7 +124,9 @@ void BaseKey::pushFrom(const BaseKey& other) {
 }
 
 void BaseKey::popFrom(const BaseKey& other) {
-    for (const auto& keyword : ReverseName(other.names())) { pop(keyword); }
+    for (const auto& keyword : ReverseName(other.names())) {
+        pop(keyword);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -150,9 +157,13 @@ void BaseKey::decode(eckit::Stream& stream) {
 
 void BaseKey::encode(eckit::Stream& stream) const {
     stream << keys_.size();
-    for (const auto& [keyword, value] : *this) { stream << keyword << value; }
+    for (const auto& [keyword, value] : *this) {
+        stream << keyword << value;
+    }
     stream << names_.size();
-    for (const auto& keyword : names_) { stream << keyword << ""; }  // << type(keyword)
+    for (const auto& keyword : names_) {
+        stream << keyword << "";
+    }  // << type(keyword)
 }
 
 size_t encodeString(const std::string& str) {
@@ -195,7 +206,7 @@ std::string BaseKey::toString() const {
         const auto& value = get(keyword);
         if (!value.empty()) {
             result += sep + keyword + '=' + value;
-            sep     = ",";
+            sep = ",";
         }
     }
 
@@ -206,7 +217,8 @@ void BaseKey::print(std::ostream& out) const {
     /// @note this unfortunate (consequence of insertion-order problem) check is not fully safe
     if (names_.size() == size()) {
         out << "{" << toString() << "}";
-    } else {
+    }
+    else {
         out << keys_;
     }
 }

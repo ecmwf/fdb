@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/JSON.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/log/JSON.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -26,30 +26,25 @@ namespace fdb5::tools {
 
 class FDBAxisTest : public FDBVisitTool {
 
-public: // methods
-
-    FDBAxisTest(int argc, char **argv) :
-            FDBVisitTool(argc, argv, "class,expver"),
-            level_(3),
-            json_(false) {
-        options_.push_back(new SimpleOption<long>("level", "Specify how many levels of the keys should be should be explored"));
+public:  // methods
+    FDBAxisTest(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), level_(3), json_(false) {
+        options_.push_back(
+            new SimpleOption<long>("level", "Specify how many levels of the keys should be should be explored"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
     }
 
-private: // methods
-
+private:  // methods
     void execute(const CmdArgs& args) final;
-    void init(const CmdArgs &args) final;
+    void init(const CmdArgs& args) final;
 
-private: // members
-
+private:  // members
     int level_;
     bool json_;
 };
 
 void FDBAxisTest::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
-    json_ = args.getBool("json", json_);
+    json_  = args.getBool("json", json_);
     level_ = args.getInt("level", level_);
 }
 
@@ -58,14 +53,15 @@ void FDBAxisTest::execute(const CmdArgs& args) {
     FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests()) {
-//        Timer taxes("axes");
+        //        Timer taxes("axes");
         auto r = fdb.axes(request, level_);
-//        taxes.stop();
+        //        taxes.stop();
 
         if (json_) {
             JSON json(Log::info());
             json << r;
-        } else {
+        }
+        else {
             Log::info() << r;
         }
         Log::info() << std::endl;
@@ -74,10 +70,9 @@ void FDBAxisTest::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::tools
+}  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBAxisTest app(argc, argv);
     return app.start();
 }
-

@@ -40,7 +40,7 @@ public:  // methods
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
     void reconsolidate() override;
 
-    //From CatalogueReader
+    // From CatalogueReader
     DbStats stats() const override { return {}; }
     bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
 
@@ -53,13 +53,16 @@ public:  // methods
 
     std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
-    void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
+    void dump(std::ostream& out, bool simple = false,
+              const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
+                             bool porcelain, bool unsafeWipeAll) const override;
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
+                             eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
-    std::vector<fdb5::Index> indexes(bool sorted=false) const override;
+    std::vector<fdb5::Index> indexes(bool sorted = false) const override;
     void maskIndexEntry(const Index& index) const override;
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
     void print(std::ostream& out) const override;
@@ -75,7 +78,6 @@ public:  // methods
     eckit::URI uri() const override;
 
 protected:
-
     void loadSchema() override;
 
 private:
@@ -85,20 +87,18 @@ private:
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
-
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
 private:
-
     Key currentIndexKey_;
     mutable std::optional<std::reference_wrapper<const RuleDatabase>> rule_;
     mutable std::unique_ptr<Schema> schema_;
 
     std::mutex archiveMutex_;
-    size_t     numLocations_ {0};
+    size_t numLocations_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::remote
+}  // namespace fdb5::remote

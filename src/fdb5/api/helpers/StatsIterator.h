@@ -40,8 +40,7 @@ struct StatsElement {
     IndexStats indexStatistics;
     DbStats dbStatistics;
 
-private: // methods
-
+private:  // methods
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const StatsElement& r) {
@@ -58,6 +57,6 @@ using StatsAsyncIterator = APIAsyncIterator<StatsElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

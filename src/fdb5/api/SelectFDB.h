@@ -19,14 +19,14 @@
 #ifndef fdb5_api_SelectFDB_H
 #define fdb5_api_SelectFDB_H
 
-#include <vector>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "eckit/utils/Regex.h"
 
-#include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
 
 namespace fdb5 {
 
@@ -34,12 +34,10 @@ namespace fdb5 {
 
 class SelectFDB : public FDBBase {
 
-private: // types
-
+private:  // types
     using SelectMap = std::map<std::string, eckit::Regex>;
 
-public: // methods
-
+public:  // methods
     using FDBBase::stats;
 
     SelectFDB(const Config& config, const std::string& name);
@@ -62,18 +60,16 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
-    
+
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
     AxesIterator axesIterator(const FDBToolRequest& request, int level) override;
 
     void flush() override;
 
-private: // methods
-
+private:  // methods
     void print(std::ostream& s) const override;
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
@@ -82,13 +78,12 @@ private: // methods
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
-private: // members
-
+private:  // members
     std::vector<std::pair<SelectMap, FDB>> subFdbs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_SelectFDB_H
+#endif  // fdb5_api_SelectFDB_H

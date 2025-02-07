@@ -15,7 +15,7 @@
 #ifndef fdb5_config_Config_H
 #define fdb5_config_Config_H
 
-#include <sys/stat.h>   // for mode_t
+#include <sys/stat.h>  // for mode_t
 
 #include <string>
 
@@ -31,7 +31,8 @@ class Schema;
 
 class Config : public eckit::LocalConfiguration {
 public:  // static methods
-    static Config make(const eckit::PathName& path, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+    static Config make(const eckit::PathName& path,
+                       const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
 public:  // methods
     Config();

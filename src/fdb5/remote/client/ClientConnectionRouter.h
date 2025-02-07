@@ -21,7 +21,6 @@ namespace fdb5::remote {
 
 class ClientConnectionRouter : eckit::NonCopyable {
 public:
-
     static ClientConnectionRouter& instance();
 
     ClientConnection& connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
@@ -32,12 +31,11 @@ public:
     void deregister(ClientConnection& connection);
 
 private:
-
-    ClientConnectionRouter() {} ///< private constructor only used by singleton
+    ClientConnectionRouter() {}  ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
     // endpoint -> connection
     std::unordered_map<eckit::net::Endpoint, std::unique_ptr<ClientConnection>> connections_;
 };
 
-}
+}  // namespace fdb5::remote

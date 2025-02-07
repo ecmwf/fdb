@@ -33,12 +33,10 @@ class Archiver;
 
 class RemoteFDB : public LocalFDB, public remote::Client {
 
-public: // types
-
+public:  // types
     using MessageQueue = eckit::Queue<eckit::Buffer>;
 
-public: // method
-
+public:  // method
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
     ~RemoteFDB() override {}
 
@@ -58,19 +56,20 @@ public: // method
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
-                            ControlIdentifiers identifiers) override { NOTIMP; }
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
+                            ControlIdentifiers identifiers) override {
+        NOTIMP;
+    }
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
     const eckit::net::Endpoint& storeEndpoint() const;
     const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
 
-private: // methods
-
+private:  // methods
     template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+        -> APIIterator<typename HelperClass::ValueType>;
 
     void print(std::ostream& s) const override;
 
@@ -80,8 +79,7 @@ private: // methods
     bool handle(remote::Message message, uint32_t requestID) override;
     bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
-private: // members
-
+private:  // members
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
     std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
     std::vector<eckit::net::Endpoint> storesLocalFields_;
@@ -96,4 +94,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

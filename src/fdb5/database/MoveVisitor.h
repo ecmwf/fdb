@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/distributed/Transport.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -27,10 +27,8 @@ namespace fdb5 {
 
 class MoveVisitor : public EntryVisitor {
 
-public: // methods
-
-    MoveVisitor(const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest);
+public:  // methods
+    MoveVisitor(const metkit::mars::MarsRequest& request, const eckit::URI& dest);
 
     ~MoveVisitor() override;
 
@@ -43,12 +41,11 @@ public: // methods
 
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
-protected: // members
-
+protected:  // members
     const metkit::mars::MarsRequest& request_;
     const eckit::URI& dest_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

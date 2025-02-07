@@ -29,10 +29,10 @@ namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbOverlay: public FDBTool {
+class FdbOverlay : public FDBTool {
 
 public:  // methods
-    FdbOverlay(int argc, char** argv): FDBTool(argc, argv), variableKeys_ {"class", "expver"} {
+    FdbOverlay(int argc, char** argv) : FDBTool(argc, argv), variableKeys_{"class", "expver"} {
         options_.push_back(
             new VectorOption<std::string>("variable-keys", "The keys that may vary between mounted DBs", 0, ","));
         options_.push_back(new SimpleOption<bool>("remove", "Remove a previously FDB overlay"));
@@ -47,8 +47,8 @@ private:  // methods
 private:  // members
     std::vector<std::string> variableKeys_;
 
-    bool remove_ {false};
-    bool force_ {false};
+    bool remove_{false};
+    bool force_{false};
 };
 
 void FdbOverlay::usage(const std::string& tool) const {
@@ -97,7 +97,8 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     if (remove_) {
         eckit::Log::info() << "Removing " << source << " from " << target << std::endl;
-    } else {
+    }
+    else {
         eckit::Log::info() << "Applying " << source << " onto " << target << std::endl;
     }
 
@@ -139,7 +140,8 @@ void FdbOverlay::execute(const CmdArgs& args) {
             ss << "Target database must already exist: " << target << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
-    } else {
+    }
+    else {
         if (dbTarget->exists() && !force_) {
             std::stringstream ss;
             ss << "Target database already exists: " << target << std::endl;
@@ -152,7 +154,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
     ASSERT(dbTarget->uri() != dbSource->uri());
 
     std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
-    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
+    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName()) {
         newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }
 }
@@ -161,7 +163,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
 }  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbOverlay app(argc, argv);
     return app.start();
 }

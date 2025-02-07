@@ -26,9 +26,8 @@ namespace fdb5 {
 
 class DaosFieldLocation : public FieldLocation {
 public:
-
     DaosFieldLocation(const DaosFieldLocation& rhs);
-    DaosFieldLocation(const eckit::URI &uri);
+    DaosFieldLocation(const eckit::URI& uri);
     DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     DaosFieldLocation(eckit::Stream&);
 
@@ -38,24 +37,20 @@ public:
 
     void visit(FieldLocationVisitor& visitor) const override;
 
-public: // For Streamable
+public:  // For Streamable
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-    static const eckit::ClassSpec& classSpec() { return classSpec_;}
-
-protected: // For Streamable
-
+protected:  // For Streamable
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<DaosFieldLocation> reanimator_;
 
-private: // methods
-
-    void print(std::ostream &out) const override;
-
+private:  // methods
+    void print(std::ostream& out) const override;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

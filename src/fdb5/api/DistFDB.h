@@ -34,8 +34,7 @@ class FDB;
 
 class DistFDB : public FDBBase {
 
-public: // method
-
+public:  // method
     using FDBBase::stats;
 
     DistFDB(const Config& config, const std::string& name);
@@ -47,7 +46,7 @@ public: // method
 
     ListIterator list(const FDBToolRequest& request, int level) override;
 
-    AxesIterator axesIterator(const FDBToolRequest& request, int level=3) override { NOTIMP; }
+    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3) override { NOTIMP; }
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
@@ -59,8 +58,7 @@ public: // method
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
@@ -69,15 +67,13 @@ public: // method
 
     FDBStats stats() const override;
 
-private: // methods
-
+private:  // methods
     void print(std::ostream& s) const override;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
 private:
-
     eckit::RendezvousHash hash_;
 
     std::vector<FDB> lanes_;
@@ -85,6 +81,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_DistFDB_H
+#endif  // fdb5_api_DistFDB_H

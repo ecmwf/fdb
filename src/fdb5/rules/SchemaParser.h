@@ -30,7 +30,7 @@ namespace fdb5 {
 class SchemaParser : public eckit::StreamParser {
 
 public:  // methods
-    SchemaParser(std::istream& in) : StreamParser(in, true) { }
+    SchemaParser(std::istream& in) : StreamParser(in, true) {}
 
     void parse(RuleList& result, TypesRegistry& registry);
 

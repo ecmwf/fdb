@@ -38,7 +38,6 @@ class Key;
 class EntryVisitor : public eckit::NonCopyable {
 
 public:  // methods
-
     EntryVisitor();
     virtual ~EntryVisitor();
 
@@ -47,8 +46,8 @@ public:  // methods
     virtual bool visitEntries() { return true; }
 
     virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
-    virtual bool visitDatabase(const Catalogue& catalogue);    // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index); // return true if index should be explored
+    virtual bool visitDatabase(const Catalogue& catalogue);  // return true if Catalogue should be explored
+    virtual bool visitIndex(const Index& index);             // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
@@ -57,21 +56,20 @@ public:  // methods
     time_t indexTimestamp() const;
 
 protected:
-
     Store& store() const;
 
-private: // methods
+private:  // methods
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
     /// Non-owning
-    const Catalogue* currentCatalogue_ {nullptr};
+    const Catalogue* currentCatalogue_{nullptr};
     /// Owned store
-    mutable Store*   currentStore_ {nullptr};
+    mutable Store* currentStore_{nullptr};
     /// Non-owning
-    const Index*     currentIndex_ {nullptr};
+    const Index* currentIndex_{nullptr};
     /// Non-owning
-    const Rule*      rule_ {nullptr};
+    const Rule* rule_{nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -79,13 +77,11 @@ protected:  // members
 class EntryVisitMechanism : public eckit::NonCopyable {
 
 public:  // methods
-
     EntryVisitMechanism(const Config& config);
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 
 private:  // members
-
     const Config& dbConfig_;
 
     // Fail on error

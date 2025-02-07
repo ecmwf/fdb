@@ -14,40 +14,34 @@
 
 namespace fdb5 {
 
-::eckit::ClassSpec DbStatsContent::classSpec_ = {&Streamable::classSpec(), "DbStatsContent",};
+::eckit::ClassSpec DbStatsContent::classSpec_ = {
+    &Streamable::classSpec(),
+    "DbStatsContent",
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class NullDbStats : public DbStatsContent {
 public:
+    virtual void add(const DbStatsContent&) { NOTIMP; }
 
-    virtual void add(const DbStatsContent&) {
-        NOTIMP;
-    }
+    virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
 
-    virtual void report(std::ostream& out, const char* indent) const {
-        NOTIMP;
-    }
-
-    virtual void encode(eckit::Stream& s) const {
-        NOTIMP;
-    }
+    virtual void encode(eckit::Stream& s) const { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DbStats::DbStats() :
-    content_(new NullDbStats()) {
+DbStats::DbStats() : content_(new NullDbStats()) {
     content_->attach();
 }
 
-DbStats::DbStats(DbStatsContent* p) :
-    content_(p) {
+DbStats::DbStats(DbStatsContent* p) : content_(p) {
     content_->attach();
 }
 
 DbStats::~DbStats() {
-   content_->detach();
+    content_->detach();
 }
 
 DbStats::DbStats(const DbStats& s) : content_(s.content_) {
@@ -66,13 +60,11 @@ DbStats& DbStats::operator+=(const DbStats& s) {
     return *this;
 }
 
-void DbStats::add(const DbStats& s)
-{
+void DbStats::add(const DbStats& s) {
     content_->add(*s.content_);
 }
 
-void DbStats::report(std::ostream& out, const char* indent) const
-{
+void DbStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
 }
 
@@ -80,10 +72,8 @@ void DbStats::encode(eckit::Stream& s) const {
     s << *content_;
 }
 
-DbStatsContent::~DbStatsContent()
-{
-}
+DbStatsContent::~DbStatsContent() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

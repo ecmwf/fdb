@@ -14,8 +14,8 @@
 #ifndef fdb5_tools_FDBVisitTool_H
 #define fdb5_tools_FDBVisitTool_H
 
-#include "fdb5/tools/FDBTool.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBTool.h"
 
 namespace fdb5 {
 namespace tools {
@@ -24,23 +24,21 @@ namespace tools {
 
 class FDBVisitTool : public FDBTool {
 
-protected: // methods
-
-    FDBVisitTool(int argc, char **argv, std::string minimunKeys = std::string());
+protected:  // methods
+    FDBVisitTool(int argc, char** argv, std::string minimunKeys = std::string());
     ~FDBVisitTool() override;
 
     void usage(const std::string& tool) const override;
 
-    void init(const eckit::option::CmdArgs &args) override;
+    void init(const eckit::option::CmdArgs& args) override;
 
     void run() override;
 
     bool fail() const;
 
-    std::vector<FDBToolRequest> requests(const std::string& verb="retrieve") const;
+    std::vector<FDBToolRequest> requests(const std::string& verb = "retrieve") const;
 
-private: // members
-
+private:  // members
     // minimum set of keys needed to execute a query
     // these are used for safety to restrict the search space for the visitors
     std::vector<std::string> minimumKeys_;
@@ -58,7 +56,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
 #endif

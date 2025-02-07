@@ -26,7 +26,6 @@ public:  // methods
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
 
 private:  // methods
-
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
@@ -57,11 +56,11 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 struct StoreHandler::StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config)
-        : dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) { }
+    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
+        dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
 
-    bool controlConnection {true};
-    bool dataConnection {false};
+    bool controlConnection{true};
+    bool dataConnection{false};
 
     std::unique_ptr<Store> store;
 };

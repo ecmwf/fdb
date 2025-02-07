@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_WipeVisitor_H
 #define fdb5_api_local_WipeVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
@@ -36,12 +36,8 @@ namespace local {
 
 class WipeVisitor : public QueryVisitor<WipeElement> {
 
-public: // methods
-
-    WipeVisitor(eckit::Queue<WipeElement>& queue,
-                const metkit::mars::MarsRequest& request,
-                bool doit,
-                bool porcelain,
+public:  // methods
+    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
                 bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
@@ -56,8 +52,7 @@ public: // methods
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
-private: // members
-
+private:  // members
     eckit::Channel out_;
     bool doit_;
     bool porcelain_;
@@ -69,8 +64,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

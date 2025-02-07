@@ -21,7 +21,9 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
-namespace eckit { class PathName; }
+namespace eckit {
+class PathName;
+}
 
 namespace fdb5 {
 
@@ -33,38 +35,35 @@ class BTreeIndex;
 
 class BTreeIndexFactory {
 
-    virtual BTreeIndex *make(const eckit::PathName &path, bool readOnly, off_t offset) const = 0 ;
+    virtual BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0;
 
 protected:
-
-    BTreeIndexFactory(const std::string &);
+    BTreeIndexFactory(const std::string&);
     virtual ~BTreeIndexFactory();
 
     std::string name_;
 
 public:
-
-    static void list(std::ostream &);
-    static BTreeIndex *build(const std::string &name, const eckit::PathName &path, bool readOnly, off_t offset);
-
+    static void list(std::ostream&);
+    static BTreeIndex* build(const std::string& name, const eckit::PathName& path, bool readOnly, off_t offset);
 };
 
 /// Templated specialisation of the self-registering factory,
 /// that does the self-registration, and the construction of each object.
 
-template< class T>
+template <class T>
 class IndexBuilder : public BTreeIndexFactory {
 
-    BTreeIndex *make(const eckit::PathName &path, bool readOnly, off_t offset) const override {
+    BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const override {
         return new T(path, readOnly, offset);
     }
 
 public:
-    IndexBuilder(const std::string &name) : BTreeIndexFactory(name) {}
+    IndexBuilder(const std::string& name) : BTreeIndexFactory(name) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

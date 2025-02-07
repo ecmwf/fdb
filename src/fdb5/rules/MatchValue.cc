@@ -26,7 +26,7 @@ eckit::Reanimator<MatchValue> MatchValue::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(std::string value) : value_ {std::move(value)} { }
+MatchValue::MatchValue(std::string value) : value_{std::move(value)} {}
 
 MatchValue::MatchValue(eckit::Stream& stream) {
     stream >> value_;
@@ -42,7 +42,9 @@ bool MatchValue::match(const std::string& value) const {
 
 bool MatchValue::match(const std::string& keyword, const Key& key) const {
 
-    if (const auto [iter, found] = key.find(keyword); found) { return match(iter->second); }
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return match(iter->second);
+    }
 
     return false;
 }

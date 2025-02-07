@@ -25,19 +25,18 @@ namespace fdb5 {
 // It will never talk to a store.
 class ReindexVisitor : public BaseArchiveVisitor {
 
-public: // methods
+public:  // methods
     ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation);
 
-protected: // methods
+protected:  // methods
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
     const FieldLocation& fieldLocation_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
+}  // namespace fdb5

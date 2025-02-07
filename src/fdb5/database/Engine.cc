@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/database/Engine.h"
 
@@ -22,18 +22,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::Mutex *local_mutex = 0;
-pthread_once_t once = PTHREAD_ONCE_INIT;
+eckit::Mutex* local_mutex = 0;
+pthread_once_t once       = PTHREAD_ONCE_INIT;
 
 static std::map<std::string, Engine*>* m;
 
 void init() {
     local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, Engine*>();
+    m           = new std::map<std::string, Engine*>();
 }
 
-bool EngineRegistry::has(const std::string& name)
-{
+bool EngineRegistry::has(const std::string& name) {
     pthread_once(&once, init);
     AutoLock<Mutex> lock(*local_mutex);
 
@@ -46,7 +45,7 @@ Engine& EngineRegistry::engine(const std::string& name) {
     AutoLock<Mutex> lock(*local_mutex);
 
     std::map<std::string, Engine*>::iterator i = m->find(name);
-    if(i != m->end()) {
+    if (i != m->end()) {
         return *(i->second);
     }
 
@@ -56,8 +55,7 @@ Engine& EngineRegistry::engine(const std::string& name) {
     throw eckit::BadParameter(oss.str(), Here());
 }
 
-std::vector<Engine*> EngineRegistry::engines()
-{
+std::vector<Engine*> EngineRegistry::engines() {
     pthread_once(&once, init);
     AutoLock<Mutex> lock(*local_mutex);
 
@@ -68,8 +66,7 @@ std::vector<Engine*> EngineRegistry::engines()
     return res;
 }
 
-void EngineRegistry::add(Engine* e)
-{
+void EngineRegistry::add(Engine* e) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
 
@@ -79,8 +76,7 @@ void EngineRegistry::add(Engine* e)
     (*m)[name] = e;
 }
 
-Engine* EngineRegistry::remove(const std::string& name)
-{
+Engine* EngineRegistry::remove(const std::string& name) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
 
@@ -92,8 +88,7 @@ Engine* EngineRegistry::remove(const std::string& name)
 }
 
 
-std::vector<std::string> EngineRegistry::list()
-{
+std::vector<std::string> EngineRegistry::list() {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
 
@@ -104,12 +99,12 @@ std::vector<std::string> EngineRegistry::list()
     return res;
 }
 
-void EngineRegistry::list(std::ostream &out) {
+void EngineRegistry::list(std::ostream& out) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    const char *sep = "";
+    const char* sep = "";
     for (std::map<std::string, Engine*>::const_iterator j = m->begin(); j != m->end(); ++j) {
         out << sep << (*j).first;
         sep = ", ";
@@ -118,14 +113,12 @@ void EngineRegistry::list(std::ostream &out) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Engine& Engine::backend(const std::string& name)
-{
+Engine& Engine::backend(const std::string& name) {
     return EngineRegistry::engine(name);
 }
 
-Engine::~Engine() {
-}
+Engine::~Engine() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

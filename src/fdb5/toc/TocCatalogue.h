@@ -20,8 +20,8 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocEngine.h"
+#include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
 
@@ -31,10 +31,10 @@ namespace fdb5 {
 
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
-public: // methods
-
+public:  // methods
     TocCatalogue(const Key& dbKey, const fdb5::Config& config);
-    TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers,
+                 const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 
@@ -45,19 +45,17 @@ public: // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-public: // constants
+public:  // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
-protected: // methods
-
+protected:  // methods
     TocCatalogue(const Key& dbKey, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
-    std::vector<Index> loadIndexes(bool sorted=false,
-                                   std::set<std::string>* subTocs = nullptr,
+    std::vector<Index> loadIndexes(bool sorted = false, std::set<std::string>* subTocs = nullptr,
                                    std::vector<bool>* indexInSubtoc = nullptr,
-                                   std::vector<Key>* remapKeys = nullptr) const;
+                                   std::vector<Key>* remapKeys      = nullptr) const;
 
     void checkUID() const override;
     bool exists() const override;
@@ -68,26 +66,25 @@ protected: // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
+                             bool porcelain, bool unsafeWipeAll) const override;
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
+                             eckit::Queue<MoveElement>& queue) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;
 
-    std::vector<Index> indexes(bool sorted=false) const override;
+    std::vector<Index> indexes(bool sorted = false) const override;
 
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override;
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
-protected: // members
-
+protected:  // members
     Key currentIndexKey_;
 
-private: // members
-
+private:  // members
     friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
@@ -98,6 +95,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

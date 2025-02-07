@@ -16,13 +16,13 @@
 #ifndef fdb5_Manager_H
 #define fdb5_Manager_H
 
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "eckit/filesystem/URI.h"
-#include "metkit/mars/MarsRequest.h"
 #include "fdb5/config/Config.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -30,10 +30,9 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Manager  {
+class Manager {
 
-public: // methods
-
+public:  // methods
     Manager(const Config& config);
     ~Manager();
 
@@ -50,8 +49,7 @@ public: // methods
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
 
-private: // members
-
+private:  // members
     eckit::PathName enginesFile_;
 
     // If the engine is specified explicitly in the
@@ -62,6 +60,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

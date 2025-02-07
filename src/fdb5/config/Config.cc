@@ -153,7 +153,7 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
-    schemaPath_=schemaPath;
+    schemaPath_            = schemaPath;
     schemaPathInitialised_ = true;
 }
 
@@ -194,8 +194,7 @@ mode_t Config::umask() const {
     if (has("permissions")) {
         return FileMode(getString("permissions")).mask();
     }
-    static eckit::FileMode fdbFileMode(
-        eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
 

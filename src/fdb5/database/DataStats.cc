@@ -18,30 +18,23 @@ namespace fdb5 {
 
 class NullDataStats : public DataStatsContent {
 public:
+    virtual void add(const DataStatsContent&) { NOTIMP; }
 
-    virtual void add(const DataStatsContent&) {
-        NOTIMP;
-    }
-
-    virtual void report(std::ostream& out, const char* indent) const {
-        NOTIMP;
-    }
+    virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DataStats::DataStats() :
-    content_(new NullDataStats()) {
+DataStats::DataStats() : content_(new NullDataStats()) {
     content_->attach();
 }
 
-DataStats::DataStats(DataStatsContent* p) :
-    content_(p) {
+DataStats::DataStats(DataStatsContent* p) : content_(p) {
     content_->attach();
 }
 
 DataStats::~DataStats() {
-   content_->detach();
+    content_->detach();
 }
 
 DataStats::DataStats(const DataStats& s) : content_(s.content_) {
@@ -55,20 +48,16 @@ DataStats& DataStats::operator=(const DataStats& s) {
     return *this;
 }
 
-void DataStats::add(const DataStats& s)
-{
+void DataStats::add(const DataStats& s) {
     content_->add(*s.content_);
 }
 
-void DataStats::report(std::ostream& out, const char* indent) const
-{
+void DataStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
 }
 
-DataStatsContent::~DataStatsContent()
-{
-}
+DataStatsContent::~DataStatsContent() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -25,8 +25,7 @@ class DaosContainer;
 
 class DaosOID {
 
-public: // methods
-
+public:  // methods
     DaosOID(const uint64_t& hi, const uint64_t& lo);
     DaosOID(const std::string&);
     DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
@@ -42,54 +41,44 @@ public: // methods
     daos_oclass_id_t oclass() const;
     bool wasGenerated() const { return wasGenerated_; };
 
-private: // methods
-
+private:  // methods
     void parseReservedBits();
 
-protected: // members
-
+protected:  // members
     enum daos_otype_t otype_;
 
-private: // members
-
+private:  // members
     daos_obj_id_t oid_;
     daos_oclass_id_t oclass_;
     bool wasGenerated_;
     mutable eckit::Optional<std::string> as_string_;
-
 };
 
 class DaosArrayOID : public DaosOID {
 
-public: //methods
-
+public:  // methods
     DaosArrayOID(const uint64_t& hi, const uint64_t& lo);
     DaosArrayOID(const std::string&);
     DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
     DaosArrayOID(const std::string&, const daos_oclass_id_t& oclass);
-
 };
 
 class DaosByteArrayOID : public DaosOID {
 
-public: //methods
-
+public:  // methods
     DaosByteArrayOID(const uint64_t& hi, const uint64_t& lo);
     DaosByteArrayOID(const std::string&);
     DaosByteArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
     DaosByteArrayOID(const std::string&, const daos_oclass_id_t& oclass);
-
 };
 
 class DaosKeyValueOID : public DaosOID {
 
-public: //methods
-
+public:  // methods
     DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo);
     DaosKeyValueOID(const std::string&);
     DaosKeyValueOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
     DaosKeyValueOID(const std::string&, const daos_oclass_id_t& oclass);
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

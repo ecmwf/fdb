@@ -21,16 +21,17 @@
 #include "fdb5/database/Key.h"
 
 namespace eckit {
-    class Stream;
-    class PathName;
-}
+class Stream;
+class PathName;
+}  // namespace eckit
 
 namespace fdb5 {
 
 class Catalogue;
 //----------------------------------------------------------------------------------------------------------------------
 
-enum class ControlAction : uint16_t {
+enum class ControlAction : uint16_t
+{
     None = 0,
 
     Disable,
@@ -42,7 +43,8 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-enum class ControlIdentifier : uint16_t {
+enum class ControlIdentifier : uint16_t
+{
     None = 0,
 
     List       = 1 << 0,
@@ -52,13 +54,9 @@ enum class ControlIdentifier : uint16_t {
     UniqueRoot = 1 << 4
 };
 
-static const std::initializer_list<ControlIdentifier> ControlIdentifierList {
-    ControlIdentifier::List,
-    ControlIdentifier::Retrieve,
-    ControlIdentifier::Archive,
-    ControlIdentifier::Wipe,
-    ControlIdentifier::UniqueRoot
-};
+static const std::initializer_list<ControlIdentifier> ControlIdentifierList{
+    ControlIdentifier::List, ControlIdentifier::Retrieve, ControlIdentifier::Archive, ControlIdentifier::Wipe,
+    ControlIdentifier::UniqueRoot};
 //----------------------------------------------------------------------------------------------------------------------
 
 // An iterator to facilitate working with the ControlIdentifiers structure
@@ -70,8 +68,7 @@ class ControlIdentifierIterator {
     value_type value_;
     value_type remaining_;
 
-public: // methods
-
+public:  // methods
     ControlIdentifierIterator(const ControlIdentifiers& identifiers);
 
     ControlIdentifier operator*() const;
@@ -81,8 +78,7 @@ public: // methods
 
     ControlIdentifierIterator& operator++();
 
-private: // methods
-
+private:  // methods
     void nextValue();
 };
 
@@ -107,10 +103,9 @@ public:
     ControlIdentifierIterator begin() const;
     ControlIdentifierIterator end() const;
 
-protected: // methods
-
-    friend std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x);
-    void print( std::ostream &out ) const;
+protected:  // methods
+    friend std::ostream& operator<<(std::ostream& s, const ControlIdentifiers& x);
+    void print(std::ostream& out) const;
 
 private:
     void encode(eckit::Stream& s) const;
@@ -144,8 +139,7 @@ struct ControlElement {
 
     ControlIdentifiers controlIdentifiers;
 
-protected: // methods
-
+protected:  // methods
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const ControlElement& e) {
@@ -162,4 +156,4 @@ using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

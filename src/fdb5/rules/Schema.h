@@ -65,7 +65,8 @@ public:  // methods
 
     // match
 
-    void matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result, const char* missing) const;
+    void matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result,
+                       const char* missing) const;
 
     void matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result, const char* missing) const;
 
@@ -121,7 +122,7 @@ private:  // members
 
     // streamable
 
-    static eckit::ClassSpec          classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Schema> reanimator_;
 };
 

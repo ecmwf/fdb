@@ -44,7 +44,8 @@ public:  // methods
     virtual bool optional() const { return false; }
 
     virtual const std::string& value(const Key&, const std::string& keyword) const;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
+                                                   const std::string& keyword) const;
     virtual const std::string& defaultValue() const;
 
     virtual bool match(const std::string& value) const                   = 0;
@@ -67,7 +68,7 @@ private:  // methods
 private:  // members
     // streamable
 
-    static eckit::ClassSpec           classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Matcher> reanimator_;
 };
 

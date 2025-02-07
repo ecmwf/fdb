@@ -28,12 +28,13 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
-enum class Handled {
+enum class Handled
+{
     No = 0,
     Yes,
     YesAddArchiveListener,
@@ -48,11 +49,10 @@ enum class Handled {
 class Handler {
 
 public:
-
-    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) = 0;
+    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID)                          = 0;
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
-    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID)                             = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload)    = 0;
 
     virtual void handleException(std::exception_ptr e) = 0;
 };
@@ -101,7 +101,6 @@ public:  // methods
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
-
     // socket methods
     int selectDataPort();
     eckit::LocalConfiguration availableFunctionality() const;
@@ -122,7 +121,6 @@ protected:
     void handleException(std::exception_ptr e) override;
 
 private:
-
     void listeningThreadLoopData();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlSocket_; }
@@ -133,7 +131,6 @@ private:
     }
 
 protected:
-
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
@@ -153,17 +150,16 @@ protected:
     eckit::net::TCPSocket controlSocket_;
 
     std::mutex handlerMutex_;
-    size_t     numControlConnection_ {0};
-    size_t     numDataConnection_ {0};
+    size_t numControlConnection_{0};
+    size_t numDataConnection_{0};
 
 private:
-
     std::mutex dataPortMutex_;
 
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;
 
-    size_t numDataListener_ {0};
+    size_t numDataListener_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
