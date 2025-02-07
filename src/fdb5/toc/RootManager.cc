@@ -11,16 +11,17 @@
 #include "RootManager.h"
 
 #include <fstream>
-#include <algorithm>
+#include <set>
+#include <string>
+#include <vector>
 
-#include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"
-#include "eckit/utils/Tokenizer.h"
-#include "eckit/utils/StringTools.h"
-#include "eckit/utils/Translator.h"
-#include "eckit/thread/Mutex.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/types/Types.h"
+#include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
