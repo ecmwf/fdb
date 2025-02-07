@@ -66,7 +66,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
             fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
         }
 
-        indexes_[idxKey] = Index(new TocIndex(idxKey, *this, indexPath, 0, TocIndex::WRITE));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[idxKey];
@@ -88,7 +88,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
                 fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
             }
 
-            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, *this, indexPath, 0, TocIndex::WRITE));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
         }
 
         currentFull_ = fullIndexes_[idxKey];
