@@ -21,8 +21,8 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level):
-    QueryVisitor<AxesElement>(queue, request), level_(level) { }
+AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+    QueryVisitor<AxesElement>(queue, request), level_(level) {}
 
 bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) {
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
@@ -42,10 +42,10 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
 }
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
-    if (level_>1) {
+    if (level_ > 1) {
         EntryVisitor::visitDatabase(catalogue);
     }
-    
+
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
@@ -60,7 +60,7 @@ bool AxesVisitor::visitIndex(const Index& index) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
-        axes_.merge(tmpAxis);   // avoid sorts on the (growing) main Axes object
+        axes_.merge(tmpAxis);  // avoid sorts on the (growing) main Axes object
 
         if (level_ > 2) {
             axes_.merge(index.axes());
@@ -75,4 +75,4 @@ void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::api::local
+}  // namespace fdb5::api::local

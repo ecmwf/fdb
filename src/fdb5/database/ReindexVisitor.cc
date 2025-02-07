@@ -11,10 +11,8 @@
 
 namespace fdb5 {
 
-ReindexVisitor::ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation):
-    BaseArchiveVisitor(owner, initialFieldKey),
-    fieldLocation_(std::move(fieldLocation)) {
-}
+ReindexVisitor::ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation) :
+    BaseArchiveVisitor(owner, initialFieldKey), fieldLocation_(std::move(fieldLocation)) {}
 
 bool ReindexVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     checkMissingKeys(fullKey);
@@ -23,10 +21,10 @@ bool ReindexVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     return true;
 }
 
-void ReindexVisitor::print(std::ostream &out) const {
+void ReindexVisitor::print(std::ostream& out) const {
     out << "ReindexVisitor[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

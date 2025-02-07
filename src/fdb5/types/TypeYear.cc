@@ -9,13 +9,13 @@
  */
 
 // #include "eckit/exception/Exceptions.h"
-#include "eckit/utils/Translator.h"
 #include "eckit/types/Date.h"
+#include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeYear.h"
+#include "fdb5/types/TypesFactory.h"
 
 
 namespace fdb5 {
@@ -23,11 +23,9 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TypeYear::TypeYear(const std::string& name, const std::string& type, const std::string& alias) :
-    Type(name, type, alias) {
-}
+    Type(name, type, alias) {}
 
-TypeYear::~TypeYear() {
-}
+TypeYear::~TypeYear() {}
 
 std::string TypeYear::toKey(const std::string& value) const {
 
@@ -35,11 +33,8 @@ std::string TypeYear::toKey(const std::string& value) const {
     return std::to_string(date.year());
 }
 
-void TypeYear::getValues(const metkit::mars::MarsRequest& request,
-                          const std::string& keyword,
-                          eckit::StringList& values,
-                          const Notifier&,
-                          const CatalogueReader*) const {
+void TypeYear::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                         eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);
@@ -53,7 +48,7 @@ void TypeYear::getValues(const metkit::mars::MarsRequest& request,
     }
 }
 
-void TypeYear::print(std::ostream &out) const {
+void TypeYear::print(std::ostream& out) const {
     out << "TypeYear[name=" << name_ << "]";
 }
 
@@ -61,4 +56,4 @@ static TypeBuilder<TypeYear> type("Year");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

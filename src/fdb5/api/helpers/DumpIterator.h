@@ -40,6 +40,6 @@ using DumpAsyncIterator = APIAsyncIterator<DumpElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

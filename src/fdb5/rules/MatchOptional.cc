@@ -22,21 +22,23 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchOptional::classSpec_ = { &Matcher::classSpec(), "MatchOptional", };
+eckit::ClassSpec MatchOptional::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchOptional",
+};
 
 eckit::Reanimator<MatchOptional> MatchOptional::reanimator_;
 
 
-MatchOptional::MatchOptional(std::string def): default_ {std::move(def)} { }
+MatchOptional::MatchOptional(std::string def) : default_{std::move(def)} {}
 
-MatchOptional::MatchOptional(eckit::Stream& s) :
-    Matcher() {
+MatchOptional::MatchOptional(eckit::Stream& s) : Matcher() {
 
     size_t numValues;
     std::string value;
 
     s >> numValues;
-    for (size_t i=0; i < numValues; i++) {
+    for (size_t i = 0; i < numValues; i++) {
         s >> value;
         default_.push_back(value);
     }
@@ -69,12 +71,15 @@ void MatchOptional::fill(Key& key, const std::string& keyword, const std::string
 
 const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
 
-    if (const auto [iter, found] = key.find(keyword); found) { return iter->second; }
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return iter->second;
+    }
 
     return default_[0];
 }
 
-const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
+const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq,
+                                                      const std::string& keyword) const {
 
     if (rq.has(keyword)) {
         return rq.values(keyword);
@@ -82,19 +87,19 @@ const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRe
     return default_;
 }
 
-const std::string &MatchOptional::defaultValue() const {
+const std::string& MatchOptional::defaultValue() const {
     return default_[0];
 }
 
-void MatchOptional::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchOptional::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
     s << '?' << default_[0];
 }
 
-void MatchOptional::print(std::ostream &out) const {
+void MatchOptional::print(std::ostream& out) const {
     out << "MatchOptional[default=" << default_[0] << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

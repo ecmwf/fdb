@@ -42,6 +42,6 @@ using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

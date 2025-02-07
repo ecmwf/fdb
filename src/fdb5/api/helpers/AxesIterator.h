@@ -13,36 +13,40 @@
 
 #pragma once
 
-#include "fdb5/database/Key.h"
-#include "fdb5/database/IndexAxis.h"
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
 class Stream;
 class JSON;
-}
+}  // namespace eckit
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class AxesElement {
-public: // methods
+public:  // methods
 
     AxesElement() = default;
     AxesElement(Key&& dbKey, IndexAxis&& axis);
     explicit AxesElement(eckit::Stream& s);
 
-    [[ nodiscard ]]
-    const Key& key() const { return dbKey_; }
+    [[nodiscard]]
+    const Key& key() const {
+        return dbKey_;
+    }
 
-    [[ nodiscard ]]
-    const IndexAxis& axes() const { return axes_; }
+    [[nodiscard]]
+    const IndexAxis& axes() const {
+        return axes_;
+    }
 
     void print(std::ostream& out) const;
     size_t encodeSize() const;
 
-private: // methods
+private:  // methods
 
     void encode(eckit::Stream& s) const;
 
@@ -56,7 +60,7 @@ private: // methods
         return s;
     }
 
-private: // members
+private:  // members
 
     Key dbKey_;
     IndexAxis axes_;
@@ -72,4 +76,4 @@ using AxesIterator = APIIterator<AxesElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -15,8 +15,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Reindexer::Reindexer(const Config& dbConfig) : Archiver(dbConfig)
-{}
+Reindexer::Reindexer(const Config& dbConfig) : Archiver(dbConfig) {}
 
 Reindexer::~Reindexer() {
     flush();
@@ -33,4 +32,4 @@ void Reindexer::flushDatabase(Database& db) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

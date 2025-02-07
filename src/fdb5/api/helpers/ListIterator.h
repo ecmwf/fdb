@@ -22,9 +22,9 @@
 #include <unordered_set>
 #include <utility>
 
-#include "fdb5/database/Key.h"
 #include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -38,14 +38,17 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 class ListIterator : public APIIterator<ListElement> {
 public:
-    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
+
+    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
     ListIterator(ListIterator&& iter) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
+        APIIterator<ListElement>(std::move(iter)),
+        seenKeys_(std::move(iter.seenKeys_)),
+        deduplicate_(iter.deduplicate_) {}
 
     ListIterator& operator=(ListIterator&& iter) {
-        seenKeys_ = std::move(iter.seenKeys_);
+        seenKeys_    = std::move(iter.seenKeys_);
         deduplicate_ = iter.deduplicate_;
         APIIterator<ListElement>::operator=(std::move(iter));
         return *this;
@@ -54,8 +57,10 @@ public:
     bool next(ListElement& elem) {
         ListElement tmp;
         while (APIIterator<ListElement>::next(tmp)) {
-            if(deduplicate_) {
-                if (const auto [iter, success] = seenKeys_.emplace(tmp.combinedKey()); !success) { continue; }
+            if (deduplicate_) {
+                if (const auto [iter, success] = seenKeys_.emplace(tmp.combinedKey()); !success) {
+                    continue;
+                }
             }
             std::swap(elem, tmp);
             return true;
@@ -64,12 +69,13 @@ public:
     }
 
 private:
+
     std::unordered_set<Key> seenKeys_;
     bool deduplicate_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

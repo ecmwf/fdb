@@ -46,10 +46,11 @@ class Rule : public eckit::Streamable {
     friend class Schema;
 
 public:  // types
+
     using Predicates = std::vector<std::unique_ptr<Predicate>>;
 
 public:  // methods
-    
+
     Rule(std::size_t line, Predicates& predicates, const eckit::StringDict& types);
 
     virtual const char* type() const = 0;
@@ -85,6 +86,7 @@ protected:  // methods
     std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
 private:  // methods
+
     virtual void dumpChildren(std::ostream& out) const = 0;
 
     std::optional<Key> findMatchingKey(const eckit::StringList& values) const;
@@ -104,9 +106,10 @@ private:  // methods
     friend std::ostream& operator<<(std::ostream& out, const Rule& rule);
 
 protected:  // members
-    const Rule* parent_ {nullptr};
 
-    std::size_t line_ {0};
+    const Rule* parent_{nullptr};
+
+    std::size_t line_{0};
 
     Predicates predicates_;
 
@@ -123,6 +126,7 @@ private:  // members
 
 class RuleDatum : public Rule {
 public:  // methods
+
     using Rule::Rule;
 
     explicit RuleDatum(eckit::Stream& stream);
@@ -142,12 +146,14 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 private:  // methods
-    void dumpChildren(std::ostream& /* out */) const override { }
+
+    void dumpChildren(std::ostream& /* out */) const override {}
 
 private:  // members
+
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleDatum> reanimator_;
 };
 
@@ -156,9 +162,11 @@ private:  // members
 
 class RuleIndex : public Rule {
 public:  // types
+
     using Children = std::vector<std::unique_ptr<RuleDatum>>;
 
 public:  // methods
+
     RuleIndex(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules);
 
     explicit RuleIndex(eckit::Stream& stream);
@@ -182,16 +190,20 @@ public:  // methods
     void encode(eckit::Stream& out) const override;
 
 private:  // methods
+
     void dumpChildren(std::ostream& out) const override {
-        for (const auto& rule : rules_) { rule->dump(out); }
+        for (const auto& rule : rules_) {
+            rule->dump(out);
+        }
     }
 
 private:  // members
+
     Children rules_;
 
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleIndex> reanimator_;
 };
 
@@ -200,9 +212,11 @@ private:  // members
 
 class RuleDatabase : public Rule {
 public:  // types
+
     using Children = std::vector<std::unique_ptr<RuleIndex>>;
 
 public:  // methods
+
     RuleDatabase(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules);
 
     explicit RuleDatabase(eckit::Stream& stream);
@@ -228,15 +242,18 @@ public:  // methods
 private:  // methods
 
     void dumpChildren(std::ostream& out) const override {
-        for (const auto& rule : rules_) { rule->dump(out); }
+        for (const auto& rule : rules_) {
+            rule->dump(out);
+        }
     }
 
 private:  // members
+
     Children rules_;
 
     // streamable
 
-    static eckit::ClassSpec                classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RuleDatabase> reanimator_;
 };
 

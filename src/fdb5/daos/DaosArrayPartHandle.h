@@ -17,8 +17,8 @@
 
 #include "eckit/io/DataHandle.h"
 
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
@@ -28,14 +28,14 @@ class DaosArray;
 
 class DaosArrayName;
 
-/// @note: because daos_array_read does not report actual amount of bytes read, 
-///   DaosArrayHandle::read must check the actual size and returns it if smaller 
-///   than the provided buffer, which reduces performance. DaosArrayPartHandle 
+/// @note: because daos_array_read does not report actual amount of bytes read,
+///   DaosArrayHandle::read must check the actual size and returns it if smaller
+///   than the provided buffer, which reduces performance. DaosArrayPartHandle
 ///   circumvents that check for cases where the object size is known.
-/// @note: see DaosArray::read 
+/// @note: see DaosArray::read
 class DaosArrayPartHandle : public eckit::DataHandle {
 
-public: // methods
+public:  // methods
 
     DaosArrayPartHandle(const fdb5::DaosArrayName&, const eckit::Offset&, const eckit::Length&);
 
@@ -70,11 +70,11 @@ public: // methods
 
     // static const ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
+private:  // methods
 
     fdb5::DaosSession& session();
 
-private: // members
+private:  // members
 
     // mutable because title() calls DaosArrayName::asString which may update (generate) OID
     mutable fdb5::DaosArrayName name_;
@@ -86,7 +86,6 @@ private: // members
 
     // static ClassSpec classSpec_;
     // static Reanimator<DataHandle> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

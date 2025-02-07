@@ -35,10 +35,11 @@ namespace fdb5 {
 class TypesRegistry : public eckit::Streamable {
 
 public:  // methods
+
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
-    
+
     void decode(eckit::Stream& stream);
     void encode(eckit::Stream& out) const override;
 
@@ -64,16 +65,17 @@ private:  // methods
     friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
 
 private:  // members
+
     std::map<std::string, std::string> types_;
 
-    const TypesRegistry* parent_ {nullptr};
+    const TypesRegistry* parent_{nullptr};
 
     using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
     mutable TypeMap cache_;
 
     // streamable
 
-    static eckit::ClassSpec                 classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TypesRegistry> reanimator_;
 };
 

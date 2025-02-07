@@ -27,7 +27,7 @@
 namespace eckit {
 class JSON;
 class Stream;
-}
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -40,9 +40,11 @@ class FieldLocation;
 
 class ListElement {
 public:  // types
+
     using TimeStamp = std::time_t;
 
 public:  // methods
+
     ListElement() = default;
     ListElement(Key dbKey, const TimeStamp& timestamp);
 
@@ -51,11 +53,12 @@ public:  // methods
     ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
                 const TimeStamp& timestamp);
 
-    ListElement(const std::array<Key,3>& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp);
+    ListElement(const std::array<Key, 3>& keys, std::shared_ptr<const FieldLocation> location,
+                const TimeStamp& timestamp);
 
     explicit ListElement(eckit::Stream& stream);
 
-    const std::array<Key,3>& keys() const { return keyParts_; }
+    const std::array<Key, 3>& keys() const { return keyParts_; }
     Key combinedKey() const;
 
     const FieldLocation& location() const;
@@ -70,6 +73,7 @@ public:  // methods
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
 private:  // methods
+
     void encode(eckit::Stream& stream) const;
 
     void json(eckit::JSON& json) const;
@@ -79,11 +83,12 @@ private:  // methods
     friend eckit::JSON& operator<<(eckit::JSON& json, const ListElement& elem);
 
 private:  // members
+
     std::array<Key, 3> keyParts_;
 
     std::shared_ptr<const FieldLocation> loc_;
 
-    TimeStamp timestamp_ {0};
+    TimeStamp timestamp_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

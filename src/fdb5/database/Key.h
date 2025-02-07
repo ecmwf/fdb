@@ -23,7 +23,7 @@
 #include <string>
 
 namespace eckit {
-template<class T>
+template <class T>
 class DenseSet;
 }
 
@@ -40,9 +40,11 @@ class Rule;
 
 class Key : public BaseKey {
 public:  // factory
+
     static Key parse(const std::string& keyString);
 
 public:  // methods
+
     using BaseKey::BaseKey;
 
     std::string type() const override { return "Key"; }
@@ -70,7 +72,8 @@ public:  // methods
 
 class TypedKey : public BaseKey {
 public:  // methods
-    explicit TypedKey(const TypesRegistry& reg) : registry_ {reg} { }
+
+    explicit TypedKey(const TypesRegistry& reg) : registry_{reg} {}
 
     // RULES
     TypedKey(const TypedKey& other)            = delete;
@@ -86,6 +89,7 @@ public:  // methods
     Key canonical() const;
 
 private:  // members
+
     const TypesRegistry& registry_;
 };
 
@@ -95,7 +99,7 @@ private:  // members
 
 namespace std {
 
-template<>
+template <>
 struct hash<fdb5::Key> {
     size_t operator()(const fdb5::Key& key) const { return std::hash<std::string>()(key.valuesToString()); }
 };

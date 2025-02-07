@@ -30,16 +30,15 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {
-        LibFdb5::instance().constructorCallback()(*this);
-    }
+StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config) : ServerConnection(socket, config) {
+    LibFdb5::instance().constructorCallback()(*this);
+}
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
     try {
         switch (message) {
-            case Message::Store: // notification that the client is starting to send data for archival
+            case Message::Store:  // notification that the client is starting to send data for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
 
@@ -67,11 +66,11 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     try {
         switch (message) {
 
-            case Message::Read: // notification that the client is starting to send data location for read
+            case Message::Read:  // notification that the client is starting to send data location for read
                 read(clientID, requestID, payload);
                 return Handled::YesAddReadListener;
 
-            case Message::Flush: // flush store
+            case Message::Flush:  // flush store
                 flush(clientID, requestID, payload);
                 return Handled::Yes;
 
@@ -133,17 +132,18 @@ void StoreHandler::readLocationThreadLoop() {
     }
 }
 
-void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
-   try {
+void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID,
+                                 std::unique_ptr<eckit::DataHandle> dh) {
+    try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
 
-        Buffer writeBuffer(4 * 1024 * 1024 - 2048); // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
+        Buffer writeBuffer(4 * 1024 * 1024 -
+                           2048);  // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
         long dataRead;
 
         dh->openForRead();
-        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size() << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
             write(Message::Blob, false, clientID, requestID, writeBuffer, dataRead);
@@ -151,8 +151,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
         // And when we are done, add a complete message.
 
-        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID << std::endl;
 
         write(Message::Complete, false, clientID, requestID);
 
@@ -192,7 +191,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     eckit::StringDict dict = dbKey.keyDict();
     dict.insert(idxKey.keyDict().begin(), idxKey.keyDict().end());
-    const Key fullkey(dict); /// @note: we do not have the third level of the key.
+    const Key fullkey(dict);  /// @note: we do not have the third level of the key.
 
     archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
 
@@ -238,7 +237,8 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
         if (control) {
             it->second.controlConnection = false;
             numControlConnection_--;
-        } else {
+        }
+        else {
             it->second.dataConnection = false;
             numDataConnection_--;
         }
@@ -286,11 +286,11 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
 
     {
         eckit::MemoryStream stream(payload);
-        const Key           dbKey(stream);
+        const Key dbKey(stream);
         exists = StoreFactory::instance().build(dbKey, config_)->exists();
     }
 
-    eckit::Buffer       existBuf(5);
+    eckit::Buffer existBuf(5);
     eckit::MemoryStream stream(existBuf);
     stream << exists;
 

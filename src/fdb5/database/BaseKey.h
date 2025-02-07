@@ -32,6 +32,7 @@ namespace fdb5 {
 
 class BaseKey {
 public:  // types
+
     using pair_type              = std::pair<const std::string, std::string>;
     using value_type             = eckit::StringDict;
     using iterator               = value_type::iterator;
@@ -39,13 +40,18 @@ public:  // types
     using const_reverse_iterator = value_type::const_reverse_iterator;
 
 public:  // methods
-    explicit BaseKey(value_type keys) : keys_ {std::move(keys)} {
+
+    explicit BaseKey(value_type keys) : keys_{std::move(keys)} {
         /// @note the order of keys (in map<>) is not "insertion order"
-        for (const auto& key : *this) { names_.emplace_back(key.first); }
+        for (const auto& key : *this) {
+            names_.emplace_back(key.first);
+        }
     }
 
     BaseKey(std::initializer_list<pair_type> keys) : keys_(keys) {
-        for (const auto& key : *this) { names_.emplace_back(key.first); }
+        for (const auto& key : *this) {
+            names_.emplace_back(key.first);
+        }
     }
 
     explicit BaseKey(eckit::Stream& stream) { decode(stream); }
@@ -150,16 +156,19 @@ public:  // methods
     size_t encodeSize() const;
 
 protected:  // methods
+
     void decode(eckit::Stream& stream);
 
     void encode(eckit::Stream& stream) const;
 
 private:  // methods
+
     std::string toString() const;
 
     void print(std::ostream& out) const;
 
 private:  // members
+
     value_type keys_;
 
     eckit::StringList names_;

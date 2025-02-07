@@ -40,9 +40,10 @@ namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList: public FDBVisitTool {
+class FDBList : public FDBVisitTool {
 public:  // methods
-    FDBList(int argc, char** argv): FDBVisitTool(argc, argv, "class,expver") {
+
+    FDBList(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver") {
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
@@ -57,17 +58,18 @@ public:  // methods
     }
 
 private:  // methods
+
     void execute(const CmdArgs& args) override;
     void init(const CmdArgs& args) override;
 
-    bool location_ {false};
-    bool timestamp_ {false};
-    bool length_ {false};
-    bool full_ {false};
-    bool porcelain_ {false};
-    bool json_ {false};
-    bool compact_ {false};
-    int  depth_ {3};
+    bool location_{false};
+    bool timestamp_{false};
+    bool length_{false};
+    bool full_{false};
+    bool porcelain_{false};
+    bool json_{false};
+    bool compact_{false};
+    int depth_{3};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -77,7 +79,7 @@ static std::string keySignature(const fdb5::Key& key) {
     std::string separator;
     for (auto&& k : key.keys()) {
         signature += separator + k;
-        separator  = ":";
+        separator = ":";
     }
     return signature;
 }
@@ -103,15 +105,27 @@ void FDBList::init(const CmdArgs& args) {
     }
 
     if (porcelain_) {
-        if (location_) { throw UserError("--porcelain and --location are not compatible", Here()); }
-        if (timestamp_) { throw UserError("--porcelain and --timestamp are not compatible", Here()); }
-        if (length_) { throw UserError("--porcelain and --length are not compatible", Here()); }
-        if (compact_) { throw UserError("--porcelain and --compact are not compatible", Here()); }
+        if (location_) {
+            throw UserError("--porcelain and --location are not compatible", Here());
+        }
+        if (timestamp_) {
+            throw UserError("--porcelain and --timestamp are not compatible", Here());
+        }
+        if (length_) {
+            throw UserError("--porcelain and --length are not compatible", Here());
+        }
+        if (compact_) {
+            throw UserError("--porcelain and --compact are not compatible", Here());
+        }
     }
 
     if (compact_) {
-        if (location_) { throw UserError("--compact and --location are not compatible", Here()); }
-        if (full_) { throw UserError("--compact and --full are not compatible", Here()); }
+        if (location_) {
+            throw UserError("--compact and --location are not compatible", Here());
+        }
+        if (full_) {
+            throw UserError("--compact and --full are not compatible", Here());
+        }
     }
 
     /// @todo option ignore-errors
@@ -137,7 +151,8 @@ void FDBList::execute(const CmdArgs& args) {
 
         // If --full is supplied, then include all entries including duplicates.
         auto listObject = fdb.list(request, !full_ && !compact_, depth_);
-        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
+        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>>
+            requests;
 
         ListElement elem;
         while (listObject.next(elem)) {
@@ -150,20 +165,23 @@ void FDBList::execute(const CmdArgs& args) {
                 treeAxes += ",";
                 treeAxes += keys[1];
 
-                std::string signature=keySignature(keys[2]);  // i.e. step:levelist:param
+                std::string signature = keySignature(keys[2]);  // i.e. step:levelist:param
 
                 auto it = requests.find(treeAxes);
                 if (it == requests.end()) {
                     std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>> leaves;
                     leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     requests.emplace(treeAxes, leaves);
-                } else {
+                }
+                else {
                     auto h = it->second.find(signature);
-                    if (h != it->second.end()) { // the hypercube request is already there... adding the 3rd level key
+                    if (h != it->second.end()) {  // the hypercube request is already there... adding the 3rd level key
                         h->second.first.merge(keys[2].request());
                         h->second.second.insert(keys[2]);
-                    } else {
-                        it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
+                    }
+                    else {
+                        it->second.emplace(signature,
+                                           std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                     }
                 }
                 continue;
@@ -181,18 +199,19 @@ void FDBList::execute(const CmdArgs& args) {
         }  // while
 
         if (compact_) {
-            for (const auto& tree: requests) {
-                for (const auto& leaf: tree.second) {
+            for (const auto& tree : requests) {
+                for (const auto& leaf : tree.second) {
                     metkit::hypercube::HyperCube h{leaf.second.first};
                     if (h.size() == leaf.second.second.size()) {
                         Log::info() << "retrieve," << tree.first << ",";
                         leaf.second.first.dump(Log::info(), "", "", false);
                         Log::info() << std::endl;
-                    } else {
-                        for (const auto& k: leaf.second.second) {
+                    }
+                    else {
+                        for (const auto& k : leaf.second.second) {
                             h.clear(k.request());
                         }
-                        for (const auto& r: h.requests()) {
+                        for (const auto& r : h.requests()) {
                             Log::info() << "retrieve," << tree.first << ",";
                             r.dump(Log::info(), "", "", false);
                             Log::info() << std::endl;
@@ -205,14 +224,16 @@ void FDBList::execute(const CmdArgs& args) {
 
     }  // requests
 
-    if (json) { json->endList(); }
+    if (json) {
+        json->endList();
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBList app(argc, argv);
     return app.start();
 }
