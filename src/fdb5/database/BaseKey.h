@@ -99,7 +99,7 @@ public:  // methods
     /// @throws eckit::SeriousBug if 'keyword' is not found
     std::string value(const std::string& keyword) const { return get(keyword); }
 
-    eckit::StringDict keyDict() const { return keys_; }
+    const eckit::StringDict& keyDict() const { return keys_; }
 
     eckit::StringSet keys() const;
 
