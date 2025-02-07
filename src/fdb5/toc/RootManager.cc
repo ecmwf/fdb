@@ -631,9 +631,8 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
-    std::vector<std::string> keystrings;
-    std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
-                   [](const Key& k) { return k.valuesToString(); });
+    std::set<std::string> keystrings;
+    for (const auto& key : keys) { keystrings.insert(key.valuesToString()); }
 
     LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
