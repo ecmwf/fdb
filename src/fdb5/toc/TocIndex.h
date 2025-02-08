@@ -65,8 +65,8 @@ public:  // methods
     TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode,
              const std::string& type = defaulType());
 
-    TocIndex(eckit::Stream&, const int version, const eckit::PathName& directory,
-             const eckit::PathName& path, off_t offset, bool preloadBTree = false);
+    TocIndex(eckit::Stream&, const int version, const eckit::PathName& directory, const eckit::PathName& path,
+             off_t offset, bool preloadBTree = false);
 
     ~TocIndex() override;
 

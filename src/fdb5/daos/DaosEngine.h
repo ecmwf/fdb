@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "eckit/utils/Optional.h"
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/utils/Optional.h"
 
 #include "fdb5/database/Engine.h"
 

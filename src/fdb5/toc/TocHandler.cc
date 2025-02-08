@@ -1368,8 +1368,8 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
                         s >> type;
                         LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
                         tocindexes[entry.seqNo] =
-                            new TocIndex(s, entry.datap->header_.serialisationVersion_,
-                                         entry.tocDirectoryName, entry.tocDirectoryName / path, offset, preloadBTree_);
+                            new TocIndex(s, entry.datap->header_.serialisationVersion_, entry.tocDirectoryName,
+                                         entry.tocDirectoryName / path, offset, preloadBTree_);
                     }
                 }));
         }
