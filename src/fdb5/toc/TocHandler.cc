@@ -1368,7 +1368,7 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
                         s >> type;
                         LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
                         tocindexes[entry.seqNo] =
-                            new TocIndex(s, catalogue, entry.datap->header_.serialisationVersion_,
+                            new TocIndex(s, entry.datap->header_.serialisationVersion_,
                                          entry.tocDirectoryName, entry.tocDirectoryName / path, offset, preloadBTree_);
                     }
                 }));
@@ -1474,8 +1474,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 if (!simple) {
                     out << std::endl;
                 }
-                Index index(new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)),
-                                         r->header_.serialisationVersion_, currentDirectory(),
+                Index index(new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(),
                                          currentDirectory() / path, offset));
                 index.dump(out, "  ", simple);
                 break;
@@ -1533,8 +1532,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 if ((currentDirectory() / path).sameAs(eckit::LocalPathName{indexFile})) {
                     r->dump(out, true);
                     out << std::endl << "  Path: " << path << ", offset: " << offset << ", type: " << type;
-                    Index index(new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)),
-                                             r->header_.serialisationVersion_, currentDirectory(),
+                    Index index(new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(),
                                              currentDirectory() / path, offset));
                     index.dump(out, "  ", false, true);
                 }
@@ -1644,8 +1642,7 @@ void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<
             std::pair<eckit::LocalPathName, size_t> key(absPath.baseName(), offset);
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
                 if (absPath.exists()) {
-                    Index index(new TocIndex(s, *(dynamic_cast<const TocCatalogue*>(this)),
-                                             r->header_.serialisationVersion_, directory_, absPath, offset));
+                    Index index(new TocIndex(s, r->header_.serialisationVersion_, directory_, absPath, offset));
                     for (const auto& dataURI : index.dataURIs())
                         data.insert(dataURI);
                 }

@@ -14,6 +14,7 @@
 #pragma once
 
 #include "eckit/utils/Optional.h"
+#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Engine.h"
 
