@@ -32,8 +32,9 @@ public:
 
     RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation);
     RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
+    RemoteFieldLocation(const eckit::URI& uri);
+    RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
+                        const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
@@ -42,29 +43,28 @@ public:
     std::shared_ptr<const FieldLocation> make_shared() const override;
     void visit(FieldLocationVisitor& visitor) const override;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     void encode(eckit::Stream&) const override;
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec                       classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
-private: // methods
+private:  // methods
 
     void print(std::ostream& out) const override;
 
-private: // members
-
+private:  // members
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::remote
+}  // namespace fdb5::remote
 
-#endif // fdb5_RemoteFieldLocation_H
+#endif  // fdb5_RemoteFieldLocation_H

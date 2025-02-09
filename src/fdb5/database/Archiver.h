@@ -24,7 +24,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 
-namespace eckit   {
+namespace eckit {
 class DataHandle;
 }
 
@@ -39,13 +39,13 @@ class Schema;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct Database {
-    time_t                              time_;
-    std::unique_ptr<CatalogueWriter>    catalogue_;
-    std::unique_ptr<Store>              store_;
+    time_t time_;
+    std::unique_ptr<CatalogueWriter> catalogue_;
+    std::unique_ptr<Store> store_;
 };
 class Archiver : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
@@ -63,19 +63,22 @@ public: // methods
         return s;
     }
 
-protected: // methods
+protected:  // methods
+
     virtual void flushDatabase(Database& db);
 
-private: // methods
+private:  // methods
 
     void print(std::ostream& out) const;
 
     void selectDatabase(const Key& key);
 
-protected: // members
+protected:  // members
+
     std::map<Key, Database> databases_;
 
-private: // members
+private:  // members
+
     friend class BaseArchiveVisitor;
 
     Config dbConfig_;
@@ -91,6 +94,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

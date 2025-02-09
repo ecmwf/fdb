@@ -26,22 +26,25 @@ class Rule;
 
 class TocEngine : public fdb5::Engine {
 
-public: // methods
+public:  // methods
 
     static const char* typeName() { return "toc"; }
 
 private:  // methods
-    std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys, const std::vector<eckit::PathName>& dirs,
-                                        const Config& config) const;
 
-    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
+    std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys,
+                                                     const std::vector<eckit::PathName>& dirs,
+                                                     const Config& config) const;
+
+    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs,
+                                      const Config& config) const;
 
     std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
                                       const Config& config) const;
 
     void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
 
-protected: // methods
+protected:  // methods
 
     std::string name() const override;
 
@@ -52,15 +55,15 @@ protected: // methods
     bool canHandle(const eckit::URI&, const Config& config) const override;
 
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                               const Config& config) const override;
 
-    void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

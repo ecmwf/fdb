@@ -21,9 +21,9 @@ namespace fdb5 {
 
 eckit::ClassSpec Matcher::classSpec_ = {&eckit::Streamable::classSpec(), "Matcher"};
 
-Matcher::Matcher(eckit::Stream& stream) { }
+Matcher::Matcher(eckit::Stream& stream) {}
 
-void Matcher::encode(eckit::Stream& out) const { }
+void Matcher::encode(eckit::Stream& out) const {}
 
 const std::string& Matcher::value(const Key& key, const std::string& keyword) const {
     return key.get(keyword);

@@ -24,11 +24,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Store::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+void Store::archive(const Key& key, const void* data, eckit::Length length,
+                    std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
     catalogue_archive(archive(key, data, length));
 }
 
-std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const void* /*data*/, eckit::Length /*length*/) {
+std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const void* /*data*/,
+                                                    eckit::Length /*length*/) {
     NOTIMP;
 }
 
@@ -81,7 +83,7 @@ void StoreFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
-    std::string name = config.getString("store", "file");
+    std::string name          = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -107,10 +109,11 @@ StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     StoreFactory::instance().remove(name_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace eckit
+}  // namespace fdb5

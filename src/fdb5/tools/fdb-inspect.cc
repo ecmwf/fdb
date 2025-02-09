@@ -39,7 +39,7 @@ namespace fdb5::tools {
 
 namespace {
 
-std::atomic<std::size_t> elemCount {0};
+std::atomic<std::size_t> elemCount{0};
 
 using metkit::mars::MarsRequest;
 
@@ -60,22 +60,24 @@ void inspect(const Config& config, const MarsRequest& request, bool output) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBInspectTool: public FDBVisitTool {
+class FDBInspectTool : public FDBVisitTool {
 public:  // methods
-    FDBInspectTool(int argc, char** argv): FDBVisitTool(argc, argv, "") {
+
+    FDBInspectTool(int argc, char** argv) : FDBVisitTool(argc, argv, "") {
         using eckit::option::SimpleOption;
         options_.push_back(new SimpleOption<bool>("output", "Print the output of the inspection"));
         options_.push_back(new SimpleOption<std::size_t>("parallel", "Number of parallel tasks to run"));
     }
 
 private:  // methods
+
     void init(const eckit::option::CmdArgs& args) override;
 
     void execute(const eckit::option::CmdArgs& args) override;
 
-    bool output_ {false};
+    bool output_{false};
 
-    std::size_t parallel_ {1};
+    std::size_t parallel_{1};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -87,7 +89,9 @@ void FDBInspectTool::init(const eckit::option::CmdArgs& args) {
 
     parallel_ = args.getUnsigned("parallel", parallel_);
 
-    if (parallel_ < 1) { throw eckit::UserError("Number of parallel tasks must be greater than 0"); }
+    if (parallel_ < 1) {
+        throw eckit::UserError("Number of parallel tasks must be greater than 0");
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -103,15 +107,22 @@ void FDBInspectTool::execute(const eckit::option::CmdArgs& args) {
     eckit::Log::info() << "Number of requests: " << toolRequests.size() << std::endl;
 
     if (parallel_ == 1) {
-        for (const auto& req : toolRequests) { inspect(fdbConfig, req.request(), output_); }
-    } else {
+        for (const auto& req : toolRequests) {
+            inspect(fdbConfig, req.request(), output_);
+        }
+    }
+    else {
         using req_iter_t = std::vector<FDBToolRequest>::const_iterator;
 
         const auto inspectFn = [&](req_iter_t begin, req_iter_t end) {
-            for (auto reqIter = begin; reqIter != end; ++reqIter) { inspect(fdbConfig, reqIter->request(), output_); }
+            for (auto reqIter = begin; reqIter != end; ++reqIter) {
+                inspect(fdbConfig, reqIter->request(), output_);
+            }
         };
 
-        if (toolRequests.size() < parallel_) { parallel_ = toolRequests.size(); }
+        if (toolRequests.size() < parallel_) {
+            parallel_ = toolRequests.size();
+        }
 
         const auto requestPerThread = toolRequests.size() / parallel_;
 
@@ -119,12 +130,14 @@ void FDBInspectTool::execute(const eckit::option::CmdArgs& args) {
 
         auto reqIter = toolRequests.begin();
         for (auto iter = threads.begin(); iter != threads.end() - 1; ++iter) {
-            *iter    = std::thread(inspectFn, reqIter, reqIter + requestPerThread);
+            *iter = std::thread(inspectFn, reqIter, reqIter + requestPerThread);
             reqIter += requestPerThread;
         }
         threads.back() = std::thread(inspectFn, reqIter, toolRequests.end());
 
-        for (auto&& thread : threads) { thread.join(); }
+        for (auto&& thread : threads) {
+            thread.join();
+        }
     }
 
     eckit::Log::info() << "Number of elements: " << elemCount << '\n';

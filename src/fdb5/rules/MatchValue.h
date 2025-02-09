@@ -28,6 +28,7 @@ namespace fdb5 {
 class MatchValue : public Matcher {
 
 public:  // methods
+
     MatchValue(std::string value);
 
     MatchValue(eckit::Stream& stream);
@@ -43,16 +44,18 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream& out) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
+
     std::string value_;
 
     // streamable
 
-    static eckit::ClassSpec              classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<MatchValue> reanimator_;
 };
 

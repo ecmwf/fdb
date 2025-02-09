@@ -28,18 +28,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
-                                           InspectIterator& iterator,
-                                           eckit::CacheLRU<Key,CatalogueReader*>& databases,
-                                           const Config& config) :
-    wind_(wind),
-    databases_(databases),
-    iterator_(iterator),
-    config_(config) {
-}
+MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, InspectIterator& iterator,
+                                           eckit::CacheLRU<Key, CatalogueReader*>& databases, const Config& config) :
+    wind_(wind), databases_(databases), iterator_(iterator), config_(config) {}
 
-MultiRetrieveVisitor::~MultiRetrieveVisitor() {
-}
+MultiRetrieveVisitor::~MultiRetrieveVisitor() {}
 
 // From Visitor
 
@@ -49,8 +42,8 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
 
     /* is it the current DB ? */
 
-    if(catalogue_) {
-        if(dbKey == catalogue_->key()) {
+    if (catalogue_) {
+        if (dbKey == catalogue_->key()) {
             eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
@@ -58,7 +51,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
 
     /* is the DB already open ? */
 
-    if(databases_.exists(dbKey)) {
+    if (databases_.exists(dbKey)) {
         LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << dbKey << std::endl;
         catalogue_ = databases_.access(dbKey);
         return true;
@@ -76,12 +69,14 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
         return false;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey << " (type=" << newCatalogue->type() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey
+                           << " (type=" << newCatalogue->type() << ")" << std::endl;
 
     if (!newCatalogue->open()) {
         LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << dbKey << std::endl;
         return false;
-    } else {
+    }
+    else {
         catalogue_ = newCatalogue.release();
         databases_.insert(dbKey, catalogue_);
         return true;
@@ -103,20 +98,21 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
 
         Key simplifiedKey;
         for (const auto& [keyword, value] : datumKey) {
-            if (!value.empty()) { simplifiedKey.push(keyword, value); }
+            if (!value.empty()) {
+                simplifiedKey.push(keyword, value);
+            }
         }
 
-        iterator_.emplace({catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
+        iterator_.emplace(
+            {catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
         return true;
     }
 
     return false;
 }
 
-void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
-                             const std::string &keyword,
-                             const TypesRegistry &registry,
-                             eckit::StringList &values) {
+void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                                  const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
@@ -134,7 +130,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 }
 
-void MultiRetrieveVisitor::print( std::ostream &out ) const {
+void MultiRetrieveVisitor::print(std::ostream& out) const {
     out << "MultiRetrieveVisitor[]";
 }
 
@@ -145,4 +141,4 @@ const Schema& MultiRetrieveVisitor::databaseSchema() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

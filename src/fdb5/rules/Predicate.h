@@ -40,6 +40,7 @@ class TypesRegistry;
 class Predicate : public eckit::Streamable {
 
 public:  // methods
+
     Predicate(std::string keyword, Matcher* matcher);
 
     explicit Predicate(eckit::Stream& stream);
@@ -71,6 +72,7 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream& out) const override;
 
     void print(std::ostream& out) const;
@@ -78,13 +80,14 @@ private:  // methods
     friend std::ostream& operator<<(std::ostream& out, const Predicate& predicate);
 
 private:  // members
+
     std::string keyword_;
 
     std::unique_ptr<Matcher> matcher_;
 
     // streamable
 
-    static eckit::ClassSpec             classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Predicate> reanimator_;
 };
 

@@ -129,7 +129,7 @@ CASE("Step & ClimateDaily - expansion") {
     }
 
     fdb5::Config conf = config.expandConfig();
-    fdb5::Archiver       archiver(conf);
+    fdb5::Archiver archiver(conf);
     fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
     config.schema().expand(key, visitor);
 
@@ -251,7 +251,9 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
 
     {
         auto parsed = fdb5::Key::parse(
-            "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=" "20210427,time=6,step=0,quantile=99:100," "levelist=50,param=129.128");
+            "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date="
+            "20210427,time=6,step=0,quantile=99:100,"
+            "levelist=50,param=129.128");
         fdb5::TypedKey tKey(config.schema().registry());
         tKey.pushFrom(parsed);
         key = tKey.tidy();
@@ -262,7 +264,7 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "ei:0001:dacl:g:pb:pl:20210427:0600:0:99:100:50:129.128");
 
     {
-        fdb5::Archiver       archiver;
+        fdb5::Archiver archiver;
         fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor.rule()->registry());
@@ -279,7 +281,9 @@ CASE("ClimateMonthly - string ctor - expansion") {
     fdb5::Key key;
 
     {
-        auto parsed = fdb5::Key::parse("class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=" "0000,levelist=50,param=129.128");
+        auto parsed = fdb5::Key::parse(
+            "class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time="
+            "0000,levelist=50,param=129.128");
         fdb5::TypedKey tKey(config.schema().registry());
         tKey.pushFrom(parsed);
         key = tKey.tidy();
@@ -289,7 +293,7 @@ CASE("ClimateMonthly - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "op:0001:mnth:g:cl:pl:20210427:0000:50:129.128");
 
     {
-        fdb5::Archiver       archiver;
+        fdb5::Archiver archiver;
         fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor.rule()->registry());
@@ -322,7 +326,7 @@ CASE("Date - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 
     {
-        fdb5::Archiver       archiver;
+        fdb5::Archiver archiver;
         fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor.rule()->registry());
