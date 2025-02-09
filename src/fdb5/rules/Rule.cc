@@ -53,7 +53,7 @@ class RuleGraph {
         RuleNode& operator=(RuleNode&&)      = delete;
         ~RuleNode()                          = default;
 
-        explicit RuleNode(const std::string& keyword) : keyword_ {keyword} { }
+        explicit RuleNode(const std::string& keyword) : keyword_{keyword} {}
 
         std::string keyword_;
 
@@ -61,11 +61,13 @@ class RuleGraph {
     };
 
 public:  // types
+
     using value_type     = std::list<RuleNode>;
     using reference      = eckit::StringList&;
     using const_iterator = value_type::const_iterator;
 
 public:  // methods
+
     reference push(const std::string& keyword) { return nodes_.emplace_back(keyword).values_; }
 
     std::size_t size() const { return nodes_.size(); }
@@ -86,13 +88,16 @@ public:  // methods
         for (auto& [keyword, values] : nodes_) {
             const auto& type = registry.lookupType(keyword);
             for (auto& value : values) {
-                if (!value.empty()) { value = type.toKey(value); }
+                if (!value.empty()) {
+                    value = type.toKey(value);
+                }
             }
             keyword = type.alias();
         }
     }
 
 private:  // methods
+
     // Recursive DFS (depth-first search) to generate all possible keys
     void visit(const_iterator iter, Key& key, std::set<Key>& seen, std::vector<Key>& keys) const {
 
@@ -118,6 +123,7 @@ private:  // methods
     }
 
 private:  // members
+
     value_type nodes_;
 };
 
@@ -126,20 +132,22 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 // RULE
 
-eckit::ClassSpec             RuleDatum::classSpec_ = {&Rule::classSpec(), "RuleDatum"};
+eckit::ClassSpec RuleDatum::classSpec_ = {&Rule::classSpec(), "RuleDatum"};
 eckit::Reanimator<RuleDatum> RuleDatum::reanimator_;
 
-eckit::ClassSpec             RuleIndex::classSpec_ = {&Rule::classSpec(), "RuleIndex"};
+eckit::ClassSpec RuleIndex::classSpec_ = {&Rule::classSpec(), "RuleIndex"};
 eckit::Reanimator<RuleIndex> RuleIndex::reanimator_;
 
-eckit::ClassSpec                RuleDatabase::classSpec_ = {&Rule::classSpec(), "RuleDatabase"};
+eckit::ClassSpec RuleDatabase::classSpec_ = {&Rule::classSpec(), "RuleDatabase"};
 eckit::Reanimator<RuleDatabase> RuleDatabase::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rule::Rule(const std::size_t line, Predicates& predicates, const eckit::StringDict& types)
-    : line_ {line}, predicates_ {std::move(predicates)} {
-    for (const auto& [keyword, type] : types) { registry_.addType(keyword, type); }
+Rule::Rule(const std::size_t line, Predicates& predicates, const eckit::StringDict& types) :
+    line_{line}, predicates_{std::move(predicates)} {
+    for (const auto& [keyword, type] : types) {
+        registry_.addType(keyword, type);
+    }
 }
 
 void Rule::decode(eckit::Stream& stream) {
@@ -148,7 +156,7 @@ void Rule::decode(eckit::Stream& stream) {
     registry_.decode(stream);
     stream >> line_;
     stream >> numPred;
-    
+
     predicates_.reserve(numPred);
     for (size_t i = 0; i < numPred; ++i) {
         predicates_.emplace_back(eckit::Reanimator<Predicate>::reanimate(stream));
@@ -159,7 +167,9 @@ void Rule::encode(eckit::Stream& out) const {
     registry_.encode(out);
     out << line_;
     out << predicates_.size();
-    for (const auto& pred : predicates_) { out << *pred; }
+    for (const auto& pred : predicates_) {
+        out << *pred;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -167,14 +177,18 @@ void Rule::encode(eckit::Stream& out) const {
 
 std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
-    if (field.size() < predicates_.size()) { return {}; }
+    if (field.size() < predicates_.size()) {
+        return {};
+    }
 
     TypedKey key(registry_);
 
     for (const auto& pred : predicates_) {
 
         /// @note the key is constructed from the predicate
-        if (!pred->match(field)) { return {}; }
+        if (!pred->match(field)) {
+            return {};
+        }
 
         const auto& keyword = pred->keyword();
 
@@ -186,7 +200,9 @@ std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
 std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
 
-    if (predicates_.empty()) { return {}; }
+    if (predicates_.empty()) {
+        return {};
+    }
 
     ASSERT(values.size() >= predicates_.size());
 
@@ -200,7 +216,9 @@ std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const 
         /// @note 1-1 order between predicates and values
         const auto& value = values.at(iter - predicates_.begin());
 
-        if (!pred->match(value)) { return {}; }
+        if (!pred->match(value)) {
+            return {};
+        }
 
         key.push(keyword, value);
     }
@@ -219,10 +237,12 @@ std::optional<Key> Rule::findMatchingKey(const Key& field, const char* missing) 
         if (const auto [iter, found] = field.find(keyword); found) {
             if (pred->match(iter->second)) {
                 key.push(keyword, iter->second);
-            } else {
+            }
+            else {
                 return {};
             }
-        } else {
+        }
+        else {
             key.push(keyword, missing);
         }
     }
@@ -242,14 +262,19 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
 
         if (!request.has(keyword)) {
             node.emplace_back(missing);
-        } else {
+        }
+        else {
             const auto& values = pred->values(request);
 
             for (const auto& value : values) {
-                if (pred->match(value)) { node.emplace_back(value); }
+                if (pred->match(value)) {
+                    node.emplace_back(value);
+                }
             }
 
-            if (node.empty()) { break; }
+            if (node.empty()) {
+                break;
+            }
         }
     }
 
@@ -266,7 +291,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type = registry_.lookupType(keyword);
+        const auto& type    = registry_.lookupType(keyword);
 
 
         const auto& values = pred->values(request);
@@ -277,10 +302,14 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
-            if (pred->match(value)) { node.emplace_back(value); }
+            if (pred->match(value)) {
+                node.emplace_back(value);
+            }
         }
 
-        if (node.empty()) { return {}; }
+        if (node.empty()) {
+            return {};
+        }
     }
 
     graph.canonicalise(registry_);
@@ -295,23 +324,31 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type = registry_.lookupType(keyword);
+        const auto& type    = registry_.lookupType(keyword);
 
         // performance optimization to avoid calling values() on visitor
-        if (!pred->optional() && request.countValues(keyword) == 0) { return {}; }
+        if (!pred->optional() && request.countValues(keyword) == 0) {
+            return {};
+        }
 
         eckit::StringList values;
         visitor.values(request, keyword, registry_, values);
 
-        if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+        if (values.empty() && pred->optional()) {
+            values.push_back(pred->defaultValue());
+        }
 
         auto& node = graph.push(keyword);
 
         for (const auto& value : values) {
-            if (pred->match(value)) { node.emplace_back(value); }
+            if (pred->match(value)) {
+                node.emplace_back(value);
+            }
         }
 
-        if (node.empty()) { return {}; }
+        if (node.empty()) {
+            return {};
+        }
     }
 
     graph.canonicalise(registry_);
@@ -320,7 +357,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
 
     LOG_DEBUG_LIB(LibFdb5) << "findMatchingKeys  " << request << " ==> ";
     std::string sep;
-    for (const auto& k: out) {
+    for (const auto& k : out) {
         LOG_DEBUG_LIB(LibFdb5) << sep << k;
         sep = " | ";
     }
@@ -333,7 +370,9 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
 
 bool Rule::match(const Key& key) const {
     for (const auto& pred : predicates_) {
-        if (!pred->match(key)) { return false; }
+        if (!pred->match(key)) {
+            return false;
+        }
     }
     return true;
 }
@@ -367,17 +406,24 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
         if (values.size() == (predicates_.size() + 1) && (*it_pred)->keyword() == "quantile") {
             std::string actualQuantile = *it_value;
             ++it_value;
-            if (it_value == values.end()) { return false; }
+            if (it_value == values.end()) {
+                return false;
+            }
             actualQuantile += std::string(":") + (*it_value);
             (*it_pred)->fill(key, actualQuantile);
-        } else {
+        }
+        else {
             (*it_pred)->fill(key, *it_value);
         }
     }
 
     // Check that everything is exactly consumed
-    if (it_value != values.end()) { return false; }
-    if (it_pred != predicates_.end()) { return false; }
+    if (it_value != values.end()) {
+        return false;
+    }
+    if (it_pred != predicates_.end()) {
+        return false;
+    }
     return true;
 }
 
@@ -416,7 +462,9 @@ void Rule::dump(std::ostream& out) const {
 
 void Rule::updateParent(const Rule* parent) {
     parent_ = parent;
-    if (parent) { registry_.updateParent(parent_->registry_); }
+    if (parent) {
+        registry_.updateParent(parent_->registry_);
+    }
 }
 
 const TypesRegistry& Rule::registry() const {
@@ -463,7 +511,9 @@ void Rule::check(const Key& key) const {
         }
     }
 
-    if (parent_) { parent_->check(key); }
+    if (parent_) {
+        parent_->check(key);
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const Rule& rule) {
@@ -513,7 +563,9 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
         if (visitor.selectDatum(*key, full)) {
             visitor.rule(this);
             static const bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
-            if (matchFirstFdbRule) { return true; }
+            if (matchFirstFdbRule) {
+                return true;
+            }
         }
 
         full.popFrom(*key);
@@ -525,17 +577,17 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE INDEX
 
-RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules)
-    : Rule(line, predicates, types), rules_ {std::move(rules)} { }
+RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules) :
+    Rule(line, predicates, types), rules_{std::move(rules)} {}
 
 RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
     decode(stream);
-    
+
     size_t numRules;
     stream >> numRules;
     rules_.reserve(numRules);
 
-    for (size_t i=0; i < numRules; i++) {
+    for (size_t i = 0; i < numRules; i++) {
         rules_.emplace_back(new RuleDatum(stream));
     }
 }
@@ -543,14 +595,16 @@ RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
 void RuleIndex::encode(eckit::Stream& out) const {
     Rule::encode(out);
     out << rules_.size();
-    for (const auto& rule : rules_) { 
+    for (const auto& rule : rules_) {
         rule->encode(out);
     }
 }
 
 void RuleIndex::updateParent(const Rule* parent) {
     Rule::updateParent(parent);
-    for (auto& rule : rules_) { rule->updateParent(this); }
+    for (auto& rule : rules_) {
+        rule->updateParent(this);
+    }
 }
 
 void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
@@ -578,7 +632,9 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 
         if (visitor.selectIndex(*key, full)) {
             for (const auto& rule : rules_) {
-                if (rule->expand(field, visitor, full)) { return true; }
+                if (rule->expand(field, visitor, full)) {
+                    return true;
+                }
             }
         }
 
@@ -591,8 +647,9 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE DATABASE
 
-RuleDatabase::RuleDatabase(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules)
-    : Rule(line, predicates, types), rules_ {std::move(rules)} { }
+RuleDatabase::RuleDatabase(const std::size_t line, Predicates& predicates, const eckit::StringDict& types,
+                           Children& rules) :
+    Rule(line, predicates, types), rules_{std::move(rules)} {}
 
 RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule() {
     decode(stream);
@@ -601,7 +658,7 @@ RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule() {
     stream >> numRules;
     rules_.reserve(numRules);
 
-    for (size_t i=0; i < numRules; i++) {
+    for (size_t i = 0; i < numRules; i++) {
         rules_.emplace_back(new RuleIndex(stream));
     }
 }
@@ -615,7 +672,9 @@ void RuleDatabase::encode(eckit::Stream& out) const {
 }
 
 void RuleDatabase::updateParent(const Rule* /* parent */) {
-    for (auto& rule : rules_) { rule->updateParent(this); }
+    for (auto& rule : rules_) {
+        rule->updateParent(this);
+    }
 }
 
 void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
@@ -638,7 +697,9 @@ bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
         if (visitor.selectDatabase(*key, *key)) {
             // (important) using the database's schema
             for (const auto& rule : visitor.databaseSchema().matchingRule(*key).rules()) {
-                if (rule->expand(field, visitor, *key)) { return true; }
+                if (rule->expand(field, visitor, *key)) {
+                    return true;
+                }
             }
         }
     }

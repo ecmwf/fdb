@@ -36,11 +36,12 @@ namespace fdb5 {
 
 class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 private:  // types
+
     using IndexKey  = std::pair<Index, Key>;
     using MapList   = std::vector<IndexKey>;
     using MatchList = std::vector<const IndexKey*>;
 
-public: // methods
+public:  // methods
 
     TocCatalogueReader(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
@@ -51,6 +52,7 @@ public: // methods
     DbStats stats() const override { return TocHandler::stats(); }
 
 private:  // methods
+
     void loadIndexesAndRemap() const;
     bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
@@ -64,11 +66,13 @@ private:  // methods
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-    template<class T>
+    template <class T>
     static auto& getOrMapIndexes(T& toc) {
-        if (toc.indexes_.empty()) { toc.loadIndexesAndRemap(); }
+        if (toc.indexes_.empty()) {
+            toc.loadIndexesAndRemap();
+        }
         return toc.indexes_;
     }
 
@@ -76,7 +80,7 @@ private:  // methods
 
     auto mappedIndexes() const -> const MapList& { return getOrMapIndexes(*this); }
 
-private: // members
+private:  // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
@@ -92,6 +96,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

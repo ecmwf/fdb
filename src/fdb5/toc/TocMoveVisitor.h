@@ -26,19 +26,17 @@ class TocMoveVisitor : public MoveVisitor {
 
 public:
 
-    TocMoveVisitor(const TocCatalogue& catalogue,
-                   const Store& store,
-                   const metkit::mars::MarsRequest& request,
-                   const eckit::URI& dest,
-                   eckit::Queue<MoveElement>& queue);
+    TocMoveVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+                   const eckit::URI& dest, eckit::Queue<MoveElement>& queue);
     ~TocMoveVisitor() override;
 
-private: // methods
+private:  // methods
+
     bool visitDatabase(const Catalogue& catalogue) override;
 
     void move();
 
-private: // members
+private:  // members
 
     // What are the parameters of the move operation
     const TocCatalogue& catalogue_;
@@ -48,4 +46,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -15,8 +15,8 @@
 #define fdb5_StatsReportVisitor_H
 
 #include "fdb5/database/DbStats.h"
-#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/IndexStats.h"
 
 namespace fdb5 {
 
@@ -24,16 +24,16 @@ namespace fdb5 {
 
 class StatsReportVisitor : public EntryVisitor {
 
-public: // methods
+public:  // methods
 
     using EntryVisitor::EntryVisitor;
 
     virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats    dbStatistics() const = 0;
+    virtual DbStats dbStatistics() const       = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_StatsReportVisitor_H
+#endif  // fdb5_StatsReportVisitor_H

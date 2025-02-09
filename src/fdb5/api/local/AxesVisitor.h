@@ -36,6 +36,7 @@ namespace api::local {
 
 class AxesVisitor : public QueryVisitor<AxesElement> {
 public:
+
     AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level);
 
     bool visitIndexes() override { return true; }
@@ -52,7 +53,7 @@ public:
 
     void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
-private: // members
+private:  // members
 
     Key dbKey_;
     IndexAxis axes_;
@@ -63,4 +64,4 @@ private: // members
 
 }  // namespace api::local
 
-} // namespace fdb5
+}  // namespace fdb5

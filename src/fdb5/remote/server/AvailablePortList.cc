@@ -15,10 +15,10 @@
 
 #include "fdb5/remote/server/AvailablePortList.h"
 
+#include <netdb.h>
+#include <unistd.h>
 #include <fstream>
 #include <mutex>
-#include <unistd.h>
-#include <netdb.h>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/ProcessControler.h"
@@ -42,7 +42,8 @@ std::set<int> readServices() {
     std::set<int> portsToSkip;
 
     PathName servicesFile = "/etc/services";
-    if (!servicesFile.exists()) return portsToSkip;
+    if (!servicesFile.exists())
+        return portsToSkip;
 
     std::ifstream in(servicesFile.localPath());
 
@@ -55,7 +56,7 @@ std::set<int> readServices() {
 
     eckit::Tokenizer parse("\t /");
 
-    eckit::Translator<std::string,int> toInt;
+    eckit::Translator<std::string, int> toInt;
 
     char line[1024];
     while (in.getline(line, sizeof(line))) {
@@ -65,11 +66,13 @@ std::set<int> readServices() {
 
         size_t i = 0;
         while (i < s.size()) {
-            if(s[i][0] == '#') {
+            if (s[i][0] == '#') {
                 s.erase(s.begin() + i, s.end());
-            } else if (s[i].length() == 0) {
+            }
+            else if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            } else {
+            }
+            else {
                 i++;
             }
         }
@@ -80,17 +83,19 @@ std::set<int> readServices() {
 
         if (s.size() >= 3) {
 
-                const std::string& sname    = s[0];
-                const std::string& port     = s[1];
-                const std::string& protocol = s[2];
+            const std::string& sname    = s[0];
+            const std::string& port     = s[1];
+            const std::string& protocol = s[2];
 
-                LOG_DEBUG_LIB(LibFdb5) << "Skipping port " << port << " service " << sname << " protocol " << protocol << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Skipping port " << port << " service " << sname << " protocol " << protocol
+                                   << std::endl;
 
-                int p = toInt(port);
-                portsToSkip.insert(p);
+            int p = toInt(port);
+            portsToSkip.insert(p);
         }
         else {
-            eckit::Log::warning() << "Unrecognized format in " << servicesFile << " line: [" << line << "]" << std::endl;
+            eckit::Log::warning() << "Unrecognized format in " << servicesFile << " line: [" << line << "]"
+                                  << std::endl;
         }
     }
 
@@ -98,13 +103,10 @@ std::set<int> readServices() {
 }
 
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
 AvailablePortList::AvailablePortList(int startPort, size_t count) :
-    shared_("~fdb/etc/fdb/serverPortLock", "/fdb-server-data-ports", count),
-    startPort_(startPort),
-    count_(count) {}
+    shared_("~fdb/etc/fdb/serverPortLock", "/fdb-server-data-ports", count), startPort_(startPort), count_(count) {}
 
 void AvailablePortList::initialise() {
 
@@ -119,26 +121,28 @@ void AvailablePortList::initialise() {
             break;
         }
     }
-    if (initialised) return;
+    if (initialised)
+        return;
 
     // Get a list of everything that needs to be skipped
 
     std::set<int> portsToSkip = readServices();
 
     size_t foundCount = 0;
-    int port = startPort_;
+    int port          = startPort_;
 
     eckit::Log::info() << "Initialising port list." << std::endl;
     while (foundCount < count_) {
 
         bool found = true;
-        if (portsToSkip.find(port) != portsToSkip.end()) found = false;
+        if (portsToSkip.find(port) != portsToSkip.end())
+            found = false;
 
-//        if (found && getservbyport(port, 0) != 0) found = false;
+        //        if (found && getservbyport(port, 0) != 0) found = false;
 
         if (found) {
-            shared_[foundCount].port = port;
-            shared_[foundCount].pid = 0;
+            shared_[foundCount].port     = port;
+            shared_[foundCount].pid      = 0;
             shared_[foundCount].deadTime = 0;
             foundCount++;
         }
@@ -160,15 +164,15 @@ int AvailablePortList::acquire() {
 
     for (auto it = shared_.begin(); it != shared_.end(); ++it) {
         if (it->pid == 0) {
-            it->pid = pid;
+            it->pid      = pid;
             it->deadTime = 0;
             shared_.sync();
             if (::getservbyport(it->port, 0) == 0) {
                 eckit::Log::info() << "Acquiring port: " << it->port << std::endl;
                 return it->port;
-            } else {
-                eckit::Log::info() << "Port " << it->port
-                                   << " already belongs to a service."
+            }
+            else {
+                eckit::Log::info() << "Port " << it->port << " already belongs to a service."
                                    << " Marking as in use, and trying another." << std::endl;
             }
         }
@@ -194,11 +198,11 @@ void AvailablePortList::reap(int deadTime) {
             ASSERT(it->deadTime <= now);
             ASSERT(!ProcessControler::isRunning(it->pid));
             if ((now - it->deadTime) >= deadTime) {
-                it->pid = 0;
+                it->pid      = 0;
                 it->deadTime = 0;
             }
-
-        } else if (it->pid != 0) {
+        }
+        else if (it->pid != 0) {
 
             ASSERT(it->deadTime == 0);
             if (!ProcessControler::isRunning(it->pid)) {
@@ -212,5 +216,5 @@ void AvailablePortList::reap(int deadTime) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5

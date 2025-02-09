@@ -28,8 +28,8 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
@@ -49,10 +49,10 @@ class Handler {
 
 public:
 
-    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) = 0;
+    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID)                          = 0;
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
-    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID)                             = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload)    = 0;
 
     virtual void handleException(std::exception_ptr e) = 0;
 };
@@ -86,6 +86,7 @@ struct ArchiveElem {
 
 class ServerConnection : public Connection, public Handler {
 public:  // methods
+
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection() override;
 
@@ -153,8 +154,8 @@ protected:
     eckit::net::TCPSocket controlSocket_;
 
     std::mutex handlerMutex_;
-    size_t     numControlConnection_ {0};
-    size_t     numDataConnection_ {0};
+    size_t numControlConnection_{0};
+    size_t numDataConnection_{0};
 
 private:
 
@@ -163,7 +164,7 @@ private:
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;
 
-    size_t numDataListener_ {0};
+    size_t numDataListener_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

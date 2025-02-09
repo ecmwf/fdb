@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/api/FDB.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
-#include "fdb5/api/FDB.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
@@ -27,29 +27,26 @@ namespace tools {
 
 class FDBStats : public FDBVisitTool {
 
-public: // methods
+public:  // methods
 
-    FDBStats(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver"),
-        details_(false) {
+    FDBStats(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), details_(false) {
 
         options_.push_back(new SimpleOption<bool>("details", "Print report for each database visited"));
     }
 
     ~FDBStats() override {}
 
-private: // methods
+private:  // methods
 
     void execute(const CmdArgs& args) override;
-    void init(const CmdArgs &args) override;
+    void init(const CmdArgs& args) override;
 
-private: // members
+private:  // members
 
     bool details_;
-
 };
 
-void FDBStats::init(const eckit::option::CmdArgs &args) {
+void FDBStats::init(const eckit::option::CmdArgs& args) {
     FDBVisitTool::init(args);
     details_ = args.getBool("details", false);
 }
@@ -77,8 +74,9 @@ void FDBStats::execute(const CmdArgs& args) {
 
             if (count == 0) {
                 totalIndexStats = elem.indexStatistics;
-                totaldbStats = elem.dbStatistics;
-            } else {
+                totaldbStats    = elem.dbStatistics;
+            }
+            else {
                 totalIndexStats += elem.indexStatistics;
                 totaldbStats += elem.dbStatistics;
             }
@@ -108,10 +106,10 @@ void FDBStats::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBStats app(argc, argv);
     return app.start();
 }

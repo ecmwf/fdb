@@ -35,12 +35,10 @@ class Notifier;
 
 class MultiRetrieveVisitor : public ReadVisitor {
 
-public: // methods
+public:  // methods
 
-    MultiRetrieveVisitor(const Notifier& wind,
-                         InspectIterator& queue,
-                         eckit::CacheLRU<Key,CatalogueReader*>& databases,
-                         const Config& config);
+    MultiRetrieveVisitor(const Notifier& wind, InspectIterator& queue,
+                         eckit::CacheLRU<Key, CatalogueReader*>& databases, const Config& config);
 
     ~MultiRetrieveVisitor();
 
@@ -54,10 +52,8 @@ private:  // methods
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    void values(const metkit::mars::MarsRequest& request,
-                const std::string&               keyword,
-                const TypesRegistry&             registry,
-                eckit::StringList&               values) override;
+    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
+                eckit::StringList& values) override;
 
     void print(std::ostream& out) const override;
 
@@ -67,7 +63,7 @@ private:
 
     const Notifier& wind_;
 
-    eckit::CacheLRU<Key,CatalogueReader*>& databases_;
+    eckit::CacheLRU<Key, CatalogueReader*>& databases_;
 
     InspectIterator& iterator_;
 
@@ -76,6 +72,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

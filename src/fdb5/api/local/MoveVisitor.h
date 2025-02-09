@@ -16,8 +16,8 @@
 
 #include "eckit/distributed/Transport.h"
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/MoveVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
@@ -33,11 +33,9 @@ namespace local {
 
 class MoveVisitor : public QueryVisitor<MoveElement> {
 
-public: // methods
+public:  // methods
 
-    MoveVisitor(eckit::Queue<MoveElement>& queue,
-                const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest);
+    MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request, const eckit::URI& dest);
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
@@ -50,7 +48,7 @@ public: // methods
 
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
-private: // members
+private:  // members
 
     const eckit::URI& dest_;
     std::unique_ptr<fdb5::MoveVisitor> internalVisitor_;
@@ -59,6 +57,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

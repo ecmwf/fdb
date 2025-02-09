@@ -27,20 +27,20 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(Key dbKey, const TimeStamp& timestamp):
-    keyParts_ {std::move(dbKey)}, timestamp_ {timestamp} { }
+ListElement::ListElement(Key dbKey, const TimeStamp& timestamp) : keyParts_{std::move(dbKey)}, timestamp_{timestamp} {}
 
-ListElement::ListElement(Key dbKey, Key indexKey, const TimeStamp& timestamp):
-    keyParts_ {std::move(dbKey), std::move(indexKey)}, timestamp_ {timestamp} { }
+ListElement::ListElement(Key dbKey, Key indexKey, const TimeStamp& timestamp) :
+    keyParts_{std::move(dbKey), std::move(indexKey)}, timestamp_{timestamp} {}
 
 ListElement::ListElement(Key dbKey, Key indexKey, Key datumKey, std::shared_ptr<const FieldLocation> location,
-                         const TimeStamp& timestamp):
-    keyParts_ {std::move(dbKey), std::move(indexKey), std::move(datumKey)},
-    loc_ {std::move(location)},
-    timestamp_ {timestamp} { }
+                         const TimeStamp& timestamp) :
+    keyParts_{std::move(dbKey), std::move(indexKey), std::move(datumKey)},
+    loc_{std::move(location)},
+    timestamp_{timestamp} {}
 
-ListElement::ListElement(const std::array<Key,3>& keys, std::shared_ptr<const FieldLocation> location, const TimeStamp& timestamp) :
-    ListElement(keys[0], keys[1], keys[2], std::move(location), timestamp) { }
+ListElement::ListElement(const std::array<Key, 3>& keys, std::shared_ptr<const FieldLocation> location,
+                         const TimeStamp& timestamp) :
+    ListElement(keys[0], keys[1], keys[2], std::move(location), timestamp) {}
 
 ListElement::ListElement(eckit::Stream& stream) {
     std::vector<Key> keys;
@@ -66,7 +66,9 @@ Key ListElement::combinedKey() const {
 }
 
 const FieldLocation& ListElement::location() const {
-    if (!loc_) { throw eckit::SeriousBug("Only datum (3-level) elements have FieldLocation.", Here()); }
+    if (!loc_) {
+        throw eckit::SeriousBug("Only datum (3-level) elements have FieldLocation.", Here());
+    }
     return *loc_;
 }
 
@@ -83,7 +85,8 @@ eckit::Length ListElement::length() const {
     return loc_ ? loc_->length() : eckit::Length(0);
 }
 
-void ListElement::print(std::ostream& out, const bool location, const bool length, const bool timestamp, const char* sep) const {
+void ListElement::print(std::ostream& out, const bool location, const bool length, const bool timestamp,
+                        const char* sep) const {
     out << keyParts_[0];
     if (!keyParts_[1].empty()) {
         out << keyParts_[1];
@@ -97,13 +100,19 @@ void ListElement::print(std::ostream& out, const bool location, const bool lengt
             }
         }
     }
-    if (length) { out << sep << "length=" << this->length(); }
-    if (timestamp) { out << sep << "timestamp=" << timestamp_; }
+    if (length) {
+        out << sep << "length=" << this->length();
+    }
+    if (timestamp) {
+        out << sep << "timestamp=" << timestamp_;
+    }
 }
 
 void ListElement::json(eckit::JSON& json) const {
     json << combinedKey().keyDict();
-    if (loc_) { json << "length" << loc_->length(); }
+    if (loc_) {
+        json << "length" << loc_->length();
+    }
 }
 
 void ListElement::encode(eckit::Stream& stream) const {

@@ -13,11 +13,11 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosArrayHandle.h"
-#include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
-#include "fdb5/daos/DaosObject.h"
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosException.h"
+#include "fdb5/daos/DaosObject.h"
+#include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosSession.h"
 
 using eckit::Length;
 using eckit::Offset;
@@ -28,8 +28,8 @@ DaosArrayHandle::DaosArrayHandle(const fdb5::DaosArrayName& name) : name_(name),
 
 DaosArrayHandle::~DaosArrayHandle() {
 
-    if (open_) eckit::Log::error() << "DaosArrayHandle not closed before destruction." << std::endl;
-
+    if (open_)
+        eckit::Log::error() << "DaosArrayHandle not closed before destruction." << std::endl;
 }
 
 void DaosArrayHandle::print(std::ostream& s) const {
@@ -38,11 +38,12 @@ void DaosArrayHandle::print(std::ostream& s) const {
 
 void DaosArrayHandle::openForWrite(const Length& len) {
 
-    if (open_) throw eckit::SeriousBug{"Handle already opened."};
+    if (open_)
+        throw eckit::SeriousBug{"Handle already opened."};
 
     session();
 
-    fdb5::DaosPool& p = session_->getPool(name_.poolName());
+    fdb5::DaosPool& p      = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     /// @note: to open/create an array without generating a snapshot, we must:
@@ -50,16 +51,17 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     ///   - attempt array create and check if rc is 0 or DER_EXIST (c.createArray(oid))
     ///   we do the latter first because it is the most likely to succeed.
     ///   If the operation fails, the DAOS client will generate an ERR log and usually persist
-    ///   it to a log file (potential performance impact). So we want to have as few of these 
+    ///   it to a log file (potential performance impact). So we want to have as few of these
     ///   failures as possible.
     /// @todo: implement DaosContainer::ensureArray, which attempts createArray with a catch+dismiss?
-    /// @todo: have dummy daos_create_array return DER_EXIST where relevant. 
-    ///   This would probably require breaking transactionality of dummy 
+    /// @todo: have dummy daos_create_array return DER_EXIST where relevant.
+    ///   This would probably require breaking transactionality of dummy
     ///   daos_create_array, and/or hit its performance.
     try {
-        arr_.emplace( c.createArray(name_.OID()) );
-    } catch (fdb5::DaosEntityAlreadyExistsException& e) {
-        arr_.emplace( session_.value(), name_ );
+        arr_.emplace(c.createArray(name_.OID()));
+    }
+    catch (fdb5::DaosEntityAlreadyExistsException& e) {
+        arr_.emplace(session_.value(), name_);
     }
 
     arr_->open();
@@ -69,14 +71,14 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     open_ = true;
 
     offset_ = eckit::Offset(0);
-
 }
 
-/// @note: the array size is retrieved here and ::read. For a more optimised reading 
+/// @note: the array size is retrieved here and ::read. For a more optimised reading
 ///   if the size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
-    if (open_) throw eckit::SeriousBug{"Handle already opened."};
+    if (open_)
+        throw eckit::SeriousBug{"Handle already opened."};
 
     session();
 
@@ -87,7 +89,6 @@ Length DaosArrayHandle::openForRead() {
     open_ = true;
 
     return size();
-
 }
 
 long DaosArrayHandle::write(const void* buf, long len) {
@@ -99,7 +100,6 @@ long DaosArrayHandle::write(const void* buf, long len) {
     offset_ += written;
 
     return written;
-
 }
 
 long DaosArrayHandle::read(void* buf, long len) {
@@ -111,47 +111,43 @@ long DaosArrayHandle::read(void* buf, long len) {
     /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
     ///   so it is calculated here and returned to the user as expected
     eckit::Length s = size();
-    if (len > s - offset_) read = s - offset_;
+    if (len > s - offset_)
+        read = s - offset_;
 
     offset_ += read;
 
     return read;
-
 }
 
 void DaosArrayHandle::close() {
 
-    if (!open_) return;
+    if (!open_)
+        return;
 
     arr_->close();
 
     open_ = false;
-
 }
 
 void DaosArrayHandle::flush() {
 
     /// empty implmenetation
-
 }
 
 Length DaosArrayHandle::size() {
 
     return Length(name_.size());
-
 }
 
 Length DaosArrayHandle::estimate() {
 
     return size();
-
 }
 
 Offset DaosArrayHandle::position() {
 
     /// @todo: should position() crash if unopened?
     return offset_;
-
 }
 
 Offset DaosArrayHandle::seek(const Offset& offset) {
@@ -159,26 +155,23 @@ Offset DaosArrayHandle::seek(const Offset& offset) {
     offset_ = offset;
     /// @todo: assert offset <= size() ?
     return offset_;
-
 }
 
 bool DaosArrayHandle::canSeek() const {
 
     return true;
-
 }
 
 std::string DaosArrayHandle::title() const {
-    
-    return name_.asString();
 
+    return name_.asString();
 }
 
 fdb5::DaosSession& DaosArrayHandle::session() {
 
-    if (!session_.has_value()) session_.emplace();
+    if (!session_.has_value())
+        session_.emplace();
     return session_.value();
-
 }
 
 }  // namespace fdb5

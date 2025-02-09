@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "fdb5/database/Index.h"
-#include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosIndexLocation.h"
+#include "fdb5/daos/DaosName.h"
+#include "fdb5/database/Index.h"
 
 namespace fdb5 {
 
@@ -24,7 +24,7 @@ namespace fdb5 {
 
 class DaosIndex : public IndexBase {
 
-public: // methods
+public:  // methods
 
     /// @note: creates a new index in DAOS, in the container pointed to by 'name'
     DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name);
@@ -34,7 +34,8 @@ public: // methods
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
 
-private: // methods
+private:  // methods
+
     const IndexLocation& location() const override { return location_; }
 
     std::vector<eckit::URI> dataURIs() const override;
@@ -47,26 +48,27 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
 
-    bool get(const Key& key, const Key& remapKey, Field &field ) const override;
-    void add(const Key& key, const Field &field ) override;
+    bool get(const Key& key, const Key& remapKey, Field& field) const override;
+    void add(const Key& key, const Field& field) override;
     void flush() override { NOTIMP; }
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
     void entries(EntryVisitor& visitor) const override;
 
-    void print( std::ostream &out ) const override { NOTIMP; }
-    void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override { NOTIMP; }
+    void print(std::ostream& out) const override { NOTIMP; }
+    void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override {
+        NOTIMP;
+    }
 
     IndexStats statistics() const override { NOTIMP; }
 
     /// @note: reads complete axis info from DAOS.
     void updateAxes();
 
-private: // members
+private:  // members
 
     fdb5::DaosIndexLocation location_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

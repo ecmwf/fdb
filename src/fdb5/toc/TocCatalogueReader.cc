@@ -22,12 +22,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
-    TocCatalogue(dbKey, config) {
-}
+TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) : TocCatalogue(dbKey, config) {}
 
-TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config):
-    TocCatalogue(uri.path(), ControlIdentifiers {}, config) { }
+TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config) {}
 
 TocCatalogueReader::~TocCatalogueReader() {
     LOG_DEBUG_LIB(LibFdb5) << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
@@ -47,7 +45,7 @@ void TocCatalogueReader::loadIndexesAndRemap() const {
 
 bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
-    if(currentIndexKey_ == idxKey) {
+    if (currentIndexKey_ == idxKey) {
         return true;
     }
 
@@ -55,7 +53,9 @@ bool TocCatalogueReader::selectIndex(const Key& idxKey) {
     matching_.clear();
 
     for (const auto& pair : mappedIndexes()) {
-        if (pair.first.key() == idxKey) { matching_.emplace_back(&pair); }
+        if (pair.first.key() == idxKey) {
+            matching_.emplace_back(&pair);
+        }
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << ", found " << matching_.size() << " matche(s)" << std::endl;
@@ -64,7 +64,7 @@ bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 }
 
 void TocCatalogueReader::deselectIndex() {
-    NOTIMP; //< should not be called
+    NOTIMP;  //< should not be called
 }
 
 bool TocCatalogueReader::open() {
@@ -116,7 +116,9 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
 
         // make refined list
         for (const auto* pair : matching_) {
-            if (pair->first.mayContainPartial(tmpKey)) { keyMatching_[tmpKey].emplace_back(pair); }
+            if (pair->first.mayContainPartial(tmpKey)) {
+                keyMatching_[tmpKey].emplace_back(pair);
+            }
         }
     }
 
@@ -124,21 +126,26 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
         for (const auto* pair : *matching) {
             const auto& [index, remapKey] = *pair;
             const_cast<Index&>(index).open();
-            if (index.get(key, remapKey, field)) { return true; }
+            if (index.get(key, remapKey, field)) {
+                return true;
+            }
         }
-    } else {
+    }
+    else {
         for (const auto* pair : matching_) {
             const auto& [index, remapKey] = *pair;
             if (index.mayContain(key)) {
                 const_cast<Index&>(index).open();
-                if (index.get(key, remapKey, field)) { return true; }
+                if (index.get(key, remapKey, field)) {
+                    return true;
+                }
             }
         }
     }
     return false;
 }
 
-void TocCatalogueReader::print(std::ostream &out) const {
+void TocCatalogueReader::print(std::ostream& out) const {
     out << "TocCatalogueReader(" << directory() << ")";
 }
 
@@ -146,7 +153,9 @@ std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
 
     std::vector<Index> returnedIndexes;
     returnedIndexes.reserve(mappedIndexes().size());
-    for (const auto& pair : mappedIndexes()) { returnedIndexes.emplace_back(pair.first); }
+    for (const auto& pair : mappedIndexes()) {
+        returnedIndexes.emplace_back(pair.first);
+    }
 
     // If required, sort the indexes by file, and location within the file, for efficient iteration.
     if (sorted) {
@@ -160,4 +169,4 @@ static CatalogueReaderBuilder<TocCatalogueReader> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

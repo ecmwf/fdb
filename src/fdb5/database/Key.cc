@@ -76,15 +76,20 @@ void Key::validateKeys(const Key& other, bool checkAlsoValues) const {
             if (checkAlsoValues && value != iter->second) {
                 mismatch.insert(keyword + '=' + value + " and " + iter->second);
             }
-        } else {
+        }
+        else {
             missing.insert(keyword);
         }
     }
 
     if (missing.size() || mismatch.size()) {
         std::ostringstream oss;
-        if (missing.size()) { oss << "Keywords not used: " << missing << " "; }
-        if (mismatch.size()) { oss << "Values mismatch: " << mismatch << " "; }
+        if (missing.size()) {
+            oss << "Keywords not used: " << missing << " ";
+        }
+        if (mismatch.size()) {
+            oss << "Values mismatch: " << mismatch << " ";
+        }
         oss << "for key=" << *this << " validating against=" << other;
         throw eckit::SeriousBug(oss.str());
     }
@@ -98,7 +103,9 @@ bool Key::match(const Key& other) const {
     for (const auto& [keyword, value] : other) {
 
         if (const auto [iter, found] = find(keyword); found) {
-            if (iter->second == value && !value.empty()) { continue; }
+            if (iter->second == value && !value.empty()) {
+                continue;
+            }
         }
 
         return false;
@@ -114,7 +121,9 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
 
         if (auto [iter, found] = find(param); found) {
             const auto& values = request.values(param);
-            if (std::find(values.begin(), values.end(), iter->second) != values.end()) { continue; }
+            if (std::find(values.begin(), values.end(), iter->second) != values.end()) {
+                continue;
+            }
         }
 
         return false;
@@ -129,9 +138,13 @@ bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
 
         const auto& values = request.values(keyword, /* emptyOk */ true);
 
-        if (values.empty()) { continue; }
+        if (values.empty()) {
+            continue;
+        }
 
-        if (std::find(values.begin(), values.end(), value) == values.end()) { return false; }
+        if (std::find(values.begin(), values.end(), value) == values.end()) {
+            return false;
+        }
     }
 
     return true;
@@ -139,7 +152,9 @@ bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
 
 bool Key::matchValues(const std::string& keyword, const eckit::DenseSet<std::string>& values) const {
 
-    if (const auto [iter, found] = find(keyword); found) { return values.find(iter->second) != values.end(); }
+    if (const auto [iter, found] = find(keyword); found) {
+        return values.find(iter->second) != values.end();
+    }
 
     return false;
 }
@@ -160,7 +175,7 @@ Key TypedKey::canonical() const {
     Key key;
     for (const auto& keyword : names()) {
         const auto& value = get(keyword);
-        const Type& type = registry_.lookupType(keyword);
+        const Type& type  = registry_.lookupType(keyword);
         value.empty() ? key.push(type.alias(), value) : key.push(type.alias(), type.toKey(value));
     }
     return key;

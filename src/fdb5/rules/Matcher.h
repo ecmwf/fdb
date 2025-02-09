@@ -37,6 +37,7 @@ class TypesRegistry;
 class Matcher : public eckit::Streamable {
 
 public:  // methods
+
     Matcher() = default;
 
     Matcher(eckit::Stream& stream);
@@ -44,7 +45,8 @@ public:  // methods
     virtual bool optional() const { return false; }
 
     virtual const std::string& value(const Key&, const std::string& keyword) const;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
+                                                   const std::string& keyword) const;
     virtual const std::string& defaultValue() const;
 
     virtual bool match(const std::string& value) const                   = 0;
@@ -60,14 +62,16 @@ public:  // methods
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
+
     void encode(eckit::Stream& out) const override;
 
     virtual void print(std::ostream& out) const = 0;
 
 private:  // members
+
     // streamable
 
-    static eckit::ClassSpec           classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Matcher> reanimator_;
 };
 

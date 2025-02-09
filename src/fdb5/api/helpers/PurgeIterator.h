@@ -39,6 +39,6 @@ using PurgeAsyncIterator = APIAsyncIterator<PurgeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

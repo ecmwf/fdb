@@ -28,12 +28,12 @@
 #include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/types/TypesRegistry.h"
-#include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/types/TypesRegistry.h"
 
 using namespace eckit;
 
@@ -52,20 +52,20 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
     // this should be a resursive mutex
     // AutoLock<Mutex> lock(mutex_);
 
-    for(;;)
-    {
+    for (;;) {
         struct dirent* e = d.dirent();
         if (e == nullptr) {
             break;
         }
 
-        if(e->d_name[0] == '.') {
-            if(e->d_name[1] == 0 || (e->d_name[1] =='.' && e->d_name[2] == 0))
+        if (e->d_name[0] == '.') {
+            if (e->d_name[1] == 0 || (e->d_name[1] == '.' && e->d_name[2] == 0))
                 continue;
         }
 
         std::string full = path;
-        if (path[path.length()-1] != '/') full += "/";
+        if (path[path.length() - 1] != '/')
+            full += "/";
         full += e->d_name;
 
         bool do_stat = true;
@@ -74,19 +74,20 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         do_stat = false;
         if (e->d_type == DT_DIR) {
             dbs.push_back(full);
-        } else if (e->d_type == DT_UNKNOWN) {
+        }
+        else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
 #endif
-        if(do_stat) {
+        if (do_stat) {
             eckit::Stat::Struct info;
-            if(eckit::Stat::stat(full.c_str(), &info) == 0)
-            {
-                if(S_ISDIR(info.st_mode)) {
+            if (eckit::Stat::stat(full.c_str(), &info) == 0) {
+                if (S_ISDIR(info.st_mode)) {
                     dbs.push_back(full);
                 }
             }
-            else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
+            else
+                Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
         }
     }
 }
@@ -99,29 +100,26 @@ std::string TocEngine::dbType() const {
     return TocEngine::typeName();
 }
 
-eckit::URI TocEngine::location(const Key& key, const Config& config) const
-{
+eckit::URI TocEngine::location(const Key& key, const Config& config) const {
     return URI("toc", CatalogueRootManager(config).directory(key).directory_);
 }
 
-bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const
-{
+bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     if (uri.scheme() != "toc")
         return false;
 
     eckit::PathName path = uri.path();
-    eckit::PathName toc =  path / "toc";
+    eckit::PathName toc  = path / "toc";
     return path.isDir() && toc.exists();
 }
 
-static void matchKeyToDB(const Key& key, std::map<Key, const Rule*>& keys, const char* missing, const Config& config)
-{
+static void matchKeyToDB(const Key& key, std::map<Key, const Rule*>& keys, const char* missing, const Config& config) {
     const Schema& schema = config.schema();
     schema.matchDatabase(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::map<Key, const Rule*>& keys, const char* missing, const Config& config)
-{
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::map<Key, const Rule*>& keys, const char* missing,
+                             const Config& config) {
     const Schema& schema = config.schema();
     schema.matchDatabase(rq, keys, missing);
 }
@@ -129,8 +127,8 @@ static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::map<Key, 
 static constexpr const char* regexForMissingValues = "[^:/]*";
 
 std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, const Rule*>& keys,
-                                               const std::vector<eckit::PathName>& roots,
-                                               const Config& config) const {
+                                                            const std::vector<eckit::PathName>& roots,
+                                                            const Config& config) const {
 
     std::map<eckit::PathName, const Rule*> result;
 
@@ -143,23 +141,23 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
         for (const auto& [key, rule] : keys) {
 
-            std::vector<std::string> dbpaths = CatalogueRootManager(config).possibleDbPathNames(key, regexForMissingValues);
+            std::vector<std::string> dbpaths =
+                CatalogueRootManager(config).possibleDbPathNames(key, regexForMissingValues);
 
-            for(const std::string& dbpath : dbpaths) {
+            for (const std::string& dbpath : dbpaths) {
 
                 std::string regex = "^" + Regex::escape(j->asString()) + "/" + dbpath + "$";
                 std::regex reg(regex, std::regex::icase | std::regex::optimize);
 
-                LOG_DEBUG_LIB(LibFdb5) << " -> key " << key
-                                     << " dbpath " << dbpath
-                                     << " pathregex " << regex << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << " -> key " << key << " dbpath " << dbpath << " pathregex " << regex
+                                       << std::endl;
 
                 std::smatch m;
                 for (std::list<std::string>::const_iterator k = dbs.begin(); k != dbs.end(); ++k) {
 
                     LOG_DEBUG_LIB(LibFdb5) << "    -> db " << *k << std::endl;
 
-                    if(result.find(*k) != result.end()) {
+                    if (result.find(*k) != result.end()) {
                         continue;
                     }
 
@@ -179,9 +177,8 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::databases(const Key& key,
-                                            const std::vector<eckit::PathName>& roots,
-                                            const Config& config) const {
+std::vector<eckit::URI> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& roots,
+                                             const Config& config) const {
 
     std::map<Key, const Rule*> keys;
 
@@ -199,8 +196,9 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
                 LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;
                 result.push_back(eckit::URI(TocEngine::typeName(), path));
             }
-        } catch (eckit::Exception& e) {
-            eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
+        }
+        catch (eckit::Exception& e) {
+            eckit::Log::error() << "Error loading FDB database from " << path << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
     }
@@ -209,8 +207,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
 }
 
 std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& request,
-                                                  const std::vector<eckit::PathName>& roots,
-                                                  const Config& config) const {
+                                             const std::vector<eckit::PathName>& roots, const Config& config) const {
 
     std::map<Key, const Rule*> keys;
 
@@ -228,8 +225,8 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
         try {
             /// @todo we don't have to open tocs to check if they match the request
             if (p.exists()) {
-                eckit::PathName path =  p.isDir() ? p : p.dirName();
-                path = path.realName();
+                eckit::PathName path = p.isDir() ? p : p.dirName();
+                path                 = path.realName();
 
                 LOG_DEBUG_LIB(LibFdb5) << "FDB processing Path " << path << std::endl;
 
@@ -240,8 +237,9 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
                     result.push_back(eckit::URI(TocEngine::typeName(), path));
                 }
             }
-        } catch (eckit::Exception& e) {
-            eckit::Log::error() <<  "Error loading FDB database from " << p << std::endl;
+        }
+        catch (eckit::Exception& e) {
+            eckit::Log::error() << "Error loading FDB database from " << p << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
     }
@@ -249,18 +247,15 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const
-{
+std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const {
     return databases(key, CatalogueRootManager(config).visitableRoots(key), config);
 }
 
-std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const
-{
+std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const {
     return databases(request, CatalogueRootManager(config).visitableRoots(request), config);
 }
 
-void TocEngine::print(std::ostream& out) const
-{
+void TocEngine::print(std::ostream& out) const {
     out << "TocEngine()";
 }
 
@@ -270,4 +265,4 @@ static eckit::LocalFileManager manager_toc("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

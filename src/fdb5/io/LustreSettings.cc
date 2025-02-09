@@ -12,17 +12,17 @@
 
 #include "eckit/config/Resource.h"
 
-#include "fdb5/fdb5_config.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_config.h"
 
-#define LL_SUPER_MAGIC  0x0BD00BD0
+#define LL_SUPER_MAGIC 0x0BD00BD0
 
 #if defined(fdb5_HAVE_LUSTRE)
 #include <sys/vfs.h>
 
 extern "C" {
 void fdb5_lustreapi_silence_msg();
-int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
+int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
 }
 #endif
 
@@ -49,7 +49,7 @@ int fdb5LustreapiFileCreate(const eckit::PathName& path, LustreStripe stripe) {
 
         static bool lustreapi_silence = false;
 
-        if(not lustreapi_silence) {
+        if (not lustreapi_silence) {
             fdb5_lustreapi_silence_msg();
             lustreapi_silence = true;
         }
@@ -73,8 +73,10 @@ bool stripeLustre() {
 
 LustreStripe stripeIndexLustreSettings() {
 
-    static unsigned int fdbIndexLustreStripeCount = eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
-    static size_t fdbIndexLustreStripeSize = eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+    static unsigned int fdbIndexLustreStripeCount =
+        eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
+    static size_t fdbIndexLustreStripeSize =
+        eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8 * 1024 * 1024);
 
     return LustreStripe(fdbIndexLustreStripeCount, fdbIndexLustreStripeSize);
 }
@@ -82,12 +84,14 @@ LustreStripe stripeIndexLustreSettings() {
 
 LustreStripe stripeDataLustreSettings() {
 
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+    static unsigned int fdbDataLustreStripeCount =
+        eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize =
+        eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8 * 1024 * 1024);
 
     return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
