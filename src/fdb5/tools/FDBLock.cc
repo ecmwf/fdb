@@ -12,6 +12,7 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -26,7 +27,7 @@ namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBLock::FDBLock(int argc, char **argv, bool unlock) :
+FDBLock::FDBLock(int argc, char** argv, bool unlock) :
     FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
     unlock_(unlock),
     list_(false),
@@ -34,7 +35,7 @@ FDBLock::FDBLock(int argc, char **argv, bool unlock) :
     archive_(false),
     wipe_(false) {
 
-    std::string prefix = std::string(unlock?"Unl":"L") + "ock matching databases for ";
+    std::string prefix = std::string(unlock ? "Unl" : "L") + "ock matching databases for ";
 
     options_.push_back(new SimpleOption<bool>("list", prefix + "listing"));
     options_.push_back(new SimpleOption<bool>("retrieve", prefix + "retrieval"));
@@ -59,7 +60,6 @@ void FDBLock::init(const CmdArgs& args) {
         ss << "No identifier specified to (un)lock.";
         throw UserError(ss.str(), Here());
     }
-
 }
 
 
@@ -70,10 +70,14 @@ void FDBLock::execute(const CmdArgs& args) {
     ControlAction action = unlock_ ? ControlAction::Enable : ControlAction::Disable;
 
     ControlIdentifiers identifiers;
-    if (list_) identifiers |= ControlIdentifier::List;
-    if (retrieve_) identifiers |= ControlIdentifier::Retrieve;
-    if (archive_) identifiers |= ControlIdentifier::Archive;
-    if (wipe_) identifiers |= ControlIdentifier::Wipe;
+    if (list_)
+        identifiers |= ControlIdentifier::List;
+    if (retrieve_)
+        identifiers |= ControlIdentifier::Retrieve;
+    if (archive_)
+        identifiers |= ControlIdentifier::Archive;
+    if (wipe_)
+        identifiers |= ControlIdentifier::Wipe;
 
     for (const FDBToolRequest& request : requests("read")) {
 
@@ -85,11 +89,16 @@ void FDBLock::execute(const CmdArgs& args) {
             Log::info() << "Database: " << elem.key << std::endl
                         << "  location: " << elem.location.asString() << std::endl;
 
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))   Log::info() << "  retrieve: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))    Log::info() << "  archive: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))       Log::info() << "  list: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))       Log::info() << "  wipe: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) Log::info() << "  multi-root: PERMITTED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))
+                Log::info() << "  retrieve: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))
+                Log::info() << "  archive: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))
+                Log::info() << "  list: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))
+                Log::info() << "  wipe: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot))
+                Log::info() << "  multi-root: PERMITTED" << std::endl;
 
             count++;
         }
@@ -104,6 +113,5 @@ void FDBLock::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
-
+}  // namespace tools
+}  // namespace fdb5

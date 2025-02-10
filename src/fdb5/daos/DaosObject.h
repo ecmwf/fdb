@@ -17,10 +17,10 @@
 
 #include <string>
 
-#include "eckit/utils/Optional.h"
-#include "eckit/filesystem/URI.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Optional.h"
 
 #include "fdb5/daos/DaosOID.h"
 
@@ -37,8 +37,8 @@ class DaosSession;
 class DaosObject {
 
     friend DaosContainer;
-    
-public: // methods
+
+public:  // methods
 
     DaosObject(DaosObject&&) noexcept;
     DaosObject(const DaosObject&) = default;
@@ -47,10 +47,10 @@ public: // methods
 
     virtual daos_otype_t type() const = 0;
 
-    virtual bool exists() = 0;
-    virtual void destroy() = 0;
-    virtual void open() = 0;
-    virtual void close() = 0;
+    virtual bool exists()   = 0;
+    virtual void destroy()  = 0;
+    virtual void open()     = 0;
+    virtual void close()    = 0;
     virtual uint64_t size() = 0;
 
     std::string name() const;
@@ -58,28 +58,27 @@ public: // methods
     eckit::URI URI() const;
     fdb5::DaosContainer& getContainer() const;
 
-protected: // methods
+protected:  // methods
 
     DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&);
 
-private: // methods
+private:  // methods
 
     virtual void create() = 0;
 
-protected: // members
+protected:  // members
 
     fdb5::DaosContainer& cont_;
     fdb5::DaosOID oid_;
     daos_handle_t oh_;
     bool open_;
-
 };
 
 class DaosArray : public DaosObject {
 
     friend DaosContainer;
 
-public: // methods
+public:  // methods
 
     DaosArray(DaosArray&&) noexcept;
 
@@ -99,19 +98,18 @@ public: // methods
     uint64_t write(const void*, const uint64_t&, const eckit::Offset&);
     uint64_t read(void*, uint64_t, const eckit::Offset&);
 
-private: // methods
+private:  // methods
 
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
-
 };
 
 class DaosKeyValue : public DaosObject {
 
     friend DaosContainer;
 
-public: // methods
+public:  // methods
 
     DaosKeyValue(DaosKeyValue&&) noexcept;
 
@@ -136,14 +134,14 @@ public: // methods
     std::vector<std::string> keys();
 
     /// @note: expects empty vector
-    eckit::MemoryStream getMemoryStream(std::vector<char>& v, const std::string& key, const std::string& kvTitle = "kv");
+    eckit::MemoryStream getMemoryStream(std::vector<char>& v, const std::string& key,
+                                        const std::string& kvTitle = "kv");
 
-private: // methods
+private:  // methods
 
     DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

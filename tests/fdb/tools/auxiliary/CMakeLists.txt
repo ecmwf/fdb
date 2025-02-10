@@ -3,7 +3,7 @@ if (HAVE_FDB_BUILD_TOOLS)
 
     ecbuild_add_test(
         TYPE SCRIPT
-        CONDITION HAVE_FDB_BUILD_TOOLS
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
         COMMAND fdb_move_auxiliary.sh)
 endif()
 

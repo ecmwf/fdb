@@ -26,18 +26,13 @@ class TocWipeVisitor : public WipeVisitor {
 
 public:
 
-    TocWipeVisitor(const TocCatalogue& catalogue,
-                   const Store& store,
-                   const metkit::mars::MarsRequest& request,
-                   std::ostream& out,
-                   bool doit,
-                   bool porcelain,
-                   bool unsafeWipeAll);
+    TocWipeVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+                   std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll);
     ~TocWipeVisitor() override;
 
-private: // methods
+private:  // methods
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
@@ -52,7 +47,7 @@ private: // methods
     void report(bool wipeAll);
     void wipe(bool wipeAll);
 
-private: // members
+private:  // members
 
     // What are the parameters of the wipe operation
     const TocCatalogue& catalogue_;
@@ -80,6 +75,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

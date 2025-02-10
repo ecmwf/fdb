@@ -16,8 +16,7 @@ namespace fdb5 {
 
 DaosException::DaosException(const std::string& w) : Exception(w) {}
 
-DaosException::DaosException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+DaosException::DaosException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 DaosEntityNotFoundException::DaosEntityNotFoundException(const std::string& w) : DaosException(w) {}
 

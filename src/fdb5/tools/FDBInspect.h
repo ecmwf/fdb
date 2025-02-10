@@ -27,23 +27,23 @@ namespace fdb5 {
 
 class FDBInspect : public FDBTool {
 
-protected: // methods
+protected:  // methods
 
-    FDBInspect(int argc, char **argv, std::string minimunKeys = std::string());
+    FDBInspect(int argc, char** argv, std::string minimunKeys = std::string());
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-    virtual void init(const eckit::option::CmdArgs &args);
+    virtual void init(const eckit::option::CmdArgs& args);
 
     virtual void execute(const eckit::option::CmdArgs& args);
 
     bool fail() const;
 
-private: // methods
+private:  // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
-protected: // members
+protected:  // members
 
     // minimum set of keys needed to execute a query
     // these are used for safety to restrict the search space for the visitors
@@ -55,6 +55,6 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

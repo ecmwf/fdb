@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/* 
+/*
  * @file   dummy_daos.h
  * @author Nicolau Manubens
  * @date   Jun 2022

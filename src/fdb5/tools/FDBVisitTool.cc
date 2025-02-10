@@ -10,12 +10,13 @@
 
 
 #include "eckit/config/Resource.h"
+#include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
-#include "eckit/option/CmdArgs.h"
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/tools/FDBVisitTool.h"
 
@@ -29,18 +30,14 @@ namespace tools {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
-    FDBTool(argc, argv),
-    fail_(true),
-    all_(false),
-    raw_(false) {
+FDBVisitTool::FDBVisitTool(int argc, char** argv, std::string minimumKeys) :
+    FDBTool(argc, argv), fail_(true), all_(false), raw_(false) {
 
-    minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
+    minimumKeys_ = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", minimumKeys, true);
 
-    if(minimumKeys_.size() != 0) {
-        options_.push_back(new VectorOption<std::string>("minimum-keys",
-                                                         "Use these keywords as a minimum set which *must* be specified",
-                                                         0, ","));
+    if (minimumKeys_.size() != 0) {
+        options_.push_back(new VectorOption<std::string>(
+            "minimum-keys", "Use these keywords as a minimum set which *must* be specified", 0, ","));
     }
 
     // Don't apply MarsExpension to the parsed requests. This relies on the user
@@ -48,9 +45,8 @@ FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
     options_.push_back(new SimpleOption<bool>("raw", "Don't apply (contextual) expansion and checking on requests."));
 
     // Be able to turn ignore-errors off
-    options_.push_back(
-                new SimpleOption<bool>("ignore-errors",
-                                       "Ignore errors (report them as warnings) and continue processing wherever possible"));
+    options_.push_back(new SimpleOption<bool>(
+        "ignore-errors", "Ignore errors (report them as warnings) and continue processing wherever possible"));
 }
 
 FDBVisitTool::~FDBVisitTool() {}
@@ -71,7 +67,7 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
     args.get("minimum-keys", minimumKeys_);
 
     bool ignore = args.getBool("ignore-errors", false);
-    fail_ = !ignore;
+    fail_       = !ignore;
 
     all_ = args.getBool("all", false);
 
@@ -105,8 +101,9 @@ std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) cons
 
     if (all_) {
         ASSERT(requests_.empty());
-        requests.emplace_back(FDBToolRequest(metkit::mars::MarsRequest{}, all_, minimumKeys_));
-    } else {
+        requests.emplace_back(metkit::mars::MarsRequest{}, all_, minimumKeys_);
+    }
+    else {
 
         for (const std::string& request_string : requests_) {
             auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_, raw_, verb);
@@ -117,17 +114,16 @@ std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) cons
     return requests;
 }
 
-void FDBVisitTool::usage(const std::string &tool) const {
+void FDBVisitTool::usage(const std::string& tool) const {
 
     // derived classes should provide this type of usage information ...
 
-    Log::info() << "Usage: " << tool << " [options] [request1] [request2] ..." << std::endl
-                << std::endl;
+    Log::info() << "Usage: " << tool << " [options] [request1] [request2] ..." << std::endl << std::endl;
 
     Log::info() << "Examples:" << std::endl
-                << "=========" << std::endl << std::endl
-                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+                << "=========" << std::endl
                 << std::endl
+                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00" << std::endl
                 << std::endl;
 
     FDBTool::usage(tool);
@@ -135,5 +131,5 @@ void FDBVisitTool::usage(const std::string &tool) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5

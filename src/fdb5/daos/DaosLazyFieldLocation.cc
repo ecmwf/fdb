@@ -24,17 +24,16 @@ DaosLazyFieldLocation::DaosLazyFieldLocation(const fdb5::DaosLazyFieldLocation& 
 DaosLazyFieldLocation::DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index, const std::string& key) :
     FieldLocation(), index_(index), key_(key) {}
 
-std::shared_ptr<FieldLocation> DaosLazyFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> DaosLazyFieldLocation::make_shared() const {
     return std::make_shared<DaosLazyFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* DaosLazyFieldLocation::dataHandle() const {
 
     return realise()->dataHandle();
-    
 }
 
-void DaosLazyFieldLocation::print(std::ostream &out) const {
+void DaosLazyFieldLocation::print(std::ostream& out) const {
     out << *realise();
 }
 
@@ -42,13 +41,14 @@ void DaosLazyFieldLocation::visit(FieldLocationVisitor& visitor) const {
     realise()->visit(visitor);
 }
 
-std::shared_ptr<FieldLocation> DaosLazyFieldLocation::stableLocation() const {
+std::shared_ptr<const FieldLocation> DaosLazyFieldLocation::stableLocation() const {
     return realise()->make_shared();
 }
 
 std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
 
-    if (fl_) return fl_;
+    if (fl_)
+        return fl_;
 
     /// @note: performed RPCs:
     /// - index kv get (daos_kv_get)
@@ -64,7 +64,6 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
     fl_.reset(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
 
     return fl_;
-
 }
 
-} // namespace fdb5
+}  // namespace fdb5

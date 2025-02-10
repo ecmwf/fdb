@@ -21,13 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: used in fdb-list index visiting, in DaosIndex::entries. During 
-///   visitation, DaosFieldLocations are built, which normally require 
+/// @note: used in fdb-list index visiting, in DaosIndex::entries. During
+///   visitation, DaosFieldLocations are built, which normally require
 ///   retrieving the location information from DAOS, inflicting RPCs.
-///   This DaosLazyFieldLocation, instead, remains empty and the actual 
+///   This DaosLazyFieldLocation, instead, remains empty and the actual
 ///   information is only be retrieved from DAOS when stableLocation()
 ///   is called. This allows the visiting mechanism to discard unmatching
-///   FieldLocations before any RPC is performed for them. 
+///   FieldLocations before any RPC is performed for them.
 class DaosLazyFieldLocation : public FieldLocation {
 public:
 
@@ -36,27 +36,26 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
-    virtual std::shared_ptr<FieldLocation> stableLocation() const override;
+    std::shared_ptr<const FieldLocation> stableLocation() const override;
 
-private: // methods
+private:  // methods
 
     std::unique_ptr<fdb5::FieldLocation>& realise() const;
 
-    void print(std::ostream &out) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     fdb5::DaosKeyValueName index_;
     std::string key_;
     mutable std::unique_ptr<fdb5::FieldLocation> fl_;
-
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
