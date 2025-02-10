@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/testing/Test.h"
@@ -27,32 +28,32 @@ CASE("FieldLocation - shared_ptr") {
 
     // GOOD (not best)
     {
-        auto location = std::shared_ptr<fdb5::FieldLocation>(fdb5::FieldLocationFactory::instance().build("file", uri));
+        auto location = fdb5::FieldLocationFactory::instance().build("file", uri);
 
-        auto loc1 = location->sharedPtr();
+        auto loc1 = location->shared_from_this();
         EXPECT_EQUAL(loc1.use_count(), 2);
 
-        auto loc2 = location->sharedPtr();
+        auto loc2 = location->shared_from_this();
         EXPECT_EQUAL(loc2.use_count(), 3);
 
         // check that the shared pointers are the same
         EXPECT_EQUAL(loc2, loc1);
 
         {
-            auto loc3 = location->sharedPtr();
+            auto loc3 = location->shared_from_this();
             EXPECT_EQUAL(loc3.use_count(), 4);
             EXPECT_EQUAL(loc3, loc1);
         }
 
-        auto loc4 = location->sharedPtr();
+        auto loc4 = location->shared_from_this();
         EXPECT_EQUAL(loc4.use_count(), 4);
         EXPECT_EQUAL(loc4, loc1);
     }
 
     // BAD: this is a how NOT to use shared_ptr on FieldLocation
     {
-        auto location = std::unique_ptr<fdb5::FieldLocation>(fdb5::FieldLocationFactory::instance().build("file", uri));
-        EXPECT_THROWS_AS(location->sharedPtr(), std::bad_weak_ptr);
+        auto location = new fdb5::TocFieldLocation("dummy_path", 0, 0, fdb5::Key{});
+        EXPECT_THROWS_AS(location->shared_from_this(), std::bad_weak_ptr);
     }
 }
 
