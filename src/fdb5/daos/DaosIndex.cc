@@ -143,8 +143,8 @@ bool DaosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
     time_t ts;
     ms >> ts;
 
-    fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
-    field                    = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
+    const auto* loc = eckit::Reanimator<const fdb5::FieldLocation>::reanimate(ms);
+    field           = fdb5::Field(std::shared_ptr<const fdb5::FieldLocation>(loc), ts);
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
@@ -214,8 +214,7 @@ void DaosIndex::entries(EntryVisitor& visitor) const {
             ///   which in turn calls this method here and triggers retrieval and deserialisation of the
             ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a
             ///   polymorphic class, it needs to be reanimated.
-            fdb5::FieldLocation* loc = new fdb5::DaosLazyFieldLocation(location_.daosName(), key);
-            fdb5::Field field(std::move(*loc), time_t(), fdb5::FieldDetails());
+            fdb5::Field field(std::make_shared<const fdb5::DaosLazyFieldLocation>(location_.daosName(), key), {});
             visitor.visitDatum(field, key);
         }
     }
