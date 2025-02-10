@@ -17,7 +17,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/types/TypeMonth.h"
+#include "fdb5/types/TypeMonthOfDate.h"
 #include "fdb5/types/TypesFactory.h"
 
 
@@ -25,19 +25,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeMonth::TypeMonth(const std::string& name, const std::string& type, const std::string& alias) :
+TypeMonthOfDate::TypeMonthOfDate(const std::string& name, const std::string& type, const std::string& alias) :
     Type(name, type, alias) {}
 
-TypeMonth::~TypeMonth() {}
+TypeMonthOfDate::~TypeMonthOfDate() {}
 
-std::string TypeMonth::toKey(const std::string& value) const {
+std::string TypeMonthOfDate::toKey(const std::string& value) const {
 
     eckit::Date date(value);
 
-    return std::to_string(date.month());
+    std::ostringstream ss;
+    ss << std::setw(2) << std::setfill('0') << date.month();
+    return ss.str();
 }
 
-void TypeMonth::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+void TypeMonthOfDate::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
                           eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
@@ -53,11 +55,11 @@ void TypeMonth::getValues(const metkit::mars::MarsRequest& request, const std::s
     }
 }
 
-void TypeMonth::print(std::ostream& out) const {
-    out << "TypeMonth[name=" << name_ << "]";
+void TypeMonthOfDate::print(std::ostream& out) const {
+    out << "TypeMonthOfDate[name=" << name_ << "]";
 }
 
-static TypeBuilder<TypeMonth> type("Month");
+static TypeBuilder<TypeMonthOfDate> type("MonthOfDate");
 
 //----------------------------------------------------------------------------------------------------------------------
 

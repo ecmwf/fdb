@@ -89,7 +89,7 @@ cat > expected_source <<EOF
 EOF
 
 cat > expected_sink <<EOF
-{class=rd,expver=xxxx,stream=oper,year=2001,domain=g}{month=01,type=fc,levtype=sfc}{date=20010101,time=0000,param=166,step=12}
+{class=rd,expver=xxxx,stream=oper,year=2001,domain=g}{month=1,type=fc,levtype=sfc}{date=20010101,time=0000,param=166,step=12}
 {class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=1}
 {class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=fc,levtype=sfc}{date=20201102,time=0000,param=166,step=2}
 {class=rd,expver=xxxx,stream=oper,year=2020,domain=g}{month=11,type=an,levtype=sfc}{date=20201102,time=0000,param=166,step=12}
