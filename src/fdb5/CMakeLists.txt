@@ -208,6 +208,8 @@ list( APPEND fdb5_srcs
     types/TypeInteger.h
     types/TypeMonth.cc
     types/TypeMonth.h
+    types/TypeMonthOfDate.cc
+    types/TypeMonthOfDate.h
     types/TypeYear.cc
     types/TypeYear.h
     types/TypeParam.cc
