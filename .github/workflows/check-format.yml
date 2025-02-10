@@ -31,4 +31,4 @@ jobs:
     - name: Run clang-format check
       run: |
         shopt -s globstar
-        clang-format-19 -n --Werror **/*.h **/*.cc **/*.c
+        clang-format-19 -n --Werror --verbose **/*.h **/*.cc **/*.c
