@@ -16,15 +16,21 @@
 #ifndef fdb5_FieldLocation_H
 #define fdb5_FieldLocation_H
 
-#include <eckit/filesystem/URI.h>
-#include <memory>
+#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/thread/Mutex.h"
+#include "fdb5/database/Key.h"
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/memory/Owned.h"
 #include "eckit/serialisation/Streamable.h"
 
-#include "fdb5/database/Key.h"
+#include <iosfwd>
+#include <map>
+#include <memory>
+#include <string>
 
 namespace eckit {
 class DataHandle;
@@ -36,8 +42,10 @@ namespace fdb5 {
 
 class FieldLocationVisitor;
 
-class FieldLocation: public eckit::OwnedLock, public eckit::Streamable, public std::enable_shared_from_this<FieldLocation> {
-public: // methods
+class FieldLocation : public eckit::OwnedLock,
+                      public eckit::Streamable,
+                      public std::enable_shared_from_this<FieldLocation> {
+public:  // methods
 
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
     FieldLocation(const eckit::URI& uri);
@@ -56,9 +64,13 @@ public: // methods
 
     virtual eckit::DataHandle* dataHandle() const = 0;
 
-    /// Create a (shared) copy of the current object, for storage in a general container.
+
+    /// This creates a shared pointer from an existing instance that is already managed by a `std::shared_ptr`.
+    /// @warning This method is not intended to be used on non-shared instances.
     std::shared_ptr<FieldLocation> make_shared() { return shared_from_this(); }
 
+    /// This creates a const shared pointer from an existing instance that is already managed by a `std::shared_ptr`.
+    /// @warning This method is not intended to be used on non-shared instances.
     std::shared_ptr<const FieldLocation> make_shared() const { return shared_from_this(); }
 
     virtual std::shared_ptr<const FieldLocation> stableLocation() const { return make_shared(); }
