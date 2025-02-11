@@ -10,6 +10,10 @@
 
 #include "fdb5/database/Field.h"
 
+#include "fdb5/database/FieldDetails.h"
+#include "fdb5/database/FieldLocation.h"
+
+#include <ctime>
 #include <memory>
 #include <ostream>
 #include <utility>

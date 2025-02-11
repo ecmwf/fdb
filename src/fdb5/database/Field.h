@@ -15,19 +15,14 @@
 #ifndef fdb5_Field_H
 #define fdb5_Field_H
 
-#include "eckit/eckit.h"
-
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/FixedString.h"
-#include "eckit/types/Types.h"
-
 #include "fdb5/database/FieldDetails.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
+
+#include "eckit/filesystem/PathName.h"
+
+#include <ctime>
+#include <memory>
+#include <ostream>
 
 namespace eckit {
 class DataHandle;
@@ -60,7 +55,7 @@ private:  // members
 
     std::shared_ptr<const FieldLocation> location_;
 
-   time_t timestamp_ {0};
+    time_t timestamp_{0};
 
     FieldDetails details_;
 
