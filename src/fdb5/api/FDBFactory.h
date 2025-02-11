@@ -108,9 +108,6 @@ public:  // methods
 
     const Config& config() const;
 
-    void disable();
-    bool disabled();
-
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private:  // methods
@@ -129,8 +126,6 @@ protected:  // members
     Config config_;
 
     ControlIdentifiers controlIdentifiers_;
-
-    bool disabled_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
