@@ -328,14 +328,6 @@ bool FDB::dirty() const {
     return dirty_;
 }
 
-void FDB::disable() {
-    internal_->disable();
-}
-
-bool FDB::disabled() const {
-    return internal_->disabled();
-}
-
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
 }

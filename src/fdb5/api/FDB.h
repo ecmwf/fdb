@@ -141,9 +141,6 @@ public:  // methods
     const std::string& name() const;
     const Config& config() const;
 
-    void disable();
-    bool disabled() const;
-
 private:  // methods
 
     void print(std::ostream&) const;

@@ -40,7 +40,7 @@ std::string TypeMonthOfDate::toKey(const std::string& value) const {
 }
 
 void TypeMonthOfDate::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                          eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
+                                eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);
