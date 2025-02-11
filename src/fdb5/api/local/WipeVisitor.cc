@@ -16,15 +16,15 @@
 
 #include "fdb5/api/local/WipeVisitor.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/LibFdb5.h"
 
 #include "eckit/os/Stat.h"
 
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 using namespace eckit;
 
@@ -35,11 +35,8 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
-                         const metkit::mars::MarsRequest& request,
-                         bool doit,
-                         bool porcelain,
-                         bool unsafeWipeAll) :
+WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
+                         bool porcelain, bool unsafeWipeAll) :
     QueryVisitor<WipeElement>(queue, request),
     // out_(new QueueStringLogTarget(queue)),
     doit_(doit),                                        
@@ -60,14 +57,14 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
     internalVisitor_.reset(catalogue.wipeVisitor(store(), request_, queue_, /*out_,*/ doit_, porcelain_, unsafeWipeAll_));
     internalVisitor_->visitDatabase(catalogue);
 
-    return true; // Explore contained indexes
+    return true;  // Explore contained indexes
 }
 
 bool WipeVisitor::visitIndex(const Index& index) {
     ASSERT(internalVisitor_);
     internalVisitor_->visitIndex(index);
 
-    return false; // Do not explore contained entries
+    return false;  // Do not explore contained entries
 }
 
 void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
@@ -85,6 +82,6 @@ bool WipeVisitor::visitIndexes() {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

@@ -13,9 +13,9 @@
 
 #pragma once
 
+#include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/WipeVisitor.h"
-#include "fdb5/daos/DaosCatalogue.h"
 
 namespace fdb5 {
 
@@ -25,17 +25,11 @@ class DaosWipeVisitor : public WipeVisitor {
 
 public:
 
-    DaosWipeVisitor(const DaosCatalogue& catalogue,
-                    const Store& store,
-                    const metkit::mars::MarsRequest& request,
-                    eckit::Queue<WipeElement>& queue,
-                    // std::ostream& out,
-                    bool doit,
-                    bool porcelain,
-                    bool unsafeWipeAll);
+    DaosWipeVisitor(const DaosCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+                    eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll);
     ~DaosWipeVisitor() override;
 
-private: // methods
+private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
@@ -49,7 +43,7 @@ private: // methods
     void report(bool wipeAll);
     void wipe(bool wipeAll);
 
-private: // members
+private:  // members
 
     // What are the parameters of the wipe operation
     const DaosCatalogue& catalogue_;
@@ -65,12 +59,11 @@ private: // members
 
     std::set<eckit::URI> storeURIs_;
     std::set<eckit::URI> safeStoreURIs_;
-    
+
     std::set<fdb5::DaosKeyValueName> residualKvNames_;
     std::set<eckit::URI> residualStoreURIs_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

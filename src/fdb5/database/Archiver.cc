@@ -18,21 +18,19 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
-    dbConfig_(dbConfig),
-    db_(nullptr),
-    callback_(callback) {}
+    dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
 
 Archiver::~Archiver() {
-    flush(); // certify that all sessions are flushed before closing them
+    flush();  // certify that all sessions are flushed before closing them
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
@@ -44,11 +42,11 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     visitor.rule(nullptr);
-    
+
     dbConfig_.schema().expand(key, visitor);
 
     const Rule* rule = visitor.rule();
-    if (rule == nullptr) { // Make sure we did find a rule that matched
+    if (rule == nullptr) {  // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
         throw eckit::SeriousBug(oss.str());
@@ -57,11 +55,15 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
     rule->check(key);
 }
 
+void Archiver::flushDatabase(Database& db) {
+    // flush the store, pass the number of flushed fields to the catalogue
+    db.catalogue_->flush(db.store_->flush());
+}
+
 void Archiver::flush() {
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        // flush the store, pass the number of flushed fields to the catalogue
-        i->second.catalogue_->flush(i->second.store_->flush());
+        flushDatabase(i->second);
     }
 }
 
@@ -69,8 +71,8 @@ void Archiver::selectDatabase(const Key& dbKey) {
 
     auto i = databases_.find(dbKey);
 
-    if (i != databases_.end() ) {
-        db_ = &(i->second);
+    if (i != databases_.end()) {
+        db_             = &(i->second);
         i->second.time_ = ::time(0);
         return;
     }
@@ -80,13 +82,13 @@ void Archiver::selectDatabase(const Key& dbKey) {
     {
         std::lock_guard<std::mutex> cacheLock(cacheMutex_);
         if (databases_.size() >= fdbMaxNbDBsOpen) {
-            bool found = false;
+            bool found    = false;
             time_t oldest = ::time(0) + 24 * 60 * 60;
             Key oldK;
             for (auto i = databases_.begin(); i != databases_.end(); ++i) {
                 if (i->second.time_ <= oldest) {
-                    found = true;
-                    oldK = i->first;
+                    found  = true;
+                    oldK   = i->first;
                     oldest = i->second.time_;
                 }
             }
@@ -94,8 +96,8 @@ void Archiver::selectDatabase(const Key& dbKey) {
                 // flushing before evicting from cache
                 std::lock_guard<std::recursive_mutex> lock(flushMutex_);
 
-                databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
-                
+                flushDatabase(databases_[oldK]);
+
                 eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
                 databases_.erase(oldK);
             }
@@ -112,16 +114,15 @@ void Archiver::selectDatabase(const Key& dbKey) {
         }
 
         std::unique_ptr<Store> str = cat->buildStore();
-        db_ = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
+        db_                        = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
     }
 }
 
 void Archiver::print(std::ostream& out) const {
     out << "Archiver["
-        << "]"
-        << std::endl;
+        << "]" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

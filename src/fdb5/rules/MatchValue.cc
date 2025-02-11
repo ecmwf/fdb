@@ -8,6 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+#include <string>
+#include <utility>
+
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -16,47 +20,44 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchValue::classSpec_ = { &Matcher::classSpec(), "MatchValue", };
+eckit::ClassSpec MatchValue::classSpec_ = {&Matcher::classSpec(), "MatchValue"};
 
 eckit::Reanimator<MatchValue> MatchValue::reanimator_;
 
+//----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string &value) :
-    Matcher(),
-    value_(value) {
+MatchValue::MatchValue(std::string value) : value_{std::move(value)} {}
+
+MatchValue::MatchValue(eckit::Stream& stream) {
+    stream >> value_;
 }
 
-MatchValue::MatchValue(eckit::Stream& s) :
-    Matcher() {
-        
-    s >> value_;
+void MatchValue::encode(eckit::Stream& out) const {
+    out << value_;
 }
 
-void MatchValue::encode(eckit::Stream& s) const {
-    s << value_;
-}
-MatchValue::~MatchValue() {
+bool MatchValue::match(const std::string& value) const {
+    return value == value_;
 }
 
-bool MatchValue::match(const std::string &keyword, const Key& key) const {
-    auto i = key.find(keyword);
+bool MatchValue::match(const std::string& keyword, const Key& key) const {
 
-    if (i == key.end()) {
-        return false;
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return match(iter->second);
     }
 
-    return ( i->second == value_ );
+    return false;
 }
 
-void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
     s << "=" << value_;
 }
 
-void MatchValue::print(std::ostream &out) const {
+void MatchValue::print(std::ostream& out) const {
     out << "MatchValue[value=" << value_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

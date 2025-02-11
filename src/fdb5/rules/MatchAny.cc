@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -16,24 +18,23 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchAny::classSpec_ = { &Matcher::classSpec(), "MatchAny", };
+eckit::ClassSpec MatchAny::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchAny",
+};
 
 eckit::Reanimator<MatchAny> MatchAny::reanimator_;
 
 
-MatchAny::MatchAny(const std::set<std::string> &values) :
-    Matcher(),
-    values_(values) {
-}
+MatchAny::MatchAny(const std::set<std::string>& values) : Matcher(), values_(values) {}
 
-MatchAny::MatchAny(eckit::Stream& s) :
-    Matcher() {
+MatchAny::MatchAny(eckit::Stream& s) : Matcher() {
 
     size_t numValues;
     std::string value;
 
     s >> numValues;
-    for (size_t i=0; i < numValues; i++) {
+    for (size_t i = 0; i < numValues; i++) {
         s >> value;
         values_.insert(value);
     }
@@ -46,34 +47,33 @@ void MatchAny::encode(eckit::Stream& s) const {
     }
 }
 
-MatchAny::~MatchAny() {
-}
+bool MatchAny::match(const std::string& keyword, const Key& key) const {
 
-bool MatchAny::match(const std::string &keyword, const Key& key) const {
-
-    auto i = key.find(keyword);
-
-    if (i == key.end()) {
-        return false;
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return match(iter->second);
     }
 
-    return (values_.find(i->second) != values_.end());
+    return false;
 }
 
-void MatchAny::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
-    const char *sep = "";
+bool MatchAny::match(const std::string& value) const {
+    return (values_.find(value) != values_.end());
+}
+
+void MatchAny::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
+    const char* sep = "";
     registry.dump(s, keyword);
     s << "=";
-    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    for (std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         s << sep << *i;
         sep = "/";
     }
 }
 
-void MatchAny::print(std::ostream &out) const {
+void MatchAny::print(std::ostream& out) const {
     out << "MatchAny[values=";
-    const char *sep = "";
-    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    const char* sep = "";
+    for (std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         out << sep << *i;
         sep = ",";
     }
@@ -82,4 +82,4 @@ void MatchAny::print(std::ostream &out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -32,12 +32,11 @@ namespace fdb5 {
 
 
 std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string& request_str,
-                                                               const std::vector<std::string> minimumKeys,
-                                                               bool raw,
+                                                               const std::vector<std::string> minimumKeys, bool raw,
                                                                const std::string& verb) {
 
 
-    std::string full_string = verb + "," + request_str; // Use a dummy verb
+    std::string full_string = verb + "," + request_str;  // Use a dummy verb
     std::istringstream in(full_string);
     metkit::mars::MarsParser parser(in);
     auto parsedRequests = parser.parse();
@@ -52,7 +51,8 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 
     if (raw) {
         std::copy(parsedRequests.begin(), parsedRequests.end(), std::back_inserter(requests));
-    } else {
+    }
+    else {
 
         /*// We want to use (default) inherited requests, as this allows use to use
         // TypeParam with a certain amount of meaning. But we also want to be able
@@ -64,7 +64,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                                         std::make_move_iterator(ps.end()));*/
 
         bool inherit = false;
-        bool strict = true;
+        bool strict  = true;
         metkit::mars::MarsExpension expand(inherit, strict);
         auto expandedRequests = expand.expand(parsedRequests);
 
@@ -76,7 +76,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                 }
             }*/
             LOG_DEBUG_LIB(LibFdb5) << "Expanded request: " << request << std::endl;
-            requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
+            requests.emplace_back(request, false, minimumKeys);
         }
     }
 
@@ -84,17 +84,14 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 }
 
 
-FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r,
-                               bool all,
+FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r, bool all,
                                const std::vector<std::string>& minimumKeySet) :
-    request_(r),
-    all_(all) {
+    request_(r), all_(all) {
 
     checkMinimumKeys(request_, minimumKeySet);
 }
 
-FDBToolRequest::FDBToolRequest(eckit::Stream& s) :
-    request_(s) {
+FDBToolRequest::FDBToolRequest(eckit::Stream& s) : request_(s) {
     s >> all_;
 }
 
@@ -104,14 +101,14 @@ const metkit::mars::MarsRequest& FDBToolRequest::request() const {
 
 bool FDBToolRequest::all() const {
     return all_;
-
 }
 
-void FDBToolRequest::print(std::ostream &s, const char* cr, const char* tab) const {
+void FDBToolRequest::print(std::ostream& s, const char* cr, const char* tab) const {
 
     if (all_) {
         s << " -- ALL --";
-    } else {
+    }
+    else {
         request_.dump(s, cr, tab);
     }
 }
@@ -121,7 +118,8 @@ void FDBToolRequest::encode(eckit::Stream& s) const {
     s << all_;
 }
 
-void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys) {
+void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request,
+                                      const std::vector<std::string>& minimumKeys) {
     for (std::vector<std::string>::const_iterator j = minimumKeys.begin(); j != minimumKeys.end(); ++j) {
         if (!request.has(*j)) {
             throw eckit::UserError("Please provide a value for '" + (*j) + "'");
@@ -131,5 +129,4 @@ void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request, 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
+}  // namespace fdb5

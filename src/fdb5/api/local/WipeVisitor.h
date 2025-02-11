@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_WipeVisitor_H
 #define fdb5_api_local_WipeVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
@@ -36,12 +36,9 @@ namespace local {
 
 class WipeVisitor : public QueryVisitor<WipeElement> {
 
-public: // methods
+public:  // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue,
-                const metkit::mars::MarsRequest& request,
-                bool doit,
-                bool porcelain,
+    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
                 bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
@@ -49,12 +46,14 @@ public: // methods
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
-private: // members
+private:  // members
 
     // eckit::Channel out_;
     bool doit_;
@@ -67,8 +66,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

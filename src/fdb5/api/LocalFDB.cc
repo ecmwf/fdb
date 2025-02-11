@@ -15,11 +15,11 @@
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/LocalFDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -27,18 +27,16 @@
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/LibFdb5.h"
 
 #include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
+#include "fdb5/api/local/MoveVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
-#include "fdb5/api/local/MoveVisitor.h"
 
 
 using namespace fdb5::api::local;
@@ -57,7 +55,16 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
     archiver_->archive(key, data, length);
 }
 
-ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
+void LocalFDB::reindex(const Key& key, const FieldLocation& location) {
+    if (!reindexer_) {
+        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new reindexer" << std::endl;
+        reindexer_.reset(new Reindexer(config_));
+    }
+
+    reindexer_->reindex(key, location);
+}
+
+ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest& request) {
 
     if (!inspector_) {
         LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new retriever" << std::endl;
@@ -67,14 +74,14 @@ ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
     return inspector_->inspect(request);
 }
 
-template<typename VisitorType, typename ... Ts>
-APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts ... args) {
+template <typename VisitorType, typename... Ts>
+APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts... args) {
 
-    using ValueType = typename VisitorType::ValueType;
+    using ValueType     = typename VisitorType::ValueType;
     using QueryIterator = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 
-    auto async_worker = [this, request, args...] (Queue<ValueType>& queue) {
+    auto async_worker = [this, request, args...](Queue<ValueType>& queue) {
         EntryVisitMechanism mechanism(config_);
         VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);
@@ -83,22 +90,22 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     return QueryIterator(new AsyncIterator(async_worker));
 }
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request);
+    return queryInternal<ListVisitor>(request, level);
 }
 
-DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
+DumpIterator LocalFDB::dump(const FDBToolRequest& request, bool simple) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::dump() : " << request << std::endl;
     return queryInternal<DumpVisitor>(request, simple);
 }
 
-StatusIterator LocalFDB::status(const FDBToolRequest &request) {
+StatusIterator LocalFDB::status(const FDBToolRequest& request) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::status() : " << request << std::endl;
     return queryInternal<StatusVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
     return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
 }
@@ -118,33 +125,36 @@ StatsIterator LocalFDB::stats(const FDBToolRequest& request) {
     return queryInternal<StatsVisitor>(request);
 }
 
-ControlIterator LocalFDB::control(const FDBToolRequest& request,
-                                  ControlAction action,
-                                  ControlIdentifiers identifiers) {
+ControlIterator LocalFDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::control() : " << request << std::endl;
     return queryInternal<ControlVisitor>(request, action, identifiers);
 }
 
 AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axesIterator() : " << request << std::endl;
-    return queryInternal<AxesVisitor>(request, config_, level);
+    return queryInternal<AxesVisitor>(request, level);
 }
 
 void LocalFDB::flush() {
+    ASSERT(!(archiver_ && reindexer_));
     if (archiver_) {
         archiver_->flush();
+        flushCallback_();
+    }
+    else if (reindexer_) {
+        reindexer_->flush();
         flushCallback_();
     }
 }
 
 
-void LocalFDB::print(std::ostream &s) const {
+void LocalFDB::print(std::ostream& s) const {
     s << "LocalFDB(home=" << config_.expandPath("~fdb") << ")";
 }
 
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
-static FDBBuilder<LocalFDB> builder("catalogue"); // Enable type=catalogue to build localFDB (serverside).
+static FDBBuilder<LocalFDB> builder("catalogue");  // Enable type=catalogue to build localFDB (serverside).
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

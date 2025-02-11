@@ -17,8 +17,8 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/Notifier.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
+#include "fdb5/database/Notifier.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Schema.h"
 
@@ -54,14 +54,11 @@ static void purgeCatalogue(Key& key, CatalogueReader*& db) {
 }
 
 Inspector::Inspector(const Config& dbConfig) :
-    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue),
-    dbConfig_(dbConfig) {}
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue), dbConfig_(dbConfig) {}
 
-Inspector::~Inspector() {
-}
+Inspector::~Inspector() {}
 
-ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
-                                const Schema& schema,
+ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
 
     auto iterator = std::make_unique<InspectIterator>();
@@ -89,14 +86,12 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request, const 
     return inspect(request, dbConfig_.schema(), notifyee);
 }
 
-void Inspector::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {
+void Inspector::visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const {}
 
-}
-
-void Inspector::print(std::ostream &out) const {
+void Inspector::print(std::ostream& out) const {
     out << "Inspector[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

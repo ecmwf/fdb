@@ -25,7 +25,7 @@
 
 namespace fdb5 {
 
-std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
+std::ostream& operator<<(std::ostream& s, const Catalogue& x) {
     x.print(s);
     return s;
 }
@@ -36,7 +36,7 @@ std::unique_ptr<Store> CatalogueImpl::buildStore() const {
 
 void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
 
-    std::vector<Index> all = indexes(sorted);
+    auto all = indexes(sorted);  // Deferred reading indexes.
 
     // It is likely that many indexes in the same database share resources/files/etc.
     // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
@@ -50,8 +50,9 @@ void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
             for (Index& idx : all) {
                 if (visitor.visitEntries()) {
                     closers.emplace_back(idx);
-                    idx.entries(visitor); // contains visitIndex
-                } else {
+                    idx.entries(visitor);  // contains visitIndex
+                }
+                else {
                     visitor.visitIndex(idx);
                 }
             }
@@ -59,7 +60,6 @@ void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     }
 
     visitor.catalogueComplete(*this);
-
 }
 
 const Key CatalogueWriter::currentIndexKey() {
@@ -106,14 +106,15 @@ bool CatalogueReaderFactory::has(const std::string& name) {
 void CatalogueReaderFactory::list(std::ostream& out) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     const char* sep = "";
-    for (std::map<std::string, CatalogueReaderBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+    for (std::map<std::string, CatalogueReaderBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end();
+         ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
 }
 
 std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey, const Config& config) {
-    std::string name = Manager(config).engine(dbKey);
+    std::string name          = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -133,7 +134,7 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey,
 }
 
 std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const eckit::URI& uri, const fdb5::Config& config) {
-    std::string name = uri.scheme();
+    std::string name          = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -159,7 +160,8 @@ CatalogueReaderBuilderBase::CatalogueReaderBuilderBase(const std::string& name) 
 }
 
 CatalogueReaderBuilderBase::~CatalogueReaderBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     CatalogueReaderFactory::instance().remove(name_);
 }
 
@@ -200,14 +202,15 @@ bool CatalogueWriterFactory::has(const std::string& name) {
 void CatalogueWriterFactory::list(std::ostream& out) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     const char* sep = "";
-    for (std::map<std::string, CatalogueWriterBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+    for (std::map<std::string, CatalogueWriterBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end();
+         ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
 }
 
 std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey, const Config& config) {
-    std::string name = Manager(config).engine(dbKey);
+    std::string name          = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -227,7 +230,7 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey,
 }
 
 std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const eckit::URI& uri, const fdb5::Config& config) {
-    std::string name = uri.scheme();
+    std::string name          = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -253,7 +256,8 @@ CatalogueWriterBuilderBase::CatalogueWriterBuilderBase(const std::string& name) 
 }
 
 CatalogueWriterBuilderBase::~CatalogueWriterBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     CatalogueWriterFactory::instance().remove(name_);
 }
 

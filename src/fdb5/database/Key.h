@@ -13,29 +13,22 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Key_H
-#define fdb5_Key_H
+#pragma once
 
-#include <map>
-#include <string>
-#include <utility>
-#include <set>
-#include <memory>
-#include <functional>
-
-#include "eckit/serialisation/Stream.h"
-#include "eckit/types/Types.h"
+#include "fdb5/database/BaseKey.h"
 #include "fdb5/types/TypesRegistry.h"
 
+#include <cstddef>
+#include <functional>
+#include <string>
+
 namespace eckit {
-    class JSON;
-    template<class T> class DenseSet;
+template <class T>
+class DenseSet;
 }
 
-namespace metkit {
-namespace mars {
-    class MarsRequest;
-}
+namespace metkit::mars {
+class MarsRequest;
 }
 
 namespace fdb5 {
@@ -43,197 +36,72 @@ namespace fdb5 {
 class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
+// KEY
 
-class BaseKey {
+class Key : public BaseKey {
+public:  // factory
 
-public: // methods
+    static Key parse(const std::string& keyString);
 
-    BaseKey() = default;
-    BaseKey(const BaseKey &key) = default;
+public:  // methods
 
-    explicit BaseKey(const eckit::StringDict &keys) : keys_(keys) {
-        for (const auto& k : keys) {
-            names_.emplace_back(k.first);
-        }
-    }
-    BaseKey(std::initializer_list<std::pair<const std::string, std::string>> l) : keys_(l) {
-        for (const auto& k : l) {
-            names_.emplace_back(k.first);
-        }
-    }
-    BaseKey(const std::string& fingerprint, const Rule& rule);
+    using BaseKey::BaseKey;
 
-    virtual ~BaseKey() = default;
+    std::string type() const override { return "Key"; }
 
-    std::set<std::string> keys() const;
+    std::string valuesToString() const;
 
-    void set(const std::string &k, const std::string &v);
-    void unset(const std::string &k);
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeys(const Key& other, bool checkAlsoValues = false) const;
 
-    void push(const std::string &k, const std::string &v);
-    void pop(const std::string &k);
+    // MATCH
 
-    const std::string& get( const std::string &k ) const;
+    bool match(const Key& other) const;
 
-    void clear();
-
-    bool match(const BaseKey& other) const;
     bool match(const metkit::mars::MarsRequest& request) const;
-
-    bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const BaseKey& other) const {
-        return keys_ < other.keys_;
-    }
-
-    bool operator!= (const BaseKey& other) const {
-        return keys_ != other.keys_;
-    }
-
-    bool operator== (const BaseKey& other) const {
-        return keys_ == other.keys_;
-    }
-
-    friend std::ostream& operator<<(std::ostream &s, const BaseKey& x) {
-        x.print(s);
-        return s;
-    }
-
-    friend eckit::Stream& operator<<(eckit::Stream &s, const BaseKey& x) {
-        x.encode(s);
-        return s;
-    }
-
-    std::string valuesToString() const;
-
-    const eckit::StringList& names() const;
-
-    std::string value(const std::string& keyword) const;
-    std::string canonicalValue(const std::string& keyword) const;
-
-    typedef eckit::StringDict::const_iterator const_iterator;
-    typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;
-
-    const_iterator begin() const { return keys_.begin(); }
-    const_iterator end() const { return keys_.end(); }
-
-    const_reverse_iterator rbegin() const { return keys_.rbegin(); }
-    const_reverse_iterator rend() const { return keys_.rend(); }
-
-    const_iterator find(const std::string& s) const { return keys_.find(s); }
-
-    size_t size() const { return keys_.size(); }
-
-    bool empty() const { return keys_.empty(); }
-
-    const eckit::StringDict& keyDict() const;
-
-    metkit::mars::MarsRequest request(const std::string& verb = "retrieve") const;
-
-    operator std::string() const;
-
-    virtual operator eckit::StringDict() const;
-
-    size_t encodeSize() const;
-
-protected: // members
-
-    //TODO add unit test for each type
-    virtual std::string canonicalise(const std::string& keyword, const std::string& value) const = 0;
-    virtual std::string type(const std::string& keyword) const = 0;
-
-    void print( std::ostream &out ) const;
-    void decode(eckit::Stream& s);
-    void encode(eckit::Stream &s) const;
-
-private: // methods
-
-    std::string toString() const;
-
-protected: // members
-
-    eckit::StringDict keys_;
-    eckit::StringList names_;
-};
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class Key : public BaseKey {
-
-public: // methods
-
-    explicit Key() = default;
-    explicit Key(eckit::Stream &);
-    explicit Key(const eckit::StringDict &keys);
-    explicit Key(const std::string& fingerprint, const Rule& rule);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>);
-
-    static Key parseString(const std::string& s);
-
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
-        return s;
-    }
-
-private: // members
-
-    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
-    std::string type(const std::string& keyword) const override;
-
+    bool matchValues(const std::string& keyword, const eckit::DenseSet<std::string>& values) const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+// TYPED KEY
 
 class TypedKey : public BaseKey {
+public:  // methods
 
-public: // methods
+    explicit TypedKey(const TypesRegistry& reg) : registry_{reg} {}
 
-    explicit TypedKey(const Key& key, const TypesRegistry& reg);
-    explicit TypedKey(const TypesRegistry& reg);
-    explicit TypedKey(eckit::Stream &, const TypesRegistry& reg);
-    explicit TypedKey(const std::string &keys, const Rule& rule);
-    explicit TypedKey(const eckit::StringDict &keys, const TypesRegistry& reg);
-    TypedKey(std::initializer_list<std::pair<const std::string, std::string>>, const TypesRegistry& reg);
+    // RULES
+    TypedKey(const TypedKey& other)            = delete;
+    TypedKey& operator=(const TypedKey& other) = delete;
+    TypedKey(TypedKey&& other)                 = delete;
+    TypedKey& operator=(TypedKey&& other)      = delete;
+    ~TypedKey()                                = default;
 
-    static TypedKey parseString(const std::string&, const TypesRegistry& reg);
+    std::string type() const override { return "TypedKey"; }
+
+    Key tidy() const;
 
     Key canonical() const;
 
-    /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeys(const BaseKey& other, bool checkAlsoValues = false) const;
+private:  // members
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, TypedKey& x);
-
-    // Registry is needed before we can stringise/canonicalise.
-    void registry(const TypesRegistry& reg);
-    [[ nodiscard ]]
-    const TypesRegistry& registry() const;
-
-private: // members
-
-    //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
-    std::string type(const std::string& keyword) const override;
-
-    std::reference_wrapper<const TypesRegistry> registry_;
+    const TypesRegistry& registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 namespace std {
-    template <>
-    struct hash<fdb5::Key> {
-        size_t operator() (const fdb5::Key& key) const {
-            return std::hash<std::string>()(key.valuesToString());
-        }
-    };
-}
 
-#endif
+template <>
+struct hash<fdb5::Key> {
+    size_t operator()(const fdb5::Key& key) const { return std::hash<std::string>()(key.valuesToString()); }
+};
+
+}  // namespace std

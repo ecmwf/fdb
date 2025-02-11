@@ -9,8 +9,9 @@
  */
 
 #include <cstring>
+#include <iostream>
+#include <vector>
 
-#include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
@@ -32,9 +33,9 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
     return fdb_request_add(req, param, &value, 1);
 }
 
-void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, bool checkLevel = true) {
-    const char *k;
-    const char *v;
+void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t* it, bool checkLevel = true) {
+    const char* k;
+    const char* v;
     size_t l;
     int err;
 
@@ -44,9 +45,10 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
     EXPECT(err == FDB_SUCCESS);
 
     size_t level = 0;
-    for (auto key: keys) {
-        for (auto k1: key) {
+    for (const auto& key : keys) {
+        for (const auto& k1 : key) {
             int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            std::cerr << "k=" << k << " v=" << v << " l=" << l << std::endl;
             EXPECT(err == FDB_SUCCESS);
             EXPECT(k1.first == k);
             EXPECT(k1.second == v);
@@ -58,13 +60,14 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, boo
     }
     err = fdb_splitkey_next_metadata(sk, &k, &v, &l);
     EXPECT(err == FDB_ITERATION_COMPLETE);
-    
+
     err = fdb_delete_splitkey(sk);
 }
 
-CASE( "fdb_c - archive & list" ) {
+CASE("fdb_c - archive & list") {
+    const int depth = 3;
     size_t length;
-    DataHandle *dh;
+    DataHandle* dh;
 
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
@@ -109,25 +112,30 @@ CASE( "fdb_c - archive & list" ) {
     fdb_request_add1(request, "type", "an");
     fdb_request_add1(request, "expver", "xxxx");
 
-    const char **item= new const char*;
+    const char** item = new const char*;
     fdb_listiterator_t* it;
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
-    const char *uri;
+
+    const char* uri;
     size_t off, attr_len;
 
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::Key> k1test {
-        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+    std::vector<fdb5::Key> k1test{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
     };
-//    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
-//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
+    //    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+    //                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
     key_compare(k1test, it);
 
     err = fdb_listiterator_next(it);
@@ -136,7 +144,7 @@ CASE( "fdb_c - archive & list" ) {
 
 
     fdb_request_add1(request, "param", "139");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
@@ -156,27 +164,32 @@ CASE( "fdb_c - archive & list" ) {
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
 
     fdb_request_add1(request, "param", "138");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
-    std::vector<fdb5::Key> k2test {
-        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+    std::vector<fdb5::Key> k2test{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
     };
-//    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
-//                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
+    //    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},
+    //                                  fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
     key_compare(k2test, it, false);
     key_compare(k2test, it);
 
@@ -186,7 +199,7 @@ CASE( "fdb_c - archive & list" ) {
 
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -224,20 +237,31 @@ CASE( "fdb_c - archive & list" ) {
 }
 
 #if fdb5_HAVE_GRIB
-CASE( "fdb_c - multiple archive & list" ) {
+CASE("fdb_c - multiple archive & list") {
+    const int depth = 3;
     size_t length1, length2, length3;
-    DataHandle *dh;
+    DataHandle* dh;
 
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::vector<fdb5::Key> k1 {
-        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+    std::vector<fdb5::Key> k1{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
     };
-    std::vector<fdb5::Key> k2 {
-        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+    std::vector<fdb5::Key> k2{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
         {{"type", "an"}, {"levtype", "pl"}},
         {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
     };
@@ -249,7 +273,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     eckit::PathName grib3("y138-400.grib");
     length3 = grib3.size();
 
-    eckit::Buffer buf(length1+length2+length3);
+    eckit::Buffer buf(length1 + length2 + length3);
     dh = grib1.fileHandle();
     dh->openForRead();
     dh->read(buf, length1);
@@ -258,7 +282,7 @@ CASE( "fdb_c - multiple archive & list" ) {
 
     dh = grib2.fileHandle();
     dh->openForRead();
-    dh->read(buf+length1, length2);
+    dh->read(buf + length1, length2);
     dh->close();
     delete dh;
 
@@ -280,22 +304,22 @@ CASE( "fdb_c - multiple archive & list" ) {
     EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1 + length2));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(req, "levelist", "300");
 
-    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1 + length2));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add(req, "levelist", levels, 2);
 
-    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1 + length2));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     dh = grib3.fileHandle();
     dh->openForRead();
-    dh->read(buf+length1+length2, length3);
+    dh->read(buf + length1 + length2, length3);
     dh->close();
     delete dh;
 
@@ -305,10 +329,10 @@ CASE( "fdb_c - multiple archive & list" ) {
     const char* levels3[] = {"300", "400", "500"};
     fdb_request_add(req, "levelist", levels3, 3);
 
-    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2+length3));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1 + length2 + length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, nullptr, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, nullptr, buf, length1 + length2 + length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
     fdb_delete_request(req);
 
@@ -326,10 +350,10 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add1(request, "type", "an");
     fdb_request_add1(request, "expver", "xxxx");
 
-    const char **item= new const char*;
+    const char** item = new const char*;
     bool exist;
     fdb_listiterator_t* it;
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
@@ -340,7 +364,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "1");
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
@@ -348,15 +372,15 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add1(request, "step", "0");
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_list(fdb, request, &it, true);
+    fdb_list(fdb, request, &it, true, depth);
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     key_compare(k1, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
+
     key_compare(k2, it);
 
     err = fdb_listiterator_next(it);
@@ -366,9 +390,97 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_delete_request(request);
     fdb_delete_handle(fdb);
 }
+
+CASE("fdb_c - list depth=1,2,3") {
+    fdb_handle_t* fdb = nullptr;
+    fdb_new_handle(&fdb);
+
+    std::vector<fdb5::Key> key300d1{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
+    };
+
+    std::vector<fdb5::Key> key300d2{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+    };
+
+    std::vector<fdb5::Key> key300d3{
+        {{"class", "rd"},
+         {"expver", "xxxx"},
+         {"stream", "oper"},
+         {"date", "20191110"},
+         {"time", "0000"},
+         {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
+    };
+
+    fdb_request_t* request = nullptr;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    {  // depth=1
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 1);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d1, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
+
+    {  // depth=2
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 2);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d2, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
+
+    {  // depth=3
+        fdb_listiterator_t* iter = nullptr;
+        fdb_list(fdb, request, &iter, true, 3);
+        int err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_SUCCESS);
+
+        key_compare(key300d3, iter);
+
+        err = fdb_listiterator_next(iter);
+        ASSERT(err == FDB_ITERATION_COMPLETE);
+        fdb_delete_listiterator(iter);
+    }
+}
 #endif
 
-CASE( "fdb_c - retrieve bad request" ) {
+CASE("fdb_c - retrieve bad request") {
 
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
@@ -392,15 +504,15 @@ CASE( "fdb_c - retrieve bad request" ) {
     long size;
     fdb_datareader_t* dr;
     fdb_new_datareader(&dr);
-//  thrown by deduplication (now deactivted)
-//    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
+    //  thrown by deduplication (now deactivted)
+    //    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
     fdb_delete_datareader(dr);
     fdb_delete_request(request);
     fdb_delete_handle(fdb);
 }
 
 
-CASE( "fdb_c - retrieve" ) {
+CASE("fdb_c - retrieve") {
 
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
@@ -450,23 +562,22 @@ CASE( "fdb_c - retrieve" ) {
     fdb_new_datareader(&dr);
     EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
     fdb_datareader_open(dr, &size2);
-    EXPECT_EQUAL(2*size, size2);
+    EXPECT_EQUAL(2 * size, size2);
     fdb_datareader_seek(dr, size);
     fdb_datareader_read(dr, grib, 4, &read);
     EXPECT_EQUAL(4, read);
     EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
     fdb_datareader_tell(dr, &read);
-    EXPECT_EQUAL(4+size, read);
-    fdb_datareader_seek(dr, size2-4);
+    EXPECT_EQUAL(4 + size, read);
+    fdb_datareader_seek(dr, size2 - 4);
     fdb_datareader_read(dr, grib, 6, &read);
     EXPECT_EQUAL(4, read);
     fdb_delete_datareader(dr);
     fdb_delete_request(request);
     fdb_delete_handle(fdb);
-
 }
 
-CASE( "fdb_c - expand" ) {
+CASE("fdb_c - expand") {
 
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
@@ -497,14 +608,14 @@ CASE( "fdb_c - expand" ) {
 
     size_t numValues;
     char** values;
-    
+
     fdb_request_get(request, "date", &values, &numValues);
     EXPECT_EQUAL(numValues, 2);
     EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
     EXPECT_EQUAL(0, strncmp(values[1], "20191111", 8));
-    delete [] values[0];
-    delete [] values[1];
-    delete [] values;
+    delete[] values[0];
+    delete[] values[1];
+    delete[] values;
 
     EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
     fdb_datareader_open(dr, &size);
@@ -535,10 +646,10 @@ CASE( "fdb_c - expand" ) {
     EXPECT_EQUAL(0, strncmp(values[2], "20191115", 8));
     EXPECT_EQUAL(0, strncmp(values[3], "by", 2));
     EXPECT_EQUAL(0, strncmp(values[4], "2", 1));
-    for (size_t i = 0; i<numValues; i++) {
-        delete [] values[i];
+    for (size_t i = 0; i < numValues; i++) {
+        delete[] values[i];
     }
-    delete [] values;
+    delete[] values;
 
     EXPECT(fdb_expand_request(request) == FDB_SUCCESS);
 
@@ -547,11 +658,11 @@ CASE( "fdb_c - expand" ) {
     EXPECT_EQUAL(0, strncmp(values[0], "20191110", 8));
     EXPECT_EQUAL(0, strncmp(values[1], "20191112", 8));
     EXPECT_EQUAL(0, strncmp(values[2], "20191114", 8));
-    for (size_t i = 0; i<numValues; i++) {
-        delete [] values[i];
+    for (size_t i = 0; i < numValues; i++) {
+        delete[] values[i];
     }
-    delete [] values;
-    
+    delete[] values;
+
     fdb_delete_request(request);
     fdb_delete_handle(fdb);
 }
@@ -562,9 +673,8 @@ CASE( "fdb_c - expand" ) {
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     fdb_initialise();
 
-    return run_tests ( argc, argv );
+    return run_tests(argc, argv);
 }

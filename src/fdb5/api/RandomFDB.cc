@@ -16,8 +16,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/api/FDBFactory.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBFactory.h"
 
 #include <random>
 
@@ -30,7 +30,7 @@ namespace fdb5 {
 
 class RandomFDBBuilder : public FDBBuilderBase {
 
-public: // methods
+public:  // methods
 
     RandomFDBBuilder() : FDBBuilderBase("random") {}
 
@@ -40,19 +40,21 @@ private:
 
         // Get a list of FDBs to choose between
 
-        if (!config.has("fdbs")) throw UserError("No FDBs configured for random FDB frontend", Here());
+        if (!config.has("fdbs"))
+            throw UserError("No FDBs configured for random FDB frontend", Here());
 
         auto fdbConfigs = config.getSubConfigurations("fdbs");
 
-        if (fdbConfigs.empty()) throw UserError("No FDBs configured for random FDB frontend", Here());
+        if (fdbConfigs.empty())
+            throw UserError("No FDBs configured for random FDB frontend", Here());
 
         // And pick one of them at random to build
 
         std::random_device rd;
-        int choice = std::uniform_int_distribution<int>(0, fdbConfigs.size()-1)(rd);
+        int choice = std::uniform_int_distribution<int>(0, fdbConfigs.size() - 1)(rd);
 
-        LOG_DEBUG_LIB(LibFdb5) << "Constructing random API instance: " << choice+1
-                              << " / " << fdbConfigs.size() << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Constructing random API instance: " << choice + 1 << " / " << fdbConfigs.size()
+                               << std::endl;
 
         ASSERT(choice >= 0);
         ASSERT(choice < fdbConfigs.size());
@@ -65,4 +67,4 @@ static RandomFDBBuilder randomFDBBuilder;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

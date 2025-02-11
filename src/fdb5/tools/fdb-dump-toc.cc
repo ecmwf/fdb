@@ -20,23 +20,23 @@ using namespace eckit;
 
 class FDBDumpToc : public fdb5::FDBTool {
 
-  public: // methods
+public:  // methods
 
-    FDBDumpToc(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+    FDBDumpToc(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
         // FDBDumpToc does not require to read the configuration
         needsConfig_ = false;
-        options_.push_back(new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
+        options_.push_back(
+            new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
     }
 
-  private: // methods
+private:  // methods
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
 };
 
-void FDBDumpToc::usage(const std::string &tool) const {
-    Log::info() << std::endl
-                << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
+void FDBDumpToc::usage(const std::string& tool) const {
+    Log::info() << std::endl << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
@@ -57,8 +57,7 @@ void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBDumpToc app(argc, argv);
     return app.start();
 }
-

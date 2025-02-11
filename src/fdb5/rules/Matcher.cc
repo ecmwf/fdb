@@ -12,53 +12,40 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/rules/Matcher.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/rules/Matcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec Matcher::classSpec_ = { &eckit::Streamable::classSpec(), "Matcher", };
+eckit::ClassSpec Matcher::classSpec_ = {&eckit::Streamable::classSpec(), "Matcher"};
 
-Matcher::Matcher() {
-}
+Matcher::Matcher(eckit::Stream& stream) {}
 
-Matcher::Matcher(eckit::Stream&) {
-}
+void Matcher::encode(eckit::Stream& out) const {}
 
-void Matcher::encode(eckit::Stream& s) const {
-}
-
-Matcher::~Matcher() {
-}
-
-bool Matcher::optional() const {
-    return false;
-}
-
-const std::string &Matcher::value(const Key& key, const std::string &keyword) const {
+const std::string& Matcher::value(const Key& key, const std::string& keyword) const {
     return key.get(keyword);
 }
 
-const std::vector<std::string> &Matcher::values(const metkit::mars::MarsRequest& rq, const std::string &keyword) const {
+const std::vector<std::string>& Matcher::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
     return rq.values(keyword);
 }
 
-void Matcher::fill(BaseKey& key, const std::string &keyword, const std::string& value) const {
+void Matcher::fill(Key& key, const std::string& keyword, const std::string& value) const {
     key.push(keyword, value);
 }
 
-
-const std::string &Matcher::defaultValue() const {
+const std::string& Matcher::defaultValue() const {
     NOTIMP;
 }
 
-std::ostream &operator<<(std::ostream &s, const Matcher &x) {
+std::ostream& operator<<(std::ostream& s, const Matcher& x) {
     x.print(s);
     return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

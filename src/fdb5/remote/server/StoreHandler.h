@@ -23,6 +23,7 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection, public CallbackRegistry {
 public:  // methods
+
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
 
 private:  // methods
@@ -49,6 +50,7 @@ private:  // methods
     Store& store(uint32_t clientID, const Key& dbKey);
 
 private:  // members
+
     struct StoreHelper;
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
@@ -57,11 +59,11 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 struct StoreHandler::StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config)
-        : dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) { }
+    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
+        dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
 
-    bool controlConnection {true};
-    bool dataConnection {false};
+    bool controlConnection{true};
+    bool dataConnection{false};
 
     std::unique_ptr<Store> store;
 };

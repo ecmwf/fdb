@@ -8,38 +8,36 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+#include <ostream>
+#include <string>
+#include <utility>
 
-#include "fdb5/rules/MatchHidden.h"
 #include "fdb5/database/Key.h"
-#include "eckit/types/Types.h"
+#include "fdb5/rules/MatchHidden.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
-static std::string empty;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchHidden::classSpec_ = { &Matcher::classSpec(), "MatchHidden", };
+eckit::ClassSpec MatchHidden::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchHidden",
+};
 
 eckit::Reanimator<MatchHidden> MatchHidden::reanimator_;
 
 
-MatchHidden::MatchHidden(const std::string &def) :
-    Matcher() {
-    default_.push_back(def);
-}
+MatchHidden::MatchHidden(std::string def) : default_{std::move(def)} {}
 
-MatchHidden::MatchHidden(eckit::Stream& s) :
-    Matcher() {
-        
+MatchHidden::MatchHidden(eckit::Stream& stream) : Matcher() {
+
     size_t numValues;
     std::string value;
 
-    s >> numValues;
-    for (size_t i=0; i < numValues; i++) {
-        s >> value;
+    stream >> numValues;
+    for (size_t i = 0; i < numValues; i++) {
+        stream >> value;
         default_.push_back(value);
     }
 }
@@ -51,38 +49,28 @@ void MatchHidden::encode(eckit::Stream& s) const {
     }
 }
 
-MatchHidden::~MatchHidden() {
-}
-
-bool MatchHidden::match(const std::string&, const Key&) const {
-    return true;
-}
-
-bool MatchHidden::optional() const {
-    return true;
-}
-
-const std::string &MatchHidden::value(const Key&, const std::string&) const {
+const std::string& MatchHidden::value(const Key&, const std::string&) const {
     return default_[0];
 }
 
-const std::vector<std::string>& MatchHidden::values(const metkit::mars::MarsRequest &rq, const std::string &keyword) const {
+const std::vector<std::string>& MatchHidden::values(const metkit::mars::MarsRequest& rq,
+                                                    const std::string& keyword) const {
     return default_;
 }
 
-const std::string &MatchHidden::defaultValue() const {
+const std::string& MatchHidden::defaultValue() const {
     return default_[0];
 }
 
-void MatchHidden::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchHidden::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
     s << '-' << default_[0];
 }
 
-void MatchHidden::print(std::ostream &out) const {
+void MatchHidden::print(std::ostream& out) const {
     out << "MatchHidden[default" << default_[0] << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

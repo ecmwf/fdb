@@ -56,9 +56,10 @@ namespace fdb5::remote {
 namespace {
 
 constexpr const auto defaultRetrieveQueueSize = 10000;
-constexpr const auto defaultArchiveQueueSize = 320;
+constexpr const auto defaultArchiveQueueSize  = 320;
 
-std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2, const std::string& field){
+std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2,
+                              const std::string& field) {
 
     std::vector<int> v1 = c1.getIntVector(field);
     std::vector<int> v2 = c2.getIntVector(field);
@@ -67,22 +68,20 @@ std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
 
-    std::set_intersection(v1.begin(),v1.end(),
-                          v2.begin(),v2.end(),
-                          back_inserter(v3));
+    std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
     return v3;
 }
 
-} // namespace
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config)
-    : config_(config),
-      dataListenHostname_(config.getString("dataListenHostname", "")),
-      readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
-      archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
-      controlSocket_(socket) {
+ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
+    config_(config),
+    dataListenHostname_(config.getString("dataListenHostname", "")),
+    readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
+    archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
+    controlSocket_(socket) {
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
@@ -103,8 +102,8 @@ ServerConnection::~ServerConnection() {
 Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_t requestID) {
     try {
         switch (message) {
-            case Message::Flush: // notification that the client has sent all data for archival
-                return Handled::YesRemoveArchiveListener; // ????
+            case Message::Flush:  // notification that the client has sent all data for archival
+                return Handled::YesRemoveArchiveListener;  // ????
 
             default: {
                 std::stringstream ss;
@@ -154,9 +153,10 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
 
 eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-//    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
+    //    Add to the configuration all the components that require to be versioned, as in the following example, with a
+    //    vector of supported version numbers
     static std::vector<int> remoteFieldLocationVersions = {1};
-    static std::vector<int> numberOfConnections = config_.getIntVector("supportedConnections", {1,2});
+    static std::vector<int> numberOfConnections         = config_.getIntVector("supportedConnections", {1, 2});
 
     ASSERT(0 < numberOfConnections.size());
     ASSERT(numberOfConnections[0] == 1 || numberOfConnections[0] == 2);
@@ -189,14 +189,16 @@ void ServerConnection::initialiseConnections() {
 
     try {
         s1 >> remoteProtocolVersion;
-    } catch (...) {
+    }
+    catch (...) {
         errorMsg = "Error retrieving client protocol version";
     }
 
     if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
-        ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr() << std::endl;
+        ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr()
+           << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
         errorMsg = ss.str();
     }
@@ -204,18 +206,20 @@ void ServerConnection::initialiseConnections() {
     if (errorMsg.empty()) {
         eckit::LocalConfiguration clientAvailableFunctionality(s1);
         eckit::LocalConfiguration serverConf = availableFunctionality();
-        agreedConf_ = eckit::LocalConfiguration();
-        bool compatibleProtocol = true;
+        agreedConf_                          = eckit::LocalConfiguration();
+        bool compatibleProtocol              = true;
 
         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
         if (rflCommon.size() > 0) {
-            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back()
+                                   << std::endl;
             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
-        } else {
+        }
+        else {
             compatibleProtocol = false;
         }
 
-        if (!clientAvailableFunctionality.has("NumberOfConnections")) { // set the default
+        if (!clientAvailableFunctionality.has("NumberOfConnections")) {  // set the default
             std::vector<int> conn = {2};
             clientAvailableFunctionality.set("NumberOfConnections", conn);
         }
@@ -226,10 +230,13 @@ void ServerConnection::initialiseConnections() {
 
             if (ncCommon.size() == 1) {
                 ncSelected = ncCommon.at(0);
-            } else {
+            }
+            else {
                 ncSelected = ncCommon.back();
                 if (clientAvailableFunctionality.has("PreferSingleConnection")) {
-                    if ( std::find(ncCommon.begin(), ncCommon.end(), (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) != ncCommon.end() ) {
+                    if (std::find(ncCommon.begin(), ncCommon.end(),
+                                  (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
+                        ncCommon.end()) {
                         ncSelected = (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2);
                     }
                 }
@@ -241,7 +248,8 @@ void ServerConnection::initialiseConnections() {
         }
         else {
             std::stringstream ss;
-            ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client" << std::endl;
+            ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
+               << std::endl;
             ss << "    server functionality: " << serverConf << std::endl;
             ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
             errorMsg = ss.str();
@@ -258,14 +266,18 @@ void ServerConnection::initialiseConnections() {
     eckit::net::Endpoint dataEndpoint;
     if (single_) {
         dataEndpoint = endpointFromClient;
-    } else {
+    }
+    else {
         std::lock_guard<std::mutex> lock(dataPortMutex_);
         dataSocket_.reset(new eckit::net::EphemeralTCPServer(selectDataPort()));
         ASSERT(dataSocket_->socket() != -1);
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
 
-        dataSocketFuture = std::async(std::launch::async, [this] { dataSocket_->accept(); return true; });
+        dataSocketFuture = std::async(std::launch::async, [this] {
+            dataSocket_->accept();
+            return true;
+        });
     }
 
     eckit::Buffer startupBuffer(1024);
@@ -276,7 +288,7 @@ void ServerConnection::initialiseConnections() {
     s << dataEndpoint;
     s << agreedConf_.get();
 
-    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
 
     write(Message::Startup, true, 0, 0, startupBuffer.data(), s.position());
 
@@ -324,8 +336,7 @@ int ServerConnection::selectDataPort() {
     eckit::Log::info() << config_ << std::endl;
     if (config_.has("dataPortStart")) {
         ASSERT(config_.has("dataPortCount"));
-        return AvailablePortList(config_.getInt("dataPortStart"), config_.getLong("dataPortCount"))
-            .acquire();
+        return AvailablePortList(config_.getInt("dataPortStart"), config_.getLong("dataPortCount")).acquire();
     }
 
     // Use a system assigned port
@@ -344,7 +355,7 @@ size_t ServerConnection::archiveThreadLoop() {
                 // Handle MultiBlob
 
                 const char* firstData = static_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
-                const char* charData = firstData;
+                const char* charData  = firstData;
                 while (size_t(charData - firstData) < elem.payload_.size()) {
                     const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
                     ASSERT(hdr->message == Message::Blob);
@@ -389,7 +400,7 @@ void ServerConnection::listeningThreadLoopData() {
         // so we don't need to to anything clever here.
         // n.b. we also don't need to lock on read. We are the only thing that reads.
         while (true) {
-            eckit::Buffer payload = readData(hdr); // READ DATA
+            eckit::Buffer payload = readData(hdr);  // READ DATA
 
             if (hdr.message == Message::Exit) {
                 ASSERT(hdr.clientID() == 0);
@@ -398,26 +409,28 @@ void ServerConnection::listeningThreadLoopData() {
                 eckit::Log::info() << "Terminating DATA listener" << std::endl;
 
                 break;
-            } else {
+            }
+            else {
 
                 Handled handled;
                 if (payload.size() == 0) {
                     handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
-                } else {
+                }
+                else {
                     handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                 }
 
-                switch (handled)
-                {
+                switch (handled) {
                     case Handled::YesRemoveArchiveListener:
-                    case Handled::YesRemoveReadListener:
-                        {
-                            std::lock_guard<std::mutex> lock(handlerMutex_);
-                            numDataListener_--;
-                            if (numDataListener_ == 0) { return; }
-                            break;
+                    case Handled::YesRemoveReadListener: {
+                        std::lock_guard<std::mutex> lock(handlerMutex_);
+                        numDataListener_--;
+                        if (numDataListener_ == 0) {
+                            return;
                         }
-                    case Handled::Replied: // nothing to do
+                        break;
+                    }
+                    case Handled::Replied:  // nothing to do
                     case Handled::Yes:
                         break;
                     case Handled::No:
@@ -428,7 +441,6 @@ void ServerConnection::listeningThreadLoopData() {
                 }
             }
         }
-
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
@@ -450,14 +462,16 @@ void ServerConnection::handle() {
 
     // listen loop
     while (true) {
-        eckit::Buffer payload = readControl(hdr); // READ CONTROL
-        LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+        eckit::Buffer payload = readControl(hdr);  // READ CONTROL
+        LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::handle - got [message=" << hdr.message
+                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                               << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());
             remove(true, hdr.clientID());
-
-        } else {
+        }
+        else {
             if (hdr.message == Message::Exit) {
                 ASSERT(hdr.clientID() == 0);
 
@@ -474,30 +488,31 @@ void ServerConnection::handle() {
                 if (payload.size()) {
                     if (hdr.control()) {
                         handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
-                    } else {
+                    }
+                    else {
                         handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                     }
-                } else {
+                }
+                else {
                     if (hdr.control()) {
                         handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID);
-                    } else {
+                    }
+                    else {
                         handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
                     }
                 }
 
-                switch (handled)
-                {
-                    case Handled::Replied: // nothing to do
+                switch (handled) {
+                    case Handled::Replied:  // nothing to do
                         break;
                     case Handled::YesAddArchiveListener:
-                    case Handled::YesAddReadListener:
-                        {
-                            std::lock_guard<std::mutex> lock(handlerMutex_);
-                            numDataListener_++;
-                            if (numDataListener_ == 1 && !single_) {
-                                listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
-                            }
+                    case Handled::YesAddReadListener: {
+                        std::lock_guard<std::mutex> lock(handlerMutex_);
+                        numDataListener_++;
+                        if (numDataListener_ == 1 && !single_) {
+                            listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
                         }
+                    }
                     case Handled::Yes:
                         write(Message::Received, true, hdr.clientID(), hdr.requestID);
                         break;
@@ -521,21 +536,18 @@ void ServerConnection::handle() {
 }
 
 void ServerConnection::handleException(std::exception_ptr e) {
-    try
-    {
+    try {
         if (e)
             std::rethrow_exception(e);
     }
-    catch(const std::exception& e)
-    {
+    catch (const std::exception& e) {
         error(e.what(), 0, 0);
     }
 }
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    archiveQueue_.emplace(
-        ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
 }
 
 void ServerConnection::tidyWorkers() {
