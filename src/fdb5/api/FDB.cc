@@ -57,7 +57,6 @@ FDB::~FDB() {
     flush();
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
 }
 
@@ -279,10 +278,6 @@ MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
 
 FDBStats FDB::stats() const {
     return stats_;
-}
-
-FDBStats FDB::internalStats() const {
-    return internal_->stats();
 }
 
 const std::string& FDB::name() const {

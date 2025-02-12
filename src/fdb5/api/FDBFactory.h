@@ -102,8 +102,6 @@ public:  // methods
     /// within a DistFDB (i.e. within one Rendezvous hash).
     virtual std::string id() const;
 
-    virtual FDBStats stats() const;
-
     const std::string& name() const;
 
     const Config& config() const;

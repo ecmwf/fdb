@@ -38,8 +38,6 @@ class DistFDB : public FDBBase {
 
 public:  // method
 
-    using FDBBase::stats;
-
     DistFDB(const Config& config, const std::string& name);
     ~DistFDB() override;
 
@@ -67,8 +65,6 @@ public:  // method
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
 
     void flush() override;
-
-    FDBStats stats() const override;
 
 private:  // methods
 
