@@ -48,22 +48,22 @@ protected:  // methods
 
     const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
         bool success;
-        auto it = canonicalised_.find(rule.line());
+        auto it = canonicalised_.find(&rule);
         if (it == canonicalised_.end()) {
-            std::tie(it, success) = canonicalised_.emplace(rule.line(), rule.registry().canonicalise(request_));
+            std::tie(it, success) = canonicalised_.emplace(&rule, rule.registry().canonicalise(request_));
             ASSERT(success);
         }
         return it->second;
     }
-    
+        
 protected:  // members
 
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
-private:
-    
-    mutable std::map<size_t, metkit::mars::MarsRequest> canonicalised_;
+private:    // members
+
+    mutable std::map<const Rule*, metkit::mars::MarsRequest> canonicalised_;
 };
 
 

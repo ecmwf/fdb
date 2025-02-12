@@ -75,8 +75,6 @@ public:  // methods
 
     void encode(eckit::Stream& out) const override;
 
-    std::size_t line() const { return line_; }
-
 protected:  // methods
 
     Rule() = default;
