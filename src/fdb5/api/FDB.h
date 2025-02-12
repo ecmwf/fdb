@@ -57,7 +57,8 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// A handle to a general FDB
+/// A handle to a general FDB.
+///
 /// FDB and its methods are threadsafe. However the caller needs to be aware that flush acts on all archive calls,
 /// including arcived messages from other threads. I.e. a call to flush will persist all archived messages regardles
 /// from which thread the message has been archived. In case the caller wants a finer control it is advised to
@@ -78,19 +79,22 @@ public:  // methods
 
     // -------------- Primary API functions ----------------------------------------------------------------------------
 
-    /// Archive binary data to a FDB.
+    /// Archive a eckit::message::Message.
+    ///
+    /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
     /// @param handle eckit::message::Message to data to archive
     void archive(eckit::message::Message msg);
 
-    /// Archive binary data to a FDB.
-    /// Reads messages from the eckit::DataHandle and calls archive() the the
-    /// corresponding messages.
+    /// Archives a stream of one or more messages.
+    ///
+    /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param handle eckit::DataHandle reference data to archive
     void archive(eckit::DataHandle& handle);
 
     /// Archive binary data to a FDB.
+    ///
     /// Internally creates a DataHandle and calls archive().
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param data Pointer to the binary data to archive
@@ -98,6 +102,7 @@ public:  // methods
     void archive(const void* data, size_t length);
 
     /// Archives data from Datahandle and ensures all keys exactly match the provided MarsRequest.
+    ///
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param request a mars request
     /// @param handle a data handle pointing to the data
@@ -105,16 +110,18 @@ public:  // methods
     /// @throws eckit::UserError if message key not present in MarsRequest.
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
-    /// Archive binary data to a FDB.
+    /// Archive a binary blob into FDB.
+    ///
     /// Any callback set with registerArchiveCallback will be invoked.
     /// @note No constistency checks are applied. The caller needs to ensure the provided key matches metadata present
     /// in data.
     /// @param key Key used for indexing and archiving the data
-    /// @param data Pointer to the binary data to archive
-    /// @param length Size of the data to archive with the given @p key
+    /// @param data Pointer to the binary blob to archive
+    /// @param length Size in bytes of the binary blob to archive
     void archive(const Key& key, const void* data, size_t length);
 
     /// Generate an new index entry for an existing field location.
+    ///
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.
     /// @param location Location of existing data in an FDB store.
@@ -124,6 +131,8 @@ public:  // methods
     /// @note always safe to call
     void flush();
 
+    // TODO(simondsmart): Review this. This is a bit odd. The purpose of a URI is that it directly describes the
+    // data locations - and as such shouldn't need the FDB object to do the conversion into DataHandle?
     /// Read binary data from an URI.
     /// @param uri eckit uri to the data source
     /// @return DataHandle for reading the requested data from
@@ -159,6 +168,7 @@ public:  // methods
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
     /// Dump the structural content of the FDB
+    ///
     /// In particular, in the TOC formulation, enumerate the different entries
     /// in the Table of Contents (including INIT and CLEAR entries).
     /// The dump will include information identifying the data files that are
@@ -173,6 +183,7 @@ public:  // methods
     StatusIterator status(const FDBToolRequest& request);
 
     /// Wipe data from the database.
+    ///
     /// Deletes FDB databases and the data therein contained. Uses the passed
     /// request to identify the database to delete. This is equivalent to a
     /// UNIX rm command.
@@ -186,6 +197,7 @@ public:  // methods
                       bool unsafeWipeAll = false);
 
     /// Move content of one FDB database.
+    ///
     /// This locks the source database, make it possible to create a second
     /// database in another root, duplicates all data. Source data are not automatically removed.
     /// @param request a fdb tool request for the data which should be move
@@ -194,16 +206,12 @@ public:  // methods
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
 
     /// Remove duplicate data from the database.
-    /// Purge duplicate entries from the database and remove the associated data
-    /// (if the data is owned, not adopted).
-    /// Data in the FDB5 is immutable. It is masked, but not damaged or deleted,
-    /// when it is overwritten with new data using the same key.
-    /// If an index or data file only contains masked data
-    /// (i.e. no data that can be obtained using normal requests),
-    /// then those indexes and data files may be removed.
-    /// If an index refers to data that is not owned by the FDB
-    /// (in particular data which has been adopted from an existing FDB4),
-    /// this data will not be removed.
+    ///
+    /// Purge duplicate entries from the database and remove the associated data if the data is owned and not adopted.
+    /// Data in the FDB5 is immutable. It is masked, but not removed, when overwritten with new data using the same key.
+    /// Masked data can no longer be accessed. Indexes and data files that only contains masked data may be removed.
+    /// If an index refers to data that is not owned by the FDB (in particular data which has been adopted from an
+    /// existing FDB5), this data will not be removed.
     /// @param request a fdb tool request for the data which should be purged
     /// @param doit bool if true the purge is triggered, otherwise a dry-run is executed
     /// @param porcelain bool for printing only those files which are deleted
