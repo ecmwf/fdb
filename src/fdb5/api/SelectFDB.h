@@ -40,8 +40,6 @@ private:  // types
 
 public:  // methods
 
-    using FDBBase::stats;
-
     SelectFDB(const Config& config, const std::string& name);
 
     ~SelectFDB() override;

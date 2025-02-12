@@ -269,9 +269,6 @@ public:  // methods
     // TODO(kkratz): Provide doc!
     FDBStats stats() const;
 
-    // TODO(kkratz): Provide doc!
-    FDBStats internalStats() const;
-
     /// Type of FDB, local or remote
     /// @return name of FDB type used, 'local' or 'remote'
     const std::string& name() const;
