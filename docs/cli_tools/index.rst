@@ -1,13 +1,13 @@
-FDB Tools
+CLI Tools
 =========
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
 
-   fdb-write <write>
-   fdb-list <list>
-   fdb-read <read>
+   write
+   list
+   read
+   mars
 
 Most common tools are the following:
 

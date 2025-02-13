@@ -1,5 +1,5 @@
-FDB C++ API documentation
-===================================
+C++ API
+=======
 
 .. doxygenclass:: fdb5::FDB
    :members:
