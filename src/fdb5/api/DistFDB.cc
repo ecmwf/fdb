@@ -59,10 +59,10 @@ DistFDB::DistFDB(const Config& config, const std::string& name) : FDBBase(config
         throw eckit::UserError("No lanes configured for pool", Here());
 
     for (const auto& laneCfg : config.getSubConfigs("lanes")) {
-        lanes_.push_back(FDB(laneCfg));
-        if (!hash_.addNode(lanes_.back().id())) {
+        lanes_.emplace_back(FDB(laneCfg), true);
+        if (!hash_.addNode(std::get<0>(lanes_.back()).id())) {
             std::stringstream ss;
-            ss << "Failed to add node to hash : " << lanes_.back().id() << " -- may have non-unique ID";
+            ss << "Failed to add node to hash : " << std::get<0>(lanes_.back()).id() << " -- may have non-unique ID";
             throw eckit::SeriousBug(ss.str(), Here());
         }
     }
@@ -95,12 +95,12 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     for (; it != end; ++it) {
         size_t idx = *it;
 
-        FDB& lane = lanes_[idx];
+        auto& [lane, enabled] = lanes_[idx];
 
         if (!lane.enabled(ControlIdentifier::Archive)) {
             continue;
         }
-        if (lane.disabled()) {
+        if (!enabled) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;
         }
@@ -128,7 +128,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
             }
 
             // Mark the lane as no longer writable
-            lane.disable();
+            enabled = false;
         }
     }
 
@@ -164,9 +164,13 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     std::vector<std::future<QueryIterator>> futures;
     std::queue<APIIterator<ValueType>> iterQueue;
 
-    for (FDB& lane : lanes_) {
+    for (auto& [lane, _] : lanes_) {
+        // Note(kkratz): Lambdas cannot capture structured bindings prior to C++20, hence we must introduce a alias
+        // here.
+        FDB& cap_lane = lane;
         if (lane.enabled(ControlIdentifier::Retrieve)) {
-            futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] { return fn(lane, request); }));
+            futures.emplace_back(
+                std::async(std::launch::async, [&lane = cap_lane, &fn, &request] { return fn(lane, request); }));
         }
     }
 
@@ -239,14 +243,17 @@ void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;
 
-    for (FDB& lane : lanes_) {
-        futures.emplace_back(std::async(std::launch::async, [&lane] { lane.flush(); }));
+    for (auto& [lane, _] : lanes_) {
+        // Note(kkratz): Lambdas cannot capture structured bindings prior to C++20, hence we must introduce a alias
+        // here.
+        FDB& cap_lane = lane;
+        futures.emplace_back(std::async(std::launch::async, [&lane = cap_lane] { lane.flush(); }));
     }
 }
 
 FDBStats DistFDB::stats() const {
     FDBStats s;
-    for (const auto& lane : lanes_) {
+    for (const auto& [lane, _] : lanes_) {
         s += lane.internalStats();
     }
     return s;

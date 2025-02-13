@@ -24,6 +24,8 @@
 
 #include "eckit/utils/RendezvousHash.h"
 
+#include <tuple>
+
 
 namespace fdb5 {
 
@@ -79,7 +81,8 @@ private:
 
     eckit::RendezvousHash hash_;
 
-    std::vector<FDB> lanes_;
+    /// Stores FDB and its enabled status
+    std::vector<std::tuple<FDB, bool>> lanes_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
