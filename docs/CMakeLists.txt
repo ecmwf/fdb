@@ -18,16 +18,13 @@ add_custom_command(
     MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
     COMMENT "Extracting documentation with doxygen")
 
-add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+add_custom_target(fdb-doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
 
 set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
 set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
 
-set(SPHINX_INPUT_FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
-    ${DOXYGEN_INDEX_FILE}
-)
+file(GLOB_RECURSE SPHINX_INPUT_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.rst)
 
 add_custom_command(
     OUTPUT ${SPHINX_INDEX_FILE}
@@ -36,8 +33,9 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${SPHINX_INPUT_FILES}
+        ${DOXYGEN_INDEX_FILE}
         MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py
         COMMENT "Generating documentation with Sphinx"
 )
 
-add_custom_target(doc ALL DEPENDS ${SPHINX_INDEX_FILE})
+add_custom_target(fdb-doc ALL DEPENDS ${SPHINX_INDEX_FILE})

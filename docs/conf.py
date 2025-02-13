@@ -6,26 +6,37 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Fields DataBase - FDB'
-copyright = '2025, ECMWF'
-author = 'ECMWF'
-release = '5.15.3'
+project = "Fields DataBase - FDB"
+copyright = "2025, ECMWF"
+author = "ECMWF"
+release = "5.15.3"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['breathe']
+extensions = ["breathe"]
 
-templates_path = ['_templates']
-exclude_patterns = ['Thumbs.db', '.DS_Store']
-
+templates_path = ["_templates"]
+exclude_patterns = ["Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
-html_static_path = ['_static']
+html_theme = "alabaster"
+html_sidebars = {
+    "**": [
+        "about.html",
+        "searchfield.html",
+        "navigation.html",
+    ]
+}
+html_theme_options = {
+    "github_button": True,
+    "github_user": "ecmwf",
+    "github_repo": "fdb",
+}
+html_static_path = ["_static"]
 
 # -- Breathe configuration ---------------------------------------------------
 breathe_default_project = "FDB"

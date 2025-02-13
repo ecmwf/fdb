@@ -16,6 +16,11 @@ endif()
 ########################################################################################################################
 ### dependencies and options
 
+### Documentation
+ecbuild_add_option( FEATURE DOCUMENTATION 
+                    DEFAULT OFF
+                    DESCRIPTION "Enable documentation generation" )
+
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
