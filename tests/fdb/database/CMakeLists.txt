@@ -6,3 +6,8 @@ ecbuild_add_test( TARGET test_fdb5_database_indexaxis
     SOURCES test_indexaxis.cc
     LIBS fdb5
     ENVIRONMENT "${_test_environment}")
+
+ecbuild_add_test( TARGET test_fdb5_fieldlocation
+    SOURCES test_fieldlocation.cc
+    LIBS fdb5
+    ENVIRONMENT "${_test_environment}")
