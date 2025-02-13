@@ -20,6 +20,7 @@
 #define fdb5_api_local_QueryVisitor_H
 
 #include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/rules/Rule.h"
 
 #include "eckit/container/Queue.h"
 
@@ -43,10 +44,26 @@ public:  // methods
     QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
         queue_(queue), request_(request) {}
 
+protected:  // methods
+
+    const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
+        bool success;
+        auto it = canonicalised_.find(&rule);
+        if (it == canonicalised_.end()) {
+            std::tie(it, success) = canonicalised_.emplace(&rule, rule.registry().canonicalise(request_));
+            ASSERT(success);
+        }
+        return it->second;
+    }
+        
 protected:  // members
 
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
+
+private:    // members
+
+    mutable std::map<const Rule*, metkit::mars::MarsRequest> canonicalised_;
 };
 
 
