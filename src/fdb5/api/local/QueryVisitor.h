@@ -55,13 +55,13 @@ protected:  // methods
         }
         return it->second;
     }
-        
+
 protected:  // members
 
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
-private:    // members
+private:  // members
 
     mutable std::map<const Rule*, metkit::mars::MarsRequest> canonicalised_;
 };
