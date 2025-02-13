@@ -19,6 +19,8 @@
 #ifndef fdb5_api_local_QueryVisitor_H
 #define fdb5_api_local_QueryVisitor_H
 
+#include <unordered_map>
+
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/rules/Rule.h"
 
@@ -61,9 +63,24 @@ protected:  // members
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
+private:
+
+    struct HashRule {
+        std::size_t operator()(const Rule* rule) const {
+            return rule->registry().hash();
+        }
+    };
+
+    struct EqualsRule {
+        bool operator()(const Rule* left, const Rule* right) const {
+            return left->registry() == right->registry();
+        }
+    };
+
 private:    // members
 
-    mutable std::map<const Rule*, metkit::mars::MarsRequest> canonicalised_;
+    /// Cache of canonicalised requests
+    mutable std::unordered_map<const Rule*, metkit::mars::MarsRequest, HashRule, EqualsRule> canonicalised_;
 };
 
 

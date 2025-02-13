@@ -58,6 +58,10 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
+    std::size_t hash() const;
+
+    bool operator==(const TypesRegistry& other) const;
+
 private:  // methods
 
     void print(std::ostream& out) const;
