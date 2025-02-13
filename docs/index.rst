@@ -1,7 +1,4 @@
-.. Fields DataBase - FDB documentation master file, created by
-   sphinx-quickstart on Wed Feb 12 17:09:27 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. Fields DataBase - FDB documentation master file
 
 Fields DataBase - FDB documentation
 ===================================
@@ -12,6 +9,10 @@ documentation for details.
 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :caption: Contents:
+
+.. doxygenclass:: fdb5::FDB
+   :members:
+   :undoc-members:
 

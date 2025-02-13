@@ -9,15 +9,15 @@
 project = 'Fields DataBase - FDB'
 copyright = '2025, ECMWF'
 author = 'ECMWF'
-release = '5.15.2'
+release = '5.15.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = ['breathe']
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['Thumbs.db', '.DS_Store']
 
 
 
@@ -26,3 +26,6 @@ exclude_patterns = []
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+
+# -- Breathe configuration ---------------------------------------------------
+breathe_default_project = "FDB"

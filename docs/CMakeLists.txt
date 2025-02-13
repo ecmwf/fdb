@@ -1,19 +1,43 @@
 find_package(Doxygen 1.13 REQUIRED)
+find_package(Sphinx REQUIRED)
 
 file(GLOB_RECURSE FDB_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../src/fdb5/api/*.h)
 
 set(DOXYGEN_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/fdb5/api)
-set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen)
+set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
 set(DOXYGEN_INDEX_FILE ${DOXYGEN_OUTPUT_DIR}/html/index.html)
 set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
 set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
 configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
+
 add_custom_command(
 	OUTPUT ${DOXYGEN_INDEX_FILE}
 	DEPENDS ${FDB_PUBLIC_HEADERS}
     COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
     MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
-    COMMENT "Generating docs")
+    COMMENT "Extracting documentation with doxygen")
 
 add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
+
+set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
+set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
+set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
+
+set(SPHINX_INPUT_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
+    ${DOXYGEN_INDEX_FILE}
+)
+
+add_custom_command(
+    OUTPUT ${SPHINX_INDEX_FILE}
+    COMMAND ${SPHINX_EXECUTABLE} -b html -Dbreathe_projects.FDB=${DOXYGEN_OUTPUT_DIR}/xml
+    ${SPHINX_SOURCE} ${SPHINX_BUILD}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${SPHINX_INPUT_FILES}
+        MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py
+        COMMENT "Generating documentation with Sphinx"
+)
+
+add_custom_target(doc ALL DEPENDS ${SPHINX_INDEX_FILE})
