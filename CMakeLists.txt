@@ -159,6 +159,8 @@ add_subdirectory( tests )
 
 ### finalize
 
+add_subdirectory(docs)
+
 
 ecbuild_install_project( NAME fdb )
 
