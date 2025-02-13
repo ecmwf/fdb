@@ -50,9 +50,9 @@ protected:  // methods
 
     const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
         bool success;
-        auto it = canonicalised_.find(&rule);
+        auto it = canonicalised_.find(&rule.registry());
         if (it == canonicalised_.end()) {
-            std::tie(it, success) = canonicalised_.emplace(&rule, rule.registry().canonicalise(request_));
+            std::tie(it, success) = canonicalised_.emplace(&rule.registry(), rule.registry().canonicalise(request_));
             ASSERT(success);
         }
         return it->second;
@@ -63,24 +63,10 @@ protected:  // members
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
-private:
-
-    struct HashRule {
-        std::size_t operator()(const Rule* rule) const {
-            return rule->registry().hash();
-        }
-    };
-
-    struct EqualsRule {
-        bool operator()(const Rule* left, const Rule* right) const {
-            return left->registry() == right->registry();
-        }
-    };
-
 private:    // members
 
     /// Cache of canonicalised requests
-    mutable std::unordered_map<const Rule*, metkit::mars::MarsRequest, HashRule, EqualsRule> canonicalised_;
+    mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest> canonicalised_;
 };
 
 
