@@ -62,6 +62,7 @@ void TypesRegistry::encode(eckit::Stream& out) const {
 
 std::size_t TypesRegistry::hash() const {
     std::size_t h = 0;
+
     for (const auto& [keyword, type] : types_) {
         // this hash combine is inspired in the boost::hash_combine
         std::string s = keyword + type;
@@ -115,9 +116,9 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
         std::set<std::string> uniqueVals;
         std::vector<std::string> vals;
         const Type& type = lookupType(param.name());
-        for (const auto& v : srcVals) {
-            auto newVal = type.toKey(v);
-            auto it     = uniqueVals.find(newVal);
+        for (const std::string& v : srcVals) {
+            std::string newVal = type.toKey(v);
+            auto it            = uniqueVals.find(newVal);
             if (it == uniqueVals.end()) {
                 vals.push_back(newVal);
                 uniqueVals.insert(newVal);

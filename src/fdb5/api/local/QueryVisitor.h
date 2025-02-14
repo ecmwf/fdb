@@ -62,21 +62,10 @@ protected:  // members
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
-private:  // methods
-
-    struct HashTypesRegistry {
-        std::size_t operator()(const TypesRegistry* registry) const { return registry->hash(); }
-    };
-
-    struct EqualsTypesRegistry {
-        bool operator()(const TypesRegistry* left, const TypesRegistry* right) const { return *left == *right; }
-    };
-
 private:  // members
 
     /// Cache of canonicalised requests
-    mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest, HashTypesRegistry, EqualsTypesRegistry>
-        canonicalised_;
+    mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest> canonicalised_;
 };
 
 
