@@ -19,6 +19,8 @@
 #ifndef fdb5_api_local_QueryVisitor_H
 #define fdb5_api_local_QueryVisitor_H
 
+#include <unordered_map>
+
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/rules/Rule.h"
 
@@ -26,9 +28,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -48,9 +48,9 @@ protected:  // methods
 
     const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
         bool success;
-        auto it = canonicalised_.find(&rule);
+        auto it = canonicalised_.find(&rule.registry());
         if (it == canonicalised_.end()) {
-            std::tie(it, success) = canonicalised_.emplace(&rule, rule.registry().canonicalise(request_));
+            std::tie(it, success) = canonicalised_.emplace(&rule.registry(), rule.registry().canonicalise(request_));
             ASSERT(success);
         }
         return it->second;
@@ -61,16 +61,29 @@ protected:  // members
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
+private:  // methods
+
+    struct HashTypesRegistry {
+        std::size_t operator()(const TypesRegistry* registry) const {
+            return registry->hash();
+        }
+    };
+
+    struct EqualsTypesRegistry {
+        bool operator()(const TypesRegistry* left, const TypesRegistry* right) const {
+            return *left == *right;
+        }
+    };
+
 private:    // members
 
-    mutable std::map<const Rule*, metkit::mars::MarsRequest> canonicalised_;
+    /// Cache of canonicalised requests
+    mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest, HashTypesRegistry, EqualsTypesRegistry> canonicalised_;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local
 
 #endif

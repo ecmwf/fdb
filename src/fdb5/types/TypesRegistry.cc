@@ -60,6 +60,20 @@ void TypesRegistry::encode(eckit::Stream& out) const {
     }
 }
 
+std::size_t TypesRegistry::hash() const {
+    std::size_t h = 0;
+    for (const auto& [keyword, type] : types_) {      
+        // this hash combine is inspired in the boost::hash_combine
+        std::string s = keyword + type;
+        h ^= std::hash<std::string>{}(s) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    }
+    return h;
+}
+
+bool TypesRegistry::operator==(const TypesRegistry& other) const {
+    return types_ == other.types_;
+}
+
 void TypesRegistry::updateParent(const TypesRegistry& parent) {
     parent_ = &parent;
 }
