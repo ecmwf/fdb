@@ -73,7 +73,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 #if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
-            dbs.push_back(full);
+            dbs.push_back(eckit::StringTools::lower(full));
         }
         else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
@@ -83,7 +83,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             eckit::Stat::Struct info;
             if (eckit::Stat::stat(full.c_str(), &info) == 0) {
                 if (S_ISDIR(info.st_mode)) {
-                    dbs.push_back(full);
+                    dbs.push_back(eckit::StringTools::lower(full));
                 }
             }
             else
@@ -136,6 +136,7 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
         LOG_DEBUG_LIB(LibFdb5) << "Scanning for TOC FDBs in root " << *j << std::endl;
 
+        std::string regex_prefix = "^" + eckit::StringToosls::lower(Regex::escape(j->asString())) + "/";
         std::list<std::string> dbs;
         scan_dbs(*j, dbs);
 
@@ -146,13 +147,12 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
             for (const std::string& dbpath : dbpaths) {
 
-                std::string regex = "^" + Regex::escape(j->asString()) + "/" + dbpath + "$";
-                std::regex reg(regex, std::regex::icase | std::regex::optimize);
+                std::string regex = regex_prefix + eckit::StringTools::lower(dbpath) + "$";
+                eckit::Regex reg(regex);
 
                 LOG_DEBUG_LIB(LibFdb5) << " -> key " << key << " dbpath " << dbpath << " pathregex " << regex
                                        << std::endl;
 
-                std::smatch m;
                 for (std::list<std::string>::const_iterator k = dbs.begin(); k != dbs.end(); ++k) {
 
                     LOG_DEBUG_LIB(LibFdb5) << "    -> db " << *k << std::endl;
@@ -160,8 +160,7 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
                     if (result.find(*k) != result.end()) {
                         continue;
                     }
-
-                    if (std::regex_match(*k, m, reg)) {
+                    if (reg.match(*k)) {
                         result[*k] = rule;
                     }
                 }

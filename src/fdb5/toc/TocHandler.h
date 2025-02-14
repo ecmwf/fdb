@@ -26,7 +26,6 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
@@ -127,7 +126,7 @@ public:  // methods
 
     /// Return a list of existent indexes. If supplied, also supply a list of associated
     /// subTocs that were read to get these indexes
-    std::vector<Index> loadIndexes(const Catalogue& catalogue, bool sorted = false,
+    std::vector<Index> loadIndexes(bool sorted = false,
                                    std::set<std::string>* subTocs = nullptr, std::vector<bool>* indexInSubtoc = nullptr,
                                    std::vector<Key>* remapKeys = nullptr) const;
 
@@ -144,7 +143,7 @@ public:  // methods
 
     DbStats stats() const;
 
-    void enumerateMasked(const Catalogue& catalogue, std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+    void enumerateMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                          std::set<eckit::URI>& data) const;
 
     std::vector<eckit::PathName> subTocPaths() const;
