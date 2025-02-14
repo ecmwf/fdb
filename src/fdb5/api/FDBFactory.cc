@@ -30,7 +30,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config), disabled_(false) {
+FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config) {
 
     bool writable  = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
@@ -59,11 +59,6 @@ std::string FDBBase::id() const {
     return ss.str();
 }
 
-FDBStats FDBBase::stats() const {
-    /// By default we have no additional internal statistics
-    return FDBStats();
-}
-
 const std::string& FDBBase::name() const {
     return name_;
 }
@@ -74,15 +69,6 @@ const Config& FDBBase::config() const {
 
 bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
-}
-
-void FDBBase::disable() {
-    eckit::Log::warning() << "Disabling FDB " << *this << std::endl;
-    disabled_ = true;
-}
-
-bool FDBBase::disabled() {
-    return disabled_;
 }
 
 FDBFactory& FDBFactory::instance() {
