@@ -48,6 +48,7 @@ done
 
 try fdb-write "$tname.grib"
 
+mv "localroot/rd:xxxx:oper:20201102:0000:g" "localroot/rd:XXXX:oper:20201102:0000:g"
 ########################################################################################################################
 # test all
 out=$(fdb-list --all --minimum-keys= --porcelain)

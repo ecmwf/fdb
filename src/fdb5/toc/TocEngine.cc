@@ -73,7 +73,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 #if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
-            dbs.push_back(eckit::StringTools::lower(full));
+            dbs.push_back(full);
         }
         else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
@@ -83,7 +83,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             eckit::Stat::Struct info;
             if (eckit::Stat::stat(full.c_str(), &info) == 0) {
                 if (S_ISDIR(info.st_mode)) {
-                    dbs.push_back(eckit::StringTools::lower(full));
+                    dbs.push_back(full);
                 }
             }
             else
@@ -153,15 +153,15 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
                 LOG_DEBUG_LIB(LibFdb5) << " -> key " << key << " dbpath " << dbpath << " pathregex " << regex
                                        << std::endl;
 
-                for (std::list<std::string>::const_iterator k = dbs.begin(); k != dbs.end(); ++k) {
+                for (const auto& db : dbs) {
 
-                    LOG_DEBUG_LIB(LibFdb5) << "    -> db " << *k << std::endl;
+                    LOG_DEBUG_LIB(LibFdb5) << "    -> db " << db << std::endl;
 
-                    if (result.find(*k) != result.end()) {
+                    if (result.find(db) != result.end()) {
                         continue;
                     }
-                    if (reg.match(*k)) {
-                        result[*k] = rule;
+                    if (reg.match(eckit::StringTools::lower(db))) {
+                        result[db] = rule;
                     }
                 }
             }
