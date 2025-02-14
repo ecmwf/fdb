@@ -59,11 +59,6 @@ std::string FDBBase::id() const {
     return ss.str();
 }
 
-FDBStats FDBBase::stats() const {
-    /// By default we have no additional internal statistics
-    return FDBStats();
-}
-
 const std::string& FDBBase::name() const {
     return name_;
 }

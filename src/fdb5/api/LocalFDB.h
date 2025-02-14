@@ -36,7 +36,6 @@ class LocalFDB : public FDBBase {
 public:  // methods
 
     using FDBBase::FDBBase;
-    using FDBBase::stats;
 
     void archive(const Key& key, const void* data, size_t length) override;
 

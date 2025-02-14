@@ -251,15 +251,6 @@ void DistFDB::flush() {
     }
 }
 
-FDBStats DistFDB::stats() const {
-    FDBStats s;
-    for (const auto& [lane, _] : lanes_) {
-        s += lane.internalStats();
-    }
-    return s;
-}
-
-
 void DistFDB::print(std::ostream& s) const {
     s << "DistFDB(home=" << config_.expandPath("~fdb") << ")";
 }
