@@ -1,5 +1,13 @@
-FDB Tools
+CLI Tools
 =========
+
+.. toctree::
+   :hidden:
+
+   write
+   list
+   read
+   mars
 
 Most common tools are the following:
 
@@ -8,7 +16,7 @@ Most common tools are the following:
 :fdb-read_: Read data from the FDB and write this data into a specified target file.
 
 
-.. _fdb-write: write.rst
+.. _fdb-write: <cli_tools/write>
 .. _fdb-list: list.rst
 .. _fdb-read: read.rst
 .. _MARS: mars.rst
