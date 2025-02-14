@@ -62,7 +62,7 @@ protected:  // members
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
 
-private:// methods
+private:  // methods
 
     struct HashTypesRegistry {
         std::size_t operator()(const TypesRegistry* registry) const { return registry->hash(); }
