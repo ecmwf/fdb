@@ -56,10 +56,6 @@ protected:  // methods
 
     std::string type() const override;
 
-    // std::vector<Index> loadIndexes(bool sorted = false, std::set<std::string>* subTocs = nullptr,
-    //                                std::vector<bool>* indexInSubtoc = nullptr,
-    //                                std::vector<Key>* remapKeys      = nullptr) const;
-
     void checkUID() const override;
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;

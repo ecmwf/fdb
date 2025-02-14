@@ -87,11 +87,9 @@ private:  // members
 
 }  // namespace fdb5
 
-template<>
+template <>
 struct std::hash<const fdb5::TypesRegistry*> {
-    std::size_t operator()(const fdb5::TypesRegistry* registry) const {
-        return registry->hash();
-    }
+    std::size_t operator()(const fdb5::TypesRegistry* registry) const { return registry->hash(); }
 };
 
 #endif
