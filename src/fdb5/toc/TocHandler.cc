@@ -1348,14 +1348,12 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
 
     {
         std::vector<std::future<void>> threads;
-        const int nthreads_shadow = nthreads;  // due to lambda capture rules disallowing static...
-
         std::vector<TocIndex*> tocindexes;
         tocindexes.resize(indexEntries.size());
 
         for (int i = 0; i < nthreads; ++i) {
             threads.emplace_back(std::async(
-                std::launch::async, [i, &indexEntries, &tocindexes, &nthreads_shadow, debug, this] {
+                std::launch::async, [i, &indexEntries, &tocindexes, debug, this] {
                     for (int idx = i; idx < indexEntries.size(); idx += nthreads) {
 
                         const IndexEntry& entry = indexEntries[idx];

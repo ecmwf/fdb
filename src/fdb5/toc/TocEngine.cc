@@ -136,7 +136,7 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
 
         LOG_DEBUG_LIB(LibFdb5) << "Scanning for TOC FDBs in root " << *j << std::endl;
 
-        std::string regex_prefix = "^" + eckit::StringToosls::lower(Regex::escape(j->asString())) + "/";
+        std::string regex_prefix = "^" + eckit::StringTools::lower(Regex::escape(j->asString())) + "/";
         std::list<std::string> dbs;
         scan_dbs(*j, dbs);
 
