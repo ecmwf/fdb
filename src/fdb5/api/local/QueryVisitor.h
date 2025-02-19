@@ -19,6 +19,7 @@
 #ifndef fdb5_api_local_QueryVisitor_H
 #define fdb5_api_local_QueryVisitor_H
 
+#include <tuple>
 #include <unordered_map>
 
 #include "fdb5/database/EntryVisitMechanism.h"
