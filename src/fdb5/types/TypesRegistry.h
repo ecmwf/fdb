@@ -16,6 +16,7 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -58,6 +59,10 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
+    std::size_t hash() const;
+
+    bool operator==(const TypesRegistry& other) const;
+
 private:  // methods
 
     void print(std::ostream& out) const;
@@ -82,5 +87,15 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
+
+template <>
+struct std::hash<const fdb5::TypesRegistry*> {
+    std::size_t operator()(const fdb5::TypesRegistry* registry) const { return registry->hash(); }
+};
+
+template <>
+struct std::equal_to<const fdb5::TypesRegistry*> {
+    bool operator()(const fdb5::TypesRegistry* left, const fdb5::TypesRegistry* right) const { return *left == *right; }
+};
 
 #endif

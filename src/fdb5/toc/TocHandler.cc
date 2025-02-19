@@ -1251,7 +1251,7 @@ const eckit::LocalPathName& TocHandler::directory() const {
     return directory_;
 }
 
-std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sorted, std::set<std::string>* subTocs,
+std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* subTocs,
                                            std::vector<bool>* indexInSubtoc, std::vector<Key>* remapKeys) const {
 
     std::vector<Index> indexes;
@@ -1348,30 +1348,27 @@ std::vector<Index> TocHandler::loadIndexes(const Catalogue& catalogue, bool sort
 
     {
         std::vector<std::future<void>> threads;
-        const int nthreads_shadow = nthreads;  // due to lambda capture rules disallowing static...
-
         std::vector<TocIndex*> tocindexes;
         tocindexes.resize(indexEntries.size());
 
         for (int i = 0; i < nthreads; ++i) {
-            threads.emplace_back(std::async(
-                std::launch::async, [i, &indexEntries, &tocindexes, &nthreads_shadow, debug, &catalogue, this] {
-                    for (int idx = i; idx < indexEntries.size(); idx += nthreads) {
+            threads.emplace_back(std::async(std::launch::async, [i, &indexEntries, &tocindexes, debug, this] {
+                for (int idx = i; idx < indexEntries.size(); idx += nthreads) {
 
-                        const IndexEntry& entry = indexEntries[idx];
-                        eckit::MemoryStream s(entry.datap->payload_, entry.dataLen - sizeof(TocRecord::Header));
-                        LocalPathName path;
-                        off_t offset;
-                        std::string type;
-                        s >> path;
-                        s >> offset;
-                        s >> type;
-                        LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-                        tocindexes[entry.seqNo] =
-                            new TocIndex(s, entry.datap->header_.serialisationVersion_, entry.tocDirectoryName,
-                                         entry.tocDirectoryName / path, offset, preloadBTree_);
-                    }
-                }));
+                    const IndexEntry& entry = indexEntries[idx];
+                    eckit::MemoryStream s(entry.datap->payload_, entry.dataLen - sizeof(TocRecord::Header));
+                    LocalPathName path;
+                    off_t offset;
+                    std::string type;
+                    s >> path;
+                    s >> offset;
+                    s >> type;
+                    LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
+                    tocindexes[entry.seqNo] =
+                        new TocIndex(s, entry.datap->header_.serialisationVersion_, entry.tocDirectoryName,
+                                     entry.tocDirectoryName / path, offset, preloadBTree_);
+                }
+            }));
         }
 
         for (auto& thread : threads)
@@ -1573,8 +1570,7 @@ DbStats TocHandler::stats() const {
 }
 
 
-void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<eckit::URI, Offset>>& metadata,
-                                 std::set<eckit::URI>& data) const {
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata, std::set<eckit::URI>& data) const {
 
     if (!enumeratedMaskedEntries_) {
         populateMaskedEntriesList();
@@ -1602,9 +1598,9 @@ void TocHandler::enumerateMasked(const Catalogue& catalogue, std::set<std::pair<
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
                 TocHandler h(absPath, remapKey_);
 
-                h.enumerateMasked(catalogue, metadata, data);
+                h.enumerateMasked(metadata, data);
 
-                std::vector<Index> indexes = h.loadIndexes(catalogue);
+                std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
                     metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataURI : i.dataURIs()) {
