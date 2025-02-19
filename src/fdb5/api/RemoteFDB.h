@@ -71,8 +71,8 @@ public:  // method
 private:  // methods
 
     template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
-        -> APIIterator<typename HelperClass::ValueType>;
+    auto forwardApiCall(const HelperClass& helper,
+                        const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
 
     void print(std::ostream& s) const override;
 

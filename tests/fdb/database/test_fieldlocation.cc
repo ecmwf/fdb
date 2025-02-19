@@ -24,7 +24,7 @@ namespace fdb::test {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FieldLocation - shared_ptr") {
-    URI uri {"dummy_uri"};
+    URI uri{"dummy_uri"};
 
     // GOOD (not best)
     {

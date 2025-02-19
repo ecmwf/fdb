@@ -195,8 +195,8 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 
 
 template <typename HelperClass>
-auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
-    -> APIIterator<typename HelperClass::ValueType> {
+auto RemoteFDB::forwardApiCall(const HelperClass& helper,
+                               const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType> {
 
     using ValueType     = typename HelperClass::ValueType;
     using IteratorType  = APIIterator<ValueType>;

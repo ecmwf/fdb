@@ -508,8 +508,8 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t* oid,
 
     *oid = next_oid;
     *oid |= (((uint64_t)pid) & pid_mask) << 28;
-    *oid |= (((uint64_t)*(((unsigned char*)uuid) + 1)) << 48);
-    *oid |= (((uint64_t)*((unsigned char*)uuid)) << 56);
+    *oid |= (((uint64_t) * (((unsigned char*)uuid) + 1)) << 48);
+    *oid |= (((uint64_t) * ((unsigned char*)uuid)) << 56);
 
     next_oid += num_oids;
 

@@ -8,12 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocIndex.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
 #include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
 #include <memory>

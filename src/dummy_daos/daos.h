@@ -63,8 +63,10 @@
 #define DAOS_PROP_ENTRIES_MAX_NR (128)
 
 #define DAOS_ANCHOR_BUF_MAX 104
-#define DAOS_ANCHOR_INIT \
-    {.da_type = DAOS_ANCHOR_TYPE_ZERO, .da_shard = 0, .da_flags = 0, .da_sub_anchors = 0, .da_buf = {0}}
+#define DAOS_ANCHOR_INIT                                                                                     \
+    {                                                                                                        \
+        .da_type = DAOS_ANCHOR_TYPE_ZERO, .da_shard = 0, .da_flags = 0, .da_sub_anchors = 0, .da_buf = { 0 } \
+    }
 
 #define DER_EXIST 1004
 #define DER_NONEXIST 1005

@@ -155,8 +155,8 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
  */
 
 template <typename QueryFN>
-auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
-    -> decltype(fn(*(FDB*)(nullptr), request)) {
+auto DistFDB::queryInternal(const FDBToolRequest& request,
+                            const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
     using ValueType     = typename QueryIterator::value_type;
