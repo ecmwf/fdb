@@ -8,13 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/FieldLocation.h"
+
+#include "fdb5/LibFdb5.h"
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/FieldLocation.h"
+#include <memory>
+#include <ostream>
 
 namespace fdb5 {
 
@@ -57,8 +61,9 @@ void FieldLocationFactory::list(std::ostream& out) {
     }
 }
 
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri, eckit::Offset offset,
-                                           eckit::Length length, const Key& remapKey) {
+std::shared_ptr<FieldLocation> FieldLocationFactory::build(const std::string& name, const eckit::URI& uri,
+                                                           eckit::Offset offset, eckit::Length length,
+                                                           const Key& remapKey) {
 
     ASSERT(length != 0);
 
@@ -76,10 +81,10 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
-    return (*j).second->make(uri, offset, length, remapKey);
+    return std::shared_ptr<FieldLocation>((*j).second->make(uri, offset, length, remapKey));
 }
 
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri) {
+std::shared_ptr<FieldLocation> FieldLocationFactory::build(const std::string& name, const eckit::URI& uri) {
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -95,7 +100,7 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
-    return (*j).second->make(uri);
+    return std::shared_ptr<FieldLocation>((*j).second->make(uri));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

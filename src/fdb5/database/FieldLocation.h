@@ -13,22 +13,19 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_FieldLocation_H
-#define fdb5_FieldLocation_H
+#pragma once
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/serialisation/Reanimator.h"
-#include "eckit/thread/Mutex.h"
-#include "fdb5/database/Key.h"
+#include <iosfwd>
+#include <map>
+#include <memory>
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
-#include "eckit/memory/Owned.h"
 #include "eckit/serialisation/Streamable.h"
 
 #include <iosfwd>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -42,9 +39,7 @@ namespace fdb5 {
 
 class FieldLocationVisitor;
 
-class FieldLocation : public eckit::OwnedLock,
-                      public eckit::Streamable,
-                      public std::enable_shared_from_this<FieldLocation> {
+class FieldLocation : public eckit::Streamable, public std::enable_shared_from_this<FieldLocation> {
 public:  // methods
 
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
@@ -63,17 +58,6 @@ public:  // methods
     const Key& remapKey() const { return remapKey_; }
 
     virtual eckit::DataHandle* dataHandle() const = 0;
-
-
-    /// This creates a shared pointer from an existing instance that is already managed by a `std::shared_ptr`.
-    /// @warning This method is not intended to be used on non-shared instances.
-    std::shared_ptr<FieldLocation> make_shared() { return shared_from_this(); }
-
-    /// This creates a const shared pointer from an existing instance that is already managed by a `std::shared_ptr`.
-    /// @warning This method is not intended to be used on non-shared instances.
-    std::shared_ptr<const FieldLocation> make_shared() const { return shared_from_this(); }
-
-    virtual std::shared_ptr<const FieldLocation> stableLocation() const { return shared_from_this(); }
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
@@ -148,9 +132,9 @@ public:
     void list(std::ostream&);
 
     /// @returns a specialized FieldLocation built by specified builder
-    FieldLocation* build(const std::string&, const eckit::URI&);
-    FieldLocation* build(const std::string&, const eckit::URI&, eckit::Offset offset, eckit::Length length,
-                         const Key& remapKey);
+    std::shared_ptr<FieldLocation> build(const std::string&, const eckit::URI&);
+    std::shared_ptr<FieldLocation> build(const std::string&, const eckit::URI&, eckit::Offset offset,
+                                         eckit::Length length, const Key& remapKey);
 
 private:
 
@@ -186,5 +170,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

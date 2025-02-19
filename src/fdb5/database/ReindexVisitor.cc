@@ -17,7 +17,7 @@ ReindexVisitor::ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, con
 bool ReindexVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     checkMissingKeys(fullKey);
     const Key idxKey = catalogue()->currentIndexKey();
-    catalogue()->archive(idxKey, datumKey, fieldLocation_.make_shared());
+    catalogue()->archive(idxKey, datumKey, fieldLocation_.shared_from_this());
     return true;
 }
 
