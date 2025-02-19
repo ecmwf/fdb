@@ -8,12 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -82,10 +85,10 @@ bool TocIndex::get(const Key& key, const Key& remapKey, Field& field) const {
     bool found = btree_->get(key.valuesToString(), ref);
     if (found) {
         const eckit::URI& uri = uris_.get(ref.uriId());
-        FieldLocation* loc =
-            FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey);
-        field = Field(std::move(*loc), timestamp_, ref.details());
-        delete (loc);
+        std::shared_ptr<FieldLocation> loc
+            {FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey)};
+        field = Field(std::move(loc), timestamp_, ref.details());
+        // delete (loc);
     }
     return found;
 }
@@ -172,7 +175,7 @@ public:
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
 
-        Field field(TocFieldLocation(uris_, ref), visitor_.indexTimestamp(), ref.details());
+        Field field(std::make_shared<TocFieldLocation>(uris_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };

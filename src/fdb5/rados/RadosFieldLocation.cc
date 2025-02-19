@@ -36,10 +36,6 @@ RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) : FieldLoc
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
 
-std::shared_ptr<const FieldLocation> RadosFieldLocation::make_shared() const {
-    return std::make_shared<RadosFieldLocation>(std::move(*this));
-}
-
 eckit::DataHandle* RadosFieldLocation::dataHandle() const {
     eckit::RadosReadHandle* g = new eckit::RadosReadHandle(uri_.name(), offset(), length());
 
