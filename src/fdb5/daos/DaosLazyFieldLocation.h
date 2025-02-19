@@ -38,8 +38,6 @@ public:
 
     void visit(FieldLocationVisitor& visitor) const override;
 
-    std::shared_ptr<const FieldLocation> stableLocation() const override;
-
 private:  // methods
 
     std::unique_ptr<fdb5::FieldLocation>& realise() const;

@@ -37,10 +37,6 @@ void DaosLazyFieldLocation::visit(FieldLocationVisitor& visitor) const {
     realise()->visit(visitor);
 }
 
-std::shared_ptr<const FieldLocation> DaosLazyFieldLocation::stableLocation() const {
-    return realise()->make_shared();
-}
-
 std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
 
     if (fl_)
