@@ -14,10 +14,10 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocWipeVisitor.h"
-#include "fdb5/toc/TocMoveVisitor.h"
 
 using namespace eckit;
 
@@ -29,12 +29,11 @@ TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
     TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
 
 TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
-    Catalogue(key, tocPath.controlIdentifiers_, config),
-    TocHandler(tocPath.directory_, config) {}
+    CatalogueImpl(key, tocPath.controlIdentifiers_, config), TocHandler(tocPath.directory_, config) {}
 
-TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config),
-    TocHandler(directory, config) {
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers,
+                           const fdb5::Config& config) :
+    CatalogueImpl(Key(), controlIdentifiers, config), TocHandler(directory, config) {
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
 }
@@ -61,8 +60,9 @@ const Schema& TocCatalogue::schema() const {
     return *schema_;
 }
 
-const eckit::PathName& TocCatalogue::basePath() const {
-    return directory_;
+const Rule& TocCatalogue::rule() const {
+    ASSERT(rule_);
+    return *rule_;
 }
 
 std::vector<PathName> TocCatalogue::metadataPaths() const {
@@ -81,25 +81,28 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
+    rule_   = &schema_->matchingRule(dbKey_);
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
     return new TocStatsReportVisitor(*this);
 }
 
-PurgeVisitor *TocCatalogue::purgeVisitor(const Store& store) const {
+PurgeVisitor* TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
+                                       bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new TocWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
 
-MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
+MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                       const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     return new TocMoveVisitor(*this, store, request, dest, queue);
 }
 
-void TocCatalogue::maskIndexEntry(const Index &index) const {
+void TocCatalogue::maskIndexEntry(const Index& index) const {
     TocHandler handler(basePath(), config_);
     handler.writeClearRecord(index);
 }
@@ -108,14 +111,12 @@ std::vector<Index> TocCatalogue::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }
 
-void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
-                      std::set<URI>& data) const {
+void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata, std::set<URI>& data) const {
     enumerateMasked(metadata, data);
 }
 
-std::string TocCatalogue::type() const
-{
-    return TocCatalogue::catalogueTypeName();
+std::string TocCatalogue::type() const {
+    return TocEngine::typeName();
 }
 
 void TocCatalogue::checkUID() const {
@@ -126,11 +127,14 @@ void TocCatalogue::remove(const eckit::PathName& path, std::ostream& logAlways, 
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
-        if (doit) path.rmdir(false);
-    } else {
+        if (doit)
+            path.rmdir(false);
+    }
+    else {
         logVerbose << "Unlinking: ";
         logAlways << path << std::endl;
-        if (doit) path.unlink(false);
+        if (doit)
+            path.unlink(false);
     }
 }
 
@@ -139,9 +143,9 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
-    return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
+    return CatalogueImpl::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -1,0 +1,13 @@
+---
+UseColor: On
+Checks: >-
+  -*,
+  readability-delete-null-pointer,
+  bugprone-parent-virtual-call,
+
+WarningsAsErrors:             false
+HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
+ImplementationFileExtensions: ['c','cc','cpp','cxx']
+HeaderFilterRegex:            '.*'
+FormatStyle:                  none
+InheritParentConfig:          false

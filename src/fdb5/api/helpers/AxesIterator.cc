@@ -19,8 +19,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesElement::AxesElement(Key&& dbKey, IndexAxis&& axes) :
-        dbKey_(std::move(dbKey)), axes_(std::move(axes)) {}
+AxesElement::AxesElement(Key&& dbKey, IndexAxis&& axes) : dbKey_(std::move(dbKey)), axes_(std::move(axes)) {}
 
 AxesElement::AxesElement(eckit::Stream& s) {
     s >> dbKey_;
@@ -31,6 +30,10 @@ void AxesElement::print(std::ostream& out) const {
     out << "Axes(db=" << dbKey_ << ", axes=" << axes_ << ")";
 }
 
+size_t AxesElement::encodeSize() const {
+    return dbKey_.encodeSize() + axes_.encodeSize(IndexAxis::currentVersion());
+}
+
 void AxesElement::encode(eckit::Stream& s) const {
     s << dbKey_;
     axes_.encode(s, IndexAxis::currentVersion());
@@ -38,4 +41,4 @@ void AxesElement::encode(eckit::Stream& s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

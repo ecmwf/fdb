@@ -12,45 +12,37 @@
 /// @author Tiagop Quintino
 /// @date   Nov 2019
 
-#ifndef fdb5_remote_FdbServer_H
-#define fdb5_remote_FdbServer_H
+#pragma once
 
 #include <unistd.h>
-#include <stdlib.h>
 #include <thread>
 
 #include "eckit/net/Port.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/Application.h"
-#include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/Monitor.h"
+#include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/ProcessControler.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/config/Config.h"
 
-
-#include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
-
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
 class FDBForker : public eckit::ProcessControler {
 
-public: // methods
+public:  // methods
 
     FDBForker(eckit::net::TCPSocket& socket, const Config& config);
-    virtual ~FDBForker() override;
+    ~FDBForker() override;
 
-private: // methods
+private:  // methods
 
-    virtual void run() override;
+    void run() override;
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
@@ -72,7 +64,7 @@ private:
     int port_;
     std::thread reaperThread_;
 
-    FdbServerBase(const FdbServerBase&) = delete;
+    FdbServerBase(const FdbServerBase&)            = delete;
     FdbServerBase& operator=(const FdbServerBase&) = delete;
 
     virtual void hookUnique() = 0;
@@ -84,19 +76,16 @@ private:
 
 class FdbServer : public eckit::Application, public FdbServerBase {
 public:
+
     FdbServer(int argc, char** argv, const char* home);
 
-    virtual ~FdbServer() override;
+    ~FdbServer() override;
 
-    virtual void run() override;
+    void run() override;
 
-    void virtual hookUnique() override; // non-unique
-
+    void hookUnique() override;  // non-unique
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
-
-#endif // fdb5_remote_FdbServer_H
+}  // namespace fdb5::remote

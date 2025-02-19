@@ -18,35 +18,39 @@
 
 namespace fdb5 {
 
-::eckit::ClassSpec TocFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "TocFieldLocation",};
+::eckit::ClassSpec TocFieldLocation::classSpec_ = {
+    &FieldLocation::classSpec(),
+    "TocFieldLocation",
+};
 ::eckit::Reanimator<TocFieldLocation> TocFieldLocation::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//TocFieldLocation::TocFieldLocation() {}
+// TocFieldLocation::TocFieldLocation() {}
 
-TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length,
+                                   const Key& remapKey) :
     FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
-TocFieldLocation::TocFieldLocation(const eckit::URI &uri) :
-    FieldLocation(uri) {}
+TocFieldLocation::TocFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
-TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+TocFieldLocation::TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                   const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-TocFieldLocation::TocFieldLocation(const UriStore &store, const FieldRef &ref) :
+TocFieldLocation::TocFieldLocation(const UriStore& store, const FieldRef& ref) :
     FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}
 
-TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
-    FieldLocation(s) {}
+TocFieldLocation::TocFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
-eckit::DataHandle *TocFieldLocation::dataHandle() const {
+eckit::DataHandle* TocFieldLocation::dataHandle() const {
     if (remapKey_.empty()) {
         return uri_.path().partHandle(offset(), length());
-    } else {
+    }
+    else {
 #if fdb5_HAVE_GRIB
         return new SingleGribMungePartFileHandle(uri_.path(), offset(), length(), remapKey_);
 #else
@@ -55,8 +59,9 @@ eckit::DataHandle *TocFieldLocation::dataHandle() const {
     }
 }
 
-void TocFieldLocation::print(std::ostream &out) const {
-    out << "TocFieldLocation[uri=" << uri_ << ",offset=" << offset() << ",length=" << length() << ",remapKey=" << remapKey_ << "]";
+void TocFieldLocation::print(std::ostream& out) const {
+    out << "TocFieldLocation[uri=" << uri_ << ",offset=" << offset() << ",length=" << length()
+        << ",remapKey=" << remapKey_ << "]";
 }
 
 void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -64,7 +69,8 @@ void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
 }
 
 void TocFieldLocation::encode(eckit::Stream& s) const {
-    LOG_DEBUG(LibFdb5::instance().debug(), LibFdb5) << "TocFieldLocation encode URI " << uri_.asRawString() << std::endl;
+    LOG_DEBUG(LibFdb5::instance().debug(), LibFdb5)
+        << "TocFieldLocation encode URI " << uri_.asRawString() << std::endl;
 
     FieldLocation::encode(s);
 }
@@ -73,4 +79,4 @@ static FieldLocationBuilder<TocFieldLocation> builder("file");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

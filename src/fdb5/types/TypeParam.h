@@ -24,30 +24,24 @@ namespace fdb5 {
 
 class TypeParam : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeParam(const std::string &name, const std::string &type);
+    TypeParam(const std::string& name, const std::string& type);
 
-    virtual ~TypeParam() override;
+    ~TypeParam() override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const DB *db) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
 
-    virtual bool match(const std::string& keyword,
-                       const std::string& value1,
-                       const std::string& value2) const override;
+    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

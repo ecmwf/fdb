@@ -17,8 +17,12 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Field.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/Field.h"
+
+namespace eckit {
+class URI;
+}
 
 namespace fdb5 {
 
@@ -26,6 +30,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
+class Rule;
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -41,8 +46,9 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index); // return true if index should be explored
+    virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
+    virtual bool visitDatabase(const Catalogue& catalogue);  // return true if Catalogue should be explored
+    virtual bool visitIndex(const Index& index);             // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
@@ -50,16 +56,24 @@ public:  // methods
 
     time_t indexTimestamp() const;
 
-private: // methods
+protected:
 
-    virtual void visitDatum(const Field& field, const Key& key) = 0;
+    Store& store() const;
+
+private:  // methods
+
+    virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
 
-    // n.b. non-owning
-    const Catalogue* currentCatalogue_;
-    const Store* currentStore_;
-    const Index* currentIndex_;
+    /// Non-owning
+    const Catalogue* currentCatalogue_{nullptr};
+    /// Owned store
+    mutable Store* currentStore_{nullptr};
+    /// Non-owning
+    const Index* currentIndex_{nullptr};
+    /// Non-owning
+    const Rule* rule_{nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
