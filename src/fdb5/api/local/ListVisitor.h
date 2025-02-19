@@ -136,8 +136,8 @@ public:
                 datumRequest_.unsetValues(k);
             }
             if (datumRequest_.parameters().size() == 0) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                               field.timestamp());
+                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey,
+                               field.location().shared_from_this(), field.timestamp());
             }
         }
     }
