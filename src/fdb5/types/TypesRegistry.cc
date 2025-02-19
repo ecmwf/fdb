@@ -60,6 +60,21 @@ void TypesRegistry::encode(eckit::Stream& out) const {
     }
 }
 
+std::size_t TypesRegistry::hash() const {
+    std::size_t h = 0;
+
+    for (const auto& [keyword, type] : types_) {
+        // this hash combine is inspired in the boost::hash_combine
+        std::string s = keyword + type;
+        h ^= std::hash<std::string>{}(s) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    }
+    return h;
+}
+
+bool TypesRegistry::operator==(const TypesRegistry& other) const {
+    return types_ == other.types_;
+}
+
 void TypesRegistry::updateParent(const TypesRegistry& parent) {
     parent_ = &parent;
 }
@@ -98,11 +113,16 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
 
     for (const auto& param : request.parameters()) {
         const std::vector<std::string>& srcVals = param.values();
+        std::set<std::string> uniqueVals;
         std::vector<std::string> vals;
-        vals.reserve(srcVals.size());
         const Type& type = lookupType(param.name());
-        for (const auto& v : srcVals) {
-            vals.push_back(type.toKey(v));
+        for (const std::string& v : srcVals) {
+            std::string newVal = type.toKey(v);
+            auto it            = uniqueVals.find(newVal);
+            if (it == uniqueVals.end()) {
+                vals.push_back(newVal);
+                uniqueVals.insert(newVal);
+            }
         }
         result.values(type.alias(), vals);
     }

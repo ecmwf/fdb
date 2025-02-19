@@ -81,8 +81,6 @@ private:  // types
 
 public:  // methods
 
-    using FDBBase::stats;
-
     ApiSpy(const fdb5::Config& config, const std::string& name) : FDBBase(config, name) {
         knownSpies().push_back(this);
     }

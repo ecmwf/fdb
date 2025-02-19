@@ -57,7 +57,6 @@ FDB::~FDB() {
     flush();
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
 }
 
@@ -281,10 +280,6 @@ FDBStats FDB::stats() const {
     return stats_;
 }
 
-FDBStats FDB::internalStats() const {
-    return internal_->stats();
-}
-
 const std::string& FDB::name() const {
     return internal_->name();
 }
@@ -326,14 +321,6 @@ AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
 
 bool FDB::dirty() const {
     return dirty_;
-}
-
-void FDB::disable() {
-    internal_->disable();
-}
-
-bool FDB::disabled() const {
-    return internal_->disabled();
 }
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {

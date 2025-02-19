@@ -130,7 +130,8 @@ void IndexBase::put(const Key& key, const Field& field) {
     add(key, field);
 }
 
-bool IndexBase::partialMatch(const metkit::mars::MarsRequest& indexRequest, const metkit::mars::MarsRequest& datumRequest) const {
+bool IndexBase::partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                             const metkit::mars::MarsRequest& datumRequest) const {
 
     if (!key_.partialMatch(indexRequest)) {
         return false;
