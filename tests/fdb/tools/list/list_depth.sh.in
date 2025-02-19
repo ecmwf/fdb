@@ -52,6 +52,7 @@ try fdb-write "data.$test_name.grib"
 work_dir=$(pwd)
 echo "Working directory: $work_dir"
 
+mv "localroot/rd:xxxx:oper:20201102:0000:g" "localroot/rd:XXXX:oper:20201102:0000:g"
 ########################################################################################################################
 
 echo "Test: all"
