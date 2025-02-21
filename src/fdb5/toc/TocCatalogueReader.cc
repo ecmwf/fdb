@@ -107,45 +107,6 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << "  " << key.names() << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 
-    // const MatchList* matching = nullptr;
-
-    // const auto& names = key.names();
-    // for (const auto& name : names) {
-    //     Key tmpKey = key;
-    //     tmpKey.unset(name);
-
-    //     if (const auto& iter = keyMatching_.find(tmpKey); iter != keyMatching_.end()) {
-    //         matching = &(iter->second);
-    //     }
-
-    //     // make refined list
-    //     for (const auto* pair : matching_) {
-    //         if (pair->first.mayContainPartial(tmpKey)) {
-    //             keyMatching_[tmpKey].emplace_back(pair);
-    //         }
-    //     }
-    // }
-
-    // if (matching) {
-    //     for (const auto* pair : *matching) {
-    //         const auto& [index, remapKey] = *pair;
-    //         const_cast<Index&>(index).open();
-    //         if (index.get(key, remapKey, field)) {
-    //             return true;
-    //         }
-    //     }
-    // }
-    // else {
-    //     for (const auto* pair : matching_) {
-    //         const auto& [index, remapKey] = *pair;
-    //         if (index.mayContain(key)) {
-    //             const_cast<Index&>(index).open();
-    //             if (index.get(key, remapKey, field)) {
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    // }
     for (const auto& m : matching_) {
         const Index& idx(m->first);
         Key remapKey = m->second;
