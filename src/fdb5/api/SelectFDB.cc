@@ -63,6 +63,19 @@ std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfigurati
 }
 
 
+FDB& SelectFDB::FDBLane::get() {
+    if (!fdb) {
+        fdb.emplace(config);
+    }
+    return *fdb;
+}
+
+void SelectFDB::FDBLane::flush() {
+    if (fdb) {
+        fdb->flush();
+    }
+}
+
 SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "select");
@@ -72,7 +85,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     for (const auto& c : config.getSubConfigs("fdbs")) {
-        subFdbs_.emplace_back(std::make_pair(parseFDBSelect(c), FDB(c)));
+        subFdbs_.emplace_back(FDBLane{parseFDBSelect(c), c, std::optional<FDB>{}});
     }
 }
 
@@ -81,13 +94,9 @@ SelectFDB::~SelectFDB() {}
 
 void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
-    for (auto& iter : subFdbs_) {
-
-        const SelectMap& select(iter.first);
-        FDB& fdb(iter.second);
-
-        if (matches(key, select, true)) {
-            fdb.archive(key, data, length);
+    for (auto& lane : subFdbs_) {
+        if (matches(key, lane.select, true)) {
+            lane.get().archive(key, data, length);
             return;
         }
     }
@@ -101,14 +110,10 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 
     std::queue<APIIterator<ListElement>> lists;
 
-    for (auto& iter : subFdbs_) {
-
-        const SelectMap& select(iter.first);
-        FDB& fdb(iter.second);
-
+    for (auto& lane : subFdbs_) {
         // If we want to allow non-fully-specified retrieves, make false here.
-        if (matches(request, select, true)) {
-            lists.push(fdb.inspect(request));
+        if (matches(request, lane.select, true)) {
+            lists.push(lane.get().inspect(request));
         }
     }
 
@@ -124,13 +129,9 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
 
     std::queue<APIIterator<ValueType>> iterQueue;
 
-    for (auto& iter : subFdbs_) {
-
-        const SelectMap& select(iter.first);
-        FDB& fdb(iter.second);
-
-        if (matches(request.request(), select, false) || request.all()) {
-            iterQueue.push(fn(fdb, request));
+    for (auto& lane : subFdbs_) {
+        if (matches(request.request(), lane.select, false) || request.all()) {
+            iterQueue.push(fn(lane.get(), request));
         }
     }
 
@@ -188,9 +189,8 @@ AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, int level) {
 }
 
 void SelectFDB::flush() {
-    for (auto& iter : subFdbs_) {
-        FDB& fdb(iter.second);
-        fdb.flush();
+    for (auto& lane : subFdbs_) {
+        lane.flush();
     }
 }
 

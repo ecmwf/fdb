@@ -16,10 +16,10 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_SelectFDB_H
-#define fdb5_api_SelectFDB_H
+#pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,6 +37,15 @@ class SelectFDB : public FDBBase {
 private:  // types
 
     using SelectMap = std::map<std::string, eckit::Regex>;
+
+    struct FDBLane {
+        SelectMap select;
+        Config config;
+        std::optional<FDB> fdb;
+
+        FDB& get();
+        void flush();
+    };
 
 public:  // methods
 
@@ -83,11 +92,10 @@ private:  // methods
 
 private:  // members
 
-    std::vector<std::pair<SelectMap, FDB>> subFdbs_;
+    std::vector<FDBLane> subFdbs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
 
-#endif  // fdb5_api_SelectFDB_H
