@@ -153,18 +153,22 @@ public:  // methods
     eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false);
 
     /// Retrieve data which is specified by a MARS request.
+    /// This is a shorthand for `fdb.read(fdb.inspect(...))`
     /// @param request MarsRequest which describes the data which should be retrieved
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
-    // TODO(kkratz): Provide doc!
+    /// Inspect queries fdb for the data location corresponding to the MARS request.
+    /// Note: The request has to be fully qualified, i.e. with all keys specified.
+    /// @param request fully qualified mars request
+    /// @return ListIterator over matching keys and the respective field location.
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
     /// List data present at the archive and which can be retrieved.
     /// @param request FDBToolRequest stating which data should be queried
     /// @param deduplicate bool whether the returned iterator should ignore duplicates
     /// @param length Size of the data to archive with the given @p key
-    /// @return ListIterator for iterating over the set of found items
+    /// @return ListIterator over matching keys and the respective field location.
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
     /// Dump the structural content of the FDB
@@ -232,7 +236,9 @@ public:  // methods
     ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers);
 
     // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
+    /// Maps all keywords to all its available values.
+    /// <INSERT MORE DESC>
+    /// @param request to filter axis on
     /// @param level maximum level the axis visitor should respect
     /// @return IndexAxis
     IndexAxis axes(const FDBToolRequest& request, int level = 3);
