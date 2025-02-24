@@ -8,21 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
 
-#include "eckit/config/Resource.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Log.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
+
+#include "eckit/log/Log.h"
+
+#include <memory>
 
 using namespace eckit;
 
@@ -129,7 +127,7 @@ void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
+    Field field(std::make_shared<TocFieldLocation>(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 

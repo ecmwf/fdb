@@ -35,7 +35,6 @@ public:
     RadosFieldLocation(eckit::Stream&);
     eckit::DataHandle* dataHandle() const override;
     eckit::DataHandle* dataHandle(const Key& remapKey) const override;
-    std::shared_ptr<const FieldLocation> make_shared() const override;
     void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable

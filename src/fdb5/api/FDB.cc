@@ -165,7 +165,7 @@ public:
 };
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
-    auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+    auto location = FieldLocationFactory::instance().build(uri.scheme(), uri);
     return location->dataHandle();
 }
 
@@ -173,7 +173,7 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
-        auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+        auto location = FieldLocationFactory::instance().build(uri.scheme(), uri);
         result.add(location->dataHandle());
     }
 

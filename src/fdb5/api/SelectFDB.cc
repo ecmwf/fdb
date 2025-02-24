@@ -116,8 +116,8 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 }
 
 template <typename QueryFN>
-auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
-    -> decltype(fn(*(FDB*)(nullptr), request)) {
+auto SelectFDB::queryInternal(const FDBToolRequest& request,
+                              const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
     using ValueType     = typename QueryIterator::value_type;

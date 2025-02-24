@@ -103,8 +103,8 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
             }
         }
 
-        iterator_.emplace(
-            {catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
+        iterator_.emplace({catalogue_->key(), catalogue_->indexKey(), simplifiedKey,
+                           field.location().shared_from_this(), field.timestamp()});
         return true;
     }
 

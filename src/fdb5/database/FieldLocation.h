@@ -13,18 +13,21 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_FieldLocation_H
-#define fdb5_FieldLocation_H
+#pragma once
 
-#include <eckit/filesystem/URI.h>
+#include <iosfwd>
+#include <map>
 #include <memory>
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
-#include "eckit/memory/Owned.h"
 #include "eckit/serialisation/Streamable.h"
 
-#include "fdb5/database/Key.h"
+#include <iosfwd>
+#include <memory>
+#include <string>
 
 namespace eckit {
 class DataHandle;
@@ -36,7 +39,7 @@ namespace fdb5 {
 
 class FieldLocationVisitor;
 
-class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
+class FieldLocation : public eckit::Streamable, public std::enable_shared_from_this<FieldLocation> {
 public:  // methods
 
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
@@ -55,11 +58,6 @@ public:  // methods
     const Key& remapKey() const { return remapKey_; }
 
     virtual eckit::DataHandle* dataHandle() const = 0;
-
-    /// Create a (shared) copy of the current object, for storage in a general container.
-    virtual std::shared_ptr<const FieldLocation> make_shared() const = 0;
-
-    virtual std::shared_ptr<const FieldLocation> stableLocation() const { return make_shared(); }
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
@@ -134,9 +132,9 @@ public:
     void list(std::ostream&);
 
     /// @returns a specialized FieldLocation built by specified builder
-    FieldLocation* build(const std::string&, const eckit::URI&);
-    FieldLocation* build(const std::string&, const eckit::URI&, eckit::Offset offset, eckit::Length length,
-                         const Key& remapKey);
+    std::shared_ptr<FieldLocation> build(const std::string&, const eckit::URI&);
+    std::shared_ptr<FieldLocation> build(const std::string&, const eckit::URI&, eckit::Offset offset,
+                                         eckit::Length length, const Key& remapKey);
 
 private:
 
@@ -172,5 +170,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
