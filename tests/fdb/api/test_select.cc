@@ -131,7 +131,7 @@ CASE("archives_distributed_according_to_select") {
     // And unused functions
 
     ApiSpy* spies[] = {&spy_od, &spy_rd2};
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
