@@ -74,6 +74,7 @@ private:  // methods
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();
     void dataWriteThreadLoop();
+    void closeConnection();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlClient_; }
 
@@ -91,6 +92,8 @@ private:  // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
+    bool disconnecting_ = false;
+
     std::mutex clientsMutex_;
     std::map<uint32_t, Client*> clients_;
 
@@ -104,8 +107,6 @@ private:  // members
     uint32_t id_;
 
     bool connected_;
-    bool controlStopping_;
-    bool dataStopping_;
 
     mutable std::mutex promisesMutex_;
 
