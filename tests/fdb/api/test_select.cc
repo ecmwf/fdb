@@ -60,21 +60,17 @@ fdb5::Config defaultConfig() {
 
 CASE("archives_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
-    EXPECT(ApiSpy::knownSpies().size() == 3);
-    ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
-    ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
-    ApiSpy& spy_rd2(*ApiSpy::knownSpies()[2]);
+    EXPECT(ApiSpy::knownSpies().size() == 0); // laxy creation
 
     // Flush does nothing until dirty
-
     fdb.flush();
 
-    EXPECT(spy_od.counts().flush == 0);
-    EXPECT(spy_rd1.counts().flush == 0);
-    EXPECT(spy_rd2.counts().flush == 0);
+    EXPECT(ApiSpy::knownSpies().size() == 0);
 
     // Do some archiving
 
@@ -84,22 +80,24 @@ CASE("archives_distributed_according_to_select") {
 
     fdb.archive(k, (const void*)0x1234, 1234);
 
+    EXPECT(ApiSpy::knownSpies().size() == 1);
+
+    ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
+
     EXPECT(spy_od.counts().archive == 1);
     EXPECT(spy_od.counts().flush == 0);
-    EXPECT(spy_rd1.counts().archive == 0);
-    EXPECT(spy_rd1.counts().flush == 0);
-    EXPECT(spy_rd2.counts().archive == 0);
-    EXPECT(spy_rd2.counts().flush == 0);
 
     k.set("class", "rd");
     k.set("expver", "yyyy");
 
     fdb.archive(k, (const void*)0x4321, 4321);
 
+    EXPECT(ApiSpy::knownSpies().size() == 2);
+
+    ApiSpy& spy_rd2(*ApiSpy::knownSpies()[1]);
+
     EXPECT(spy_od.counts().archive == 1);
     EXPECT(spy_od.counts().flush == 0);
-    EXPECT(spy_rd1.counts().archive == 0);
-    EXPECT(spy_rd1.counts().flush == 0);
     EXPECT(spy_rd2.counts().archive == 1);
     EXPECT(spy_rd2.counts().flush == 0);
 
@@ -107,8 +105,6 @@ CASE("archives_distributed_according_to_select") {
 
     EXPECT(spy_od.counts().archive == 1);
     EXPECT(spy_od.counts().flush == 1);
-    EXPECT(spy_rd1.counts().archive == 0);
-    EXPECT(spy_rd1.counts().flush == 0);
     EXPECT(spy_rd2.counts().archive == 1);
     EXPECT(spy_rd2.counts().flush == 1);
 
@@ -134,7 +130,7 @@ CASE("archives_distributed_according_to_select") {
 
     // And unused functions
 
-    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().inspect == 0);
@@ -146,14 +142,20 @@ CASE("archives_distributed_according_to_select") {
         EXPECT(spy->counts().stats == 0);
         EXPECT(spy->counts().control == 0);
     }
+
 }
 
 
 CASE("retrieves_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(metkit::mars::MarsRequest{"class=od"});
+    fdb.list(metkit::mars::MarsRequest{"class=rd"});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -210,7 +212,6 @@ CASE("retrieves_distributed_according_to_select") {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -222,9 +223,13 @@ CASE("retrieves_distributed_according_to_select") {
 
 CASE("lists_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -234,40 +239,40 @@ CASE("lists_distributed_according_to_select") {
 
     fdb.list(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
-    EXPECT(spy_od.counts().list == 1);
-    EXPECT(spy_rd1.counts().list == 0);
-    EXPECT(spy_rd2.counts().list == 0);
+    EXPECT(spy_od.counts().list == 2);
+    EXPECT(spy_rd1.counts().list == 1);
+    EXPECT(spy_rd2.counts().list == 1);
 
     fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
-    EXPECT(spy_od.counts().list == 1);
-    EXPECT(spy_rd1.counts().list == 1);
-    EXPECT(spy_rd2.counts().list == 0);
+    EXPECT(spy_od.counts().list == 2);
+    EXPECT(spy_rd1.counts().list == 2);
+    EXPECT(spy_rd2.counts().list == 1);
 
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
     fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
-    EXPECT(spy_od.counts().list == 1);
-    EXPECT(spy_rd1.counts().list == 1);
-    EXPECT(spy_rd2.counts().list == 0);
+    EXPECT(spy_od.counts().list == 2);
+    EXPECT(spy_rd1.counts().list == 2);
+    EXPECT(spy_rd2.counts().list == 1);
 
     //// Now match all the rd lanes
 
     fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
-    EXPECT(spy_od.counts().list == 1);
-    EXPECT(spy_rd1.counts().list == 2);
-    EXPECT(spy_rd2.counts().list == 1);
+    EXPECT(spy_od.counts().list == 2);
+    EXPECT(spy_rd1.counts().list == 3);
+    EXPECT(spy_rd2.counts().list == 2);
 
     // Explicitly match everything
 
     fdb.list(fdb5::FDBToolRequest({}, true));
 
-    EXPECT(spy_od.counts().list == 2);
-    EXPECT(spy_rd1.counts().list == 3);
-    EXPECT(spy_rd2.counts().list == 2);
+    EXPECT(spy_od.counts().list == 3);
+    EXPECT(spy_rd1.counts().list == 4);
+    EXPECT(spy_rd2.counts().list == 3);
 
     // And unused functions
 
@@ -289,9 +294,13 @@ CASE("lists_distributed_according_to_select") {
 
 CASE("dump_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -344,7 +353,7 @@ CASE("dump_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
         EXPECT(spy->counts().purge == 0);
@@ -355,9 +364,13 @@ CASE("dump_distributed_according_to_select") {
 
 CASE("status_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -410,7 +423,7 @@ CASE("status_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().wipe == 0);
         EXPECT(spy->counts().purge == 0);
@@ -422,9 +435,13 @@ CASE("status_distributed_according_to_select") {
 
 CASE("wipe_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -477,7 +494,7 @@ CASE("wipe_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().purge == 0);
@@ -489,9 +506,13 @@ CASE("wipe_distributed_according_to_select") {
 
 CASE("purge_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -544,7 +565,7 @@ CASE("purge_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -556,9 +577,13 @@ CASE("purge_distributed_according_to_select") {
 
 CASE("stats_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -611,7 +636,7 @@ CASE("stats_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -623,9 +648,13 @@ CASE("stats_distributed_according_to_select") {
 
 CASE("control_distributed_according_to_select") {
 
+    ApiSpy::knownSpies().clear();
+
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+    fdb.list(fdb5::FDBToolRequest{{}, true, {}});
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
@@ -681,7 +710,7 @@ CASE("control_distributed_according_to_select") {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
+        EXPECT(spy->counts().list == 1);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);

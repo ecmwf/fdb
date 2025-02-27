@@ -38,11 +38,14 @@ private:  // types
 
     using SelectMap = std::map<std::string, eckit::Regex>;
 
-    struct FDBLane {
-        SelectMap select;
-        Config config;
-        std::optional<FDB> fdb;
+    class FDBLane {
+        SelectMap select_;
+        Config config_;
+        std::optional<FDB> fdb_;
 
+    public:
+        FDBLane(const eckit::LocalConfiguration& config);
+        const SelectMap& select() { return select_; }
         FDB& get();
         void flush();
     };

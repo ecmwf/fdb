@@ -62,17 +62,20 @@ std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfigurati
     return selectDict;
 }
 
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
+    select_(parseFDBSelect(config)), config_(config), fdb_(std::nullopt) {}
+
 
 FDB& SelectFDB::FDBLane::get() {
-    if (!fdb) {
-        fdb.emplace(config);
+    if (!fdb_) {
+        fdb_.emplace(config_);
     }
-    return *fdb;
+    return *fdb_;
 }
 
 void SelectFDB::FDBLane::flush() {
-    if (fdb) {
-        fdb->flush();
+    if (fdb_) {
+        fdb_->flush();
     }
 }
 
@@ -85,7 +88,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     for (const auto& c : config.getSubConfigs("fdbs")) {
-        subFdbs_.emplace_back(FDBLane{parseFDBSelect(c), c, std::optional<FDB>{}});
+        subFdbs_.emplace_back(FDBLane{c});
     }
 }
 
@@ -95,7 +98,7 @@ SelectFDB::~SelectFDB() {}
 void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
     for (auto& lane : subFdbs_) {
-        if (matches(key, lane.select, true)) {
+        if (matches(key, lane.select(), true)) {
             lane.get().archive(key, data, length);
             return;
         }
@@ -112,7 +115,7 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 
     for (auto& lane : subFdbs_) {
         // If we want to allow non-fully-specified retrieves, make false here.
-        if (matches(request, lane.select, true)) {
+        if (matches(request, lane.select(), true)) {
             lists.push(lane.get().inspect(request));
         }
     }
@@ -130,7 +133,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     std::queue<APIIterator<ValueType>> iterQueue;
 
     for (auto& lane : subFdbs_) {
-        if (matches(request.request(), lane.select, false) || request.all()) {
+        if (request.all() || matches(request.request(), lane.select(), false)) {
             iterQueue.push(fn(lane.get(), request));
         }
     }
@@ -200,15 +203,19 @@ void SelectFDB::print(std::ostream& s) const {
 }
 
 bool SelectFDB::matches(const Key& key, const SelectMap& select, bool requireMissing) const {
+
     for (const auto& [keyword, regex] : select) {
         const auto [iter, found] = key.find(keyword);
 
-        if (!found && requireMissing) {
-            return false;
+        if (!found) {
+            if (requireMissing) {
+                return false;
+            }
         }
-
-        if (!regex.match(iter->second)) {
-            return false;
+        else {
+            if (!regex.match(iter->second)) {
+                return false;
+            }
         }
     }
     return true;
@@ -216,22 +223,18 @@ bool SelectFDB::matches(const Key& key, const SelectMap& select, bool requireMis
 
 bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const {
 
-    for (const auto& kv : select) {
+    for (const auto& [keyword, regex] : select) {
 
-        const std::string& k(kv.first);
-        const eckit::Regex& re(kv.second);
-
-        const std::vector<std::string>& request_values = request.values(k, /* emptyOK */ true);
+        const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
 
         if (request_values.size() == 0) {
             if (requireMissing)
                 return false;
         }
         else {
-
             bool re_match = false;
             for (const std::string& v : request_values) {
-                if (re.match(v)) {
+                if (regex.match(v)) {
                     re_match = true;
                     break;
                 }
