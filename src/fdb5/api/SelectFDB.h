@@ -44,6 +44,7 @@ private:  // types
         std::optional<FDB> fdb_;
 
     public:
+
         FDBLane(const eckit::LocalConfiguration& config);
         const SelectMap& select() { return select_; }
         FDB& get();
@@ -101,4 +102,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-

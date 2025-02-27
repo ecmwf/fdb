@@ -65,7 +65,7 @@ CASE("archives_distributed_according_to_select") {
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
-    EXPECT(ApiSpy::knownSpies().size() == 0); // laxy creation
+    EXPECT(ApiSpy::knownSpies().size() == 0);  // lazy creation
 
     // Flush does nothing until dirty
     fdb.flush();
@@ -142,7 +142,6 @@ CASE("archives_distributed_according_to_select") {
         EXPECT(spy->counts().stats == 0);
         EXPECT(spy->counts().control == 0);
     }
-
 }
 
 
