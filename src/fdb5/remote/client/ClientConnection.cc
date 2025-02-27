@@ -446,12 +446,13 @@ void ClientConnection::listeningDataThreadLoop() {
             try {
                 payload = Connection::readData(hdr);
             }
-            catch(...) {
+            catch (...) {
                 if (closingDataSocket_) {
                     closeConnection();
-                    return;    
+                    return;
                 }
-                else throw std::current_exception();
+                else
+                    throw std::current_exception();
             }
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
                                    << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"

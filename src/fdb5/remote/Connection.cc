@@ -119,10 +119,10 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
     const auto& socket = control ? controlSocket() : dataSocket();
-    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort() << ",message=" << msg << ",clientID=" << message.clientID()
-                           << ",control=" << control << ",requestID=" << requestID
-                           << ",payloadsSize=" << payloads.size() << ",payloadLength=" << payloadLength << "]"  
-                           << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
+                           << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
+                           << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
+                           << ",payloadLength=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
 
