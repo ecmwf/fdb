@@ -113,7 +113,9 @@ private:  // methods
 
             // If we are in the DataHandle, then there MUST be data to read
             RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
+            // eckit::Log::info() << "RemoteDataHandle::read() -- popping next" << std::endl;
             ASSERT(queue_->pop(msg) != -1);
+            // eckit::Log::info() << "RemoteDataHandle::read() -- popped next" << std::endl;
 
             // Handle any remote errors communicated from the server
             if (msg.first == Message::Error) {
@@ -123,13 +125,9 @@ private:  // methods
 
             // Are we now complete?
             if (msg.first == Message::Complete) {
-                if (overallPosition_ == eckit::Offset(0)) {
-                    ASSERT(queue_->pop(msg) != -1);
-                }
-                else {
-                    complete_ = true;
-                    return total;
-                }
+                // eckit::Log::info() << "RemoteDataHandle::read() -- Got Message::Complete" << std::endl;
+                complete_ = true;
+                return total;
             }
 
             ASSERT(msg.first == Message::Blob);
@@ -330,17 +328,33 @@ void RemoteStore::print(std::ostream& out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
 
+void RemoteStore::closeConnection() {
+    for (auto& kv : messageQueues_) {
+        if (!kv.second->closed()) {
+            kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
+        }
+    }
+    for (auto& kv : retrieveMessageQueues_) {
+        if (!kv.second->closed()) {
+            kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
+        }
+    }
+}
+
 bool RemoteStore::handle(Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
+            // eckit::Log::info() << "RemoteStore::handle COMPLETE" << std::endl;
             auto it = messageQueues_.find(requestID);
             if (it != messageQueues_.end()) {
+                // eckit::Log::info() << "RemoteStore::handle COMPLETE close and erase queue" << std::endl;
                 it->second->close();
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
                 messageQueues_.erase(it);
+                // eckit::Log::info() << "RemoteStore::handle COMPLETE closed and erased queue" << std::endl;
             }
             else {
                 std::lock_guard<std::mutex> lock(retrieveMessageMutex_);

@@ -74,6 +74,7 @@ public:  // methods
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID)                          = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual void closeConnection() {}
 
 protected:
 
