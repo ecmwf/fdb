@@ -55,21 +55,19 @@ ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, 
     defaultEndpoint_(defaultEndpoint),
     id_(1),
     connected_(false),
-    controlStopping_(false),
-    dataStopping_(false),
     dataWriteQueue_(nullptr) {
 
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
 
 void ClientConnection::add(Client& client) {
-    std::lock_guard<std::mutex> lock(clientsMutex_);
+    std::lock_guard lock(clientsMutex_);
     clients_[client.id()] = &client;
 }
 
 bool ClientConnection::remove(uint32_t clientID) {
 
-    std::lock_guard<std::mutex> lock(clientsMutex_);
+    std::lock_guard lock(clientsMutex_);
 
     if (clientID > 0) {
 
@@ -145,22 +143,22 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
-    std::lock_guard<std::mutex> lock(clientsMutex_);
+    disconnecting_ = true;
+
+    std::lock_guard lock(clientsMutex_);
     ASSERT(clients_.empty());
+
     if (connected_) {
         if (dataWriteThread_.joinable()) {
             dataWriteThread_.join();
-        }
-        if (listeningDataThread_.joinable()) {
-            listeningDataThread_.join();
         }
         if (listeningControlThread_.joinable()) {
             listeningControlThread_.join();
         }
 
         // Close both the control and data connections
-        controlClient_.close();
         dataClient_.close();
+        controlClient_.close();
         connected_ = false;
     }
 }
@@ -347,7 +345,12 @@ void ClientConnection::listeningControlThreadLoop() {
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-                controlStopping_ = true;
+
+                if (!single_ && listeningDataThread_.joinable()) {
+                    listeningDataThread_.join();
+                }
+
+                eckit::Log::info() << "Control thread stopping" << std::endl;
                 return;
             }
             else {
@@ -372,7 +375,7 @@ void ClientConnection::listeningControlThreadLoop() {
                     else {
                         Client* client = nullptr;
                         {
-                            std::lock_guard<std::mutex> lock(clientsMutex_);
+                            std::lock_guard lock(clientsMutex_);
 
                             auto it = clients_.find(hdr.clientID());
                             if (it == clients_.end()) {
@@ -419,6 +422,16 @@ void ClientConnection::listeningControlThreadLoop() {
     }
 }
 
+void ClientConnection::closeConnection() {
+    eckit::Log::info() << "Data thread stopping" << std::endl;
+    if (!disconnecting_) {
+        std::lock_guard lock(clientsMutex_);
+        for (auto& [id, client] : clients_) {
+            client->closeConnection();
+        }
+    };
+}
+
 void ClientConnection::listeningDataThreadLoop() {
 
     try {
@@ -429,14 +442,24 @@ void ClientConnection::listeningDataThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload = Connection::readData(hdr);
-
+            eckit::Buffer payload;
+            try {
+                payload = Connection::readData(hdr);
+            }
+            catch (...) {
+                if (closingDataSocket_) {
+                    closeConnection();
+                    return;
+                }
+                else
+                    throw std::current_exception();
+            }
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
                                    << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-                dataStopping_ = true;
+                closeConnection();
                 return;
             }
             else {
@@ -444,7 +467,7 @@ void ClientConnection::listeningDataThreadLoop() {
                     bool handled   = false;
                     Client* client = nullptr;
                     {
-                        std::lock_guard<std::mutex> lock(clientsMutex_);
+                        std::lock_guard lock(clientsMutex_);
 
                         auto it = clients_.find(hdr.clientID());
                         if (it == clients_.end()) {

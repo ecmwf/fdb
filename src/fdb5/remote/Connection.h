@@ -89,6 +89,7 @@ private:  // methods
 protected:  // members
 
     bool single_;
+    bool closingDataSocket_ = false;
 
 private:  // members
 

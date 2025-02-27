@@ -163,6 +163,7 @@ private:  // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+    void closeConnection() override;
 
 private:  // members
 
