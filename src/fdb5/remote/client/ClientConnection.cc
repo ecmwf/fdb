@@ -451,8 +451,7 @@ void ClientConnection::listeningDataThreadLoop() {
                     closeConnection();
                     return;
                 }
-                else
-                    throw std::current_exception();
+                throw;
             }
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
                                    << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
