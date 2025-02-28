@@ -41,18 +41,18 @@ Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultE
     connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
 
     setClientID();
-    connection_.add(*this);
+    connection_->add(*this);
 }
 
 Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
     connection_(ClientConnectionRouter::instance().connection(endpoints)) {
 
     setClientID();
-    connection_.add(*this);
+    connection_->add(*this);
 }
 
 Client::~Client() {
-    connection_.remove(id_);
+    connection_->remove(id_);
 }
 
 void Client::controlWriteCheckResponse(const Message msg, const uint32_t requestID, const bool dataListener,
@@ -67,7 +67,7 @@ void Client::controlWriteCheckResponse(const Message msg, const uint32_t request
         payloads.emplace_back(payloadLength, payload);
     }
 
-    auto f = connection_.controlWrite(*this, msg, requestID, dataListener, payloads);
+    auto f = connection_->controlWrite(*this, msg, requestID, dataListener, payloads);
     f.wait();
     ASSERT(f.get().size() == 0);
 }
@@ -84,13 +84,13 @@ eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t
         payloads.emplace_back(payloadLength, payload);
     }
 
-    auto f = connection_.controlWrite(*this, msg, requestID, false, payloads);
+    auto f = connection_->controlWrite(*this, msg, requestID, false, payloads);
     f.wait();
     return eckit::Buffer{f.get()};
 }
 
 void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {
-    connection_.dataWrite(*this, msg, requestID, std::move(payloads));
+    connection_->dataWrite(*this, msg, requestID, std::move(payloads));
 }
 
 }  // namespace fdb5::remote

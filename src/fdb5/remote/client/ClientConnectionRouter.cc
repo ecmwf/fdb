@@ -29,20 +29,19 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
-                                                     const std::string& defaultEndpoint) {
-
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
+                                                                     const std::string& defaultEndpoint) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
     const auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
-        return *(it->second);
+        return (it->second);
     }
     else {
         auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
         if (clientConnection->connect()) {
             const auto it = (connections_.emplace(endpoint, clientConnection)).first;
-            return *(it->second);
+            return (it->second);
         }
         else {
             throw ConnectionError(endpoint);
@@ -50,7 +49,7 @@ ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint&
     }
 }
 
-ClientConnection& ClientConnectionRouter::connection(
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
@@ -65,14 +64,13 @@ ClientConnection& ClientConnectionRouter::connection(
         // look for the selected endpoint
         const auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
-            return *(it->second);
+            return (it->second);
         }
         else {  // not yet there, trying to connect
-            auto clientConnection =
-                std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
+            auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
             if (clientConnection->connect(true)) {
                 const auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
-                return *(it->second);
+                return (it->second);
             }
         }
 

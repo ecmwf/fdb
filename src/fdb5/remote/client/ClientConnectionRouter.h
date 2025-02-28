@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
 #include <unordered_map>
@@ -24,8 +23,10 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnection& connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
-    ClientConnection& connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+    std::shared_ptr<ClientConnection> connection(const eckit::net::Endpoint& endpoint,
+                                                 const std::string& defaultEndpoint);
+    std::shared_ptr<ClientConnection> connection(
+        const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
     void teardown(std::exception_ptr e);
 
