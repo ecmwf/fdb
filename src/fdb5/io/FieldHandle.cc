@@ -10,14 +10,14 @@
 
 #include <numeric>
 
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/config/Resource.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Timer.h"
 #include "eckit/runtime/Metrics.h"
 #include "eckit/types/Types.h"
 
-#include "metkit/mars/MarsRequest.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/FieldHandle.h"
@@ -27,7 +27,14 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 FieldHandle::FieldHandle(ListIterator& it) :
-    datahandles_({}), totalSize_(0), currentIdx_(0), current_(nullptr), currentMemoryHandle_(false), buffer_(nullptr), sorted_(false), seekable_(true) {
+    datahandles_({}),
+    totalSize_(0),
+    currentIdx_(0),
+    current_(nullptr),
+    currentMemoryHandle_(false),
+    buffer_(nullptr),
+    sorted_(false),
+    seekable_(true) {
     ListElement el;
     eckit::Length largest = 0;
 
@@ -46,30 +53,30 @@ FieldHandle::FieldHandle(ListIterator& it) :
             // checking all retrieved fields against the hypercube, to remove duplicates
             ListElementDeduplicator dedup;
             metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
-            for(auto el: elements) {
+            for (auto el : elements) {
                 cube.add(el.combinedKey().request(), el);
             }
 
             if (cube.countVacant() > 0) {
                 std::stringstream ss;
                 ss << "No matching data for requests:" << std::endl;
-                for (auto req: cube.vacantRequests()) {
+                for (auto req : cube.vacantRequests()) {
                     ss << "    " << req << std::endl;
                 }
                 eckit::Log::warning() << ss.str() << std::endl;
             }
 
-            for (size_t i=0; i< cube.size(); i++) {
+            for (size_t i = 0; i < cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
-                    eckit::Length len = element.location().length();
+                    eckit::Length len     = element.location().length();
                     eckit::DataHandle* dh = element.location().dataHandle();
                     datahandles_.push_back(std::make_pair(len, dh));
 
                     totalSize_ += len;
                     bool canSeek = dh->canSeek();
                     if (!canSeek) {
-                        largest = std::max(largest, len);
+                        largest   = std::max(largest, len);
                         seekable_ = false;
                     }
                 }
@@ -78,14 +85,14 @@ FieldHandle::FieldHandle(ListIterator& it) :
     }
     else {
         while (it.next(el)) {
-            eckit::Length len = el.location().length();
+            eckit::Length len     = el.location().length();
             eckit::DataHandle* dh = el.location().dataHandle();
             datahandles_.push_back(std::make_pair(len, dh));
 
             totalSize_ += len;
             bool canSeek = dh->canSeek();
             if (!canSeek) {
-                largest = std::max(largest, len);
+                largest   = std::max(largest, len);
                 seekable_ = false;
             }
         }
@@ -119,15 +126,15 @@ void FieldHandle::openCurrent() {
     if (currentIdx_ < datahandles_.size()) {
 
         eckit::Length currentSize = datahandles_[currentIdx_].first;
-        current_ = datahandles_[currentIdx_].second;
+        current_                  = datahandles_[currentIdx_].second;
         current_->openForRead();
 
         if (!current_->canSeek()) {
-            long len = 0;
+            long len    = 0;
             long toRead = currentSize;
-            long read = 0;
-            char *buf = buffer_;
-            while (toRead>0 && (len = current_->read(buf, toRead))>0) {
+            long read   = 0;
+            char* buf   = buffer_;
+            while (toRead > 0 && (len = current_->read(buf, toRead)) > 0) {
                 toRead -= len;
                 buf += len;
                 read += len;
@@ -148,7 +155,7 @@ void FieldHandle::openCurrent() {
 eckit::Length FieldHandle::openForRead() {
     ASSERT(!current_);
 
-    currentIdx_=0;
+    currentIdx_ = 0;
     openCurrent();
 
     return totalSize_;
@@ -182,7 +189,8 @@ long FieldHandle::read(void* buffer, long length) {
         p += n;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "FieldHandle::read - requested: " << requested << "  read: " << (total > 0 ? total : n) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FieldHandle::read - requested: " << requested << "  read: " << (total > 0 ? total : n)
+                           << std::endl;
 
     return total > 0 ? total : n;
 }
@@ -193,7 +201,7 @@ void FieldHandle::close() {
         if (currentMemoryHandle_) {
             delete current_;
         }
-        current_=nullptr;
+        current_ = nullptr;
     }
     currentIdx_ = datahandles_.size();
 }
@@ -205,7 +213,8 @@ void FieldHandle::rewind() {
         }
         currentIdx_ = 0;
         openCurrent();
-    } else {
+    }
+    else {
         throw eckit::ReadError("rewind not supported");
     }
 }
@@ -256,7 +265,7 @@ eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
     const long long seekto = offset;
     long long accumulated  = 0;
 
-    if (!seekable_) { // check that the offset is within the current message of later
+    if (!seekable_) {  // check that the offset is within the current message of later
         for (size_t idx = 0; idx < currentIdx_; idx++) {
             accumulated += datahandles_[idx].first;
         }
@@ -266,7 +275,7 @@ eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
         }
     }
 
-    accumulated  = 0;
+    accumulated = 0;
     for (currentIdx_ = 0; currentIdx_ < datahandles_.size(); ++currentIdx_) {
         long long size = datahandles_[currentIdx_].first;
         if (accumulated <= seekto && seekto < accumulated + size) {
@@ -288,4 +297,4 @@ bool FieldHandle::compress(bool) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace eckit
+}  // namespace fdb5

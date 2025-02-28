@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 
@@ -67,6 +67,7 @@ public:
     // static const ClassSpec& classSpec() { return classSpec_; }
 
 private:
+
     // -- Methods
 
     void openCurrent();
@@ -74,21 +75,22 @@ private:
     long read1(char*, long);
 
 private:
+
     // -- Members
 
     std::vector<std::pair<eckit::Length, DataHandle*>> datahandles_;
     eckit::Length totalSize_;
-    
+
     size_t currentIdx_;
     DataHandle* current_;
     bool currentMemoryHandle_;
 
     char* buffer_{nullptr};
-    
+
     bool sorted_;
     bool seekable_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace eckit
+}  // namespace fdb5
