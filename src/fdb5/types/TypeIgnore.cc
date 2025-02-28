@@ -9,34 +9,27 @@
  */
 
 
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeIgnore.h"
+#include "fdb5/types/TypesFactory.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeIgnore::TypeIgnore(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeIgnore::TypeIgnore(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeIgnore::~TypeIgnore() {
-}
+TypeIgnore::~TypeIgnore() {}
 
 
 std::string TypeIgnore::toKey(const std::string&) const {
     return "";
 }
 
-void TypeIgnore::getValues(const metkit::mars::MarsRequest&,
-                           const std::string&,
-                           eckit::StringList&,
-                           const Notifier&,
-                           const CatalogueReader*) const {
-}
+void TypeIgnore::getValues(const metkit::mars::MarsRequest&, const std::string&, eckit::StringList&, const Notifier&,
+                           const CatalogueReader*) const {}
 
-void TypeIgnore::print(std::ostream &out) const {
+void TypeIgnore::print(std::ostream& out) const {
     out << "TypeIgnore[name=" << name_ << "]";
 }
 
@@ -44,4 +37,4 @@ static TypeBuilder<TypeIgnore> type("Ignore");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -10,23 +10,23 @@
 
 #include "RootManager.h"
 
-#include <fstream>
 #include <algorithm>
+#include <fstream>
 
-#include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"
-#include "eckit/utils/Tokenizer.h"
-#include "eckit/utils/StringTools.h"
-#include "eckit/utils/Translator.h"
-#include "eckit/thread/Mutex.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/types/Types.h"
+#include "eckit/utils/StringTools.h"
+#include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/Root.h"
@@ -34,13 +34,19 @@
 using namespace eckit;
 
 namespace fdb5 {
-    class DbPathNamer;
-    class FileSpace;
-}
+class DbPathNamer;
+class FileSpace;
+}  // namespace fdb5
 namespace eckit {
-    template <> struct VectorPrintSelector<fdb5::DbPathNamer> { typedef VectorPrintSimple selector; };
-    template <> struct VectorPrintSelector<fdb5::FileSpace> { typedef VectorPrintSimple selector; };
-}
+template <>
+struct VectorPrintSelector<fdb5::DbPathNamer> {
+    typedef VectorPrintSimple selector;
+};
+template <>
+struct VectorPrintSelector<fdb5::FileSpace> {
+    typedef VectorPrintSimple selector;
+};
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -49,8 +55,7 @@ namespace fdb5 {
 class DbPathNamer {
 public:
 
-    DbPathNamer(const std::string& keyregex, const std::string& format) :
-        format_(format){
+    DbPathNamer(const std::string& keyregex, const std::string& format) : format_(format) {
         crack(keyregex);
         LOG_DEBUG_LIB(LibFdb5) << "Building " << *this << std::endl;
     }
@@ -59,18 +64,19 @@ public:
     /// but partial match for values
     bool match(const Key& k, const char* missing = 0) const {
 
-        if(k.size() != keyregex_.size()) return false;
+        if (k.size() != keyregex_.size())
+            return false;
 
-        for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
+        for (Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
             std::map<std::string, Regex>::const_iterator j = keyregex_.find(i->first);
 
-            if(j == keyregex_.end()) {
+            if (j == keyregex_.end()) {
                 return false;
             }
 
-            if(!missing || i->second != missing) {
-                if(!j->second.match(i->second)) {
+            if (!missing || i->second != missing) {
+                if (!j->second.match(i->second)) {
                     return false;
                 }
             }
@@ -79,20 +85,16 @@ public:
         return true;
     }
 
-    std::string name(const Key& key) const {
-        return substituteVars(format_, key);
-    }
+    std::string name(const Key& key) const { return substituteVars(format_, key); }
 
-    std::string namePartial(const Key& key, const char* missing) const {
-        return substituteVars(format_, key, missing);
-    }
+    std::string namePartial(const Key& key, const char* missing) const { return substituteVars(format_, key, missing); }
 
-    friend std::ostream& operator<<(std::ostream &s, const DbPathNamer& x) {
+    friend std::ostream& operator<<(std::ostream& s, const DbPathNamer& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+private:  // methods
 
     void crack(const std::string& regexstr) {
 
@@ -107,11 +109,11 @@ private: // methods
             eckit::StringList kv;
             parse2(*i, kv);
 
-            if(kv.size() == 2) {
+            if (kv.size() == 2) {
                 keyregex_[kv[0]] = kv[1];
             }
             else {
-                if(kv.size() == 1) {
+                if (kv.size() == 1) {
                     keyregex_[kv[0]] = std::string("[^:/]*");
                 }
                 else {
@@ -123,32 +125,29 @@ private: // methods
         }
     }
 
-    std::string substituteVars(const std::string& s, const Key& k, const char * missing = 0) const
-    {
+    std::string substituteVars(const std::string& s, const Key& k, const char* missing = 0) const {
         std::string result;
         size_t len = s.length();
-        bool var = false;
+        bool var   = false;
         std::string word;
-        std::map<std::string,std::string>::const_iterator j;
+        std::map<std::string, std::string>::const_iterator j;
 
-        for(size_t i = 0; i < len; i++)
-        {
-            switch(s[i])
-            {
+        for (size_t i = 0; i < len; i++) {
+            switch (s[i]) {
                 case '{':
-                    if(var) {
+                    if (var) {
                         std::ostringstream os;
-                        os << "FDB RootManager substituteVars: unexpected { found in " <<s << " at position " << i;
+                        os << "FDB RootManager substituteVars: unexpected { found in " << s << " at position " << i;
                         throw UserError(os.str());
                     }
-                    var = true;
+                    var  = true;
                     word = "";
                     break;
 
                 case '}':
-                    if(!var) {
+                    if (!var) {
                         std::ostringstream os;
-                        os << "FDB RootManager substituteVars: unexpected } found in " <<s << " at position " << i;
+                        os << "FDB RootManager substituteVars: unexpected } found in " << s << " at position " << i;
                         throw UserError(os.str());
                     }
                     var = false;
@@ -156,15 +155,18 @@ private: // methods
                     if (const auto [iter, found] = k.find(word); found) {
                         if (!missing) {
                             result += iter->second;
-                        } else {
+                        }
+                        else {
                             if (iter->second == missing || iter->second.empty()) {
                                 // we know it exists because it is ensured in match()
                                 result += keyregex_.find(word)->second;
-                            } else {
+                            }
+                            else {
                                 result += (*j).second;
                             }
                         }
-                    } else {
+                    }
+                    else {
                         std::ostringstream oss;
                         oss << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " << s
                             << " at position " << i;
@@ -173,14 +175,14 @@ private: // methods
                     break;
 
                 default:
-                    if(var)
+                    if (var)
                         word += s[i];
                     else
                         result += s[i];
                     break;
             }
         }
-        if(var) {
+        if (var) {
             std::ostringstream os;
             os << "FDB RootManager substituteVars: missing } in " << s;
             throw UserError(os.str());
@@ -188,14 +190,13 @@ private: // methods
         return result;
     }
 
-    void print( std::ostream &out ) const {
+    void print(std::ostream& out) const {
         out << "DbPathNamer(keyregex=" << keyregex_ << ", format=" << format_ << ")";
     }
 
     std::map<std::string, Regex> keyregex_;
 
     std::string format_;
-
 };
 
 typedef std::vector<fdb5::DbPathNamer> DbPathNamerTable;
@@ -206,7 +207,8 @@ static DbPathNamerMap dbPathNamers;
 
 static const DbPathNamerTable& readDbNamers(const Config& config) {
 
-    static std::string fdbDbNamesFile = eckit::Resource<std::string>("fdbDbNamesFile;$FDB_DBNAMES_FILE", "~fdb/etc/fdb/dbnames");
+    static std::string fdbDbNamesFile =
+        eckit::Resource<std::string>("fdbDbNamesFile;$FDB_DBNAMES_FILE", "~fdb/etc/fdb/dbnames");
 
     eckit::PathName filename(config.expandPath(fdbDbNamesFile));
 
@@ -223,7 +225,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
     DbPathNamerTable& table(dbPathNamers[filename]);
 
-    if(filename.exists()) {
+    if (filename.exists()) {
 
         LOG_DEBUG_LIB(LibFdb5) << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
 
@@ -246,7 +248,8 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
             while (i < s.size()) {
                 if (s[i].length() == 0) {
                     s.erase(s.begin() + i);
-                } else {
+                }
+                else {
                     i++;
                 }
             }
@@ -257,8 +260,8 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
             switch (s.size()) {
                 case 2: {
-                    const std::string& regex     = s[0];
-                    const std::string& format    = s[1];
+                    const std::string& regex  = s[0];
+                    const std::string& format = s[1];
 
                     table.push_back(DbPathNamer(regex, format));
                     break;
@@ -266,7 +269,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
                 default:
                     eckit::Log::warning() << "FDB DBPathNames invalid line ignored: " << line << std::endl;
-                break;
+                    break;
             }
         }
     }
@@ -295,7 +298,7 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
         return result;
     }
 
-    eckit::Translator<std::string,bool> str2bool;
+    eckit::Translator<std::string, bool> str2bool;
 
     eckit::Tokenizer parse(" ");
 
@@ -309,7 +312,8 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
         while (i < s.size()) {
             if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            } else {
+            }
+            else {
                 i++;
             }
         }
@@ -320,19 +324,19 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
         switch (s.size()) {
             case 4: {
-                const std::string& path       = s[0];
-                const std::string& filespace  = s[1];
-                bool writable        = str2bool(s[2]);
-                bool visit           = str2bool(s[3]);
+                const std::string& path      = s[0];
+                const std::string& filespace = s[1];
+                bool writable                = str2bool(s[2]);
+                bool visit                   = str2bool(s[3]);
 
                 //                                     list   retrieve  archive   wipe
-                result.push_back(Root(path, filespace, visit, visit,    writable, writable));
+                result.push_back(Root(path, filespace, visit, visit, writable, writable));
                 break;
             }
 
-        default:
-            eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
-            break;
+            default:
+                eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
+                break;
         }
     }
 
@@ -343,7 +347,7 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
 
     std::vector<Root> roots;
 
-    for (std::vector<Root>::const_iterator i = all.begin(); i != all.end() ; ++i) {
+    for (std::vector<Root>::const_iterator i = all.begin(); i != all.end(); ++i) {
         if (i->filespace() == filespace) {
             roots.push_back(*i);
         }
@@ -365,7 +369,7 @@ static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::
     }
 
     // these could be gotten from the file if we decide to extend the format
-    bool writable = true;
+    bool writable  = true;
     bool visitable = true;
 
     std::vector<Root> spaceRoots;
@@ -400,10 +404,12 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
         return it->second;
     }
 
-    eckit::PathName fdbRootsFile = eckit::Resource<eckit::PathName>("fdbRootsFile;$FDB_ROOTS_FILE", fdbHome / "etc/fdb/roots");
+    eckit::PathName fdbRootsFile =
+        eckit::Resource<eckit::PathName>("fdbRootsFile;$FDB_ROOTS_FILE", fdbHome / "etc/fdb/roots");
     std::vector<Root> allRoots = readRoots(fdbRootsFile);
 
-    eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", fdbHome / "etc/fdb/spaces");
+    eckit::PathName fdbSpacesFile =
+        eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", fdbHome / "etc/fdb/spaces");
     std::ifstream in(fdbSpacesFile.localPath());
 
     LOG_DEBUG_LIB(LibFdb5) << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
@@ -426,7 +432,8 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
         while (i < s.size()) {
             if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            } else {
+            }
+            else {
                 i++;
             }
         }
@@ -443,7 +450,7 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
                 std::vector<Root> roots = fileSpaceRoots(allRoots, filespace);
 
-                if(!roots.size()) {
+                if (!roots.size()) {
                     std::ostringstream oss;
                     oss << "No roots found for filespace " << filespace;
                     throw UserError(oss.str(), Here());
@@ -453,10 +460,9 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
                 break;
             }
 
-        default:
-            eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
-            break;
-
+            default:
+                eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
+                break;
         }
     }
 
@@ -487,12 +493,10 @@ FileSpaceTable RootManager::fileSpaces() {
     if (!fdbRootDirectory.empty()) {
 
         std::vector<Root> spaceRoots;
-        spaceRoots.emplace_back(
-            Root(fdbRootDirectory, "", true, true, true, true));
+        spaceRoots.emplace_back(Root(fdbRootDirectory, "", true, true, true, true));
 
         FileSpaceTable table;
-        table.emplace_back(
-            FileSpace("", ".*", "Default", spaceRoots));
+        table.emplace_back(FileSpace("", ".*", "Default", spaceRoots));
 
         return table;
     }
@@ -507,37 +511,25 @@ FileSpaceTable RootManager::fileSpaces() {
 
             if (space.getBool("marsDisks", false)) {
                 PathName file = config_.expandPath(space.getString("path", "~fdb/etc/disks/fdb"));
-                spaceRoots = parseMarsDisks(file, name);
+                spaceRoots    = parseMarsDisks(file, name);
             }
             else {
                 std::vector<LocalConfiguration> roots = getSpaceRoots(space);
                 for (const auto& root : roots) {
                     bool writable = root.getBool("writable", true);
-                    bool visit = root.getBool("visit", true);
-                    spaceRoots.emplace_back(
-                        Root(
-                            root.getString("path"),
-                            root.getString("name", ""),
-                            root.getBool("list", visit),
-                            root.getBool("retrieve", visit),
-                            root.getBool("archive", writable),
-                            root.getBool("wipe", writable)
-                        )
-                    );
+                    bool visit    = root.getBool("visit", true);
+                    spaceRoots.emplace_back(Root(root.getString("path"), root.getString("name", ""),
+                                                 root.getBool("list", visit), root.getBool("retrieve", visit),
+                                                 root.getBool("archive", writable), root.getBool("wipe", writable)));
                 }
             }
 
             table.emplace_back(
-                FileSpace(
-                    name,
-                    space.getString("regex", ".*"),
-                    space.getString("handler", "Default"),
-                    spaceRoots
-                )
-            );
+                FileSpace(name, space.getString("regex", ".*"), space.getString("handler", "Default"), spaceRoots));
         }
         return table;
-    } else {
+    }
+    else {
         return parseFileSpacesFile(config_.expandPath("~fdb/"));
     }
 }
@@ -545,34 +537,31 @@ FileSpaceTable RootManager::fileSpaces() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RootManager::RootManager(const Config& config) :
-    dbPathNamers_(readDbNamers(config)),
-    config_(config) {}
+RootManager::RootManager(const Config& config) : dbPathNamers_(readDbNamers(config)), config_(config) {}
 
-std::string RootManager::dbPathName(const Key& key)
-{
+std::string RootManager::dbPathName(const Key& key) {
     std::string dbpath;
-    for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
-        if(i->match(key)) {
+    for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end(); ++i) {
+        if (i->match(key)) {
             dbpath = i->name(key);
-            LOG_DEBUG_LIB(LibFdb5) << "DbName is " << dbpath << " for key " << key <<  std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "DbName is " << dbpath << " for key " << key << std::endl;
             return dbpath;
         }
     }
 
     // default naming convention for DB's
     dbpath = key.valuesToString();
-    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << dbpath << std::endl;
     return dbpath;
 }
 
-std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing)
-{
+std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing) {
     std::vector<std::string> result;
-    for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
-        if(i->match(key, missing)) {
+    for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end(); ++i) {
+        if (i->match(key, missing)) {
             std::string dbpath = i->namePartial(key, missing);
-            LOG_DEBUG_LIB(LibFdb5) << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath
+                                   << std::endl;
             result.push_back(dbpath);
         }
     }
@@ -580,7 +569,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     // default naming convention for DB's
 
     std::ostringstream oss;
-    const char *sep = "";
+    const char* sep = "";
     for (const auto& k : key.names()) {
         const auto& v = key.get(k);
         oss << sep;
@@ -589,7 +578,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     }
     result.push_back(oss.str());
 
-    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << result.back() << std::endl;
 
     return result;
 }
@@ -605,7 +594,7 @@ TocPath RootManager::directory(const Key& key) {
 
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
 
-    if(!fdbRootDirectory.empty()) {
+    if (!fdbRootDirectory.empty()) {
         return TocPath{fdbRootDirectory + "/" + dbpath, ControlIdentifiers{}};
     }
 
@@ -613,8 +602,8 @@ TocPath RootManager::directory(const Key& key) {
 
     std::string keystr = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(keystr)) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
+        if (i->match(keystr)) {
             TocPath db = i->filesystem(key, dbpath);
             LOG_DEBUG_LIB(LibFdb5) << "Database directory " << db.directory_ << std::endl;
             return db;
@@ -630,9 +619,10 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
-    std::vector<std::string> keystrings;
-    std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
-                   [](const Key& k) { return k.valuesToString(); });
+    std::set<std::string> keystrings;
+    for (const auto& key : keys) {
+        keystrings.insert(key.valuesToString());
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
@@ -642,13 +632,14 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
         for (const std::string& k : keystrings) {
             if (space.match(k) || k.empty()) {
                 LOG_DEBUG_LIB(LibFdb5) << "MATCH space " << space << std::endl;
-                space.enabled(ControlIdentifier::List,roots);
+                space.enabled(ControlIdentifier::List, roots);
                 matched = true;
                 break;
             }
         }
 
-        if (!matched) LOG_DEBUG_LIB(LibFdb5) << "FAIL to match space " << space << std::endl;
+        if (!matched)
+            LOG_DEBUG_LIB(LibFdb5) << "FAIL to match space " << space << std::endl;
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Visitable Roots " << roots << std::endl;
@@ -658,7 +649,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
-    return visitableRoots(std::set<Key>{ key });
+    return visitableRoots(std::set<Key>{key});
 }
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
@@ -678,8 +669,8 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(k)) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
+        if (i->match(k)) {
 
             i->enabled(ControlIdentifier::Archive, roots);
         }
@@ -696,8 +687,8 @@ std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
 
     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(k)) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
+        if (i->match(k)) {
 
             i->enabled(ControlIdentifier::Wipe, roots);
         }

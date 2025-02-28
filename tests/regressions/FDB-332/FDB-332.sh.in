@@ -57,8 +57,8 @@ cat > list <<EOF
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=12,resolution=standard,type=fc,levtype=pl}{date=20021201,time=1200,levelist=1000,param=129}
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=12,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=11,resolution=standard,type=fc,levtype=pl}{date=20021130,time=1200,levelist=1000,param=129}
-{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=01,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
-{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=01,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
 EOF
 
 cat > listNov <<EOF
@@ -71,6 +71,11 @@ cat > listDec <<EOF
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=12,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
 EOF
 
+cat > listJan <<EOF
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
+EOF
+
 cat > listDec00 <<EOF
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=12,resolution=standard,type=fc,levtype=pl}{date=20021201,time=0000,levelist=1000,param=129}
 {class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2002}{month=12,resolution=standard,type=fc,levtype=pl}{date=20021202,time=0000,levelist=1000,param=129}
@@ -81,8 +86,8 @@ cat > list20021202 <<EOF
 EOF
 
 cat > list2003 <<EOF
-{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=01,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
-{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=01,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=0000,levelist=1000,param=129}
+{class=d1,dataset=climate-dt,activity=story-nudging,experiment=tplus2.0k,generation=1,model=ifs-fesom,realization=1,expver=0001,stream=clte,year=2003}{month=1,resolution=standard,type=fc,levtype=pl}{date=20030101,time=1200,levelist=1000,param=129}
 EOF
 
 cat > req12 <<EOF
@@ -116,14 +121,32 @@ cmp out listNov
 $fdblist class=d1,expver=0001,month=11 --porcelain | tee out
 cmp out listNov
 
+$fdblist class=d1,expver=0001,month=nov --porcelain | tee out
+cmp out listNov
+
 $fdblist class=d1,expver=0001,date=20021201/to/20021231 --porcelain | tee out
 cmp out listDec
 
 $fdblist class=d1,expver=0001,month=12 --porcelain | tee out
 cmp out listDec
 
+$fdblist class=d1,expver=0001,month=dec --porcelain | tee out
+cmp out listDec
+
 $fdblist class=d1,expver=0001,year=2002,month=12 --porcelain | tee out
 cmp out listDec
+
+$fdblist class=d1,expver=0001,month=1 --porcelain | tee out
+cmp out listJan
+
+# $fdblist class=d1,expver=0001,month=01 --porcelain | tee out
+# cmp out listJan
+
+$fdblist class=d1,expver=0001,month=jan --porcelain | tee out
+cmp out listJan
+
+$fdblist class=d1,expver=0001,year=2002,month=1 --porcelain | tee out
+cmp out none
 
 $fdblist class=d1,expver=0001,year=2003,month=12 --porcelain | tee out
 cmp out none

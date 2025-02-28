@@ -33,11 +33,11 @@ public:
 
 private:
 
-    ClientConnectionRouter() {} ///< private constructor only used by singleton
+    ClientConnectionRouter() {}  ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
     // endpoint -> connection
     std::unordered_map<eckit::net::Endpoint, std::unique_ptr<ClientConnection>> connections_;
 };
 
-}
+}  // namespace fdb5::remote

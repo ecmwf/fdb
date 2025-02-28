@@ -34,14 +34,12 @@ class DataWriteRequest;
 
 class ClientConnection : protected Connection {
 
-public: // methods
+public:  // methods
+
     ~ClientConnection() override;
 
-    std::future<eckit::Buffer> controlWrite(const Client& client,
-                                            Message       msg,
-                                            uint32_t      requestID,
-                                            bool /*dataListener*/,
-                                            PayloadList payload = {}) const;
+    std::future<eckit::Buffer> controlWrite(const Client& client, Message msg, uint32_t requestID,
+                                            bool /*dataListener*/, PayloadList payload = {}) const;
 
     void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
 
@@ -55,7 +53,7 @@ public: // methods
     const eckit::net::Endpoint& controlEndpoint() const;
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
-private: // methods
+private:  // methods
 
     friend class ClientConnectionRouter;
 
@@ -76,12 +74,13 @@ private: // methods
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();
     void dataWriteThreadLoop();
+    void closeConnection();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlClient_; }
 
     const eckit::net::TCPSocket& dataSocket() const override { return dataClient_; }
 
-private: // members
+private:  // members
 
     eckit::SessionID sessionID_;
 
@@ -92,6 +91,8 @@ private: // members
 
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
+
+    bool disconnecting_ = false;
 
     std::mutex clientsMutex_;
     std::map<uint32_t, Client*> clients_;
@@ -106,8 +107,6 @@ private: // members
     uint32_t id_;
 
     bool connected_;
-    bool controlStopping_;
-    bool dataStopping_;
 
     mutable std::mutex promisesMutex_;
 

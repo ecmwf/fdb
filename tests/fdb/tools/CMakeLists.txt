@@ -28,8 +28,7 @@ foreach( _t ${fdb_tools_grib_tests} )
 endforeach()
 
 add_subdirectory( auxiliary )
-
 add_subdirectory( list )
-
 add_subdirectory( inspect )
+add_subdirectory( reindex )
 

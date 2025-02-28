@@ -129,6 +129,10 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
+    database/ReindexVisitor.cc
+    database/ReindexVisitor.h
+    database/Reindexer.cc
+    database/Reindexer.h
     database/Report.cc
     database/Report.h
     database/RetrieveVisitor.cc
@@ -206,6 +210,8 @@ list( APPEND fdb5_srcs
     types/TypeInteger.h
     types/TypeMonth.cc
     types/TypeMonth.h
+    types/TypeMonthOfDate.cc
+    types/TypeMonthOfDate.h
     types/TypeYear.cc
     types/TypeYear.h
     types/TypeParam.cc
@@ -454,6 +460,7 @@ list( APPEND fdb5_tools
     fdb-status
     fdb-lock
     fdb-unlock
+    fdb-reindex
 )
 
 if ( HAVE_GRIB )

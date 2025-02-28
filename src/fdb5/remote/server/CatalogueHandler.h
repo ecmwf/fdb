@@ -22,8 +22,11 @@ namespace fdb5::remote {
 
 struct CatalogueArchiver {
     CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true), dataConnection(dataConnection),
-        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(0), locationsArchived(0) {}
+        controlConnection(true),
+        dataConnection(dataConnection),
+        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)),
+        locationsExpected(0),
+        locationsArchived(0) {}
 
     bool controlConnection;
     bool dataConnection;

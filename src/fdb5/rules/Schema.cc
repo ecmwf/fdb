@@ -39,7 +39,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema", };
+eckit::ClassSpec Schema::classSpec_ = {
+    &eckit::Streamable::classSpec(),
+    "Schema",
+};
 
 eckit::Reanimator<Schema> Schema::reanimator_;
 
@@ -55,7 +58,7 @@ Schema::Schema(std::istream& stream) {
     load(stream);
 }
 
-Schema::Schema(eckit::Stream& stream) : registry_ {stream} {
+Schema::Schema(eckit::Stream& stream) : registry_{stream} {
 
     size_t numRules = 0;
     stream >> path_;
@@ -73,7 +76,7 @@ void Schema::encode(eckit::Stream& stream) const {
     // stream << registry_;
     stream << path_;
     stream << rules_.size();
-    for (const auto& rule : rules_) { 
+    for (const auto& rule : rules_) {
         rule->encode(stream);
     }
 }
@@ -87,11 +90,17 @@ Schema::~Schema() {
 const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const {
 
     for (const auto& dbRule : rules_) {
-        if (!dbRule->match(dbKey)) { continue; }
+        if (!dbRule->match(dbKey)) {
+            continue;
+        }
         for (const auto& idxRule : dbRule->rules()) {
-            if (!idxRule->match(idxKey)) { continue; }
+            if (!idxRule->match(idxKey)) {
+                continue;
+            }
             /// @note returning first datum. could there be multiple datum per index ?
-            for (const auto& datumRule : idxRule->rules()) { return *datumRule; }
+            for (const auto& datumRule : idxRule->rules()) {
+                return *datumRule;
+            }
         }
     }
 
@@ -103,7 +112,9 @@ const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const
 const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
 
     for (const auto& rule : rules_) {
-        if (rule->match(dbKey)) { return *rule; }
+        if (rule->match(dbKey)) {
+            return *rule;
+        }
     }
 
     std::ostringstream msg;
@@ -114,7 +125,9 @@ const RuleDatabase& Schema::matchingRule(const Key& dbKey) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 void Schema::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
-    for (const auto& rule : rules_) { rule->expand(request, visitor); }
+    for (const auto& rule : rules_) {
+        rule->expand(request, visitor);
+    }
 }
 
 std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request) const {
@@ -133,7 +146,9 @@ void Schema::expand(const Key& field, WriteVisitor& visitor) const {
     visitor.rule(nullptr);  // reset to no rule so we verify that we pick at least one
 
     for (const auto& rule : rules_) {
-        if (rule->expand(field, visitor)) { break; }
+        if (rule->expand(field, visitor)) {
+            break;
+        }
     }
 }
 
@@ -147,7 +162,8 @@ void Schema::matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result,
     }
 }
 
-void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result, const char* missing) const {
+void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result,
+                           const char* missing) const {
     for (const auto& rule : rules_) {
         const auto keys = rule->findMatchingKeys(request, missing);
         for (const auto& k : keys) {
@@ -161,7 +177,9 @@ std::optional<Key> Schema::matchDatabase(const std::string& fingerprint) const {
     const auto values = eckit::Tokenizer(":", true).tokenize(fingerprint);
 
     for (const auto& rule : rules_) {
-        if (auto found = rule->findMatchingKey(values)) { return found; }
+        if (auto found = rule->findMatchingKey(values)) {
+            return found;
+        }
     }
 
     return {};
@@ -187,7 +205,9 @@ void Schema::load(const eckit::PathName& path, const bool replace) {
 
 void Schema::load(std::istream& s, const bool replace) {
 
-    if (replace) { clear(); }
+    if (replace) {
+        clear();
+    }
 
     SchemaParser(s).parse(rules_, registry_);
 

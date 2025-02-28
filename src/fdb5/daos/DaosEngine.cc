@@ -8,12 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosEngine.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/LibFdb5.h"
 
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
 using namespace eckit;
 
@@ -23,13 +23,14 @@ namespace fdb5 {
 
 void DaosEngine::configureDaos(const Config& config) const {
 
-    if (daos_config_.has_value()) return;
+    if (daos_config_.has_value())
+        return;
 
     daos_config_.emplace(eckit::LocalConfiguration());
-    if (config.has("daos")) daos_config_.emplace(config.getSubConfiguration("daos"));
+    if (config.has("daos"))
+        daos_config_.emplace(config.getSubConfiguration("daos"));
     if (daos_config_->has("client"))
         fdb5::DaosManager::instance().configure(daos_config_->getSubConfiguration("client"));
-
 }
 
 std::string DaosEngine::name() const {
@@ -45,12 +46,13 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
     fdb5::DaosName n{uri};
 
-    if (!n.hasOID()) return false;
+    if (!n.hasOID())
+        return false;
 
     /// @todo: check containerName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
     // bool is_root_name = (n.containerName().find(root_cont_) != std::string::npos);
-    bool is_root_name = false;
+    bool is_root_name  = false;
     bool is_store_name = (n.containerName().find("_") != std::string::npos);
 
     /// @note: performed RPCs:
@@ -61,27 +63,27 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
     return is_catalogue_kv && n.exists();
-
 }
 
-std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Config& config) const
-{
+std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Config& config) const {
 
     /// @note: code mostly copied from DaosCommon
-    /// @note: should rather use DaosCommon, but can't inherit from it here as DaosEngine is 
-    ///   always instantiated even if daos is not used, and then DaosCommon would be unnecessarily 
-    ///   initialised. If owning a private instance of DaosCommon here, then the private members of 
+    /// @note: should rather use DaosCommon, but can't inherit from it here as DaosEngine is
+    ///   always instantiated even if daos is not used, and then DaosCommon would be unnecessarily
+    ///   initialised. If owning a private instance of DaosCommon here, then the private members of
     ///   DaosCommon are not accessible from here
 
     configureDaos(config);
 
-    std::string pool = "default";
+    std::string pool      = "default";
     std::string root_cont = "root";
 
-    if (daos_config_->has("catalogue")) pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
-    if (daos_config_->has("catalogue")) root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
+    if (daos_config_->has("catalogue"))
+        pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
+    if (daos_config_->has("catalogue"))
+        root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
 
-    pool = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
+    pool      = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
     root_cont = eckit::Resource<std::string>("fdbDaosCatalogueRootCont;$FDB_DAOS_CATALOGUE_ROOT_CONT", root_cont);
 
     fdb5::DaosOID main_kv_oid{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
@@ -96,13 +98,14 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
     /// @note: performed RPCs:
     /// - main kv open (daos_kv_open)
- 
+
     /// @todo: use this Optional technique in all cases where an action needs to be performed
     ///   (i.e. not just throw an exception) if an object does not exist
     eckit::Optional<fdb5::DaosKeyValue> main_kv;
     try {
         main_kv.emplace(s, main_kv_name);
-    } catch (fdb5::DaosEntityNotFoundException& e) {
+    }
+    catch (fdb5::DaosEntityNotFoundException& e) {
         return res;
     }
 
@@ -122,7 +125,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             eckit::URI uri(std::string(v.begin(), v.end()));
             ASSERT(uri.scheme() == typeName());
 
-            /// @todo: this exact deserialisation is performed twice. Once here and once 
+            /// @todo: this exact deserialisation is performed twice. Once here and once
             ///   in DaosCatalogue::(uri, ...). Try to avoid one.
             fdb5::DaosKeyValueName db_kv_name{uri};
 
@@ -139,42 +142,40 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
                 Log::debug<LibFdb5>() << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
                 res.push_back(uri);
-
             }
-        
-        } catch (eckit::Exception& e) {
-            eckit::Log::error() <<  "Error loading FDB database " << k << " from " << main_kv_name.URI() << std::endl;
+        }
+        catch (eckit::Exception& e) {
+            eckit::Log::error() << "Error loading FDB database " << k << " from " << main_kv_name.URI() << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
-
     }
 
     return res;
-
 }
 
-std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const
-{
+std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const {
 
-    /// @todo: in the POSIX backend, a set of possible visitable locations is first constructed 
-    ///   from the schema, and the set of visitable locations found in the root directories are 
+    /// @todo: in the POSIX backend, a set of possible visitable locations is first constructed
+    ///   from the schema, and the set of visitable locations found in the root directories are
     ///   checked against that set. In the DAOS backend the first step is skipped.
 
     /// @note: code mostly copied from DaosCommon
-    /// @note: should rather use DaosCommon, but can't inherit from it here as DaosEngine is 
-    ///   always instantiated even if daos is not used, and then DaosCommon would be unnecessarily 
-    ///   initialised. If owning a private instance of DaosCommon here, then the private members of 
+    /// @note: should rather use DaosCommon, but can't inherit from it here as DaosEngine is
+    ///   always instantiated even if daos is not used, and then DaosCommon would be unnecessarily
+    ///   initialised. If owning a private instance of DaosCommon here, then the private members of
     ///   DaosCommon are not accessible from here
 
     configureDaos(config);
 
-    std::string pool = "default";
+    std::string pool      = "default";
     std::string root_cont = "root";
 
-    if (daos_config_->has("catalogue")) pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
-    if (daos_config_->has("catalogue")) root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
+    if (daos_config_->has("catalogue"))
+        pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
+    if (daos_config_->has("catalogue"))
+        root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
 
-    pool = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
+    pool      = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
     root_cont = eckit::Resource<std::string>("fdbDaosCatalogueRootCont;$FDB_DAOS_CATALOGUE_ROOT_CONT", root_cont);
 
     fdb5::DaosOID main_kv_oid{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
@@ -195,7 +196,8 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
     eckit::Optional<fdb5::DaosKeyValue> main_kv;
     try {
         main_kv.emplace(s, main_kv_name);
-    } catch (fdb5::DaosEntityNotFoundException& e) {
+    }
+    catch (fdb5::DaosEntityNotFoundException& e) {
         return res;
     }
 
@@ -215,7 +217,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             eckit::URI uri(std::string(v.begin(), v.end()));
             ASSERT(uri.scheme() == typeName());
 
-            /// @todo: this exact deserialisation is performed twice. Once here and once 
+            /// @todo: this exact deserialisation is performed twice. Once here and once
             ///   in DaosCatalogue::(uri, ...). Try to avoid one.
             fdb5::DaosKeyValueName db_kv_name{uri};
 
@@ -232,22 +234,19 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
 
                 Log::debug<LibFdb5>() << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
                 res.push_back(uri);
-
             }
-        
-        } catch (eckit::Exception& e) {
-            eckit::Log::error() <<  "Error loading FDB database from " << main_kv_name.URI() << std::endl;
+        }
+        catch (eckit::Exception& e) {
+            eckit::Log::error() << "Error loading FDB database from " << main_kv_name.URI() << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
-
     }
 
     return res;
-
 }
 
 static EngineBuilder<DaosEngine> daos_builder;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

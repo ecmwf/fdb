@@ -16,14 +16,13 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const void *data, size_t size, const ArchiveCallback& callback) :
-    BaseArchiveVisitor(owner, initialFieldKey),
-    data_(data),
-    size_(size),
-    callback_(callback){
-}
+ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const void* data, size_t size,
+                               const ArchiveCallback& callback) :
+    BaseArchiveVisitor(owner, initialFieldKey), data_(data), size_(size), callback_(callback) {}
 
-void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey, std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p, std::shared_ptr<const FieldLocation> fieldLocation) {
+void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey,
+                               std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
+                               std::shared_ptr<const FieldLocation> fieldLocation) {
     p->set_value(fieldLocation);
     catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
 }
@@ -37,19 +36,19 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
         std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(
             std::promise<std::shared_ptr<const FieldLocation>>());
 
-    store()->archive(idxKey, data_, size_,
-                     std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
+    store()->archive(
+        idxKey, data_, size_,
+        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
     callback_(initialFieldKey(), data_, size_, p->get_future());
 
     return true;
 }
 
-void ArchiveVisitor::print(std::ostream &out) const {
+void ArchiveVisitor::print(std::ostream& out) const {
     out << "ArchiveVisitor["
-        << "size=" << size_
-        << "]";
+        << "size=" << size_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -13,15 +13,13 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/rules/Rule.h"
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key& initialFieldKey) :
-    WriteVisitor(owner.prev_),
-    owner_(owner),
-    initialFieldKey_(initialFieldKey) {
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey) :
+    WriteVisitor(owner.prev_), owner_(owner), initialFieldKey_(initialFieldKey) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
@@ -38,7 +36,9 @@ bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key&) {
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {
-    if (checkMissingKeysOnWrite_) { fullKey.validateKeys(initialFieldKey_); }
+    if (checkMissingKeysOnWrite_) {
+        fullKey.validateKeys(initialFieldKey_);
+    }
 }
 
 const Schema& BaseArchiveVisitor::databaseSchema() const {
@@ -59,4 +59,4 @@ Store* BaseArchiveVisitor::store() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

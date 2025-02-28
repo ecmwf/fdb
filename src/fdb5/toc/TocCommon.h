@@ -14,15 +14,15 @@
 
 #pragma once
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/thread/ThreadPool.h"
 #include "eckit/serialisation/Streamable.h"
+#include "eckit/thread/ThreadPool.h"
 
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 
@@ -41,11 +41,11 @@ public:
 
     std::string owner() const { return userName(dbUID()); }
 
-protected: // methods
+protected:  // methods
 
     virtual uid_t dbUID() const;
 
-protected: // members
+protected:  // members
 
     const eckit::LocalPathName directory_;
     const eckit::LocalPathName schemaPath_;
@@ -54,4 +54,4 @@ protected: // members
     uid_t userUID_;
 };
 
-}
+}  // namespace fdb5

@@ -1,34 +1,37 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
 #include <cstdint>
 #include <mutex>
 #include <string_view>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Connection::Connection() : single_(false) { }
+Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
 
     if (!single_) {
         // TODO make the data connection dying automatically, when there are no more async writes
         try {
+            closingDataSocket_ = true;
             // all done - disconnecting
             Connection::write(Message::Exit, false, 0, 0);
-        } catch(...) {
+        }
+        catch (...) {
             // if connection is already down, no need to escalate
         }
     }
     try {
         // all done - disconnecting
         Connection::write(Message::Exit, true, 0, 0);
-    } catch(...) {
+    }
+    catch (...) {
         // if connection is already down, no need to escalate
     }
 }
@@ -39,7 +42,8 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
     long written = 0;
     if (control || single_) {
         written = controlSocket().write(data, length);
-    } else {
+    }
+    else {
         written = dataSocket().write(data, length);
     }
     if (written < 0) {
@@ -58,7 +62,8 @@ void Connection::readUnsafe(bool control, void* data, size_t length) const {
     long read = 0;
     if (control || single_) {
         read = controlSocket().read(data, length);
-    } else {
+    }
+    else {
         read = dataSocket().read(data, length);
     }
     if (read < 0) {
@@ -93,19 +98,16 @@ eckit::Buffer Connection::read(const bool control, MessageHeader& hdr) const {
 
     if (hdr.message == Message::Error) {
 
-        char msg[hdr.payloadSize+1];
+        char msg[hdr.payloadSize + 1];
         if (hdr.payloadSize) {
-            char msg[hdr.payloadSize+1];
+            char msg[hdr.payloadSize + 1];
         }
     }
 
     return payload;
 }
 
-void Connection::write(const Message     msg,
-                       const bool        control,
-                       const uint32_t    clientID,
-                       const uint32_t    requestID,
+void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
                        const PayloadList payloads) const {
 
     uint32_t payloadLength = 0;
@@ -116,15 +118,19 @@ void Connection::write(const Message     msg,
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID()
-                           << ",control=" << control << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
+    const auto& socket = control ? controlSocket() : dataSocket();
+    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
+                           << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
+                           << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
 
     writeUnsafe(control, &message, sizeof(message));
 
-    for (const auto& payload : payloads) { writeUnsafe(control, payload.data, payload.length); }
+    for (const auto& payload : payloads) {
+        writeUnsafe(control, payload.data, payload.length);
+    }
 
     writeUnsafe(control, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
