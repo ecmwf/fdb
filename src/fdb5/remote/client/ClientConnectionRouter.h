@@ -37,7 +37,7 @@ private:
 
     std::mutex connectionMutex_;
     // endpoint -> connection
-    std::unordered_map<eckit::net::Endpoint, std::unique_ptr<ClientConnection>> connections_;
+    std::unordered_map<eckit::net::Endpoint, std::shared_ptr<ClientConnection>> connections_;
 };
 
 }  // namespace fdb5::remote

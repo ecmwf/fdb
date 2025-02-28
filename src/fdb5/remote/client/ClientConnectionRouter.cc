@@ -34,18 +34,17 @@ ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint&
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    auto it = connections_.find(endpoint);
+    const auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
         return *(it->second);
     }
     else {
-        ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
+        auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
         if (clientConnection->connect()) {
-            auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
+            const auto it = (connections_.emplace(endpoint, clientConnection)).first;
             return *(it->second);
         }
         else {
-            delete clientConnection;
             throw ConnectionError(endpoint);
         }
     }
@@ -64,15 +63,15 @@ ClientConnection& ClientConnectionRouter::connection(
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
-        auto it = connections_.find(endpoint);
+        const auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
             return *(it->second);
         }
         else {  // not yet there, trying to connect
-            std::unique_ptr<ClientConnection> clientConnection =
-                std::unique_ptr<ClientConnection>(new ClientConnection{endpoint, fullEndpoints.at(idx).second});
+            auto clientConnection =
+                std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
             if (clientConnection->connect(true)) {
-                auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
+                const auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
                 return *(it->second);
             }
         }
@@ -90,7 +89,7 @@ ClientConnection& ClientConnectionRouter::connection(
 
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
-    auto it = connections_.find(connection.controlEndpoint());
+    const auto it = connections_.find(connection.controlEndpoint());
     if (it != connections_.end()) {
         connections_.erase(it);
     }
