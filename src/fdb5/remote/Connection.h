@@ -74,6 +74,8 @@ public:  // methods
 
     void teardown();
 
+    bool valid() const { return isValid_; }
+
 private:  // methods
 
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
@@ -97,6 +99,9 @@ private:  // members
     mutable std::mutex dataMutex_;
     mutable std::mutex readControlMutex_;
     mutable std::mutex readDataMutex_;
+
+    // Used to flag that a TCPException has been thrown
+    mutable std::atomic<bool> isValid_{true};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

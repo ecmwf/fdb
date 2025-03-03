@@ -74,7 +74,7 @@ bool ClientConnection::remove(uint32_t clientID) {
         auto it = clients_.find(clientID);
 
         if (it != clients_.end()) {
-            Connection::write(Message::Stop, true, clientID, 0);
+            if (valid()) Connection::write(Message::Stop, true, clientID, 0);
 
             clients_.erase(it);
         }
@@ -94,6 +94,12 @@ ClientConnection::~ClientConnection() {
     }
 
     disconnect();
+
+    /// @todo: Why was this not never joined in the disconnect() method?!
+    if (listeningDataThread_.joinable()) {
+        listeningDataThread_.join();
+    }
+
 }
 
 uint32_t ClientConnection::generateRequestID() {

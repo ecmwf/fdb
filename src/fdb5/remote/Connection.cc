@@ -15,11 +15,12 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-
+    if (!single_) closingDataSocket_ = true;
+    if (!valid()) return;
+    
     if (!single_) {
         // TODO make the data connection dying automatically, when there are no more async writes
         try {
-            closingDataSocket_ = true;
             // all done - disconnecting
             Connection::write(Message::Exit, false, 0, 0);
         }
@@ -47,11 +48,13 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
         written = dataSocket().write(data, length);
     }
     if (written < 0) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Write error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != written) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Write error. Expected " << length << " bytes, wrote " << written;
         throw TCPException(ss.str(), Here());
@@ -67,11 +70,13 @@ void Connection::readUnsafe(bool control, void* data, size_t length) const {
         read = dataSocket().read(data, length);
     }
     if (read < 0) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Read error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != read) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Read error. Expected " << length << " bytes, read " << read;
         throw TCPException(ss.str(), Here());

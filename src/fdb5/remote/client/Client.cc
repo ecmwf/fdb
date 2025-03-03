@@ -14,6 +14,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include "eckit/log/Log.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/net/Endpoint.h"
@@ -37,6 +38,7 @@ void Client::setClientID() {
     id_ = ++clientId_;
 }
 
+///@todo: is default endpoint used anywhere? can it be removed?
 Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
     connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
 
@@ -48,6 +50,19 @@ Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& 
     connection_(ClientConnectionRouter::instance().connection(endpoints)) {
 
     setClientID();
+    connection_->add(*this);
+}
+
+void Client::refreshConnection() {
+    if (connection_->valid()) return;
+
+    eckit::Log::warning() << "Connection to " << connection_->controlEndpoint() << " is invalid, attempting to reconnect"
+                          << std::endl;
+
+    ClientConnectionRouter::instance().deregister(*connection_);
+    connection_->remove(id_);
+    
+    connection_ = ClientConnectionRouter::instance().connection(connection_->controlEndpoint(), connection_->defaultEndpoint());
     connection_->add(*this);
 }
 

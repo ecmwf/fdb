@@ -76,6 +76,9 @@ public:  // methods
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual void closeConnection() {}
 
+    // Create a new connection if the current one is invalid
+    void refreshConnection();
+
 protected:
 
     std::shared_ptr<ClientConnection> connection_;
