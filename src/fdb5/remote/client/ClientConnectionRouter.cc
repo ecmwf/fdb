@@ -37,15 +37,13 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit
     if (it != connections_.end()) {
         return (it->second);
     }
+    auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
+    if (clientConnection->connect()) {
+        const auto it = (connections_.emplace(endpoint, clientConnection)).first;
+        return clientConnection;
+    }
     else {
-        auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
-        if (clientConnection->connect()) {
-            const auto it = (connections_.emplace(endpoint, clientConnection)).first;
-            return (it->second);
-        }
-        else {
-            throw ConnectionError(endpoint);
-        }
+        throw ConnectionError(endpoint);
     }
 }
 
@@ -66,12 +64,12 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
         if (it != connections_.end()) {
             return (it->second);
         }
-        else {  // not yet there, trying to connect
-            auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
-            if (clientConnection->connect(true)) {
-                const auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
-                return (it->second);
-            }
+
+        // not yet there, trying to connect
+        auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
+        if (clientConnection->connect(true)) {
+            const auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
+            return clientConnection;
         }
 
         // unable to connect to "endpoint", remove it and try again
@@ -87,6 +85,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
+    std::lock_guard<std::mutex> lock(connectionMutex_);
     const auto it = connections_.find(connection.controlEndpoint());
     if (it != connections_.end()) {
         connections_.erase(it);
@@ -117,6 +116,7 @@ void ClientConnectionRouter::teardown(std::exception_ptr e) {
             conn->teardown();
         }
     }
+    connections_.clear();
 }
 
 }  // namespace fdb5::remote

@@ -37,7 +37,9 @@ private:
     ClientConnectionRouter() {}  ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
-    // endpoint -> connection
+
+    /// @note The ClientConnection is (jointly) owned by the Client objects.
+    /// When the last client is disconnects, the ClientConnection deregisters itself from this map.
     std::unordered_map<eckit::net::Endpoint, std::shared_ptr<ClientConnection>> connections_;
 };
 

@@ -67,7 +67,6 @@ void ClientConnection::add(Client& client) {
 }
 
 bool ClientConnection::remove(uint32_t clientID) {
-
     std::lock_guard lock(clientsMutex_);
 
     if (clientID > 0) {
@@ -83,6 +82,7 @@ bool ClientConnection::remove(uint32_t clientID) {
 
     if (clients_.empty()) {
         teardown();
+        ClientConnectionRouter::instance().deregister(*this);
     }
 
     return clients_.empty();
