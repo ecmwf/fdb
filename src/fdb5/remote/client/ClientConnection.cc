@@ -342,16 +342,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload;
-            try {
-                payload = Connection::readControl(hdr);
-            }
-            catch (...) {
-                if (closingControlSocket_) {
-                    return;
-                }
-                throw;
-            }
+            eckit::Buffer payload = Connection::readControl(hdr);
 
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message
                                    << ",clientID=" << hdr.clientID() << ",control=" << hdr.control()
@@ -453,17 +444,8 @@ void ClientConnection::listeningDataThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload;
-            try {
-                payload = Connection::readData(hdr);
-            }
-            catch (...) {
-                if (closingDataSocket_) {
-                    closeConnection();
-                    return;
-                }
-                throw;
-            }
+            eckit::Buffer payload = Connection::readData(hdr);
+
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
                                    << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
                                    << std::endl;

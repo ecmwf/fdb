@@ -79,7 +79,7 @@ public:  // methods
 
 private:  // methods
 
-    eckit::Buffer read(bool control, MessageHeader& hdr) const;
+    eckit::Buffer read(bool control, MessageHeader& hdr, bool quiet) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
 
@@ -92,10 +92,11 @@ private:  // methods
 protected:  // members
 
     bool single_;
-    bool closingControlSocket_ = false;
-    bool closingDataSocket_    = false;
 
 private:  // members
+
+    bool closingControlSocket_ = false;
+    bool closingDataSocket_    = false;
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
