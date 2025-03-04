@@ -91,7 +91,8 @@ private:  // methods
 protected:  // members
 
     bool single_;
-    bool closingDataSocket_ = false;
+    bool closingControlSocket_ = false;
+    bool closingDataSocket_    = false;
 
 private:  // members
 

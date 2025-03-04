@@ -15,10 +15,14 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    if (!single_)
+    closingControlSocket_ = true;
+    if (!single_) {
         closingDataSocket_ = true;
-    if (!valid())
+    }
+
+    if (!valid()) {
         return;
+    }
 
     if (!single_) {
         // TODO make the data connection dying automatically, when there are no more async writes

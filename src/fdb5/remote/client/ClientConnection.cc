@@ -95,11 +95,6 @@ ClientConnection::~ClientConnection() {
     }
 
     disconnect();
-
-    /// @todo: Why was this not never joined in the disconnect() method?!
-    if (listeningDataThread_.joinable()) {
-        listeningDataThread_.join();
-    }
 }
 
 uint32_t ClientConnection::generateRequestID() {
@@ -158,6 +153,9 @@ void ClientConnection::disconnect() {
     if (connected_) {
         if (dataWriteThread_.joinable()) {
             dataWriteThread_.join();
+        }
+        if (!single_ && listeningDataThread_.joinable()) {
+            listeningDataThread_.join();
         }
         if (listeningControlThread_.joinable()) {
             listeningControlThread_.join();
@@ -344,7 +342,16 @@ void ClientConnection::listeningControlThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload = Connection::readControl(hdr);
+            eckit::Buffer payload;
+            try {
+                payload = Connection::readControl(hdr);
+            }
+            catch (...) {
+                if (closingControlSocket_) {
+                    return;
+                }
+                throw;
+            }
 
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message
                                    << ",clientID=" << hdr.clientID() << ",control=" << hdr.control()
@@ -352,10 +359,6 @@ void ClientConnection::listeningControlThreadLoop() {
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-
-                if (!single_ && listeningDataThread_.joinable()) {
-                    listeningDataThread_.join();
-                }
 
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
                                        << std::endl;
