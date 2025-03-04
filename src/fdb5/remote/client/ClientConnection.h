@@ -57,6 +57,7 @@ public:  // methods
     using Connection::valid;
 
 private:  // methods
+
     friend class ClientConnectionRouter;
 
     void dataWrite(DataWriteRequest& request) const;
