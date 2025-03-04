@@ -357,7 +357,8 @@ void ClientConnection::listeningControlThreadLoop() {
                     listeningDataThread_.join();
                 }
 
-                eckit::Log::info() << "Control thread stopping" << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
+                                       << std::endl;
                 return;
             }
             else {
@@ -430,7 +431,7 @@ void ClientConnection::listeningControlThreadLoop() {
 }
 
 void ClientConnection::closeConnection() {
-    eckit::Log::info() << "Data thread stopping" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::closeConnection() -- Data thread stopping" << std::endl;
     if (!disconnecting_) {
         std::lock_guard lock(clientsMutex_);
         for (auto& [id, client] : clients_) {
