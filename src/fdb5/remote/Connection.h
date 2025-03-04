@@ -10,19 +10,20 @@
 
 #pragma once
 
-#include "eckit/serialisation/MemoryStream.h"
-#include "fdb5/remote/Messages.h"
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/os/BackTrace.h"
-
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <mutex>
 #include <string_view>
 #include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/os/BackTrace.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include "fdb5/remote/Messages.h"
 
 namespace eckit {
 
