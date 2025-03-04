@@ -350,7 +350,8 @@ void ClientConnection::listeningControlThreadLoop() {
                     listeningDataThread_.join();
                 }
 
-                LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping" << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
+                                       << std::endl;
                 return;
             }
             else {
