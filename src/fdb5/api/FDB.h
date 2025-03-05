@@ -152,13 +152,10 @@ public:  // methods
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false);
 
-    eckit::DataHandle* readSeekable(ListIterator& it, bool sorted = false);
-
     /// Retrieve data which is specified by a MARS request.
     /// @param request MarsRequest which describes the data which should be retrieved
-    /// @param seekable bool whether the returned DataHandle can be seeked backward (within the current message)
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, bool seekable = false);
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
     // TODO(kkratz): Provide doc!
     ListIterator inspect(const metkit::mars::MarsRequest& request);

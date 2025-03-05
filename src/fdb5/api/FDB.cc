@@ -222,13 +222,11 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::readSeekable(ListIterator& it, bool sorted) {
-    return new FieldHandle(it);
-}
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, bool seekable) {
     ListIterator it = inspect(request);
-    return (seekable ? readSeekable(it, sorted(request)) : read(it, sorted(request)));
+    return seekable ? new FieldHandle(it) : read(it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
