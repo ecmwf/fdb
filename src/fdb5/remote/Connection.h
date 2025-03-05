@@ -39,11 +39,7 @@ class TCPException : public eckit::Exception {
 public:
 
     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
-
-        std::cerr << "TCP Exception; backtrace(): " << std::endl;
-        std::cerr << eckit::BackTrace::dump() << std::endl;
-    }
+        eckit::Exception(std::string("TCPException: ") + msg, here) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -79,11 +75,11 @@ public:  // methods
 
 private:  // methods
 
-    eckit::Buffer read(bool control, MessageHeader& hdr, bool quiet) const;
+    eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
 
-    void readUnsafe(bool control, void* data, size_t length) const;
+    bool readUnsafe(bool control, void* data, size_t length, bool quiet) const;
 
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 

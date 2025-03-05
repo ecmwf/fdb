@@ -154,7 +154,7 @@ void ClientConnection::disconnect() {
         if (dataWriteThread_.joinable()) {
             dataWriteThread_.join();
         }
-        if (!single_ && listeningDataThread_.joinable()) {
+        if (listeningDataThread_.joinable()) {
             listeningDataThread_.join();
         }
         if (listeningControlThread_.joinable()) {
@@ -350,13 +350,6 @@ void ClientConnection::listeningControlThreadLoop() {
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-                if (!single_ && listeningDataThread_.joinable()) {
-                    LOG_DEBUG_LIB(LibFdb5)
-                        << "ClientConnection::listeningControlThreadLoop() -- waiting for listeningDataThread"
-                        << std::endl;
-                    listeningDataThread_.join();
-                }
-
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
                                        << std::endl;
                 return;

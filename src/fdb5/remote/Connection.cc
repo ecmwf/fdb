@@ -67,7 +67,7 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
     }
 }
 
-void Connection::readUnsafe(bool control, void* data, size_t length) const {
+bool Connection::readUnsafe(bool control, void* data, size_t length, bool quiet) const {
     long read = 0;
     if (control || single_) {
         read = controlSocket().read(data, length);
@@ -77,56 +77,54 @@ void Connection::readUnsafe(bool control, void* data, size_t length) const {
     }
     if (read < 0) {
         isValid_ = false;
+        if (quiet) {
+            return false;
+        }
         std::stringstream ss;
         ss << "Read error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != read) {
         isValid_ = false;
+        if (quiet) {
+            return false;
+        }
         std::stringstream ss;
-        ss << "Read error. Expected " << length << " bytes, read " << read;
+        ss << "Read error. Expected " << length << " bytes, read " << read << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
+    return true;
 }
 
-eckit::Buffer Connection::read(bool control, MessageHeader& hdr, bool quiet) const {
+eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     eckit::FixedString<4> tail;
     hdr.payloadSize = 0;
 
     std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
-    try {
-        readUnsafe(control, &hdr, sizeof(hdr));
+    bool quiet = (control || single_) ? closingControlSocket_ : closingDataSocket_;
+
+    if (readUnsafe(control, &hdr, sizeof(hdr), quiet)) {
         ASSERT(hdr.marker == MessageHeader::StartMarker);
         ASSERT(hdr.version == MessageHeader::currentVersion);
         ASSERT(single_ || hdr.control() == control);
 
         eckit::Buffer payload{hdr.payloadSize};
-        if (hdr.payloadSize > 0) {
-            readUnsafe(control, payload, hdr.payloadSize);
-        }
+        if ((hdr.payloadSize == 0 || readUnsafe(control, payload, hdr.payloadSize, quiet))
+            // Ensure we have consumed exactly the correct amount from the socket.
+            && readUnsafe(control, &tail, sizeof(tail), quiet)) {
 
-        // Ensure we have consumed exactly the correct amount from the socket.
-        readUnsafe(control, &tail, sizeof(tail));
+            ASSERT(tail == MessageHeader::EndMarker);
 
-        ASSERT(tail == MessageHeader::EndMarker);
-
-        if (hdr.message == Message::Error) {
-
-            char msg[hdr.payloadSize + 1];
-            if (hdr.payloadSize) {
+            if (hdr.message == Message::Error) {
                 char msg[hdr.payloadSize + 1];
+                if (hdr.payloadSize) {
+                    char msg[hdr.payloadSize + 1];
+                }
             }
-        }
 
-        return payload;
-    }
-    catch (...) {
-        if (!quiet) {
-            throw;
+            return payload;
         }
     }
-    LOG_DEBUG_LIB(LibFdb5) << "Connection::read -- error reading from " << (control ? "Control" : "Data")
-                           << " connection. Returning Exit message" << std::endl;
 
     hdr.message = Message::Exit;
     return eckit::Buffer{0};
@@ -166,11 +164,11 @@ void Connection::error(std::string_view msg, uint32_t clientID, uint32_t request
 }
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
-    return read(true, hdr, closingControlSocket_);
+    return read(true, hdr);
 }
 
 eckit::Buffer Connection::readData(MessageHeader& hdr) const {
-    return read(false, hdr, closingDataSocket_);
+    return read(false, hdr);
 }
 
 }  // namespace fdb5::remote
