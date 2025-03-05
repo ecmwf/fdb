@@ -14,21 +14,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request,
-                         std::ostream& out,
-                         bool doit,
-                         bool porcelain,
+WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain,
                          bool unsafeWipeAll) :
-    EntryVisitor(),
-    request_(request),
-    out_(out),
-    doit_(doit),
-    porcelain_(porcelain),
-    unsafeWipeAll_(unsafeWipeAll) {}
+    EntryVisitor(), request_(request), out_(out), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
 
 
 WipeVisitor::~WipeVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

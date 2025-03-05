@@ -22,17 +22,20 @@ namespace fdb5 {
 
 class PurgeVisitor : public virtual StatsReportVisitor {
 
-public: // methods
+public:  // methods
+
     using StatsReportVisitor::StatsReportVisitor;
 
     // n.b. report is only called when either doit=false OR porcelain=false
     virtual void report(std::ostream& out) const = 0;
 
     virtual void purge(std::ostream& out, bool porcelain, bool doit) const = 0;
+
+    virtual void gatherAuxiliaryURIs() {}  // NOOP by default
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_StatsReportVisitor_H
+#endif  // fdb5_StatsReportVisitor_H

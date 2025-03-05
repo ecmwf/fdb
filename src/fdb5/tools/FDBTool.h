@@ -18,18 +18,19 @@
 
 #include <vector>
 
+#include "eckit/config/Configuration.h"
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/Tool.h"
-#include "eckit/filesystem/PathName.h"
 
-#include "fdb5/database/DB.h"
-#include "eckit/option/SimpleOption.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
-    namespace option {
-    class Option;
-    class CmdArgs;
-    }
-}
+namespace option {
+class Option;
+class CmdArgs;
+}  // namespace option
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -40,28 +41,31 @@ namespace fdb5 {
 
 class FDBTool : public eckit::Tool {
 
-protected: // methods
+protected:  // methods
 
-    FDBTool(int argc, char **argv);
-    virtual ~FDBTool() override {}
+    FDBTool(int argc, char** argv);
+    ~FDBTool() override {}
 
-    virtual void run() override;
-    Config config(const eckit::option::CmdArgs& args) const;
+    void run() override;
+    Config config(const eckit::option::CmdArgs& args,
+                  const eckit::Configuration& userConfig = eckit::LocalConfiguration()) const;
 
-public: // methods
+public:  // methods
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-protected: // members
+protected:  // members
 
-    std::vector<eckit::option::Option *> options_;
+    std::vector<eckit::option::Option*> options_;
+    /// Set this to false in tool subclass if your tool does not require access to 'config.yaml'
+    bool needsConfig_{true};
 
-protected: // methods
+protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
 
-private: // methods
+private:  // methods
 
     virtual void execute(const eckit::option::CmdArgs& args) = 0;
 
@@ -74,6 +78,7 @@ private: // methods
 
 class FDBToolException : public eckit::Exception {
 public:
+
     FDBToolException(const std::string&);
     FDBToolException(const std::string&, const eckit::CodeLocation&);
 };
@@ -81,6 +86,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

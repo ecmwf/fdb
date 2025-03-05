@@ -8,56 +8,48 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
 #include <cctype>
 
 #include "fdb5/message/MessageDecoder.h"
 
-#include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
 
-#include "metkit/mars/MarsExpandContext.h"
-#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/Type.h"
 
 namespace fdb5 {
 
-namespace  {
+namespace {
 class KeySetter : public eckit::message::MetadataGatherer {
 
-    void setValue(const std::string& key, const std::string& value) override {
-        key_.set(key, value);
-    }
+    void setValue(const std::string& key, const std::string& value) override { key_.set(key, value); }
 
     void setValue(const std::string& key, long value) override {
-        if (key_.find(key) == key_.end()) {
+        if (const auto [iter, found] = key_.find(key); !found) {
             key_.set(key, std::to_string(value));
         }
     }
 
     void setValue(const std::string& key, double value) override {
-        if (key_.find(key) == key_.end()) {
+        if (const auto [iter, found] = key_.find(key); !found) {
             key_.set(key, std::to_string(value));
         }
     }
 
 protected:
+
     Key& key_;
 
 public:
 
-    KeySetter(Key& key): key_(key) {
-        ASSERT(key_.empty());
-    }
+    KeySetter(Key& key) : key_(key) { ASSERT(key_.empty()); }
 };
 
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MessageDecoder::MessageDecoder(bool checkDuplicates):
-    checkDuplicates_(checkDuplicates) {
-}
+MessageDecoder::MessageDecoder(bool checkDuplicates) : checkDuplicates_(checkDuplicates) {}
 
 MessageDecoder::~MessageDecoder() {}
 
@@ -72,6 +64,8 @@ void MessageDecoder::msgToKey(const eckit::message::Message& msg, Key& key) {
 
     KeySetter setter(key);
     msg.getMetadata(setter);
+
+    key.unset("stepunits");
 }
 
 void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) {
@@ -80,36 +74,37 @@ void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) 
 
     msgToKey(patched, key);
 
-    if ( checkDuplicates_ ) {
-        if ( seen_.find(key) != seen_.end() ) {
+    if (checkDuplicates_) {
+        if (seen_.find(key) != seen_.end()) {
             std::ostringstream oss;
             oss << "Message has duplicate parameters in the same request: " << key;
-            throw eckit::SeriousBug( oss.str() );
+            throw eckit::SeriousBug(oss.str());
         }
 
         seen_.insert(key);
     }
 }
 
-metkit::mars::MarsRequest MessageDecoder::messageToRequest(const eckit::PathName &path, const char *verb) {
+metkit::mars::MarsRequest MessageDecoder::messageToRequest(const eckit::PathName& path, const char* verb) {
     metkit::mars::MarsRequest request(verb);
 
-    for (auto& r: messageToRequests(path, verb))
+    for (auto& r : messageToRequests(path, verb))
         request.merge(r);
 
     return request;
 }
 
 
-std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const eckit::PathName &path, const char *verb) {
+std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const eckit::PathName& path,
+                                                                         const char* verb) {
 
     std::vector<metkit::mars::MarsRequest> requests;
     eckit::message::Reader reader(path);
     eckit::message::Message msg;
 
-    std::map<std::string, std::set<std::string> > s;
+    std::map<std::string, std::set<std::string>> s;
 
-    while ( (msg = reader.next()) ) {
+    while ((msg = reader.next())) {
 
         Key key;
 
@@ -129,4 +124,4 @@ eckit::message::Message MessageDecoder::patch(const eckit::message::Message& msg
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

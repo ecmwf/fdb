@@ -13,163 +13,95 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Key_H
-#define fdb5_Key_H
+#pragma once
 
-#include <map>
+#include "fdb5/database/BaseKey.h"
+#include "fdb5/types/TypesRegistry.h"
+
+#include <cstddef>
+#include <functional>
 #include <string>
-#include <vector>
-#include <set>
-
-#include "eckit/types/Types.h"
 
 namespace eckit {
-    class JSON;
-    template<class T> class DenseSet;
+template <class T>
+class DenseSet;
 }
 
-namespace metkit {
-namespace mars {
-    class MarsRequest;
-}
+namespace metkit::mars {
+class MarsRequest;
 }
 
 namespace fdb5 {
 
-class TypesRegistry;
 class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
+// KEY
 
-class Key {
+class Key : public BaseKey {
+public:  // factory
 
-public: // methods
+    static Key parse(const std::string& keyString);
 
-    Key();
+public:  // methods
 
-    explicit Key(eckit::Stream &);
-    explicit Key(const std::string &request);
-    explicit Key(const std::string &keys, const Rule* rule);
+    using BaseKey::BaseKey;
 
-    explicit Key(const eckit::StringDict &keys);
+    std::string type() const override { return "Key"; }
 
-    std::set<std::string> keys() const;
+    std::string valuesToString() const;
 
-    void set(const std::string &k, const std::string &v);
-    void unset(const std::string &k);
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeys(const Key& other, bool checkAlsoValues = false) const;
 
-    void push(const std::string &k, const std::string &v);
-    void pop(const std::string &k);
-
-    const std::string& get( const std::string &k ) const;
-
-    void clear();
+    // MATCH
 
     bool match(const Key& other) const;
+
     bool match(const metkit::mars::MarsRequest& request) const;
-
-    bool match(const Key& other, const eckit::StringList& ignore) const;
-
-    bool match(const std::string& key, const std::set<std::string>& values) const;
-    bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key &other) const {
-        return keys_ < other.keys_;
-    }
+    bool matchValues(const std::string& keyword, const eckit::DenseSet<std::string>& values) const;
+};
 
-    bool operator!= (const Key &other) const {
-        return keys_ != other.keys_;
-    }
+//----------------------------------------------------------------------------------------------------------------------
+// TYPED KEY
 
-    bool operator== (const Key &other) const {
-        return keys_ == other.keys_;
-    }
+class TypedKey : public BaseKey {
+public:  // methods
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
-        x.print(s);
-        return s;
-    }
+    explicit TypedKey(const TypesRegistry& reg) : registry_{reg} {}
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
-        x.encode(s);
-        return s;
-    }
+    // RULES
+    TypedKey(const TypedKey& other)            = delete;
+    TypedKey& operator=(const TypedKey& other) = delete;
+    TypedKey(TypedKey&& other)                 = delete;
+    TypedKey& operator=(TypedKey&& other)      = delete;
+    ~TypedKey()                                = default;
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
-        return s;
-    }
+    std::string type() const override { return "TypedKey"; }
 
-    void rule(const Rule *rule);
-    const Rule *rule() const;
-    const TypesRegistry& registry() const;
+    Key tidy() const;
 
-    std::string valuesToString() const;
+    Key canonical() const;
 
-    const eckit::StringList& names() const;
+private:  // members
 
-    std::string value(const std::string& keyword) const;
-    std::string canonicalValue(const std::string& keyword) const;
-
-    typedef eckit::StringDict::const_iterator const_iterator;
-    typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;
-
-    const_iterator begin() const { return keys_.begin(); }
-    const_iterator end() const { return keys_.end(); }
-
-    const_reverse_iterator rbegin() const { return keys_.rbegin(); }
-    const_reverse_iterator rend() const { return keys_.rend(); }
-
-    const_iterator find(const std::string& s) const { return keys_.find(s); }
-
-    size_t size() const { return keys_.size(); }
-
-    bool empty() const { return keys_.empty(); }
-
-    /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
-
-    const eckit::StringDict& keyDict() const;
-
-    metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
-
-    operator std::string() const;
-
-    operator eckit::StringDict() const;
-
-private: // members
-
-    //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const;
-
-    void print( std::ostream &out ) const;
-    void decode(eckit::Stream& s);
-    void encode(eckit::Stream &s) const;
-
-    std::string toString() const;
-
-    eckit::StringDict keys_;
-    eckit::StringList names_;
-
-    const Rule *rule_;
-
+    const TypesRegistry& registry_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 namespace std {
-    template <>
-    struct hash<fdb5::Key> {
-        size_t operator() (const fdb5::Key& key) const {
-            return std::hash<std::string>()(key.valuesToString());
-        }
-    };
-}
 
-#endif
+template <>
+struct hash<fdb5::Key> {
+    size_t operator()(const fdb5::Key& key) const { return std::hash<std::string>()(key.valuesToString()); }
+};
+
+}  // namespace std

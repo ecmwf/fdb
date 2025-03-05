@@ -12,10 +12,9 @@
 /// @author Simon Smart
 /// @date   August 2022
 
-#ifndef fdb5_TocMoveVisitor_H
-#define fdb5_TocMoveVisitor_H
+#pragma once
 
-
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/toc/TocCatalogue.h"
 
@@ -27,30 +26,24 @@ class TocMoveVisitor : public MoveVisitor {
 
 public:
 
-    TocMoveVisitor(const TocCatalogue& catalogue,
-                   const Store& store,
-                   const metkit::mars::MarsRequest& request,
-                   const eckit::URI& dest,
-                   bool removeSrc,
-                   int removeDelay,
-                   int threads);
+    TocMoveVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+                   const eckit::URI& dest, eckit::Queue<MoveElement>& queue);
     ~TocMoveVisitor() override;
 
-private: // methods
+private:  // methods
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
 
     void move();
 
-private: // members
+private:  // members
 
     // What are the parameters of the move operation
     const TocCatalogue& catalogue_;
     const Store& store_;
+    eckit::Queue<MoveElement>& queue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
-#endif
+}  // namespace fdb5

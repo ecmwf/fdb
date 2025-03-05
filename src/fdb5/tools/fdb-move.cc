@@ -7,153 +7,357 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+
+#include <unistd.h>
+
+#include "eckit/distributed/Consumer.h"
+#include "eckit/distributed/Message.h"
+#include "eckit/distributed/Producer.h"
+#include "eckit/distributed/Transport.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+#include "eckit/thread/ThreadPool.h"
 
-#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/LibFdb5.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 #define MAX_THREADS 256
 
-using namespace eckit::option;
 using namespace eckit;
+using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBMove : public FDBVisitTool {
-public: // methods
 
-    FDBMove(int argc, char **argv);
-    ~FDBMove() override;
+struct fdb_moveiterator_t {
+public:
 
-private: // methods
+    fdb_moveiterator_t(fdb5::MoveIterator&& iter) : iter_(std::move(iter)) {}
 
-    void execute(const CmdArgs& args) override;
-    void init(const CmdArgs &args) override;
+    bool next(fdb5::MoveElement& elem) { return iter_.next(elem); }
 
-private: // members
+private:
 
-    eckit::URI destination_;
+    fdb5::MoveIterator iter_;
+};
+
+
+class MoveProducer : public eckit::distributed::Producer {
+public:  // methods
+
+    MoveProducer(eckit::distributed::Transport& transport, const Config& config,
+                 const std::vector<fdb5::FDBToolRequest>& requests, const eckit::option::CmdArgs& args) :
+        eckit::distributed::Producer(transport), fdb_(config), keep_(false), removeDelay_(0) {
+
+        keep_        = args.getBool("keep", false);
+        removeDelay_ = args.getInt("delay", 0);
+
+        eckit::URI destination;
+        std::string dest = args.getString("dest");
+        if (dest.empty()) {
+            std::stringstream ss;
+            ss << "No destination root specified.";
+            throw UserError(ss.str(), Here());
+        }
+        else {
+            destination = eckit::URI(dest);
+        }
+
+        fdb5::FDBToolRequest request = metkit::mars::MarsRequest();
+        size_t count                 = 0;
+        for (const FDBToolRequest& toolReq : requests) {
+            if (count) {
+                std::stringstream ss;
+                ss << "Multiple requests are not supported" << std::endl;
+                throw eckit::UserError(ss.str());
+            }
+
+            if (toolReq.all()) {
+                std::stringstream ss;
+                ss << "Move ALL not supported. Please specify a single database." << std::endl;
+                throw eckit::UserError(ss.str(), Here());
+            }
+
+            // check that the request is only referring a single DB - no ranges of values
+            const metkit::mars::MarsRequest& marsReq = toolReq.request();
+            std::vector<std::string> params          = marsReq.params();
+            for (const std::string& param : params) {
+                const std::vector<std::string>& values = marsReq.values(param);
+
+                if (values.size() != 1) {
+                    std::stringstream ss;
+                    ss << "Move requires a single value for each parameter in the request." << std::endl
+                       << "Parameter " << param << "=" << values << " not supported." << std::endl;
+                    throw eckit::UserError(ss.str(), Here());
+                }
+            }
+
+            // check that exaclty one DB matches
+            StatsIterator it = fdb_.stats(toolReq);
+            StatsElement se;
+            if (!it.next(se)) {
+                std::stringstream ss;
+                ss << "Request " << toolReq
+                   << " does not matches with an existing database. Please specify a single database." << std::endl;
+                throw eckit::UserError(ss.str(), Here());
+            }
+            if (it.next(se)) {
+                std::stringstream ss;
+                ss << "Request " << toolReq
+                   << " matches with more than one existing database. Please specify a single database." << std::endl;
+                throw eckit::UserError(ss.str(), Here());
+            }
+
+            request = toolReq;
+            count++;
+        }
+
+        if (count == 0) {
+            std::stringstream ss;
+            ss << "No FDB entries found" << std::endl;
+            throw FDBToolException(ss.str());
+        }
+
+        LOG_DEBUG_LIB(LibFdb5) << "Request:     " << request << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Destination: " << destination << std::endl;
+
+        moveIterator_ = new fdb_moveiterator_t(fdb_.move(request, destination));
+    }
+    ~MoveProducer() {}
+
+private:  // methods
+
+    virtual bool produce(eckit::distributed::Message& message) {
+        ASSERT(moveIterator_);
+
+        fdb5::MoveElement elem;
+        if (moveIterator_->next(elem)) {
+            LOG_DEBUG_LIB(LibFdb5) << "MoveProducer " << elem << std::endl;
+            if (!elem.sync()) {
+                list_.push_back(elem);
+                elem.encode(message);
+                return true;
+            }
+            last_ = elem;
+        }
+        return false;
+    }
+    virtual void finalise() {
+        transport_.synchronise();
+        last_.execute();
+
+        if (!keep_) {
+            last_.cleanup();
+
+            sleep(removeDelay_);
+
+            for (auto& el : list_) {
+                el.cleanup();
+            }
+
+            fdb5::MoveElement elem;
+            while (moveIterator_->next(elem)) {
+                elem.cleanup();
+            }
+        }
+    }
+
+    void messageFromWorker(eckit::distributed::Message& message, int worker) const {}
+
+private:  // attributes
+
+    fdb5::FDB fdb_;
+    fdb5::MoveElement last_;
+    std::vector<fdb5::MoveElement> list_;
+    fdb_moveiterator_t* moveIterator_;
+
     bool keep_;
     int removeDelay_;
+};
+
+
+class MoveWorker : public eckit::distributed::Consumer {
+
+public:  // methods
+
+    MoveWorker(eckit::distributed::Transport& transport, const eckit::option::CmdArgs& args) :
+        eckit::distributed::Consumer(transport), count_(0) {}
+    ~MoveWorker() {}
+
+protected:  // members
+
+    void consume(eckit::distributed::Message& message) override {
+        fdb5::FileCopy fileCopy(message);
+        LOG_DEBUG_LIB(LibFdb5) << "MoveWorker " << fileCopy << std::endl;
+
+        count_++;
+        fileCopy.execute();
+    }
+    void finalise() override { transport_.synchronise(); };
+
+    // virtual void getNextMessage(eckit::Message& message) const;
+    // virtual void failure(eckit::Message &message);
+    void shutdown(eckit::distributed::Message& message) override {
+        LOG_DEBUG_LIB(LibFdb5) << "Shuting down MoveWorker..." << std::endl;
+        message << count_;
+    }
+
+    void getNextMessage(eckit::distributed::Message& message) const override { getNextWorkMessage(message); }
+
+private:  // attributes
+
+    size_t count_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class MoveLoner : public eckit::distributed::Actor {
+public:  // methods
+
+    MoveLoner(eckit::distributed::Transport& transport, eckit::distributed::Producer* producer,
+              eckit::distributed::Consumer* consumer, size_t numThreads = 1) :
+        eckit::distributed::Actor(transport), producer_(producer), consumer_(consumer), numThreads_(numThreads) {}
+
+private:  // methods
+
+    virtual void run() {
+        eckit::distributed::Message message;
+
+        eckit::distributed::Producer& producer = *producer_;
+        eckit::distributed::Consumer& consumer = *consumer_;
+
+        eckit::ThreadPool pool("move", numThreads_);
+
+        while (producer.produce(message)) {
+            message.rewind();
+            try {
+                pool.push(new FileCopy(message));
+            }
+            catch (eckit::Exception& e) {
+                eckit::Log::error() << e.what() << std::endl;
+                consumer.failure(message);
+            }
+            message.rewind();
+        }
+        pool.wait();
+
+        message.rewind();
+        consumer.shutdown(message);
+        message.rewind();
+        producer.messageFromWorker(message, 0);
+    }
+
+    virtual void finalise() {
+        eckit::distributed::Producer& producer = *producer_;
+        eckit::distributed::Consumer& consumer = *consumer_;
+
+        consumer.finalise();
+        producer.finalise();
+    }
+
+private:  // members
+
+    std::unique_ptr<eckit::distributed::Producer> producer_;
+    std::unique_ptr<eckit::distributed::Consumer> consumer_;
+    size_t numThreads_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class FDBMove : public FDBVisitTool {
+public:  // methods
+
+    FDBMove(int argc, char** argv);
+    ~FDBMove() override;
+
+private:  // methods
+
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs& args) override;
+
+private:  // members
+
+    std::unique_ptr<eckit::distributed::Transport> transport_;
     int threads_;
 };
 
-FDBMove::FDBMove(int argc, char **argv) :
-    FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-    destination_(""),
-    keep_(false),
-    removeDelay_(0),
-    threads_(1) {
+FDBMove::FDBMove(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
     options_.push_back(new SimpleOption<std::string>("dest", "Destination root"));
     options_.push_back(new SimpleOption<bool>("keep", "Keep source DB"));
     options_.push_back(new SimpleOption<long>("delay", "Delay in seconds before deleting source (default: 0)"));
+    options_.push_back(new SimpleOption<std::string>("transport", "distributed data move (MPI based)"));
     options_.push_back(new SimpleOption<long>("threads", "Number of concurrent threads for data move (default: 1)"));
 }
 
 FDBMove::~FDBMove() {}
 
-
 void FDBMove::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
-
-    keep_ = args.getBool("keep", false);
-    removeDelay_ = args.getInt("delay", 0);
-    threads_ = args.getInt("threads", 1);
-
-    std::string dest = args.getString("dest");
-    if (dest.empty()) {
-        std::stringstream ss;
-        ss << "No destination root specified.";
-        throw UserError(ss.str(), Here());
-    } else {
-        destination_ = eckit::URI(dest);
-    }
-
-    if (threads_ < 1 || threads_ > MAX_THREADS) {
-        std::stringstream ss;
-        ss << "Unsupported number of threads. please specify a value between 1 and " << MAX_THREADS;
-        throw UserError(ss.str(), Here());
-    } else {
-        destination_ = eckit::URI(dest);
-    }
-
 }
 
 
 void FDBMove::execute(const CmdArgs& args) {
 
-    FDB fdb(config(args));
+    std::unique_ptr<eckit::distributed::Transport> transport(eckit::distributed::TransportFactory::build(args));
 
-    size_t count = 0;
-    for (const FDBToolRequest& request : requests("read")) {
-        if (count) {
-            std::stringstream ss;
-            ss << "Multiple requests are not supported" << std::endl;
-            throw eckit::UserError(ss.str());
-        }
+    try {
+        std::unique_ptr<eckit::distributed::Actor> actor;
 
-        if (request.all()) {
-            std::stringstream ss;
-            ss << "Move ALL not supported. Please specify a single database." << std::endl;
-            throw eckit::UserError(ss.str(), Here());
-        }
-
-        // check that the request is only referring a single DB - no ranges of values
-        const metkit::mars::MarsRequest& req = request.request();
-        std::vector<std::string> params = req.params();
-        for (const std::string& param: params) {
-            const std::vector<std::string>& values = req.values(param);
-
-            if (values.size() != 1) {
+        if (transport->single()) {
+            threads_ = args.getInt("threads", 1);
+            if (threads_ <= 0 || MAX_THREADS < threads_) {
                 std::stringstream ss;
-                ss << "Move requires a single value for each parameter in the request." << std::endl << "Parameter " << param << "=" << values << " not supported." << std::endl;
-                throw eckit::UserError(ss.str(), Here());
+                ss << "Unsupported number of threads. please specify a value between 1 and " << MAX_THREADS;
+                throw UserError(ss.str(), Here());
+            }
+
+            actor.reset(new MoveLoner(*transport, new MoveProducer(*transport, config(args), requests("read"), args),
+                                      new MoveWorker(*transport, args),
+                                      threads_));  // do it all actor :)
+        }
+        else {
+            if (transport->producer()) {
+                actor.reset(new MoveProducer(*transport, config(args), requests("read"), args));  // work dispatcher
+            }
+            else {
+                actor.reset(new MoveWorker(*transport, args));  // worker
             }
         }
 
-        // check that exaclty one DB matches
-        StatsIterator it = fdb.stats(request);
-        StatsElement se;
-        if (!it.next(se)) {
-            std::stringstream ss;
-            ss << "Request " << req << " does not matches with an existing database. Please specify a single database." << std::endl;
-            throw eckit::UserError(ss.str(), Here());
-        }
-        if (it.next(se)) {
-            std::stringstream ss;
-            ss << "Request " << req << " matches with more than one existing database. Please specify a single database." << std::endl;
-            throw eckit::UserError(ss.str(), Here());
-        }
+        actor->run();
 
-        MoveIterator list = fdb.move(request, destination_, !keep_, removeDelay_, threads_);
-        MoveElement elem;
-        while (list.next(elem)) {
-            Log::info() << elem << std::endl;
-        }
-        count++;
+        actor->finalise();
+
+        // eckit::Log::info() << eckit::TimeStamp()
+        //                    << " "
+        //                    << title
+        //                    << ": "
+        //                    << eckit::system::ResourceUsage()
+        //                    << std::endl;
     }
-
-    if (count == 0 && fail()) {
-        std::stringstream ss;
-        ss << "No FDB entries found" << std::endl;
-        throw FDBToolException(ss.str());
+    catch (std::exception& e) {
+        eckit::Log::info()
+            //    << eckit::TimeStamp()
+            //    << " "
+            //    << title
+            << " EXCEPTION: " << e.what() << std::endl;
+        transport->abort();
+        throw;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBMove app(argc, argv);
     return app.start();
 }

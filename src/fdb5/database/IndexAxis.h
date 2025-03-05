@@ -22,39 +22,62 @@
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
+// #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
 namespace eckit {
 class Stream;
 }
 
+namespace metkit::mars {
+class MarsRequest;
+}
+
 namespace fdb5 {
 
 class Key;
+
+// class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class IndexAxis : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     IndexAxis();
-    IndexAxis(eckit::Stream &s, const int version);
+    IndexAxis(eckit::Stream& s, const int version);
+    IndexAxis(IndexAxis&& rhs) noexcept;
+
+    IndexAxis& operator=(IndexAxis&& rhs) noexcept;
 
     ~IndexAxis();
 
-    void insert(const Key &key);
-    void encode(eckit::Stream &s, const int version) const;
+    bool operator==(const IndexAxis& rhs) const;
+    bool operator!=(const IndexAxis& rhs) const;
+
+    void insert(const Key& key);
+    /// @note: the values are required to be cannonicalised
+    void insert(const std::string& axis, const std::vector<std::string>& values);
+    size_t encodeSize(const int version) const;
+    void encode(eckit::Stream& s, const int version) const;
+    static int currentVersion() { return 3; }
+
+    void merge(const IndexAxis& other);
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s, const int version);
 
-    const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
+    bool has(const std::string& keyword) const;
+    const eckit::DenseSet<std::string>& values(const std::string& keyword) const;
 
-    void dump(std::ostream &out, const char* indent) const;
+    std::map<std::string, eckit::DenseSet<std::string>> map() const;
 
+    void dump(std::ostream& out, const char* indent) const;
+
+    bool partialMatch(const metkit::mars::MarsRequest& request) const;
     bool contains(const Key& key) const;
+    bool containsPartial(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.
@@ -67,34 +90,38 @@ public: // methods
     /// Reset the axis to a default state.
     void wipe();
 
-    friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
+    friend std::ostream& operator<<(std::ostream& s, const IndexAxis& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+    friend eckit::JSON& operator<<(eckit::JSON& j, const IndexAxis& x) {
+        x.json(j);
+        return j;
+    }
 
-    void encodeCurrent(eckit::Stream &s, const int version) const;
-    void encodeLegacy(eckit::Stream &s, const int version) const;
+private:  // methods
+
+    void encodeCurrent(eckit::Stream& s, const int version) const;
+    void encodeLegacy(eckit::Stream& s, const int version) const;
 
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
+    void json(eckit::JSON& j) const;
 
+private:  // members
 
-private: // members
-
-    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
+    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string>>> AxisMap;
     AxisMap axis_;
 
     bool readOnly_;
     bool dirty_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

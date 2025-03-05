@@ -32,17 +32,21 @@ public:
     TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store);
     ~TocPurgeVisitor() override;
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool porcelain, bool doit) const override;
 
-private: // members
+    void gatherAuxiliaryURIs() override;
+
+private:  // members
 
     const Store& store_;
+    std::set<eckit::PathName> deleteAuxFiles_;
+    std::set<eckit::PathName> keepAuxFiles_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

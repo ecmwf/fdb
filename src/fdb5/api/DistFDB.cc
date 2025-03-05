@@ -13,9 +13,9 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include <vector>
-#include <thread>
 #include <future>
+#include <thread>
+#include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
@@ -25,12 +25,12 @@
 
 #include "metkit/hypercube/HyperCube.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/DistFDB.h"
-#include "fdb5/database/Notifier.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Notifier.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/LibFdb5.h"
 
 using eckit::Log;
 
@@ -49,20 +49,20 @@ struct DistributionError : public eckit::Exception {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DistFDB::DistFDB(const Config& config, const std::string& name) :
-    FDBBase(config, name) {
+DistFDB::DistFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "dist");
 
     // Configure the available lanes.
 
-    if (!config.has("lanes")) throw eckit::UserError("No lanes configured for pool", Here());
+    if (!config.has("lanes"))
+        throw eckit::UserError("No lanes configured for pool", Here());
 
-    for(const auto& laneCfg : config.getSubConfigs("lanes")) {
-        lanes_.push_back(FDB(laneCfg));
-        if (!hash_.addNode(lanes_.back().id())) {
+    for (const auto& laneCfg : config.getSubConfigs("lanes")) {
+        lanes_.emplace_back(FDB(laneCfg), true);
+        if (!hash_.addNode(std::get<0>(lanes_.back()).id())) {
             std::stringstream ss;
-            ss << "Failed to add node to hash : " << lanes_.back().id() << " -- may have non-unique ID";
+            ss << "Failed to add node to hash : " << std::get<0>(lanes_.back()).id() << " -- may have non-unique ID";
             throw eckit::SeriousBug(ss.str(), Here());
         }
     }
@@ -74,33 +74,33 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
-    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    //Log::debug<LibFdb5>() << "Lane indices: ";
-    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    //Log::debug<LibFdb5>() << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << "Number of lanes: " << lanes_.size() << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << "Lane indices: ";
+    // for (const auto& i : laneIndices) LOG_DEBUG_LIB(LibFdb5) << i << ", ";
+    // LOG_DEBUG_LIB(LibFdb5) << std::endl;
 
     hash_.hashOrder(key.keyDict(), laneIndices);
 
-    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    //Log::debug<LibFdb5>() << "Lane indices: ";
-    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    //Log::debug<LibFdb5>() << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << "Number of lanes: " << lanes_.size() << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << "Lane indices: ";
+    // for (const auto& i : laneIndices) LOG_DEBUG_LIB(LibFdb5) << i << ", ";
+    // LOG_DEBUG_LIB(LibFdb5) << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
-    Log::debug<LibFdb5>() << "Attempting dist FDB archive" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Attempting dist FDB archive" << std::endl;
 
-    decltype(laneIndices)::const_iterator it = laneIndices.begin();
+    decltype(laneIndices)::const_iterator it  = laneIndices.begin();
     decltype(laneIndices)::const_iterator end = laneIndices.end();
     for (; it != end; ++it) {
         size_t idx = *it;
 
-        FDB& lane = lanes_[idx];
+        auto& [lane, enabled] = lanes_[idx];
 
-        if(!lane.enabled(ControlIdentifier::Archive)) {
+        if (!lane.enabled(ControlIdentifier::Archive)) {
             continue;
         }
-        if (lane.disabled()) {
+        if (!enabled) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;
         }
@@ -109,8 +109,8 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
             lane.archive(key, data, length);
             return;
-
-        } catch (eckit::Exception& e) {
+        }
+        catch (eckit::Exception& e) {
 
             // TODO: This will be messy and verbose. Reduce output if it has already failed.
 
@@ -128,7 +128,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
             }
 
             // Mark the lane as no longer writable
-            lane.disable();
+            enabled = false;
         }
     }
 
@@ -155,19 +155,22 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
  */
 
 template <typename QueryFN>
-auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
+auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
+    -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
-    using ValueType = typename QueryIterator::value_type;
+    using ValueType     = typename QueryIterator::value_type;
 
     std::vector<std::future<QueryIterator>> futures;
     std::queue<APIIterator<ValueType>> iterQueue;
 
-    for (FDB& lane : lanes_) {
+    for (auto& [lane, _] : lanes_) {
+        // Note(kkratz): Lambdas cannot capture structured bindings prior to C++20, hence we must introduce a alias
+        // here.
+        FDB& cap_lane = lane;
         if (lane.enabled(ControlIdentifier::Retrieve)) {
-            futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] {
-                return fn(lane, request);
-            }));
+            futures.emplace_back(
+                std::async(std::launch::async, [&lane = cap_lane, &fn, &request] { return fn(lane, request); }));
         }
     }
 
@@ -179,104 +182,79 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
 }
 
 
-ListIterator DistFDB::list(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::list() : " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
-                         });
-}
-
-ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::inspect() : " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.inspect(request.request());
-                         });
-}
-
-DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
-    Log::debug<LibFdb5>() << "DistFDB::dump() : " << request << std::endl;
-    return queryInternal(request,
-                         [simple](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.dump(request, simple);
-                         });
-}
-
-StatusIterator DistFDB::status(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::status() : " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.status(request);
+ListIterator DistFDB::list(const FDBToolRequest& request, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::list() : " << request << std::endl;
+    return queryInternal(request, [level](FDB& fdb, const FDBToolRequest& request) {
+        bool deduplicate = false;  // never deduplicate on inner calls
+        return fdb.list(request, deduplicate, level);
     });
 }
 
-WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    Log::debug<LibFdb5>() << "DistFDB::wipe() : " << request << std::endl;
+ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::inspect() : " << request << std::endl;
     return queryInternal(request,
-                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+                         [](FDB& fdb, const FDBToolRequest& request) { return fdb.inspect(request.request()); });
+}
+
+DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::dump() : " << request << std::endl;
+    return queryInternal(request,
+                         [simple](FDB& fdb, const FDBToolRequest& request) { return fdb.dump(request, simple); });
+}
+
+StatusIterator DistFDB::status(const FDBToolRequest& request) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::status() : " << request << std::endl;
+    return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
+}
+
+WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
+    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    Log::debug<LibFdb5>() << "DistFDB::purge() : " << request << std::endl;
-    return queryInternal(request,
-                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, porcelain);
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::purge() : " << request << std::endl;
+    return queryInternal(request, [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.purge(request, doit, porcelain);
     });
 }
 
-StatsIterator DistFDB::stats(const FDBToolRequest &request) {
-    Log::debug<LibFdb5>() << "DistFDB::stats() : " << request << std::endl;
-    return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.stats(request);
+StatsIterator DistFDB::stats(const FDBToolRequest& request) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::stats() : " << request << std::endl;
+    return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.stats(request); });
+}
+
+ControlIterator DistFDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::control() : " << request << std::endl;
+    return queryInternal(request, [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
+        return fdb.control(request, action, identifiers);
     });
 }
 
-ControlIterator DistFDB::control(const FDBToolRequest& request,
-                                 ControlAction action,
-                                 ControlIdentifiers identifiers) {
-    Log::debug<LibFdb5>() << "DistFDB::control() : " << request << std::endl;
-    return queryInternal(request,
-                         [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.control(request, action, identifiers);
-    });
-}
 
-MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
-    Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
-    return queryInternal(request,
-                         [dest, removeSrc, removeDelay, threads](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.move(request, dest, removeSrc, removeDelay, threads);
-    });
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::move() : " << request << std::endl;
+    return queryInternal(request, [dest](FDB& fdb, const FDBToolRequest& request) { return fdb.move(request, dest); });
 }
 
 void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;
 
-    for (FDB& lane : lanes_) {
-        futures.emplace_back(std::async(std::launch::async, [&lane] {
-            lane.flush();
-        }));
+    for (auto& [lane, _] : lanes_) {
+        // Note(kkratz): Lambdas cannot capture structured bindings prior to C++20, hence we must introduce a alias
+        // here.
+        FDB& cap_lane = lane;
+        futures.emplace_back(std::async(std::launch::async, [&lane = cap_lane] { lane.flush(); }));
     }
 }
 
-FDBStats DistFDB::stats() const {
-    FDBStats s;
-    for (const auto& lane : lanes_) {
-        s += lane.internalStats();
-    }
-    return s;
-}
-
-
-void DistFDB::print(std::ostream &s) const {
+void DistFDB::print(std::ostream& s) const {
     s << "DistFDB(home=" << config_.expandPath("~fdb") << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

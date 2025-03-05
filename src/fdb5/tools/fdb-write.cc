@@ -12,10 +12,9 @@
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/VectorOption.h"
-#include "eckit/log/Log.h"
 
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBTool.h"
@@ -23,32 +22,37 @@
 
 class FDBWrite : public fdb5::FDBTool {
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-    virtual void init(const eckit::option::CmdArgs &args);
+    virtual void init(const eckit::option::CmdArgs& args);
 
     virtual int minimumPositionalArguments() const { return 1; }
 
-    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void execute(const eckit::option::CmdArgs& args);
 
 public:
 
-    FDBWrite(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv),
-        verbose_(false) {
+    FDBWrite(int argc, char** argv) : fdb5::FDBTool(argc, argv), archivers_(1), verbose_(false) {
+
+        options_.push_back(new eckit::option::SimpleOption<std::string>(
+            "include-filter",
+            "List of comma separated key-values of what to include from the input data, e.g "
+            "--include-filter=stream=enfo,date=10102017"));
 
         options_.push_back(
-                    new eckit::option::SimpleOption<std::string>("include-filter",
-                    "List of comma separated key-values of what to include from the input data, e.g --include-filter=stream=enfo,date=10102017"));
+            new eckit::option::SimpleOption<std::string>("exclude-filter",
+                                                         "List of comma separated key-values of what to exclude from "
+                                                         "the input data, e.g --exclude-filter=time=0000"));
+
+        options_.push_back(new eckit::option::SimpleOption<std::string>(
+            "modifiers",
+            "List of comma separated key-values of modifiers to each message "
+            "int input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
 
         options_.push_back(
-                    new eckit::option::SimpleOption<std::string>("exclude-filter",
-                    "List of comma separated key-values of what to exclude from the input data, e.g --exclude-filter=time=0000"));
-
-        options_.push_back(
-            new eckit::option::SimpleOption<std::string>("modifiers",
-                                                         "List of comma separated key-values of modifiers to each message "
-                                                         "int input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
+            new eckit::option::SimpleOption<long>("archivers",
+                                                  "Number of archivers (default is 1). Input files are distributed "
+                                                  "among the user-specified archivers. For testing purposes only!"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report timing statistics"));
 
@@ -58,29 +62,35 @@ public:
     std::string filterInclude_;
     std::string filterExclude_;
     std::string modifiers_;
+    long archivers_;
     bool verbose_;
 };
 
-void FDBWrite::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--filter-include=...] [--filter-exclude=...] <path1> [path2] ..." << std::endl;
+void FDBWrite::usage(const std::string& tool) const {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [--filter-include=...] [--filter-exclude=...] <path1> [path2] ..."
+                       << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
-void FDBWrite::init(const eckit::option::CmdArgs& args)
-{
+void FDBWrite::init(const eckit::option::CmdArgs& args) {
     FDBTool::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
     args.get("modifiers", modifiers_);
-    verbose_ = args.getBool("verbose", false);
+    archivers_ = args.getLong("archivers", 1);
+    verbose_   = args.getBool("verbose", false);
 }
 
-void FDBWrite::execute(const eckit::option::CmdArgs &args) {
+void FDBWrite::execute(const eckit::option::CmdArgs& args) {
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
-
-    archiver.filters(filterInclude_, filterExclude_);
-    archiver.modifiers(modifiers_);
+    std::vector<std::unique_ptr<fdb5::MessageArchiver>> archivers;
+    for (int i = 0; i < archivers_; i++) {
+        std::unique_ptr<fdb5::MessageArchiver> a(new fdb5::MessageArchiver(fdb5::Key(), false, verbose_, config(args)));
+        a->filters(filterInclude_, filterExclude_);
+        a->modifiers(modifiers_);
+        archivers.push_back(std::move(a));
+    }
 
     for (size_t i = 0; i < args.count(); i++) {
 
@@ -88,16 +98,19 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         eckit::Log::info() << "Processing " << path << std::endl;
 
-        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+        std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
 
-        archiver.archive( *dh );
+        archivers.at(i % archivers_)->archive(*dh);
+    }
+
+    for (auto& a : archivers) {
+        a->flush();
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBWrite app(argc, argv);
     return app.start();
 }
-

@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdboverlay="$<TARGET_FILE:fdb-overlay>"
+fdbpurge="$<TARGET_FILE:fdb-purge>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+fdbmove="$<TARGET_FILE:fdb-move>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root*
+mkdir -p ${bindir}/root
+mkdir -p ${bindir}/root2
+
+for f in config.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s expver=xxxy x.grib y.grib
+$gribset -s step=6 x.grib x6.grib
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listX <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listX6 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listZ6 <<EOF
+{class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listY <<EOF
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > none <<EOF
+EOF
+
+$fdbwrite x.grib
+$fdbwrite y.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdbwrite x.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX
+
+$fdbwrite x6.grib
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX6
+
+$fdblist class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listY
+
+$fdbwipe class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g --doit --unsafe-wipe-all
+
+$fdblist class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out none
+
+$fdbpurge class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --doit
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX6
+
+$fdboverlay --variable-keys=expver class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g
+
+$fdbmove --threads=2 --dest=./root2 class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g
+
+$fdblist class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listZ6
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX6
+
+$fdbmove --threads=2 --dest=./root2 class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX6
+
+$fdbwrite x6.grib
+$fdbwrite y.grib
+
+$fdbpurge class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --doit
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX6
+
+$fdblist class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listY

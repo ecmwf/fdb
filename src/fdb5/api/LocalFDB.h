@@ -20,6 +20,7 @@
 #define fdb5_api_LocalFDB_H
 
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/database/Reindexer.h"
 
 
 namespace fdb5 {
@@ -32,16 +33,17 @@ class FDB;
 
 class LocalFDB : public FDBBase {
 
-public: // methods
+public:  // methods
 
     using FDBBase::FDBBase;
-    using FDBBase::stats;
 
     void archive(const Key& key, const void* data, size_t length) override;
 
+    void reindex(const Key& key, const FieldLocation& location) override;
+
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int level) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
@@ -53,31 +55,35 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) override;
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
+
+    AxesIterator axesIterator(const FDBToolRequest& request, int axes) override;
 
     void flush() override;
 
-private: // methods
+protected:  // methods
+
+    template <typename VisitorType, typename... Ts>
+    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts... args);
+
+private:  // methods
 
     void print(std::ostream& s) const override;
 
-    template <typename VisitorType, typename ... Ts>
-    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
-
-private: // members
+protected:  // members
 
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;
+    std::unique_ptr<Reindexer> reindexer_;
     std::unique_ptr<Inspector> inspector_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_LocalFDB_H
+#endif  // fdb5_api_LocalFDB_H

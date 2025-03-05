@@ -50,7 +50,7 @@ int fdb_version(const char** version);
  * \param version Return variable for version control checksum. Returned pointer valid throughout program lifetime.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_vcs_version(const char** version);
+int fdb_vcs_version(const char** sha1);
 
 ///@}
 
@@ -60,10 +60,10 @@ int fdb_vcs_version(const char** version);
 
 /** Return codes */
 enum FdbErrorValues {
-    FDB_SUCCESS                  = 0,
-    FDB_ERROR_GENERAL_EXCEPTION  = 1,
-    FDB_ERROR_UNKNOWN_EXCEPTION  = 2,
-    FDB_ITERATION_COMPLETE       = 3
+    FDB_SUCCESS                 = 0,
+    FDB_ERROR_GENERAL_EXCEPTION = 1,
+    FDB_ERROR_UNKNOWN_EXCEPTION = 2,
+    FDB_ITERATION_COMPLETE      = 3
 };
 
 /** Returns a human-readable error message for the last error given an error code
@@ -139,6 +139,21 @@ int fdb_new_request(fdb_request_t** req);
  */
 int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 
+/** Get the Metadata values associated to a Request metadata
+ * \param req Request instance
+ * \param param Metadata name
+ * \param values Metadata values
+ * \param numValues number of metadata values
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_request_get(fdb_request_t* req, const char* param, char** values[], size_t* numValues);
+
+/** Expand a Request
+ * \param req Request instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_expand_request(fdb_request_t* req);
+
 /** Deallocates Request object and associated resources.
  * \param req Request instance
  * \returns Return code (#FdbErrorValues)
@@ -161,8 +176,8 @@ typedef struct fdb_split_key_t fdb_split_key_t;
  */
 int fdb_new_splitkey(fdb_split_key_t** key);
 
-/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
- * Supports multiple fdb_split_key_t iterating over the same key.
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys
+ * associated with each level of the FDB index. Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
  * \param key Key metadata name
  * \param value Key metadata value
@@ -264,6 +279,13 @@ int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
  */
 int fdb_datareader_skip(fdb_datareader_t* dr, long count);
 
+/** Return size of internal datahandle in bytes.
+ * \param dr DataReader instance
+ * \param size Size of the DataReader
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_size(fdb_datareader_t* dr, long* size);
+
 /** Read binary data from a DataReader to a given memory buffer.
  * \param dr DataReader instance
  * \param buf Pointer of the target memory buffer.
@@ -271,7 +293,7 @@ int fdb_datareader_skip(fdb_datareader_t* dr, long count);
  * \param read Actual size of the data read from the DataReader into the memory buffer
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
+int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read);
 
 /** Deallocates DataReader object and associated resources.
  * \param key DataReader instance
@@ -295,6 +317,14 @@ typedef struct fdb_handle_t fdb_handle_t;
  */
 int fdb_new_handle(fdb_handle_t** fdb);
 
+/** Creates a FDB instance from a YAML configuration.
+ * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
+ * \param system_config Override the system config with this YAML string
+ * \param user_config Supply user level config with this YAML string
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config);
+
 /** Archives binary data to a FDB instance.
  * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
  * \param fdb FDB instance.
@@ -307,7 +337,8 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
 
 /** Archives multiple messages to a FDB instance.
  * \param fdb FDB instance.
- * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided request 
+ * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided
+ * request
  * \param data Pointer to the binary data to archive. Metadata are extracted from data headers
  * \param length Size of the data to archive
  * \returns Return code (#FdbErrorValues)
@@ -317,11 +348,12 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
 /** List all available data whose metadata matches a given user request.
  * \param fdb FDB instance.
  * \param req User Request
- * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user Request #req
+ * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user
+ * Request #req
  * \param duplicates Boolean flag used to specify if duplicated ListElements are to be reported or not.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates, int depth);
 
 /** Return all available data whose metadata matches a given user request.
  * \param fdb FDB instance.

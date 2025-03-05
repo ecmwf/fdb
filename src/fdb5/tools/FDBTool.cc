@@ -9,13 +9,10 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "eckit/types/Date.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
-
-using eckit::Log;
 
 namespace fdb5 {
 
@@ -34,10 +31,11 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
-    options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
+    if (needsConfig_) {
+        options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
+    }
 
-    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
-                                minimumPositionalArguments());
+    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
 
     init(args);
@@ -45,7 +43,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args) const {
+Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) const {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");
@@ -63,10 +61,10 @@ Config FDBTool::config(const eckit::option::CmdArgs& args) const {
             ss << "Path " << config << " is a directory. Expecting a file";
             throw eckit::UserError(ss.str(), Here());
         }
-        return Config::make(configPath);
+        return Config::make(configPath, userConfig);
     }
 
-    return LibFdb5::instance().defaultConfig();
+    return LibFdb5::instance().defaultConfig(userConfig);
 }
 
 void FDBTool::usage(const std::string&) const {}
@@ -79,8 +77,7 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
 FDBToolException::FDBToolException(const std::string& w) : Exception(w) {}
 
-FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 
 //----------------------------------------------------------------------------------------------------------------------

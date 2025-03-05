@@ -1,0 +1,10 @@
+---
+type: local
+engine: toc
+useSubToc: true
+schema: ./schema
+spaces:
+- handler: Default
+  roots:
+  - path: ./root
+  - path: ./root2

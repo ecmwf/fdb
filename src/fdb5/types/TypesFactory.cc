@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/thread/AutoLock.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/types/TypesFactory.h"
@@ -18,18 +18,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::Mutex *local_mutex = 0;
-static std::map<std::string, TypesFactory *> *m = 0;
-static pthread_once_t once = PTHREAD_ONCE_INIT;
+static eckit::Mutex* local_mutex               = 0;
+static std::map<std::string, TypesFactory*>* m = 0;
+static pthread_once_t once                     = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, TypesFactory *>();
+    m           = new std::map<std::string, TypesFactory*>();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypesFactory::TypesFactory(const std::string &name) :
-    name_(name) {
+TypesFactory::TypesFactory(const std::string& name) : name_(name) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
@@ -38,21 +37,22 @@ TypesFactory::TypesFactory(const std::string &name) :
 }
 
 TypesFactory::~TypesFactory() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
 
-Type *TypesFactory::build(const std::string &name, const std::string &keyword) {
+Type* TypesFactory::build(const std::string& name, const std::string& keyword) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::map<std::string, TypesFactory *>::const_iterator j = m->find(name);
+    std::map<std::string, TypesFactory*>::const_iterator j = m->find(name);
 
     if (j == m->end()) {
         eckit::Log::error() << "No TypesFactory for [" << name << "]" << std::endl;
         eckit::Log::error() << "KeywordTypes are:" << std::endl;
-        for (j = m->begin() ; j != m->end() ; ++j)
+        for (j = m->begin(); j != m->end(); ++j)
             eckit::Log::error() << "   " << (*j).first << std::endl;
         throw eckit::SeriousBug(std::string("No TypesFactory called ") + name);
     }
@@ -62,4 +62,4 @@ Type *TypesFactory::build(const std::string &name, const std::string &keyword) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

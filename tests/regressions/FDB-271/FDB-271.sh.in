@@ -47,9 +47,9 @@ cat > old_list <<EOF
 EOF
 
 cat > old_listLength <<EOF
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166},length=1476
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166},length=1476
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166}, length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166}, length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166}, length=1476
 EOF
 
 cat > old_r1 <<EOF

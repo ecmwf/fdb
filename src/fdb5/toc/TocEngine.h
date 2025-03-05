@@ -20,49 +20,50 @@
 
 namespace fdb5 {
 
+class Rule;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocEngine : public fdb5::Engine {
 
-public: // methods
+public:  // methods
 
     static const char* typeName() { return "toc"; }
 
 private:  // methods
-    std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
-                                        const Config& config) const;
 
-    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
+    std::map<eckit::PathName, const Rule*> databases(const std::map<Key, const Rule*>& keys,
+                                                     const std::vector<eckit::PathName>& dirs,
+                                                     const Config& config) const;
+
+    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs,
+                                      const Config& config) const;
 
     std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
                                       const Config& config) const;
 
     void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
 
-protected: // methods
+protected:  // methods
 
-    virtual std::string name() const override;
+    std::string name() const override;
 
-    virtual std::string dbType() const override;
+    std::string dbType() const override;
 
-    virtual eckit::URI location(const Key &key, const Config& config) const override;
+    eckit::URI location(const Key& key, const Config& config) const override;
 
-    virtual bool canHandle(const eckit::URI& path) const override;
+    bool canHandle(const eckit::URI&, const Config& config) const override;
 
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                               const Config& config) const override;
 
-    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
-
-    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override;
-
-    virtual void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif
