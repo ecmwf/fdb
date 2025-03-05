@@ -37,6 +37,7 @@ class ClientConnection : protected Connection {
 public:  // methods
 
     ~ClientConnection() override;
+    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
 
     std::future<eckit::Buffer> controlWrite(const Client& client, Message msg, uint32_t requestID,
                                             bool /*dataListener*/, PayloadList payload = {}) const;
@@ -53,11 +54,11 @@ public:  // methods
     const eckit::net::Endpoint& controlEndpoint() const;
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
+    using Connection::valid;
+
 private:  // methods
 
     friend class ClientConnectionRouter;
-
-    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
 
     void dataWrite(DataWriteRequest& request) const;
 
