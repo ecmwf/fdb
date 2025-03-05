@@ -208,6 +208,9 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     using IteratorType  = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 
+    // Reconnect if necessary
+    refreshConnection();
+
     // Ensure we have an entry in the message queue before we trigger anything that
     // will result in return messages
 

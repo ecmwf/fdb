@@ -10,19 +10,20 @@
 
 #pragma once
 
-#include "eckit/serialisation/MemoryStream.h"
-#include "fdb5/remote/Messages.h"
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/os/BackTrace.h"
-
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <mutex>
 #include <string_view>
 #include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/os/BackTrace.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include "fdb5/remote/Messages.h"
 
 namespace eckit {
 
@@ -38,11 +39,7 @@ class TCPException : public eckit::Exception {
 public:
 
     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
-
-        std::cerr << "TCP Exception; backtrace(): " << std::endl;
-        std::cerr << eckit::BackTrace::dump() << std::endl;
-    }
+        eckit::Exception(std::string("TCPException: ") + msg, here) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -74,13 +71,15 @@ public:  // methods
 
     void teardown();
 
+    bool valid() const { return isValid_; }
+
 private:  // methods
 
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
 
-    void readUnsafe(bool control, void* data, size_t length) const;
+    bool readUnsafe(bool control, void* data, size_t length, bool quiet) const;
 
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 
@@ -89,14 +88,20 @@ private:  // methods
 protected:  // members
 
     bool single_;
-    bool closingDataSocket_ = false;
 
 private:  // members
+
+    bool closingControlSocket_ = false;
+    bool closingDataSocket_    = false;
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
     mutable std::mutex readControlMutex_;
     mutable std::mutex readDataMutex_;
+
+    /// Indicates if this instance is in a usable state.
+    /// Once this is marked as invalid it cannot be recovered.
+    mutable std::atomic<bool> isValid_{true};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

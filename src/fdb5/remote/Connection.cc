@@ -15,11 +15,18 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
+    closingControlSocket_ = true;
+    if (!single_) {
+        closingDataSocket_ = true;
+    }
+
+    if (!valid()) {
+        return;
+    }
 
     if (!single_) {
         // TODO make the data connection dying automatically, when there are no more async writes
         try {
-            closingDataSocket_ = true;
             // all done - disconnecting
             Connection::write(Message::Exit, false, 0, 0);
         }
@@ -47,18 +54,20 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
         written = dataSocket().write(data, length);
     }
     if (written < 0) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Write error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != written) {
+        isValid_ = false;
         std::stringstream ss;
         ss << "Write error. Expected " << length << " bytes, wrote " << written;
         throw TCPException(ss.str(), Here());
     }
 }
 
-void Connection::readUnsafe(bool control, void* data, size_t length) const {
+bool Connection::readUnsafe(bool control, void* data, size_t length, bool quiet) const {
     long read = 0;
     if (control || single_) {
         read = controlSocket().read(data, length);
@@ -67,44 +76,58 @@ void Connection::readUnsafe(bool control, void* data, size_t length) const {
         read = dataSocket().read(data, length);
     }
     if (read < 0) {
+        isValid_ = false;
+        if (quiet) {
+            return false;
+        }
         std::stringstream ss;
         ss << "Read error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != read) {
+        isValid_ = false;
+        if (quiet) {
+            return false;
+        }
         std::stringstream ss;
-        ss << "Read error. Expected " << length << " bytes, read " << read;
+        ss << "Read error. Expected " << length << " bytes, read " << read << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
+    return true;
 }
 
-eckit::Buffer Connection::read(const bool control, MessageHeader& hdr) const {
+eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     eckit::FixedString<4> tail;
+    hdr.payloadSize = 0;
 
     std::lock_guard<std::mutex> lock((control || single_) ? readControlMutex_ : readDataMutex_);
-    readUnsafe(control, &hdr, sizeof(hdr));
+    bool quiet = (control || single_) ? closingControlSocket_ : closingDataSocket_;
 
-    ASSERT(hdr.marker == MessageHeader::StartMarker);
-    ASSERT(hdr.version == MessageHeader::currentVersion);
-    ASSERT(single_ || hdr.control() == control);
+    if (readUnsafe(control, &hdr, sizeof(hdr), quiet)) {
+        ASSERT(hdr.marker == MessageHeader::StartMarker);
+        ASSERT(hdr.version == MessageHeader::currentVersion);
+        ASSERT(single_ || hdr.control() == control);
 
-    eckit::Buffer payload{hdr.payloadSize};
-    if (hdr.payloadSize > 0) {
-        readUnsafe(control, payload, hdr.payloadSize);
-    }
-    // Ensure we have consumed exactly the correct amount from the socket.
-    readUnsafe(control, &tail, sizeof(tail));
-    ASSERT(tail == MessageHeader::EndMarker);
+        eckit::Buffer payload{hdr.payloadSize};
+        if ((hdr.payloadSize == 0 || readUnsafe(control, payload, hdr.payloadSize, quiet))
+            // Ensure we have consumed exactly the correct amount from the socket.
+            && readUnsafe(control, &tail, sizeof(tail), quiet)) {
 
-    if (hdr.message == Message::Error) {
+            ASSERT(tail == MessageHeader::EndMarker);
 
-        char msg[hdr.payloadSize + 1];
-        if (hdr.payloadSize) {
-            char msg[hdr.payloadSize + 1];
+            if (hdr.message == Message::Error) {
+                char msg[hdr.payloadSize + 1];
+                if (hdr.payloadSize) {
+                    char msg[hdr.payloadSize + 1];
+                }
+            }
+
+            return payload;
         }
     }
 
-    return payload;
+    hdr.message = Message::Exit;
+    return eckit::Buffer{0};
 }
 
 void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,

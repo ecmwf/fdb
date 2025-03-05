@@ -3,6 +3,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "eckit/config/LocalConfiguration.h"
@@ -66,7 +67,6 @@ void ClientConnection::add(Client& client) {
 }
 
 bool ClientConnection::remove(uint32_t clientID) {
-
     std::lock_guard lock(clientsMutex_);
 
     if (clientID > 0) {
@@ -74,7 +74,8 @@ bool ClientConnection::remove(uint32_t clientID) {
         auto it = clients_.find(clientID);
 
         if (it != clients_.end()) {
-            Connection::write(Message::Stop, true, clientID, 0);
+            if (valid())
+                Connection::write(Message::Stop, true, clientID, 0);
 
             clients_.erase(it);
         }
@@ -82,6 +83,7 @@ bool ClientConnection::remove(uint32_t clientID) {
 
     if (clients_.empty()) {
         teardown();
+        ClientConnectionRouter::instance().deregister(*this);
     }
 
     return clients_.empty();
@@ -151,6 +153,9 @@ void ClientConnection::disconnect() {
     if (connected_) {
         if (dataWriteThread_.joinable()) {
             dataWriteThread_.join();
+        }
+        if (listeningDataThread_.joinable()) {
+            listeningDataThread_.join();
         }
         if (listeningControlThread_.joinable()) {
             listeningControlThread_.join();
@@ -345,11 +350,6 @@ void ClientConnection::listeningControlThreadLoop() {
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-
-                if (!single_ && listeningDataThread_.joinable()) {
-                    listeningDataThread_.join();
-                }
-
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
                                        << std::endl;
                 return;
@@ -443,17 +443,8 @@ void ClientConnection::listeningDataThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload;
-            try {
-                payload = Connection::readData(hdr);
-            }
-            catch (...) {
-                if (closingDataSocket_) {
-                    closeConnection();
-                    return;
-                }
-                throw;
-            }
+            eckit::Buffer payload = Connection::readData(hdr);
+
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
                                    << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
                                    << std::endl;
