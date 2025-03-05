@@ -99,7 +99,8 @@ private:  // members
     mutable std::mutex readControlMutex_;
     mutable std::mutex readDataMutex_;
 
-    // Used to flag that a TCPException has been thrown
+    /// Indicates if this instance is in a usable state.
+    /// Once this is marked as invalid it cannot be recovered.
     mutable std::atomic<bool> isValid_{true};
 };
 
