@@ -56,11 +56,11 @@ public:  // methods
 
     uint32_t id() const { return id_; }
 
-    const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
+    const eckit::net::Endpoint& controlEndpoint() const { return connection_->controlEndpoint(); }
 
-    const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
+    const std::string& defaultEndpoint() const { return connection_->defaultEndpoint(); }
 
-    uint32_t generateRequestID() const { return connection_.generateRequestID(); }
+    uint32_t generateRequestID() const { return connection_->generateRequestID(); }
 
     // blocking requests
     void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload = nullptr,
@@ -76,9 +76,12 @@ public:  // methods
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual void closeConnection() {}
 
+    // Create a new connection if the current one is invalid
+    void refreshConnection();
+
 protected:
 
-    ClientConnection& connection_;
+    std::shared_ptr<ClientConnection> connection_;
 
 private:
 
