@@ -68,11 +68,6 @@ RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-
-std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
-    return std::make_shared<RemoteFieldLocation>(std::move(*this));
-}
-
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
 
     eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
