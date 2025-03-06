@@ -30,6 +30,7 @@ using fdb5::FDB;
 using fdb5::FDBToolRequest;
 
 using std::literals::chrono_literals::operator""ms;
+using std::literals::chrono_literals::operator""s;
 extern char** environ;
 
 
@@ -78,7 +79,7 @@ PathName get_cwd() {
 
 std::vector<const char*> copy_environment() {
     std::vector<const char*> env{};
-    for (char** p = environ; p != nullptr; ++p) {
+    for (char** p = environ; *p != nullptr; ++p) {
         env.emplace_back(*p);
     }
     return env;
@@ -97,6 +98,7 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
         // to create a watchdog that kills the child when the parent dies. On linux that can be done with
         // 'prctl(PR_SET_DEATHSIG, SIGKILL)' but there is no such functionality available for MacOS.
         spawn_reaper(pid);
+        std::this_thread::sleep_for(1s);
         Log::info() << "Started fdb-server pid: " << pid << std::endl;
         return pid;
     }
@@ -113,8 +115,8 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
 
     std::array<const char*, 2> argv       = {"fdb-server", nullptr};
     const auto server_config_path         = get_cwd() / "fdb_server_config.yaml";
-    const std::string fdb_config_file_env = std::string("FDB5_CONFIG_FILE=") + server_config_path.asString();
     auto env                              = copy_environment();
+    const std::string fdb_config_file_env = std::string("FDB5_CONFIG_FILE=") + server_config_path.asString();
     env.emplace_back(fdb_config_file_env.c_str());
     env.emplace_back(nullptr);
 
@@ -133,7 +135,7 @@ void kill_server(const pid_t pid) {
     if (rc == -1) {
         Log::error() << "Could not kill fdb-server: " << std::strerror(errno) << std::endl;
     }
-    sleep(1);
+    std::this_thread::sleep_for(1s);
     EXPECT_EQUAL(rc, 0);
 }
 
