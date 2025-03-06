@@ -15,5 +15,7 @@ ecbuild_add_test(
     TARGET FDB-419
     SOURCES fdb_419_regression_test.cc
     LIBS fdb5 eckit metkit
-    ENVIRONMENT FDB_SERVER_EXECUTABLE=$<TARGET_FILE:fdb-server>
+    ENVIRONMENT 
+        FDB_SERVER_EXECUTABLE=$<TARGET_FILE:fdb-server>
+        FDB_DEBUG=1
 )
