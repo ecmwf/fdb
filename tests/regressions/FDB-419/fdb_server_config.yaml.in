@@ -1,5 +1,5 @@
 type: catalogue
-serverPort: 8000
+serverPort: 8901
 engine: toc
 stores:
 - default: "doesnotexist:8001"
