@@ -177,5 +177,5 @@ int main(int argc, char** argv) {
     std::cout << in1.rdbuf() << std::endl;
     std::ifstream in2("srv2.log");
     std::cout << in2.rdbuf() << std::endl;
-    return rc;
+    return 1;
 }
