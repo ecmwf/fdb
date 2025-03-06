@@ -36,8 +36,11 @@ namespace test {
 //----------------------------------------------------------------------------------------------------------------------
 
 std::string foldername = "debug_root";
+constexpr size_t Nforks  = 2;              // Number of processes to fork (~ number of subtocs)
+constexpr size_t Nsteps  = 3;              // Number of fields written by each forked process (~ number in each subtoc)
+constexpr size_t Nunique = Nsteps*Nforks;  // Number of fields written by the "model"
+constexpr size_t Nruns   = 3;              // Number of models to run
 
-//  fdb5/tests/fdb/debug/fakemodel/
 fdb5::Config theconfig(bool useSubToc = false) {
 
     const std::string config_str(R"XX(
@@ -84,16 +87,14 @@ void runmodel(bool useSubToc = false) {
         k.set("param", "167");
         std::vector<int> data={1,2,3};
 
-        int Nforks = 3;
         std::vector<pid_t> pids(Nforks);
-        std::vector<int> param = {167, 168, 169};
-
         for (int i = 0; i < Nforks; i++) {
             pids[i] = fork();
+            ASSERT(pids[i] >= 0);
             if (pids[i] == 0) { // child
                 fdb5::FDB fdb(theconfig(useSubToc));
-                k.set("param", std::to_string(param[i]));
-                for (int step = 0; step < 3; step++) {
+                k.set("param", std::to_string(167+i));
+                for (int step = 0; step < Nsteps; step++) {
                     k.set("step", std::to_string(step));
                     eckit::Log::info() << " archiving " << k << std::endl;
                     fdb.archive(k, data.data(), data.size());
@@ -123,7 +124,7 @@ void list(bool dedup, size_t expected) {
         ListElement elem;
         size_t count = 0;
         while (it.next(elem)) {
-            Log::info() << elem << std::endl;
+            Log::info() << elem << " " << elem.location() << std::endl;
             count++;
         }
 
@@ -160,7 +161,6 @@ void cleanup(){
             // Paranoia: file must have either "toc" in the prefix, or ".data" or ".index" in the suffix. Or is schema.
             std::string base = f.baseName();
             if (base.find("toc") == 0 || base.find(".data") == base.size()-5 || base.find(".index") == base.size()-6 || base.find("schema") == 0) {
-                std::cout << "unlink " << f << std::endl;
                 f.unlink();
             }
 
@@ -168,7 +168,6 @@ void cleanup(){
 
         // and rm the dir
         for (auto d : dir) {
-            std::cout << "rmdir " << d << std::endl;
             d.rmdir();
         }
 
@@ -182,38 +181,47 @@ CASE( "Similar to FDB-425 but without subtocs." ) {
     // start fresh:
     cleanup();
 
-    runmodel(false); // run once
-    runmodel(false); // run twice to generate masked data. 
-
+    bool subtocs = false;
+    for (int i = 0; i < Nruns; i++) {
+        runmodel(subtocs); 
+    }
     // Verify fdb list works pre-purge: 9 masked 9 unmasked
-    list(true, 9);
-    list(false, 18);
+    list(true, Nunique);
+    list(false, Nruns*Nunique);
 
     purge(/* doit = */ true);
     
 
     // Rerun the list, correct behaviour would be 0 masked 9 unmasked and dedupe should do nothing
-    list(true, 9); // <-- works
-    list(false, 9); // <-- does work as long as we aren't using subtocs
+    list(true, Nunique);
+    list(false, Nunique);
 }
 
+
+// There are actually 2 cases we care about:
+// Case 1 - We are purging all of a subtoc. In this case we really should be TOC_CLEAR on the subtoc, dont need to explicitly clear each of its indexes
+// Case 2 - If we are purging only part of a sub toc, we need to TOC_CLEAR each of the relevant indexes only.
+//          Case 2 is what currently happens, though it is not correctly implemented as when we enter a subtoc in the toc handler, it doesn't seem to be aware of the fact that
+//          A parent toc masked the subtoc.
 CASE( "Reproduce FDB-425" ) {
 
     // start fresh:
     cleanup();
 
-    runmodel(true); // run once
-    runmodel(true); // run twice to generate masked data. 
+    bool subtocs = true;
+    for (int i = 0; i < Nruns; i++) {
+        runmodel(subtocs); 
+    }
 
     // Verify fdb list works pre-purge: 9 masked 9 unmasked
-    list(true, 9);
-    list(false, 18);
+    list(true, Nunique);
+    list(false, Nruns*Nunique);
 
     purge(/* doit = */ true);
     
     // Rerun the list, correct behaviour would be 0 masked 9 unmasked and dedupe should do nothing
-    list(true, 9); // <-- works
-    list(false, 9); // <-- doens't work: Failed to open : error on pooled file
+    list(true, Nunique);
+    list(false, Nunique);
 }
  
  
