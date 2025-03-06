@@ -88,6 +88,7 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
         // to create a watchdog that kills the child when the parent dies. On linux that can be done with
         // 'prctl(PR_SET_DEATHSIG, SIGKILL)' but there is no such functionality available for MacOS.
         spawn_reaper(pid);
+        sleep(2);
         Log::info() << "Started fdb-server pid: " << pid << std::endl;
         return pid;
     }
