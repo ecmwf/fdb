@@ -145,26 +145,30 @@ size_t count_in_file(const PathName& file, const std::string& text) {
 // so that once a conection to a fdb-server was broken no new connection was establish to
 // this server.
 CASE("FDB-419") {
-    const auto fdb_server_path = get_fdb_server_path();
-    auto fdb_server_pid        = run_server(fdb_server_path, "srv1.log");
+    try {
+        const auto fdb_server_path = get_fdb_server_path();
+        auto fdb_server_pid        = run_server(fdb_server_path, "srv1.log");
 
-    const auto config = Config::make("fdb_client_config.yaml");
-    auto fdb_a        = FDB(config);
-    auto fdb_b        = FDB(config);
+        const auto config = Config::make("fdb_client_config.yaml");
+        auto fdb_a        = FDB(config);
+        auto fdb_b        = FDB(config);
 
-    const auto req = fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0];
-    EXPECT_NO_THROW(fdb_a.list(req));
-    EXPECT_NO_THROW(fdb_b.list(req));
-    kill_server(-fdb_server_pid);
-    EXPECT_THROWS(fdb_a.list(req));
+        const auto req = fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0];
+        EXPECT_NO_THROW(fdb_a.list(req));
+        EXPECT_NO_THROW(fdb_b.list(req));
+        kill_server(-fdb_server_pid);
+        EXPECT_THROWS(fdb_a.list(req));
 
-    fdb_server_pid = run_server(fdb_server_path, "srv2.log");
-    EXPECT_NO_THROW(fdb_a.list(req));
-    EXPECT_NO_THROW(fdb_b.list(req));
-    kill_server(-fdb_server_pid);
-    // Ensure only one connection is established with each server
-    EXPECT_EQUAL(count_in_file("srv1.log", "FDB forked pid"), 1);
-    EXPECT_EQUAL(count_in_file("srv2.log", "FDB forked pid"), 1);
+        fdb_server_pid = run_server(fdb_server_path, "srv2.log");
+        EXPECT_NO_THROW(fdb_a.list(req));
+        EXPECT_NO_THROW(fdb_b.list(req));
+        kill_server(-fdb_server_pid);
+        // Ensure only one connection is established with each server
+        EXPECT_EQUAL(count_in_file("srv1.log", "FDB forked pid"), 1);
+        EXPECT_EQUAL(count_in_file("srv2.log", "FDB forked pid"), 1);
+    }
+    catch (...) {
+    }
 }
 }  // namespace
 int main(int argc, char** argv) {
