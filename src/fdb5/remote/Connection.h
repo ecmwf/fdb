@@ -79,7 +79,7 @@ private:  // methods
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
 
-    bool readUnsafe(bool control, void* data, size_t length, bool quiet) const;
+    bool readUnsafe(bool control, void* data, size_t length) const;
 
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 
@@ -91,13 +91,10 @@ protected:  // members
 
 private:  // members
 
-    bool closingControlSocket_ = false;
-    bool closingDataSocket_    = false;
+    bool closingSocket_ = false;
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
-    mutable std::mutex readControlMutex_;
-    mutable std::mutex readDataMutex_;
 
     /// Indicates if this instance is in a usable state.
     /// Once this is marked as invalid it cannot be recovered.
