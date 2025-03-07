@@ -54,17 +54,13 @@ Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& 
 }
 
 void Client::refreshConnection() {
-    if (connection_->valid())
+    if (connection_->valid()) {
         return;
-
+    }
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
                           << " is invalid, attempting to reconnect" << std::endl;
-
-    ClientConnectionRouter::instance().deregister(*connection_);
     connection_->remove(id_);
-
-    connection_ =
-        ClientConnectionRouter::instance().connection(connection_->controlEndpoint(), connection_->defaultEndpoint());
+    connection_ = ClientConnectionRouter::instance().refresh(connection_);
     connection_->add(*this);
 }
 
