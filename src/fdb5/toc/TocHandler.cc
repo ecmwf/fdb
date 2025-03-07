@@ -128,7 +128,7 @@ private:  // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-// This is explicitly NOT a subtoc.
+
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
     tocPath_(directory_ / "toc"),
@@ -142,6 +142,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     subTocRead_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
+    numSubtocsRaw_(0),
     writeMode_(false),
     dirty_(false) {
     // An override to enable using sub tocs without configurations being passed in, for ease
@@ -152,7 +153,6 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }
 }
 
-// This is explicitly a subtoc constructor.
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
@@ -166,6 +166,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     subTocRead_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
+    numSubtocsRaw_(0),
     writeMode_(false),
     dirty_(false) {
 
@@ -292,7 +293,8 @@ void TocHandler::openForRead() const {
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
-    maskedEntries_.clear(); /// @todo This complicates sharing entries between subtocs
+    numSubtocsRaw_           = 0;
+    maskedEntries_.clear();
 
     if (fdbCacheTocsOnRead) {
 
@@ -398,11 +400,39 @@ std::pair<size_t, size_t> TocHandler::recordSizes(TocRecord& r, size_t payloadSi
     return {dataSize, r.header_.size_};
 }
 
+bool TocHandler::ignoreIndex(const TocRecord& r, bool readMasked) const {
+    ASSERT(r.header_.tag_ == TocRecord::TOC_INDEX);
+    
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+    eckit::LocalPathName path;
+    off_t offset;
+    s >> path;
+    s >> offset;
+
+    /// @note: currentDirectory() may return the active subtoc's directory
+    LocalPathName absPath = currentDirectory() / path;
+
+    std::pair<LocalPathName, size_t> key(absPath.baseName(), offset);
+    if (maskedEntries_.find(key) != maskedEntries_.end()) {
+        if (!readMasked) {
+            LOG_DEBUG_LIB(LibFdb5) << "Index ignored by mask: " << path << ":" << offset << std::endl;
+            return true;
+        }
+        // This is a masked index, so it is valid for it to not exist.
+        if (!absPath.exists()) {
+            LOG_DEBUG_LIB(LibFdb5) << "Index does not exist: " << path << ":" << offset << std::endl;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
 bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries,
                           bool readMasked, const TocRecord** data, size_t* length) const {
-    
+
     int len;
 
     // For some tools (mainly diagnostic) it makes sense to be able to switch the
@@ -414,23 +444,23 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
     // Ensure we are able to skip masked entries as appropriate
 
     if (!enumeratedMaskedEntries_) {
-        maskedEntries_ = populateMaskedEntriesList(true);
-        // preloadSubTocs(readMasked); /// @todo: Pointless as I have already (serially) gone through each subtoc. todo integrate with the AIO stuff
+        populateMaskedEntriesList();
+        preloadSubTocs(readMasked);
     }
-    
+
     while (true) {
 
-        if (subTocRead_) { // continue reading the active subtoc
+        if (subTocRead_) {
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
-            /// @todo: The following cases are not handled at all in the original code:
-            /// - Index entries in the subtoc which are supposed to be cleared by the parent toc. // Results in bad interaction between purge and list when using subtocs
-            /// - TOC_CLEAR entries in the subtoc, which potentially should be masking entries in parent toc. // Not sure if this is possible.
-            /// - A subtoc clearing indexes of another subtoc. // Not sure if this is possible
-            /// - A subtoc clearing another subtoc entirely. // Not sure if this is possible
-            /// - sub sub tocs !?
-
             if (len == 0) {
                 subTocRead_ = nullptr;
+            }
+            else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
+                // Check if a TOC_CLEAR in this toc is masking the subtoc index
+                if (ignoreIndex(r, readMasked)) {
+                    continue;
+                }
+                    return true;
             }
             else {
                 ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
@@ -457,11 +487,11 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
                     continue;
 
                 selectSubTocRead(absPath);
-                subTocRead_->setMaskedEntries(maskedEntries_);
 
                 if (hideSubTocEntries) {
                     // The first entry in a subtoc must be the init record. Check that
-                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
+                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data,
+                                          length);
                     ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
                 }
                 else {
@@ -470,27 +500,9 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
             }
             else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
 
-                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-                eckit::LocalPathName path;
-                off_t offset;
-                s >> path;
-                s >> offset;
-
-                LocalPathName absPath = currentDirectory() / path;
-
-                std::pair<LocalPathName, size_t> key(absPath.baseName(), offset);
-                if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    if (!readMasked) {
-                        LOG_DEBUG_LIB(LibFdb5) << "Index ignored by mask: " << path << ":" << offset << std::endl;
-                        continue;
-                    }
-                    // This is a masked index, so it is valid for it to not exist.
-                    if (!absPath.exists()) {
-                        LOG_DEBUG_LIB(LibFdb5) << "Index does not exist: " << path << ":" << offset << std::endl;
-                        continue;
-                    }
+                if (ignoreIndex(r, readMasked)) {
+                    continue;
                 }
-
                 return true;
             }
             else if (r.header_.tag_ == TocRecord::TOC_CLEAR && hideClearEntries) {
@@ -687,8 +699,6 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
 
     // If this subtoc has a masking entry, then skip it, and go on to the next entry.
     // Unless readMasked is true, in which case walk it if it exists.
-
-    ///@note: This explicitly requires us to have already populated the maskedEntries_ list
     std::pair<eckit::LocalPathName, size_t> key(absPath.baseName(), 0);
     if (maskedEntries_.find(key) != maskedEntries_.end()) {
         if (!readMasked) {
@@ -851,9 +861,10 @@ public:
 };
 
 void TocHandler::preloadSubTocs(bool readMasked) const {
-    NOTIMP; ///@todo: doesn't play nice with masking at the moment.
     ASSERT(enumeratedMaskedEntries_);
-    ///@todo: Bring back early return if there are no subtocs to preload
+    if (numSubtocsRaw_ == 0)
+        return;
+
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
     Offset startPosition = proxy.position();  // remember the current position of the file descriptor
 
@@ -872,7 +883,7 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
 
             switch (r->header_.tag_) {
                 case TocRecord::TOC_SUB_TOC: {
-                    LocalPathName absPath = parseSubTocRecord(*r, readMasked); //< @todo: This assumes that the masked entries have been enumerated
+                    LocalPathName absPath = parseSubTocRecord(*r, readMasked);
                     if (absPath != "")
                         preloader.addPath(absPath);
                 } break;
@@ -899,17 +910,19 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
     preloadTimer.stop();
 }
 
-std::set<std::pair<LocalPathName, Offset>> TocHandler::populateMaskedEntriesList(bool enumerateSubtocs) const {
+void TocHandler::populateMaskedEntriesList() const {
 
     ASSERT(fd_ != -1 || cachedToc_);
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     Offset startPosition = proxy.position();  // remember the current position of the file descriptor
 
-    std::set<std::pair<LocalPathName, Offset>> maskedEntries;
+    maskedEntries_.clear();
 
-    // allocate (large) TocRecord on heap not stack (MARS-779)
-    auto r = std::make_unique<TocRecord>(serialisationVersion_.used());  
+    auto r = std::make_unique<TocRecord>(
+        serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
+
+    size_t countSubTocs = 0;
 
     while (readNextInternal(*r)) {
 
@@ -925,26 +938,21 @@ std::set<std::pair<LocalPathName, Offset>> TocHandler::populateMaskedEntriesList
 
                 if (path == "*") {  // For the "*" path, mask EVERYTHING that we have already seen
                     Offset currentPosition = proxy.position();
-                    allMaskableEntries(startPosition, currentPosition, maskedEntries);
+                    allMaskableEntries(startPosition, currentPosition, maskedEntries_);
                     ASSERT(currentPosition == proxy.position());
                 }
                 else {
+                    // readNextInternal --> use directory_ not currentDirectory()
+                    // ASSERT(path.size() > 0);
+                    // eckit::PathName absPath = (path[0] == '/') ? findRealPath(path) : (directory_ / path);
                     eckit::PathName pathName = path;
-                    maskedEntries.emplace(std::pair<PathName, Offset>(pathName.baseName(), offset));
+                    maskedEntries_.emplace(std::pair<PathName, Offset>(pathName.baseName(), offset));
                 }
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC:
-                if (enumerateSubtocs) {
-
-                    LocalPathName absPath = parseSubTocRecord(*r, false);
-                    if (absPath == "") continue;
-
-                    selectSubTocRead(absPath); /// @note: subtocs have not been preloaded.
-                    std::set<std::pair<LocalPathName, Offset>> masksedEntriesSubtoc = subTocRead_->populateMaskedEntriesList();
-                    maskedEntries.insert(masksedEntriesSubtoc.begin(), masksedEntriesSubtoc.end());
-                }
+                countSubTocs++;
                 break;
             case TocRecord::TOC_INIT:
                 break;
@@ -961,12 +969,12 @@ std::set<std::pair<LocalPathName, Offset>> TocHandler::populateMaskedEntriesList
     }
 
     // And reset back to where we were.
+
     Offset ret = proxy.seek(startPosition);
     ASSERT(ret == startPosition);
-    subTocRead_ = nullptr;
 
-    enumeratedMaskedEntries_ = true; /// @note: this is also set in the subtocs.
-    return maskedEntries;
+    numSubtocsRaw_           = countSubTocs;
+    enumeratedMaskedEntries_ = true;
 }
 
 static eckit::StaticMutex local_mutex;
@@ -1320,9 +1328,8 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
                 break;
 
             case TocRecord::TOC_INDEX:
-                ///@note: Masked entries should already be filtered out at this stage.
                 indexEntries.emplace_back(IndexEntry{indexEntries.size(), pdata, dataLength, currentDirectory()});
-                
+
                 if (subTocs && subTocRead_) {
                     subTocs->insert(subTocRead_->tocPath());
                 }
@@ -1583,7 +1590,7 @@ DbStats TocHandler::stats() const {
 void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata, std::set<eckit::URI>& data) const {
 
     if (!enumeratedMaskedEntries_) {
-        maskedEntries_ = populateMaskedEntriesList();
+        populateMaskedEntriesList();
     }
 
     for (const auto& entry : maskedEntries_) {

@@ -160,10 +160,6 @@ protected:  // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-    void setMaskedEntries(const std::set<std::pair<eckit::LocalPathName, eckit::Offset>>& maskedEntries) {
-        maskedEntries_ = maskedEntries; /// @todo dont copy? Though awkward (maybe shared ptr)
-    }
-
 private:  // methods
 
     eckit::LocalPathName fullControlFilePath(const std::string& name) const;
@@ -218,11 +214,13 @@ private:  // methods
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
                             std::set<std::pair<eckit::LocalPathName, eckit::Offset>>& maskedEntries) const;
     eckit::LocalPathName parseSubTocRecord(const TocRecord& r, bool readMasked) const;
-
-    std::set<std::pair<eckit::LocalPathName, eckit::Offset>> populateMaskedEntriesList(bool enumerateSubtocs = false) const;
+    void populateMaskedEntriesList() const;
     void preloadSubTocs(bool readMasked) const;
 
     void append(TocRecord& r, size_t payloadSize);
+
+    // Check if the Index record should be skipped
+    bool ignoreIndex(const TocRecord& r, bool readMasked) const;
 
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
@@ -263,8 +261,6 @@ private:  // members
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.
     mutable std::map<eckit::LocalPathName, std::unique_ptr<TocHandler>> subTocReadCache_;
-    // std::shared_ptr<std::map<eckit::LocalPathName, std::unique_ptr<TocHandler>>> subTocReadCache_;  // @todo: ? use a shared ptr to the map (shared with subtocs) ... errr feels like this has async implications may need a mutex.
-
     mutable TocHandler* subTocRead_;  // n.b. non-owning
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
