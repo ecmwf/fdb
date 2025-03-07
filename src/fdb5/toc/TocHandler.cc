@@ -400,6 +400,34 @@ std::pair<size_t, size_t> TocHandler::recordSizes(TocRecord& r, size_t payloadSi
     return {dataSize, r.header_.size_};
 }
 
+bool TocHandler::ignoreIndex(const TocRecord& r, bool readMasked) const {
+    ASSERT(r.header_.tag_ == TocRecord::TOC_INDEX);
+
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+    eckit::LocalPathName path;
+    off_t offset;
+    s >> path;
+    s >> offset;
+
+    /// @note: currentDirectory() may return the active subtoc's directory
+    LocalPathName absPath = currentDirectory() / path;
+
+    std::pair<LocalPathName, size_t> key(absPath.baseName(), offset);
+    if (maskedEntries_.find(key) != maskedEntries_.end()) {
+        if (!readMasked) {
+            LOG_DEBUG_LIB(LibFdb5) << "Index ignored by mask: " << path << ":" << offset << std::endl;
+            return true;
+        }
+        // This is a masked index, so it is valid for it to not exist.
+        if (!absPath.exists()) {
+            LOG_DEBUG_LIB(LibFdb5) << "Index does not exist: " << path << ":" << offset << std::endl;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
 bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries,
@@ -426,6 +454,13 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
                 subTocRead_ = nullptr;
+            }
+            else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
+                // Check if a TOC_CLEAR in this toc is masking the subtoc index
+                if (ignoreIndex(r, readMasked)) {
+                    continue;
+                }
+                return true;
             }
             else {
                 ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
@@ -465,27 +500,9 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
             }
             else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
 
-                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-                eckit::LocalPathName path;
-                off_t offset;
-                s >> path;
-                s >> offset;
-
-                LocalPathName absPath = currentDirectory() / path;
-
-                std::pair<LocalPathName, size_t> key(absPath.baseName(), offset);
-                if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    if (!readMasked) {
-                        LOG_DEBUG_LIB(LibFdb5) << "Index ignored by mask: " << path << ":" << offset << std::endl;
-                        continue;
-                    }
-                    // This is a masked index, so it is valid for it to not exist.
-                    if (!absPath.exists()) {
-                        LOG_DEBUG_LIB(LibFdb5) << "Index does not exist: " << path << ":" << offset << std::endl;
-                        continue;
-                    }
+                if (ignoreIndex(r, readMasked)) {
+                    continue;
                 }
-
                 return true;
             }
             else if (r.header_.tag_ == TocRecord::TOC_CLEAR && hideClearEntries) {
