@@ -1,17 +1,17 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+//  (C) Copyright 1996- ECMWF.
+//  
+//  This software is licensed under the terms of the Apache Licence Version 2.0
+//  which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+//  In applying this licence, ECMWF does not waive the privileges and immunities
+//  granted to it by virtue of its status as an intergovernmental organisation nor
+//  does it submit to any jurisdiction.
+//  
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
+// ----------------------------------------------------------------------------------------------------------------------
+// Based on FDB-425:
+// We found there were problems listing an FDB after purging when the purged fields were recorded in a subtoc.
+// These tests recreate this situation and verify that listing now works correctly.
+// ----------------------------------------------------------------------------------------------------------------------
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -21,7 +21,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/FDB.h"
@@ -34,24 +33,19 @@ namespace fdb5 {
 namespace test {
  
 //----------------------------------------------------------------------------------------------------------------------
+std::string foldername = "fdb-425-root";
 
-std::string foldername = "debug_root";
-constexpr size_t Nforks  = 2;              // Number of processes to fork (~ number of subtocs)
-constexpr size_t Nsteps  = 3;              // Number of fields written by each forked process (~ number in each subtoc)
-constexpr size_t Nunique = Nsteps*Nforks;  // Number of fields written by the "model"
-constexpr size_t Nruns   = 3;              // Number of models to run
 
 fdb5::Config theconfig(bool useSubToc = false) {
-
-    const std::string config_str(R"XX(
-        ---
-        type: local
-        engine: toc
-        useSubToc: true
-        spaces:
-        - roots:
-          - path: "./debug_root"
-    )XX");
+    
+    std::string config_str =
+    "---\n"
+    "type: local\n"
+    "engine: toc\n"
+    "spaces:\n"
+    "- roots:\n"
+    "  - path: \"./" + foldername + "\"\n"
+    "schema: ./fdb-425-schema\n";
 
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
@@ -66,15 +60,14 @@ fdb5::Config theconfig(bool useSubToc = false) {
     return cfg;
 }
 
-void runmodel(bool useSubToc = false) {
-    // Write a bunch of data using 3 processes, with subtocs on. 
+// Write a bunch of data using Nforks processes. Each fork writes a different param, and Nsteps steps.
+void runmodel(size_t Nforks, size_t Nsteps, bool useSubToc=true) {
     eckit::Log::info() << "Start runmodel" << std::endl;
     {
-        //  make fakemodel directory
+        // make fakemodel directory
         eckit::PathName(foldername).mkdir();
 
         // Do some archiving
-
         fdb5::Key k;
         k.set("class", "od");
         k.set("expver", "xxxx");
@@ -114,6 +107,7 @@ void runmodel(bool useSubToc = false) {
     eckit::Log::info() << "Finish runmodel" << std::endl;
 }
 
+// List the contents of the fdb, check that the number of elements is as expected
 void list(bool dedup, size_t expected) {
     eckit::Log::info() << "Start list" << std::endl;
     {
@@ -128,11 +122,12 @@ void list(bool dedup, size_t expected) {
             count++;
         }
 
-        EXPECT(count == expected);
-}
+        EXPECT_EQUAL(count, expected);
+    }
     eckit::Log::info() << "Finish list" << std::endl;
 }
 
+// Purge the fdb
 void purge(bool doit) {
     eckit::Log::info() << "Start Purge doit=" << doit << std::endl;
     {
@@ -147,7 +142,6 @@ void purge(bool doit) {
         }
     }
     eckit::Log::info() << "Finish Purge doit=" << doit << std::endl;
-
 }
 
 void cleanup(){
@@ -155,83 +149,90 @@ void cleanup(){
     auto td = eckit::PathName(foldername);
     if (td.exists()) {
         std::vector<eckit::PathName> files;
-        std::vector<eckit::PathName> dir;
-        td.childrenRecursive(files, dir);
+        std::vector<eckit::PathName> dirs;
+        td.childrenRecursive(files, dirs);
         for (auto f : files) {
-            // Paranoia: file must have either "toc" in the prefix, or ".data" or ".index" in the suffix. Or is schema.
-            std::string base = f.baseName();
-            if (base.find("toc") == 0 || base.find(".data") == base.size()-5 || base.find(".index") == base.size()-6 || base.find("schema") == 0) {
-                f.unlink();
-            }
-
+            f.unlink();
         }
-
-        // and rm the dir
-        for (auto d : dir) {
+        for (auto d : dirs) {
             d.rmdir();
         }
-
-        eckit::PathName(foldername).rmdir(); // only removes if it is empty
+        eckit::PathName(foldername).rmdir(); //< only removes if it is empty
     }
 }
 
+// Case: Full subtoc purging
+// Future note: We could add TOC_CLEAR to the sub toc entry instead but we currently do not (we clear one index at a time)
+CASE( "FDB-425: Archive, rearchive, purge, then list." ) {
 
-CASE( "Similar to FDB-425 but without subtocs." ) {
-
-    // start fresh:
     cleanup();
 
-    bool subtocs = false;
+    size_t Nforks  = 2;
+    size_t Nsteps  = 3;
+    size_t Nunique = Nsteps*Nforks;
+
+    size_t Nruns   = 3;  
     for (int i = 0; i < Nruns; i++) {
-        runmodel(subtocs); 
-    }
-    // Verify fdb list works pre-purge: 9 masked 9 unmasked
-    list(true, Nunique);
-    list(false, Nruns*Nunique);
-
-    purge(/* doit = */ true);
-    
-
-    // Rerun the list, correct behaviour would be 0 masked 9 unmasked and dedupe should do nothing
-    list(true, Nunique);
-    list(false, Nunique);
-}
-
-
-// There are actually 2 cases we care about:
-// Case 1 - We are purging all of a subtoc. In this case we really should be TOC_CLEAR on the subtoc, dont need to explicitly clear each of its indexes
-// Case 2 - If we are purging only part of a sub toc, we need to TOC_CLEAR each of the relevant indexes only.
-//          Case 2 is what currently happens, though it is not correctly implemented as when we enter a subtoc in the toc handler, it doesn't seem to be aware of the fact that
-//          A parent toc masked the subtoc.
-CASE( "Reproduce FDB-425" ) {
-
-    // start fresh:
-    cleanup();
-
-    bool subtocs = true;
-    for (int i = 0; i < Nruns; i++) {
-        runmodel(subtocs); 
+        runmodel(Nforks, Nsteps); 
     }
 
     // Verify fdb list works pre-purge: 9 masked 9 unmasked
     list(true, Nunique);
     list(false, Nruns*Nunique);
 
-    purge(/* doit = */ true);
+    purge(true);
     
     // Rerun the list, correct behaviour would be 0 masked 9 unmasked and dedupe should do nothing
     list(true, Nunique);
-    list(false, Nunique);
+    list(false, Nunique); //< i.e. all duplicates are gone
 }
+
+// Case: When we cannot purge the entire index, we should not purge anything
+CASE( "Check more fine-grained purge behaviour" ) {
+
+    cleanup();
  
+    // Initial run
+    size_t Nforks  = 2; // == Nparams
+    size_t Nsteps  = 3;
+    size_t Nunique = Nsteps*Nforks;
+    runmodel(Nforks, Nsteps);   
+
+    // Rerun #1: rewrite one step for every param
+    runmodel(Nforks, 1); 
+
+    // Expect 1 duplicate per param
+    list(true, Nunique);
+    list(false, Nunique + Nforks);
+
+    // Because each index will contain Nsteps entries, purge cannot delete any of them
+    // So listing will not change
+    purge(true);
+    list(true, Nunique);
+    list(false, Nunique + Nforks);
+
+    // Rerun #2: rewrite first step for every param, thus masking Rerun #1 which can be purged
+    runmodel(Nforks, 1); 
+    list(false, Nunique + 2*Nforks);
+    purge(true);
+    list(false, Nunique + Nforks);
+
+    // Rerun #3: Rerun everything. With everything masked we can purge all duplicates
+    runmodel(Nforks, Nsteps);
+    purge(true);
+    list(true, Nunique);
+    list(false, Nunique); //< i.e. all duplicates are gone
+}
  
  //----------------------------------------------------------------------------------------------------------------------
  
  }  // namespace test
  }  // namespace fdb
  
- int main(int argc, char **argv)
- {
-     return run_tests ( argc, argv );
- }
+ int main(int argc, char **argv) {
+    int err = run_tests ( argc, argv );
+    if (err) return err;
+    // fdb5::test::cleanup();
+    return 0;
+}
  
