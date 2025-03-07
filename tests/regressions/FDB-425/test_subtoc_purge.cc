@@ -1,11 +1,11 @@
 //  (C) Copyright 1996- ECMWF.
-//  
+//
 //  This software is licensed under the terms of the Apache Licence Version 2.0
 //  which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 //  In applying this licence, ECMWF does not waive the privileges and immunities
 //  granted to it by virtue of its status as an intergovernmental organisation nor
 //  does it submit to any jurisdiction.
-//  
+//
 
 // ----------------------------------------------------------------------------------------------------------------------
 // Based on FDB-425:
@@ -13,17 +13,17 @@
 // These tests recreate this situation and verify that listing now works correctly.
 // ----------------------------------------------------------------------------------------------------------------------
 
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
-#include "fdb5/config/Config.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -31,27 +31,30 @@ using namespace eckit;
 
 namespace fdb5 {
 namespace test {
- 
+
 //----------------------------------------------------------------------------------------------------------------------
 std::string foldername = "fdb-425-root";
 
 
 fdb5::Config theconfig(bool useSubToc = false) {
-    
+
     std::string config_str =
-    "---\n"
-    "type: local\n"
-    "engine: toc\n"
-    "spaces:\n"
-    "- roots:\n"
-    "  - path: \"./" + foldername + "\"\n"
-    "schema: ./fdb-425-schema\n";
+        "---\n"
+        "type: local\n"
+        "engine: toc\n"
+        "spaces:\n"
+        "- roots:\n"
+        "  - path: \"./" +
+        foldername +
+        "\"\n"
+        "schema: ./fdb-425-schema\n";
 
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    if (!useSubToc) return expanded;
-    
+    if (!useSubToc)
+        return expanded;
+
     eckit::LocalConfiguration userConf;
     userConf.set("useSubToc", true);
 
@@ -61,7 +64,7 @@ fdb5::Config theconfig(bool useSubToc = false) {
 }
 
 // Write a bunch of data using Nforks processes. Each fork writes a different param, and Nsteps steps.
-void runmodel(size_t Nforks, size_t Nsteps, bool useSubToc=true) {
+void runmodel(size_t Nforks, size_t Nsteps, bool useSubToc = true) {
     eckit::Log::info() << "Start runmodel" << std::endl;
     {
         // make fakemodel directory
@@ -78,15 +81,15 @@ void runmodel(size_t Nforks, size_t Nsteps, bool useSubToc=true) {
         k.set("domain", "g");
         k.set("levtype", "sfc");
         k.set("param", "167");
-        std::vector<int> data={1,2,3};
+        std::vector<int> data = {1, 2, 3};
 
         std::vector<pid_t> pids(Nforks);
         for (int i = 0; i < Nforks; i++) {
             pids[i] = fork();
             ASSERT(pids[i] >= 0);
-            if (pids[i] == 0) { // child
+            if (pids[i] == 0) {  // child
                 fdb5::FDB fdb(theconfig(useSubToc));
-                k.set("param", std::to_string(167+i));
+                k.set("param", std::to_string(167 + i));
                 for (int step = 0; step < Nsteps; step++) {
                     k.set("step", std::to_string(step));
                     eckit::Log::info() << " archiving " << k << std::endl;
@@ -113,7 +116,7 @@ void list(bool dedup, size_t expected) {
     {
         fdb5::FDB fdb(theconfig(false));
         fdb5::FDBToolRequest request = fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-        auto it = fdb.list(request, dedup);
+        auto it                      = fdb.list(request, dedup);
 
         ListElement elem;
         size_t count = 0;
@@ -133,7 +136,7 @@ void purge(bool doit) {
     {
         fdb5::FDB fdb(theconfig(false));
         fdb5::FDBToolRequest request = fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-        
+
         // dont do it first, for logging reasons
         auto purgeIterator = fdb.purge(request, doit, false);
         PurgeElement elem;
@@ -144,7 +147,7 @@ void purge(bool doit) {
     eckit::Log::info() << "Finish Purge doit=" << doit << std::endl;
 }
 
-void cleanup(){
+void cleanup() {
     // remove all contents of dir
     auto td = eckit::PathName(foldername);
     if (td.exists()) {
@@ -157,49 +160,50 @@ void cleanup(){
         for (auto d : dirs) {
             d.rmdir();
         }
-        eckit::PathName(foldername).rmdir(); //< only removes if it is empty
+        eckit::PathName(foldername).rmdir();  //< only removes if it is empty
     }
 }
 
 // Case: Full subtoc purging
-// Future note: We could add TOC_CLEAR to the sub toc entry instead but we currently do not (we clear one index at a time)
-CASE( "FDB-425: Archive, rearchive, purge, then list." ) {
+// Future note: We could add TOC_CLEAR to the sub toc entry instead but we currently do not (we clear one index at a
+// time)
+CASE("FDB-425: Archive, rearchive, purge, then list.") {
 
     cleanup();
 
     size_t Nforks  = 2;
     size_t Nsteps  = 3;
-    size_t Nunique = Nsteps*Nforks;
+    size_t Nunique = Nsteps * Nforks;
 
-    size_t Nruns   = 3;  
+    size_t Nruns = 3;
     for (int i = 0; i < Nruns; i++) {
-        runmodel(Nforks, Nsteps); 
+        runmodel(Nforks, Nsteps);
     }
 
     // Verify fdb list works pre-purge: 9 masked 9 unmasked
     list(true, Nunique);
-    list(false, Nruns*Nunique);
+    list(false, Nruns * Nunique);
 
     purge(true);
-    
+
     // Rerun the list, correct behaviour would be 0 masked 9 unmasked and dedupe should do nothing
     list(true, Nunique);
-    list(false, Nunique); //< i.e. all duplicates are gone
+    list(false, Nunique);  //< i.e. all duplicates are gone
 }
 
 // Case: When we cannot purge the entire index, we should not purge anything
-CASE( "Check more fine-grained purge behaviour" ) {
+CASE("Check more fine-grained purge behaviour") {
 
     cleanup();
- 
+
     // Initial run
-    size_t Nforks  = 2; // == Nparams
+    size_t Nforks  = 2;  // == Nparams
     size_t Nsteps  = 3;
-    size_t Nunique = Nsteps*Nforks;
-    runmodel(Nforks, Nsteps);   
+    size_t Nunique = Nsteps * Nforks;
+    runmodel(Nforks, Nsteps);
 
     // Rerun #1: rewrite one step for every param
-    runmodel(Nforks, 1); 
+    runmodel(Nforks, 1);
 
     // Expect 1 duplicate per param
     list(true, Nunique);
@@ -212,8 +216,8 @@ CASE( "Check more fine-grained purge behaviour" ) {
     list(false, Nunique + Nforks);
 
     // Rerun #2: rewrite first step for every param, thus masking Rerun #1 which can be purged
-    runmodel(Nforks, 1); 
-    list(false, Nunique + 2*Nforks);
+    runmodel(Nforks, 1);
+    list(false, Nunique + 2 * Nforks);
     purge(true);
     list(false, Nunique + Nforks);
 
@@ -221,18 +225,18 @@ CASE( "Check more fine-grained purge behaviour" ) {
     runmodel(Nforks, Nsteps);
     purge(true);
     list(true, Nunique);
-    list(false, Nunique); //< i.e. all duplicates are gone
+    list(false, Nunique);  //< i.e. all duplicates are gone
 }
- 
- //----------------------------------------------------------------------------------------------------------------------
- 
- }  // namespace test
- }  // namespace fdb
- 
- int main(int argc, char **argv) {
-    int err = run_tests ( argc, argv );
-    if (err) return err;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace test
+}  // namespace fdb5
+
+int main(int argc, char** argv) {
+    int err = run_tests(argc, argv);
+    if (err)
+        return err;
     // fdb5::test::cleanup();
     return 0;
 }
- 

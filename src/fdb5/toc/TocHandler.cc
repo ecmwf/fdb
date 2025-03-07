@@ -402,7 +402,7 @@ std::pair<size_t, size_t> TocHandler::recordSizes(TocRecord& r, size_t payloadSi
 
 bool TocHandler::ignoreIndex(const TocRecord& r, bool readMasked) const {
     ASSERT(r.header_.tag_ == TocRecord::TOC_INDEX);
-    
+
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
     eckit::LocalPathName path;
     off_t offset;
@@ -460,7 +460,7 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
                 if (ignoreIndex(r, readMasked)) {
                     continue;
                 }
-                    return true;
+                return true;
             }
             else {
                 ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
