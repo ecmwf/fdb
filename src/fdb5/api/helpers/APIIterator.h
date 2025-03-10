@@ -105,6 +105,11 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// AsyncIterationCancellation is used to indicate a worker needs to be cancelled.
+/// AsyncIterationCancellation is send through eckit::Queue::interrupt to the writing thread and cancels the task via
+/// unwinding.
+class AsyncIterationCancellation : public eckit::Exception {};
+
 // For some uses, we have a generator function (i.e. through a visitor
 // pattern). We want to invert the control such that the next element
 // is generated on request.
@@ -126,6 +131,9 @@ public:  // methods
                 workerFn(queue_);
                 queue_.close();
             }
+            catch (const AsyncIterationCancellation&) {
+                // WorkerFn has been cancelled, nothing to do.
+            }
             catch (...) {
                 // Really avoid calling std::terminate on worker thread.
                 queue_.interrupt(std::current_exception());
@@ -137,7 +145,8 @@ public:  // methods
 
     ~APIAsyncIterator() override {
         if (!queue_.closed()) {
-            queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
+            // Cancel worker operation by causing a throw on next emplace/push/resize operation.
+            queue_.interrupt(std::make_exception_ptr(AsyncIterationCancellation()));
         }
         ASSERT(workerThread_.joinable());
         workerThread_.join();
