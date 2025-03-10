@@ -1,2 +1,14 @@
+cmake
+.cache
 .vscode
 build
+.clangd
+**/venv
+**/_build
+build
+install.sh
+**/.DS_Store
+**/Doxyfile.in.bak
+
+# LLVM debug
+launch.json
