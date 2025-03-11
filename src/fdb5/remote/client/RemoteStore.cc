@@ -18,6 +18,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -225,6 +226,8 @@ RemoteStore::~RemoteStore() {
         Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
         eckit::Main::instance().terminate();
     }
+
+    ReadLimiter::instance().evictClient(id());
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -347,6 +350,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
         case Message::Complete: {
             // eckit::Log::info() << "RemoteStore::handle COMPLETE" << std::endl;
             auto it = messageQueues_.find(requestID);
+
             if (it != messageQueues_.end()) {
                 // eckit::Log::info() << "RemoteStore::handle COMPLETE close and erase queue" << std::endl;
                 it->second->close();
@@ -364,6 +368,8 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
                 id->second->emplace(std::make_pair(message, Buffer(0)));
 
                 retrieveMessageQueues_.erase(id);
+                ReadLimiter::instance().finishRequest(this->id(), requestID);  //  what about the messageQueues_ also?
+                ReadLimiter::instance().tryNextRequest();
             }
             return true;
         }
@@ -440,25 +446,27 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << fieldLocation;
-    s << remapKey;
+    // Buffer encodeBuffer(4096);
+    // MemoryStream s(encodeBuffer);
+    // s << fieldLocation;
+    // s << remapKey;
 
     uint32_t id = generateRequestID();
 
-    static size_t queueSize             = 320;
+    static size_t queueSize             = 320;  // Weird magic number?
     std::shared_ptr<MessageQueue> queue = nullptr;
     {
         std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
 
+        // Consumed by the worker thread
         auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
         ASSERT(entry.second);
 
         queue = entry.first->second;
     }
 
-    controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
+    ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
+    // controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
 }
