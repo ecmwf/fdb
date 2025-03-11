@@ -73,9 +73,10 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public:  // methods
 
-    FDBRemoteDataHandle(uint32_t requestID, Length estimate, std::shared_ptr<RemoteStore::MessageQueue> queue,
-                        const net::Endpoint& remoteEndpoint) :
+    FDBRemoteDataHandle(uint32_t requestID, uint32_t clientID, Length estimate,
+                        std::shared_ptr<RemoteStore::MessageQueue> queue, const net::Endpoint& remoteEndpoint) :
         requestID_(requestID),
+        clientID_(clientID),
         estimate_(estimate),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
@@ -83,7 +84,15 @@ public:  // methods
         overallPosition_(0),
         currentBuffer_(0),
         complete_(false) {}
+
     virtual bool canSeek() const override { return false; }
+
+    ~FDBRemoteDataHandle() override {
+        if (!complete_) {
+            // Handle destroyed before being read, make sure it doesn't still take up space in the ReadLimiter.
+            ReadLimiter::instance().finishRequest(clientID_, requestID_);
+        }
+    }
 
 private:  // methods
 
@@ -128,6 +137,7 @@ private:  // methods
             if (msg.first == Message::Complete) {
                 // eckit::Log::info() << "RemoteDataHandle::read() -- Got Message::Complete" << std::endl;
                 complete_ = true;
+                ReadLimiter::instance().finishRequest(clientID_, requestID_);
                 return total;
             }
 
@@ -178,6 +188,7 @@ private:  // methods
 private:  // members
 
     uint32_t requestID_;
+    uint32_t clientID_;
     Length estimate_;
     std::shared_ptr<RemoteStore::MessageQueue> queue_;
     net::Endpoint remoteEndpoint_;
@@ -350,7 +361,6 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
         case Message::Complete: {
             // eckit::Log::info() << "RemoteStore::handle COMPLETE" << std::endl;
             auto it = messageQueues_.find(requestID);
-
             if (it != messageQueues_.end()) {
                 // eckit::Log::info() << "RemoteStore::handle COMPLETE close and erase queue" << std::endl;
                 it->second->close();
@@ -368,8 +378,6 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
                 id->second->emplace(std::make_pair(message, Buffer(0)));
 
                 retrieveMessageQueues_.erase(id);
-                ReadLimiter::instance().finishRequest(this->id(), requestID);  //  what about the messageQueues_ also?
-                ReadLimiter::instance().tryNextRequest();
             }
             return true;
         }
@@ -446,19 +454,13 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    // Buffer encodeBuffer(4096);
-    // MemoryStream s(encodeBuffer);
-    // s << fieldLocation;
-    // s << remapKey;
-
     uint32_t id = generateRequestID();
 
-    static size_t queueSize             = 320;  // Weird magic number?
+    static size_t queueSize             = 320;
     std::shared_ptr<MessageQueue> queue = nullptr;
     {
         std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
 
-        // Consumed by the worker thread
         auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
         ASSERT(entry.second);
 
@@ -466,9 +468,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     }
 
     ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
-    // controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
-
-    return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
+    return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), queue, controlEndpoint());
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {

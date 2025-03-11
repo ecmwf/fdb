@@ -9,38 +9,49 @@
  */
 
 #include "fdb5/remote/client/ReadLimiter.h"
-#include "fdb5/remote/client/RemoteStore.h"
-#include "eckit/config/Resource.h"
 #include <sstream>
+#include "eckit/config/Resource.h"
+#include "fdb5/remote/client/RemoteStore.h"
 
- namespace fdb5::remote {
-     
- //----------------------------------------------------------------------------------------------------------------------
- 
+namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+namespace {
+// Initialise imediately to outlive the RemoteStores which are also static...
+ReadLimiter& instance = ReadLimiter::instance();
+}  // namespace
+
 ReadLimiter& ReadLimiter::instance() {
     static ReadLimiter limiter;
     return limiter;
 }
 
+ReadLimiter::ReadLimiter() :
+    memoryUsed_{0},
+    memoryLimit_{eckit::Resource<size_t>("$FDB_REMOTE_READ_LIMIT", size_t(1) * 1024 * 1024 * 1024)}  // 1 GiB
+{}
+
 void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation, const Key& remapKey) {
-    
     eckit::Buffer requestBuffer(4096);
     eckit::MemoryStream s(requestBuffer);
     s << fieldLocation;
     s << remapKey;
     size_t requestSize = s.position();
-    
-    size_t resultSize = fieldLocation.length();
-    if(resultSize > memoryLimit_) {
+    size_t resultSize  = fieldLocation.length();
+
+    if (resultSize > memoryLimit_) {
         std::stringstream ss;
-        ss << "ReadLimiter: Requested field size " << resultSize << " exceeds memory limit " << memoryLimit_ << ". Field: " << fieldLocation.fullUri();
+        ss << "ReadLimiter: Requested field size " << resultSize << " exceeds memory limit " << memoryLimit_
+           << ". Field: " << fieldLocation.fullUri();
         throw eckit::SeriousBug(ss.str());
     }
-    
-    std::lock_guard<std::mutex> lock(mutex_);
-    // requests_.push(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
-    requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
-    clientRequests_[client->id()].insert(id);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
+    }
+
+    tryNextRequest();
 }
 
 bool ReadLimiter::tryNextRequest() {
@@ -50,12 +61,13 @@ bool ReadLimiter::tryNextRequest() {
     }
 
     const auto& request = requests_.front();
-    
+
     if (memoryUsed_ + request.resultSize > memoryLimit_) {
         return false;
     }
 
-    bufferedRequests_[request.id] = request.resultSize;
+    activeRequests_[request.client->id()].insert(request.id);
+    resultSizes_[request.id] = request.resultSize;
     memoryUsed_ += request.resultSize;
 
     _sendRequest(request);
@@ -65,51 +77,50 @@ bool ReadLimiter::tryNextRequest() {
 }
 
 void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
 
-    auto it = bufferedRequests_.find(requestID);
-    ASSERT(it != bufferedRequests_.end()); // Double eviction is a bug.
+        auto it = activeRequests_.find(clientID);
+        if (it == activeRequests_.end()) {
+            return;
+        }
 
-    memoryUsed_ -= it->second;
-    bufferedRequests_.erase(it);
+        auto it2 = it->second.find(requestID);
+        ASSERT(it2 != it->second.end());
 
-    auto it2 = clientRequests_.find(clientID);
-    ASSERT(it2 != clientRequests_.end());
-    
-    it2->second.erase(requestID);
-    if (it2->second.empty()) {
-        clientRequests_.erase(it2);
+        memoryUsed_ -= resultSizes_[requestID];
+        it->second.erase(it2);
+        resultSizes_.erase(requestID);
     }
 
+    tryNextRequest();
 }
 
-// If a client dies, it must evict all of its requests from the limiter.
-// This should normally do nothing, as the client should have already finished all of its requests.
-// But must be called in case of exceptions, or e.g. if the consumer decides to stop consuming .
 void ReadLimiter::evictClient(size_t clientID) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    auto it = clientRequests_.find(clientID);
-    if (it == clientRequests_.end()) {
-        return;
+    // Remove the client's active requests
+    auto it = activeRequests_.find(clientID);
+
+    if (it != activeRequests_.end()) {
+        for (auto requestID : it->second) {
+            memoryUsed_ -= resultSizes_[requestID];
+            resultSizes_.erase(requestID);
+        }
+        activeRequests_.erase(it);
     }
 
-    // Client left incomplete work so we have to do some cleanup.
-
-    // Find any "active" requests which have become stale.
-    for (uint32_t requestID : it->second) {
-        auto it2 = bufferedRequests_.find(requestID);
-        ASSERT(it2 != bufferedRequests_.end());
-        memoryUsed_ -= it2->second;
-        bufferedRequests_.erase(it2);
+    // Clean up any pending requests attributed to this client
+    ///@note O(n), room for optimisation.
+    auto it2 = requests_.begin();
+    while (it2 != requests_.end()) {
+        if (it2->client->id() == clientID) {
+            it2 = requests_.erase(it2);
+        }
+        else {
+            ++it2;  // Only increment if we didn't erase
+        }
     }
-
-    clientRequests_.erase(it);
-
-    // Remove remaining pending requests
-    requests_.erase(std::remove_if(requests_.begin(), requests_.end(), [&](const RequestInfo& request) {
-        return request.client->id() == clientID;
-    }), requests_.end());
 }
 
 void ReadLimiter::print(std::ostream& out) const {
@@ -123,25 +134,16 @@ void ReadLimiter::print(std::ostream& out) const {
     }
     out << std::endl;
 
-    out << "  Buffered Requests: ";
-    for (const auto& [reqid, size] : bufferedRequests_) {
+    out << "  Active Requests: ";
+    for (const auto& [reqid, size] : activeRequests_) {
         out << reqid << " ";
     }
     out << "}" << std::endl;
 }
- 
-
-ReadLimiter::ReadLimiter():
-    memoryUsed_{0},
-        memoryLimit_{eckit::Resource<size_t>("$FDB_REMOTE_READ_LIMIT", 4 * 1024*1024*1024)} // 4GB
-    {}
 
 void ReadLimiter::_sendRequest(const RequestInfo& request) const {
-    // xxx And if this fails?
-    request.client->controlWriteCheckResponse(Message::Read, request.id, true, request.requestBuffer, request.requestSize);
+    request.client->controlWriteCheckResponse(Message::Read, request.id, true, request.requestBuffer,
+                                              request.requestSize);
 }
 
- 
- 
 }  // namespace fdb5::remote
- 

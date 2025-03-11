@@ -10,42 +10,42 @@
 
 #pragma once
 
-#include <cstdint>
-#include <mutex>
-
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/memory/NonCopyable.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
+
+#include <cstdint>
+#include <deque>
+#include <map>
+#include <mutex>
 
 namespace fdb5::remote {
-    
+
 //----------------------------------------------------------------------------------------------------------------------
 
 struct RequestInfo {
-    // uint32_t clientid;
-    const RemoteStore* client; // Feels dangerous... || Maybe we can just hold a reference to the client and let them do the work?
-    uint32_t id; // note request ids are only unique per connection. Client id is unique within a process
-    eckit::Buffer requestBuffer; // Payload to send to the server
+    const RemoteStore* client;  // Non-owning
+    uint32_t id;                // note request ids are only unique per connection. Client id is unique within a process
+    eckit::Buffer requestBuffer;  // Payload to send to the server
     size_t requestSize;
-    size_t resultSize; // Expected size of the field obtained from the store
+    size_t resultSize;  // Size of the field obtained from the store
 };
 
-// Holds a queue of all of the current read requests.
-// It also knows which requests have already been buffered (e.g. owned by the RemoteStore) and in particular, how large they were.
-// We do not ask the servers for more data until we have consumed the data we have already received.
-// The consumer is responsible for letting us know when it has consumed the data.
-// Note this singleton does not own any buffers, it just keeps track of the requests and their sizes.
+// Class to limit the number of requests we send to the servers at any one time to avoid running out of memory.
+// Holds a queue of all of the currently unfulfilled read requests.
+// Prevents asking the servers for more data until we have consumed the data we have already received.
+/// @note: Does not own any result buffers, just keeps track of their expected sizes.
 class ReadLimiter : eckit::NonCopyable {
 public:
 
     static ReadLimiter& instance();
 
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
-    // Importantly, request has a size in bytes associated with it (worked out from field location .length())
-    void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation, const Key& remapKey); // use const *?
+    void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
+             const Key& remapKey);  // use const *?
 
     // Attempt to send the next request in the queue. Returns true if a request was sent.
     // If not enough memory is available, or there is no next request, returns false.
@@ -53,34 +53,38 @@ public:
 
     void finishRequest(uint32_t clientID, uint32_t requestID);
 
-    // If a client dies, it must evict all of its requests from the limiter.
-    // This should normally do nothing, as the client should have already finished all of its requests.
-    // But must be called in case of exceptions, or e.g. if the consumer decides to stop consuming .
+    // When a RemoteStore is destroyed, it must evict any unconsumed requests.
+    // If all went well, there will be no requests to evict, but we must check (consumer may have abandoned the
+    // request).
+    /// @todo: This is somewhat pointless right now because the RemoteStores appear to be infinitely long lived...
+    /// Revisit if this changes.
     void evictClient(size_t clientID);
 
+    // Debugging
     void print(std::ostream& out) const;
 
 private:
 
     ReadLimiter();
 
+    // Send the request to the server
     void _sendRequest(const RequestInfo& request) const;
 
-private: 
-    using RequestID = uint32_t;
+private:
+
     mutable std::mutex mutex_;
 
     size_t memoryUsed_;
     const size_t memoryLimit_;
 
-    // Waiting requests
+    // Enqueued requests
     std::deque<RequestInfo> requests_;
 
-    // <reqid -> size of result> : Currently active requests
-    std::map<RequestID, size_t> bufferedRequests_; // We maybe don't need to actually hold on to this, if the client remembers the size. But maybe client does not remember.
-    // clientid -> reqid
-    std::map<uint32_t, std::set<RequestID>> clientRequests_;
+    // client id -> request id
+    std::map<uint32_t, std::set<uint32_t>> activeRequests_;
 
+    // request id -> result size
+    std::map<uint32_t, size_t> resultSizes_;
 };
 
 }  // namespace fdb5::remote
