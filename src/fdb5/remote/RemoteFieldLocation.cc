@@ -93,7 +93,7 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
         remote.query("internalHost", "");
     }
     remote.query("internalScheme", "");
-    FieldLocation* loc = FieldLocationFactory::instance().build(scheme, remote, offset_, length_, remapKey_);
+    std::unique_ptr<FieldLocation> loc(FieldLocationFactory::instance().build(scheme, remote, offset_, length_, remapKey_));
 
     return store.dataHandle(*loc);
 }
