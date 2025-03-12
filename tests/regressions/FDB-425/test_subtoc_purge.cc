@@ -64,7 +64,7 @@ fdb5::Config theconfig(bool useSubToc = false) {
 }
 
 // Write a bunch of data using Nparam processes. Each fork writes a different param, and Nsteps steps.
-void runmodel(size_t Nparam, size_t Nsteps, bool useSubToc = true, bool dofork=true) {
+void runmodel(size_t Nparam, size_t Nsteps, bool useSubToc = true, bool dofork = true) {
     eckit::Log::info() << "Start runmodel" << std::endl;
     {
         // make fakemodel directory
