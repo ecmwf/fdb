@@ -70,7 +70,7 @@ bool ReadLimiter::tryNextRequest() {
     resultSizes_[request.id] = request.resultSize;
     memoryUsed_ += request.resultSize;
 
-    _sendRequest(request);
+    sendRequest(request);
 
     requests_.pop_front();
     return true;
@@ -96,31 +96,35 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
     tryNextRequest();
 }
 
+/// @note: Only called when a RemoteStore is destroyed, which is currently on exit.
 void ReadLimiter::evictClient(size_t clientID) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        // Remove the client's active requests
+        auto it = activeRequests_.find(clientID);
 
-    // Remove the client's active requests
-    auto it = activeRequests_.find(clientID);
-
-    if (it != activeRequests_.end()) {
-        for (auto requestID : it->second) {
-            memoryUsed_ -= resultSizes_[requestID];
-            resultSizes_.erase(requestID);
+        if (it != activeRequests_.end()) {
+            for (auto requestID : it->second) {
+                memoryUsed_ -= resultSizes_[requestID];
+                resultSizes_.erase(requestID);
+            }
+            activeRequests_.erase(it);
         }
-        activeRequests_.erase(it);
+
+        // Clean up any pending requests attributed to this client
+        ///@note O(n), room for optimisation.
+        auto it2 = requests_.begin();
+        while (it2 != requests_.end()) {
+            if (it2->client->id() == clientID) {
+                it2 = requests_.erase(it2);
+            }
+            else {
+                ++it2;  // Only increment if we didn't erase
+            }
+        }
     }
 
-    // Clean up any pending requests attributed to this client
-    ///@note O(n), room for optimisation.
-    auto it2 = requests_.begin();
-    while (it2 != requests_.end()) {
-        if (it2->client->id() == clientID) {
-            it2 = requests_.erase(it2);
-        }
-        else {
-            ++it2;  // Only increment if we didn't erase
-        }
-    }
+    tryNextRequest();
 }
 
 void ReadLimiter::print(std::ostream& out) const {
@@ -141,7 +145,7 @@ void ReadLimiter::print(std::ostream& out) const {
     out << "}" << std::endl;
 }
 
-void ReadLimiter::_sendRequest(const RequestInfo& request) const {
+void ReadLimiter::sendRequest(const RequestInfo& request) const {
     request.client->controlWriteCheckResponse(Message::Read, request.id, true, request.requestBuffer,
                                               request.requestSize);
 }

@@ -68,7 +68,7 @@ private:
     ReadLimiter();
 
     // Send the request to the server
-    void _sendRequest(const RequestInfo& request) const;
+    void sendRequest(const RequestInfo& request) const;
 
 private:
 
