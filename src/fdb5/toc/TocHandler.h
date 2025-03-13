@@ -219,6 +219,9 @@ private:  // methods
 
     void append(TocRecord& r, size_t payloadSize);
 
+    // Check if the Index record should be skipped
+    bool ignoreIndex(const TocRecord& r, bool readMasked) const;
+
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
     // readMasked=true will walk subtocs and read indexes even if they are masked. This is

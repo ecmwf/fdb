@@ -83,11 +83,26 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     throw ConnectionError();
 }
 
+std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const std::shared_ptr<ClientConnection>& connection) {
+    std::lock_guard lock(connectionMutex_);
+    const auto iter = connections_.find(connection->controlEndpoint());
+    if (iter == connections_.end() || !iter->second->valid()) {
+        auto newConnection =
+            std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
+        if (newConnection->connect()) {
+            connections_.emplace(newConnection->controlEndpoint(), newConnection);
+            return newConnection;
+        }
+        throw ConnectionError(newConnection->controlEndpoint());
+    }
+    return iter->second;
+}
+
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
     const auto it = connections_.find(connection.controlEndpoint());
-    if (it != connections_.end()) {
+    if (it != connections_.end() && &connection == it->second.get()) {
         connections_.erase(it);
     }
 }
