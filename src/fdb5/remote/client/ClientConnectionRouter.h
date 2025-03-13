@@ -28,6 +28,8 @@ public:
     std::shared_ptr<ClientConnection> connection(
         const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
+    std::shared_ptr<ClientConnection> refresh(const std::shared_ptr<ClientConnection>& connection);
+
     void teardown(std::exception_ptr e);
 
     void deregister(ClientConnection& connection);
