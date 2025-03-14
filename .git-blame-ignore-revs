@@ -1,0 +1,11 @@
+# The following refs can be ignored by git blame if 'git blame' is called with
+# --ignore-revs-file .git-blame-ignore-revs
+# Alternatively configure git to always ignore refs stored in this file by
+# calling:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Or extend your git config manually with
+# [blame]
+#    ignoreRevsFile = .git-blame-ignore-revs
+
+# Reformatted codebase with clang-format
+efb1ad8497bc43a84d7a90fe58b25a242aa13183
