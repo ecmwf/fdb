@@ -3,6 +3,7 @@ UseColor: On
 Checks: >-
   -*,
   readability-delete-null-pointer,
+  bugprone-use-after-move,
   bugprone-parent-virtual-call,
 
 WarningsAsErrors:             false
