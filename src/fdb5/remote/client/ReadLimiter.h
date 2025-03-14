@@ -34,14 +34,16 @@ struct RequestInfo {
     size_t resultSize;  // Size of the field obtained from the store
 };
 
-// Class to limit the number of requests we send to the servers at any one time to avoid running out of memory.
 // Holds a queue of all of the currently unfulfilled read requests.
 // Prevents asking the servers for more data until we have consumed the data we have already received.
 /// @note: Does not own any result buffers, just keeps track of their expected sizes.
+/// @todo: In future, we will have more fine-grained memory limits on individual queues.
 class ReadLimiter : eckit::NonCopyable {
 public:
 
     static ReadLimiter& instance();
+
+    static void init(size_t memoryLimit);
 
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
     void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
@@ -65,7 +67,7 @@ public:
 
 private:
 
-    ReadLimiter();
+    ReadLimiter(size_t memoryLimit);
 
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
@@ -83,8 +85,8 @@ private:
     // client id -> request id
     std::map<uint32_t, std::set<uint32_t>> activeRequests_;
 
-    // request id -> result size
-    std::map<uint32_t, size_t> resultSizes_;
+    // {clientID, requestID} -> result size in bytes
+    std::map<std::pair<uint32_t, uint32_t>, size_t> resultSizes_;
 };
 
 }  // namespace fdb5::remote

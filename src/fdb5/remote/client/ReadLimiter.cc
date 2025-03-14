@@ -17,19 +17,21 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 namespace {
-// Initialise imediately to outlive the RemoteStores which are also static...
-ReadLimiter& instance = ReadLimiter::instance();
+ReadLimiter* instance_ = nullptr;
 }  // namespace
 
 ReadLimiter& ReadLimiter::instance() {
-    static ReadLimiter limiter;
-    return limiter;
+    ASSERT(instance_);
+    return *instance_;
 }
 
-ReadLimiter::ReadLimiter() :
-    memoryUsed_{0},
-    memoryLimit_{eckit::Resource<size_t>("$FDB_REMOTE_READ_LIMIT", size_t(1) * 1024 * 1024 * 1024)}  // 1 GiB
-{}
+void ReadLimiter::init(size_t memoryLimit) {
+    if (!instance_) {
+        instance_ = new ReadLimiter(memoryLimit);
+    }
+}
+
+ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}
 
 void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation, const Key& remapKey) {
     eckit::Buffer requestBuffer(4096);
@@ -67,7 +69,7 @@ bool ReadLimiter::tryNextRequest() {
     }
 
     activeRequests_[request.client->id()].insert(request.id);
-    resultSizes_[request.id] = request.resultSize;
+    resultSizes_[{request.client->id(), request.id}] = request.resultSize;
     memoryUsed_ += request.resultSize;
 
     sendRequest(request);
@@ -88,9 +90,9 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
         auto it2 = it->second.find(requestID);
         ASSERT(it2 != it->second.end());
 
-        memoryUsed_ -= resultSizes_[requestID];
+        memoryUsed_ -= resultSizes_[{clientID, requestID}];
         it->second.erase(it2);
-        resultSizes_.erase(requestID);
+        resultSizes_.erase({clientID, requestID});
     }
 
     tryNextRequest();
@@ -105,8 +107,8 @@ void ReadLimiter::evictClient(size_t clientID) {
 
         if (it != activeRequests_.end()) {
             for (auto requestID : it->second) {
-                memoryUsed_ -= resultSizes_[requestID];
-                resultSizes_.erase(requestID);
+                memoryUsed_ -= resultSizes_[{clientID, requestID}];
+                resultSizes_.erase({clientID, requestID});
             }
             activeRequests_.erase(it);
         }
