@@ -54,17 +54,9 @@ public:
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
-    ListIterator(ListIterator&& iter) :
-        APIIterator<ListElement>(std::move(iter)),
-        seenKeys_(std::move(iter.seenKeys_)),
-        deduplicate_(iter.deduplicate_) {}
+    ListIterator(ListIterator&& iter) = default;
 
-    ListIterator& operator=(ListIterator&& iter) {
-        seenKeys_    = std::move(iter.seenKeys_);
-        deduplicate_ = iter.deduplicate_;
-        APIIterator<ListElement>::operator=(std::move(iter));
-        return *this;
-    }
+    ListIterator& operator=(ListIterator&& iter) = default;
 
     bool next(ListElement& elem);
 
