@@ -19,6 +19,7 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Literals.h"
 
 #include <cstdint>
 #include <iterator>
@@ -27,6 +28,7 @@
 #include <utility>
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -140,8 +142,8 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
 
-        Buffer writeBuffer(4 * 1024 * 1024 -
-                           2048);  // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
+        Buffer writeBuffer(4_MiB -
+                           2_KiB);  // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
         long dataRead;
 
         dh->openForRead();
@@ -201,7 +203,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
 
-    eckit::Buffer buffer(16 * 1024);
+    eckit::Buffer buffer(16_KiB);
     MemoryStream stream(buffer);
     stream << (*location);
     Connection::write(Message::Store, true, clientID, requestID, buffer, stream.position());

@@ -17,6 +17,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
@@ -28,6 +29,7 @@
 
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5 {
 
@@ -89,7 +91,7 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
     eckit::Tokenizer parse(" ");
 
-    char line[1024];
+    char line[1_KiB];
     while (in.getline(line, sizeof(line))) {
 
         std::vector<std::string> s;

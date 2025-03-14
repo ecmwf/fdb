@@ -24,6 +24,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -40,6 +41,7 @@
 #endif
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5 {
 
@@ -306,7 +308,7 @@ void TocHandler::openForRead() const {
         bool grow = true;
         cachedToc_.reset(new eckit::MemoryHandle(tocSize, grow));
 
-        long buffersize = 4 * 1024 * 1024;
+        long buffersize = 4_MiB;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
     }
