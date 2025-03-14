@@ -203,8 +203,8 @@ CASE("dummy_daos_write_then_read") {
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
     char* list_buf;
-    int bufsize = 1024;
-    list_buf    = (char*)malloc(bufsize);
+    const auto bufsize = 1_KiB;
+    list_buf           = (char*)malloc(bufsize);
     d_iov_set(&iov_kv_list, list_buf, bufsize);
     sgl_kv_list.sg_nr            = 1;
     sgl_kv_list.sg_nr_out        = 0;

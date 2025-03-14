@@ -24,6 +24,7 @@
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsExpension.h"
@@ -40,6 +41,7 @@
 
 using namespace std;
 using namespace eckit;
+using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace fdb5;
 
@@ -232,7 +234,7 @@ CASE("test_fdb_service") {
         SECTION("test_fdb_service_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
@@ -401,7 +403,7 @@ CASE("test_fdb_service_subtoc") {
         SECTION("test_fdb_service_subtoc_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             f.p["expver"] = "0002";
 

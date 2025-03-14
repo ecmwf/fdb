@@ -20,12 +20,14 @@
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <future>
 #include <mutex>
 #include <utility>
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -265,7 +267,7 @@ void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffe
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    eckit::Buffer schemaBuffer(256 * 1024);
+    eckit::Buffer schemaBuffer(256_KiB);
     eckit::MemoryStream stream(schemaBuffer);
 
     if (payload.size() == 0) {  // client requesting the top-level schema
@@ -336,7 +338,7 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
     }
 
     {
-        Buffer startupBuffer(16 * 1024);
+        Buffer startupBuffer(16_KiB);
         MemoryStream s(startupBuffer);
 
         s << stores.size();
