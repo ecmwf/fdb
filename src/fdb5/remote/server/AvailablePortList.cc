@@ -22,12 +22,14 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/ProcessControler.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/LibFdb5.h"
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5 {
 namespace remote {
@@ -58,7 +60,7 @@ std::set<int> readServices() {
 
     eckit::Translator<std::string, int> toInt;
 
-    char line[1024];
+    char line[1_KiB];
     while (in.getline(line, sizeof(line))) {
 
         std::vector<std::string> s;
