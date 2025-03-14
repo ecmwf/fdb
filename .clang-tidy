@@ -5,6 +5,7 @@ Checks: >-
   readability-delete-null-pointer,
   bugprone-assignment-in-if-condition,
   bugprone-bool-pointer-implicit-conversion,
+  bugprone-casting-through-void,
   bugprone-parent-virtual-call,
   bugprone-unused-return-value,
   bugprone-use-after-move,
