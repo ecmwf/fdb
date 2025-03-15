@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <ctime>
 
+#include "eckit/config/Resource.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -14,6 +15,7 @@
 
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+#include "fdb5/remote/client/ReadLimiter.h"
 
 using namespace fdb5::remote;
 using namespace eckit;
@@ -189,6 +191,13 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
     config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
+
+    /// @note: We must instantiate the ReadLimiter before any RemoteStores due to their static initialisation.
+    /// @todo: this may change in future.
+    static size_t memoryLimit = eckit::Resource<size_t>(
+        "$FDB_READ_LIMIT;fdbReadLimit",
+        config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
+    ReadLimiter::init(memoryLimit);
 }
 
 // -----------------------------------------------------------------------------------------------------
