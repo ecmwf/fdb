@@ -18,6 +18,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -72,9 +73,10 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public:  // methods
 
-    FDBRemoteDataHandle(uint32_t requestID, Length estimate, std::shared_ptr<RemoteStore::MessageQueue> queue,
-                        const net::Endpoint& remoteEndpoint) :
+    FDBRemoteDataHandle(uint32_t requestID, uint32_t clientID, Length estimate,
+                        std::shared_ptr<RemoteStore::MessageQueue> queue, const net::Endpoint& remoteEndpoint) :
         requestID_(requestID),
+        clientID_(clientID),
         estimate_(estimate),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
@@ -82,7 +84,15 @@ public:  // methods
         overallPosition_(0),
         currentBuffer_(0),
         complete_(false) {}
+
     virtual bool canSeek() const override { return false; }
+
+    ~FDBRemoteDataHandle() override {
+        if (!complete_) {
+            // Handle destroyed before being read, make sure it doesn't still take up space in the ReadLimiter.
+            ReadLimiter::instance().finishRequest(clientID_, requestID_);
+        }
+    }
 
 private:  // methods
 
@@ -127,6 +137,7 @@ private:  // methods
             if (msg.first == Message::Complete) {
                 // eckit::Log::info() << "RemoteDataHandle::read() -- Got Message::Complete" << std::endl;
                 complete_ = true;
+                ReadLimiter::instance().finishRequest(clientID_, requestID_);
                 return total;
             }
 
@@ -177,6 +188,7 @@ private:  // methods
 private:  // members
 
     uint32_t requestID_;
+    uint32_t clientID_;
     Length estimate_;
     std::shared_ptr<RemoteStore::MessageQueue> queue_;
     net::Endpoint remoteEndpoint_;
@@ -225,6 +237,8 @@ RemoteStore::~RemoteStore() {
         Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
         eckit::Main::instance().terminate();
     }
+
+    ReadLimiter::instance().evictClient(id());
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -440,11 +454,6 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << fieldLocation;
-    s << remapKey;
-
     uint32_t id = generateRequestID();
 
     static size_t queueSize             = 320;
@@ -458,9 +467,8 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
         queue = entry.first->second;
     }
 
-    controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
-
-    return new FDBRemoteDataHandle(id, fieldLocation.length(), queue, controlEndpoint());
+    ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
+    return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), queue, controlEndpoint());
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
