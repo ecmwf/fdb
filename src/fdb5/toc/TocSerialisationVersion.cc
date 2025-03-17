@@ -65,7 +65,7 @@ unsigned int TocSerialisationVersion::latest() {
 }
 
 unsigned int TocSerialisationVersion::defaulted() {
-    return 2;
+    return 3;
 }
 
 unsigned int TocSerialisationVersion::used() const {
