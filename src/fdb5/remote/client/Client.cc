@@ -16,6 +16,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
 
 #include <cstdint>
@@ -37,61 +38,72 @@ void Client::setClientID() {
     id_ = ++clientId_;
 }
 
+///@todo: is default endpoint used anywhere? can it be removed?
 Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
     connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
 
     setClientID();
-    connection_.add(*this);
+    connection_->add(*this);
 }
 
 Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
     connection_(ClientConnectionRouter::instance().connection(endpoints)) {
 
     setClientID();
-    connection_.add(*this);
+    connection_->add(*this);
+}
+
+void Client::refreshConnection() {
+    if (connection_->valid()) {
+        return;
+    }
+    eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
+                          << " is invalid, attempting to reconnect" << std::endl;
+    connection_->remove(id_);
+    connection_ = ClientConnectionRouter::instance().refresh(connection_);
+    connection_->add(*this);
 }
 
 Client::~Client() {
-    connection_.remove(id_);
+    connection_->remove(id_);
 }
 
-void Client::controlWriteCheckResponse(const Message     msg,
-                                       const uint32_t    requestID,
-                                       const bool        dataListener,
-                                       const void* const payload,
-                                       const uint32_t    payloadLength) const {
+void Client::controlWriteCheckResponse(const Message msg, const uint32_t requestID, const bool dataListener,
+                                       const void* const payload, const uint32_t payloadLength) const {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
     PayloadList payloads;
-    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
+    if (payloadLength > 0) {
+        payloads.emplace_back(payloadLength, payload);
+    }
 
-    auto f = connection_.controlWrite(*this, msg, requestID, dataListener, payloads);
+    auto f = connection_->controlWrite(*this, msg, requestID, dataListener, payloads);
     f.wait();
     ASSERT(f.get().size() == 0);
 }
 
-eckit::Buffer Client::controlWriteReadResponse(const Message     msg,
-                                               const uint32_t    requestID,
-                                               const void* const payload,
-                                               const uint32_t    payloadLength) const {
+eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t requestID, const void* const payload,
+                                               const uint32_t payloadLength) const {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
     PayloadList payloads;
-    if (payloadLength > 0) { payloads.emplace_back(payloadLength, payload); }
+    if (payloadLength > 0) {
+        payloads.emplace_back(payloadLength, payload);
+    }
 
-    auto f = connection_.controlWrite(*this, msg, requestID, false, payloads);
+    auto f = connection_->controlWrite(*this, msg, requestID, false, payloads);
     f.wait();
     return eckit::Buffer{f.get()};
 }
 
 void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {
-    connection_.dataWrite(*this, msg, requestID, std::move(payloads));
+    connection_->dataWrite(*this, msg, requestID, std::move(payloads));
 }
 
-} // namespace fdb5::remote
+}  // namespace fdb5::remote

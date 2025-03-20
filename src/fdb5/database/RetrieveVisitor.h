@@ -29,11 +29,12 @@ class Notifier;
 
 class RetrieveVisitor : public ReadVisitor {
 
-public: // methods
+public:  // methods
 
-    RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer);
+    RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer);
 
 protected:  // methods
+
     // From Visitor
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
@@ -42,12 +43,10 @@ protected:  // methods
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    void values(const metkit::mars::MarsRequest& request,
-                        const std::string& keyword,
-                        const TypesRegistry& registry,
-                        eckit::StringList& values) override;
+    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
+                eckit::StringList& values) override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
     Store& store();
     const Schema& databaseSchema() const override;
@@ -56,13 +55,13 @@ private:
 
     std::unique_ptr<Store> store_;
 
-    const Notifier &wind_;
+    const Notifier& wind_;
 
-    HandleGatherer &gatherer_;
+    HandleGatherer& gatherer_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

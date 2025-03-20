@@ -18,10 +18,10 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
-#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 namespace api {
@@ -30,9 +30,7 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                           const metkit::mars::MarsRequest& request,
-                           bool doit,
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                            bool porcelain) :
     QueryVisitor<PurgeElement>(queue, request),
     out_(new QueueStringLogTarget(queue)),
@@ -45,7 +43,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
-    
+
     EntryVisitor::visitDatabase(catalogue);
 
     // If the request is overspecified relative to the DB key, then we
@@ -54,8 +52,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     if (!catalogue.key().match(request_)) {
         std::stringstream ss;
         ss << "Purging not supported for over-specified requests. "
-           << "db=" << catalogue.key()
-           << ", request=" << request_;
+           << "db=" << catalogue.key() << ", request=" << request_;
         throw eckit::UserError(ss.str(), Here());
     }
 
@@ -64,13 +61,13 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     internalVisitor_->visitDatabase(catalogue);
 
-    return true; // Explore contained indexes
+    return true;  // Explore contained indexes
 }
 
 bool PurgeVisitor::visitIndex(const Index& index) {
     internalVisitor_->visitIndex(index);
 
-    return true; // Explore contained entries
+    return true;  // Explore contained entries
 }
 
 void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
@@ -97,6 +94,6 @@ void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

@@ -16,6 +16,11 @@ endif()
 ########################################################################################################################
 ### dependencies and options
 
+### Documentation
+ecbuild_add_option( FEATURE FDB_DOCUMENTATION 
+                    DEFAULT OFF
+                    DESCRIPTION "Enable documentation generation" )
+
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
@@ -158,6 +163,9 @@ add_subdirectory( src )
 add_subdirectory( tests )
 
 ### finalize
+if(ENABLE_FDB_DOCUMENTATION)
+    add_subdirectory(docs)
+endif()
 
 
 ecbuild_install_project( NAME fdb )

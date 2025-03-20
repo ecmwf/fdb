@@ -1,9 +1,10 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-namespace{
+namespace {
 
 class ConnectionError : public eckit::Exception {
 public:
+
     ConnectionError();
     ConnectionError(const eckit::net::Endpoint&);
 
@@ -23,56 +24,56 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
-}
+}  // namespace
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) {
-
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
+                                                                     const std::string& defaultEndpoint) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    auto it = connections_.find(endpoint);
+    const auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
-        return *(it->second);
-    } else {
-        ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
-        if (clientConnection->connect()) {
-            auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
-            return *(it->second);
-        } else {
-            delete clientConnection;
-            throw ConnectionError(endpoint);
-        }
+        return (it->second);
+    }
+    auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
+    if (clientConnection->connect()) {
+        const auto it = (connections_.emplace(endpoint, clientConnection)).first;
+        return clientConnection;
+    }
+    else {
+        throw ConnectionError(endpoint);
     }
 }
 
-ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
+    const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
-    while (fullEndpoints.size()>0) {
+    while (fullEndpoints.size() > 0) {
 
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        size_t idx                    = std::rand() % fullEndpoints.size();
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
-        auto it = connections_.find(endpoint);
+        const auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
-            return *(it->second);
+            return (it->second);
         }
-        else { // not yet there, trying to connect
-             std::unique_ptr<ClientConnection> clientConnection =  std::unique_ptr<ClientConnection>(new ClientConnection{endpoint, fullEndpoints.at(idx).second});
-            if (clientConnection->connect(true)) {
-                auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
-                return *(it->second);
-            }
+
+        // not yet there, trying to connect
+        auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
+        if (clientConnection->connect(true)) {
+            const auto it = (connections_.emplace(endpoint, clientConnection)).first;
+            return clientConnection;
         }
 
         // unable to connect to "endpoint", remove it and try again
-        if (idx != fullEndpoints.size()-1) { // swap with the last element
+        if (idx != fullEndpoints.size() - 1) {  // swap with the last element
             fullEndpoints[idx] = std::move(fullEndpoints.back());
         }
         fullEndpoints.pop_back();
@@ -82,16 +83,31 @@ ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair
     throw ConnectionError();
 }
 
+std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const std::shared_ptr<ClientConnection>& connection) {
+    std::lock_guard lock(connectionMutex_);
+    const auto iter = connections_.find(connection->controlEndpoint());
+    if (iter == connections_.end() || !iter->second->valid()) {
+        auto newConnection =
+            std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
+        if (newConnection->connect()) {
+            connections_.emplace(newConnection->controlEndpoint(), newConnection);
+            return newConnection;
+        }
+        throw ConnectionError(newConnection->controlEndpoint());
+    }
+    return iter->second;
+}
+
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
-    auto it = connections_.find(connection.controlEndpoint());
-    if (it != connections_.end()) {
+    std::lock_guard<std::mutex> lock(connectionMutex_);
+    const auto it = connections_.find(connection.controlEndpoint());
+    if (it != connections_.end() && &connection == it->second.get()) {
         connections_.erase(it);
     }
 }
 
-ClientConnectionRouter& ClientConnectionRouter::instance()
-{
+ClientConnectionRouter& ClientConnectionRouter::instance() {
     static ClientConnectionRouter router;
     return router;
 }
@@ -103,18 +119,19 @@ void ClientConnectionRouter::teardown(std::exception_ptr e) {
             std::rethrow_exception(e);
         }
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
         eckit::Log::error() << "error: " << e.what();
     }
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    for (const auto& [endp,conn] : connections_) {
+    for (const auto& [endp, conn] : connections_) {
         if (conn) {
             eckit::Log::warning() << "closing connection " << endp << std::endl;
             conn->teardown();
         }
     }
+    connections_.clear();
 }
 
 }  // namespace fdb5::remote

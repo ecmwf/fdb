@@ -47,8 +47,9 @@ namespace fdb5::api::local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level):
-        QueryVisitor<ListElement>(queue, request), level_(level) { }
+
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+        QueryVisitor<ListElement>(queue, request), level_(level) {}
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
@@ -75,14 +76,13 @@ public:
 
         bool ret = QueryVisitor::visitDatabase(catalogue);
 
-        auto dbRequest = catalogue.rule().registry().canonicalise(request_);
-        if (!currentCatalogue_->key().partialMatch(dbRequest)) {
+        if (!currentCatalogue_->key().partialMatch(canonicalise(catalogue.rule()))) {
             return false;
         }
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& [k,v] : currentCatalogue_->key()) {
+        for (const auto& [k, v] : currentCatalogue_->key()) {
             indexRequest_.unsetValues(k);
         }
 
@@ -102,7 +102,10 @@ public:
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
-        if (index.partialMatch(*rule_, request_)) {
+        // rule_ is the Datum rule (3rd level)
+        // to match the index key, we need to canonicalise the request with the rule at Index level (2nd level) aka
+        // rule_->parent()
+        if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
 
             // Subselect the parts of the request
             datumRequest_ = indexRequest_;
@@ -128,15 +131,13 @@ public:
         ASSERT(currentIndex_);
 
         // Take into account any rule-specific behaviour in the request
-        auto canonical = rule_->registry().canonicalise(request_);
-
-        if (datumKey.partialMatch(canonical)) {
+        if (datumKey.partialMatch(canonicalise(*rule_))) {
             for (const auto& k : datumKey.keys()) {
                 datumRequest_.unsetValues(k);
             }
             if (datumRequest_.parameters().size() == 0) {
                 queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                            field.timestamp());
+                               field.timestamp());
             }
         }
     }
@@ -145,7 +146,7 @@ public:
         EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
-private: // members
+private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;

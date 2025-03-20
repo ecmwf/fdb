@@ -47,8 +47,8 @@ public:  // methods
     virtual bool visitEntries() { return true; }
 
     virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
-    virtual bool visitDatabase(const Catalogue& catalogue);    // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index); // return true if index should be explored
+    virtual bool visitDatabase(const Catalogue& catalogue);  // return true if Catalogue should be explored
+    virtual bool visitIndex(const Index& index);             // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
@@ -60,18 +60,20 @@ protected:
 
     Store& store() const;
 
-private: // methods
+private:  // methods
+
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members
+
     /// Non-owning
-    const Catalogue* currentCatalogue_ {nullptr};
+    const Catalogue* currentCatalogue_{nullptr};
     /// Owned store
-    mutable Store*   currentStore_ {nullptr};
+    mutable Store* currentStore_{nullptr};
     /// Non-owning
-    const Index*     currentIndex_ {nullptr};
+    const Index* currentIndex_{nullptr};
     /// Non-owning
-    const Rule*      rule_ {nullptr};
+    const Rule* rule_{nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

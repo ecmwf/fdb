@@ -10,19 +10,20 @@
 
 #pragma once
 
-#include "eckit/serialisation/MemoryStream.h"
-#include "fdb5/remote/Messages.h"
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/os/BackTrace.h"
-
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <mutex>
 #include <string_view>
 #include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/os/BackTrace.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include "fdb5/remote/Messages.h"
 
 namespace eckit {
 
@@ -36,12 +37,9 @@ namespace fdb5::remote {
 
 class TCPException : public eckit::Exception {
 public:
-    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
-        eckit::Exception(std::string("TCPException: ") + msg, here) {
 
-        std::cerr << "TCP Exception; backtrace(): " << std::endl;
-        std::cerr << eckit::BackTrace::dump() << std::endl;
-    }
+    TCPException(const std::string& msg, const eckit::CodeLocation& here) :
+        eckit::Exception(std::string("TCPException: ") + msg, here) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -49,16 +47,19 @@ public:
 class Connection : eckit::NonCopyable {
 
 public:  // types
+
     using PayloadList = std::vector<Payload>;
 
-public: // methods
+public:  // methods
+
     Connection();
 
     virtual ~Connection() = default;
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, PayloadList payloads = {}) const;
 
-    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length) const {
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data,
+               uint32_t length) const {
         write(msg, control, clientID, requestID, {{length, data}});
     }
 
@@ -70,25 +71,34 @@ public: // methods
 
     void teardown();
 
+    bool valid() const { return isValid_; }
+
 private:  // methods
+
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
     void writeUnsafe(bool control, const void* data, size_t length) const;
 
-    void readUnsafe(bool control, void* data, size_t length) const;
+    bool readUnsafe(bool control, void* data, size_t length) const;
 
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
 
 protected:  // members
+
     bool single_;
 
 private:  // members
+
+    bool closingSocket_ = false;
+
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
-    mutable std::mutex readControlMutex_;
-    mutable std::mutex readDataMutex_;
+
+    /// Indicates if this instance is in a usable state.
+    /// Once this is marked as invalid it cannot be recovered.
+    mutable std::atomic<bool> isValid_{true};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

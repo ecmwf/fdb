@@ -8,17 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexBase::IndexBase(const Key& key, const std::string& type) : type_(type), key_(key) { }
+IndexBase::IndexBase(const Key& key, const std::string& type) : type_(type), key_(key) {}
 
 enum IndexBaseStreamKeys {
     IndexKeyUnrecognised,
@@ -28,14 +28,14 @@ enum IndexBaseStreamKeys {
 };
 
 IndexBaseStreamKeys keyId(const std::string& s) {
-    static const std::map<std::string, IndexBaseStreamKeys> keys {
-        {"key" , IndexKey},
+    static const std::map<std::string, IndexBaseStreamKeys> keys{
+        {"key", IndexKey},
         {"type", IndexType},
         {"time", IndexTimestamp},
     };
 
     auto it = keys.find(s);
-    if( it != keys.end() ) {
+    if (it != keys.end()) {
         return it->second;
     }
     return IndexKeyUnrecognised;
@@ -62,7 +62,7 @@ void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
                 s >> timestamp_;
                 break;
             default:
-                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
+                throw eckit::SeriousBug("IndexBase de-serialization error: " + k + " field is not recognized");
         }
     }
     ASSERT(!key_.empty());
@@ -70,7 +70,8 @@ void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
     ASSERT(timestamp_);
 }
 
-void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding of old Stream format, for backward compatibility
+void IndexBase::decodeLegacy(eckit::Stream& s,
+                             const int version) {  // decoding of old Stream format, for backward compatibility
     ASSERT(version <= 2);
 
     axes_.decode(s, version);
@@ -78,7 +79,7 @@ void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding 
 
     std::string dummy;
     s >> key_;
-    s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
+    s >> dummy;  ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
     timestamp_ = 0;
 }
@@ -90,13 +91,13 @@ IndexBase::IndexBase(eckit::Stream& s, const int version) {
         decodeLegacy(s, version);
 }
 
-IndexBase::~IndexBase() {
-}
+IndexBase::~IndexBase() {}
 
 void IndexBase::encode(eckit::Stream& s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);
-    } else {
+    }
+    else {
         encodeLegacy(s, version);
     }
 }
@@ -117,7 +118,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
 
     axes_.encode(s, version);
     s << key_;
-    s << ""; // we no longer write this field, required in the previous index format
+    s << "";  // we no longer write this field, required in the previous index format
     s << type_;
 }
 
@@ -129,15 +130,14 @@ void IndexBase::put(const Key& key, const Field& field) {
     add(key, field);
 }
 
-bool IndexBase::partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const {
+bool IndexBase::partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                             const metkit::mars::MarsRequest& datumRequest) const {
 
-    // rule is the Datum rule (3rd level)
-    // to match the index key, we need to canonicalise the request with the rule at Index level (2nd level) aka rule.parent()
-    auto canonical = rule.parent().registry().canonicalise(request);
-    if (!key_.partialMatch(canonical)) { return false; }
+    if (!key_.partialMatch(indexRequest)) {
+        return false;
+    }
 
-    canonical = rule.registry().canonicalise(request);
-    return axes_.partialMatch(canonical);
+    return axes_.partialMatch(datumRequest);
 }
 
 bool IndexBase::mayContain(const Key& key) const {
@@ -163,10 +163,11 @@ const IndexAxis& IndexBase::axes() const {
 //----------------------------------------------------------------------------------------------------------------------
 class NullIndex : public IndexBase {
 
-public: // methods
-    NullIndex() : IndexBase(Key {}, "null") { }
+public:  // methods
 
-private: // methods
+    NullIndex() : IndexBase(Key{}, "null") {}
+
+private:  // methods
 
     const IndexLocation& location() const override { NOTIMP; }
 
@@ -184,33 +185,28 @@ private: // methods
     void encode(eckit::Stream&, const int version) const override { NOTIMP; }
     void entries(EntryVisitor&) const override { NOTIMP; }
 
-    void print( std::ostream& s) const override { s << "NullIndex()"; }
+    void print(std::ostream& s) const override { s << "NullIndex()"; }
     void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
 
     IndexStats statistics() const override { NOTIMP; }
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Index::Index() :
-    content_(new NullIndex()),
-    null_(true) {
+Index::Index() : content_(new NullIndex()), null_(true) {
     content_->attach();
 }
 
-Index::Index(IndexBase* p) :
-    content_(p),
-    null_(false) {
+Index::Index(IndexBase* p) : content_(p), null_(false) {
     ASSERT(p);
     content_->attach();
 }
 
 Index::~Index() {
-   content_->detach();
+    content_->detach();
 }
 
 Index::Index(const Index& s) : content_(s.content_), null_(s.null_) {
@@ -227,4 +223,4 @@ Index& Index::operator=(const Index& s) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

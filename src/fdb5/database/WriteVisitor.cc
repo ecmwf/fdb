@@ -20,4 +20,4 @@ WriteVisitor::WriteVisitor(std::vector<Key>& prev) : prev_(prev) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -32,7 +32,7 @@ namespace remote {
 
 class AvailablePortList {
 
-private: // types
+private:  // types
 
     // TODO: Cleanup with reaper
 
@@ -42,7 +42,7 @@ private: // types
         time_t deadTime;
     };
 
-public: // methods
+public:  // methods
 
     /// Create and populate the port list if it does not exist
     AvailablePortList(int startPort, size_t count);
@@ -55,11 +55,11 @@ public: // methods
 
     /// Clean up any processes that have been been dead for deadTime seconds.
     /// Any newly dead processes should be marked with the current time.
-    void reap(int deadTime=60);
+    void reap(int deadTime = 60);
 
     void initialise();
 
-private: // members
+private:  // members
 
     eckit::SharedMemArray<Entry> shared_;
 
@@ -69,7 +69,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5
 
-#endif // fdb5_remote_AvailablePortList_H
+#endif  // fdb5_remote_AvailablePortList_H

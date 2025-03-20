@@ -14,13 +14,13 @@
  */
 
 #include "eckit/filesystem/PathName.h"
-#include "eckit/log/Log.h"
-#include "eckit/log/Timer.h"
-#include "eckit/log/Seconds.h"
 #include "eckit/log/Bytes.h"
+#include "eckit/log/Log.h"
+#include "eckit/log/Seconds.h"
+#include "eckit/log/Timer.h"
 
-#include "fdb5/api/FDBStats.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBStats.h"
 
 
 using namespace eckit;
@@ -76,11 +76,9 @@ void FDBStats::addArchive(size_t length, eckit::Timer& timer, size_t nfields) {
     elapsedArchive_ += elapsed;
     sumArchiveTimingSquared_ += elapsed * elapsed;
 
-    LOG_DEBUG_LIB(LibFdb5) << "Archive count: " << numArchive_
-                         << ", size: " << Bytes(length)
-                         << ", total: " << Bytes(bytesArchive_)
-                         << ", time: " << Seconds(elapsed)
-                         << ", total: " << Seconds(elapsedArchive_) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Archive count: " << numArchive_ << ", size: " << Bytes(length)
+                           << ", total: " << Bytes(bytesArchive_) << ", time: " << Seconds(elapsed)
+                           << ", total: " << Seconds(elapsedArchive_) << std::endl;
 }
 
 void FDBStats::addLocation(size_t nfields) {
@@ -97,11 +95,9 @@ void FDBStats::addRetrieve(size_t length, eckit::Timer& timer) {
     elapsedRetrieve_ += elapsed;
     sumRetrieveTimingSquared_ += elapsed * elapsed;
 
-    LOG_DEBUG_LIB(LibFdb5) << "Retrieve count: " << numRetrieve_
-                         << ", size: " << Bytes(length)
-                         << ", total: " << Bytes(bytesRetrieve_)
-                         << ", time: " << Seconds(elapsed)
-                         << ", total: " << Seconds(elapsedRetrieve_) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Retrieve count: " << numRetrieve_ << ", size: " << Bytes(length)
+                           << ", total: " << Bytes(bytesRetrieve_) << ", time: " << Seconds(elapsed)
+                           << ", total: " << Seconds(elapsedRetrieve_) << std::endl;
 }
 
 
@@ -113,10 +109,8 @@ void FDBStats::addFlush(eckit::Timer& timer) {
     elapsedFlush_ += elapsed;
     sumFlushTimingSquared_ += elapsed * elapsed;
 
-    LOG_DEBUG_LIB(LibFdb5) << "Flush count: " << numFlush_
-                         << ", time: " << elapsed << "s"
-                         << ", total: " << elapsedFlush_ << "s" << std::endl;
-
+    LOG_DEBUG_LIB(LibFdb5) << "Flush count: " << numFlush_ << ", time: " << elapsed << "s"
+                           << ", total: " << elapsedFlush_ << "s" << std::endl;
 }
 
 
@@ -144,4 +138,4 @@ void FDBStats::report(std::ostream& out, const char* prefix) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fbdb5
+}  // namespace fdb5

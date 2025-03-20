@@ -29,4 +29,4 @@ using StatusAsyncIterator = APIAsyncIterator<StatusElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

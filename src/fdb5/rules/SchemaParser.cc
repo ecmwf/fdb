@@ -17,6 +17,7 @@
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
+#include "fdb5/rules/MatchNone.h"
 #include "fdb5/rules/MatchOptional.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
@@ -33,31 +34,31 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     for (;;) {
         char c = peek();
         switch (c) {
-        case 0:
-        case '/':
-        case '=':
-        case ',':
-        case ';':
-        case ':':
-        case '[':
-        case ']':
-        case '?':
-            if (s.empty() && !emptyOK) {
-                throw StreamParser::Error("Syntax error: found '" + std::to_string(c) + "'", line_ + 1);
-            }
-            return s;
-        case '-':
-            if (s.empty() && !emptyOK) {
-                throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
-            }
-            if (!value) {
+            case 0:
+            case '/':
+            case '=':
+            case ',':
+            case ';':
+            case ':':
+            case '[':
+            case ']':
+            case '?':
+                if (s.empty() && !emptyOK) {
+                    throw StreamParser::Error("Syntax error: found '" + std::to_string(c) + "'", line_ + 1);
+                }
                 return s;
-            }
+            case '-':
+                if (s.empty() && !emptyOK) {
+                    throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
+                }
+                if (!value) {
+                    return s;
+                }
 
-        default:
-            consume(c);
-            s += c;
-            break;
+            default:
+                consume(c);
+                s += c;
+                break;
         }
     }
 }
@@ -74,7 +75,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent(false, false);
-        c = peek();
+        c        = peek();
     }
 
     if (c == '?') {
@@ -111,13 +112,15 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
     }
     switch (values.size()) {
-        case 0:
+        case 0:          
             if (notValues.size()) {
-                return std::make_unique<Predicate>(k, new MatchNone(notValues)); break;
+                return std::make_unique<Predicate>(k, new MatchNone(notValues));
             }
-            return std::make_unique<Predicate>(k, new MatchAlways()); break;
-        case 1:  return std::make_unique<Predicate>(k, new MatchValue(*values.begin())); break;
-        default: return std::make_unique<Predicate>(k, new MatchAny(values)); break;
+            return std::make_unique<Predicate>(k, new MatchAlways());
+        case 1:
+            return std::make_unique<Predicate>(k, new MatchValue(*values.begin()));
+        default:
+            return std::make_unique<Predicate>(k, new MatchAny(values));
     }
 }
 
@@ -136,7 +139,7 @@ void SchemaParser::parseTypes(eckit::StringDict& types) {
 }
 
 std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
-    Rule::Predicates  predicates;
+    Rule::Predicates predicates;
     eckit::StringDict types;
 
     consume('[');
@@ -168,8 +171,8 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
 }
 
 std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
-    Rule::Predicates    predicates;
-    eckit::StringDict   types;
+    Rule::Predicates predicates;
+    eckit::StringDict types;
     RuleIndex::Children rules;
 
     consume('[');
@@ -188,7 +191,8 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
 
         if (c == '[') {
             rules.emplace_back(parseDatum());
-        } else {
+        }
+        else {
             predicates.emplace_back(parsePredicate(types));
             while ((c = peek()) == ',') {
                 consume(c);
@@ -205,8 +209,8 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
 }
 
 std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
-    Rule::Predicates       predicates;
-    eckit::StringDict      types;
+    Rule::Predicates predicates;
+    eckit::StringDict types;
     RuleDatabase::Children rules;
 
     consume('[');
@@ -225,7 +229,8 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
 
         if (c == '[') {
             rules.emplace_back(parseIndex());
-        } else {
+        }
+        else {
             predicates.emplace_back(parsePredicate(types));
             while ((c = peek()) == ',') {
                 consume(c);
@@ -245,10 +250,14 @@ void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
     eckit::StringDict types;
 
     parseTypes(types);
-    for (const auto& [keyword, type] : types) { registry.addType(keyword, type); }
+    for (const auto& [keyword, type] : types) {
+        registry.addType(keyword, type);
+    }
 
     char c;
-    while ((c = peek()) == '[') { result.emplace_back(parseDatabase()); }
+    while ((c = peek()) == '[') {
+        result.emplace_back(parseDatabase());
+    }
 
     if (c) {
         throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);

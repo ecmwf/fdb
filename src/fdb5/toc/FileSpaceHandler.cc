@@ -12,12 +12,12 @@
 
 #include "fdb5/toc/FileSpaceHandler.h"
 
-#include "eckit/filesystem/FileSpaceStrategies.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/FileSpaceStrategies.h"
 #include "eckit/thread/AutoLock.h"
 
-#include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/toc/FileSpace.h"
 
 using eckit::Log;
 
@@ -27,19 +27,20 @@ namespace fdb5 {
 
 static eckit::Mutex* local_mutex;
 typedef std::map<std::string, FileSpaceHandlerInstance*> HandlerMap;
-static HandlerMap* m = 0;
+static HandlerMap* m       = 0;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m = new HandlerMap();
+    m           = new HandlerMap();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const FileSpaceHandler& FileSpaceHandlerInstance::get()
-{
-    if(!instance_) { instance_ = make(); }
-    return *instance_ ;
+const FileSpaceHandler& FileSpaceHandlerInstance::get() {
+    if (!instance_) {
+        instance_ = make();
+    }
+    return *instance_;
 }
 
 FileSpaceHandlerInstance::FileSpaceHandlerInstance(const std::string& name) : name_(name) {
@@ -50,8 +51,7 @@ FileSpaceHandlerInstance::~FileSpaceHandlerInstance() {
     FileSpaceHandler::unregist(name_);
 }
 
-const FileSpaceHandler& FileSpaceHandler::lookup(const std::string& name)
-{
+const FileSpaceHandler& FileSpaceHandler::lookup(const std::string& name) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
@@ -60,7 +60,7 @@ const FileSpaceHandler& FileSpaceHandler::lookup(const std::string& name)
     if (j == m->end()) {
         eckit::Log::error() << "No FileSpaceHandler factory for [" << name << "]" << std::endl;
         eckit::Log::error() << "Available FileSpaceHandler's are:" << std::endl;
-        for (j = m->begin() ; j != m->end() ; ++j)
+        for (j = m->begin(); j != m->end(); ++j)
             eckit::Log::error() << "   " << (*j).first << std::endl;
         throw eckit::SeriousBug(std::string("No FileSpaceHandler called ") + name);
     }
@@ -84,11 +84,9 @@ void FileSpaceHandler::unregist(const std::string& name) {
     m->erase(name);
 }
 
-FileSpaceHandler::~FileSpaceHandler() {
-}
+FileSpaceHandler::~FileSpaceHandler() {}
 
-FileSpaceHandler::FileSpaceHandler() {
-}
+FileSpaceHandler::FileSpaceHandler() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -112,7 +110,7 @@ static FileSpaceHandlerRegister<First> first("First");
 
 struct LeastUsed : public FileSpaceHandler {
     LeastUsed() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::leastUsed(fs.enabled(ControlIdentifier::Archive));
     }
 };
@@ -121,7 +119,7 @@ static FileSpaceHandlerRegister<LeastUsed> leastUsed("LeastUsed");
 
 struct LeastUsedPercent : public FileSpaceHandler {
     LeastUsedPercent() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::leastUsedPercent(fs.enabled(ControlIdentifier::Archive));
     }
 };
@@ -130,7 +128,7 @@ static FileSpaceHandlerRegister<LeastUsedPercent> leastUsedPercent("LeastUsedPer
 
 struct RoundRobin : public FileSpaceHandler {
     RoundRobin() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::roundRobin(fs.enabled(ControlIdentifier::Archive));
     }
 };
@@ -139,7 +137,7 @@ static FileSpaceHandlerRegister<RoundRobin> roundRobin("RoundRobin");
 
 struct Random : public FileSpaceHandler {
     Random() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::pureRandom(fs.enabled(ControlIdentifier::Archive));
     }
 };
@@ -149,7 +147,7 @@ static FileSpaceHandlerRegister<Random> random("Random");
 
 struct WeightedRandom : public FileSpaceHandler {
     WeightedRandom() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::weightedRandom(fs.enabled(ControlIdentifier::Archive));
     }
 };
@@ -158,14 +156,14 @@ static FileSpaceHandlerRegister<WeightedRandom> weightedRandom("WeightedRandom")
 
 struct WeightedRandomPercent : public FileSpaceHandler {
     WeightedRandomPercent() {}
-    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::weightedRandomPercent(fs.enabled(ControlIdentifier::Archive));
     }
 };
 
 static FileSpaceHandlerRegister<WeightedRandomPercent> weightedRandomPercent("WeightedRandomPercent");
 
-}
+}  // namespace detail
 
 //----------------------------------------------------------------------------------------------------------------------
 

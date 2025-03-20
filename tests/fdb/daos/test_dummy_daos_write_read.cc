@@ -8,18 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
+#include <unistd.h>
+#include <uuid/uuid.h>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
-#include <unistd.h>
-#include <uuid/uuid.h>
 
-#include "eckit/testing/Test.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/testing/Test.h"
 
 #include "daos.h"
-#include "dummy_daos.h"
 #include "daos/tests_lib.h"
+#include "dummy_daos.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -34,14 +34,13 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "Setup" ) {
+CASE("Setup") {
 
     tmp_dummy_daos_root().mkdir();
     ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
-
 }
 
-CASE( "dummy_daos_write_then_read" ) {
+CASE("dummy_daos_write_then_read") {
 
     int rc;
 
@@ -53,9 +52,9 @@ CASE( "dummy_daos_write_then_read" ) {
 
     // create a pool with user-defined label
 
-    std::string label = "test_pool";
-    daos_prop_t *prop = NULL;
-    prop = daos_prop_alloc(1);
+    std::string label             = "test_pool";
+    daos_prop_t* prop             = NULL;
+    prop                          = daos_prop_alloc(1);
     prop->dpp_entries[0].dpe_type = DAOS_PROP_PO_LABEL;
     D_STRNDUP(prop->dpp_entries[0].dpe_str, label.c_str(), DAOS_PROP_LABEL_MAX_LEN);
 
@@ -94,11 +93,11 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_pool_connect(pool.c_str(), NULL, DAOS_PC_RW, &poh, NULL, NULL);
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(poh) == pool_path);
-    
+
     // create, open and close a container with auto-generated uuid
 
     uuid_t cont_uuid = {0};
-    rc = daos_cont_create(poh, &cont_uuid, NULL, NULL);
+    rc               = daos_cont_create(poh, &cont_uuid, NULL, NULL);
     EXPECT(rc == 0);
     char cont_uuid_label[37] = "";
     uuid_unparse(cont_uuid, cont_uuid_label);
@@ -131,7 +130,7 @@ CASE( "dummy_daos_write_then_read" ) {
     std::string cont = "b";
 
     uuid_t cont_uuid2 = {0};
-    rc = daos_cont_create_with_label(poh, cont.c_str(), NULL, &cont_uuid2, NULL);
+    rc                = daos_cont_create_with_label(poh, cont.c_str(), NULL, &cont_uuid2, NULL);
     EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(poh) / cont).exists());
     char cont_uuid2_str[37] = "";
@@ -158,7 +157,7 @@ CASE( "dummy_daos_write_then_read" ) {
     daos_obj_id_t oid_kv;
     rc = daos_cont_alloc_oids(coh, oid_alloc_size, &oid_kv.lo, NULL);
     EXPECT(rc == 0);
-    //EXPECT(oid_kv.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 0));
+    // EXPECT(oid_kv.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 0));
 
     rc = daos_obj_generate_oid(coh, &oid_kv, DAOS_OT_KV_HASHED, OC_S1, 0, 0);
     EXPECT(rc == 0);
@@ -172,24 +171,24 @@ CASE( "dummy_daos_write_then_read" ) {
     os_kv << std::setw(16) << std::setfill('0') << std::hex << oid_kv.lo;
     EXPECT((dummy_daos_get_handle_path(coh) / os_kv.str()).exists());
 
-    std::string key = "key";
+    std::string key   = "key";
     std::string value = "value";
 
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
     EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t) 0);
+    EXPECT(size == (daos_size_t)0);
 
     rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key.c_str(), std::strlen(value.c_str()), value.c_str(), NULL);
     EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key).exists());
 
     char kv_get_buf[100] = "";
-    rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
+    rc                   = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
     EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t) std::strlen(value.c_str()));
+    EXPECT(size == (daos_size_t)std::strlen(value.c_str()));
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, kv_get_buf, NULL);
     EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t) std::strlen(value.c_str()));
+    EXPECT(size == (daos_size_t)std::strlen(value.c_str()));
     EXPECT(std::strlen(kv_get_buf) == std::strlen(value.c_str()));
     EXPECT(std::string(kv_get_buf) == value);
 
@@ -203,13 +202,13 @@ CASE( "dummy_daos_write_then_read" ) {
     daos_key_desc_t key_sizes[max_keys_per_rpc];
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
-    char *list_buf;
+    char* list_buf;
     int bufsize = 1024;
-    list_buf = (char*) malloc(bufsize);
+    list_buf    = (char*)malloc(bufsize);
     d_iov_set(&iov_kv_list, list_buf, bufsize);
-    sgl_kv_list.sg_nr = 1;
-    sgl_kv_list.sg_nr_out = 0;
-    sgl_kv_list.sg_iovs = &iov_kv_list;
+    sgl_kv_list.sg_nr            = 1;
+    sgl_kv_list.sg_nr_out        = 0;
+    sgl_kv_list.sg_iovs          = &iov_kv_list;
     daos_anchor_t listing_status = DAOS_ANCHOR_INIT;
     std::vector<std::string> listed_keys;
     while (!daos_anchor_is_eof(&listing_status)) {
@@ -240,7 +239,7 @@ CASE( "dummy_daos_write_then_read" ) {
     daos_obj_id_t oid;
     rc = daos_cont_alloc_oids(coh, oid_alloc_size, &oid.lo, NULL);
     EXPECT(rc == 0);
-    //EXPECT(oid.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 1));
+    // EXPECT(oid.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 1));
 
     rc = daos_array_generate_oid(coh, &oid, true, OC_S1, 0, 0);
     EXPECT(rc == 0);
@@ -262,13 +261,13 @@ CASE( "dummy_daos_write_then_read" ) {
     d_sg_list_t sgl;
     d_iov_t iov;
 
-    iod.arr_nr = 1;
-    rg.rg_len = (daos_size_t) sizeof(data);
-    rg.rg_idx = (daos_off_t) 0;
+    iod.arr_nr  = 1;
+    rg.rg_len   = (daos_size_t)sizeof(data);
+    rg.rg_idx   = (daos_off_t)0;
     iod.arr_rgs = &rg;
 
     sgl.sg_nr = 1;
-    d_iov_set(&iov, data, (size_t) sizeof(data));
+    d_iov_set(&iov, data, (size_t)sizeof(data));
     sgl.sg_iovs = &iov;
 
     rc = daos_array_write(oh, DAOS_TX_NONE, &iod, &sgl, NULL);
@@ -284,22 +283,22 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh, NULL);
     EXPECT(rc == 0);
 
-    char *data_read;
+    char* data_read;
 
     daos_size_t array_size;
     rc = daos_array_get_size(oh, DAOS_TX_NONE, &array_size, NULL);
     EXPECT(rc == 0);
     EXPECT(array_size == rg.rg_len);
 
-    data_read = (char *) malloc(sizeof(char) * ((size_t) array_size));
+    data_read = (char*)malloc(sizeof(char) * ((size_t)array_size));
 
-    iod.arr_nr = 1;
-    rg.rg_len = array_size;
-    rg.rg_idx = (daos_off_t) 0;
+    iod.arr_nr  = 1;
+    rg.rg_len   = array_size;
+    rg.rg_idx   = (daos_off_t)0;
     iod.arr_rgs = &rg;
 
     sgl.sg_nr = 1;
-    d_iov_set(&iov, data_read, (size_t) array_size);
+    d_iov_set(&iov, data_read, (size_t)array_size);
     sgl.sg_iovs = &iov;
 
     rc = daos_array_read(oh, DAOS_TX_NONE, &iod, &sgl, NULL);
@@ -314,9 +313,8 @@ CASE( "dummy_daos_write_then_read" ) {
     // container list OIDs
 
     daos_epoch_t e;
-    rc = daos_cont_create_snap_opt(
-        coh, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL
-    );
+    rc =
+        daos_cont_create_snap_opt(coh, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL);
     EXPECT(rc == 0);
     std::stringstream os_epoch;
     os_epoch << std::setw(16) << std::setfill('0') << std::hex << e;
@@ -332,9 +330,10 @@ CASE( "dummy_daos_write_then_read" ) {
     std::vector<daos_obj_id_t> oids;
     while (!daos_anchor_is_eof(&anchor)) {
         uint32_t oids_nr = max_oids_per_rpc;
-        rc = daos_oit_list(oith, oid_batch, &oids_nr, &anchor, NULL);
+        rc               = daos_oit_list(oith, oid_batch, &oids_nr, &anchor, NULL);
         EXPECT(rc == 0);
-        for (int i = 0; i < oids_nr; i++) oids.push_back(oid_batch[i]);
+        for (int i = 0; i < oids_nr; i++)
+            oids.push_back(oid_batch[i]);
     }
     EXPECT(oids.size() == 2);
     EXPECT(std::memcmp(&oids[0], &oid_kv, sizeof(daos_obj_id_t)) == 0);
@@ -358,7 +357,7 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_obj_close(oh_kv, NULL);
     EXPECT(rc == 0);
-    
+
     rc = daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh, NULL);
     EXPECT(rc == 0);
 
@@ -396,7 +395,6 @@ CASE( "dummy_daos_write_then_read" ) {
 
     D_FREE(svcl.rl_ranks);
 #endif
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -404,7 +402,6 @@ CASE( "dummy_daos_write_then_read" ) {
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

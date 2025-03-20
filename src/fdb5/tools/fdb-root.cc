@@ -26,12 +26,14 @@ namespace fdb5::tools {
 
 class FdbRoot : public FDBTool {
 public:  // methods
+
     FdbRoot(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(
             new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
 private:  // methods
+
     void execute(const eckit::option::CmdArgs& args) override;
     void usage(const std::string& tool) const override;
 };
@@ -60,7 +62,9 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             const auto& keys = conf.schema().expandDatabase(request.request());
 
-            if (keys.empty()) { throw eckit::UserError("Invalid request", Here()); }
+            if (keys.empty()) {
+                throw eckit::UserError("Invalid request", Here());
+            }
 
             /// @todo this is running over keys, which needs more thoughts
 
@@ -72,9 +76,13 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
                 std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(key, conf);
 
-                if (!cat->exists() && create) { cat = CatalogueWriterFactory::instance().build(key, conf); }
+                if (!cat->exists() && create) {
+                    cat = CatalogueWriterFactory::instance().build(key, conf);
+                }
 
-                if (cat->exists()) { eckit::Log::info() << (*cat) << std::endl; }
+                if (cat->exists()) {
+                    eckit::Log::info() << (*cat) << std::endl;
+                }
             }
         }
     }

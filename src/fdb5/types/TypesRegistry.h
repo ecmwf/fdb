@@ -16,6 +16,7 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -35,10 +36,11 @@ namespace fdb5 {
 class TypesRegistry : public eckit::Streamable {
 
 public:  // methods
+
     TypesRegistry() = default;
 
     explicit TypesRegistry(eckit::Stream& stream);
-    
+
     void decode(eckit::Stream& stream);
     void encode(eckit::Stream& out) const override;
 
@@ -57,6 +59,10 @@ public:  // methods
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
+    std::size_t hash() const;
+
+    bool operator==(const TypesRegistry& other) const;
+
 private:  // methods
 
     void print(std::ostream& out) const;
@@ -64,21 +70,32 @@ private:  // methods
     friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
 
 private:  // members
+
     std::map<std::string, std::string> types_;
 
-    const TypesRegistry* parent_ {nullptr};
+    const TypesRegistry* parent_{nullptr};
 
     using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
     mutable TypeMap cache_;
 
     // streamable
 
-    static eckit::ClassSpec                 classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TypesRegistry> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
+
+template <>
+struct std::hash<const fdb5::TypesRegistry*> {
+    std::size_t operator()(const fdb5::TypesRegistry* registry) const { return registry->hash(); }
+};
+
+template <>
+struct std::equal_to<const fdb5::TypesRegistry*> {
+    bool operator()(const fdb5::TypesRegistry* left, const fdb5::TypesRegistry* right) const { return *left == *right; }
+};
 
 #endif
