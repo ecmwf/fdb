@@ -88,7 +88,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     std::string schema = config.getString("schema", "");
-    for (const auto& c : config.getSubConfigs("fdbs")) {
+    for (auto& c : config.getSubConfigs("fdbs")) {
         // inherit default schema from the SelectFDB
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);

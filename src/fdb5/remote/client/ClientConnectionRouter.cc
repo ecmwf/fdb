@@ -39,7 +39,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit
     }
     auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
     if (clientConnection->connect()) {
-        const auto it = (connections_.emplace(endpoint, clientConnection)).first;
+        connections_.emplace(endpoint, clientConnection);
         return clientConnection;
     }
     else {
@@ -68,7 +68,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
         // not yet there, trying to connect
         auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
         if (clientConnection->connect(true)) {
-            const auto it = (connections_.emplace(endpoint, clientConnection)).first;
+            connections_.emplace(endpoint, clientConnection);
             return clientConnection;
         }
 

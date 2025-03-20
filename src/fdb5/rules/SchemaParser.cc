@@ -54,7 +54,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
                 if (!value) {
                     return s;
                 }
-
+                [[fallthrough]];
             default:
                 consume(c);
                 s += c;
