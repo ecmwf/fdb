@@ -18,24 +18,23 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec MatchNone::classSpec_ = { &Matcher::classSpec(), "MatchNone", };
+eckit::ClassSpec MatchNone::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchNone",
+};
 
 eckit::Reanimator<MatchNone> MatchNone::reanimator_;
 
 
-MatchNone::MatchNone(const std::set<std::string>& values) :
-    Matcher(),
-    values_(values) {
-}
+MatchNone::MatchNone(const std::set<std::string>& values) : Matcher(), values_(values) {}
 
-MatchNone::MatchNone(eckit::Stream& s) :
-    Matcher() {
+MatchNone::MatchNone(eckit::Stream& s) : Matcher() {
 
     size_t numValues;
     std::string value;
 
     s >> numValues;
-    for (size_t i=0; i < numValues; i++) {
+    for (size_t i = 0; i < numValues; i++) {
         s >> value;
         values_.insert(value);
     }
@@ -48,9 +47,12 @@ void MatchNone::encode(eckit::Stream& s) const {
     }
 }
 
-bool MatchNone::match(const std::string &keyword, const Key& key) const {
+bool MatchNone::match(const std::string& keyword, const Key& key) const {
 
-    if (const auto [iter, found] = key.find(keyword); found) { if (!match(iter->second)) return false; }
+    if (const auto [iter, found] = key.find(keyword); found) {
+        if (!match(iter->second))
+            return false;
+    }
 
     return true;
 }
@@ -59,20 +61,20 @@ bool MatchNone::match(const std::string& value) const {
     return (values_.find(value) == values_.end());
 }
 
-void MatchNone::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
-    const char *sep = "";
+void MatchNone::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
+    const char* sep = "";
     registry.dump(s, keyword);
     s << "=";
-    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    for (std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         s << sep << *i;
         sep = "/";
     }
 }
 
-void MatchNone::print(std::ostream &out) const {
+void MatchNone::print(std::ostream& out) const {
     out << "MatchNone[values=";
-    const char *sep = "";
-    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    const char* sep = "";
+    for (std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         out << sep << *i;
         sep = ",";
     }
@@ -81,4 +83,4 @@ void MatchNone::print(std::ostream &out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

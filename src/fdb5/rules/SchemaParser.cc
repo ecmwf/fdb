@@ -98,7 +98,8 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         std::string val = parseIdent(true, false);
         if (val[0] == '!') {
             notValues.insert(val.substr(1));
-        } else {
+        }
+        else {
             values.insert(val);
         }
 
@@ -112,7 +113,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
     }
     switch (values.size()) {
-        case 0:          
+        case 0:
             if (notValues.size()) {
                 return std::make_unique<Predicate>(k, new MatchNone(notValues));
             }
