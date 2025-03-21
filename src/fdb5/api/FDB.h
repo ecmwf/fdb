@@ -299,6 +299,11 @@ private:  // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+namespace helper {
+
+void compact(ListIterator& list, std::ostream& out);
+
+}  // namespace helper
 
 }  // namespace fdb5
 
