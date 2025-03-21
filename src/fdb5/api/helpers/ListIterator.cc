@@ -33,8 +33,9 @@ bool ListIterator::next(ListElement& elem) {
 }
 
 void ListIterator::dumpCompact(std::ostream& out) {
-        
-    std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
+
+    std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>>
+        requests;
 
     ListElement elem;
     while (next(elem)) {
@@ -87,5 +88,5 @@ void ListIterator::dumpCompact(std::ostream& out) {
         }
     }
 }
-    
+
 }  // namespace fdb5
