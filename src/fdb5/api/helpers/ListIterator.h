@@ -66,19 +66,9 @@ public:
         return *this;
     }
 
-    bool next(ListElement& elem) {
-        ListElement tmp;
-        while (APIIterator<ListElement>::next(tmp)) {
-            if (deduplicate_) {
-                if (const auto [iter, success] = seenKeys_.emplace(tmp.combinedKey()); !success) {
-                    continue;
-                }
-            }
-            std::swap(elem, tmp);
-            return true;
-        }
-        return false;
-    }
+    bool next(ListElement& elem);
+
+    void dumpCompact(std::ostream& out);
 
 private:
 

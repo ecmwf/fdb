@@ -142,7 +142,7 @@ void FDBList::execute(const CmdArgs& args) {
         auto listObject = fdb.list(request, !full_ && !compact_, depth_);
 
         if (compact_) {
-            helper::compact(listObject, Log::info());
+            listObject.dumpCompact(Log::info());
         }
         else {
             ListElement elem;
