@@ -111,9 +111,7 @@ FieldHandle::~FieldHandle() {
     if (current_ && currentMemoryHandle_) {
         delete current_;
     }
-    if (buffer_) {
-        delete[] buffer_;
-    }
+    delete[] buffer_;
 }
 
 void FieldHandle::openCurrent() {
