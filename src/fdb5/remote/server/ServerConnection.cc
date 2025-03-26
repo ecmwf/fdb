@@ -32,6 +32,7 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -47,6 +48,8 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -280,7 +283,7 @@ void ServerConnection::initialiseConnections() {
         });
     }
 
-    eckit::Buffer startupBuffer(1024);
+    eckit::Buffer startupBuffer(1_KiB);
     eckit::MemoryStream s(startupBuffer);
 
     s << clientSession;

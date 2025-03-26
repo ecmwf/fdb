@@ -21,12 +21,14 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileLock.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/FileSpace.h"
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5 {
 
@@ -51,7 +53,7 @@ void ExpverFileSpaceHandler::load() const {
         throw CantOpenFile(oss.str(), Here());
     }
 
-    char line[1024];
+    char line[1_KiB];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
@@ -104,7 +106,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         throw CantOpenFile(oss.str(), Here());
     }
 
-    char line[4 * 1024];
+    char line[4_KiB];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;

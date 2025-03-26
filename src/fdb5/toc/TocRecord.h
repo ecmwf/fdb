@@ -20,6 +20,9 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/types/FixedString.h"
+#include "eckit/utils/Literals.h"
+
+using namespace eckit::literals;
 
 namespace fdb5 {
 
@@ -44,7 +47,7 @@ struct TocRecord {
         TOC_SUB_TOC = 's'
     };
 
-    static const size_t maxPayloadSize = 1024 * 1024;
+    static const size_t maxPayloadSize = 1_MiB;
 
     TocRecord(unsigned int serialisationVersion, unsigned char tag = TOC_NULL);
 

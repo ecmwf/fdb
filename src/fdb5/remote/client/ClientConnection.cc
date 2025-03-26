@@ -17,6 +17,7 @@
 #include "eckit/net/Endpoint.h"
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <unistd.h>
 #include <cstddef>
@@ -30,6 +31,8 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -284,7 +287,7 @@ void ClientConnection::writeControlStartupMessage() {
 
 void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 
-    eckit::Buffer payload(1024);
+    eckit::Buffer payload(1_KiB);
     eckit::MemoryStream s(payload);
 
     s << sessionID_;
