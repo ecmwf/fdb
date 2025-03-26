@@ -60,7 +60,7 @@ public:
 
     bool next(ListElement& elem);
 
-    void dumpCompact(std::ostream& out);
+    std::pair<size_t, eckit::Length> dumpCompact(std::ostream& out);
 
 private:
 
