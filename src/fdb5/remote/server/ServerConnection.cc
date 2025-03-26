@@ -353,10 +353,10 @@ size_t ServerConnection::archiveThreadLoop() {
             if (elem.multiblob_) {
                 // Handle MultiBlob
 
-                const char* firstData = static_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
+                const char* firstData = reinterpret_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
                 const char* charData  = firstData;
                 while (size_t(charData - firstData) < elem.payload_.size()) {
-                    const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
+                    const MessageHeader* hdr = reinterpret_cast<const MessageHeader*>(charData);
                     ASSERT(hdr->message == Message::Blob);
                     ASSERT(hdr->clientID() == elem.clientID_);
                     ASSERT(hdr->requestID == elem.requestID_);
@@ -365,7 +365,7 @@ size_t ServerConnection::archiveThreadLoop() {
                     const void* payloadData = charData;
                     charData += hdr->payloadSize;
 
-                    const auto* e = static_cast<const MessageHeader::MarkerType*>(static_cast<const void*>(charData));
+                    const auto* e = reinterpret_cast<const MessageHeader::MarkerType*>(charData);
                     ASSERT(*e == MessageHeader::EndMarker);
                     charData += MessageHeader::markerBytes;
 

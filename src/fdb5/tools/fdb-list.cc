@@ -16,6 +16,8 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/BigNum.h"
+#include "eckit/log/Bytes.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
@@ -103,9 +105,6 @@ void FDBList::init(const CmdArgs& args) {
         if (length_) {
             throw UserError("--porcelain and --length are not compatible", Here());
         }
-        if (compact_) {
-            throw UserError("--porcelain and --compact are not compatible", Here());
-        }
     }
 
     if (compact_) {
@@ -142,7 +141,12 @@ void FDBList::execute(const CmdArgs& args) {
         auto listObject = fdb.list(request, !full_ && !compact_, depth_);
 
         if (compact_) {
-            listObject.dumpCompact(Log::info());
+            auto [fields, total] = listObject.dumpCompact(Log::info());
+            if (!porcelain_) {
+                Log::info() << "Entries       : " << eckit::BigNum(fields) << std::endl;
+                Log::info() << "Total         : " << eckit::BigNum(total) << " (" << eckit::Bytes(total) << ')'
+                            << std::endl;
+            }
         }
         else {
             ListElement elem;
