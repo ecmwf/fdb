@@ -36,7 +36,8 @@ bool ListIterator::next(ListElement& elem) {
 
 std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
 
-    std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_map<Key, eckit::Length>>>>
+    std::map<std::string,
+             std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_map<Key, eckit::Length>>>>
         requests;
 
     size_t fields{0};
@@ -57,7 +58,8 @@ std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
         auto it = requests.find(treeAxes);
         if (it == requests.end()) {
             std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_map<Key, eckit::Length>>> leaves;
-            leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_map<Key, eckit::Length>{{keys[2], elem.length()}}));
+            leaves.emplace(signature, std::make_pair(keys[2].request(),
+                                                     std::unordered_map<Key, eckit::Length>{{keys[2], elem.length()}}));
             requests.emplace(treeAxes, leaves);
         }
         else {
@@ -67,7 +69,8 @@ std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
                 h->second.second.emplace(keys[2], elem.length());
             }
             else {
-                it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_map<Key, eckit::Length>{{keys[2], elem.length()}}));
+                it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_map<Key, eckit::Length>{
+                                                                                    {keys[2], elem.length()}}));
             }
         }
     }  // while
@@ -75,7 +78,7 @@ std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
     for (const auto& tree : requests) {
         for (const auto& leaf : tree.second) {
             fields += leaf.second.second.size();
-            for (auto [k,l] : leaf.second.second) {
+            for (auto [k, l] : leaf.second.second) {
                 length += l;
             }
             metkit::hypercube::HyperCube h{leaf.second.first};
@@ -85,7 +88,7 @@ std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
                 out << std::endl;
             }
             else {
-                for (const auto& [k,l] : leaf.second.second) {
+                for (const auto& [k, l] : leaf.second.second) {
                     h.clear(k.request());
                 }
                 for (const auto& r : h.requests()) {

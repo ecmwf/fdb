@@ -144,7 +144,8 @@ void FDBList::execute(const CmdArgs& args) {
             auto [fields, total] = listObject.dumpCompact(Log::info());
             if (!porcelain_) {
                 Log::info() << "Entries       : " << eckit::BigNum(fields) << std::endl;
-                Log::info() << "Total         : " << eckit::BigNum(total) << " (" << eckit::Bytes(total) << ')' << std::endl;        
+                Log::info() << "Total         : " << eckit::BigNum(total) << " (" << eckit::Bytes(total) << ')'
+                            << std::endl;
             }
         }
         else {
