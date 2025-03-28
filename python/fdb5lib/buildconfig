@@ -11,7 +11,7 @@
 # TODO we duplicate information -- pyproject.toml's `name` and `packages` are derivable from $NAME and must stay consistent
 
 NAME="fdb"
-# TODO no idea why I cant get it to compile with grib=1
+# NOTE enable_grib=1 leads to "eccodes.h" not found during build, despite eccodes package found
 CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0"
 PYPROJECT_DIR="python/fdb5lib"
 DEPENDENCIES='["eckitlib", "metkitlib", "eccodeslib"]'
