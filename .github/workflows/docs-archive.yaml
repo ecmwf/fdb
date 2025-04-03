@@ -1,0 +1,130 @@
+name: Build & archive docs
+
+on:
+  push:
+    branches:
+      - rtd-doc
+  pull_request:
+    branches:
+      - rtd-doc
+
+jobs:
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout ecbuild
+      uses: actions/checkout@v4
+      with:
+        repository: ecmwf/ecbuild
+        rev: 3.8.5
+        path: ecbuild
+    
+    - name: Checkout eccodes
+      uses: actions/checkout@v4
+      with:
+        repository: ecmwf/eccodes
+        rev: develop
+        path: eccodes
+    
+    - name: Checkout aec
+      run: git clone --depth 1 --branch v1.1.3 https://gitlab.dkrz.de/k202009/libaec
+    
+    - name: Checkout eckit
+      uses: actions/checkout@v4
+      with:
+        repository: ecmwf/eckit
+        rev: develop
+        path: eckit
+    
+    - name: Checkout metkit
+      uses: actions/checkout@v4
+      with:
+        ref: develop
+        path: metkit
+
+    - name: Checkout metki
+      uses: actions/checkout@v4
+      with:
+        ref: develop
+        path: metkit
+    
+    - name: Checkout fdb
+      uses: actions/checkout@v4
+      with:
+        path: fdb
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - name: Install dependencies
+      run: pip install -r fdb/docs/requirements.txt
+
+    - name: Create bundle CMakeLists.txt
+      run: |
+        cat << 'EOF' > CMakeLists.txt
+        cmake_minimum_required( VERSION 3.12 FATAL_ERROR )
+        macro( ecbundle_add_project package_name )
+            #
+            #   add_subdirectory depending on BUILD_${package_name}
+            #
+            set( BUILD_${package_name} ON CACHE BOOL "" )
+
+            if( BUILD_${package_name} )
+                set( dir ${ARGV1} )
+                if( NOT dir )
+                    set( dir ${package_name} )
+                endif()
+                add_subdirectory( ${dir} )
+             endif()
+        endmacro()
+        macro( ecbundle_set key value )
+            set( ${key} ${value} CACHE STRING "" )
+            if( "${${key}}" STREQUAL "${value}" )
+               message("  - ${key} = ${value}" )
+            else()
+               message("  - ${key} = ${${key}} [default=${value}]" )
+            endif()
+        endmacro()
+
+        ecbundle_set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+        ecbundle_set( ENABLE_AEC ON )
+        ecbundle_set( ENABLE_MEMFS ON )
+        ecbundle_set( CMAKE_BUILD_TYPE Release )
+        ecbundle_set( ENABLE_ECKIT_CMD off )
+        ecbundle_set( ENABLE_ECKIT_SQL off )
+        ecbundle_set( ENABLE_PYTHON_API_TESTS ON )
+
+        find_package( ecbuild 3.0 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR}/ecbuild )
+        project( All VERSION 2024.11 )
+
+        ## Initialize
+        include(${CMAKE_CURRENT_BINARY_DIR}/init.cmake OPTIONAL)
+
+        ## Projects
+
+        ecbundle_add_project( eccodes )
+        ecbundle_add_project( libaec )
+        ecbundle_add_project( eckit )
+        ecbundle_add_project( metkit )
+        ecbundle_add_project( fdb )
+        ecbundle_add_project( gribjump )
+
+        ## Finalize
+        include(${CMAKE_CURRENT_BINARY_DIR}/final.cmake OPTIONAL)
+
+        ecbuild_install_project(NAME ${PROJECT_NAME})
+        ecbuild_print_summary()
+        EOF
+    - name: Build doc
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake --build . --target fdb-doc
+
+
+
