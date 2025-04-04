@@ -131,6 +131,15 @@ jobs:
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_FDB_DOCUMENTATION=ON -DCMAKE_PREFIX_PATH=../libaec-install
         cmake --build . --target fdb-doc
+        cd fdb/docs
+        mv sphinx doc
+        tar -cf - doc/ | zstd -19 -T0 -o ../../../doc.tar.zstd
+    - name: Upload archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: doc
+        path: doc.tar.zstd
+
 
 
 
