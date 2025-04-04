@@ -1,4 +1,4 @@
-find_package(Doxygen 1.13 REQUIRED)
+find_package(Doxygen 1.9 REQUIRED)
 find_package(Sphinx REQUIRED)
 
 file(GLOB_RECURSE FDB_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../src/fdb5/api/*.h)
