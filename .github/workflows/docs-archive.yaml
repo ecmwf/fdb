@@ -50,6 +50,7 @@ jobs:
     - name: Checkout metkit
       uses: actions/checkout@v4
       with:
+        repository: ecmwf/metkit
         ref: develop
         path: metkit
 
