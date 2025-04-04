@@ -104,7 +104,7 @@ jobs:
         ecbundle_set( ENABLE_PYTHON_API_TESTS ON )
 
         find_package( ecbuild 3.0 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR}/ecbuild )
-        project(fdb-bundle)
+        project(fdb-bundle VERSION 2025.04)
 
         ## Initialize
         include(${CMAKE_CURRENT_BINARY_DIR}/init.cmake OPTIONAL)
