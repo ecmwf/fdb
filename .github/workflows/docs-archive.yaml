@@ -102,8 +102,8 @@ jobs:
 
         ## Projects
 
-        ecbundle_add_project( eccodes )
         ecbundle_add_project( libaec )
+        ecbundle_add_project( eccodes )
         ecbundle_add_project( eckit )
         ecbundle_add_project( metkit )
         ecbundle_add_project( fdb )
