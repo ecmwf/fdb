@@ -117,7 +117,6 @@ jobs:
         ecbundle_add_project( eckit )
         ecbundle_add_project( metkit )
         ecbundle_add_project( fdb )
-        ecbundle_add_project( gribjump )
 
         ## Finalize
         include(${CMAKE_CURRENT_BINARY_DIR}/final.cmake OPTIONAL)
