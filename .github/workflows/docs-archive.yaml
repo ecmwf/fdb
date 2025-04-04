@@ -19,7 +19,8 @@ jobs:
     
     - name: Build and install libaec
       run: |
-        mkdir -p libaec-{build, install}
+        mkdir libaec-build
+        mkdir libaec-install
         cd libaec-build
         cmake ../libaec -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../libaec-install
         cmaeke --build . --target install
