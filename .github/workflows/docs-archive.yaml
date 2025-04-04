@@ -23,7 +23,7 @@ jobs:
         mkdir libaec-install
         cd libaec-build
         cmake ../libaec -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../libaec-install
-        cmaeke --build . --target install
+        cmake --build . --target install
         cd ..
     
     - name: Checkout ecbuild
