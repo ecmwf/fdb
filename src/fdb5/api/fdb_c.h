@@ -377,6 +377,55 @@ int fdb_delete_handle(fdb_handle_t* fdb);
 
 /** @} */
 
+
+/** \defgroup Wipe */
+/** @{ */
+
+struct fdb_wipe_element_t;
+typedef struct fdb_wipe_element_t fdb_wipe_element_t;
+
+struct fdb_wipe_iterator_t;
+typedef struct fdb_wipe_iterator_t fdb_wipe_iterator_t;
+
+/** Initiates a wipe operation on the FDB. This identifies data matching the given request and, optionally, deletes it.
+ * \param fdb FDB instance.
+ * \param req Request specifying which data should be considered for wiping.
+ * \param doit If true, matching data will be deleted. If false, only a dry-run is performed.
+ * \param porcelain If true, output is formatted for machine parsing.
+ * \param unsafeWipeAll If true, unrecognised data will also be deleted.
+ * \param[out] it Iterator instance used to step through affected elements. Must be deleted using #fdb_delete_wipe_iterator.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll,
+             fdb_wipe_iterator_t** it);
+
+/** Moves to the next element in a wipe iterator.
+ * \param it WipeIterator instance.
+ * \param[out] element Pointer to the next #fdb_wipe_element_t. Must be deleted using #fdb_delete_wipe_element.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe_iterator_next(fdb_wipe_iterator_t* it, fdb_wipe_element_t** element);
+
+/** Deallocates WipeIterator object.
+ * \param it WipeIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_wipe_iterator(fdb_wipe_iterator_t* it);
+
+/** Deallocates WipeElement object.
+ * \param element WipeElement instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_wipe_element(fdb_wipe_element_t* element);
+
+/** Returns a string representation of a WipeElement.
+ * \param element WipeElement instance
+ * \param str String describing the element. Pointer valid until next() call or object deletion.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe_element_string(fdb_wipe_element_t* element, const char** str);
+
+/** @} */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
