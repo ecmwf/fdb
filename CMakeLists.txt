@@ -25,7 +25,7 @@ ecbuild_add_option( FEATURE FDB_DOCUMENTATION
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.28.3 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.28.6 REQUIRED )
 
 ### GRIB support
 

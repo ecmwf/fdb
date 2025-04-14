@@ -5,6 +5,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "fdb5/LibFdb5.h"
@@ -19,6 +20,7 @@
 
 using namespace fdb5::remote;
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace {
 
@@ -27,7 +29,7 @@ struct BaseAPIHelper {
 
     typedef T ValueType;
 
-    static size_t bufferSize() { return 1024 * 1024; }
+    static size_t bufferSize() { return 1_MiB; }
     static size_t queueSize() { return 100; }
     static fdb5::remote::Message message() { return msgID; }
 
