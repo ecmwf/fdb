@@ -4,6 +4,7 @@
 ecbuild_find_project_files()
 
 add_subdirectory( fdb5 )
+add_subdirectory(chunked_data_view)
 
 if (HAVE_DUMMY_DAOS)
 	add_subdirectory(dummy_daos)
