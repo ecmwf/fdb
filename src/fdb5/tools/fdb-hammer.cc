@@ -13,6 +13,8 @@
 #include <unordered_set>
 #include <memory>
 #include <iomanip>
+#include <algorithm>
+#include <random>
 
 #include "eccodes.h"
 
@@ -69,11 +71,16 @@ public:
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report statistics after run"));
         options_.push_back(new eckit::option::SimpleOption<bool>("read", "Read rather than write the data"));
         options_.push_back(new eckit::option::SimpleOption<bool>("list", "List rather than write the data"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
+        options_.push_back(new eckit::option::SimpleOption<long>("poll-period", 
+             "Number of seconds to use as polling period for readers in ITT mode"));
         options_.push_back(new eckit::option::SimpleOption<long>("nsteps", "Number of steps"));
+        options_.push_back(new eckit::option::SimpleOption<long>("step", "The first step number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
         options_.push_back(new eckit::option::SimpleOption<long>("number", "The first ensemble number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
         options_.push_back(new eckit::option::SimpleOption<long>("level", "The first level number to use"));
+        options_.push_back(new eckit::option::SimpleOption<string>("levels", "Comma-separated list of level numbers to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
@@ -96,12 +103,20 @@ public:
 
 private:
     bool verbose_;
+    bool itt_;
     bool md_check_;
     bool full_check_;
 };
 
-void FDBHammer::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] [--read] [--list] [--md-check|--full-check] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
+void FDBHammer::usage(const std::string& tool) const {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool
+                       << " [--read] [--list] [--itt] [--poll-period=<period>] [--md-check|--full-check] [--statistics] "
+                          "--nsteps=<nsteps> [--step=<step>] "
+                          "--nensembles=<nensembles> [--number=<number>] "
+                          "--nlevels=<nlevels> [--level=<level>|--levels=<level1,level2,...>] "
+                          "--nparams=<nparams> --expver=<expver> <grib_path>"
+                       << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
@@ -116,6 +131,8 @@ void FDBHammer::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("nparams"));
 
     verbose_ = args.getBool("verbose", false);
+
+    itt_ = args.getBool("itt", false);
 
     md_check_ = args.getBool("md-check", false);
     full_check_ = args.getBool("full-check", false);
@@ -141,19 +158,31 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     codes_handle* handle = codes_handle_new_from_file(nullptr, fin, PRODUCT_GRIB, &err);
     ASSERT(handle);
 
-    size_t nsteps = args.getLong("nsteps");
-    size_t nensembles = args.getLong("nensembles", 1);
-    size_t nlevels = args.getLong("nlevels");
-    size_t nparams = args.getLong("nparams");
-    size_t number = args.getLong("number", 1);
-    size_t level = args.getLong("level", 1);
-
+    size_t nsteps      = args.getLong("nsteps");
+    size_t step        = args.getLong("step", 0);
+    size_t nensembles  = args.getLong("nensembles", 1);
+    size_t number      = args.getLong("number", 1);
+    size_t nlevels     = args.getLong("nlevels");
+    size_t level       = args.getLong("level", 1);
+    std::string levels = args.getLong("levels", "");
+    size_t nparams     = args.getLong("nparams");
 
     const char* buffer = nullptr;
     size_t size = 0;
 
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+
+    std::vector<size_t> levelist;
+    if (args.has("levels")) {
+        for (const auto& element : eckit::Tokenizer(",").tokenize(levels)) {
+            levelist.push_back(eckit::Translator<std::string, size_t>()(element));
+        }
+    } else {
+        for (size_t ilevel = level; ilevel <= nlevels + level; ++ilevel) {
+            levelist.push_back(ilevel);
+        }
+    }
 
     fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
@@ -175,23 +204,21 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
     timer.start();
 
-    for (size_t member = 1; member <= nensembles; ++member) {
+    for (size_t member = number; member <= nensembles + number; ++member) {
         if (args.has("nensembles")) {
-            CODES_CHECK(codes_set_long(handle, "number", member+number-1), 0);
+            CODES_CHECK(codes_set_long(handle, "number", member), 0);
         }
-        for (size_t step = 0; step < nsteps; ++step) {
-            CODES_CHECK(codes_set_long(handle, "step", step), 0);
-            for (size_t lev = 1; lev <= nlevels; ++lev) {
-                CODES_CHECK(codes_set_long(handle, "level", lev+level-1), 0);
+        for (size_t istep = step; istep < nsteps + step; ++istep) {
+            CODES_CHECK(codes_set_long(handle, "step", istep), 0);
+            for (const auto& ilevel : levelist) {
+                CODES_CHECK(codes_set_long(handle, "level", ilevel), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
                     while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
                         real_param++;
                     }
 
-                    Log::info() << "Member: " << member
-                                << ", step: " << step
-                                << ", level: " << level
+                    Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
                                 << ", param: " << real_param << std::endl;
 
                     CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
@@ -284,7 +311,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
                     MemoryHandle dh(buffer, size);
 
-                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
+                    if (member == number && istep == step && ilevel == level && param == 1)
+                        gettimeofday(&tval_before_io, NULL);
                     archiver.archive(dh);
                     writeCount++;
                     bytesWritten += size;
@@ -337,12 +365,15 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest request = requests[0];
 
-    size_t nsteps = args.getLong("nsteps");
-    size_t nensembles = args.getLong("nensembles", 1);
-    size_t nlevels = args.getLong("nlevels");
-    size_t nparams = args.getLong("nparams");
-    size_t number = args.getLong("number", 1);
-    size_t level = args.getLong("level", 1);
+    size_t nsteps      = args.getLong("nsteps");
+    size_t step        = args.getLong("step", 0);
+    size_t nensembles  = args.getLong("nensembles", 1);
+    size_t number      = args.getLong("number", 1);
+    size_t nlevels     = args.getLong("nlevels");
+    size_t level       = args.getLong("level", 1);
+    std::string levels = args.getLong("levels", "");
+    size_t nparams     = args.getLong("nparams");
+    size_t poll_period = args.getLong("poll-period", 1);
 
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
@@ -351,36 +382,72 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
 
+    std::vector<size_t> levelist;
+    if (args.has("levels")) {
+        for (const auto& element : eckit::Tokenizer(",").tokenize(levels) {
+            levelist.push_back(eckit::Translator<std::string, size_t>()(element);
+        }
+    } else {
+        for (size_t ilevel = level; ilevel <= nlevels + level; ++ilevel) {
+            levelist.push_back(ilevel);
+        }
+    }
+
+    std::vector<size_t> paramlist;
+    for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
+        // GRIB API only allows us to use certain parameters
+        while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
+            real_param++;
+        }
+        paramlist.push_back(real_param);
+    }
+    if (itt_) {
+        auto rng = std::default_random_engine {};
+        std::shuffle(std::begin(paramlist), std::end(paramlist), rng);
+    }
+
     struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
 
     fdb5::HandleGatherer handles(false);
-    fdb5::FDB fdb(config(args, userConfig));
+    std::optional<fdb5::FDB> fdb;
+    fdb5::FDBToolRequest list_request{request, false};
     size_t fieldsRead = 0;
 
-    for (size_t member = 1; member <= nensembles; ++member) {
+    for (size_t member = number; member <= nensembles + number; ++member) {
         if (args.has("nensembles")) {
-            request.setValue("number", member+number-1);
+            request.setValue("number", member);
         }
-        for (size_t step = 0; step < nsteps; ++step) {
+        for (size_t istep = step; istep < nsteps; ++istep) {
             request.setValue("step", step);
-            for (size_t lev = 1; lev <= nlevels; ++lev) {
-                request.setValue("levelist", lev+level-1);
-                for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-                    // GRIB API only allows us to use certain parameters
-                    while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-                        real_param++;
-                    }
-                    request.setValue("param", real_param);
+            for (const auto& ilevel : levelist) {
+                request.setValue("levelist", ilevel);
+                for (const auto& param : paramlist) {
+                    request.setValue("param", param);
 
-                    Log::info() << "Member: " << member
-                                << ", step: " << step
-                                << ", level: " << level
+                    Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
                                 << ", param: " << real_param << std::endl;
 
-                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
-                    handles.add(fdb.retrieve(request));
+                    if (member == number && istep == step && ilevel == level && param == 1) {
+                        if (itt_) {
+                            bool dataReady = false;
+                            while (!dataReady) {
+                                fdb.emplace(config(args, userConfig));
+                                auto listObject = fdb->list(list_request);
+                                size_t count = 0;
+                                fdb5::ListElement info;
+                                while (listObject.next(info)) ++count;
+                                if (count > 0) {
+                                    dataReady = true;
+                                } else {
+                                    sleep(poll_period);
+                                }
+                            }
+                        }
+                        gettimeofday(&tval_before_io, NULL);
+                    }
+                    handles.add(fdb->retrieve(request));
                     fieldsRead++;
                 }
             }
