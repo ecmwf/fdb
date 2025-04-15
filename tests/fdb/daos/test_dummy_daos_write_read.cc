@@ -16,11 +16,12 @@
 
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
+#include "eckit/utils/Literals.h"
 
 #include "daos.h"
-#include "daos/tests_lib.h"
 #include "dummy_daos.h"
 
+using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace eckit;
 
