@@ -5,6 +5,5 @@ dependencies: |
   ecmwf/eckit
   ecmwf/metkit
 dependency_branch: develop
-cmake_options:
-  - -DENABLE_DUMMY_DAOS=ON
+cmake_options: -DENABLE_DUMMY_DAOS=ON
 parallelism_factor: 8
