@@ -72,6 +72,8 @@ find_package(UUID QUIET)
 
 find_package(DAOS QUIET)
 
+find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+
 set(_default_dummy_daos ON)
 if(DAOS_FOUND)
     set(_default_dummy_daos OFF)
