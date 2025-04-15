@@ -393,7 +393,8 @@ typedef struct fdb_wipe_iterator_t fdb_wipe_iterator_t;
  * \param doit If true, matching data will be deleted. If false, only a dry-run is performed.
  * \param porcelain If true, output is formatted for machine parsing.
  * \param unsafeWipeAll If true, unrecognised data will also be deleted.
- * \param[out] it Iterator instance used to step through affected elements. Must be deleted using #fdb_delete_wipe_iterator.
+ * \param[out] it Iterator instance used to step through affected elements. Must be deleted using
+ * #fdb_delete_wipe_iterator.
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll,
@@ -424,6 +425,54 @@ int fdb_delete_wipe_element(fdb_wipe_element_t* element);
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_wipe_element_string(fdb_wipe_element_t* element, const char** str);
+
+
+/** \defgroup Purge */
+/** @{ */
+
+struct fdb_purge_element_t;
+typedef struct fdb_purge_element_t fdb_purge_element_t;
+
+struct fdb_purge_iterator_t;
+typedef struct fdb_purge_iterator_t fdb_purge_iterator_t;
+
+/** Initiates a purge operation on the FDB. This identifies duplicate data matching the given request and, optionally,
+ * deletes it.
+ * \param fdb FDB instance.
+ * \param req Request specifying which data should be considered for purging.
+ * \param doit If true, matching data will be deleted. If false, only a dry-run is performed.
+ * \param porcelain If true, output is formatted for machine parsing.
+ * \param[out] it Iterator instance used to step through affected elements. Must be deleted using
+ * #fdb_delete_purge_iterator.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, fdb_purge_iterator_t** it);
+
+/** Moves to the next element in a purge iterator.
+ * \param it PurgeIterator instance.
+ * \param[out] element Pointer to the next #fdb_purge_element_t. Must be deleted using #fdb_delete_purge_element.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge_iterator_next(fdb_purge_iterator_t* it, fdb_purge_element_t** element);
+
+/** Deallocates PurgeIterator object.
+ * \param it PurgeIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_purge_iterator(fdb_purge_iterator_t* it);
+
+/** Deallocates PurgeElement object.
+ * \param element PurgeElement instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_purge_element(fdb_purge_element_t* element);
+
+/** Returns a string representation of a PurgeElement.
+ * \param element PurgeElement instance
+ * \param str String describing the element. Pointer valid until next() call or object deletion.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge_element_string(fdb_purge_element_t* element, const char** str);
 
 /** @} */
 /*--------------------------------------------------------------------------------------------------------------------*/

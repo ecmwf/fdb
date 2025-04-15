@@ -22,6 +22,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
@@ -229,11 +230,10 @@ struct fdb_wipe_iterator_t {
 
     fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
 
-    int next(WipeElement& e) {
-        return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
-    }
+    int next(WipeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
 
 private:
+
     WipeIterator iter_;
 };
 
@@ -241,13 +241,36 @@ struct fdb_wipe_element_t {
 
     fdb_wipe_element_t(WipeElement&& e) : element_(std::move(e)) {}
 
-    const char* c_str() const {
-        return element_.c_str();
-    }
+    const char* c_str() const { return element_.c_str(); }
 
 private:
+
     WipeElement element_;
 };
+
+// Purge iterator
+struct fdb_purge_iterator_t {
+
+    fdb_purge_iterator_t(PurgeIterator&& iter) : iter_(std::move(iter)) {}
+
+    int next(PurgeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
+
+private:
+
+    PurgeIterator iter_;
+};
+
+struct fdb_purge_element_t {
+
+    fdb_purge_element_t(PurgeElement&& e) : element_(std::move(e)) {}
+
+    const char* c_str() const { return element_.c_str(); }
+
+private:
+
+    PurgeElement element_;
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -446,7 +469,8 @@ int fdb_flush(fdb_handle_t* fdb) {
 // Wipe
 // ---------------------------------------------------------------
 
-int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll, fdb_wipe_iterator_t** it) {
+int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll,
+             fdb_wipe_iterator_t** it) {
     return wrapApiFunction([=] {
         ASSERT(fdb);
         ASSERT(req);
@@ -462,7 +486,7 @@ int fdb_wipe_iterator_next(fdb_wipe_iterator_t* it, fdb_wipe_element_t** element
         ASSERT(element);
 
         WipeElement e;
-        int ret = it->next(e);
+        int ret  = it->next(e);
         *element = new fdb_wipe_element_t(std::move(e));
         return ret;
     }});
@@ -484,9 +508,52 @@ int fdb_delete_wipe_element(fdb_wipe_element_t* element) {
 }
 
 int fdb_delete_wipe_iterator(fdb_wipe_iterator_t* it) {
-    return wrapApiFunction([it] {
-        delete it;
+    return wrapApiFunction([it] { delete it; });
+}
+
+// ---------------------------------------------------------------
+// Purge
+// ---------------------------------------------------------------
+
+int fdb_purge(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, fdb_purge_iterator_t** it) {
+    return wrapApiFunction([=] {
+        ASSERT(fdb);
+        ASSERT(req);
+        ASSERT(it);
+
+        *it = new fdb_purge_iterator_t(fdb->purge(req->request(), doit, porcelain));
     });
+}
+
+int fdb_purge_iterator_next(fdb_purge_iterator_t* it, fdb_purge_element_t** element) {
+    return wrapApiFunction(std::function<int()>{[=] {
+        ASSERT(it);
+        ASSERT(element);
+
+        PurgeElement e;
+        int ret  = it->next(e);
+        *element = new fdb_purge_element_t(std::move(e));
+        return ret;
+    }});
+}
+
+int fdb_purge_element_string(fdb_purge_element_t* element, const char** str) {
+    return wrapApiFunction([element, str] {
+        ASSERT(element);
+        ASSERT(str);
+        *str = element->c_str();
+    });
+}
+
+int fdb_delete_purge_element(fdb_purge_element_t* element) {
+    return wrapApiFunction([element] {
+        ASSERT(element);
+        delete element;
+    });
+}
+
+int fdb_delete_purge_iterator(fdb_purge_iterator_t* it) {
+    return wrapApiFunction([it] { delete it; });
 }
 
 // ------------------------------------------------------------------
