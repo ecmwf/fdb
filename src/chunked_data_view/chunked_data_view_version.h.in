@@ -12,6 +12,6 @@
 #include <string_view>
 
 namespace chunked_data_view {
-    const std::string_view git_sha1{"@fdb5_GIT_SHA1@"};
-    const std::string_view version_string{"@chunked_data_view_VERSION_STRING@"};
-}
+const std::string_view git_sha1{"@fdb5_GIT_SHA1@"};
+const std::string_view version_string{"@chunked_data_view_VERSION_STRING@"};
+}  // namespace chunked_data_view
