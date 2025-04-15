@@ -159,6 +159,7 @@ get_directory_property( fdb5_DEFINITIONS COMPILE_DEFINITIONS )
 
 ### source files
 
+add_subdirectory( third_party )
 add_subdirectory( src )
 add_subdirectory( tests )
 
