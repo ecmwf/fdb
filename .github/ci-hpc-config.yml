@@ -1,6 +1,7 @@
 build:
   modules:
     - ninja
+    - python3
   dependencies:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop

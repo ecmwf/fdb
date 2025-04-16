@@ -3,7 +3,6 @@ add_test(
   COMMAND ${Python_INTERPRETER} -m pip install pytest
 )
 
-
 function(add_py_test test)
   get_filename_component(stem ${test} NAME_WLE)
   add_test(
@@ -17,7 +16,6 @@ function(add_py_test test)
       DEPENDS pychunked_data_view_ensure_deps
   )
 endfunction()
-
 
 set(test_files 
   test_setup.py
