@@ -1,13 +1,13 @@
 add_test(
   NAME pychunked_data_view_ensure_deps
-  COMMAND ${Python_INTERPRETER} -m pip install pytest
+  COMMAND ${Python_EXECUTABLE} -m pip install pytest
 )
 
 function(add_py_test test)
   get_filename_component(stem ${test} NAME_WLE)
   add_test(
     NAME pychunked_data_view_${stem} 
-    COMMAND ${Python_INTERPRETER} -m pytest --basetemp=${CMAKE_CURRENT_BINBARY_DIR}/pytest-tmp -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/test/${test}
+    COMMAND ${Python_EXECUTABLE} -m pytest --basetemp=${CMAKE_CURRENT_BINBARY_DIR}/pytest-tmp -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/test/${test}
   )
   set_property(
     TEST pychunked_data_view_${stem} 
