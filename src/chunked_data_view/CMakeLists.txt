@@ -7,15 +7,35 @@ configure_file(
     @ONLY
 )
 
+set(chunked_data_view_sources
+    Axis.cc
+    Axis.h
+    ChunkedDataViewBuilder.cc
+    ChunkedDataViewImpl.cc
+    ChunkedDataViewImpl.h
+    Extractor.cc
+    Fdb.cc
+    GribExtractor.cc
+    GribExtractor.h
+    LibChunkedDataView.cc
+    ViewPart.cc
+    ViewPart.h
+)
+
 ecbuild_add_library(
     TARGET chunked_data_view
     TYPE SHARED
     INSTALL_HEADERS_LIST
-        include/chunked_data_view/chunked_data_view.h
+        include/chunked_data_view/AxisDefinition.h
+        include/chunked_data_view/ChunkedDataView.h
+        include/chunked_data_view/ChunkedDataViewBuilder.h
+        include/chunked_data_view/Extractor.h
+        include/chunked_data_view/LibChunkedDataView.h
+        include/chunked_data_view/DataLayout.h
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/chunked_data_view
     SOURCES
-        chunked_data_view.cc
+        ${chunked_data_view_sources}
     PUBLIC_INCLUDES
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE_INCLUDES
