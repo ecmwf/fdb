@@ -1,0 +1,30 @@
+/*
+ * (C) Copyright 2025- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+#pragma once
+
+#include <vector>
+
+namespace chunked_data_view {
+
+class Extractor;
+
+class ChunkedDataView {
+public:
+
+    using Index = std::vector<size_t>;
+
+    virtual ~ChunkedDataView()                                = default;
+    virtual const std::vector<double>& at(const Index& index) = 0;
+    virtual size_t size() const                               = 0;
+    virtual const std::vector<size_t>& chunkShape() const     = 0;
+    virtual const std::vector<size_t>& shape() const          = 0;
+};
+
+}  // namespace chunked_data_view
