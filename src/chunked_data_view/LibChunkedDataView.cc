@@ -7,7 +7,7 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "chunked_data_view/chunked_data_view.h"
+#include "chunked_data_view/LibChunkedDataView.h"
 
 #include "chunked_data_view_version.h"
 
