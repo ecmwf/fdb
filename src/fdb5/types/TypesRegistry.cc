@@ -85,6 +85,7 @@ void TypesRegistry::addType(const std::string& keyword, const std::string& type)
 }
 
 const Type& TypesRegistry::lookupType(const std::string& keyword) const {
+    std::lock_guard<std::mutex> lock(cacheMutex_);
 
     if (auto iter = cache_.find(keyword); iter != cache_.end()) {
         return *iter->second;
