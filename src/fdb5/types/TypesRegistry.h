@@ -19,6 +19,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "eckit/serialisation/Streamable.h"
@@ -76,6 +77,7 @@ private:  // members
     const TypesRegistry* parent_{nullptr};
 
     using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
+    mutable std::mutex cacheMutex_;
     mutable TypeMap cache_;
 
     // streamable
