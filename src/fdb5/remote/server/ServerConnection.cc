@@ -32,6 +32,7 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -47,6 +48,8 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -279,7 +282,7 @@ void ServerConnection::initialiseConnections() {
         });
     }
 
-    eckit::Buffer startupBuffer(1024);
+    eckit::Buffer startupBuffer(1_KiB);
     eckit::MemoryStream s(startupBuffer);
 
     s << clientSession;
@@ -353,10 +356,10 @@ size_t ServerConnection::archiveThreadLoop() {
             if (elem.multiblob_) {
                 // Handle MultiBlob
 
-                const char* firstData = static_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
+                const char* firstData = reinterpret_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
                 const char* charData  = firstData;
                 while (size_t(charData - firstData) < elem.payload_.size()) {
-                    const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
+                    const MessageHeader* hdr = reinterpret_cast<const MessageHeader*>(charData);
                     ASSERT(hdr->message == Message::Blob);
                     ASSERT(hdr->clientID() == elem.clientID_);
                     ASSERT(hdr->requestID == elem.requestID_);
@@ -365,7 +368,7 @@ size_t ServerConnection::archiveThreadLoop() {
                     const void* payloadData = charData;
                     charData += hdr->payloadSize;
 
-                    const auto* e = static_cast<const MessageHeader::MarkerType*>(static_cast<const void*>(charData));
+                    const auto* e = reinterpret_cast<const MessageHeader::MarkerType*>(charData);
                     ASSERT(*e == MessageHeader::EndMarker);
                     charData += MessageHeader::markerBytes;
 

@@ -12,6 +12,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
@@ -20,6 +21,8 @@
 #include <mutex>
 #include <utility>  // std::pair
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -40,9 +43,9 @@ public:  // types
     using PayloadList  = Connection::PayloadList;
     using EndpointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
 
-    static constexpr size_t defaultBufferSizeArchive = 8192;
-    static constexpr size_t defaultBufferSizeFlush   = 1024;
-    static constexpr size_t defaultBufferSizeKey     = 4096;
+    static constexpr size_t defaultBufferSizeArchive = 8_KiB;
+    static constexpr size_t defaultBufferSizeFlush   = 1_KiB;
+    static constexpr size_t defaultBufferSizeKey     = 4_KiB;
 
 public:  // methods
 
