@@ -74,8 +74,8 @@ public:  // methods
     FDB(const FDB&)            = delete;
     FDB& operator=(const FDB&) = delete;
 
-    FDB(FDB&&)            = default;
-    FDB& operator=(FDB&&) = default;
+    FDB(FDB&&);
+    FDB& operator=(FDB&&);
 
     // -------------- Primary API functions ----------------------------------------------------------------------------
 
