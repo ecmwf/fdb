@@ -210,6 +210,7 @@ void ServerConnection::initialiseConnections() {
         eckit::LocalConfiguration clientAvailableFunctionality(s1);
         eckit::LocalConfiguration serverConf = availableFunctionality();
         agreedConf_                          = eckit::LocalConfiguration();
+        bool compatibleProtocol              = true;
 
         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
         if (rflCommon.size() > 0) {
@@ -218,7 +219,7 @@ void ServerConnection::initialiseConnections() {
             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
         }
         else {
-            // TODO - Send error message: incompatible RemoteFieldLocation versions
+            compatibleProtocol = false;
         }
 
         if (!clientAvailableFunctionality.has("NumberOfConnections")) {  // set the default
