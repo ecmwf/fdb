@@ -148,10 +148,10 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
-    disconnecting_ = true;
-
-    std::lock_guard lock(clientsMutex_);
-    ASSERT(clients_.empty());
+    {
+        std::lock_guard lock(clientsMutex_);
+        ASSERT(clients_.empty());
+    }
 
     if (connected_) {
         if (dataWriteThread_.joinable()) {
@@ -428,12 +428,10 @@ void ClientConnection::listeningControlThreadLoop() {
 
 void ClientConnection::closeConnection() {
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::closeConnection() -- Data thread stopping" << std::endl;
-    if (!disconnecting_) {
-        std::lock_guard lock(clientsMutex_);
-        for (auto& [id, client] : clients_) {
-            client->closeConnection();
-        }
-    };
+    std::lock_guard lock(clientsMutex_);
+    for (auto& [id, client] : clients_) {
+        client->closeConnection();
+    }
 }
 
 void ClientConnection::listeningDataThreadLoop() {

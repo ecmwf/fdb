@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -65,7 +65,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 
         bool inherit = false;
         bool strict  = true;
-        metkit::mars::MarsExpension expand(inherit, strict);
+        metkit::mars::MarsExpansion expand(inherit, strict);
         auto expandedRequests = expand.expand(parsedRequests);
 
         for (metkit::mars::MarsRequest& request : expandedRequests) {
