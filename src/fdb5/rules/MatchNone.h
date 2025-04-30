@@ -9,9 +9,8 @@
  */
 
 /// @file   MatchNone.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+/// @author Emanuele Danovaro
+/// @date   April 2025
 
 #pragma once
 
