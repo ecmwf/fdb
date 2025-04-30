@@ -15,7 +15,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -68,7 +68,7 @@ static std::vector<metkit::mars::MarsRequest> readRequest(const CmdArgs& args) {
         }
         else {
             const bool inherit = false;
-            metkit::mars::MarsExpension expand(inherit);
+            metkit::mars::MarsExpansion expand(inherit);
             auto expanded = expand.expand(parsedRequests);
             requests.insert(requests.end(), expanded.begin(), expanded.end());
         }

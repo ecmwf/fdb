@@ -213,12 +213,14 @@ void ServerConnection::initialiseConnections() {
     std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
 
     if (rflCommon.size() > 0) {
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back()
+                               << std::endl;
         agreedConf_.set("RemoteFieldLocation", rflCommon.back());
     }
     else {
         std::stringstream ss;
-        ss << "FDB server version " << fdb5_version_str() << " - RemoteFieldLocation version not matching - impossible to establish a connection" << std::endl;
+        ss << "FDB server version " << fdb5_version_str()
+           << " - RemoteFieldLocation version not matching - impossible to establish a connection" << std::endl;
         error(ss.str(), hdr.clientID(), hdr.requestID);
         return;
     }
@@ -239,7 +241,7 @@ void ServerConnection::initialiseConnections() {
             ncSelected = ncCommon.back();
             if (clientAvailableFunctionality.has("PreferSingleConnection")) {
                 if (std::find(ncCommon.begin(), ncCommon.end(),
-                                (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
+                              (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
                     ncCommon.end()) {
                     ncSelected = (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2);
                 }
@@ -253,7 +255,7 @@ void ServerConnection::initialiseConnections() {
     else {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
-            << std::endl;
+           << std::endl;
         ss << "    server functionality: " << serverConf << std::endl;
         ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
         error(ss.str(), hdr.clientID(), hdr.requestID);
