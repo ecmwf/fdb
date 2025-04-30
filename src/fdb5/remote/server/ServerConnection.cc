@@ -240,10 +240,9 @@ void ServerConnection::initialiseConnections() {
         else {
             ncSelected = ncCommon.back();
             if (clientAvailableFunctionality.has("PreferSingleConnection")) {
-                if (std::find(ncCommon.begin(), ncCommon.end(),
-                              (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
-                    ncCommon.end()) {
-                    ncSelected = (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2);
+                int preferredMode = clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2;
+                if (std::find(ncCommon.begin(), ncCommon.end(), preferredMode) != ncCommon.end()) {
+                    ncSelected = preferredMode;
                 }
             }
         }
