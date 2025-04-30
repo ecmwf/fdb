@@ -188,75 +188,76 @@ void ServerConnection::initialiseConnections() {
     eckit::SessionID clientSession(s1);
     eckit::net::Endpoint endpointFromClient(s1);
     unsigned int remoteProtocolVersion = 0;
-    std::string errorMsg;
 
     try {
         s1 >> remoteProtocolVersion;
     }
     catch (...) {
-        errorMsg = "Error retrieving client protocol version";
+        error("Error retrieving client protocol version", hdr.clientID(), hdr.requestID);
+        return;
     }
 
-    if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
+    if (!LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
         ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr()
            << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
-        errorMsg = ss.str();
+        error(ss.str(), hdr.clientID(), hdr.requestID);
+        return;
     }
 
-    if (errorMsg.empty()) {
-        eckit::LocalConfiguration clientAvailableFunctionality(s1);
-        eckit::LocalConfiguration serverConf = availableFunctionality();
-        agreedConf_                          = eckit::LocalConfiguration();
-        bool compatibleProtocol              = true;
+    eckit::LocalConfiguration clientAvailableFunctionality(s1);
+    eckit::LocalConfiguration serverConf = availableFunctionality();
+    agreedConf_                          = eckit::LocalConfiguration();
+    std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
 
-        std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-        if (rflCommon.size() > 0) {
-            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back()
-                                   << std::endl;
-            agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+    if (rflCommon.size() > 0) {
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+        agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+    }
+    else {
+        std::stringstream ss;
+        ss << "FDB server version " << fdb5_version_str() << " - RemoteFieldLocation version not matching - impossible to establish a connection" << std::endl;
+        error(ss.str(), hdr.clientID(), hdr.requestID);
+        return;
+    }
+
+    if (!clientAvailableFunctionality.has("NumberOfConnections")) {  // set the default
+        std::vector<int> conn = {2};
+        clientAvailableFunctionality.set("NumberOfConnections", conn);
+    }
+    // agree on a common functionality by intersecting server and client version numbers
+    std::vector<int> ncCommon = intersection(clientAvailableFunctionality, serverConf, "NumberOfConnections");
+    if (ncCommon.size() > 0) {
+        int ncSelected = 2;
+
+        if (ncCommon.size() == 1) {
+            ncSelected = ncCommon.at(0);
         }
         else {
-            compatibleProtocol = false;
-        }
-
-        if (!clientAvailableFunctionality.has("NumberOfConnections")) {  // set the default
-            std::vector<int> conn = {2};
-            clientAvailableFunctionality.set("NumberOfConnections", conn);
-        }
-        // agree on a common functionality by intersecting server and client version numbers
-        std::vector<int> ncCommon = intersection(clientAvailableFunctionality, serverConf, "NumberOfConnections");
-        if (ncCommon.size() > 0) {
-            int ncSelected = 2;
-
-            if (ncCommon.size() == 1) {
-                ncSelected = ncCommon.at(0);
-            }
-            else {
-                ncSelected = ncCommon.back();
-                if (clientAvailableFunctionality.has("PreferSingleConnection")) {
-                    if (std::find(ncCommon.begin(), ncCommon.end(),
-                                  (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
-                        ncCommon.end()) {
-                        ncSelected = (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2);
-                    }
+            ncSelected = ncCommon.back();
+            if (clientAvailableFunctionality.has("PreferSingleConnection")) {
+                if (std::find(ncCommon.begin(), ncCommon.end(),
+                                (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2)) !=
+                    ncCommon.end()) {
+                    ncSelected = (clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2);
                 }
             }
+        }
 
-            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
-            agreedConf_.set("NumberOfConnections", ncSelected);
-            single_ = (ncSelected == 1);
-        }
-        else {
-            std::stringstream ss;
-            ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
-               << std::endl;
-            ss << "    server functionality: " << serverConf << std::endl;
-            ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
-            errorMsg = ss.str();
-        }
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
+        agreedConf_.set("NumberOfConnections", ncSelected);
+        single_ = (ncSelected == 1);
+    }
+    else {
+        std::stringstream ss;
+        ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
+            << std::endl;
+        ss << "    server functionality: " << serverConf << std::endl;
+        ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
+        error(ss.str(), hdr.clientID(), hdr.requestID);
+        return;
     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -326,11 +327,6 @@ void ServerConnection::initialiseConnections() {
             ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
             throw eckit::BadValue(ss.str(), Here());
         }
-    }
-
-    if (!errorMsg.empty()) {
-        error(errorMsg, hdr.clientID(), hdr.requestID);
-        return;
     }
 }
 
