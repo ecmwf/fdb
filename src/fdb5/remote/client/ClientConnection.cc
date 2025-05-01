@@ -17,6 +17,7 @@
 #include "eckit/net/Endpoint.h"
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <unistd.h>
 #include <cstddef>
@@ -30,6 +31,8 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -145,10 +148,10 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
-    disconnecting_ = true;
-
-    std::lock_guard lock(clientsMutex_);
-    ASSERT(clients_.empty());
+    {
+        std::lock_guard lock(clientsMutex_);
+        ASSERT(clients_.empty());
+    }
 
     if (connected_) {
         if (dataWriteThread_.joinable()) {
@@ -284,7 +287,7 @@ void ClientConnection::writeControlStartupMessage() {
 
 void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 
-    eckit::Buffer payload(1024);
+    eckit::Buffer payload(1_KiB);
     eckit::MemoryStream s(payload);
 
     s << sessionID_;
@@ -425,12 +428,10 @@ void ClientConnection::listeningControlThreadLoop() {
 
 void ClientConnection::closeConnection() {
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::closeConnection() -- Data thread stopping" << std::endl;
-    if (!disconnecting_) {
-        std::lock_guard lock(clientsMutex_);
-        for (auto& [id, client] : clients_) {
-            client->closeConnection();
-        }
-    };
+    std::lock_guard lock(clientsMutex_);
+    for (auto& [id, client] : clients_) {
+        client->closeConnection();
+    }
 }
 
 void ClientConnection::listeningDataThreadLoop() {
