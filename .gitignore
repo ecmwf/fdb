@@ -1,7 +1,5 @@
-cmake
 .cache
 .vscode
-build
 .clangd
 **/venv
 **/_build

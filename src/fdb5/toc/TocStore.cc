@@ -180,7 +180,7 @@ void TocStore::closeDataHandles() {
 
 std::unique_ptr<eckit::DataHandle> TocStore::createFileHandle(const eckit::PathName& path) {
 
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64_MiB);
 
     if (stripeLustre()) {
 
@@ -199,7 +199,7 @@ std::unique_ptr<eckit::DataHandle> TocStore::createFileHandle(const eckit::PathN
 std::unique_ptr<eckit::DataHandle> TocStore::createAsyncHandle(const eckit::PathName& path) {
 
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64_MiB);
 
     if (stripeLustre()) {
 
