@@ -14,7 +14,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
-#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -40,7 +40,7 @@ FDBVisitTool::FDBVisitTool(int argc, char** argv, std::string minimumKeys) :
             "minimum-keys", "Use these keywords as a minimum set which *must* be specified", 0, ","));
     }
 
-    // Don't apply MarsExpansion to the parsed requests. This relies on the user
+    // Don't apply MarsExpension to the parsed requests. This relies on the user
     // to provide values that are acceptable internally
     options_.push_back(new SimpleOption<bool>("raw", "Don't apply (contextual) expansion and checking on requests."));
 
