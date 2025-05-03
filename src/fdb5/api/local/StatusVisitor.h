@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_StatusVisitor_H
 #define fdb5_api_local_StatusVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 
 
 namespace fdb5 {
@@ -33,12 +33,16 @@ namespace local {
 
 class StatusVisitor : public QueryVisitor<StatusElement> {
 public:
+
     using QueryVisitor<StatusElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override { queue_.emplace(catalogue); return true; }
+    bool visitDatabase(const Catalogue& catalogue) override {
+        queue_.emplace(catalogue);
+        return true;
+    }
     bool visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const TypedKey&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
     void visitDatum(const Field& field, const std::string& keyFingerprint) override {
         EntryVisitor::visitDatum(field, keyFingerprint);
@@ -47,8 +51,8 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

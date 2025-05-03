@@ -19,15 +19,21 @@ using namespace eckit;
 
 namespace fdb5 {
 
-::eckit::ClassSpec TocDbStats::classSpec_ = {&DbStatsContent::classSpec(), "TocDbStats",};
+::eckit::ClassSpec TocDbStats::classSpec_ = {
+    &DbStatsContent::classSpec(),
+    "TocDbStats",
+};
 ::eckit::Reanimator<TocDbStats> TocDbStats::reanimator_;
 
-::eckit::ClassSpec TocIndexStats::classSpec_ = {&IndexStatsContent::classSpec(), "TocIndexStats",};
+::eckit::ClassSpec TocIndexStats::classSpec_ = {
+    &IndexStatsContent::classSpec(),
+    "TocIndexStats",
+};
 ::eckit::Reanimator<TocIndexStats> TocIndexStats::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDbStats::TocDbStats():
+TocDbStats::TocDbStats() :
     dbCount_(0),
     tocRecordsCount_(0),
     tocFileSize_(0),
@@ -37,11 +43,9 @@ TocDbStats::TocDbStats():
     indexFilesSize_(0),
     ownedFilesCount_(0),
     adoptedFilesCount_(0),
-    indexFilesCount_(0)
-{
-}
+    indexFilesCount_(0) {}
 
-TocDbStats::TocDbStats(Stream &s) {
+TocDbStats::TocDbStats(Stream& s) {
 
     s >> dbCount_;
     s >> tocRecordsCount_;
@@ -57,7 +61,7 @@ TocDbStats::TocDbStats(Stream &s) {
     s >> indexFilesCount_;
 }
 
-TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
+TocDbStats& TocDbStats::operator+=(const TocDbStats& rhs) {
 
     dbCount_ += rhs.dbCount_;
     tocRecordsCount_ += rhs.tocRecordsCount_;
@@ -73,13 +77,12 @@ TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
     return *this;
 }
 
-void TocDbStats::add(const DbStatsContent& rhs)
-{
+void TocDbStats::add(const DbStatsContent& rhs) {
     const TocDbStats& stats = dynamic_cast<const TocDbStats&>(rhs);
     *this += stats;
 }
 
-void TocDbStats::report(std::ostream &out, const char *indent) const {
+void TocDbStats::report(std::ostream& out, const char* indent) const {
 
     reportCount(out, "Databases", dbCount_, indent);
     reportCount(out, "TOC records", tocRecordsCount_, indent);
@@ -96,9 +99,9 @@ void TocDbStats::report(std::ostream &out, const char *indent) const {
 
     reportBytes(out, "Size of index files", indexFilesSize_, indent);
     reportBytes(out, "Size of TOC files", tocFileSize_, indent);
-    reportBytes(out, "Total owned size", tocFileSize_ + schemaFileSize_ +  indexFilesSize_ + ownedFilesSize_, indent);
-    reportBytes(out, "Total size", tocFileSize_ + schemaFileSize_ +  indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_, indent);
-
+    reportBytes(out, "Total owned size", tocFileSize_ + schemaFileSize_ + indexFilesSize_ + ownedFilesSize_, indent);
+    reportBytes(out, "Total size",
+                tocFileSize_ + schemaFileSize_ + indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_, indent);
 }
 
 void TocDbStats::encode(Stream& s) const {
@@ -119,11 +122,7 @@ void TocDbStats::encode(Stream& s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocIndexStats::TocIndexStats():
-    fieldsCount_(0),
-    duplicatesCount_(0),
-    fieldsSize_(0),
-    duplicatesSize_(0) {}
+TocIndexStats::TocIndexStats() : fieldsCount_(0), duplicatesCount_(0), fieldsSize_(0), duplicatesSize_(0) {}
 
 TocIndexStats::TocIndexStats(Stream& s) {
     s >> fieldsCount_;
@@ -133,7 +132,7 @@ TocIndexStats::TocIndexStats(Stream& s) {
 }
 
 
-TocIndexStats &TocIndexStats::operator+=(const TocIndexStats &rhs) {
+TocIndexStats& TocIndexStats::operator+=(const TocIndexStats& rhs) {
     fieldsCount_ += rhs.fieldsCount_;
     duplicatesCount_ += rhs.duplicatesCount_;
     fieldsSize_ += rhs.fieldsSize_;
@@ -142,13 +141,12 @@ TocIndexStats &TocIndexStats::operator+=(const TocIndexStats &rhs) {
     return *this;
 }
 
-void TocIndexStats::add(const IndexStatsContent& rhs)
-{
+void TocIndexStats::add(const IndexStatsContent& rhs) {
     const TocIndexStats& stats = dynamic_cast<const TocIndexStats&>(rhs);
     *this += stats;
 }
 
-void TocIndexStats::report(std::ostream &out, const char *indent) const {
+void TocIndexStats::report(std::ostream& out, const char* indent) const {
     reportCount(out, "Fields", fieldsCount_, indent);
     reportBytes(out, "Size of fields", fieldsSize_, indent);
     reportCount(out, "Duplicated fields ", duplicatesCount_, indent);
@@ -166,59 +164,51 @@ void TocIndexStats::encode(Stream& s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDataStats::TocDataStats() {
-}
+TocDataStats::TocDataStats() {}
 
 TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
 
     std::set<eckit::PathName> intersect;
-    std::set_union(allDataFiles_.begin(),
-                   allDataFiles_.end(),
-                   rhs.allDataFiles_.begin(),
-                   rhs.allDataFiles_.end(),
-                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+    std::set_union(allDataFiles_.begin(), allDataFiles_.end(), rhs.allDataFiles_.begin(), rhs.allDataFiles_.end(),
+                   std::insert_iterator<std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(allDataFiles_, intersect);
 
     intersect.clear();
-    std::set_union(activeDataFiles_.begin(),
-                   activeDataFiles_.end(),
-                   rhs.activeDataFiles_.begin(),
+    std::set_union(activeDataFiles_.begin(), activeDataFiles_.end(), rhs.activeDataFiles_.begin(),
                    rhs.activeDataFiles_.end(),
-                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+                   std::insert_iterator<std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(activeDataFiles_, intersect);
 
-    for(const auto& [path, size] : rhs.dataUsage_) {
+    for (const auto& [path, size] : rhs.dataUsage_) {
         dataUsage_[path] += size;
     }
 
     return *this;
 }
 
-void TocDataStats::add(const DataStatsContent& rhs)
-{
+void TocDataStats::add(const DataStatsContent& rhs) {
     const TocDataStats& stats = dynamic_cast<const TocDataStats&>(rhs);
     *this += stats;
 }
 
-void TocDataStats::report(std::ostream &out, const char *indent) const {
+void TocDataStats::report(std::ostream& out, const char* indent) const {
     NOTIMP;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced) :
-    directory_(catalogue.basePath()),
-    includeReferencedNonOwnedData_(includeReferenced) {
+    directory_(catalogue.basePath()), includeReferencedNonOwnedData_(includeReferenced) {
 
     currentCatalogue_ = &catalogue;
-    dbStats_ = catalogue.stats();
+    dbStats_          = catalogue.stats();
 }
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(&catalogue == currentCatalogue_);
     return true;
 }
@@ -230,8 +220,12 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
-        if (!currentIndex_->location().uri().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
-        if (!field.location().uri().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
+        const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+
+        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath()))
+            return;
+        if (!field.location().uri().path().dirName().sameAs(cat->basePath()))
+            return;
     }
 
     // If this index is not yet in the map, then create an entry
@@ -253,19 +247,20 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     const eckit::PathName& indexPath = currentIndex_->location().uri().path();
 
     if (dataPath != lastDataPath_) {
+        if (dataPath.exists()) {
+            if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
 
-        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-
-            if (dataPath.dirName().sameAs(directory_)) {
-                dbStats->ownedFilesSize_ += dataPath.size();
-                dbStats->ownedFilesCount_++;
-            } else {
-                dbStats->adoptedFilesSize_ += dataPath.size();
-                dbStats->adoptedFilesCount_++;
+                if (dataPath.dirName().sameAs(directory_)) {
+                    dbStats->ownedFilesSize_ += dataPath.size();
+                    dbStats->ownedFilesCount_++;
+                }
+                else {
+                    dbStats->adoptedFilesSize_ += dataPath.size();
+                    dbStats->adoptedFilesCount_++;
+                }
+                allDataFiles_.insert(dataPath);
             }
-            allDataFiles_.insert(dataPath);
         }
-
         lastDataPath_ = dataPath;
     }
 
@@ -284,7 +279,8 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;
         dataUsage_[dataPath]++;
-    } else {
+    }
+    else {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
 
@@ -293,7 +289,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
         dataUsage_[dataPath];
     }
 
-    dbStats_ += DbStats(dbStats); // append to the global dbStats
+    dbStats_ += DbStats(dbStats);  // append to the global dbStats
 }
 
 void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {}
@@ -315,4 +311,4 @@ IndexStats TocStatsReportVisitor::indexStatistics() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5

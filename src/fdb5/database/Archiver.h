@@ -16,15 +16,15 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
-#include <time.h>
 #include <utility>
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 
-namespace eckit   {
+namespace eckit {
 class DataHandle;
 }
 
@@ -38,11 +38,16 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct Database {
+    time_t time_;
+    std::unique_ptr<CatalogueWriter> catalogue_;
+    std::unique_ptr<Store> store_;
+};
 class Archiver : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
     virtual ~Archiver();
 
@@ -58,31 +63,37 @@ public: // methods
         return s;
     }
 
-private: // methods
+protected:  // methods
+
+    virtual void flushDatabase(Database& db);
+
+private:  // methods
 
     void print(std::ostream& out) const;
 
-    DB& database(const Key& key);
+    void selectDatabase(const Key& key);
 
-private: // members
+protected:  // members
+
+    std::map<Key, Database> databases_;
+
+private:  // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
-
     Config dbConfig_;
-
-    store_t databases_;
 
     std::vector<Key> prev_;
 
-    DB* current_;
+    Database* db_;
 
+    std::recursive_mutex flushMutex_;
+    std::mutex cacheMutex_;
     const ArchiveCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

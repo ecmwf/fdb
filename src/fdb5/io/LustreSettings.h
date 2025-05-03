@@ -16,17 +16,14 @@
 
 #include <cstddef>
 
+#include "eckit/filesystem/PathName.h"
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 struct LustreStripe {
 
-    LustreStripe(unsigned int count, size_t size) :
-        count_(count),
-        size_(size)
-    {
-    }
+    LustreStripe(unsigned int count, size_t size) : count_(count), size_(size) {}
 
     unsigned int count_;
     size_t size_;
@@ -42,10 +39,10 @@ LustreStripe stripeDataLustreSettings();
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int fdb5LustreapiFileCreate(const char* path, LustreStripe stripe);
+int fdb5LustreapiFileCreate(const eckit::PathName& path, LustreStripe stripe);
 
 bool fdb5LustreapiSupported();
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -16,8 +16,8 @@
 #ifndef fdb5_Root_H
 #define fdb5_Root_H
 
-#include <string>
 #include <iosfwd>
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
 
@@ -30,24 +30,19 @@ class Key;
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class Root  {
+class Root {
 
-public: // methods
+public:  // methods
 
-    Root(const std::string& path,
-         const std::string& filespace,
-         bool list,
-         bool retrieve,
-         bool archive,
-         bool wipe);
+    Root(const std::string& path, const std::string& filespace, bool list, bool retrieve, bool archive, bool wipe);
 
     // Root(const Root&) = default;
     // Root& operator=(const Root&) = default;
 
-    const eckit::PathName &path() const;
+    const eckit::PathName& path() const;
 
     /// Root exists in the filesystem, use this check to avoid errors when accessing
-    /// This result is cached at construction
+    /// This result is computed with a lazy approach and then memoized
     bool exists() const;
 
     bool enabled(const ControlIdentifier& controlIdentifier) const {
@@ -55,19 +50,19 @@ public: // methods
     };
 
     const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
-    
+
     const std::string& filespace() const;
 
-    friend std::ostream& operator<<(std::ostream &s, const Root& x) {
+    friend std::ostream& operator<<(std::ostream& s, const Root& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+private:  // methods
 
-    void print( std::ostream &out ) const;
+    void print(std::ostream& out) const;
 
-private: // members
+private:  // members
 
     eckit::PathName path_;
 
@@ -80,6 +75,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

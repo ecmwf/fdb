@@ -17,7 +17,6 @@
 #define fdb5_Notifier_H
 
 
-
 namespace fdb5 {
 
 
@@ -25,7 +24,7 @@ namespace fdb5 {
 
 class Notifier {
 
-public: // methods
+public:  // methods
 
     Notifier();
 
@@ -36,6 +35,6 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -36,9 +36,11 @@ public:
     ~FDBStats();
 
     size_t numArchive() const { return numArchive_; }
+    size_t numLocation() const { return numLocation_; }
     size_t numFlush() const { return numFlush_; }
 
-    void addArchive(size_t length, eckit::Timer& timer, size_t nfields=1);
+    void addArchive(size_t length, eckit::Timer& timer, size_t nfields = 1);
+    void addLocation(size_t nfields = 1);
     void addRetrieve(size_t length, eckit::Timer& timer);
     void addFlush(eckit::Timer& timer);
 
@@ -46,9 +48,10 @@ public:
 
     FDBStats& operator+=(const FDBStats& rhs);
 
-private: // members
+private:  // members
 
     size_t numArchive_;
+    size_t numLocation_;
     size_t numFlush_;
     size_t numRetrieve_;
 
@@ -69,6 +72,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

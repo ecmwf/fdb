@@ -17,8 +17,8 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpFile.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
@@ -33,12 +33,12 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "config_expands_from_environment_variable_json" ) {
+CASE("config_expands_from_environment_variable_json") {
 
     const std::string config_str(R"XX(
         {
             "type": "local",
-            "engine": "pmem",
+            "engine": "toc",
             "groups": [{
                 "pools": [{
                     "path": "/a/path/is/something"
@@ -52,14 +52,15 @@ CASE( "config_expands_from_environment_variable_json" ) {
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
     EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "pmem");
+    EXPECT(expanded.getString("engine") == "toc");
     EXPECT(expanded.getSubConfigurations("groups").size() == 1);
     EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
-    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") == "/a/path/is/something");
+    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") ==
+           "/a/path/is/something");
 }
 
 
-CASE( "config_expands_from_environment_variable_yaml" ) {
+CASE("config_expands_from_environment_variable_yaml") {
 
     const std::string config_str(R"XX(
         ---
@@ -78,10 +79,11 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
     EXPECT(expanded.getString("engine") == "toc");
     EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/something");
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
+           "/a/path/is/something");
 }
 
-CASE( "config_expands_explicit_path" ) {
+CASE("config_expands_explicit_path") {
 
     const std::string config_str(R"XX(
         ---
@@ -110,10 +112,11 @@ CASE( "config_expands_explicit_path" ) {
     EXPECT(expanded.getString("engine") == "toc");
     EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/different");
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
+           "/a/path/is/different");
 }
 
-CASE( "config_expands_override_fdb_home" ) {
+CASE("config_expands_override_fdb_home") {
 
     const std::string config_str(R"XX(
         ---
@@ -146,11 +149,13 @@ CASE( "config_expands_override_fdb_home" ) {
     EXPECT(expanded.getString("engine") == "toc");
     EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 2);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/first");
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") == "/a/path/is/second");
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
+           "/a/path/is/first");
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") ==
+           "/a/path/is/second");
 }
 
-CASE( "userConfig" ) {
+CASE("userConfig") {
 
     const std::string config_str(R"XX(
         ---
@@ -198,26 +203,26 @@ CASE( "userConfig" ) {
     {
         fdb5::Config cfg;
         cfg.set("type", "dist");
-        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
+        cfg.set("lanes", {cfg_od, cfg_rd1, cfg_rd2});
 
         EXPECT(cfg.userConfig().getBool("useSubToc", false) == false);
 
         std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
         ASSERT(configs.size() == 3);
-        for (const auto& c: configs) {
+        for (const auto& c : configs) {
             EXPECT(c.userConfig().getBool("useSubToc", false) == false);
         }
     }
     {
         fdb5::Config cfg(eckit::LocalConfiguration(), userConf);
         cfg.set("type", "dist");
-        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
+        cfg.set("lanes", {cfg_od, cfg_rd1, cfg_rd2});
 
         EXPECT(cfg.userConfig().getBool("useSubToc", false) == true);
 
         std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
         ASSERT(configs.size() == 3);
-        for (const auto& c: configs) {
+        for (const auto& c : configs) {
             EXPECT(c.userConfig().getBool("useSubToc", false) == true);
         }
     }
@@ -228,7 +233,6 @@ CASE( "userConfig" ) {
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

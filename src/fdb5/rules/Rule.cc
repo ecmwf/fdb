@@ -8,365 +8,376 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rules/Rule.h"
-
-#include <algorithm>
+#include <cstddef>
+#include <iostream>
+#include <list>
+#include <optional>
+#include <ostream>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/types/Types.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/rules/Predicate.h"
-#include "fdb5/rules/Schema.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/BaseKey.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
+#include "fdb5/rules/Predicate.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+// GRAPH
 
-Rule::Rule(const Schema &schema,
-           size_t line,
-           std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
-           const std::map<std::string, std::string> &types):
-    schema_(schema), line_(line) {
-    std::swap(predicates, predicates_);
-    std::swap(rules, rules_);
-    for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        registry_.addType(i->first, i->second);
-    }
-}
+namespace {
 
-Rule::~Rule() {
-    for (std::vector<Predicate *>::iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-        delete *i;
-    }
+class RuleGraph {
+    struct RuleNode {
 
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        delete *i;
-    }
-}
+        RuleNode(const RuleNode&)            = delete;
+        RuleNode& operator=(const RuleNode&) = delete;
+        RuleNode(RuleNode&&)                 = delete;
+        RuleNode& operator=(RuleNode&&)      = delete;
+        ~RuleNode()                          = default;
 
-void Rule::expand( const metkit::mars::MarsRequest &request,
-                   std::vector<Predicate *>::const_iterator cur,
-                   size_t depth,
-                   std::vector<TypedKey> &keys,
-                   TypedKey& fullComputedKey,
-                   ReadVisitor &visitor) const {
+        explicit RuleNode(const std::string& keyword) : keyword_{keyword} {}
 
-	ASSERT(depth < 3);
+        std::string keyword_;
 
-    if (cur == predicates_.end()) {
+        eckit::StringList values_;
+    };
 
-        keys[depth].registry(registry());
+public:  // types
 
-        // TODO: join these 2 methods
-        if (rules_.empty()) {
-            ASSERT(depth == 2); /// we have 3 levels ATM
-            if (!visitor.selectDatum( keys[2], fullComputedKey)) {
-                return; // This it not useful
-            }
-        } else {
+    using value_type     = std::list<RuleNode>;
+    using reference      = eckit::StringList&;
+    using const_iterator = value_type::const_iterator;
 
-            switch (depth) {
-            case 0:
-                if (!visitor.selectDatabase(keys[0].canonical(), fullComputedKey)) {
-                    return;
-                };
+public:  // methods
 
-                // Here we recurse on the database's schema (rather than the master schema)
-                ASSERT(keys[0] == fullComputedKey);
-                visitor.databaseSchema().expandSecond(request, visitor, keys[0].canonical());
-                return;
+    reference push(const std::string& keyword) { return nodes_.emplace_back(keyword).values_; }
 
-            case 1:
-                if (!visitor.selectIndex(keys[1].canonical(), fullComputedKey)) {
-                    return;
-                }
-                break;
+    std::size_t size() const { return nodes_.size(); }
 
-            default:
-                ASSERT(depth == 0 || depth == 1);
-                break;
-            }
+    std::vector<Key> makeKeys() const {
+        std::set<Key> seen;
+        std::vector<Key> keys;
 
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(request, visitor, depth + 1, keys, fullComputedKey);
-            }
-        }
-        return;
-    }
-
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
-
-    const std::string &keyword = (*cur)->keyword();
-
-    eckit::StringList values;
-    visitor.values(request, keyword, registry_, values);
-
-    // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
-
-    TypedKey& k = keys[depth];
-
-    if (values.empty() && (*cur)->optional()) {
-        values.push_back((*cur)->defaultValue());
-    }
-
-    for (eckit::StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
-
-        k.push(keyword, *i);
-        fullComputedKey.push(keyword, *i);
-
-        if ((*cur)->match(k.canonical()))
-            expand(request, next, depth, keys, fullComputedKey, visitor);
-
-        fullComputedKey.pop(keyword);
-        k.pop(keyword);
-
-    }
-
-}
-
-void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<TypedKey> &keys, TypedKey& fullComputedKey) const {
-    ASSERT(keys.size() == 3);
-    expand(request, predicates_.begin(), depth, keys, fullComputedKey, visitor);
-}
-
-void Rule::expand( const Key& initialFieldKey,
-                   std::vector<Predicate *>::const_iterator cur,
-                   size_t depth,
-                   std::vector<TypedKey> &keys,
-                   TypedKey& fullComputedKey,
-                   WriteVisitor &visitor) const {
-
-    static bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
-
-    if (matchFirstFdbRule && visitor.rule()) {
-        return;
-    }
-
-    ASSERT(depth < 3);
-
-    if (cur == predicates_.end()) {
-
-        keys[depth].registry(registry());
-
-        if (rules_.empty()) {
-            ASSERT(depth == 2); /// we have 3 levels ATM
-            if (visitor.rule() != 0) {
-                std::ostringstream oss;
-                oss << "More than one rule matching "
-                    << keys[0] << ", "
-                    << keys[1] << ", "
-                    << keys[2] << " "
-                    << topRule() << " and "
-                    << visitor.rule()->topRule();
-                throw eckit::SeriousBug(oss.str());
-            }
-            visitor.rule(this);
-            visitor.selectDatum( keys[2], fullComputedKey);
-        } else {
-
-            switch (depth) {
-            case 0:
-                if (keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
-                    visitor.selectDatabase(keys[0].canonical(), fullComputedKey);
-                    visitor.prev_[0] = keys[0].canonical();
-                    visitor.prev_[1] = Key{};
-                }
-
-                // Here we recurse on the database's schema (rather than the master schema)
-                visitor.databaseSchema().expandSecond(initialFieldKey, visitor, keys[0].canonical());
-                return;
-
-            case 1:
-                if (keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
-                    visitor.selectIndex(keys[1].canonical(), fullComputedKey);
-                    visitor.prev_[1] = keys[1].canonical();
-                }
-                break;
-
-            default:
-                ASSERT(depth == 0 || depth == 1);
-                break;
-            }
-
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(initialFieldKey, visitor, depth + 1, keys, fullComputedKey);
-            }
-        }
-        return;
-    }
-
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
-
-    const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(initialFieldKey);
-    TypedKey& k = keys[depth];
-
-    k.push(keyword, value);
-    fullComputedKey.push(keyword, value);
-
-    if ((*cur)->match(k.canonical())) {
-        expand(initialFieldKey, next, depth, keys, fullComputedKey, visitor);
-    }
-
-    fullComputedKey.pop(keyword);
-    k.pop(keyword);
-
-
-}
-void Rule::expand(const Key& initialFieldKey, WriteVisitor &visitor, size_t depth, std::vector<TypedKey> &keys, TypedKey& fullComputedKey) const {
-    ASSERT(keys.size() == 3);
-    expand(initialFieldKey, predicates_.begin(), depth, keys, fullComputedKey, visitor);
-}
-
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, TypedKey& result, bool& found) const {
-
-    if (cur == predicates_.end()) {
-        found = true;
-        return;
-    }
-
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
-
-    const std::string& keyword = (*cur)->keyword();
-    const std::vector<std::string>& values = (*cur)->values(rq);
-
-    // Gives a unique expansion --> only considers the first of the values suggested.
-    // TODO: Consider the broader case.
-
-    for (const std::string& value : values) {
-
-        result.push(keyword, value);
-
-        if ((*cur)->match(result.canonical())) {
-            expandFirstLevel(rq, next, result, found);
+        if (!nodes_.empty()) {
+            Key key;
+            visit(nodes_.begin(), key, seen, keys);
         }
 
-        if (!found) {
-            result.pop(keyword);
-        } else {
+        return keys;
+    }
+
+    void canonicalise(const TypesRegistry& registry) {
+        for (auto& [keyword, values] : nodes_) {
+            const auto& type = registry.lookupType(keyword);
+            for (auto& value : values) {
+                if (!value.empty()) {
+                    value = type.toKey(value);
+                }
+            }
+            keyword = type.alias();
+        }
+    }
+
+private:  // methods
+
+    // Recursive DFS (depth-first search) to generate all possible keys
+    void visit(const_iterator iter, Key& key, std::set<Key>& seen, std::vector<Key>& keys) const {
+
+        if (iter == nodes_.end()) {
+            auto it = seen.find(key);
+            if (it == seen.end()) {
+                seen.insert(key);
+                keys.push_back(key);
+            }
             return;
         }
-    }
-}
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, TypedKey& result, bool& done) const {
-    expandFirstLevel(request, predicates_.begin(), result, done);
-}
+        const auto& [keyword, values] = *iter;
 
+        auto next = iter;
+        ++next;
 
-void Rule::matchFirstLevel( const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
-
-    if (cur == predicates_.end()) {
-        if (tmp.match(dbKey)) {
-            result.insert(tmp);
-        }
-        return;
-    }
-
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
-
-    const std::string &keyword = (*cur)->keyword();
-
-    if (dbKey.find(keyword) == dbKey.end()) {
-        tmp.push(keyword, missing);
-        matchFirstLevel(dbKey, next, tmp, result, missing);
-    } else {
-        const std::string &value = (*cur)->value(dbKey);
-
-        tmp.push(keyword, value);
-
-        if ((*cur)->match(tmp)) {
-            matchFirstLevel(dbKey, next, tmp, result, missing);
+        for (const auto& value : values) {
+            key.push(keyword, value);
+            visit(next, key, seen, keys);
+            key.pop(keyword);
         }
     }
 
-    tmp.pop(keyword);
+private:  // members
 
+    value_type nodes_;
+};
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE
+
+eckit::ClassSpec RuleDatum::classSpec_ = {&Rule::classSpec(), "RuleDatum"};
+eckit::Reanimator<RuleDatum> RuleDatum::reanimator_;
+
+eckit::ClassSpec RuleIndex::classSpec_ = {&Rule::classSpec(), "RuleIndex"};
+eckit::Reanimator<RuleIndex> RuleIndex::reanimator_;
+
+eckit::ClassSpec RuleDatabase::classSpec_ = {&Rule::classSpec(), "RuleDatabase"};
+eckit::Reanimator<RuleDatabase> RuleDatabase::reanimator_;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+Rule::Rule(const std::size_t line, Predicates& predicates, const eckit::StringDict& types) :
+    line_{line}, predicates_{std::move(predicates)} {
+    for (const auto& [keyword, type] : types) {
+        registry_.addType(keyword, type);
+    }
 }
 
-void Rule::matchFirstLevel(const Key& dbKey,  std::set<Key>& result, const char* missing) const {
-    Key tmp{};
-    matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
+void Rule::decode(eckit::Stream& stream) {
+    size_t numPred = 0;
+
+    registry_.decode(stream);
+    stream >> line_;
+    stream >> numPred;
+
+    predicates_.reserve(numPred);
+    for (size_t i = 0; i < numPred; ++i) {
+        predicates_.emplace_back(eckit::Reanimator<Predicate>::reanimate(stream));
+    }
 }
 
+void Rule::encode(eckit::Stream& out) const {
+    registry_.encode(out);
+    out << line_;
+    out << predicates_.size();
+    for (const auto& pred : predicates_) {
+        out << *pred;
+    }
+}
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+//----------------------------------------------------------------------------------------------------------------------
+// MATCHING KEYS
 
-    if (cur == predicates_.end()) {
-//        if (tmp.match(request)) {
-            result.insert(tmp);
-//        }
-        return;
+std::optional<Key> Rule::findMatchingKey(const Key& field) const {
+
+    if (field.size() < predicates_.size()) {
+        return {};
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
-    ++next;
+    TypedKey key(registry_);
 
-    const std::string& keyword = (*cur)->keyword();
+    for (const auto& pred : predicates_) {
 
-    if (request.has(keyword)) {
+        /// @note the key is constructed from the predicate
+        if (!pred->match(field)) {
+            return {};
+        }
 
-        const std::vector<std::string>& values = (*cur)->values(request);
+        const auto& keyword = pred->keyword();
 
-        for (const std::string& value : values) {
-            tmp.push(keyword, value);
-            if ((*cur)->match(tmp)) {
-                matchFirstLevel(request, next, tmp, result, missing);
+        key.push(keyword, pred->value(field));
+    }
+
+    return key.canonical();
+}
+
+std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const {
+
+    if (predicates_.empty()) {
+        return {};
+    }
+
+    ASSERT(values.size() >= predicates_.size());
+
+    TypedKey key(registry_);
+
+    for (auto iter = predicates_.begin(); iter != predicates_.end(); ++iter) {
+        const auto& pred = *iter;
+
+        const auto& keyword = pred->keyword();
+
+        /// @note 1-1 order between predicates and values
+        const auto& value = values.at(iter - predicates_.begin());
+
+        if (!pred->match(value)) {
+            return {};
+        }
+
+        key.push(keyword, value);
+    }
+
+    return key.canonical();
+}
+
+std::optional<Key> Rule::findMatchingKey(const Key& field, const char* missing) const {
+
+    Key key;
+
+    for (const auto& pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+
+        if (const auto [iter, found] = field.find(keyword); found) {
+            if (pred->match(iter->second)) {
+                key.push(keyword, iter->second);
             }
-            tmp.pop(keyword);
+            else {
+                return {};
+            }
         }
-    } else {
-        tmp.push(keyword, missing);
-        matchFirstLevel(request, next, tmp, result, missing);
-        tmp.pop(keyword);
+        else {
+            key.push(keyword, missing);
+        }
     }
+
+    return key;
 }
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    Key tmp{};
-    matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, const char* missing) const {
+
+    RuleGraph graph;
+
+    for (const auto& pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+
+        auto& node = graph.push(keyword);
+
+        if (!request.has(keyword)) {
+            node.emplace_back(missing);
+        }
+        else {
+            const auto& values = pred->values(request);
+
+            for (const auto& value : values) {
+                if (pred->match(value)) {
+                    node.emplace_back(value);
+                }
+            }
+
+            if (node.empty()) {
+                break;
+            }
+        }
+    }
+
+    /// @todo activate this
+    graph.canonicalise(registry_);
+
+    return graph.makeKeys();
 }
 
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request) const {
+
+    RuleGraph graph;
+
+    for (const auto& pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+        const auto& type    = registry_.lookupType(keyword);
+
+
+        const auto& values = pred->values(request);
+
+        /// @note do we want to allow empty values?
+        // if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+
+        auto& node = graph.push(keyword);
+
+        for (const auto& value : values) {
+            if (pred->match(value)) {
+                node.emplace_back(value);
+            }
+        }
+
+        if (node.empty()) {
+            return {};
+        }
+    }
+
+    graph.canonicalise(registry_);
+
+    return graph.makeKeys();
+}
+
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
+
+    RuleGraph graph;
+
+    for (const auto& pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+        const auto& type    = registry_.lookupType(keyword);
+
+        // performance optimization to avoid calling values() on visitor
+        if (!pred->optional() && request.countValues(keyword) == 0) {
+            return {};
+        }
+
+        eckit::StringList values;
+        visitor.values(request, keyword, registry_, values);
+
+        if (values.empty() && pred->optional()) {
+            values.push_back(pred->defaultValue());
+        }
+
+        auto& node = graph.push(keyword);
+
+        for (const auto& value : values) {
+            if (pred->match(value)) {
+                node.emplace_back(value);
+            }
+        }
+
+        if (node.empty()) {
+            return {};
+        }
+    }
+
+    graph.canonicalise(registry_);
+
+    auto out = graph.makeKeys();
+
+    LOG_DEBUG_LIB(LibFdb5) << "findMatchingKeys  " << request << " ==> ";
+    std::string sep;
+    for (const auto& k : out) {
+        LOG_DEBUG_LIB(LibFdb5) << sep << k;
+        sep = " | ";
+    }
+    LOG_DEBUG_LIB(LibFdb5) << std::endl;
+
+    return out;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 bool Rule::match(const Key& key) const {
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-        if (!(*i)->match(key)) {
+    for (const auto& pred : predicates_) {
+        if (!pred->match(key)) {
             return false;
         }
     }
     return true;
 }
 
-// Find the first rule that matches a list of keys
-const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const {
-
-    if (depth == keys.size()) {
-        return this;
-    }
-
-    if (match(keys[depth])) {
-
-        for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-            const Rule *r = (*i)->ruleFor(keys, depth + 1);
-            if (r) {
-                return r;
-            }
-        }
-    }
-    return 0;
-}
-
-void Rule::fill(TypedKey& key, const eckit::StringList& values) const {
-
+bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     // See FDB-103. This is a hack to work around the indexing abstraction
     // being leaky.
     //
@@ -384,62 +395,75 @@ void Rule::fill(TypedKey& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
-    auto it_pred = predicates_.begin();
+    auto it_pred  = predicates_.begin();
 
     for (; it_pred != predicates_.end() && it_value != values.end(); ++it_pred, ++it_value) {
 
         if (values.size() == (predicates_.size() + 1) && (*it_pred)->keyword() == "quantile") {
             std::string actualQuantile = *it_value;
             ++it_value;
-            ASSERT(it_value != values.end());
+            if (it_value == values.end()) {
+                return false;
+            }
             actualQuantile += std::string(":") + (*it_value);
             (*it_pred)->fill(key, actualQuantile);
-        } else {
+        }
+        else {
             (*it_pred)->fill(key, *it_value);
         }
     }
 
     // Check that everything is exactly consumed
-    ASSERT(it_value == values.end());
-    ASSERT(it_pred == predicates_.end());
+    if (it_value != values.end()) {
+        return false;
+    }
+    if (it_pred != predicates_.end()) {
+        return false;
+    }
+    return true;
 }
 
-void Rule::dump(std::ostream &s, size_t depth) const {
-    s << "[";
-    const char *sep = "";
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-        s << sep;
-        (*i)->dump(s, registry_);
+void Rule::fill(Key& key, const eckit::StringList& values) const {
+    // FDB-103 - see comment in fill re quantile
+    ASSERT(tryFill(key, values));
+}
+
+Key Rule::makeKey(const std::string& keyFingerprint) const {
+    Key key;
+
+    /// @note assumed keyFingerprint is canonical
+    const auto values = eckit::Tokenizer(":", true).tokenize(keyFingerprint);
+
+    fill(key, values);
+
+    return key;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void Rule::dump(std::ostream& out) const {
+    out << "[";
+
+    const char* sep = "";
+    for (const auto& pred : predicates_) {
+        out << sep;
+        pred->dump(out, registry_);
         sep = ",";
     }
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->dump(s, depth + 1);
-    }
-    s << "]";
+    dumpChildren(out);
+
+    out << "]";
 }
 
-size_t Rule::depth() const {
-    size_t result = 0;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        result = std::max(result, (*i)->depth());
-    }
-    return result + 1;
-}
-
-void Rule::updateParent(const Rule *parent) {
+void Rule::updateParent(const Rule* parent) {
     parent_ = parent;
-    // if (parent && (&registry_ != &parent->registry_)) {
     if (parent) {
         registry_.updateParent(parent_->registry_);
-    }
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        // if (&(*i)->registry_ != &registry_)
-            (*i)->updateParent(this);
     }
 }
 
@@ -447,47 +471,242 @@ const TypesRegistry& Rule::registry() const {
     return registry_;
 }
 
-void Rule::print(std::ostream &out) const {
-    out << "Rule[line=" << line_ ;
-    out << "]";
-}
-
-const Rule &Rule::topRule() const {
-    if (parent_) {
-        return parent_->topRule();
-    } else {
-        return *this;
+void Rule::print(std::ostream& out) const {
+    out << type() << "[line=" << line_ << ",predicates=[";
+    std::string sep;
+    for (const auto& p : predicates_) {
+        out << sep << *p;
+        sep = ",";
     }
+    out << "]]";
 }
 
-const Schema &Rule::schema() const {
-    return schema_;
+const Rule& Rule::parent() const {
+    ASSERT(parent_);
+    return *parent_;
+}
+
+bool Rule::isTopRule() const {
+    return parent_ == nullptr;
+}
+
+const Rule& Rule::topRule() const {
+    return parent_ ? parent_->topRule() : *this;
 }
 
 void Rule::check(const Key& key) const {
-    for (const auto& pred : predicates_ ) {
-        auto k = key.find(pred->keyword());
-        if (k != key.end()) {
-            const std::string& value = (*k).second;
-            const Type& type = registry_.lookupType(pred->keyword());
-            if (value != type.tidy(value)) {
-                std::stringstream ss;
-                ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(value) << std::endl;
-                throw eckit::UserError(ss.str(), Here());
+    for (const auto& pred : predicates_) {
+
+        const auto& keyword = pred->keyword();
+
+        if (const auto [iter, found] = key.find(keyword); found) {
+            const auto& value     = iter->second;
+            const auto& tidyValue = registry().lookupType(keyword).tidy(value);
+            if (value != tidyValue) {
+                std::ostringstream oss;
+                oss << "Rule check - metadata not valid (not in canonical form) - found: ";
+                oss << keyword << "=" << value << " - expecting " << tidyValue << '\n';
+                throw eckit::UserError(oss.str(), Here());
             }
         }
     }
-    if (parent_ != nullptr) {
+
+    if (parent_) {
         parent_->check(key);
     }
 }
 
-std::ostream &operator<<(std::ostream &s, const Rule &x) {
-    x.print(s);
-    return s;
+std::ostream& operator<<(std::ostream& out, const Rule& rule) {
+    rule.print(out);
+    return out;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE DATUM
+
+RuleDatum::RuleDatum(eckit::Stream& stream) : Rule() {
+    decode(stream);
+    size_t numRules;
+    stream >> numRules;
+    ASSERT(numRules == 0);
+}
+
+void RuleDatum::encode(eckit::Stream& out) const {
+    Rule::encode(out);
+    out << 0ul;
+}
+
+void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
+
+    for (const auto& key : findMatchingKeys(request, visitor)) {
+
+        full.pushFrom(key);
+
+        visitor.selectDatum(key, full);
+
+        full.popFrom(key);
+    }
+}
+
+bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
+
+    if (const auto key = findMatchingKey(field)) {
+
+        full.pushFrom(*key);
+
+        if (visitor.rule()) {
+            std::ostringstream oss;
+            oss << "More than one rule matching " << full << " " << topRule() << " and " << visitor.rule()->topRule();
+            throw eckit::SeriousBug(oss.str());
+        }
+
+        if (visitor.selectDatum(*key, full)) {
+            visitor.rule(this);
+            static const bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
+            if (matchFirstFdbRule) {
+                return true;
+            }
+        }
+
+        full.popFrom(*key);
+    }
+
+    return false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE INDEX
+
+RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules) :
+    Rule(line, predicates, types), rules_{std::move(rules)} {}
+
+RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
+    decode(stream);
+
+    size_t numRules;
+    stream >> numRules;
+    rules_.reserve(numRules);
+
+    for (size_t i = 0; i < numRules; i++) {
+        rules_.emplace_back(new RuleDatum(stream));
+    }
+}
+
+void RuleIndex::encode(eckit::Stream& out) const {
+    Rule::encode(out);
+    out << rules_.size();
+    for (const auto& rule : rules_) {
+        rule->encode(out);
+    }
+}
+
+void RuleIndex::updateParent(const Rule* parent) {
+    Rule::updateParent(parent);
+    for (auto& rule : rules_) {
+        rule->updateParent(this);
+    }
+}
+
+void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
+
+    for (const auto& key : findMatchingKeys(request, visitor)) {
+
+        full.pushFrom(key);
+
+        bool idx = visitor.selectIndex(key, full);
+        if (visitor.selectIndex(key, full)) {
+            for (const auto& rule : rules_) {
+                rule->expand(request, visitor, full);
+            }
+        }
+
+        full.popFrom(key);
+    }
+}
+
+bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
+
+    if (const auto key = findMatchingKey(field)) {
+
+        full.pushFrom(*key);
+
+        if (visitor.selectIndex(*key, full)) {
+            for (const auto& rule : rules_) {
+                if (rule->expand(field, visitor, full)) {
+                    return true;
+                }
+            }
+        }
+
+        full.popFrom(*key);
+    }
+
+    return false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// RULE DATABASE
+
+RuleDatabase::RuleDatabase(const std::size_t line, Predicates& predicates, const eckit::StringDict& types,
+                           Children& rules) :
+    Rule(line, predicates, types), rules_{std::move(rules)} {}
+
+RuleDatabase::RuleDatabase(eckit::Stream& stream) : Rule() {
+    decode(stream);
+
+    size_t numRules;
+    stream >> numRules;
+    rules_.reserve(numRules);
+
+    for (size_t i = 0; i < numRules; i++) {
+        rules_.emplace_back(new RuleIndex(stream));
+    }
+}
+
+void RuleDatabase::encode(eckit::Stream& out) const {
+    Rule::encode(out);
+    out << rules_.size();
+    for (const auto& rule : rules_) {
+        rule->encode(out);
+    }
+}
+
+void RuleDatabase::updateParent(const Rule* /* parent */) {
+    for (auto& rule : rules_) {
+        rule->updateParent(this);
+    }
+}
+
+void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
+
+    for (auto& key : findMatchingKeys(request, visitor)) {
+
+        if (visitor.selectDatabase(key, key)) {
+            // (important) using the database's schema
+            for (const auto& rule : visitor.databaseSchema().matchingRule(key).rules()) {
+                rule->expand(request, visitor, key);
+            }
+        }
+    }
+}
+
+bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
+
+    if (auto key = findMatchingKey(field)) {
+
+        if (visitor.selectDatabase(*key, *key)) {
+            // (important) using the database's schema
+            for (const auto& rule : visitor.databaseSchema().matchingRule(*key).rules()) {
+                if (rule->expand(field, visitor, *key)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

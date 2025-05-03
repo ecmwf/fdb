@@ -9,28 +9,32 @@
  */
 
 #include <sys/time.h>
+#include <chrono>
 #include <iomanip>
-#include <unordered_set>
 #include <memory>
 #include <iomanip>
 #include <algorithm>
 #include <random>
+#include <random>
+#include <thread>
+#include <unordered_set>
 
 #include "eccodes.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/StdFile.h"
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/EmptyHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/StdFile.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+#include "eckit/utils/Literals.h"
 
-#include "fdb5/message/MessageArchiver.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBTool.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/message/MessageArchiver.h"
+#include "fdb5/tools/FDBTool.h"
 
 #include <unistd.h>
 #include <limits.h>
@@ -48,21 +52,21 @@
 #include "eckit/serialisation/HandleStream.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
-const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
+const std::unordered_set<size_t> AWKWARD_PARAMS{11,  12,  13,  14,  15,  16,  49,  51,  52,  61,  121,
+                                                122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
 
 using namespace eckit;
-
 using namespace eckit::literals;
 
 class FDBHammer : public fdb5::FDBTool {
 
-    void usage(const std::string &tool) const override;
+    void usage(const std::string& tool) const override;
 
-    void init(const eckit::option::CmdArgs &args) override;
+    void init(const eckit::option::CmdArgs& args) override;
 
     int minimumPositionalArguments() const override { return 1; }
 
-    void execute(const eckit::option::CmdArgs &args) override;
+    void execute(const eckit::option::CmdArgs& args) override;
 
     void executeRead(const eckit::option::CmdArgs& args);
     void executeWrite(const eckit::option::CmdArgs& args);
@@ -112,10 +116,12 @@ public:
              "Comma-separated list of nodes the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
         options_.push_back(new eckit::option::SimpleOption<long>("port", 
              "Port number to use for TCP communications for the barrier in ITT write mode. Defaults to 7777"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("delay", "Add random delay"));
     }
     ~FDBHammer() override {}
 
 private:
+
     bool verbose_;
     bool itt_;
     bool md_check_;
@@ -137,8 +143,7 @@ void FDBHammer::usage(const std::string& tool) const {
     fdb5::FDBTool::usage(tool);
 }
 
-void FDBHammer::init(const eckit::option::CmdArgs& args)
-{
+void FDBHammer::init(const eckit::option::CmdArgs& args) {
     FDBTool::init(args);
 
     ASSERT(args.has("expver"));
@@ -408,18 +413,20 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
     }
 }
 
-void FDBHammer::execute(const eckit::option::CmdArgs &args) {
+void FDBHammer::execute(const eckit::option::CmdArgs& args) {
 
     if (args.getBool("read", false)) {
         executeRead(args);
-    } else if (args.getBool("list", false)) {
+    }
+    else if (args.getBool("list", false)) {
         executeList(args);
-    } else {
+    }
+    else {
         executeWrite(args);
     }
 }
 
-void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
+void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
     eckit::AutoStdFile fin(args(0));
 
@@ -435,6 +442,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     size_t level       = args.getLong("level", 1);
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
+    bool delay         = args.getBool("delay", false);
 
     if (itt_) {
         ASSERT(args.has("nodes"));
@@ -445,10 +453,20 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     int port             = args.getInt("port", 7777);
 
     const char* buffer = nullptr;
-    size_t size = 0;
+    size_t size        = 0;
 
     eckit::LocalConfiguration userConfig{};
-    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+    if (!args.has("disable-subtocs"))
+        userConfig.set("useSubToc", true);
+
+    if (delay) {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(0, 10000);
+
+        int delayDuration = dist(mt);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayDuration));
+    }
 
     std::vector<size_t> levelist;
     if (args.has("levels")) {
@@ -471,10 +489,10 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
     std::string expver = args.getString("expver");
-    size = expver.length();
+    size               = expver.length();
     CODES_CHECK(codes_set_string(handle, "expver", expver.c_str(), &size), 0);
     std::string cls = args.getString("class");
-    size = cls.length();
+    size            = cls.length();
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
     if (nensembles > 1) {
@@ -498,7 +516,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     eckit::Timer timer;
     eckit::Timer gribTimer;
     double elapsed_grib = 0;
-    size_t writeCount = 0;
+    size_t writeCount   = 0;
     size_t bytesWritten = 0;
 
     timer.start();
@@ -623,7 +641,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
             gribTimer.stop();
             elapsed_grib += gribTimer.elapsed();
             archiver.flush();
-            if (member == nensembles && step == (nsteps - 1)) gettimeofday(&tval_after_io, NULL);
+            if (member == nensembles && step == (nsteps - 1))
+                gettimeofday(&tval_after_io, NULL);
             gribTimer.start();
         }
 
@@ -644,20 +663,16 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     Log::info() << "GRIB duration: " << elapsed_grib << std::endl;
     Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
-    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1_MiB) << " MB / s" << std::endl;
 
-    Log::info() << "Timestamp before first IO: " <<
-                    (long int)tval_before_io.tv_sec << "." <<
-                    std::setw(6) << std::setfill('0') <<
-                    (long int)tval_before_io.tv_usec << std::endl;
-    Log::info() << "Timestamp after last IO: " <<
-                    (long int)tval_after_io.tv_sec << "." <<
-                    std::setw(6) << std::setfill('0') <<
-                    (long int)tval_after_io.tv_usec << std::endl;
-
+    Log::info() << "Timestamp before first IO: " << (long int)tval_before_io.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " << (long int)tval_after_io.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int)tval_after_io.tv_usec << std::endl;
 }
 
-void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
+
+void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     fdb5::MessageDecoder decoder;
     std::vector<metkit::mars::MarsRequest> requests = decoder.messageToRequests(args(0));
@@ -680,7 +695,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     request.setValue("optimised", "on");
 
     eckit::LocalConfiguration userConfig{};
-    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+    if (!args.has("disable-subtocs"))
+        userConfig.set("useSubToc", true);
 
     std::vector<size_t> levelist;
     if (args.has("levels")) {
@@ -918,24 +934,20 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     Log::info() << "Bytes read: " << total << std::endl;
     Log::info() << "Total duration: " << timer.elapsed() << std::endl;
     Log::info() << "Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
-    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1_MiB) << " MB / s" << std::endl;
 
-    Log::info() << "Timestamp before first IO: " <<
-                    (long int)tval_before_io.tv_sec << "." <<
-                    std::setw(6) << std::setfill('0') <<
-                    (long int)tval_before_io.tv_usec << std::endl;
-    Log::info() << "Timestamp after last IO: " <<
-                    (long int)tval_after_io.tv_sec << "." <<
-                    std::setw(6) << std::setfill('0') <<
-                    (long int)tval_after_io.tv_usec << std::endl;
-
+    Log::info() << "Timestamp before first IO: " << (long int)tval_before_io.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " << (long int)tval_after_io.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int)tval_after_io.tv_usec << std::endl;
 }
 
 
-void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
+void FDBHammer::executeList(const eckit::option::CmdArgs& args) {
 
 
-    std::vector<std::string> minimumKeys = eckit::Resource<std::vector<std::string>>("FDBInspectMinimumKeys", "class,expver", true);
+    std::vector<std::string> minimumKeys =
+        eckit::Resource<std::vector<std::string>>("FDBInspectMinimumKeys", "class,expver", true);
 
     fdb5::MessageDecoder decoder;
     std::vector<metkit::mars::MarsRequest> requests = decoder.messageToRequests(args(0));
@@ -943,18 +955,19 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest request = requests[0];
 
-    size_t nsteps = args.getLong("nsteps");
+    size_t nsteps     = args.getLong("nsteps");
     size_t nensembles = args.getLong("nensembles", 1);
-    size_t nlevels = args.getLong("nlevels");
-    size_t nparams = args.getLong("nparams");
-    size_t number = args.getLong("number", 1);
-    size_t level = args.getLong("level", 1);
+    size_t nlevels    = args.getLong("nlevels");
+    size_t nparams    = args.getLong("nparams");
+    size_t number     = args.getLong("number", 1);
+    size_t level      = args.getLong("level", 1);
 
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
 
     eckit::LocalConfiguration userConfig{};
-    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+    if (!args.has("disable-subtocs"))
+        userConfig.set("useSubToc", true);
 
     eckit::Timer timer;
     timer.start();
@@ -993,20 +1006,17 @@ void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
         while (listObject.next(info)) {
             count++;
         }
-
     }
 
     timer.stop();
 
     Log::info() << "fdb-hammer - Fields listed: " << count << std::endl;
     Log::info() << "fdb-hammer - List duration: " << timer.elapsed() << std::endl;
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBHammer app(argc, argv);
     return app.start();
 }
-
