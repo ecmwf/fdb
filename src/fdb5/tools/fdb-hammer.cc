@@ -71,9 +71,6 @@ public:
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report statistics after run"));
         options_.push_back(new eckit::option::SimpleOption<bool>("read", "Read rather than write the data"));
         options_.push_back(new eckit::option::SimpleOption<bool>("list", "List rather than write the data"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
-        options_.push_back(new eckit::option::SimpleOption<long>("poll-period", 
-             "Number of seconds to use as polling period for readers in ITT mode"));
         options_.push_back(new eckit::option::SimpleOption<long>("nsteps", "Number of steps"));
         options_.push_back(new eckit::option::SimpleOption<long>("step", "The first step number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
@@ -98,6 +95,15 @@ public:
            "from FDB field key, and both checksums are compared. The checksum of the data payload is also extracted and "
            "recalculated from the message data payload (excluding the key checksum but including the operation identifier), "
            "and both checksums are checked to match."));
+        options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
+        options_.push_back(new eckit::option::SimpleOption<long>("poll-period", 
+             "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
+        options_.push_back(new eckit::option::SimpleOption<long>("ppn", 
+             "Number of processes per node the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
+        options_.push_back(new eckit::option::SimpleOption<string>("nodes", 
+             "Comma-separated list of nodes the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
+        options_.push_back(new eckit::option::SimpleOption<long>("port", 
+             "Port number to use for TCP communications for the barrier in ITT write mode. Defaults to 7777"));
     }
     ~FDBHammer() override {}
 
@@ -111,11 +117,14 @@ private:
 void FDBHammer::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool
-                       << " [--read] [--list] [--itt] [--poll-period=<period>] [--md-check|--full-check] [--statistics] "
-                          "--nsteps=<nsteps> [--step=<step>] "
-                          "--nensembles=<nensembles> [--number=<number>] "
+                       << " [--read] [--list] [--md-check|--full-check] [--statistics] "
+                          "[--itt] [--poll-period=<period>] [--ppn=<ppn>] "
+                          "[--nodes=<hostname1,hostname2,...>] [--port=<port>] "
+                          "--expver=<expver> --nparams=<nparams>"
                           "--nlevels=<nlevels> [--level=<level>|--levels=<level1,level2,...>] "
-                          "--nparams=<nparams> --expver=<expver> <grib_path>"
+                          "--nensembles=<nensembles> [--number=<number>] "
+                          "--nsteps=<nsteps> [--step=<step>] "
+                          "<grib_path>"
                        << std::endl;
     fdb5::FDBTool::usage(tool);
 }
@@ -164,11 +173,267 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     size_t number      = args.getLong("number", 1);
     size_t nlevels     = args.getLong("nlevels");
     size_t level       = args.getLong("level", 1);
-    std::string levels = args.getLong("levels", "");
+    std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
+
+    if (itt_) {
+        ASSERT(args.has("nodes"));
+        ASSERT(args.has("ppn"));
+    }
+    std::string nodes    = args.getString("nodes");
+    size_t ppn           = args.getLong("ppn");
+    int port             = args.getInt("port", 7777);
 
     const char* buffer = nullptr;
     size_t size = 0;
+
+    void barrier_internode(std::vector<std::string>& nodes, int& port) {
+
+        std::string hostname = Main::hostname();
+
+        if (nodes.size() == 1) {
+            ASSERT(hostname == nodes[0]);
+            return;
+        }
+
+        if (hostname == nodes[0]) {
+
+            /// this is the leader node
+
+            /// accept as many connections as peer nodes, on the designated port.
+            /// read (blocking) a fixed-length message on each connection
+            eckit::net::TCPServer server(port);
+            server.bind();
+            std::vector<eckit::net::TCPSocket> connections;
+            for (auto& it = nodes.begin() + 1; it != nodes.end(); ++it) {
+                /// TODO: what if the connection is never established? When to give up?
+                /// TODO: what if the expected bytes are never sent? When to give up?
+                /// TODO: what if any of the operations here fails and an exception is thrown?
+                ///   will clients hang trying to contact the server?
+                connections.push_back(server.accept());
+                eckit::net::TCPSocket& socket = connections.back();
+                long size = 1_KiB;
+                std::vector<char> message((long) size);
+                long read = socket.read(&message[0], size);
+                std::string expected = "waiting for barrier end signal";
+                ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
+            }
+
+            /// once all nodes are ready, send barrier end signal to all clients.
+            /// create signal message
+            long size = 1_KiB;
+            eckit::MemoryHandle h{(size_t) size};
+            eckit::HandleStream hs{h};
+            h.openForWrite(eckit::Length(0));
+            {
+                eckit::AutoClose closer(h);
+                hs << "barrier end signal";
+            }
+            /// send it
+            for (auto& socket : connections) {
+                /// TODO: can this operation ever hang (e.g. if clients have died?)
+                /// TODO: what if this operation errors? Will other clients hang?
+                /// TODO: is this a non blocking write?
+                socket.write(h.data(), hs.bytesWritten());
+                /// ensure all data is sent
+                socket.closeOutput();
+            }
+
+            /// TODO: ensure client received all data?
+            // for (auto& socket : connections) {
+            //     ///   This waits for client to receive FIN and close connection.
+            //     ASSERT(socket.read(message, size) == 0);
+            // }
+
+            /// the TCPSockets are auto-closed
+            /// the TCPServer is auto-closed
+
+        } else {
+
+            /// this is a client node
+
+            /// create a message to send to server node
+            long size = 1_KiB;
+            eckit::MemoryHandle h{(size_t) size};
+            eckit::HandleStream hs{h};
+            h.openForWrite(eckit::Length(0));
+            {
+                eckit::AutoClose closer(h);
+                hs << "waiting for barrier end signal";
+            }
+
+            /// open connection and send message
+            eckit::net::TCPClient client(nodes[0], port);
+            client.bind();
+            /// TODO: what if the connection is never established? When to give up?
+            /// TODO: what if the expected bytes are never sent? When to give up?
+            /// TODO: what if any of the operations here fails and an exception is thrown?
+            ///   will server hang waiting for client message?
+            eckit::net::TCPSocket& socket = client.connect();
+            socket.write(h.data(), hs.bytesWritten());
+
+            /// wait for barrier end
+            std::vector<char> message((long) size);
+            /// TODO: what if the expected bytes are never received? When to give up?
+            /// TODO: what if any of the operations here fails and an exception is thrown?
+            ///   will server hang waiting for client message?
+            long read = socket.read(&message[0], size);
+            std::string expected = "barrier end signal";
+            ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
+
+            /// TCPSocket is auto-closed
+
+        }
+    }
+
+    void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
+
+        if (ppn == 1) {
+            barrier_internode(nodes, port);
+            return;
+        }
+
+        bool leader_found = false;
+        while (!leader_found) {
+            
+            eckit::PathName run_path("/var/run/user");
+            uid_t uid = ::getuid();
+            eckit::Translator<uid_t, std::string> uid_to_str();
+            run_path /= uid_to_str(uid);
+
+            eckit::PathName wait_fifo = run_path;
+            wait_fifo /= "fdb-hammer.wait.fifo";
+
+            eckit::PathName barrier_fifo = run_path;
+            barrier_fifo /= "fdb-hammer.barrier.fifo";
+
+            /// attempt exclusive create of an application-unique file
+            eckit::PathName pid_file = run_path;
+            pid_file /= "fdb-hammer.pid";
+
+            int fd;
+            try {
+                SYSCALL(fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY));
+            } catch (eckit::FailedSystemCall& e) {
+                if (errno != EEXIST) throw;
+            }
+
+            if (fd >= 0) {
+
+                /// if succeeded, this process is the leader
+                
+                /// the leader PID is written into the file using a fixed length 
+                ///   of 22 numeric characters
+                SYSCALL(::close(fd));
+                eckit::FileHandle fh = pid_file.fileHandle();
+                eckit::HandleStream hs{fh};
+                fh.openForWrite();
+                {
+                    eckit::AutoClose closer(fh);
+                    // hs << (printf("022%d",) ::getpid());
+                    hs << (long) ::getpid();
+                }
+
+                /// a pair of FIFOs are created. One for clients to communicate the leader they are
+                ///   waiting, and another to open in blocking mode until leader opens it for write
+                ///   once it has synchronised with peer nodes
+                if (wait_fifo.exists()) wait_fifo.unlink();
+                SYSCALL(::mkfifo(wait_fifo.localPath()));
+
+                if (barrier_fifo.exists()) barrier_fifo.unlink();
+                SYSCALL(::mkfifo(barrier_fifo.localPath()));
+
+                /// a signal from each peer process in the node is received
+                eckit::FileHandle fh_wait = wait_fifo.fileHandle();
+                eckit::HandleStream hs{fh_wait};
+                /// TODO: handle errors and no-replies on open as well as on read and unlink
+                fh_wait.openForRead();
+                {
+                    eckit::AutoClose closer(fh_wait);
+                    size_t pending = ppn - 1;
+                    while (pending > 0) {
+                        long pid;
+                        hs >> pid;
+                        --pending;
+                    }
+                }
+                /// remove the wait fifo
+                wait_fifo.unlink();
+
+                /// once all processes in the node are ready, barrier with peer nodes
+                barrier_internode(nodes, hostname, port);
+
+                /// once all nodes are ready, open the barrier fifo for write which will
+                ///   release all waiting peer processes in the node
+                eckit::FileHandle fh_barrier = barrier_fifo.fileHandle();
+                /// TODO: handle errors and no-replies on open as well as unlink
+                fh_barrier.openForWrite();
+                {
+                    eckit::AutoClose closer(fh_barrier);
+                }
+                /// remove the barrier fifo
+                /// TODO: ensure immediately unlinking after open for write will give
+                ///   enough time for all clients to be notified the FIFO was opened
+                barrier_fifo.unlink();
+
+                pid_file.unlink();
+
+            } else {
+
+                /// otherwise, the process is a client
+
+                /// the leader PID is read from the file
+                eckit::FileHandle fh = pid_file.fileHandle();
+                long pid;
+                eckit::Length size = fh.openForRead();
+                {
+                    eckit::AutoClose closer(fh);
+                    /// the PID file may be empty if trying too soon
+                    if (size == 0) {
+                        fh.close();
+                        ::sleep(1);
+                        size = fh.openForRead();
+                    }
+                    if (size == 0) {
+                        throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
+                    }
+                    fh >> pid;
+                }
+                pid_t leader_pid = (long) pid;
+
+                /// the leadr PID is checked to exist. If not, clean up and 
+                /// restart election procedure
+                if (::kill(leader_pid, 0) != 0) {
+                    try {
+                        pid_file.unlink();
+                    } catch (eckit::FailedSystemCall& e) {
+                        if (errno != ENOENT) throw;
+                    }
+                    continue;
+                }
+
+                /// wait for leader to open barrier FIFO to signal barrier end
+                eckit::FileHandle fh_barrier = barrier_fifo.fileHandle();
+                /// TODO: handle errors and no-replies on opens as well as on write
+                fh_barrier.openForRead();
+                {
+                    eckit::AutoClose closer(fh_barrier);
+
+                    /// signal the leader this process is waiting
+                    eckit::FileHandle fh_wait = wait_fifo.fileHandle();
+                    eckit::HandleStream hs{fh_wait};
+                    fh_wait.openForWrite();
+                    {
+                        eckit::AutoClose closer(fh_wait);
+                        hs << (long) ::getpid();
+                    }
+                }
+
+            }
+
+            leader_found = true
+        }
+    }
 
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
@@ -184,6 +449,13 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
         }
     }
 
+    std::vector<std::string> nodelist;
+    if (args.has("nodes")) {
+        for (const auto& element : eckit::Tokenizer(",").tokenize(nodes)) {
+            nodelist.push_back(element);
+        }
+    }
+
     fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
     std::string expver = args.getString("expver");
@@ -192,6 +464,21 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
     std::string cls = args.getString("class");
     size = cls.length();
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
+
+    if (nensembles > 1) {
+        /// @note: Usually, fdb-hammer is run on multiple nodes and concurrent processes.
+        ///   It is recommended to have all writer processes in a node configured to archive
+        ///   fields for a same member. If running on only a few nodes or a single node, 
+        ///   it is recommended to have a group of the processes run in every node configured
+        ///   to archive fields for a same member.
+        ///   The fdb-hammer-parallel scripts enforce these recommendations, and it would 
+        ///   therefore be a bug if an fdb-hammer process were configured to archive fields for 
+        ///   more than one member.
+        ///   Only if fdb-hammer is run manually as a single process it would possibly be
+        ///   sensible to have it configured to archive fields for multiple members. 
+        Log::warning() << "A writer fdb-hammer process has been configured to archive " <<
+            "fields for multiple members (" << nensembles << ")." << std::endl;
+    }
 
     eckit::Translator<size_t,std::string> str;
 
@@ -204,12 +491,12 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
     timer.start();
 
-    for (size_t member = number; member <= nensembles + number; ++member) {
-        if (args.has("nensembles")) {
-            CODES_CHECK(codes_set_long(handle, "number", member), 0);
-        }
-        for (size_t istep = step; istep < nsteps + step; ++istep) {
-            CODES_CHECK(codes_set_long(handle, "step", istep), 0);
+    for (size_t istep = step; istep < nsteps + step; ++istep) {
+        CODES_CHECK(codes_set_long(handle, "step", istep), 0);
+        for (size_t member = number; member <= nensembles + number; ++member) {
+            if (args.has("nensembles")) {
+                CODES_CHECK(codes_set_long(handle, "number", member), 0);
+            }
             for (const auto& ilevel : levelist) {
                 CODES_CHECK(codes_set_long(handle, "level", ilevel), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
@@ -327,6 +614,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
             if (member == nensembles && step == (nsteps - 1)) gettimeofday(&tval_after_io, NULL);
             gribTimer.start();
         }
+
+        if (itt_) barrier(ppn, nodelist, port);
+
     }
 
     gribTimer.stop();
@@ -355,9 +645,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
 }
 
-
 void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
-
 
     fdb5::MessageDecoder decoder;
     std::vector<metkit::mars::MarsRequest> requests = decoder.messageToRequests(args(0));
@@ -384,8 +672,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
 
     std::vector<size_t> levelist;
     if (args.has("levels")) {
-        for (const auto& element : eckit::Tokenizer(",").tokenize(levels) {
-            levelist.push_back(eckit::Translator<std::string, size_t>()(element);
+        for (const auto& element : eckit::Tokenizer(",").tokenize(levels)) {
+            levelist.push_back(eckit::Translator<std::string, size_t>()(element));
         }
     } else {
         for (size_t ilevel = level; ilevel <= nlevels + level; ++ilevel) {
@@ -406,21 +694,60 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
         std::shuffle(std::begin(paramlist), std::end(paramlist), rng);
     }
 
+    if (itt_ && nsteps > 1) {
+        /// @note: Usually, fdb-hammer in ITT mode is run on multiple nodes and concurrent
+        ///   processes. All reader processes in a node are set to retrieve fields for 
+        ///   one step at a time. If there are more steps than reader nodes, the steps are
+        ///   processed in a round-robin fashion across the available nodes.
+        ///   The ITT benchmark scripts run a new set of fdb-hammer processes in every reader
+        ///   node for every subsequent step assigned to that node, and it would therefore be
+        ///   a bug if a single fdb-hammer reader process in ITT mode were configured to 
+        ///   retrieve fields for multiple steps.
+        Log::warning() << "A reader fdb-hammer process in ITT mode has been configured to " <<
+            "retrieve fields for multiple steps (" << nsteps << ")." << std::endl;
+    }
+
     struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
 
+TODO: the polling approach would badly affect DAOS and Ceph
+
+do this!!!
+    metkit::mars::MarsRequest mars_list_request = requests[0];
+    mars_list_request.setValue("number", "1/to/" + number + nensembles);
+    mars_list_request.setValue("levelist", levelist join by /);
+    mars_list_request.setValue("param", paramlist join by /);
+
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
-    fdb5::FDBToolRequest list_request{request, false};
     size_t fieldsRead = 0;
 
-    for (size_t member = number; member <= nensembles + number; ++member) {
-        if (args.has("nensembles")) {
-            request.setValue("number", member);
+    for (size_t istep = step; istep < nsteps + step; ++istep) {
+        request.setValue("step", step);
+        if (itt_) {
+            /// @note: ensure the step to retrieve data for has been fully 
+            ///   archived+flushed by listing all of its fields
+            mars_list_request.setValue("step", step);
+            fdb5::FDBToolRequest list_request{mars_list_request, false};
+            bool dataReady = false;
+            while (!dataReady) {
+                fdb.emplace(config(args, userConfig));
+                auto listObject = fdb->list(list_request);
+                size_t count = 0;
+                fdb5::ListElement info;
+                while (listObject.next(info)) ++count;
+                if (count == 0) {
+                    dataReady = true;
+                } else {
+                    sleep(poll_period);
+                }
+            }
         }
-        for (size_t istep = step; istep < nsteps; ++istep) {
-            request.setValue("step", step);
+        for (size_t member = number; member <= nensembles + number; ++member) {
+            if (args.has("nensembles")) {
+                request.setValue("number", member);
+            }
             for (const auto& ilevel : levelist) {
                 request.setValue("levelist", ilevel);
                 for (const auto& param : paramlist) {
@@ -430,21 +757,6 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
                                 << ", param: " << real_param << std::endl;
 
                     if (member == number && istep == step && ilevel == level && param == 1) {
-                        if (itt_) {
-                            bool dataReady = false;
-                            while (!dataReady) {
-                                fdb.emplace(config(args, userConfig));
-                                auto listObject = fdb->list(list_request);
-                                size_t count = 0;
-                                fdb5::ListElement info;
-                                while (listObject.next(info)) ++count;
-                                if (count > 0) {
-                                    dataReady = true;
-                                } else {
-                                    sleep(poll_period);
-                                }
-                            }
-                        }
                         gettimeofday(&tval_before_io, NULL);
                     }
                     handles.add(fdb->retrieve(request));
@@ -496,6 +808,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
         eckit::message::Reader reader(mh.value());
         eckit::message::Message msg;
 
+TODO: fix these loops
         for (size_t member = 1; member <= nensembles; ++member) {
             for (size_t step = 0; step < nsteps; ++step) {
                 for (size_t lev = 1; lev <= nlevels; ++lev) {
