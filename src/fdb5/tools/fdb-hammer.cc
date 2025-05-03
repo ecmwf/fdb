@@ -39,12 +39,20 @@
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
 
+#include <fcntl.h>
+#include <signal.h>
+#include "eckit/utils/Literals.h"
+#include "eckit/net/TCPServer.h"
+#include "eckit/net/TCPClient.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/serialisation/HandleStream.h"
+
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
 const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
 
-
 using namespace eckit;
 
+using namespace eckit::literals;
 
 class FDBHammer : public fdb5::FDBTool {
 
@@ -77,7 +85,7 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("number", "The first ensemble number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
         options_.push_back(new eckit::option::SimpleOption<long>("level", "The first level number to use"));
-        options_.push_back(new eckit::option::SimpleOption<string>("levels", "Comma-separated list of level numbers to use"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("levels", "Comma-separated list of level numbers to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
@@ -100,7 +108,7 @@ public:
              "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
         options_.push_back(new eckit::option::SimpleOption<long>("ppn", 
              "Number of processes per node the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
-        options_.push_back(new eckit::option::SimpleOption<string>("nodes", 
+        options_.push_back(new eckit::option::SimpleOption<std::string>("nodes", 
              "Comma-separated list of nodes the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
         options_.push_back(new eckit::option::SimpleOption<long>("port", 
              "Port number to use for TCP communications for the barrier in ITT write mode. Defaults to 7777"));
@@ -148,6 +156,258 @@ void FDBHammer::init(const eckit::option::CmdArgs& args)
     if (full_check_) md_check_ = false;
 }
 
+
+void barrier_internode(std::vector<std::string>& nodes, int& port) {
+
+    std::string hostname = Main::hostname();
+
+    if (nodes.size() == 1) {
+        ASSERT(hostname == nodes[0]);
+        return;
+    }
+
+    if (hostname == nodes[0]) {
+
+        /// this is the leader node
+
+        /// accept as many connections as peer nodes, on the designated port.
+        /// read (blocking) a fixed-length message on each connection
+        eckit::net::TCPServer server(port);
+        // server.bind();
+        std::vector<eckit::net::TCPSocket> connections(nodes.size() - 1);
+        int i = 0;
+        for (auto it = std::next(nodes.begin()); it != nodes.end(); ++it) {
+            /// TODO: what if the connection is never established? When to give up?
+            /// TODO: what if the expected bytes are never sent? When to give up?
+            /// TODO: what if any of the operations here fails and an exception is thrown?
+            ///   will clients hang trying to contact the server?
+            connections[i] = server.accept();
+            eckit::net::TCPSocket& socket = connections[i];
+            long size = 1_KiB;
+            std::vector<char> message((long) size);
+            long read = socket.read(&message[0], size);
+            std::string expected = "waiting for barrier end signal";
+            ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
+            ++i;
+        }
+
+        /// once all nodes are ready, send barrier end signal to all clients.
+        /// create signal message
+        long size = 1_KiB;
+        eckit::MemoryHandle h{(size_t) size};
+        eckit::HandleStream hs{h};
+        h.openForWrite(eckit::Length(0));
+        {
+            eckit::AutoClose closer(h);
+            hs << "barrier end signal";
+        }
+        /// send it
+        for (auto& socket : connections) {
+            /// TODO: can this operation ever hang (e.g. if clients have died?)
+            /// TODO: what if this operation errors? Will other clients hang?
+            /// TODO: is this a non blocking write?
+            socket.write(h.data(), hs.bytesWritten());
+            /// ensure all data is sent
+            socket.closeOutput();
+        }
+
+        /// TODO: ensure client received all data?
+        // for (auto& socket : connections) {
+        //     ///   This waits for client to receive FIN and close connection.
+        //     ASSERT(socket.read(message, size) == 0);
+        // }
+
+        /// the TCPSockets are auto-closed
+        /// the TCPServer is auto-closed
+
+    } else {
+
+        /// this is a client node
+
+        /// create a message to send to server node
+        long size = 1_KiB;
+        eckit::MemoryHandle h{(size_t) size};
+        eckit::HandleStream hs{h};
+        h.openForWrite(eckit::Length(0));
+        {
+            eckit::AutoClose closer(h);
+            hs << "waiting for barrier end signal";
+        }
+
+        /// open connection and send message
+        eckit::net::TCPClient client{};
+        // client.bind();
+        /// TODO: what if the connection is never established? When to give up?
+        /// TODO: what if the expected bytes are never sent? When to give up?
+        /// TODO: what if any of the operations here fails and an exception is thrown?
+        ///   will server hang waiting for client message?
+        eckit::net::TCPSocket& socket = client.connect(nodes[0], port);
+        socket.write(h.data(), hs.bytesWritten());
+
+        /// wait for barrier end
+        std::vector<char> message((long) size);
+        /// TODO: what if the expected bytes are never received? When to give up?
+        /// TODO: what if any of the operations here fails and an exception is thrown?
+        ///   will server hang waiting for client message?
+        long read = socket.read(&message[0], size);
+        std::string expected = "barrier end signal";
+        ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
+
+        /// TCPSocket is auto-closed
+
+    }
+}
+
+void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
+
+    if (ppn == 1) {
+        barrier_internode(nodes, port);
+        return;
+    }
+
+    bool leader_found = false;
+    while (!leader_found) {
+        
+        eckit::PathName run_path("/var/run/user");
+        uid_t uid = ::getuid();
+        eckit::Translator<uid_t, std::string> uid_to_str;
+        run_path /= uid_to_str(uid);
+
+        eckit::PathName wait_fifo = run_path;
+        wait_fifo /= "fdb-hammer.wait.fifo";
+
+        eckit::PathName barrier_fifo = run_path;
+        barrier_fifo /= "fdb-hammer.barrier.fifo";
+
+        /// attempt exclusive create of an application-unique file
+        eckit::PathName pid_file = run_path;
+        pid_file /= "fdb-hammer.pid";
+
+        int fd;
+        try {
+            SYSCALL(fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY));
+        } catch (eckit::FailedSystemCall& e) {
+            if (errno != EEXIST) throw;
+        }
+
+        if (fd >= 0) {
+
+            /// if succeeded, this process is the leader
+            
+            /// the leader PID is written into the file using a fixed length 
+            ///   of 22 numeric characters
+            SYSCALL(::close(fd));
+            std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
+            eckit::HandleStream hs{*fh};
+            fh->openForWrite(eckit::Length(sizeof(long)));
+            {
+                eckit::AutoClose closer(*fh);
+                // hs << (printf("022%d",) ::getpid());
+                hs << (long) ::getpid();
+            }
+
+            /// a pair of FIFOs are created. One for clients to communicate the leader they are
+            ///   waiting, and another to open in blocking mode until leader opens it for write
+            ///   once it has synchronised with peer nodes
+            if (wait_fifo.exists()) wait_fifo.unlink();
+            SYSCALL(::mkfifo(wait_fifo.localPath(), 0666));
+
+            if (barrier_fifo.exists()) barrier_fifo.unlink();
+            SYSCALL(::mkfifo(barrier_fifo.localPath(), 0666));
+
+            /// a signal from each peer process in the node is received
+            std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo.fileHandle());
+            eckit::HandleStream hs_wait{*fh_wait};
+            /// TODO: handle errors and no-replies on open as well as on read and unlink
+            fh_wait->openForRead();
+            {
+                eckit::AutoClose closer(*fh_wait);
+                size_t pending = ppn - 1;
+                while (pending > 0) {
+                    long pid;
+                    hs_wait >> pid;
+                    --pending;
+                }
+            }
+            /// remove the wait fifo
+            wait_fifo.unlink();
+
+            /// once all processes in the node are ready, barrier with peer nodes
+            barrier_internode(nodes, port);
+
+            /// once all nodes are ready, open the barrier fifo for write which will
+            ///   release all waiting peer processes in the node
+            std::unique_ptr<eckit::DataHandle> fh_barrier(barrier_fifo.fileHandle());
+            /// TODO: handle errors and no-replies on open as well as unlink
+            fh_barrier->openForWrite(eckit::Length(0));
+            {
+                eckit::AutoClose closer(*fh_barrier);
+            }
+            /// remove the barrier fifo
+            /// TODO: ensure immediately unlinking after open for write will give
+            ///   enough time for all clients to be notified the FIFO was opened
+            barrier_fifo.unlink();
+
+            pid_file.unlink();
+
+        } else {
+
+            /// otherwise, the process is a client
+
+            /// the leader PID is read from the file
+            std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
+            eckit::HandleStream hs{*fh};
+            long pid;
+            eckit::Length size = fh->openForRead();
+            {
+                eckit::AutoClose closer(*fh);
+                /// the PID file may be empty if trying too soon
+                if (size == eckit::Length(0)) {
+                    fh->close();
+                    ::sleep(1);
+                    size = fh->openForRead();
+                }
+                if (size == eckit::Length(0)) {
+                    throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
+                }
+                hs >> pid;
+            }
+            pid_t leader_pid = (long) pid;
+
+            /// the leadr PID is checked to exist. If not, clean up and 
+            /// restart election procedure
+            if (::kill(leader_pid, 0) != 0) {
+                try {
+                    pid_file.unlink();
+                } catch (eckit::FailedSystemCall& e) {
+                    if (errno != ENOENT) throw;
+                }
+                continue;
+            }
+
+            /// wait for leader to open barrier FIFO to signal barrier end
+            std::unique_ptr<eckit::DataHandle> fh_barrier(barrier_fifo.fileHandle());
+            /// TODO: handle errors and no-replies on opens as well as on write
+            fh_barrier->openForRead();
+            {
+                eckit::AutoClose closer(*fh_barrier);
+
+                /// signal the leader this process is waiting
+                std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo.fileHandle());
+                eckit::HandleStream hs_wait{*fh_wait};
+                fh_wait->openForWrite(eckit::Length(sizeof(long)));
+                {
+                    eckit::AutoClose closer(*fh_wait);
+                    hs_wait << (long) ::getpid();
+                }
+            }
+
+        }
+
+        leader_found = true;
+    }
+}
+
 void FDBHammer::execute(const eckit::option::CmdArgs &args) {
 
     if (args.getBool("read", false)) {
@@ -186,254 +446,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
     const char* buffer = nullptr;
     size_t size = 0;
-
-    void barrier_internode(std::vector<std::string>& nodes, int& port) {
-
-        std::string hostname = Main::hostname();
-
-        if (nodes.size() == 1) {
-            ASSERT(hostname == nodes[0]);
-            return;
-        }
-
-        if (hostname == nodes[0]) {
-
-            /// this is the leader node
-
-            /// accept as many connections as peer nodes, on the designated port.
-            /// read (blocking) a fixed-length message on each connection
-            eckit::net::TCPServer server(port);
-            server.bind();
-            std::vector<eckit::net::TCPSocket> connections;
-            for (auto& it = nodes.begin() + 1; it != nodes.end(); ++it) {
-                /// TODO: what if the connection is never established? When to give up?
-                /// TODO: what if the expected bytes are never sent? When to give up?
-                /// TODO: what if any of the operations here fails and an exception is thrown?
-                ///   will clients hang trying to contact the server?
-                connections.push_back(server.accept());
-                eckit::net::TCPSocket& socket = connections.back();
-                long size = 1_KiB;
-                std::vector<char> message((long) size);
-                long read = socket.read(&message[0], size);
-                std::string expected = "waiting for barrier end signal";
-                ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
-            }
-
-            /// once all nodes are ready, send barrier end signal to all clients.
-            /// create signal message
-            long size = 1_KiB;
-            eckit::MemoryHandle h{(size_t) size};
-            eckit::HandleStream hs{h};
-            h.openForWrite(eckit::Length(0));
-            {
-                eckit::AutoClose closer(h);
-                hs << "barrier end signal";
-            }
-            /// send it
-            for (auto& socket : connections) {
-                /// TODO: can this operation ever hang (e.g. if clients have died?)
-                /// TODO: what if this operation errors? Will other clients hang?
-                /// TODO: is this a non blocking write?
-                socket.write(h.data(), hs.bytesWritten());
-                /// ensure all data is sent
-                socket.closeOutput();
-            }
-
-            /// TODO: ensure client received all data?
-            // for (auto& socket : connections) {
-            //     ///   This waits for client to receive FIN and close connection.
-            //     ASSERT(socket.read(message, size) == 0);
-            // }
-
-            /// the TCPSockets are auto-closed
-            /// the TCPServer is auto-closed
-
-        } else {
-
-            /// this is a client node
-
-            /// create a message to send to server node
-            long size = 1_KiB;
-            eckit::MemoryHandle h{(size_t) size};
-            eckit::HandleStream hs{h};
-            h.openForWrite(eckit::Length(0));
-            {
-                eckit::AutoClose closer(h);
-                hs << "waiting for barrier end signal";
-            }
-
-            /// open connection and send message
-            eckit::net::TCPClient client(nodes[0], port);
-            client.bind();
-            /// TODO: what if the connection is never established? When to give up?
-            /// TODO: what if the expected bytes are never sent? When to give up?
-            /// TODO: what if any of the operations here fails and an exception is thrown?
-            ///   will server hang waiting for client message?
-            eckit::net::TCPSocket& socket = client.connect();
-            socket.write(h.data(), hs.bytesWritten());
-
-            /// wait for barrier end
-            std::vector<char> message((long) size);
-            /// TODO: what if the expected bytes are never received? When to give up?
-            /// TODO: what if any of the operations here fails and an exception is thrown?
-            ///   will server hang waiting for client message?
-            long read = socket.read(&message[0], size);
-            std::string expected = "barrier end signal";
-            ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
-
-            /// TCPSocket is auto-closed
-
-        }
-    }
-
-    void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
-
-        if (ppn == 1) {
-            barrier_internode(nodes, port);
-            return;
-        }
-
-        bool leader_found = false;
-        while (!leader_found) {
-            
-            eckit::PathName run_path("/var/run/user");
-            uid_t uid = ::getuid();
-            eckit::Translator<uid_t, std::string> uid_to_str();
-            run_path /= uid_to_str(uid);
-
-            eckit::PathName wait_fifo = run_path;
-            wait_fifo /= "fdb-hammer.wait.fifo";
-
-            eckit::PathName barrier_fifo = run_path;
-            barrier_fifo /= "fdb-hammer.barrier.fifo";
-
-            /// attempt exclusive create of an application-unique file
-            eckit::PathName pid_file = run_path;
-            pid_file /= "fdb-hammer.pid";
-
-            int fd;
-            try {
-                SYSCALL(fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY));
-            } catch (eckit::FailedSystemCall& e) {
-                if (errno != EEXIST) throw;
-            }
-
-            if (fd >= 0) {
-
-                /// if succeeded, this process is the leader
-                
-                /// the leader PID is written into the file using a fixed length 
-                ///   of 22 numeric characters
-                SYSCALL(::close(fd));
-                eckit::FileHandle fh = pid_file.fileHandle();
-                eckit::HandleStream hs{fh};
-                fh.openForWrite();
-                {
-                    eckit::AutoClose closer(fh);
-                    // hs << (printf("022%d",) ::getpid());
-                    hs << (long) ::getpid();
-                }
-
-                /// a pair of FIFOs are created. One for clients to communicate the leader they are
-                ///   waiting, and another to open in blocking mode until leader opens it for write
-                ///   once it has synchronised with peer nodes
-                if (wait_fifo.exists()) wait_fifo.unlink();
-                SYSCALL(::mkfifo(wait_fifo.localPath()));
-
-                if (barrier_fifo.exists()) barrier_fifo.unlink();
-                SYSCALL(::mkfifo(barrier_fifo.localPath()));
-
-                /// a signal from each peer process in the node is received
-                eckit::FileHandle fh_wait = wait_fifo.fileHandle();
-                eckit::HandleStream hs{fh_wait};
-                /// TODO: handle errors and no-replies on open as well as on read and unlink
-                fh_wait.openForRead();
-                {
-                    eckit::AutoClose closer(fh_wait);
-                    size_t pending = ppn - 1;
-                    while (pending > 0) {
-                        long pid;
-                        hs >> pid;
-                        --pending;
-                    }
-                }
-                /// remove the wait fifo
-                wait_fifo.unlink();
-
-                /// once all processes in the node are ready, barrier with peer nodes
-                barrier_internode(nodes, hostname, port);
-
-                /// once all nodes are ready, open the barrier fifo for write which will
-                ///   release all waiting peer processes in the node
-                eckit::FileHandle fh_barrier = barrier_fifo.fileHandle();
-                /// TODO: handle errors and no-replies on open as well as unlink
-                fh_barrier.openForWrite();
-                {
-                    eckit::AutoClose closer(fh_barrier);
-                }
-                /// remove the barrier fifo
-                /// TODO: ensure immediately unlinking after open for write will give
-                ///   enough time for all clients to be notified the FIFO was opened
-                barrier_fifo.unlink();
-
-                pid_file.unlink();
-
-            } else {
-
-                /// otherwise, the process is a client
-
-                /// the leader PID is read from the file
-                eckit::FileHandle fh = pid_file.fileHandle();
-                long pid;
-                eckit::Length size = fh.openForRead();
-                {
-                    eckit::AutoClose closer(fh);
-                    /// the PID file may be empty if trying too soon
-                    if (size == 0) {
-                        fh.close();
-                        ::sleep(1);
-                        size = fh.openForRead();
-                    }
-                    if (size == 0) {
-                        throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
-                    }
-                    fh >> pid;
-                }
-                pid_t leader_pid = (long) pid;
-
-                /// the leadr PID is checked to exist. If not, clean up and 
-                /// restart election procedure
-                if (::kill(leader_pid, 0) != 0) {
-                    try {
-                        pid_file.unlink();
-                    } catch (eckit::FailedSystemCall& e) {
-                        if (errno != ENOENT) throw;
-                    }
-                    continue;
-                }
-
-                /// wait for leader to open barrier FIFO to signal barrier end
-                eckit::FileHandle fh_barrier = barrier_fifo.fileHandle();
-                /// TODO: handle errors and no-replies on opens as well as on write
-                fh_barrier.openForRead();
-                {
-                    eckit::AutoClose closer(fh_barrier);
-
-                    /// signal the leader this process is waiting
-                    eckit::FileHandle fh_wait = wait_fifo.fileHandle();
-                    eckit::HandleStream hs{fh_wait};
-                    fh_wait.openForWrite();
-                    {
-                        eckit::AutoClose closer(fh_wait);
-                        hs << (long) ::getpid();
-                    }
-                }
-
-            }
-
-            leader_found = true
-        }
-    }
 
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
@@ -521,10 +533,10 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
                         // generate a checksum of the FDB key
                         fdb5::Key key({
-                            {"number", str(member+number-1)},
-                            {"step", str(step)},
-                            {"level", str(lev+level-1)},
-                            {"param", str(real_param)},
+                            {"number", str(member)},
+                            {"step", str(istep)},
+                            {"level", str(ilevel)},
+                            {"param", str(param)},
                         });
                         std::string key_string(key);
                         eckit::MD5 md5(key_string);
@@ -659,7 +671,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     size_t number      = args.getLong("number", 1);
     size_t nlevels     = args.getLong("nlevels");
     size_t level       = args.getLong("level", 1);
-    std::string levels = args.getLong("levels", "");
+    std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
     size_t poll_period = args.getLong("poll-period", 1);
 
@@ -711,13 +723,27 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     eckit::Timer timer;
     timer.start();
 
-TODO: the polling approach would badly affect DAOS and Ceph
+    eckit::Translator<size_t,std::string> str;
 
-do this!!!
     metkit::mars::MarsRequest mars_list_request = requests[0];
-    mars_list_request.setValue("number", "1/to/" + number + nensembles);
-    mars_list_request.setValue("levelist", levelist join by /);
-    mars_list_request.setValue("param", paramlist join by /);
+
+    mars_list_request.setValue("number", str(number) + "/to/" + str(number + nensembles));
+
+    std::string levelist_str;
+    std::string sep = "";
+    for (auto& i : levelist) {
+        levelist_str += sep + str(i);
+        sep = "/";
+    }
+    mars_list_request.setValue("levelist", levelist_str);
+
+    std::string paramlist_str;
+    sep = "";
+    for (auto& i : paramlist) {
+        paramlist_str += sep + str(i);
+        sep = "/";
+    }
+    mars_list_request.setValue("param", paramlist_str);
 
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
@@ -754,7 +780,7 @@ do this!!!
                     request.setValue("param", param);
 
                     Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                << ", param: " << real_param << std::endl;
+                                << ", param: " << param << std::endl;
 
                     if (member == number && istep == step && ilevel == level && param == 1) {
                         gettimeofday(&tval_before_io, NULL);
@@ -808,15 +834,10 @@ do this!!!
         eckit::message::Reader reader(mh.value());
         eckit::message::Message msg;
 
-TODO: fix these loops
-        for (size_t member = 1; member <= nensembles; ++member) {
-            for (size_t step = 0; step < nsteps; ++step) {
-                for (size_t lev = 1; lev <= nlevels; ++lev) {
-                    for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-                        // GRIB API only allows us to use certain parameters
-                        while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-                            real_param++;
-                        }
+        for (size_t istep = step; istep < nsteps + step; ++istep) {
+            for (size_t member = number; member <= nensembles + number; ++member) {
+                for (const auto& ilevel : levelist) {
+                    for (const auto& param : paramlist) {
 
                         if (!(msg = reader.next())) throw eckit::Exception("Found less fields than expected.");
 
@@ -833,10 +854,10 @@ TODO: fix these loops
 
                         // generate a checksum of the FDB key
                         fdb5::Key key({
-                            {"number", str(member+number-1)},
-                            {"step", str(step)},
-                            {"level", str(lev+level-1)},
-                            {"param", str(real_param)},
+                            {"number", str(member)},
+                            {"step", str(istep)},
+                            {"level", str(ilevel)},
+                            {"param", str(param)},
                         });
                         std::string key_string(key);
                         eckit::MD5 md5(key_string);
