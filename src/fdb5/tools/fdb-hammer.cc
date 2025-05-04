@@ -93,12 +93,12 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("md-check", 
+        options_.push_back(new eckit::option::SimpleOption<bool>("md-check",
             "Calculate a metadata checksum (checksum of the field key + unique operation identifier) on every field write and "
            "insert it at the begginning and end of the encoded message data payload. "
            "On every field read, the checksums are extracted from the message data payload, the checksum of the FDB field key "
            "is recalculated, and all checksums are checked to match."));
-        options_.push_back(new eckit::option::SimpleOption<bool>("full-check", 
+        options_.push_back(new eckit::option::SimpleOption<bool>("full-check",
             "Insert a metadata checksum (checksum of the field key + unique operation identifier) and a checksum of the full "
            "field data payload, on every field write, at the begginning of the encoded message data payload. The data checksum "
            "includes the unique operation identifier in its calculation, and the resulting checksum is written at the beginning "
@@ -108,14 +108,16 @@ public:
            "recalculated from the message data payload (excluding the key checksum but including the operation identifier), "
            "and both checksums are checked to match."));
         options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
-        options_.push_back(new eckit::option::SimpleOption<long>("poll-period", 
+        options_.push_back(new eckit::option::SimpleOption<long>("poll-period",
              "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
-        options_.push_back(new eckit::option::SimpleOption<long>("ppn", 
+        options_.push_back(new eckit::option::SimpleOption<long>("ppn",
              "Number of processes per node the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("nodes", 
+        options_.push_back(new eckit::option::SimpleOption<std::string>("nodes",
              "Comma-separated list of nodes the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
-        options_.push_back(new eckit::option::SimpleOption<long>("port", 
+        options_.push_back(new eckit::option::SimpleOption<long>("barrier-port",
              "Port number to use for TCP communications for the barrier in ITT write mode. Defaults to 7777"));
+        options_.push_back(new eckit::option::SimpleOption<long>("barrier-max-wait",
+             "Maximum amount of time to wait for the barrier in ITT write mode. Defaults to 10"));
         options_.push_back(new eckit::option::SimpleOption<bool>("delay", "Add random delay"));
     }
     ~FDBHammer() override {}
@@ -133,8 +135,8 @@ void FDBHammer::usage(const std::string& tool) const {
                        << "Usage: " << tool
                        << " [--read] [--list] [--md-check|--full-check] [--statistics] "
                           "[--itt] [--poll-period=<period>] [--ppn=<ppn>] "
-                          "[--nodes=<hostname1,hostname2,...>] [--port=<port>] "
-                          "--expver=<expver> --nparams=<nparams>"
+                          "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
+                          "--expver=<expver> --nparams=<nparams> "
                           "--nlevels=<nlevels> [--level=<level>|--levels=<level1,level2,...>] "
                           "--nensembles=<nensembles> [--number=<number>] "
                           "--nsteps=<nsteps> [--step=<step>] "
@@ -161,8 +163,7 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
     if (full_check_) md_check_ = false;
 }
 
-
-void barrier_internode(std::vector<std::string>& nodes, int& port) {
+void barrier_internode(std::vector<std::string>& nodes, int& port, int& max_wait) {
 
     std::string hostname = Main::hostname();
 
@@ -176,42 +177,24 @@ void barrier_internode(std::vector<std::string>& nodes, int& port) {
         /// this is the leader node
 
         /// accept as many connections as peer nodes, on the designated port.
-        /// read (blocking) a fixed-length message on each connection
         eckit::net::TCPServer server(port);
         // server.bind();
         std::vector<eckit::net::TCPSocket> connections(nodes.size() - 1);
         int i = 0;
         for (auto it = std::next(nodes.begin()); it != nodes.end(); ++it) {
-            /// TODO: what if the connection is never established? When to give up?
-            /// TODO: what if the expected bytes are never sent? When to give up?
-            /// TODO: what if any of the operations here fails and an exception is thrown?
-            ///   will clients hang trying to contact the server?
-            connections[i] = server.accept();
+            /// TODO: what if a few clients were accepted already, and the following accept
+            ///   times out? Will accepted clients hang in socket.read?
+            connections[i] = server.accept("Waiting for connection", max_wait);
             eckit::net::TCPSocket& socket = connections[i];
-            long size = 1_KiB;
-            std::vector<char> message((long) size);
-            long read = socket.read(&message[0], size);
-            std::string expected = "waiting for barrier end signal";
-            ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
             ++i;
         }
 
         /// once all nodes are ready, send barrier end signal to all clients.
         /// create signal message
-        long size = 1_KiB;
-        eckit::MemoryHandle h{(size_t) size};
-        eckit::HandleStream hs{h};
-        h.openForWrite(eckit::Length(0));
-        {
-            eckit::AutoClose closer(h);
-            hs << "barrier end signal";
-        }
+        std::vector<char> message{'E', 'N', 'D'};
         /// send it
         for (auto& socket : connections) {
-            /// TODO: can this operation ever hang (e.g. if clients have died?)
-            /// TODO: what if this operation errors? Will other clients hang?
-            /// TODO: is this a non blocking write?
-            socket.write(h.data(), hs.bytesWritten());
+            socket.write(&message[0], message.size());
             /// ensure all data is sent
             socket.closeOutput();
         }
@@ -229,50 +212,41 @@ void barrier_internode(std::vector<std::string>& nodes, int& port) {
 
         /// this is a client node
 
-        /// create a message to send to server node
-        long size = 1_KiB;
-        eckit::MemoryHandle h{(size_t) size};
-        eckit::HandleStream hs{h};
-        h.openForWrite(eckit::Length(0));
-        {
-            eckit::AutoClose closer(h);
-            hs << "waiting for barrier end signal";
-        }
-
         /// open connection and send message
         eckit::net::TCPClient client{};
         // client.bind();
-        /// TODO: what if the connection is never established? When to give up?
-        /// TODO: what if the expected bytes are never sent? When to give up?
-        /// TODO: what if any of the operations here fails and an exception is thrown?
-        ///   will server hang waiting for client message?
-        eckit::net::TCPSocket& socket = client.connect(nodes[0], port);
-        socket.write(h.data(), hs.bytesWritten());
+
+        /// TODO: currently, if the server is not yet listening, the client connection will
+        ///   fail and client.connect will retry every 5 seconds until it times out.
+        ///   It could be made to retry more quickly, but ideally the connections between
+        ///   the leader and the clients should be kept open to avoid the overhead of
+        ///   establishing the connections every time the parallel processes need to barrier.
+        eckit::net::TCPSocket& socket = client.connect(nodes[0], port, max_wait / 5);
 
         /// wait for barrier end
-        std::vector<char> message((long) size);
-        /// TODO: what if the expected bytes are never received? When to give up?
-        /// TODO: what if any of the operations here fails and an exception is thrown?
-        ///   will server hang waiting for client message?
+        long size = 3;
+        std::vector<char> message(size);
+        /// TODO: timeout at max_wait in case the connection is too slow or flaky.
+        ///   Use eckit Resources useSelectOnTCPSocket and socketSelectTimeout?
         long read = socket.read(&message[0], size);
-        std::string expected = "barrier end signal";
-        ASSERT(std::string(message.begin(), std::next(message.begin(), read)) == expected);
+        std::string expected = "END";
+        ASSERT(std::string(message.begin(), message.end()) == expected);
 
         /// TCPSocket is auto-closed
 
     }
 }
 
-void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
+void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_wait) {
 
     if (ppn == 1) {
-        barrier_internode(nodes, port);
+        barrier_internode(nodes, port, max_wait);
         return;
     }
 
     bool leader_found = false;
     while (!leader_found) {
-        
+
         eckit::PathName run_path("/var/run/user");
         uid_t uid = ::getuid();
         eckit::Translator<uid_t, std::string> uid_to_str;
@@ -298,8 +272,8 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
         if (fd >= 0) {
 
             /// if succeeded, this process is the leader
-            
-            /// the leader PID is written into the file using a fixed length 
+
+            /// the leader PID is written into the file using a fixed length
             ///   of 22 numeric characters
             SYSCALL(::close(fd));
             std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
@@ -338,7 +312,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
             wait_fifo.unlink();
 
             /// once all processes in the node are ready, barrier with peer nodes
-            barrier_internode(nodes, port);
+            barrier_internode(nodes, port, max_wait);
 
             /// once all nodes are ready, open the barrier fifo for write which will
             ///   release all waiting peer processes in the node
@@ -379,7 +353,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port) {
             }
             pid_t leader_pid = (long) pid;
 
-            /// the leadr PID is checked to exist. If not, clean up and 
+            /// the leadr PID is checked to exist. If not, clean up and
             /// restart election procedure
             if (::kill(leader_pid, 0) != 0) {
                 try {
@@ -448,9 +422,10 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         ASSERT(args.has("nodes"));
         ASSERT(args.has("ppn"));
     }
-    std::string nodes    = args.getString("nodes");
-    size_t ppn           = args.getLong("ppn");
-    int port             = args.getInt("port", 7777);
+    std::string nodes    = args.getString("nodes", "");
+    size_t ppn           = args.getLong("ppn", 1);
+    int port             = args.getInt("barrier-port", 7777);
+    int max_wait         = args.getInt("barrier-max-wait", 10);
 
     const char* buffer = nullptr;
     size_t size        = 0;
@@ -474,7 +449,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             levelist.push_back(eckit::Translator<std::string, size_t>()(element));
         }
     } else {
-        for (size_t ilevel = level; ilevel <= nlevels + level; ++ilevel) {
+        for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
         }
     }
@@ -498,14 +473,14 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     if (nensembles > 1) {
         /// @note: Usually, fdb-hammer is run on multiple nodes and concurrent processes.
         ///   It is recommended to have all writer processes in a node configured to archive
-        ///   fields for a same member. If running on only a few nodes or a single node, 
+        ///   fields for a same member. If running on only a few nodes or a single node,
         ///   it is recommended to have a group of the processes run in every node configured
         ///   to archive fields for a same member.
-        ///   The fdb-hammer-parallel scripts enforce these recommendations, and it would 
-        ///   therefore be a bug if an fdb-hammer process were configured to archive fields for 
+        ///   The fdb-hammer-parallel scripts enforce these recommendations, and it would
+        ///   therefore be a bug if an fdb-hammer process were configured to archive fields for
         ///   more than one member.
         ///   Only if fdb-hammer is run manually as a single process it would possibly be
-        ///   sensible to have it configured to archive fields for multiple members. 
+        ///   sensible to have it configured to archive fields for multiple members.
         Log::warning() << "A writer fdb-hammer process has been configured to archive " <<
             "fields for multiple members (" << nensembles << ")." << std::endl;
     }
@@ -519,11 +494,13 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t writeCount   = 0;
     size_t bytesWritten = 0;
 
+    if (itt_) barrier(ppn, nodelist, port, max_wait);
+
     timer.start();
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
         CODES_CHECK(codes_set_long(handle, "step", istep), 0);
-        for (size_t member = number; member <= nensembles + number; ++member) {
+        for (size_t member = number; member <= nensembles + number - 1; ++member) {
             if (args.has("nensembles")) {
                 CODES_CHECK(codes_set_long(handle, "number", member), 0);
             }
@@ -641,12 +618,12 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             gribTimer.stop();
             elapsed_grib += gribTimer.elapsed();
             archiver.flush();
-            if (member == nensembles && step == (nsteps - 1))
+            if (member == (nensembles + number - 1) && istep == (step + nsteps - 1))
                 gettimeofday(&tval_after_io, NULL);
             gribTimer.start();
         }
 
-        if (itt_) barrier(ppn, nodelist, port);
+        if (itt_) barrier(ppn, nodelist, port, max_wait);
 
     }
 
@@ -704,7 +681,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             levelist.push_back(eckit::Translator<std::string, size_t>()(element));
         }
     } else {
-        for (size_t ilevel = level; ilevel <= nlevels + level; ++ilevel) {
+        for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
         }
     }
@@ -724,12 +701,12 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     if (itt_ && nsteps > 1) {
         /// @note: Usually, fdb-hammer in ITT mode is run on multiple nodes and concurrent
-        ///   processes. All reader processes in a node are set to retrieve fields for 
+        ///   processes. All reader processes in a node are set to retrieve fields for
         ///   one step at a time. If there are more steps than reader nodes, the steps are
         ///   processed in a round-robin fashion across the available nodes.
         ///   The ITT benchmark scripts run a new set of fdb-hammer processes in every reader
         ///   node for every subsequent step assigned to that node, and it would therefore be
-        ///   a bug if a single fdb-hammer reader process in ITT mode were configured to 
+        ///   a bug if a single fdb-hammer reader process in ITT mode were configured to
         ///   retrieve fields for multiple steps.
         Log::warning() << "A reader fdb-hammer process in ITT mode has been configured to " <<
             "retrieve fields for multiple steps (" << nsteps << ")." << std::endl;
@@ -743,7 +720,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     metkit::mars::MarsRequest mars_list_request = requests[0];
 
-    mars_list_request.setValue("number", str(number) + "/to/" + str(number + nensembles));
+    mars_list_request.setValue("number", str(number) + "/to/" + str(number + nensembles - 1));
 
     std::string levelist_str;
     std::string sep = "";
@@ -763,30 +740,31 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
+    fdb.emplace(config(args, userConfig));
     size_t fieldsRead = 0;
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
         request.setValue("step", step);
         if (itt_) {
-            /// @note: ensure the step to retrieve data for has been fully 
+            /// @note: ensure the step to retrieve data for has been fully
             ///   archived+flushed by listing all of its fields
             mars_list_request.setValue("step", step);
             fdb5::FDBToolRequest list_request{mars_list_request, false};
             bool dataReady = false;
             while (!dataReady) {
-                fdb.emplace(config(args, userConfig));
                 auto listObject = fdb->list(list_request);
                 size_t count = 0;
                 fdb5::ListElement info;
                 while (listObject.next(info)) ++count;
-                if (count == 0) {
+                if (count > 0) {
                     dataReady = true;
                 } else {
                     sleep(poll_period);
+                    fdb.emplace(config(args, userConfig));
                 }
             }
         }
-        for (size_t member = number; member <= nensembles + number; ++member) {
+        for (size_t member = number; member <= nensembles + number - 1; ++member) {
             if (args.has("nensembles")) {
                 request.setValue("number", member);
             }
@@ -795,8 +773,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 for (const auto& param : paramlist) {
                     request.setValue("param", param);
 
-                    Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                << ", param: " << param << std::endl;
+                    // Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
+                    //             << ", param: " << param << std::endl;
 
                     if (member == number && istep == step && ilevel == level && param == 1) {
                         gettimeofday(&tval_before_io, NULL);
@@ -851,7 +829,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         eckit::message::Message msg;
 
         for (size_t istep = step; istep < nsteps + step; ++istep) {
-            for (size_t member = number; member <= nensembles + number; ++member) {
+            for (size_t member = number; member <= nensembles + number - 1; ++member) {
                 for (const auto& ilevel : levelist) {
                     for (const auto& param : paramlist) {
 
