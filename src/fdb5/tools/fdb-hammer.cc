@@ -137,7 +137,7 @@ void FDBHammer::usage(const std::string& tool) const {
                           "[--itt] [--poll-period=<period>] [--ppn=<ppn>] "
                           "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
                           "--expver=<expver> --nparams=<nparams> "
-                          "--nlevels=<nlevels> [--level=<level>|--levels=<level1,level2,...>] "
+                          "[--nlevels=<nlevels> [--level=<level>]]|[--levels=<level1,level2,...>] "
                           "--nensembles=<nensembles> [--number=<number>] "
                           "--nsteps=<nsteps> [--step=<step>] "
                           "<grib_path>"
@@ -150,7 +150,6 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
 
     ASSERT(args.has("expver"));
     ASSERT(args.has("class"));
-    ASSERT(args.has("nlevels"));
     ASSERT(args.has("nsteps"));
     ASSERT(args.has("nparams"));
 
@@ -161,6 +160,9 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
     md_check_ = args.getBool("md-check", false);
     full_check_ = args.getBool("full-check", false);
     if (full_check_) md_check_ = false;
+
+    if (!itt_) ASSERT(args.has("nlevels"));
+
 }
 
 void barrier_internode(std::vector<std::string>& nodes, int& port, int& max_wait) {
@@ -264,11 +266,8 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
         pid_file /= "fdb-hammer.pid";
 
         int fd;
-        try {
-            SYSCALL(fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY));
-        } catch (eckit::FailedSystemCall& e) {
-            if (errno != EEXIST) throw;
-        }
+        fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY);
+        if (fd < 0 && errno != EEXIST) throw eckit::FailedSystemCall("open", Here(), errno);
 
         if (fd >= 0) {
 
@@ -309,7 +308,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
                 }
             }
             /// remove the wait fifo
-            wait_fifo.unlink();
+            wait_fifo.unlink(false);
 
             /// once all processes in the node are ready, barrier with peer nodes
             barrier_internode(nodes, port, max_wait);
@@ -325,9 +324,9 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
             /// remove the barrier fifo
             /// TODO: ensure immediately unlinking after open for write will give
             ///   enough time for all clients to be notified the FIFO was opened
-            barrier_fifo.unlink();
+            barrier_fifo.unlink(false);
 
-            pid_file.unlink();
+            pid_file.unlink(false);
 
         } else {
 
@@ -429,6 +428,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     if (itt_) {
         ASSERT(args.has("nodes"));
         ASSERT(args.has("ppn"));
+        ASSERT(args.has("nlevels") || args.has("levels"));
     }
     std::string nodes    = args.getString("nodes", "");
     size_t ppn           = args.getLong("ppn", 1);
@@ -456,6 +456,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         for (const auto& element : eckit::Tokenizer(",").tokenize(levels)) {
             levelist.push_back(eckit::Translator<std::string, size_t>()(element));
         }
+        nlevels = levelist.size();
+        level = levelist[0];
     } else {
         for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
@@ -669,8 +671,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t step        = args.getLong("step", 0);
     size_t nensembles  = args.getLong("nensembles", 1);
     size_t number      = args.getLong("number", 1);
-    size_t nlevels     = args.getLong("nlevels");
-    size_t level       = args.getLong("level", 1);
+    size_t nlevels;
+    size_t level;
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
     size_t poll_period = args.getLong("poll-period", 1);
@@ -684,11 +686,16 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         userConfig.set("useSubToc", true);
 
     std::vector<size_t> levelist;
-    if (args.has("levels")) {
+    if (itt_) {
+        ASSERT(args.has("levels"));
         for (const auto& element : eckit::Tokenizer(",").tokenize(levels)) {
             levelist.push_back(eckit::Translator<std::string, size_t>()(element));
         }
+        nlevels = levelist.size();
+        level = levelist[0];
     } else {
+        nlevels = args.getLong("nlevels");
+        level   = args.getLong("level", 1);
         for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
         }
@@ -728,10 +735,19 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     metkit::mars::MarsRequest mars_list_request = requests[0];
 
-    mars_list_request.setValue("number", str(number) + "/to/" + str(number + nensembles - 1));
+    mars_list_request.setValue("expver", args.getString("expver"));
+    mars_list_request.setValue("class", args.getString("class"));
+
+    std::string number_str = "";
+    std::string sep = "";
+    for (size_t n = number; n <= number + nensembles - 1; ++n) {
+        number_str += str(n) + sep;
+        sep = "/";
+    }
+    mars_list_request.setValue("number", number_str);
 
     std::string levelist_str;
-    std::string sep = "";
+    sep = "";
     for (auto& i : levelist) {
         levelist_str += sep + str(i);
         sep = "/";
@@ -764,7 +780,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 size_t count = 0;
                 fdb5::ListElement info;
                 while (listObject.next(info)) ++count;
-                if (count > 0) {
+                if (count == mars_list_request.count()) {
                     dataReady = true;
                 } else {
                     sleep(poll_period);
