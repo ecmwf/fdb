@@ -221,12 +221,23 @@ void barrier_internode(std::vector<std::string>& nodes, int& port, int& max_wait
         // client.bind();
 
         /// TODO: currently, if the server is not yet listening, the client connection will
-        ///   fail and client.connect will retry every 5 seconds until it times out.
-        ///   It could be made to retry sooner to make the inter-node barrier faster,
-        ///   however a better approach would be to keep connections between the leader and
-        ///   the clients open to avoid the overhead of establishing the connections every
+        ///   fail and will be retried every seconds until timeout.
+        ///   It could be made to retry more frequently to make the inter-node barrier faster,
+        ///   but this would put strain on the network.
+        ///   A better approach would be to keep connections between the leader and the
+        ///   clients open to avoid the overhead of establishing the connections every
         ///   time the parallel processes need to barrier.
-        eckit::net::TCPSocket& socket = client.connect(nodes[0], port, max_wait / 5);
+        int timeout = max_wait;
+        eckit::net::TCPSocket socket;
+        while (timeout > 0) {
+            try {
+                socket = client.connect(nodes[0], port, 0);
+                break;
+            } catch (eckit::TooManyRetries& e) {
+                ::sleep(1);
+                timeout -= 1;
+            }
+        }
 
         /// wait for barrier end
         long size = 3;
@@ -768,7 +779,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             fdb5::FDBToolRequest list_request{mars_list_request, false};
             bool dataReady = false;
             while (!dataReady) {
-                auto listObject = fdb->list(list_request);
+                auto listObject = fdb->list(list_request, true);
                 size_t count = 0;
                 fdb5::ListElement info;
                 while (listObject.next(info)) ++count;
