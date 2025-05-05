@@ -31,6 +31,8 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/utils/Literals.h"
 
+#include "metkit/mars/TypeAny.h"
+
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageArchiver.h"
@@ -522,8 +524,10 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                         real_param++;
                     }
 
-                    Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                << ", param: " << real_param << std::endl;
+                    if (verbose_) {
+                        Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
+                                   << ", param: " << real_param << std::endl;
+                    }
 
                     CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
 
@@ -685,29 +689,31 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     if (!args.has("disable-subtocs"))
         userConfig.set("useSubToc", true);
 
-    std::vector<size_t> levelist;
+    eckit::Translator<size_t,std::string> str;
+
+    std::vector<std::string> levelist;
     if (itt_) {
         ASSERT(args.has("levels"));
         for (const auto& element : eckit::Tokenizer(",").tokenize(levels)) {
-            levelist.push_back(eckit::Translator<std::string, size_t>()(element));
+            levelist.push_back(element);
         }
         nlevels = levelist.size();
-        level = levelist[0];
+        level = eckit::Translator<std::string, size_t>()(levelist[0]);
     } else {
         nlevels = args.getLong("nlevels");
         level   = args.getLong("level", 1);
         for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
-            levelist.push_back(ilevel);
+            levelist.push_back(str(ilevel));
         }
     }
 
-    std::vector<size_t> paramlist;
+    std::vector<std::string> paramlist;
     for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
         // GRIB API only allows us to use certain parameters
         while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
             real_param++;
         }
-        paramlist.push_back(real_param);
+        paramlist.push_back(str(real_param));
     }
     if (itt_) {
         auto rng = std::default_random_engine {};
@@ -731,36 +737,19 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     eckit::Timer timer;
     timer.start();
 
-    eckit::Translator<size_t,std::string> str;
-
     metkit::mars::MarsRequest mars_list_request = requests[0];
 
     mars_list_request.setValue("expver", args.getString("expver"));
     mars_list_request.setValue("class", args.getString("class"));
 
-    std::string number_str = "";
-    std::string sep = "";
+    std::vector<std::string> numberlist;
     for (size_t n = number; n <= number + nensembles - 1; ++n) {
-        number_str += str(n) + sep;
-        sep = "/";
+        numberlist.push_back(str(n));
     }
-    mars_list_request.setValue("number", number_str);
 
-    std::string levelist_str;
-    sep = "";
-    for (auto& i : levelist) {
-        levelist_str += sep + str(i);
-        sep = "/";
-    }
-    mars_list_request.setValue("levelist", levelist_str);
-
-    std::string paramlist_str;
-    sep = "";
-    for (auto& i : paramlist) {
-        paramlist_str += sep + str(i);
-        sep = "/";
-    }
-    mars_list_request.setValue("param", paramlist_str);
+    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
+    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
+    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
 
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
@@ -773,6 +762,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             /// @note: ensure the step to retrieve data for has been fully
             ///   archived+flushed by listing all of its fields
             mars_list_request.setValue("step", step);
+            if (verbose_) {
+                eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
+            }
             fdb5::FDBToolRequest list_request{mars_list_request, false};
             bool dataReady = false;
             while (!dataReady) {
@@ -783,6 +775,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 if (count == mars_list_request.count()) {
                     dataReady = true;
                 } else {
+                    if (verbose_) {
+                        eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
+                    }
                     sleep(poll_period);
                     fdb.emplace(config(args, userConfig));
                 }
@@ -797,10 +792,12 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 for (const auto& param : paramlist) {
                     request.setValue("param", param);
 
-                    // Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                    //             << ", param: " << param << std::endl;
+                    if (verbose_) {
+                        Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
+                                    << ", param: " << param << std::endl;
+                    }
 
-                    if (member == number && istep == step && ilevel == level && param == 1) {
+                    if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
                         gettimeofday(&tval_before_io, NULL);
                     }
                     handles.add(fdb->retrieve(request));
@@ -874,8 +871,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                         fdb5::Key key({
                             {"number", str(member)},
                             {"step", str(istep)},
-                            {"level", str(ilevel)},
-                            {"param", str(param)},
+                            {"level", ilevel},
+                            {"param", param},
                         });
                         std::string key_string(key);
                         eckit::MD5 md5(key_string);
