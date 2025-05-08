@@ -17,7 +17,7 @@ endif()
 ### dependencies and options
 
 ### Documentation
-ecbuild_add_option( FEATURE FDB_DOCUMENTATION 
+ecbuild_add_option( FEATURE FDB_DOCUMENTATION
                     DEFAULT OFF
                     DESCRIPTION "Enable documentation generation" )
 
@@ -68,7 +68,7 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
-find_package(UUID QUIET)
+find_package(LibUUID QUIET)
 
 find_package(DAOS QUIET)
 
@@ -79,7 +79,7 @@ endif()
 
 ecbuild_add_option( FEATURE DUMMY_DAOS
                     DEFAULT ${_default_dummy_daos}
-                    CONDITION UUID_FOUND
+                    CONDITION LibUUID_FOUND
                     DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
 
 if(HAVE_DUMMY_DAOS)
@@ -92,7 +92,7 @@ if(HAVE_DUMMY_DAOS)
 endif()
 
 ecbuild_add_option( FEATURE DAOSFDB
-                    CONDITION DAOS_FOUND AND UUID_FOUND 
+                    CONDITION DAOS_FOUND AND LibUUID_FOUND
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
