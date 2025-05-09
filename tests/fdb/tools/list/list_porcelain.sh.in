@@ -67,7 +67,7 @@ echo "Test normal output"
 
 try fdb-list class=rd,expver=xxxx | tee out
 grep_count "{class=rd,expver=xxxx" 24
-grep_count "^retrieve,$" 1
+grep_count "^list,$" 1
 grep_count "^${tab}.*=.*" 2
 grep_count "^${tab}class=rd" 1
 grep_count "^${tab}expver=xxxx" 1
@@ -84,7 +84,7 @@ echo "Test expansion of date and param without porcelain"
 
 try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=t | tee out
 grep_count "{class=rd,expver=xxxx" 0
-grep_count "^retrieve,$" 1
+grep_count "^list,$" 1
 grep_count "^${tab}.*=.*" 7
 grep_count "^${tab}class=rd" 1
 grep_count "^${tab}expver=xxxx" 1
@@ -102,7 +102,7 @@ line_count 0
 echo "Test expansion of date and param without porcelain"
 
 try fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=138 | tee out
-grep_count "^retrieve,$" 1
+grep_count "^list,$" 1
 grep_count "^${tab}.*=.*" 7
 grep_count "^${tab}class=rd" 1
 grep_count "^${tab}expver=xxxx" 1
