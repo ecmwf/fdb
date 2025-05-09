@@ -93,8 +93,6 @@ private:  // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
-    bool disconnecting_ = false;
-
     std::mutex clientsMutex_;
     std::map<uint32_t, Client*> clients_;
 

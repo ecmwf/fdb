@@ -59,6 +59,10 @@ FDB::~FDB() {
     }
 }
 
+FDB::FDB(FDB&&) = default;
+
+FDB& FDB::operator=(FDB&&) = default;
+
 void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
     archive(key, msg.data(), msg.length());
