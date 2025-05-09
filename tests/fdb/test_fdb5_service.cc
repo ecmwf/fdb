@@ -123,6 +123,7 @@ CASE("test_fdb_stepunit_archive") {
     fdb.flush();
 
     metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest listReq = key.request("list");
 
     {
         fdb5::FDBToolRequest r(req);
@@ -175,12 +176,12 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.values("step", {"0", "to", "2", "by", "30m"});
-    req.unsetValues("param");
+    listReq.values("step", {"0", "to", "2", "by", "30m"});
+    listReq.unsetValues("param");
     {
         metkit::mars::MarsExpension expand{false};
 
-        metkit::mars::MarsRequest expandedRequests = expand.expand(req);
+        metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
         fdb5::FDBToolRequest r(expandedRequests);
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
