@@ -122,7 +122,7 @@ CASE("test_fdb_stepunit_archive") {
     fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
     fdb.flush();
 
-    metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest req     = key.request();
     metkit::mars::MarsRequest listReq = key.request("list");
 
     {
