@@ -129,7 +129,7 @@ void FDBList::execute(const CmdArgs& args) {
         json->startList();
     }
 
-    for (const FDBToolRequest& request : requests()) {
+    for (const FDBToolRequest& request : requests("list")) {
 
         if (!porcelain_) {
             Log::info() << "Listing for request" << std::endl;
