@@ -163,6 +163,9 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
     full_check_ = args.getBool("full-check", false);
     if (full_check_) md_check_ = false;
 
+    if (itt_ && full_check_)
+        throw eckit::Exception("Cannot enable full consistency checks in ITT mode as it randomises data.");
+
     if (!itt_) ASSERT(args.has("nlevels"));
 
 }
@@ -407,6 +410,25 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
     }
 }
 
+uint64_t xorshift(uint64_t& state) {
+    state ^= (state << 13);
+    state ^= (state >> 7);
+    state ^= (state << 17);
+    return state;
+}
+
+double generateRandomDouble(uint64_t& state) {
+    uint64_t randomInt = xorshift(state);
+    return static_cast<double>(randomInt) / std::numeric_limits<uint64_t>::max();
+}
+
+uint64_t generateRandomUint64() {
+    static std::random_device rd;
+    static std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dis;
+    return dis(gen);
+}
+
 void FDBHammer::execute(const eckit::option::CmdArgs& args) {
 
     if (args.getBool("read", false)) {
@@ -517,6 +539,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t writeCount   = 0;
     size_t bytesWritten = 0;
 
+    uint64_t random_seed = generateRandomUint64();
+
     if (itt_) barrier(ppn, nodelist, port, max_wait);
 
     timer.start();
@@ -543,6 +567,20 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                     CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
 
                     CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
+
+                    if (!full_check_) {
+
+                        // get message data offset
+                        long offsetBeforeData = 0, offsetAfterData = 0;
+                        CODES_CHECK(codes_get_long(handle, std::string("offsetBeforeData").c_str(), &offsetBeforeData), 0);
+                        CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
+
+                        // randomise field data
+                        for (int i = offsetBeforeData; i <= (offsetAfterData - sizeof(double)); i += sizeof(double)) {
+                            *((double*)(const_cast<char*>(buffer) + i)) = generateRandomDouble(random_seed);
+                        }
+
+                    }
 
                     if (full_check_ or md_check_) {
 
