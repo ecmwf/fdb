@@ -2,62 +2,120 @@
 How to Setup Database Schema
 ****************************
 
-Minumum Working Example
+The schema describes how data is partitioned in FDB. 
+
+Minimum Working Example
 =======================
 
-::
+.. code-block:: text
+    :caption: A minimal schema
+
     [ class, expver, stream, date, time, domain?
         [ type, levtype
             [ step, levelist?, param ]]]
 
-Notes:
+The above example shows a minimum configuration that configures FDB to ingest
+forecast data from GRIB messages.
+
+Structure of Schema
+===================
+
+Define Keyword Types
+--------------------
+
+By default all keywords use the type 'String'. If you want to use a different
+type you can set a keyword type at the beginning of the schema file.
+Alternatively a keywords datatype can also be defined inside the 'partitioning
+rule' definition, see :ref:`Per Rule Keyword Datatype
+<partition_rule_keyword_datatype>`.
+
+TODO[kkratz]: Explain why you should use types here
+
+.. code-block:: text
+    :caption: Redfining datatypes for keywords
+
+    param:     Param;
+    step:      Step;
+    date;      Date;
+    latitude;  Double;
+    longitude; Double;
+
+Partitioning Rules
+------------------
+
+A Partitioning Rule defines how data is distributed inside FDB based on
+keywords. Each rule is defined by three set of keys: 
+
+The first set of keywords form the *database key*. The *database key*
+identifies the directory where the data is stored.
+
+The second set of keywords form the *co-location key*. The *co-location key*
+identifies the file inside the database directory where the data will be
+stored.
+
+The third set of keywords form the *index key*. The *index key* identifies the
+offset in the file storing the data.
+
+.. code-block:: text
+    :caption: Example rule
+
+    # 'date' and 'time' attributes form the database key
+    [ date, time,  
+    # 'type' and 'levtype' form the co-location key
+        [ type, levtype
+    # 'step' and 'param' form the co-location key
+            [ step, param ]]]
+
+.. _partition_rule_keyword_datatype
+
+Per Rule Keyword Datatype
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Types for keywords can be redefined per rule inside the rules definition.
+Inside the rule definition use ``keyword: type``, e.g.:
+
+.. code-block:: text
+    :caption: Example
+    
+    [date: Date, time
+        [type, levtype
+            [step, param]]]
+
+Optional Keywords
+^^^^^^^^^^^^^^^^^
+
+Rules can declare keywords as optional with ``keyword?``. Optional keywords may
+be omitted when archiving data and will be stored as empty values if not present.
+
+TODO[kkratz]: How do optional keywords impact retrieval/listing?
+TODO[kkratz]: Can this be combined with a local type declaration?
+
+Matching on Keyword Values
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Rules can be further constraint to match only on specific values for keywords.
+This can be defined with: ``keyword=val1/val2/val3``
+
+.. code-block:: text
+    :caption: Example
+    
+    [date, time, stream=enfo/efov
+        [type, levtype
+            [step, param]]]
+    
+
+Rule Grouping
+^^^^^^^^^^^^^
+
+Keyword Types
+=============
 
 
-The schema indexes structure and data collocation policy. It is used to uniquely describe the data that is being stored and indexed. 
 
-The schema uses global attributes that describe the underlying data with each attribute having a name and datatype, these are added at the beginning of the file.
-::
-  param:     Param;
-  step:      Step;
-  date;      Date;
-  latitude;  Double;
-  longitude; Double;
 
-The schema then describes rules for accessing all data stored by the fdb.
 
-Each rule is described using three levels. The first level defines the attributes of the top level directory, the second level defines the attributes used to name the data files, and the third level attributes are used as index keys.
-Example of a rule:
-::
-  [ class=ti/s2, expver, stream, date, time, model
-    [ origin, type, levtype, hdate?
-      [ step, number?, levelist?, param ]]
-  ]
+Operational Considerations
+==========================
 
-Rules can be grouped in the form:
-::
-  [a1, a2, a3 ...
-    b1, b2, b3... [c1, c2, c3...]]
-    B1, B2, B3... [C1, C2, C3...]]
-  ]
+TODO[kkratz]: Explain impacts of partition on operations, when to choose what based on our experience.
 
-A list of values can be given for an attribute.
-::
-  [ ..., stream=enfo/efov, ... ]
-
-Attributes in rules can also be optional using the ? character.
-::
-  [ step, levelist?, param ]
-
-Attributes can be removed using the - character.
-::
-  [grid-]
-
-Rules are then matched if:
-  * the attributes are present or marked optional
-  * a list is provided, one of them matched
-
-An example schema is provided schema_.
-
-.. _schema: schema
-
-## TODO: add more info on the schema
