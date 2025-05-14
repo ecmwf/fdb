@@ -28,15 +28,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EnvVarFileSpaceHandler::EnvVarFileSpaceHandler() :
-    fdbFileSpaceSHandlerEnvVarName_(LibResource<std::string, LibFdb5>(
+EnvVarFileSpaceHandler::EnvVarFileSpaceHandler(const Config& config) : FileSpaceHandler(config), 
+    fdbFileSpaceSHandlerEnvVarName_(eckit::Resource<std::string>(
         "fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST")) {}
 
 EnvVarFileSpaceHandler::~EnvVarFileSpaceHandler() {}
 
 
 PathName EnvVarFileSpaceHandler::select(const Key& key, const FileSpace& fs) const {
-    return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
+    return FileSpaceHandler::lookup("WeightedRandom", config_).selectFileSystem(key, fs);
 }
 
 eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
