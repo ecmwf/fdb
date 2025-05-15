@@ -33,7 +33,8 @@ class Config : public eckit::LocalConfiguration {
 public:  // static methods
 
     static Config make(const eckit::PathName& path,
-                       const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+                       const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
+                       const std::string& fdb_home            = "");
 
 public:  // methods
 

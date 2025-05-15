@@ -34,7 +34,7 @@ class EnvVarFileSpaceHandler : public FileSpaceHandler {
 
 public:  // methods
 
-    EnvVarFileSpaceHandler();
+    EnvVarFileSpaceHandler(const Config& config);
 
     ~EnvVarFileSpaceHandler() override;
 
