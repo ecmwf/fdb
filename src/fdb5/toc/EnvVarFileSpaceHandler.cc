@@ -28,9 +28,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EnvVarFileSpaceHandler::EnvVarFileSpaceHandler(const Config& config) : FileSpaceHandler(config), 
-    fdbFileSpaceSHandlerEnvVarName_(eckit::Resource<std::string>(
-        "fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST")) {}
+EnvVarFileSpaceHandler::EnvVarFileSpaceHandler(const Config& config) :
+    FileSpaceHandler(config),
+    fdbFileSpaceSHandlerEnvVarName_(
+        eckit::Resource<std::string>("fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST")) {}
 
 EnvVarFileSpaceHandler::~EnvVarFileSpaceHandler() {}
 

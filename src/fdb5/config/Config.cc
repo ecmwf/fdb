@@ -90,7 +90,6 @@ Config Config::expandConfig() const {
     // 'fdb_home' value in config
     if (!found) {
         PathName configDir = expandPath("~fdb/etc/fdb");
-
         for (const std::string& stem :
              {Main::instance().displayName(), Main::instance().name(), std::string("config")}) {
             for (const char* tail : {".yaml", ".json"}) {
@@ -106,7 +105,8 @@ Config Config::expandConfig() const {
     }
 
     if (found) {
-        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration(), getString("fdb_home", ""));
+        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration(),
+                            getString("fdb_home", ""));
     }
 
     // No expandable config available. Use the skeleton config.
@@ -126,7 +126,6 @@ PathName Config::expandPath(const std::string& path) const {
     ASSERT(path.size() > 0);
     if (path[0] == '~') {
         if (path.length() > 1 && path[1] != '/') {
-
             size_t slashpos = path.find('/');
             if (slashpos == std::string::npos)
                 slashpos = path.length();
@@ -137,7 +136,6 @@ PathName Config::expandPath(const std::string& path) const {
             if (has(key)) {
                 PathName newpath = getString(key);
                 newpath += path.substr(slashpos);
-
                 return newpath;
             }
         }
@@ -180,7 +178,6 @@ void Config::initializeSchemaPath() const {
         //       N.B. this uses Config expandPath()
         static std::string fdbSchemaFile =
             Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
-        
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 

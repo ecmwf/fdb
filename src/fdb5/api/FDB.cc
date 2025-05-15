@@ -48,7 +48,6 @@ namespace fdb5 {
 
 FDB::FDB(const Config& config) :
     internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {
-
     LibFdb5::instance().constructorCallback()(*internal_);
 }
 
