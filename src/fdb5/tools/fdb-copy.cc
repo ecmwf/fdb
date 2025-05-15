@@ -70,7 +70,7 @@ void FDBCopy::usage(const std::string& tool) const {
         << std::endl
         << tool << " --source=config_from.yaml --target=config_to.yaml requests.mars" << std::endl
         << tool
-        << " --source=config_from.yaml --target=config_to.yaml class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+        << " --source=config_from.yaml --target=config_to.yaml --from-list class=rd,expver=xywz,stream=oper,date=20190603,time=00"
         << std::endl
         << std::endl;
 
