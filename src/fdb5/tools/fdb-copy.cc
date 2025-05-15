@@ -64,15 +64,15 @@ void FDBCopy::usage(const std::string& tool) const {
                        << "Usage: " << tool << " --source <config> --target <config> [options] <request1>" << std::endl
                        << std::endl;
 
-    Log::info()
-        << "Examples:" << std::endl
-        << "=========" << std::endl
-        << std::endl
-        << tool << " --source=config_from.yaml --target=config_to.yaml requests.mars" << std::endl
-        << tool
-        << " --source=config_from.yaml --target=config_to.yaml --from-list class=rd,expver=xywz,stream=oper,date=20190603,time=00"
-        << std::endl
-        << std::endl;
+    Log::info() << "Examples:" << std::endl
+                << "=========" << std::endl
+                << std::endl
+                << tool << " --source=config_from.yaml --target=config_to.yaml requests.mars" << std::endl
+                << tool
+                << " --source=config_from.yaml --target=config_to.yaml --from-list "
+                   "class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+                << std::endl
+                << std::endl;
 
     // n.b. we do NOT want to use FDBVisitTool::usage()
     FDBTool::usage(tool);
