@@ -15,38 +15,91 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageArchiver.h"
-#include "fdb5/tools/FDBTool.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit::option;
+using namespace eckit;
 
-class FDBCopy : public fdb5::FDBTool {
+namespace fdb5::tools {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBCopy : public fdb5::tools::FDBVisitTool {
+
+    bool verbose_  = false;
+    bool fromList_ = false;
+    bool sort_     = false;
+
+    eckit::PathName sourceConfig_ = {};
+    eckit::PathName targetConfig_ = {};
+
     void execute(const CmdArgs& args) override;
     void usage(const std::string& tool) const override;
+    void init(const CmdArgs& args) override;
 
 public:
 
-    FDBCopy(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
-        options_.push_back(new SimpleOption<bool>("verbose", "Print verbose output"));
-        options_.push_back(new SimpleOption<bool>("raw", "Process the MARS request without expansion"));
-        options_.push_back(new SimpleOption<bool>("sort", "Sort fields according to location on input storage"));
-        options_.push_back(new SimpleOption<eckit::PathName>("to", "Configuration of FDB to write to"));
-        options_.push_back(new SimpleOption<eckit::PathName>("from", "Configuration of FDB to read from"));
-    }
+    FDBCopy(int argc, char** argv);
 };
 
-void FDBCopy::usage(const std::string& tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " --from <config> --to <config> <request1>" << std::endl;
-    fdb5::FDBTool::usage(tool);
+FDBCopy::FDBCopy(int argc, char** argv) : fdb5::tools::FDBVisitTool(argc, argv, "class,expver") {
+    options_.push_back(new SimpleOption<bool>("verbose", "Print verbose output"));
+    options_.push_back(new SimpleOption<bool>("sort", "Sort fields according to location on input storage"));
+    options_.push_back(new SimpleOption<eckit::PathName>("target", "Configuration of FDB to write to"));
+    options_.push_back(new SimpleOption<eckit::PathName>("source", "Configuration of FDB to read from"));
+    options_.push_back(new eckit::option::SimpleOption<bool>(
+        "from-list", "Interpret argument(s) as fdb-list partial requests, rather than request files"));
 }
 
-static std::vector<metkit::mars::MarsRequest> readRequest(const CmdArgs& args) {
+void FDBCopy::usage(const std::string& tool) const {
+
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " --source <config> --target <config> [options] <request1>" << std::endl
+                       << std::endl;
+
+    Log::info() << "Examples:" << std::endl
+                << "=========" << std::endl
+                << std::endl
+                << tool << " --source=config_from.yaml --target=config_to.yaml requests.mars" << std::endl
+                << tool
+                << " --source=config_from.yaml --target=config_to.yaml --from-list "
+                   "class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+                << std::endl
+                << std::endl;
+
+    // n.b. we do NOT want to use FDBVisitTool::usage()
+    FDBTool::usage(tool);
+}
+
+void FDBCopy::init(const CmdArgs& args) {
+
+    FDBVisitTool::init(args);
+
+    verbose_  = args.getBool("verbose", verbose_);
+    fromList_ = args.getBool("from-list", fromList_);
+    sort_     = args.getBool("sort", sort_);
+
+    std::string from = args.getString("source");
+    if (from.empty()) {
+        throw eckit::UserError("Missing --source parameter", Here());
+    }
+    sourceConfig_ = from;
+
+    std::string to = args.getString("target");
+    if (to.empty()) {
+        throw eckit::UserError("Missing --target parameter", Here());
+    }
+    targetConfig_ = to;
+}
+
+static std::vector<metkit::mars::MarsRequest> readRequestsFromFile(const CmdArgs& args) {
 
     std::vector<metkit::mars::MarsRequest> requests;
 
@@ -68,7 +121,7 @@ static std::vector<metkit::mars::MarsRequest> readRequest(const CmdArgs& args) {
         }
         else {
             const bool inherit = false;
-            metkit::mars::MarsExpension expand(inherit);
+            metkit::mars::MarsExpansion expand(inherit);
             auto expanded = expand.expand(parsedRequests);
             requests.insert(requests.end(), expanded.begin(), expanded.end());
         }
@@ -78,43 +131,38 @@ static std::vector<metkit::mars::MarsRequest> readRequest(const CmdArgs& args) {
 
 void FDBCopy::execute(const CmdArgs& args) {
 
-    bool verbose = args.getBool("verbose", false);
+    fdb5::Config readConfig  = fdb5::Config::make(sourceConfig_);
+    fdb5::Config writeConfig = fdb5::Config::make(targetConfig_);
 
-    std::string from;
-    args.get("from", from);
-    if (from.empty()) {
-        throw eckit::UserError("Missing --from parameter");
-    }
-
-    std::string to;
-    args.get("to", to);
-    if (to.empty()) {
-        throw eckit::UserError("Missing --to parameter");
-    }
-
-    fdb5::Config readConfig  = fdb5::Config::make(eckit::PathName(from));
-    fdb5::Config writeConfig = fdb5::Config::make(eckit::PathName(to));
-
-    std::vector<metkit::mars::MarsRequest> requests = readRequest(args);
-
-    // Evaluate the requests to obtain data handles
-    const bool sort = args.getBool("sort", false);
-    fdb5::HandleGatherer handles(sort);
-
+    fdb5::HandleGatherer handles(sort_);
     fdb5::FDB fdbRead(readConfig);
 
-    for (const auto& request : requests) {
-        eckit::Log::info() << request << std::endl;
-        handles.add(fdbRead.retrieve(request));
+    if (fromList_) {
+        for (const FDBToolRequest& request : requests("list")) {
+            bool deduplicate = true;
+            auto listObject  = fdbRead.list(request, deduplicate);
+            handles.add(fdbRead.read(listObject, sort_));
+        }
+    }
+    else {
+        std::vector<metkit::mars::MarsRequest> requests = readRequestsFromFile(args);
+        for (const auto& request : requests) {
+            eckit::Log::info() << request << std::endl;
+            handles.add(fdbRead.retrieve(request));
+        }
     }
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
+    fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose_, writeConfig);
     fdbWriter.archive(*dh);
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5::tools
+
 int main(int argc, char** argv) {
-    FDBCopy app(argc, argv);
+    fdb5::tools::FDBCopy app(argc, argv);
     return app.start();
 }

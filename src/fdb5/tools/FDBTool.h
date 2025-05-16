@@ -56,7 +56,7 @@ public:  // methods
 
 protected:  // members
 
-    std::vector<eckit::option::Option*> options_;
+    std::vector<eckit::option::Option*> options_ = {};
     /// Set this to false in tool subclass if your tool does not require access to 'config.yaml'
     bool needsConfig_{true};
 
