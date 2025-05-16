@@ -17,6 +17,7 @@
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
+#include "fdb5/rules/MatchNone.h"
 #include "fdb5/rules/MatchOptional.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
@@ -53,7 +54,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
                 if (!value) {
                     return s;
                 }
-
+                [[fallthrough]];
             default:
                 consume(c);
                 s += c;
@@ -65,6 +66,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
 std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types) {
 
     std::set<std::string> values;
+    std::set<std::string> notValues;
     std::string k = parseIdent(false, false);
 
     char c = peek();
@@ -93,7 +95,13 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
-        values.insert(parseIdent(true, false));
+        std::string val = parseIdent(true, false);
+        if (val[0] == '!') {
+            notValues.insert(val.substr(1));
+        }
+        else {
+            values.insert(val);
+        }
 
         while ((c = peek()) == '/') {
             consume(c);
@@ -101,16 +109,19 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         }
     }
 
+    if (values.size() && notValues.size()) {
+        throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
+    }
     switch (values.size()) {
         case 0:
+            if (notValues.size()) {
+                return std::make_unique<Predicate>(k, new MatchNone(notValues));
+            }
             return std::make_unique<Predicate>(k, new MatchAlways());
-            break;
         case 1:
             return std::make_unique<Predicate>(k, new MatchValue(*values.begin()));
-            break;
         default:
             return std::make_unique<Predicate>(k, new MatchAny(values));
-            break;
     }
 }
 
