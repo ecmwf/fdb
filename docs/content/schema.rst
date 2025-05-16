@@ -1,78 +1,3 @@
-##############
-Setting up FDB
-##############
-
-Seting up FDB requires the user to write a configuration and a schema file.
-
-***************************
-Writing a FDB Configuration
-***************************
-
-Config files define a number of parameters for the FDB. 
-
-The following is of the form local:
-::
-  type: local
-  engine: toc
-  schema: ./schema
-  spaces:
-  - handler: Default    
-    roots:
-    -path: /path/to/fdb/root
-
-There a number of different types such as local, remote, distributed, and
-select.
-
-Local implements the passage of data from the frontend to storage backend, talk
-to the FDB Store and Catalogue. Depending on the backend, the data or metadata
-may not actually be local.
-
-Select dispatches requests to different FDB's based on the metadata associated
-with the Messages, and can be used to send split requests OD from RD.
-
-Select Type:
-::
-  type: select
-  fdbs:
-  - select: class=od
-    type:local
-    spaces:
-      roots:
-        -path: /path/to/fdb/od
-  -select: class=rd,expver=xx.?.?
-    type: local
-    spaces:
-      roots:
-        - path: /path/to/fdb/rd
-
-The remote type handles access to the remote FDB vis TCP/IP. It talks to the
-FDB server using an asynchronous protocol. It only handles the transition. not
-the distribution of data.
-
-Remote type:
-::
-  type: remote
-  host: fdb-minus
-  port: 36604
-
-The distributed type implements the multi-lane access to multiple FDB's. It
-uses rendezvous hashing to avoid synchronisations.
-
-Dist type:
-::
-  type: dist
-  lanes:
-    -type: remote
-      host: fdb-minus-1
-      port: 36604
-    -type: remote
-      host: fdb-minus-2
-      port: 36604
-
-These types can be composed together in the config file when using FDB.
-
-## TODO: Get this reviewed and add more information.
-
 ****************************
 How to Setup Database Schema
 ****************************
@@ -182,67 +107,15 @@ This can be defined with: ``keyword=val1/val2/val3``
 Rule Grouping
 ^^^^^^^^^^^^^
 
-Rules can be grouped to prevent repeating the same keywords for the database key or the co-location key. In the definition of the partitioning rule at the level of co-location and index keys multiple definitions of each are allowed
-
-.. code-block:: text
-    :caption: Example
-
-    [a1, a2, a3
-      [b1, b2, b3 
-        [c1, c2, c3]]
-      [bb1, bb2, bb3
-        [cc1, cc2, cc3]]
-      [bbb1, bbb2, bbb3
-        [c1, c2, c3]
-        [cc1, cc2, cc3]
-        [ccc1,ccc2,ccc3]]
-    ]
-
 Keyword Types
 =============
 
-Keyword types describe how
 
-.. list-table:: Types
-    :widths: 25 75
-    :header-rows: 1
-    
-    * - Type
-      - Description
-    * - ClimateDaily
-      - 
-    * - ClimateMonthly
-      - 
-    * - Date
-      - 
-    * - Default
-      - 
-    * - Double
-      - 
-    * - Expver
-      - 
-    * - First3
-      - 
-    * - Grid
-      - 
-    * - Ignore
-      - 
-    * - Integer
-      - 
-    * - Month
-      - 
-    * - MonthOfDate
-      - 
-    * - Param
-      - 
-    * - Step
-      - 
-    * - Time
-      - 
+
+
 
 Operational Considerations
 ==========================
 
-TODO[kkratz]: Explain impacts of partition on operations, when to choose what
-based on our experience.
+TODO[kkratz]: Explain impacts of partition on operations, when to choose what based on our experience.
 
