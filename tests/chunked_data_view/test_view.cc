@@ -87,11 +87,13 @@ CASE("ChunkedDataView | View from 1 request | Can compute shape") {
                       }))
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                    cdv::AxisDefinition{{"param"}, true}},
+                                    cdv::AxisDefinition{{"param"}, false}},
                                    std::make_unique<FakeExtractor>())
                           .build();
     // Expect to get: 4 dates, 4 times, 2 fields, 10 values per field (implicit axis)
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 2, 10}));
+    EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 4, 1, 1}));
+    EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{1, 1, 2, 10}));
 }
 
 CASE("ChunkedDataView | View from 1 request | read data") {

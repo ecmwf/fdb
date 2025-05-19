@@ -6,7 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from .chunked_data_view import (
+from pychunked_data_view.chunked_data_view import (
     AxisDefinition,
     ChunkedDataView,
     ChunkedDataViewBuilder,
