@@ -26,13 +26,16 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     }
     shape_[extensionAxisIndex_] -= parts_[0].shape()[extensionAxisIndex_];
     chunkShape_ = shape_;
+    chunks_.resize(shape_.size());
     // The last dimension is implicitly created for the number of values in a field, i.e. there is no reprsentation in
     // the axes. And the dimension of fields is never chunked I.e. fields are always returned whole.
     for (size_t index = 0; index < chunkShape_.size() - 1; ++index) {
         if (parts_[0].isAxisChunked(index)) {
             chunkShape_[index] = 1;
         }
+        chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
     }
+    chunks_.back() = 1;
     data_.resize(parts_[0].layout().countValues);
 }
 

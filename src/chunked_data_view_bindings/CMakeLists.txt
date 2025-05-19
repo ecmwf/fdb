@@ -1,6 +1,6 @@
-pybind11_add_module(pychunked_data_view MODULE bindings.cc)
+pybind11_add_module(chunked_data_view_bindings MODULE bindings.cc)
 
-target_link_libraries(pychunked_data_view 
+target_link_libraries(chunked_data_view_bindings
     PRIVATE pybind11::module 
             pybind11::lto 
             chunked_data_view
@@ -9,18 +9,18 @@ target_link_libraries(pychunked_data_view
 # pybind11_extension(pychunked_data_view)
 if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
     # Strip unnecessary sections of the binary on Linux/macOS
-    pybind11_strip(pychunked_data_view)
+    pybind11_strip(chunked_data_view_bindings)
 endif()
 
-set_target_properties(pychunked_data_view 
+set_target_properties(chunked_data_view_bindings
   PROPERTIES 
-    CXX_VISIBILITY_PRESET "hidden" 
-    CUDA_VISIBILITY_PRESET "hidden"
+  #CXX_VISIBILITY_PRESET "hidden" 
+  # CUDA_VISIBILITY_PRESET "hidden"
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
 
 install(
-  TARGETS pychunked_data_view 
+  TARGETS chunked_data_view_bindings
   COMPONENT python
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"

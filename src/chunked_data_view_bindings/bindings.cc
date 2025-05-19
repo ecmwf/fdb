@@ -23,7 +23,7 @@
 namespace py  = pybind11;
 namespace cdv = chunked_data_view;
 
-PYBIND11_MODULE(pychunked_data_view, m) {
+PYBIND11_MODULE(chunked_data_view_bindings, m) {
     // Wrapping struct AxisDefinition
     py::class_<cdv::AxisDefinition>(m, "AxisDefinition")
         .def(py::init([](std::vector<std::string> keys, bool chunked) {
@@ -38,13 +38,17 @@ PYBIND11_MODULE(pychunked_data_view, m) {
         .def("at",
              [](cdv::ChunkedDataView* view, const cdv::ChunkedDataView::Index index) {
                  const auto& data = view->at(index);
-                 py::array_t<double> arr(view->chunkShape());
-                 ::memcpy(arr.mutable_data(), data.data(),
-                          data.size() * sizeof(std::decay_t<decltype(data)>::value_type));
+                 const auto len = data.size();
+                 py::array_t<float> arr(len);
+                 float* p = arr.mutable_data();
+                 for(size_t index = 0; index < len; ++index) {
+                    p[index] = static_cast<float>(data[index]);
+                 }
                  return arr;
              })
         .def("size", [](const cdv::ChunkedDataView* view) { return view->size(); })
         .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
+        .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
         .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); });
 
     py::enum_<cdv::ExtractorType>(m, "ExtractorType").value("GRIB", cdv::ExtractorType::GRIB);

@@ -6,10 +6,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-import pychunked_data_view as pdv
-
 import enum
 import pathlib
+
+import chunked_data_view_bindings as pdv
 
 
 class AxisDefinition:
@@ -44,8 +44,11 @@ class ChunkedDataView:
         return self._obj.size()
 
     def chunkShape(self):
-        return self._obj.chunke_shape()
+        return self._obj.chunk_shape()
 
+    def chunks(self):
+        return self._obj.chunks()
+    
     def shape(self):
         return self._obj.shape()
 

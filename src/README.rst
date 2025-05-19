@@ -36,3 +36,8 @@ interfacte to a 'Chunked Data View'. Having a pure-python wrapper enables IDEs
 to aceess pydoc without having to change security settings to load our
 pychunked\_data\_view.so.
 
+*****
+z3fdb
+*****
+
+Zarr v3 api data store implementation
