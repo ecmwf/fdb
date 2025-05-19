@@ -11,7 +11,8 @@ import numpy as np
 import itertools
 from pathlib import Path
 
-from chunked_data_view import (
+
+from pychunked_data_view import (
     AxisDefinition,
     ChunkedDataViewBuilder,
     ChunkedDataView,
