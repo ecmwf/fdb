@@ -1,4 +1,4 @@
-name: publish-docs-to-sites-ecmwf
+name: Publish Documentation to sites.ecmwf.int
 on:
   # REENABLE BEFORE MERGING
   # pull_request_target:
@@ -7,18 +7,22 @@ on:
   push:
     branches:
       - 'develop'
+      - 'master'
     tags:
       - '**'
 jobs:
   build:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' || github.event_name == 'push'}}
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload-doc.outputs.artifact-id }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
       - name: Install dependencies
         run: |
           python -m pip install -r docs/requirements.txt
@@ -29,74 +33,65 @@ jobs:
           sudo cmake --install doxygen
       - name: Build doc
         run: |
-          mkdir -p docs_build_out
           DOCBUILD_OUTPUT=docs_out ./docs/build_docs.sh
-      - name: Publish to ecmwf-sites (pull-request opened, updated, synchronized)
-        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        uses: ecmwf/reusable-workflows/ecmwf-sites-upload@feature/allow-target-dir-in-sites-upload
+      - name: Archive documentation
+        id: upload-doc
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.ECMWF_SITES_TOKEN }}
+          name: documentation
           path: docs_out/sphinx
-          remote_path: fdb/pull-requests/PR-${{ github.event.number }}
-          space: docs
-          name: dev-section
-      - name: Delete from ecmwf-sites (pull-request closed)
-        if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
-        run: |
-          curl -X DELETE \
-            -H "Authorization: Bearer ${{ secrets.ECMWF_SITES_TOKEN }}" \
-            -H "Accept: application/json" \
-            https://sites.ecmwf.int/docs/dev-section/s/api/v2/files/fdb/pull-requests/PR-${{ github.event.number }}
+  preview-publish:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+    needs: build
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-publish.yml@feature/allow-target-dir-in-sites-upload
+    with:
+      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      space: docs
+      name: dev-section
+      path: fdb/pull-requests
+      link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
+    secrets:
+      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+  preview-unpublish:
+    if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@feature/allow-target-dir-in-sites-upload
+    with:
+      space: docs
+      name: dev-section
+      path: fdb/pull-requests
+    secrets:
+      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event_name == 'push' && (
+        github.ref_name == 'develop' ||
+        github.ref_name == 'master'  ||
+        github.ref_type == 'tag'
+      ) }}
+    needs: build
+    steps:
+      - name: Download artifact to publish
+        id: get-artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/html
+          merge-multiple: true
       - name: Publish to ecmwf-sites (tags)
-        if: >-
-          ${{ github.event_name == 'push' && (
-
-            github.ref_name == 'develop' ||
-            github.ref_name == 'master'  ||
-            github.ref_type == 'tag'
-          ) }}
         uses: ecmwf/reusable-workflows/ecmwf-sites-upload@feature/allow-target-dir-in-sites-upload
         with:
           token: ${{ secrets.ECMWF_SITES_TOKEN }}
-          path: docs_out/sphinx
+          path: ${{ steps.get-artifact.outputs.download-path }}
           remote_path: fdb/${{ github.ref_name }}
           space: docs
           name: dev-section
-      
       - name: Update version selectors for tags
-        if: >-
-          ${{ github.event_name == 'push' && (
-
-            github.ref_name == 'develop' ||
-            github.ref_name == 'master'  ||
-            github.ref_type == 'tag'
-          ) }}
+        uses: ecmwf/reusable-workflows/generate-version-selector@feature/allow-target-dir-in-sites-upload
         env:
           ECMWF_SITES_TOKEN: ${{ secrets.ECMWF_SITES_TOKEN }}
-        run: ./docs/version_gen.py
-
-      - name: Update PR body with preview link
-        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const pr   = context.payload.pull_request;
-            const repo = context.repo;
-            const url  = `https://sites.ecmwf.int/docs/dev-section/fdb/pull-requests/PR-${{ github.event.number }}`
+          path: fdb
+          space: docs
+          name: dev-section
 
-            const start = '<!-- PREVIEW-URL-START -->';
-            const end   = '<!-- PREVIEW-URL-END -->';
-            const snippet = `${start}\n 🌈🌦️📖 Documentation 📖🌦️🌈\n ${url}\n${end}`;
-
-            const original = pr.body || '';
-            const updated  = original.includes(start)
-              ? original.replace(new RegExp(`${start}[\\s\\S]*?${end}`), snippet)
-              : `${original}\n\n${snippet}`;
-
-            await github.rest.pulls.update({
-              owner: repo.owner,
-              repo:  repo.repo,
-              pull_number: pr.number,
-              body: updated
-            });
