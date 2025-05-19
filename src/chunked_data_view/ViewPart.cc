@@ -52,9 +52,9 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t size) const {
-    ASSERT(chunkIndex.size() == axes_.size());
+    ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
+    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         axes_[idx].updateRequest(request, chunkIndex[idx]);
     }
     auto dh = fdb_->retrieve(request);
