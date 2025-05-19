@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: pychunked_data_view
+Version: 2025.5
+Requires-Python: >=3.10
+Requires-Dist: setuptools
+Requires-Dist: pytest
+Requires-Dist: cffi
+Requires-Dist: zarr<4,>=3.0
+Requires-Dist: fsspec
+Requires-Dist: pyyaml
+Requires-Dist: eccodes
+Requires-Dist: pyfdb@ git+https://github.com/ecmwf/pyfdb.git@develop
+Requires-Dist: pygribjump@ git+https://github.com/ecmwf/gribjump.git@develop
+Requires-Dist: ecmwf-api-client
+Requires-Dist: tqdm
+Requires-Dist: pytest-asyncio

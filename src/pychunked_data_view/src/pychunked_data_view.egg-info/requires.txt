@@ -1,0 +1,12 @@
+setuptools
+pytest
+cffi
+zarr<4,>=3.0
+fsspec
+pyyaml
+eccodes
+pyfdb@ git+https://github.com/ecmwf/pyfdb.git@develop
+pygribjump@ git+https://github.com/ecmwf/gribjump.git@develop
+ecmwf-api-client
+tqdm
+pytest-asyncio

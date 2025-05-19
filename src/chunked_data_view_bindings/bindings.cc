@@ -23,7 +23,7 @@
 namespace py  = pybind11;
 namespace cdv = chunked_data_view;
 
-PYBIND11_MODULE(pychunked_data_view, m) {
+PYBIND11_MODULE(chunked_data_view_bindings, m) {
     // Wrapping struct AxisDefinition
     py::class_<cdv::AxisDefinition>(m, "AxisDefinition")
         .def(py::init([](std::vector<std::string> keys, bool chunked) {
