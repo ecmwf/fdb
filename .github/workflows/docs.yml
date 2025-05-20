@@ -23,14 +23,32 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install dependencies
+      - name: Install python dependencies
         run: |
           python -m pip install -r docs/requirements.txt
-          wget https://github.com/doxygen/doxygen/archive/refs/tags/Release_1_13_2.tar.gz
-          tar xzf Release_1_13_2.tar.gz
-          cmake -S doxygen-Release_1_13_2 -B doxygen
-          cmake --build doxygen -j 16
-          sudo cmake --install doxygen
+      - name: Set Doxygen version
+        run: echo "DOXYGEN_VERSION=1.13.2" >> "$GITHUB_ENV"
+      - name: Restore cached Doxygen
+        id: doxygen-cache
+        uses: actions/cache@v4
+        with:
+          # Anything you install to this path will be reused on the next run
+          path: ~/.local/doxygen
+          key: doxygen-${{ runner.os }}-${{ env.DOXYGEN_VERSION }}
+      - name: Build Doxygen from source
+        if: steps.doxygen-cache.outputs.cache-hit != 'true'
+        run: |
+          TAG="Release_${DOXYGEN_VERSION//./_}"
+          curl -L -o doxygen.tar.gz \
+            "https://github.com/doxygen/doxygen/archive/refs/tags/${TAG}.tar.gz"
+          tar -xf doxygen.tar.gz
+          mkdir -p doxygen-build
+          cd doxygen-${TAG}/
+          mkdir build && cd build
+          cmake -G"Ninja" -DCMAKE_INSTALL_PREFIX="$HOME/.local/doxygen" ..
+          cmake --build . --target install -j32
+      - name: Add Doxygen to PATH
+        run: echo "$HOME/.local/doxygen/bin" >> "$GITHUB_PATH"
       - name: Build doc
         run: |
           DOCBUILD_OUTPUT=docs_out ./docs/build_docs.sh
@@ -50,6 +68,7 @@ jobs:
       name: dev-section
       path: fdb/pull-requests
       link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
+      link-tag: DOCUMENTATION
     secrets:
       token: ${{ secrets.ECMWF_SITES_TOKEN }}
   preview-unpublish:
