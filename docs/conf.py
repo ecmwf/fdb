@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import datetime
+from pathlib import Path
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -10,8 +11,8 @@ import datetime
 project = "Fields DataBase - FDB"
 copyright = f"{datetime.datetime.today().year}, ECMWF"
 author = "ECMWF"
-version = "local-dev"
-release = "local-dev"
+version = (Path(__file__).parent/"../VERSION").read_text()
+print(f"VERSION={version}")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -24,6 +25,7 @@ exclude_patterns = ["Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+
 
 html_theme = "sphinx_book_theme"
 html_context = {"default_mode": "default"}
