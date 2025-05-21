@@ -1,0 +1,116 @@
+name: Publish Documentation to sites.ecmwf.int
+on:
+  # REENABLE BEFORE MERGING
+  # pull_request_target:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches:
+      - 'develop'
+      - 'master'
+    tags:
+      - '**'
+jobs:
+  build:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' || github.event_name == 'push'}}
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload-doc.outputs.artifact-id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install python dependencies
+        run: |
+          python -m pip install -r docs/requirements.txt
+      - name: Set Doxygen version
+        run: echo "DOXYGEN_VERSION=1.13.2" >> "$GITHUB_ENV"
+      - name: Restore cached Doxygen
+        id: doxygen-cache
+        uses: actions/cache@v4
+        with:
+          # Anything you install to this path will be reused on the next run
+          path: ~/.local/doxygen
+          key: doxygen-${{ runner.os }}-${{ env.DOXYGEN_VERSION }}
+      - name: Build Doxygen from source
+        if: steps.doxygen-cache.outputs.cache-hit != 'true'
+        run: |
+          TAG="Release_${DOXYGEN_VERSION//./_}"
+          curl -L -o doxygen.tar.gz \
+            "https://github.com/doxygen/doxygen/archive/refs/tags/${TAG}.tar.gz"
+          tar -xf doxygen.tar.gz
+          mkdir -p doxygen-build
+          cd doxygen-${TAG}/
+          mkdir build && cd build
+          cmake -G"Ninja" -DCMAKE_INSTALL_PREFIX="$HOME/.local/doxygen" ..
+          cmake --build . --target install -j32
+      - name: Add Doxygen to PATH
+        run: echo "$HOME/.local/doxygen/bin" >> "$GITHUB_PATH"
+      - name: Build doc
+        run: |
+          DOCBUILD_OUTPUT=docs_out ./docs/build_docs.sh
+      - name: Archive documentation
+        id: upload-doc
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs_out/sphinx
+  preview-publish:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+    needs: build
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-publish.yml@feature/allow-target-dir-in-sites-upload
+    with:
+      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      space: docs
+      name: dev-section
+      path: fdb/pull-requests
+      link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
+      link-tag: DOCUMENTATION
+    secrets:
+      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+  preview-unpublish:
+    if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@feature/allow-target-dir-in-sites-upload
+    with:
+      space: docs
+      name: dev-section
+      path: fdb/pull-requests
+    secrets:
+      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event_name == 'push' && (
+        github.ref_name == 'develop' ||
+        github.ref_name == 'master'  ||
+        github.ref_type == 'tag'
+      ) }}
+    needs: build
+    steps:
+      - name: Download artifact to publish
+        id: get-artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/html
+          merge-multiple: true
+      - name: Publish to ecmwf-sites (tags)
+        uses: ecmwf/reusable-workflows/ecmwf-sites-upload@feature/allow-target-dir-in-sites-upload
+        with:
+          token: ${{ secrets.ECMWF_SITES_TOKEN }}
+          path: ${{ steps.get-artifact.outputs.download-path }}
+          remote_path: fdb/${{ github.ref_name }}
+          space: docs
+          name: dev-section
+      - name: Update version selectors for tags
+        uses: ecmwf/reusable-workflows/generate-version-selector@feature/allow-target-dir-in-sites-upload
+        env:
+          ECMWF_SITES_TOKEN: ${{ secrets.ECMWF_SITES_TOKEN }}
+        with:
+          path: fdb
+          space: docs
+          name: dev-section
+
