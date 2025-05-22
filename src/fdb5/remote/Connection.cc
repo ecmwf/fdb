@@ -43,13 +43,8 @@ void Connection::teardown() {
 //----------------------------------------------------------------------------------------------------------------------
 
 void Connection::writeUnsafe(const bool control, const void* const data, const size_t length) const {
-    long written = 0;
-    if (control || single_) {
-        written = controlSocket().write(data, length);
-    }
-    else {
-        written = dataSocket().write(data, length);
-    }
+    const auto& socket = getSocket(control);
+    long written       = socket.write(data, length);
     if (written < 0) {
         isValid_ = false;
         std::stringstream ss;
@@ -65,13 +60,8 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
 }
 
 bool Connection::readUnsafe(bool control, void* data, size_t length) const {
-    long read = 0;
-    if (control || single_) {
-        read = controlSocket().read(data, length);
-    }
-    else {
-        read = dataSocket().read(data, length);
-    }
+    const auto& socket = getSocket(control);
+    long read          = socket.read(data, length);
     if (length != read) {
         isValid_ = false;
         if (closingSocket_) {
@@ -130,13 +120,13 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    const auto& socket = (control || single_) ? controlSocket() : dataSocket();
+    const auto& socket = getSocket(control);
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
                            << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
                            << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
 
-    std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
 
     writeUnsafe(control, &message, sizeof(message));
 
@@ -159,5 +149,20 @@ eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
 eckit::Buffer Connection::readData(MessageHeader& hdr) const {
     return read(false, hdr);
 }
+
+const eckit::net::TCPSocket& Connection::getSocket(bool control) const {
+    if (control || single_) {
+        return controlSocket();
+    }
+    return dataSocket();
+}
+
+std::mutex& Connection::getSocketMutex(bool control) const {
+    if (control || single_) {
+        return controlMutex_;
+    }
+    return dataMutex_;
+}
+
 
 }  // namespace fdb5::remote

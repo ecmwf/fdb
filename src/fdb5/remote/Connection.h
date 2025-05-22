@@ -81,6 +81,10 @@ private:  // methods
 
     bool readUnsafe(bool control, void* data, size_t length) const;
 
+    const eckit::net::TCPSocket& getSocket(bool control) const;
+
+    std::mutex& getSocketMutex(bool control) const;
+
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
