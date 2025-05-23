@@ -43,8 +43,7 @@ void Connection::teardown() {
 //----------------------------------------------------------------------------------------------------------------------
 
 void Connection::writeUnsafe(const bool control, const void* const data, const size_t length) const {
-    const auto& socket = getSocket(control);
-    long written       = socket.write(data, length);
+    long written = getSocket(control).write(data, length);
     if (written < 0) {
         isValid_ = false;
         std::stringstream ss;
@@ -60,8 +59,7 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
 }
 
 bool Connection::readUnsafe(bool control, void* data, size_t length) const {
-    const auto& socket = getSocket(control);
-    long read          = socket.read(data, length);
+    long read = getSocket(control).read(data, length);
     if (length != read) {
         isValid_ = false;
         if (closingSocket_) {
