@@ -77,9 +77,9 @@ private:  // methods
 
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
 
-    void writeUnsafe(bool control, const void* data, size_t length) const;
+    void writeUnsafe(const eckit::net::TCPSocket& socket, const void* data, size_t length) const;
 
-    bool readUnsafe(bool control, void* data, size_t length) const;
+    bool readUnsafe(const eckit::net::TCPSocket& socket, void* data, size_t length) const;
 
     const eckit::net::TCPSocket& getSocket(bool control) const;
 
