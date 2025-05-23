@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -ux
+
+# --- Documentation
+# This script is used to start a test server for the remote fdb tests
+
+# --- Cmake variables
+srcdir="@CMAKE_CURRENT_SOURCE_DIR@"
+bindir="@CMAKE_CURRENT_BINARY_DIR@"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+server="$<TARGET_FILE:fdb-server>"
+test="$<TARGET_FILE:fdb_test_remote_exe>"
+
+# todo: make this test reusable, such that I can rerun it with different configs
+# Maybe even the "test" could be configurable too, e.g. I can have tool tests and C++ api tests.
+
+store_config=$bindir/fdb_store.yaml
+catalogue_config=$bindir/fdb_catalogue.yaml
+client_config=$bindir/fdb_client.yaml
+catalogue_rootdir=$bindir/catalogue_root
+store_rootdir=$bindir/store_root
+
+catalogue_pidfile=$bindir/catalogue.pid
+store_pidfile=$bindir/store.pid
+
+server_pidfile=$bindir/servers.pid
+
+# --- Cleanup and setup
+cleanup() {
+    if [[ -f $catalogue_pidfile ]]; then
+        echo "Stopping catalogue..."
+        SERVER_PID=$(cat $catalogue_pidfile)
+        kill -TERM $SERVER_PID 
+        wait $SERVER_PID 2>/dev/null
+        rm $catalogue_pidfile
+    fi
+
+    if [[ -f $store_pidfile ]]; then
+        echo "Stopping store..."
+        SERVER_PID=$(cat $store_pidfile)
+        
+        kill -TERM $SERVER_PID
+        wait $SERVER_PID 2>/dev/null
+        rm $store_pidfile
+    fi
+
+
+    rm -rf $catalogue_rootdir
+    rm -rf $store_rootdir
+}
+trap cleanup EXIT # Ensure cleanup is called when the script exits
+
+cleanup # start fresh
+mkdir -p $catalogue_rootdir
+mkdir -p $store_rootdir
+
+# --- Start the servers in the background.
+# in principle, we could have a loop over all "server configs" defined for the test. and wouldn't even need to hardcode the server names.
+
+FDB5_CONFIG_FILE=${catalogue_config} $server &
+echo $! > $catalogue_pidfile
+
+FDB5_CONFIG_FILE=$store_config $server &
+echo $! > $store_pidfile
+
+sleep 1
+
+# # --- Run the client test
+env FDB5_CONFIG_FILE=$client_config $test
+exit $?

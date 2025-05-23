@@ -1,0 +1,10 @@
+---
+type: store
+serverPort: 8001
+store: file
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store_root
+    writable: true
+    visit: true

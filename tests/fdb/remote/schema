@@ -1,0 +1,41 @@
+
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+levelist:   Double;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+
+# oper/dcda
+[ class, expver, stream=oper/dcda/scda, date, time, domain?
+       [ type, levtype
+               [ step, levelist?, param ]]
+]
+
+# dcwv/scwv/wave
+[ class, expver, stream=dcwv/scwv/wave, date, time, domain
+       [ type, levtype
+               [ step, param, frequency?, direction? ]]
+]
+
+# enfo
+[ class, expver, stream=enfo/efov, date, time, domain
+       [ type, levtype
+               [ step, quantile?, number?, levelist?, param ]]
+]
+
+# waef/weov
+[ class, expver, stream=waef/weov, date, time, domain
+       [ type, levtype
+               [ step, number?, param, frequency?, direction? ]]
+]
