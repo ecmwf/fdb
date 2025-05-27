@@ -8,13 +8,11 @@
  * nor does it submit to any jurisdiction.
  */
 
+#include <string>
 #include "eckit/testing/Test.h"
 #include "eckit/types/Date.h"
-#include "eckit/io/MemoryHandle.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include <string>
-
 
 using namespace eckit::testing;
 
@@ -25,7 +23,8 @@ namespace fdb5::test {
 // Fairly limited set of tests designed to add some coverage to the client-server comms.
 // Tests added to this file should be for behaviour that is expected to work for all server configurations.
 
-std::vector<Key> write_data(FDB& fdb, const std::string& data, const std::string& start_date, int Ndates, int start_step, int Nsteps) {
+std::vector<Key> write_data(FDB& fdb, const std::string& data, const std::string& start_date, int Ndates,
+                            int start_step, int Nsteps) {
     // write a few fields
     std::vector<Key> keys;
     Key k;
@@ -78,14 +77,14 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
 
 CASE("Remote protocol: the basics") {
 
-    FDB fdb{}; // Expects the config to be set in the environment
-    
+    FDB fdb{};  // Expects the config to be set in the environment
+
     // -- write a few fields
-    const size_t Nfields = 9;
+    const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys = write_data(fdb, data_string, "20000101", 3, 0, 3);
+    std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 3, 0, 3);
     EXPECT_EQUAL(keys.size(), Nfields);
-    
+
     // -- list all fields
     auto it = fdb.list(FDBToolRequest{{}, true, {}});
 
@@ -96,7 +95,7 @@ CASE("Remote protocol: the basics") {
         count++;
     }
     EXPECT_EQUAL(count, Nfields);
-    
+
     // -- retrieve all fields
     std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(make_request(keys)));
 

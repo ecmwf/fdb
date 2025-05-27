@@ -3,7 +3,7 @@ ecbuild_add_executable(
     TARGET    fdb_test_remote_api_bin
     SOURCES   test_remote_api.cc
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
-    LIBS      gribjump
+    LIBS      fdb5
     NOINSTALL
 )
 ecbuild_configure_file( test_server.sh.in fdb_test_server.sh @ONLY )
