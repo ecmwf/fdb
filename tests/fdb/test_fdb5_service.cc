@@ -24,6 +24,7 @@
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsExpension.h"
@@ -40,6 +41,7 @@
 
 using namespace std;
 using namespace eckit;
+using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace fdb5;
 
@@ -120,7 +122,8 @@ CASE("test_fdb_stepunit_archive") {
     fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
     fdb.flush();
 
-    metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest req     = key.request();
+    metkit::mars::MarsRequest listReq = key.request("list");
 
     {
         fdb5::FDBToolRequest r(req);
@@ -173,12 +176,12 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.values("step", {"0", "to", "2", "by", "30m"});
-    req.unsetValues("param");
+    listReq.values("step", {"0", "to", "2", "by", "30m"});
+    listReq.unsetValues("param");
     {
         metkit::mars::MarsExpension expand{false};
 
-        metkit::mars::MarsRequest expandedRequests = expand.expand(req);
+        metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
         fdb5::FDBToolRequest r(expandedRequests);
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
@@ -232,7 +235,7 @@ CASE("test_fdb_service") {
         SECTION("test_fdb_service_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
@@ -401,7 +404,7 @@ CASE("test_fdb_service_subtoc") {
         SECTION("test_fdb_service_subtoc_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             f.p["expver"] = "0002";
 

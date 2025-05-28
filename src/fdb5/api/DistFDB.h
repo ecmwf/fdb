@@ -24,6 +24,8 @@
 
 #include "eckit/utils/RendezvousHash.h"
 
+#include <tuple>
+
 
 namespace fdb5 {
 
@@ -35,8 +37,6 @@ class FDB;
 class DistFDB : public FDBBase {
 
 public:  // method
-
-    using FDBBase::stats;
 
     DistFDB(const Config& config, const std::string& name);
     ~DistFDB() override;
@@ -66,8 +66,6 @@ public:  // method
 
     void flush() override;
 
-    FDBStats stats() const override;
-
 private:  // methods
 
     void print(std::ostream& s) const override;
@@ -79,7 +77,8 @@ private:
 
     eckit::RendezvousHash hash_;
 
-    std::vector<FDB> lanes_;
+    /// Stores FDB and its enabled status
+    std::vector<std::tuple<FDB, bool>> lanes_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

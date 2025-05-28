@@ -41,6 +41,7 @@ list( APPEND fdb5_srcs
     api/helpers/DumpIterator.h
     api/helpers/ListElement.cc
     api/helpers/ListElement.h
+    api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
     api/helpers/LockIterator.h
     api/helpers/MoveIterator.h
@@ -159,6 +160,8 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
+    io/FieldHandle.cc
+    io/FieldHandle.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -249,6 +252,8 @@ if(HAVE_FDB_REMOTE)
         remote/client/RemoteStore.h
         remote/client/RemoteCatalogue.h
         remote/client/RemoteCatalogue.cc
+        remote/client/ReadLimiter.h
+        remote/client/ReadLimiter.cc
 
         remote/server/AvailablePortList.cc
         remote/server/AvailablePortList.h

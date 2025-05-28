@@ -29,29 +29,25 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
-                                                     const std::string& defaultEndpoint) {
-
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
+                                                                     const std::string& defaultEndpoint) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    auto it = connections_.find(endpoint);
+    const auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
-        return *(it->second);
+        return (it->second);
+    }
+    auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
+    if (clientConnection->connect()) {
+        connections_.emplace(endpoint, clientConnection);
+        return clientConnection;
     }
     else {
-        ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
-        if (clientConnection->connect()) {
-            auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
-            return *(it->second);
-        }
-        else {
-            delete clientConnection;
-            throw ConnectionError(endpoint);
-        }
+        throw ConnectionError(endpoint);
     }
 }
 
-ClientConnection& ClientConnectionRouter::connection(
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
@@ -64,17 +60,16 @@ ClientConnection& ClientConnectionRouter::connection(
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
-        auto it = connections_.find(endpoint);
+        const auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
-            return *(it->second);
+            return (it->second);
         }
-        else {  // not yet there, trying to connect
-            std::unique_ptr<ClientConnection> clientConnection =
-                std::unique_ptr<ClientConnection>(new ClientConnection{endpoint, fullEndpoints.at(idx).second});
-            if (clientConnection->connect(true)) {
-                auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
-                return *(it->second);
-            }
+
+        // not yet there, trying to connect
+        auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
+        if (clientConnection->connect(true)) {
+            connections_.emplace(endpoint, clientConnection);
+            return clientConnection;
         }
 
         // unable to connect to "endpoint", remove it and try again
@@ -88,10 +83,26 @@ ClientConnection& ClientConnectionRouter::connection(
     throw ConnectionError();
 }
 
+std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const std::shared_ptr<ClientConnection>& connection) {
+    std::lock_guard lock(connectionMutex_);
+    const auto iter = connections_.find(connection->controlEndpoint());
+    if (iter == connections_.end() || !iter->second->valid()) {
+        auto newConnection =
+            std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
+        if (newConnection->connect()) {
+            connections_.emplace(newConnection->controlEndpoint(), newConnection);
+            return newConnection;
+        }
+        throw ConnectionError(newConnection->controlEndpoint());
+    }
+    return iter->second;
+}
+
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
-    auto it = connections_.find(connection.controlEndpoint());
-    if (it != connections_.end()) {
+    std::lock_guard<std::mutex> lock(connectionMutex_);
+    const auto it = connections_.find(connection.controlEndpoint());
+    if (it != connections_.end() && &connection == it->second.get()) {
         connections_.erase(it);
     }
 }
@@ -120,6 +131,7 @@ void ClientConnectionRouter::teardown(std::exception_ptr e) {
             conn->teardown();
         }
     }
+    connections_.clear();
 }
 
 }  // namespace fdb5::remote

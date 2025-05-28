@@ -26,6 +26,7 @@
 #include "eckit/io/StdFile.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -38,6 +39,7 @@ const std::unordered_set<size_t> AWKWARD_PARAMS{11,  12,  13,  14,  15,  16,  49
 
 
 using namespace eckit;
+using namespace eckit::literals;
 
 
 class FDBHammer : public fdb5::FDBTool {
@@ -224,7 +226,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     Log::info() << "GRIB duration: " << elapsed_grib << std::endl;
     Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
-    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1_MiB) << " MB / s" << std::endl;
 
     Log::info() << "Timestamp before first IO: " << (long int)tval_before_io.tv_sec << "." << std::setw(6)
                 << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
@@ -304,7 +306,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     Log::info() << "Bytes read: " << total << std::endl;
     Log::info() << "Total duration: " << timer.elapsed() << std::endl;
     Log::info() << "Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
-    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1_MiB) << " MB / s" << std::endl;
 
     Log::info() << "Timestamp before first IO: " << (long int)tval_before_io.tv_sec << "." << std::setw(6)
                 << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;

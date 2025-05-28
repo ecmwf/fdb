@@ -27,8 +27,6 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/hypercube/HyperCubePayloaded.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -37,6 +35,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
@@ -57,9 +56,12 @@ FDB::~FDB() {
     flush();
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
 }
+
+FDB::FDB(FDB&&) = default;
+
+FDB& FDB::operator=(FDB&&) = default;
 
 void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
@@ -157,14 +159,6 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
     return sorted;
 }
 
-class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
-public:
-
-    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.timestamp() < replacement.timestamp();
-    }
-};
-
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
     auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
     return location->dataHandle();
@@ -233,8 +227,10 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
 }
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
+
     ListIterator it = inspect(request);
-    return read(it, sorted(request));
+    return seekable ? new FieldHandle(it) : read(it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
@@ -281,10 +277,6 @@ FDBStats FDB::stats() const {
     return stats_;
 }
 
-FDBStats FDB::internalStats() const {
-    return internal_->stats();
-}
-
 const std::string& FDB::name() const {
     return internal_->name();
 }
@@ -326,14 +318,6 @@ AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
 
 bool FDB::dirty() const {
     return dirty_;
-}
-
-void FDB::disable() {
-    internal_->disable();
-}
-
-bool FDB::disabled() const {
-    return internal_->disabled();
 }
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {

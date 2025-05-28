@@ -89,7 +89,8 @@ public:  // methods
     /// @note default args on virtual methods is not best practice; no guarantee that overrides will have same defaults
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
-    virtual bool partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const;
+    bool partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                      const metkit::mars::MarsRequest& datumRequest) const;
     virtual bool mayContain(const Key& key) const;
     virtual bool mayContainPartial(const Key& key) const;
 
@@ -182,10 +183,10 @@ public:  // methods
     IndexBase* content() { return content_; }
     const IndexBase* content() const { return content_; }
 
-    bool partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const {
-        return content_->partialMatch(rule, request);
+    bool partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                      const metkit::mars::MarsRequest& datumRequest) const {
+        return content_->partialMatch(indexRequest, datumRequest);
     }
-    // bool partialMatch(metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
     bool mayContain(const Key& key) const { return content_->mayContain(key); }
     bool mayContainPartial(const Key& key) const { return content_->mayContainPartial(key); }
 

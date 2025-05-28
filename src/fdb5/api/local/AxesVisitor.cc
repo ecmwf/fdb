@@ -56,7 +56,7 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
 bool AxesVisitor::visitIndex(const Index& index) {
     EntryVisitor::visitIndex(index);
 
-    if (index.partialMatch(*rule_, request_)) {
+    if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();

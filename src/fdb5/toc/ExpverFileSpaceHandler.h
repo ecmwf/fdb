@@ -35,7 +35,7 @@ class ExpverFileSpaceHandler : public FileSpaceHandler {
 
 public:  // methods
 
-    ExpverFileSpaceHandler();
+    ExpverFileSpaceHandler(const Config& config);
 
     ~ExpverFileSpaceHandler() override;
 

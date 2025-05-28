@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
 #include <unordered_map>
@@ -24,8 +23,12 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnection& connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
-    ClientConnection& connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+    std::shared_ptr<ClientConnection> connection(const eckit::net::Endpoint& endpoint,
+                                                 const std::string& defaultEndpoint);
+    std::shared_ptr<ClientConnection> connection(
+        const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+
+    std::shared_ptr<ClientConnection> refresh(const std::shared_ptr<ClientConnection>& connection);
 
     void teardown(std::exception_ptr e);
 
@@ -36,8 +39,10 @@ private:
     ClientConnectionRouter() {}  ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
-    // endpoint -> connection
-    std::unordered_map<eckit::net::Endpoint, std::unique_ptr<ClientConnection>> connections_;
+
+    /// @note The ClientConnection is (jointly) owned by the Client objects.
+    /// When the last client is disconnects, the ClientConnection deregisters itself from this map.
+    std::unordered_map<eckit::net::Endpoint, std::shared_ptr<ClientConnection>> connections_;
 };
 
 }  // namespace fdb5::remote

@@ -12,6 +12,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
@@ -20,6 +21,8 @@
 #include <mutex>
 #include <utility>  // std::pair
 #include <vector>
+
+using namespace eckit::literals;
 
 namespace fdb5::remote {
 
@@ -40,9 +43,9 @@ public:  // types
     using PayloadList  = Connection::PayloadList;
     using EndpointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
 
-    static constexpr size_t defaultBufferSizeArchive = 8192;
-    static constexpr size_t defaultBufferSizeFlush   = 1024;
-    static constexpr size_t defaultBufferSizeKey     = 4096;
+    static constexpr size_t defaultBufferSizeArchive = 8_KiB;
+    static constexpr size_t defaultBufferSizeFlush   = 1_KiB;
+    static constexpr size_t defaultBufferSizeKey     = 4_KiB;
 
 public:  // methods
 
@@ -56,11 +59,11 @@ public:  // methods
 
     uint32_t id() const { return id_; }
 
-    const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
+    const eckit::net::Endpoint& controlEndpoint() const { return connection_->controlEndpoint(); }
 
-    const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
+    const std::string& defaultEndpoint() const { return connection_->defaultEndpoint(); }
 
-    uint32_t generateRequestID() const { return connection_.generateRequestID(); }
+    uint32_t generateRequestID() const { return connection_->generateRequestID(); }
 
     // blocking requests
     void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload = nullptr,
@@ -74,10 +77,14 @@ public:  // methods
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID)                          = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual void closeConnection() {}
+
+    // Create a new connection if the current one is invalid
+    void refreshConnection();
 
 protected:
 
-    ClientConnection& connection_;
+    std::shared_ptr<ClientConnection> connection_;
 
 private:
 

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+set -ux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=masking
+src_data="od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+try cd $bin_dir
+
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
+
+try cd $test_name
+
+try cp "$src_dir/local.yaml" ./
+try ln -s "$bin_dir/$src_data" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+
+########################################################################################################################
+
+# Ensure that we can wipe specified databases with ranges in the requests
+# --> Ensures the MARS requests are working correctly
+
+try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
+try grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
+try grib_ls -m data.xxxx.d1.grib
+
+try fdb-write data.xxxx.d1.grib
+try fdb-write data.xxxx.d2.grib
+# write the data twice
+try fdb-write data.xxxx.d1.grib
+try fdb-write data.xxxx.d2.grib
+
+echo "Test: Incorrect number of entries written"
+try fdb-list --all --minimum-keys="" --porcelain | tee out
+line_count 48
+
+echo "Test: Incorrect number of entries written"
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count 96
+
+echo "Test: Entries should be masked without --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
+line_count 48
+
+echo "Test: All entries should be visible with --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --full | tee out
+line_count 96
+
+echo "Test: Entries should be masked without full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain | tee out
+line_count 8
+
+echo "Test: All entries should be visible with --full"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain --full | tee out
+line_count 16
+
+echo "cleanup"
+try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

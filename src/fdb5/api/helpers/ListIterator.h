@@ -22,11 +22,23 @@
 #include <unordered_set>
 #include <utility>
 
+#include "metkit/hypercube/HyperCubePayloaded.h"
+
 #include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/Key.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,31 +54,13 @@ public:
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
-    ListIterator(ListIterator&& iter) :
-        APIIterator<ListElement>(std::move(iter)),
-        seenKeys_(std::move(iter.seenKeys_)),
-        deduplicate_(iter.deduplicate_) {}
+    ListIterator(ListIterator&& iter) = default;
 
-    ListIterator& operator=(ListIterator&& iter) {
-        seenKeys_    = std::move(iter.seenKeys_);
-        deduplicate_ = iter.deduplicate_;
-        APIIterator<ListElement>::operator=(std::move(iter));
-        return *this;
-    }
+    ListIterator& operator=(ListIterator&& iter) = default;
 
-    bool next(ListElement& elem) {
-        ListElement tmp;
-        while (APIIterator<ListElement>::next(tmp)) {
-            if (deduplicate_) {
-                if (const auto [iter, success] = seenKeys_.emplace(tmp.combinedKey()); !success) {
-                    continue;
-                }
-            }
-            std::swap(elem, tmp);
-            return true;
-        }
-        return false;
-    }
+    bool next(ListElement& elem);
+
+    std::pair<size_t, eckit::Length> dumpCompact(std::ostream& out);
 
 private:
 

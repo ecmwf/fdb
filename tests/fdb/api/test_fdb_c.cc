@@ -112,7 +112,6 @@ CASE("fdb_c - archive & list") {
     fdb_request_add1(request, "type", "an");
     fdb_request_add1(request, "expver", "xxxx");
 
-    const char** item = new const char*;
     fdb_listiterator_t* it;
     fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
@@ -350,8 +349,6 @@ CASE("fdb_c - multiple archive & list") {
     fdb_request_add1(request, "type", "an");
     fdb_request_add1(request, "expver", "xxxx");
 
-    const char** item = new const char*;
-    bool exist;
     fdb_listiterator_t* it;
     fdb_list(fdb, request, &it, true, depth);
     int err = fdb_listiterator_next(it);
@@ -477,6 +474,9 @@ CASE("fdb_c - list depth=1,2,3") {
         ASSERT(err == FDB_ITERATION_COMPLETE);
         fdb_delete_listiterator(iter);
     }
+
+    fdb_delete_request(request);
+    fdb_delete_handle(fdb);
 }
 #endif
 

@@ -18,6 +18,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/StringTools.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
@@ -32,6 +33,8 @@
 #include "fdb5/toc/Root.h"
 
 using namespace eckit;
+using namespace eckit::literals;
+;
 
 namespace fdb5 {
 class DbPathNamer;
@@ -238,7 +241,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
         eckit::Tokenizer parse(" ");
 
-        char line[1024];
+        char line[1_KiB];
         while (in.getline(line, sizeof(line))) {
 
             std::vector<std::string> s;
@@ -302,7 +305,7 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
     eckit::Tokenizer parse(" ");
 
-    char line[1024];
+    char line[1_KiB];
     while (in.getline(line, sizeof(line))) {
 
         std::vector<std::string> s;
@@ -375,7 +378,7 @@ static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::
     std::vector<Root> spaceRoots;
 
     std::ifstream in(file.localPath());
-    char line[1024];
+    char line[1_KiB];
     while (in.getline(line, sizeof(line))) {
         if (line[0] != 0 && line[0] != '#') {
             Tokenizer tokenize(", \t");
@@ -422,7 +425,7 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
     eckit::Tokenizer parse(" ");
 
-    char line[1024];
+    char line[1_KiB];
     while (in.getline(line, sizeof(line))) {
 
         std::vector<std::string> s;
@@ -604,7 +607,7 @@ TocPath RootManager::directory(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
         if (i->match(keystr)) {
-            TocPath db = i->filesystem(key, dbpath);
+            TocPath db = i->filesystem(config_, key, dbpath);
             LOG_DEBUG_LIB(LibFdb5) << "Database directory " << db.directory_ << std::endl;
             return db;
         }
@@ -619,9 +622,10 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
-    std::vector<std::string> keystrings;
-    std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
-                   [](const Key& k) { return k.valuesToString(); });
+    std::set<std::string> keystrings;
+    for (const auto& key : keys) {
+        keystrings.insert(key.valuesToString());
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 

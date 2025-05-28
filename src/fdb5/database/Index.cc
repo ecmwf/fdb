@@ -130,18 +130,14 @@ void IndexBase::put(const Key& key, const Field& field) {
     add(key, field);
 }
 
-bool IndexBase::partialMatch(const Rule& rule, const metkit::mars::MarsRequest& request) const {
+bool IndexBase::partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                             const metkit::mars::MarsRequest& datumRequest) const {
 
-    // rule is the Datum rule (3rd level)
-    // to match the index key, we need to canonicalise the request with the rule at Index level (2nd level) aka
-    // rule.parent()
-    auto canonical = rule.parent().registry().canonicalise(request);
-    if (!key_.partialMatch(canonical)) {
+    if (!key_.partialMatch(indexRequest)) {
         return false;
     }
 
-    canonical = rule.registry().canonicalise(request);
-    return axes_.partialMatch(canonical);
+    return axes_.partialMatch(datumRequest);
 }
 
 bool IndexBase::mayContain(const Key& key) const {

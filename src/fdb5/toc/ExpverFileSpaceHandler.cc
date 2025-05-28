@@ -21,20 +21,23 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileLock.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/FileSpace.h"
 
 using namespace eckit;
+using namespace eckit::literals;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(LibResource<PathName, LibFdb5>("fdbExpverFileSystems;$FDB_EXPVER_FILE",
-                                                         "~fdb/etc/fdb/expver_to_fdb_root.map")) {}
+ExpverFileSpaceHandler::ExpverFileSpaceHandler(const Config& config) :
+    FileSpaceHandler(config),
+    fdbExpverFileSystems_(config.expandPath(eckit::Resource<std::string>("fdbExpverFileSystems;$FDB_EXPVER_FILE",
+                                                                         "~fdb/etc/fdb/expver_to_fdb_root.map"))) {}
 
 ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {}
 
@@ -51,7 +54,7 @@ void ExpverFileSpaceHandler::load() const {
         throw CantOpenFile(oss.str(), Here());
     }
 
-    char line[1024];
+    char line[1_KiB];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
@@ -104,7 +107,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         throw CantOpenFile(oss.str(), Here());
     }
 
-    char line[4 * 1024];
+    char line[4_KiB];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
@@ -165,7 +168,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 }
 
 PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const {
-    return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
+    return FileSpaceHandler::lookup("WeightedRandom", config_).selectFileSystem(key, fs);
 }
 
 static bool expver_is_valid(const std::string& str) {
