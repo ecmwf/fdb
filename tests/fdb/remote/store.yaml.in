@@ -1,6 +1,6 @@
 ---
 type: store
-serverPort: 8001
+serverPort: 10001
 spaces:
 - handler: Default
   roots:

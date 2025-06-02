@@ -1,9 +1,9 @@
 ---
 type: catalogue
 supportedConnections: [1]
-serverPort: 8000
+serverPort: 11000
 stores:
-- default: "localhost:8001"
+- default: "localhost:11001"
 schema: @CMAKE_CURRENT_SOURCE_DIR@/schema
 spaces:
 - handler: Default
