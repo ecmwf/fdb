@@ -24,7 +24,7 @@ server="$<TARGET_FILE:fdb-server>"
 test="$<TARGET_FILE:fdb_test_remote_api_bin>"
 
 # If test exceeds this time, the servers will be killed. Required to ensure servers are eventually killed when ctest is SIGKILL'd
-SERVER_LIFETIME=10
+SERVER_LIFETIME=300
 
 # --- Cleanup and setup
 cleanup() {

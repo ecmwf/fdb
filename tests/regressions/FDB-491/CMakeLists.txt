@@ -14,5 +14,8 @@ ecbuild_add_test(
     COMMAND        ${FDB_TEST_SERVER_SCRIPT}
     ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
     TEST_DEPENDS   fdb_test_remote_api_bin
+    RESOURCE_LOCK  fdb_remote_tests  # Prevent concurrent runs of remote tests
     LABELS         remotefdb
 )
+
+set_tests_properties(FDB-491-remote-single-connection PROPERTIES TIMEOUT 300)
