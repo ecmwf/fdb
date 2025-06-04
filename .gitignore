@@ -10,3 +10,8 @@ install.sh
 
 # LLVM debug
 launch.json
+
+# Python related
+**/__pycache__
+pyfdb.egg-info/
+dist/
