@@ -55,11 +55,11 @@ ecbuild_add_option( FEATURE RADOS_BACKENDS_SINGLE_POOL
 
 ecbuild_add_option( FEATURE RADOS_STORE_OBJ_PER_FIELD
                     DEFAULT OFF
-                    DESCRIPTION "Use a Rados object per archived field (ON) or per collocation key (OFF)" )
+                    DESCRIPTION "Use a Rados object per archived field (ON) or per process and collocation key (OFF)" )
 
 ecbuild_add_option( FEATURE RADOS_STORE_MULTIPART
                     DEFAULT ON
-                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=OFF and the maximum object size is exceeded, use multiple Rados objects per collocation key (ON) or throw an exception (OFF)" )
+                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=OFF and the maximum object size is exceeded, use multiple Rados objects per process and collocation key (ON) or throw an exception (OFF)" )
 
 ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_FLUSH
                     DEFAULT OFF
