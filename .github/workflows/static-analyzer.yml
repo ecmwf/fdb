@@ -150,7 +150,7 @@ jobs:
       link-text: 💣💥☠️ Static Analyzer Report ☠️💥💣
       link-tag: STATIC-ANALYSIS
     secrets:
-      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+      token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
   preview-unpublish:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@feature/allow-target-dir-in-sites-upload
@@ -159,4 +159,4 @@ jobs:
       name: dev-section
       path: fdb/static-analyzer
     secrets:
-      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+      token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
