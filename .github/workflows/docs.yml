@@ -70,7 +70,7 @@ jobs:
       link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
       link-tag: DOCUMENTATION
     secrets:
-      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+      token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
   preview-unpublish:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@feature/allow-target-dir-in-sites-upload
@@ -79,7 +79,7 @@ jobs:
       name: dev-section
       path: fdb/pull-requests
     secrets:
-      token: ${{ secrets.ECMWF_SITES_TOKEN }}
+      token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
   publish:
     runs-on: ubuntu-latest
     if: >-
@@ -100,7 +100,7 @@ jobs:
       - name: Publish to ecmwf-sites (tags)
         uses: ecmwf/reusable-workflows/ecmwf-sites-upload@feature/allow-target-dir-in-sites-upload
         with:
-          token: ${{ secrets.ECMWF_SITES_TOKEN }}
+          token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
           path: ${{ steps.get-artifact.outputs.download-path }}
           remote_path: fdb/${{ github.ref_name }}
           space: docs
@@ -108,7 +108,7 @@ jobs:
       - name: Update version selectors for tags
         uses: ecmwf/reusable-workflows/generate-version-selector@feature/allow-target-dir-in-sites-upload
         env:
-          ECMWF_SITES_TOKEN: ${{ secrets.ECMWF_SITES_TOKEN }}
+          ECMWF_SITES_TOKEN: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
         with:
           path: fdb
           space: docs
