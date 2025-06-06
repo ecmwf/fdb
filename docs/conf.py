@@ -15,7 +15,7 @@ release = "local-dev"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["breathe"]
+extensions = ["breathe", "sphinx.ext.autosectionlabel"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["Thumbs.db", ".DS_Store"]
@@ -41,3 +41,6 @@ html_static_path = ["_static"]
 
 # -- Breathe configuration ---------------------------------------------------
 breathe_default_project = "FDB"
+
+# -- autosectionlabel configuration ------------------------------------------
+autosectionlabel_prefix_document = True
