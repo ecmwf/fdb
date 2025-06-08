@@ -20,7 +20,7 @@
 // #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosPartHandle.h"
 
 // #include "metkit/mars/MarsRequest.h"
 
@@ -352,7 +352,7 @@ CASE("RadosCatalogue tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
     
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
