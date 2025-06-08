@@ -34,7 +34,7 @@
 // #include "eckit/io/s3/S3Client.h"
 // #include "eckit/io/s3/S3Session.h"
 // #include "eckit/io/s3/S3Credential.h"
-#include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosPartHandle.h"
 
 #include "fdb5/rados/RadosStore.h"
 #include "fdb5/rados/RadosFieldLocation.h"
@@ -197,7 +197,7 @@ CASE("RadosStore tests") {
         fdb5::Field field(std::move(loc), std::time(nullptr));
         std::cout << "Read location: " << field.location() << std::endl;
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
         /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
     
         eckit::MemoryHandle mh;
@@ -322,7 +322,7 @@ CASE("RadosStore tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
         /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
     
         eckit::MemoryHandle mh;
