@@ -39,6 +39,7 @@ test = [
   "pytest",
   "pytest-cov",
   "pytest-flakes",
+  "pytest-cmake",
   "gitpython"
   ]
 
@@ -49,12 +50,6 @@ dev = [
   "tox>=4.19",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src", "tests"]
-
-[tool.setuptools.package-data]
-pyfdb = ["processed_fdb.h"]
-
 [tool.black]
 line-length = 120
 
@@ -63,12 +58,20 @@ profile = "black"
 line_length = 120
 skip_glob=".*"
 skip = ["setup.py"]
-src_paths = ["src", "tests"]
+src_paths = ["pyfdb", "tests"]
 
 [tool.coverage.run]
 source = [
-  "src/pyfdb/*",
+  "pyfdb/*",
 ]
 include = [
   "tests/*",
+]
+
+[tool.uv.sources]
+pyfdb = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pyfdb",
 ]

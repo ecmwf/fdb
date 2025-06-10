@@ -10,6 +10,7 @@ function(add_py_test test)
             --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/${stem}
             -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/${test}
     )
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp")
     set_property(
         TEST pyfdb_${stem} 
         PROPERTY 

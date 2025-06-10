@@ -85,12 +85,8 @@ class PatchedLib:
             )
 
     def __read_header(self):
-
-        processed_fdb_h = process_fdb_header()
-
-        logging.debug("Processed header file:", processed_fdb_h)
-
-        return processed_fdb_h
+        with open(os.path.join(os.path.dirname(__file__), "processed_fdb.h"), "r") as f:
+            return f.read()
 
     def __check_error(self, fn, name):
         """
