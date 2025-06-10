@@ -7,7 +7,7 @@ from setuptools import setup
 def find_version():
     return re.search(
         r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-        io.open("src/pyfdb/version.py", encoding="utf_8_sig").read(),
+        io.open("pyfdb/version.py", encoding="utf_8_sig").read(),
     ).group(1)
 
 

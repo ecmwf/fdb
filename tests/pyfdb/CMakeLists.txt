@@ -12,7 +12,7 @@ function(add_py_test test)
         TEST pyfdb_${stem} 
         PROPERTY 
         ENVIRONMENT 
-            "PYTHONPATH=${CMAKE_BINARY_DIR}/lib:${CMAKE_CURRENT_SOURCE_DIR}/../../src"
+            "PYTHONPATH=${CMAKE_BINARY_DIR}/lib:${CMAKE_CURRENT_SOURCE_DIR}/../../src/pyfdb"
             #prevent findlibs in pyfdb to pickup any globally installed fdb
             "FDB5_DIR=${CMAKE_BINARY_DIR}"
             #prevent findlibs in eccodes-python to pickup any globally installed eccodes
