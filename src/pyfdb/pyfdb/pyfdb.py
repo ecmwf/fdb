@@ -10,12 +10,18 @@ import builtins
 import io
 import json
 import os
+import git
+import pathlib
+import logging
+
 from functools import wraps
 from typing import Optional, overload
 
 import cffi
 import findlibs
 from packaging import version
+
+from pyfdb.process_fdb_header import process_fdb_header
 
 from .version import __version__
 
@@ -35,6 +41,9 @@ class PatchedLib:
     Finds the header file associated with the FDB C API and parses it, loads the shared library,
     and patches the accessors with automatic python-C error handling.
     """
+
+    logger = logging.getLogger("PatchedLib")
+    logging.basicConfig(level=logging.INFO)
 
     def __init__(self):
         self.path = findlibs.find("fdb5")
@@ -56,8 +65,8 @@ class PatchedLib:
                     self, f, self.__check_error(attr, f) if callable(attr) else attr
                 )
             except Exception as e:
-                print(e)
-                print("Error retrieving attribute", f, "from library")
+                logging.error(e)
+                logging.error("Error retrieving attribute", f, "from library")
 
         # Initialise the library, and set it up for python-appropriate behaviour
 
@@ -76,8 +85,12 @@ class PatchedLib:
             )
 
     def __read_header(self):
-        with open(os.path.join(os.path.dirname(__file__), "processed_fdb.h"), "r") as f:
-            return f.read()
+
+        processed_fdb_h = process_fdb_header()
+
+        logging.debug("Processed header file:", processed_fdb_h)
+
+        return processed_fdb_h
 
     def __check_error(self, fn, name):
         """
