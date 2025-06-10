@@ -7,6 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import support.util as util
+from tests.conftest import create_default_fdb_at
 
 
 def test_direct_config(setup_fdb_tmp_dir, data_path):
@@ -21,12 +22,16 @@ def test_direct_config(setup_fdb_tmp_dir, data_path):
     # Check that the archive path is in the tmp directory
     # On OSX tmp file paths look like /private/var/folders/.../T/tmp.../x138-300.grib
     # While the tmp directory looks like /var/folders/.../T/tmp.../ hence why this check is not "startwith"
-    assert tmp_root in list_output[0]["path"]
+    assert str(tmp_root) in list_output[0]["path"]
 
 
-def test_opening_two_fdbs(setup_fdb_tmp_dir, data_path):
-    tmp_root1, fdb1 = setup_fdb_tmp_dir()
-    tmp_root2, fdb2 = setup_fdb_tmp_dir()
+def test_opening_two_fdbs(tmp_path, data_path):
+    tmp_root1 = tmp_path / "db1"
+    tmp_root1.mkdir()
+    _, fdb1 = create_default_fdb_at(tmp_root1, data_path)
+    tmp_root2 = tmp_path / "db2"
+    tmp_root2.mkdir()
+    _, fdb2 = create_default_fdb_at(tmp_root2, data_path)
 
     print(tmp_root1)
     print(tmp_root2)
@@ -39,4 +44,4 @@ def test_opening_two_fdbs(setup_fdb_tmp_dir, data_path):
     for fdb, root in [(fdb1, tmp_root1), (fdb2, tmp_root2)]:
         list_output = list(fdb.list(keys=True))
         assert len(list_output) == 1
-        assert root in list_output[0]["path"]
+        assert str(root) in list_output[0]["path"]

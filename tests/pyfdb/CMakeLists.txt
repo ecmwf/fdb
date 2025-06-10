@@ -5,7 +5,9 @@ function(add_py_test test)
         NAME pyfdb_${stem} 
         COMMAND ${Python_INTERPRETER} 
             -m pytest 
-            --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp 
+            # NOTE: Parallel invocations of pytest require distinct basetemp paths per 
+            #       invoked pytest instance. This is required to support ctest -j
+            --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/${stem}
             -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/${test}
     )
     set_property(
@@ -23,10 +25,10 @@ endfunction()
 
 
 set(test_files 
-    unit/test_archive.py
-    integration/test_passing_config_directly.py
-    integration/test_archive_scenarios.py
-    integration/test_pyfdb.py
+    tests/unit/test_archive.py
+    tests/integration/test_passing_config_directly.py
+    tests/integration/test_archive_scenarios.py
+    tests/integration/test_pyfdb.py
 )
 
 foreach(test_file ${test_files})
