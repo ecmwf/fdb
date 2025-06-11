@@ -288,6 +288,7 @@ void TocHandler::openForRead() const {
         iomode |= O_NOATIME;
     }
 #endif
+    std::cout << "TocHandler::openForRead - Using TOC file: " << tocPath_.localPath() << std::endl;
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
     eckit::Length tocSize = tocPath_.size();
 

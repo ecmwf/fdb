@@ -92,8 +92,8 @@ void FDBCopy::execute(const CmdArgs& args) {
         throw eckit::UserError("Missing --to parameter");
     }
 
-    fdb5::Config readConfig  = fdb5::Config::make(eckit::PathName(from));
-    fdb5::Config writeConfig = fdb5::Config::make(eckit::PathName(to));
+    //fdb5::Config readConfig  = fdb5::Config::make(eckit::PathName(from));
+    //fdb5::Config writeConfig = fdb5::Config::make(eckit::PathName(to));
 
     std::vector<metkit::mars::MarsRequest> requests = readRequest(args);
 
@@ -101,17 +101,21 @@ void FDBCopy::execute(const CmdArgs& args) {
     const bool sort = args.getBool("sort", false);
     fdb5::HandleGatherer handles(sort);
 
-    fdb5::FDB fdbRead(readConfig);
+    //fdb5::FDB fdbRead(readConfig);
+    fdb5::FDB fdbRead{};
 
     for (const auto& request : requests) {
+        std::cout << "iterating request" << std::endl;
         eckit::Log::info() << request << std::endl;
         handles.add(fdbRead.retrieve(request));
     }
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
-    fdbWriter.archive(*dh);
+    std::cout << "Handle count: " << handles.count() << std::endl;
+    std::cout << "Skipping archive()!" << std::endl;
+    //fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
+    //fdbWriter.archive(*dh);
 }
 
 int main(int argc, char** argv) {
