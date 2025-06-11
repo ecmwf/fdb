@@ -109,7 +109,7 @@ bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const {
         return false;
 
     eckit::PathName path = uri.path();
-    eckit::PathName toc  = path / "toc";
+    eckit::PathName toc  = path / std::string(eckit::Resource<std::string>("$DEBUG_SET_TOC_NAME", "toc"));
     return path.isDir() && toc.exists();
 }
 

@@ -131,7 +131,7 @@ private:  // members
 
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
-    tocPath_(directory_ / "toc"),
+    tocPath_(directory_ / std::string(eckit::Resource<std::string>("$DEBUG_SET_TOC_NAME", "toc"))),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
     useSubToc_(config.userConfig().getBool("useSubToc", false)),
@@ -288,6 +288,7 @@ void TocHandler::openForRead() const {
         iomode |= O_NOATIME;
     }
 #endif
+    std::cout << "TocHandler::openForRead - Using TOC file: " << tocPath_.localPath() << std::endl;
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
     eckit::Length tocSize = tocPath_.size();
 
