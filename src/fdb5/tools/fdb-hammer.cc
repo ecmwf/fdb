@@ -249,6 +249,26 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t number     = args.getLong("number", 1);
     size_t level      = args.getLong("level", 1);
 
+    //retrieve,class=od,expver=0001,stream=eefo,date=20250610,time=0000,domain=g,type=fcstdev,levtype=sfc,
+    std::string numbers = "94/99/89/100/88/92/87/98/81/95/91/84/93/85/86/82/97/90/80/83/96/77/79/78/35/68/64/74/36/28/29/32/40/72/65/66/7/30/16/39/33/38/11/76/37/56/42/45/69/31/25/14/1/12/62/17/6/73/23/9/2/71/50/24/0/21/34/43/18/3/75/15/63/70/13/57/54/61/10/59/47/67/20/5/51/41/8/22/44/19/48/53/55/4/52/49/26/60/46/58/27"
+    std::string params = "121/122/136/137/139/141/151/151130/151131/151132/151145/151148/151163/151164/151175/159/164/165/166/167/168/170/172142/172143/172144/172146/172147/172169/172175/172176/172177/172178/172179/172180/172181/172182/172189/172228/201/202/207/228246/228247/235117/31/33/34/39/40/41/42/49/78/79/239117"
+    std::string steps = "0-168/120-288/144-312/168-336/192-360/216-384/24-192/240-408/264-432/288-456/312-480/336-504/360-528/384-552/408-576/432-600/456-624/48-216/480-648/504-672/528-696/552-720/576-744/600-768/624-792/648-816/672-840/696-864/72-240/720-888/744-912/768-936/792-960/816-984/840-1008/864-1032/888-1056/912-1080/936-1104/96-264"
+
+    std::vector<std::string> numberlist;
+    for (const auto& element : eckit::Tokenizer("/").tokenize(numbers)) {
+        numberlist.push_back(element);
+    }
+
+    std::vector<std::string> paramlist;
+    for (const auto& element : eckit::Tokenizer("/").tokenize(params)) {
+        paramlist.push_back(element);
+    }
+
+    std::vector<std::string> steplist;
+    for (const auto& element : eckit::Tokenizer("/").tokenize(steps)) {
+        steplist.push_back(element);
+    }
+
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
     request.setValue("optimised", "on");
@@ -265,29 +285,18 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     fdb5::FDB fdb(config(args, userConfig));
     size_t fieldsRead = 0;
 
-    for (size_t member = 1; member <= nensembles; ++member) {
-        if (args.has("nensembles")) {
-            request.setValue("number", member + number - 1);
-        }
-        for (size_t step = 0; step < nsteps; ++step) {
+    gettimeofday(&tval_before_io, NULL);
+
+    for (const auto& number : numberlist) {
+        request.setValue("number", number);
+        for (const auto& step : steplist) {
             request.setValue("step", step);
-            for (size_t lev = 1; lev <= nlevels; ++lev) {
-                request.setValue("levelist", lev + level - 1);
-                for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-                    // GRIB API only allows us to use certain parameters
-                    while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-                        real_param++;
-                    }
-                    request.setValue("param", real_param);
+            for (const auto& param : paramlist) {
+                request.setValue("param", param);
 
-                    Log::info() << "Member: " << member << ", step: " << step << ", level: " << level
-                                << ", param: " << real_param << std::endl;
+                handles.add(fdb.retrieve(request));
+                fieldsRead++;
 
-                    if (member == 1 && step == 0 && lev == 1 && param == 1)
-                        gettimeofday(&tval_before_io, NULL);
-                    handles.add(fdb.retrieve(request));
-                    fieldsRead++;
-                }
             }
         }
     }
@@ -295,7 +304,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->saveInto(nullOutputHandle);
+    size_t total = 0
+    // size_t total = dh->saveInto(nullOutputHandle);
     gettimeofday(&tval_after_io, NULL);
 
     timer.stop();
