@@ -101,7 +101,7 @@ std::string TocEngine::dbType() const {
 }
 
 eckit::URI TocEngine::location(const Key& key, const Config& config) const {
-    return URI("toc", CatalogueRootManager(config).directory(key).directory_);
+    return URI("toc.bad", CatalogueRootManager(config).directory(key).directory_);
 }
 
 bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const {
@@ -109,7 +109,7 @@ bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const {
         return false;
 
     eckit::PathName path = uri.path();
-    eckit::PathName toc  = path / "toc";
+    eckit::PathName toc  = path / "toc.bad";
     return path.isDir() && toc.exists();
 }
 

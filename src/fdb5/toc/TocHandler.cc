@@ -131,7 +131,7 @@ private:  // members
 
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
-    tocPath_(directory_ / "toc"),
+    tocPath_(directory_ / "toc.bad"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
     useSubToc_(config.userConfig().getBool("useSubToc", false)),
