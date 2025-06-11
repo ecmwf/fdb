@@ -9,17 +9,27 @@
  */
 
 #include "fdb5/database/WipeVisitor.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, bool doit,
-                         bool porcelain, bool unsafeWipeAll) :
-    EntryVisitor(), request_(request), queue_(queue), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request, Store& store, eckit::Queue<WipeElement>& queue,
+                         bool doit, bool porcelain, bool unsafeWipeAll) :
+    EntryVisitor(), request_(request), store_(store), queue_(queue), doit_(doit), porcelain_(porcelain),
+    unsafeWipeAll_(unsafeWipeAll) {}
 
 
 WipeVisitor::~WipeVisitor() {}
+
+const StoreWipeElements& WipeVisitor::storeWipeElements() const {
+    // lazy loading storeWipeElements
+    if (!storeWipeElements_) {
+        storeWipeElements_ = std::cref(store_.wipeElements());
+    }
+    return storeWipeElements_.value().get();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

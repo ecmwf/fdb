@@ -59,9 +59,11 @@ public:  // methods
     void remove(const Key& key) const override;
 
     bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
-    WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const override;
+    void doWipe() override;
 
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override;
+    // const std::vector<eckit::URI>& deleteURIs() override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     bool auxiliaryURIExists(const eckit::URI&) const override;
     std::set<std::string> auxFileExtensions() const;
 
@@ -90,6 +92,7 @@ protected:  // methods
 
 private:  // methods
 
+    // std::vector<eckit::PathName> getAuxiliaryPaths(const eckit::URI& uri);
     eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
 
 private:  // types

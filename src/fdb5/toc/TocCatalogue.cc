@@ -92,7 +92,7 @@ PurgeVisitor* TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+WipeVisitor* TocCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new TocWipeVisitor(*this, store, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
 }

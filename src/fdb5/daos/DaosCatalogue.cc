@@ -102,7 +102,7 @@ void DaosCatalogue::loadSchema() {
     rule_ = &schema_.matchingRule(dbKey_);
 }
 
-WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+WipeVisitor* DaosCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
                                         bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new DaosWipeVisitor(*this, store, request, queue, doit, porcelain, unsafeWipeAll);
 }

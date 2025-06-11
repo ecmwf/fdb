@@ -19,7 +19,6 @@
 #include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
-class WipeElement;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -27,7 +26,7 @@ class TocWipeVisitor : public WipeVisitor {
 
 public:
 
-    TocWipeVisitor(const TocCatalogue& catalogue, const Store& store, const metkit::mars::MarsRequest& request,
+    TocWipeVisitor(const TocCatalogue& catalogue, Store& store, const metkit::mars::MarsRequest& request,
                    eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll);
     ~TocWipeVisitor() override;
 
@@ -41,7 +40,6 @@ private:  // methods
     void addMetadataPaths();
     void ensureSafePaths();
     void calculateResidualPaths();
-    std::vector<eckit::PathName> getAuxiliaryPaths(const eckit::URI& uri);
 
     bool anythingToWipe() const;
 
@@ -52,7 +50,6 @@ private:  // members
 
     // What are the parameters of the wipe operation
     const TocCatalogue& catalogue_;
-    const Store& store_;
 
     metkit::mars::MarsRequest indexRequest_;
 
@@ -64,12 +61,13 @@ private:  // members
     std::set<eckit::PathName> subtocPaths_;
     std::set<eckit::PathName> lockfilePaths_;
     std::set<eckit::PathName> indexPaths_;
-    std::set<eckit::PathName> dataPaths_;
-    std::set<eckit::PathName> auxiliaryDataPaths_;
+    std::set<eckit::PathName> safeCataloguePaths_;
+    std::set<eckit::URI> residualURIs_;
 
-    std::set<eckit::PathName> safePaths_;
-    std::set<eckit::PathName> residualPaths_;
-    std::set<eckit::PathName> residualDataPaths_;
+    // std::set<eckit::PathName> dataPaths_;
+    // std::set<eckit::PathName> auxiliaryDataPaths_;
+    // // std::optional<std::vector<eckit::URI>> safeStorePaths_;
+    // std::set<eckit::PathName> residualDataPaths_;
 
     std::vector<Index> indexesToMask_;
 };

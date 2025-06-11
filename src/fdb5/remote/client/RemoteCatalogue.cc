@@ -221,7 +221,7 @@ StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {
     NOTIMP;
 }
-WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+WipeVisitor* RemoteCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request,
                                           eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll) const {
     NOTIMP;
 }

@@ -25,13 +25,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue,
-                                 const Store& store,
+                                 Store& store,
                                  const metkit::mars::MarsRequest& request,
                                  std::ostream& out,
                                  bool doit,
                                  bool porcelain,
                                  bool unsafeWipeAll) :
-    WipeVisitor(request, queue, doit, porcelain, unsafeWipeAll), catalogue_(catalogue), store_(store), dbKvName_("") {}
+    WipeVisitor(request, store, queue, doit, porcelain, unsafeWipeAll), catalogue_(catalogue), dbKvName_("") {}
 
 DaosWipeVisitor::~DaosWipeVisitor() {}
 

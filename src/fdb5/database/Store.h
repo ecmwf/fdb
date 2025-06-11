@@ -21,6 +21,7 @@
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
@@ -70,11 +71,17 @@ public:
     virtual std::vector<eckit::URI> collocatedDataURIs() const                              = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
-    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const = 0;
-    virtual bool auxiliaryURIExists(const eckit::URI&) const = 0;
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
+    // virtual bool auxiliaryURIExists(const eckit::URI&) const = 0;
 
-    virtual bool canWipe(const std::vector<eckit::URI>& uris, bool all) const = 0;
-    virtual WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const = 0;
+    // executed for each index
+    virtual bool canWipe(const std::vector<eckit::URI>& uris, bool all) = 0;
+
+    virtual void doWipe() = 0;
+    const StoreWipeElements& wipeElements() const { return elements_; }
+
+protected:
+    StoreWipeElements elements_;
 };
 
 

@@ -43,11 +43,11 @@ public:  // methods
     void checkUID() const override { /* nothing to do */ }
 
     // DAOS store does not currently support auxiliary objects
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
-    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+    // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
-    bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
-    WipeIterator wipe(const std::vector<eckit::URI>& uris, bool all) const override;
+    bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
+    void doWipe() override;
 
 protected: // methods
 

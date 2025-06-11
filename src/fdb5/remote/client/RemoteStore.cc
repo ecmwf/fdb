@@ -502,6 +502,17 @@ std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::
     NOTIMP;
 }
 
+std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
+    NOTIMP;
+}
+
+bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
+    NOTIMP;
+}
+void RemoteStore::doWipe() {
+    NOTIMP;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 static StoreBuilder<RemoteStore> builder(RemoteStore::typeName());

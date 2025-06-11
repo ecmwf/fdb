@@ -41,22 +41,31 @@ namespace fdb5 {
 enum WipeElementType {
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
+    WIPE_CATALOGUE_SAFE,
     WIPE_CATALOGUE_AUX,
     WIPE_STORE_INFO,
     WIPE_STORE_URI,
     WIPE_STORE,
     WIPE_STORE_AUX,
+    WIPE_STORE_SAFE,
 };
+
+using StoreWipeElements = std::map<WipeElementType, std::vector<eckit::URI>>;
 
 class WipeElement {
 public: // methods
 
     WipeElement() = default;
+    WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri);
     WipeElement(WipeElementType type, const std::string& msg, const std::vector<eckit::URI>& uris);
     explicit WipeElement(eckit::Stream& s);
 
     void print(std::ostream& out) const;
     size_t encodeSize() const;
+
+    WipeElementType type() const { return type_; }
+    const std::string& msg() const { return msg_; }
+    const std::vector<eckit::URI>& uris() const { return uris_; }
 
 private: // methods
 

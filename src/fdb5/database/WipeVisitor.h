@@ -26,12 +26,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class Store;
+
 class WipeVisitor : public EntryVisitor {
 
 public:  // methods
 
-    WipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                bool doit, bool porcelain, bool unsafeWipeAll);
+    WipeVisitor(const metkit::mars::MarsRequest& request, Store& store, eckit::Queue<WipeElement>& queue,
+        bool doit, bool porcelain, bool unsafeWipeAll);
 
     ~WipeVisitor() override;
 
@@ -41,9 +43,16 @@ public:  // methods
 
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
+protected:  // methods
+
+    const StoreWipeElements& storeWipeElements() const;
+
 protected:  // members
 
     const metkit::mars::MarsRequest& request_;
+    Store& store_;
+
+    mutable std::optional<std::reference_wrapper<const StoreWipeElements>> storeWipeElements_;
 
     eckit::Queue<WipeElement>& queue_;
     // std::ostream& out_;

@@ -241,7 +241,7 @@ struct fdb_wipe_element_t {
 
     fdb_wipe_element_t(WipeElement&& e) : element_(std::move(e)) {}
 
-    const char* c_str() const { return element_.c_str(); }
+    const char* c_str() const { return element_.msg().c_str(); }
 
 private:
 

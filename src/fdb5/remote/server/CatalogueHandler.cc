@@ -213,11 +213,6 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct WipeHelper : public BaseHelper<WipeElement> {
-    virtual size_t encodeBufferSize(const WipeElement& el) const { return el.encodeSize(); }
-
-};
-
 struct InspectHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.inspect(request.request()); }
 };
