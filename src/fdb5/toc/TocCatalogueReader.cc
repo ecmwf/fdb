@@ -48,13 +48,13 @@ void TocCatalogueReader::loadIndexesAndRemap() const {
 }
 
 bool TocCatalogueReader::selectIndex(const Key& idxKey) {
-
     if (currentIndexKey_ == idxKey) {
         return true;
     }
 
     currentIndexKey_ = idxKey;
     matching_.clear();
+    axisCache_.clear();
 
     for (auto& pair : indexes_) {
         if (pair.first.key() == idxKey) {
@@ -85,16 +85,23 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-bool TocCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
+std::unique_ptr<const eckit::DenseSet<std::string>> TocCatalogueReader::computeAxis(const std::string& keyword) {
+
+    auto s = std::make_unique<eckit::DenseSet<std::string>>();
+
     bool found = false;
     for (const auto* pair : matching_) {
         const auto& index = pair->first;
         if (index.axes().has(keyword)) {
             found = true;
-            s.merge(index.axes().values(keyword));
+            s->merge(index.axes().values(keyword));
         }
     }
-    return found;
+
+    if (found) {
+        return s;
+    }
+    return nullptr;
 }
 
 void TocCatalogueReader::close() {
