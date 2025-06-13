@@ -72,6 +72,8 @@ find_package(UUID QUIET)
 
 find_package(DAOS QUIET)
 
+find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+
 set(_default_dummy_daos ON)
 if(DAOS_FOUND)
     set(_default_dummy_daos OFF)
@@ -135,6 +137,7 @@ ecbuild_add_option( FEATURE FDB_BUILD_TOOLS
 
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
 find_package(Threads REQUIRED)
+
 
 ### checks
 
