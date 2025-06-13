@@ -1455,13 +1455,14 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
 
     bool hideSubTocEntries = false;
     bool hideClearEntries  = false;
+    bool readMasked = dumpStructure; // disabled by default, to get accurate file offsets we need to read masked data.
 
     off_t tocOffset = 0;
     off_t subtocOffset = 0;
 
     bool isSubToc;
 
-    while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries)) {
+    while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         LocalPathName path;
@@ -1475,6 +1476,8 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
         switch (r->header_.tag_) {
 
             case TocRecord::TOC_INIT: {
+                subtocOffset = 0;
+
                 isSubToc = false;
                 fdb5::Key key(s);
                 if (r->header_.serialisationVersion_ > 1) {
@@ -1511,9 +1514,6 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
                 out << "  path: " << path;
-
-                isSubToc = false;
-                subtocOffset = 0; 
                 break;
             }
 
@@ -1523,9 +1523,18 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             }
         }
 
+        isSubToc = subTocRead_ != nullptr && r->header_.tag_ != TocRecord::TOC_SUB_TOC; // subTocRead_ still points to a subtoc even when reading a `TOC_SUB_TOC` which belongs on the toc?
         if (dumpStructure) {
-            const char* label = isSubToc ? "sub-toc-offset" : "toc-offset";
-            off_t* offsetPtr = isSubToc ? &subtocOffset : &tocOffset;
+            
+            const char* label;
+            off_t* offsetPtr;
+            if (isSubToc) {
+                label = "sub-toc-offset";
+                offsetPtr = &subtocOffset;
+            } else {
+                label = "toc-offset";
+                offsetPtr = &tocOffset;
+            }
 
             out << ", " << label << ": " << *offsetPtr
                 << ", length: " << r->header_.size_
