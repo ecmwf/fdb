@@ -53,7 +53,7 @@ private:  // methods
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
-                eckit::StringList& values) override;
+                eckit::StringList& values, bool visitAxes) override;
 
     void print(std::ostream& out) const override;
 

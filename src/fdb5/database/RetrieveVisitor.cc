@@ -79,13 +79,13 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
 }
 
 void RetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                             const TypesRegistry& registry, eckit::StringList& values) {
+                             const TypesRegistry& registry, eckit::StringList& values, bool visitAxes) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
     eckit::DenseSet<std::string> filter;
     bool toFilter = false;
-    if (catalogue_) {
+    if (catalogue_ && visitAxes) {
         toFilter = catalogue_->axis(keyword, filter);
     }
 

@@ -51,7 +51,7 @@ public:  // methods
     virtual const Schema& databaseSchema() const = 0;
 
     virtual void values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                        const TypesRegistry& registry, eckit::StringList& values) = 0;
+                        const TypesRegistry& registry, eckit::StringList& values, bool visitAxes) = 0;
 
 protected:  // methods
 

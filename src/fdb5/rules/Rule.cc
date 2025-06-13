@@ -332,8 +332,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         }
 
         eckit::StringList values;
-	if (visitAxes)
-            visitor.values(request, keyword, registry_, values);
+        visitor.values(request, keyword, registry_, values, visitAxes);
 
         if (values.empty() && pred->optional()) {
             values.push_back(pred->defaultValue());
@@ -539,7 +538,7 @@ void RuleDatum::encode(eckit::Stream& out) const {
 
 void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
 
-    for (const auto& key : findMatchingKeys(request, visitor)) {
+    for (const auto& key : findMatchingKeys(request, visitor, true)) {
 
         full.pushFrom(key);
 
@@ -610,7 +609,7 @@ void RuleIndex::updateParent(const Rule* parent) {
 
 void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
 
-    for (const auto& key : findMatchingKeys(request, visitor)) {
+    for (const auto& key : findMatchingKeys(request, visitor, true)) {
 
         full.pushFrom(key);
 
