@@ -1457,22 +1457,20 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
     bool hideClearEntries  = false;
 
     off_t tocOffset = 0;
+    off_t subtocOffset = 0;
+
+    bool isSubToc;
 
     while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         LocalPathName path;
         std::string type;
-        bool isSubToc;
 
         off_t offset;
         std::vector<Index>::iterator j;
 
         r->dump(out, simple);
-
-        if(dumpStructure){
-            out << " toc-offset: " << tocOffset << ", length: " << r->header_.size_;
-        }
 
         switch (r->header_.tag_) {
 
@@ -1513,6 +1511,9 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
                 out << "  Path: " << path;
+
+                isSubToc = false;
+                subtocOffset = 0; 
                 break;
             }
 
@@ -1521,9 +1522,18 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
                 break;
             }
         }
-        out << std::endl;
 
-        tocOffset += r->header_.size_;
+        if (dumpStructure) {
+            const char* label = isSubToc ? "subtoc-offset" : "toc-offset";
+            off_t* offsetPtr = isSubToc ? &subtocOffset : &tocOffset;
+
+            out << ", " << label << ": " << *offsetPtr
+                << ", length: " << r->header_.size_;
+
+            *offsetPtr += r->header_.size_;
+        }
+
+        out << std::endl;
     }
 }
 
