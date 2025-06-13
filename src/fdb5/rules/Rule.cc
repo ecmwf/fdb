@@ -613,7 +613,6 @@ void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
         full.pushFrom(key);
 
-        bool idx = visitor.selectIndex(key, full);
         if (visitor.selectIndex(key, full)) {
             for (const auto& rule : rules_) {
                 rule->expand(request, visitor, full);

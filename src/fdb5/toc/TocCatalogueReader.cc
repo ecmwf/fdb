@@ -48,13 +48,13 @@ void TocCatalogueReader::loadIndexesAndRemap() const {
 }
 
 bool TocCatalogueReader::selectIndex(const Key& idxKey) {
-
     if (currentIndexKey_ == idxKey) {
         return true;
     }
 
     currentIndexKey_ = idxKey;
     matching_.clear();
+    axisCache_.clear();
 
     for (auto& pair : indexes_) {
         if (pair.first.key() == idxKey) {
@@ -86,6 +86,12 @@ bool TocCatalogueReader::open() {
 }
 
 bool TocCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
+    if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
+        LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::axis(" << keyword << ") cache hit " << std::endl;
+        s = *iter->second;
+        return true;
+    }
+
     bool found = false;
     for (const auto* pair : matching_) {
         const auto& index = pair->first;
@@ -93,6 +99,11 @@ bool TocCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::s
             found = true;
             s.merge(index.axes().values(keyword));
         }
+    }
+    if (found) {
+        const auto [_, success] =
+            axisCache_.insert(std::make_pair(keyword, std::make_unique<eckit::DenseSet<std::string>>(s)));
+        LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::axis(" << keyword << ") cache miss " << std::endl;
     }
     return found;
 }
