@@ -137,7 +137,7 @@ public:  // methods
     const eckit::LocalPathName& tocPath() const;
     const eckit::LocalPathName& schemaPath() const;
 
-    void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true) const;
+    void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true, bool dumpStructure = false) const;
     void dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const;
     std::string dbOwner() const;
 

@@ -1445,7 +1445,7 @@ void TocHandler::selectSubTocRead(const eckit::LocalPathName& path) const {
     subTocRead_->openForRead();
 }
 
-void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
+void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dumpStructure) const {
 
     openForRead();
     TocHandlerCloser close(*this);
@@ -1455,6 +1455,9 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
 
     bool hideSubTocEntries = false;
     bool hideClearEntries  = false;
+
+    off_t tocOffset = 0;
+
     while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
@@ -1466,6 +1469,10 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
         std::vector<Index>::iterator j;
 
         r->dump(out, simple);
+
+        if(dumpStructure){
+            out << " toc-offset: " << tocOffset << ", length: " << r->header_.size_;
+        }
 
         switch (r->header_.tag_) {
 
@@ -1486,7 +1493,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 s >> path;
                 s >> offset;
                 s >> type;
-                out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+                out << "  path: " << path << ", offset: " << offset << ", type: " << type;
                 if (!simple) {
                     out << std::endl;
                 }
@@ -1515,6 +1522,8 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
             }
         }
         out << std::endl;
+
+        tocOffset += r->header_.size_;
     }
 }
 

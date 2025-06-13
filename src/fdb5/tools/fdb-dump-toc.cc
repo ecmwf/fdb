@@ -27,6 +27,7 @@ public:  // methods
         needsConfig_ = false;
         options_.push_back(
             new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("structure", "Print toc record lengths and offsets to output"));
     }
 
 private:  // methods
@@ -44,6 +45,7 @@ void FDBDumpToc::usage(const std::string& tool) const {
 void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
     bool walkSubTocs = args.getBool("walk", false);
+    bool dumpStructure = args.getBool("structure", false);
 
     for (size_t i = 0; i < args.count(); i++) {
 
@@ -51,7 +53,7 @@ void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
         fdb5::TocHandler handler(path, fdb5::Key{});
 
-        handler.dump(eckit::Log::info(), true, walkSubTocs);
+        handler.dump(eckit::Log::info(), true, walkSubTocs, dumpStructure);
     }
 }
 
