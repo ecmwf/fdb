@@ -43,6 +43,8 @@ protected:  // methods
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
+    void deselectDatabase() override;
+
     void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
                 eckit::StringList& values) override;
 

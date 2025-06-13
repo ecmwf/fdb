@@ -111,6 +111,11 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
     return false;
 }
 
+void MultiRetrieveVisitor::deselectDatabase() {
+    catalogue_ = nullptr;
+    return;
+}
+
 void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
                                   const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
