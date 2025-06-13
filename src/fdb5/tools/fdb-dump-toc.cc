@@ -27,7 +27,7 @@ public:  // methods
         needsConfig_ = false;
         options_.push_back(
             new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("structure", "Print toc record lengths and offsets to output"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("structure", "Add toc record lengths, offsets and paths to output"));
     }
 
 private:  // methods

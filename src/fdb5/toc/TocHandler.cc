@@ -1480,7 +1480,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
                 if (r->header_.serialisationVersion_ > 1) {
                     s >> isSubToc;
                 }
-                out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
+                out << "  key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if (!simple) {
                     out << std::endl;
                 }
@@ -1504,13 +1504,13 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             case TocRecord::TOC_CLEAR: {
                 s >> path;
                 s >> offset;
-                out << "  Path: " << path << ", offset: " << offset;
+                out << "  path: " << path << ", offset: " << offset;
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
-                out << "  Path: " << path;
+                out << "  path: " << path;
 
                 isSubToc = false;
                 subtocOffset = 0; 
@@ -1524,7 +1524,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
         }
 
         if (dumpStructure) {
-            const char* label = isSubToc ? "subtoc-offset" : "toc-offset";
+            const char* label = isSubToc ? "sub-toc-offset" : "toc-offset";
             off_t* offsetPtr = isSubToc ? &subtocOffset : &tocOffset;
 
             out << ", " << label << ": " << *offsetPtr
