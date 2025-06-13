@@ -1528,7 +1528,8 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             off_t* offsetPtr = isSubToc ? &subtocOffset : &tocOffset;
 
             out << ", " << label << ": " << *offsetPtr
-                << ", length: " << r->header_.size_;
+                << ", length: " << r->header_.size_
+                << ", toc-path: " << currentTocPath();
 
             *offsetPtr += r->header_.size_;
         }
