@@ -19,6 +19,7 @@
 #include <iosfwd>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -92,6 +93,8 @@ private:  // members
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
     mutable MapList indexes_;
+
+    mutable std::unordered_map<std::string, std::unique_ptr<eckit::DenseSet<std::string>>> axisCache_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

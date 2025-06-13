@@ -608,18 +608,13 @@ void RuleIndex::updateParent(const Rule* parent) {
 }
 
 void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
-
     for (const auto& key : findMatchingKeys(request, visitor)) {
-
         full.pushFrom(key);
-
-        bool idx = visitor.selectIndex(key, full);
         if (visitor.selectIndex(key, full)) {
             for (const auto& rule : rules_) {
                 rule->expand(request, visitor, full);
             }
         }
-
         full.popFrom(key);
     }
 }
