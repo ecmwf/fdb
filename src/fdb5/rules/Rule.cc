@@ -317,7 +317,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     return graph.makeKeys();
 }
 
-std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
+std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, bool visitAxes) const {
 
     RuleGraph graph;
 
@@ -332,7 +332,8 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         }
 
         eckit::StringList values;
-        visitor.values(request, keyword, registry_, values);
+	if (visitAxes)
+            visitor.values(request, keyword, registry_, values);
 
         if (values.empty() && pred->optional()) {
             values.push_back(pred->defaultValue());
@@ -679,7 +680,7 @@ void RuleDatabase::updateParent(const Rule* /* parent */) {
 
 void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const {
 
-    for (auto& key : findMatchingKeys(request, visitor)) {
+    for (auto& key : findMatchingKeys(request, visitor, false)) {
 
         if (visitor.selectDatabase(key, key)) {
             // (important) using the database's schema

@@ -83,7 +83,7 @@ protected:  // methods
 
     std::optional<Key> findMatchingKey(const Key& field) const;
 
-    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
+    std::vector<Key> findMatchingKeys(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, bool visitAxes = true) const;
 
 private:  // methods
 
