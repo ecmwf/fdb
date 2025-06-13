@@ -112,13 +112,13 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
 }
 
 void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                                  const TypesRegistry& registry, eckit::StringList& values, bool visitAxes) {
+                                  const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
     eckit::DenseSet<std::string> filter;
     bool toFilter = false;
-    if (catalogue_ && visitAxes) {
+    if (catalogue_) {
         toFilter = catalogue_->axis(keyword, filter);
     }
 
