@@ -1455,9 +1455,9 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
 
     bool hideSubTocEntries = false;
     bool hideClearEntries  = false;
-    bool readMasked = dumpStructure; // disabled by default, to get accurate file offsets we need to read masked data.
+    bool readMasked = dumpStructure;  // disabled by default, to get accurate file offsets we need to read masked data.
 
-    off_t tocOffset = 0;
+    off_t tocOffset    = 0;
     off_t subtocOffset = 0;
 
     bool isSubToc;
@@ -1523,21 +1523,23 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             }
         }
 
-        isSubToc = subTocRead_ != nullptr && r->header_.tag_ != TocRecord::TOC_SUB_TOC; // subTocRead_ still points to a subtoc even when reading a `TOC_SUB_TOC` which belongs on the toc?
+        isSubToc = subTocRead_ != nullptr &&
+                   r->header_.tag_ != TocRecord::TOC_SUB_TOC;  // subTocRead_ still points to a subtoc even when reading
+                                                               // a `TOC_SUB_TOC` which belongs on the toc?
         if (dumpStructure) {
-            
+
             const char* label;
             off_t* offsetPtr;
             if (isSubToc) {
-                label = "sub-toc-offset";
+                label     = "sub-toc-offset";
                 offsetPtr = &subtocOffset;
-            } else {
-                label = "toc-offset";
+            }
+            else {
+                label     = "toc-offset";
                 offsetPtr = &tocOffset;
             }
 
-            out << ", " << label << ": " << *offsetPtr
-                << ", length: " << r->header_.size_
+            out << ", " << label << ": " << *offsetPtr << ", length: " << r->header_.size_
                 << ", toc-path: " << currentTocPath();
 
             *offsetPtr += r->header_.size_;
