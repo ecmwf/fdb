@@ -17,8 +17,10 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -147,8 +149,16 @@ public:
 
     virtual DbStats stats() const = 0;
 
-    virtual bool axis(const std::string& /*keyword*/, eckit::DenseSet<std::string>& /*string*/) const { NOTIMP; }
+    std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> axis(const std::string& keyword) const;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
+
+protected: // methods
+
+    virtual std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const = 0;
+
+protected:  // members
+
+    mutable std::unordered_map<std::string, std::unique_ptr<const eckit::DenseSet<std::string>>> axisCache_;
 };
 
 

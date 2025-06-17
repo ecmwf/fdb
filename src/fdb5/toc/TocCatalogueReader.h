@@ -57,13 +57,13 @@ private:  // methods
     void clean() override {}
     void close() override;
 
-    bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const override;
-
     bool retrieve(const Key& key, Field& field) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
+
+    std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const override;
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside

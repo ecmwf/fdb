@@ -70,6 +70,26 @@ bool CatalogueImpl::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
+std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> CatalogueReader::axis(const std::string& keyword) const {
+    if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
+        return *iter->second;
+    }
+
+    auto newAxis = computeAxis(keyword);
+
+    if (newAxis == nullptr) {
+        return std::nullopt;
+    }
+
+    const eckit::DenseSet<std::string>& out = *newAxis;
+
+    const auto [_, success] = axisCache_.emplace(keyword, std::move(newAxis));
+    LOG_DEBUG_LIB(LibFdb5) << "axis(" << keyword << ") cache miss " << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << out << std::endl;
+
+    return out;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CatalogueReaderFactory::CatalogueReaderFactory() {}

@@ -90,6 +90,9 @@ private:
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
+    // From CatalogueReader
+    std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const override { NOTIMP; }
+
 protected:
 
     Config config_;

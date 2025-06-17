@@ -85,7 +85,7 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-std::unique_ptr<const eckit::DenseSet<std::string>> TocCatalogueReader::computeAxis(const std::string& keyword) {
+std::unique_ptr<eckit::DenseSet<std::string>> TocCatalogueReader::computeAxis(const std::string& keyword) const {
 
     auto s = std::make_unique<eckit::DenseSet<std::string>>();
 

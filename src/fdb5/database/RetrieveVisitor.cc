@@ -83,15 +83,14 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
-    eckit::DenseSet<std::string> filter;
-    bool toFilter = false;
+    std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> filter;
     if (catalogue_) {
-        toFilter = catalogue_->axis(keyword, filter);
+        filter = catalogue_->axis(keyword);
     }
 
     for (const auto& value : list) {
         std::string v = registry.lookupType(keyword).toKey(value);
-        if (!toFilter || filter.find(v) != filter.end()) {
+        if (!filter || filter->get().find(v) != filter->get().end()) {
             values.push_back(value);
         }
     }
