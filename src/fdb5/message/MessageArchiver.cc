@@ -21,7 +21,7 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -60,7 +60,7 @@ std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
     // expand requests
 
     bool inherit = true;
-    metkit::mars::MarsExpansion expand(inherit);
+    metkit::mars::MarsExpension expand(inherit);
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 

@@ -1,6 +1,13 @@
 fdb overlay
 ===========
 
+.. warning::
+    This is a **powerful and advanced** command. With power comes **responsibility**.
+
+    This command has the potential to hide data, and **cannot be used repeatedly**.
+
+    It should only be used if you **fully** understand its implications.
+
 Make the contents of one FDB database available as though they were archived using different keys (class or expver).
 
 The new database behaves as though it has a symlink to the old, and any data retrieved will have the relevant keys updated on retrieval (on the fly).

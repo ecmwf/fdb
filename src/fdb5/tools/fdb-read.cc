@@ -15,7 +15,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -77,7 +77,7 @@ void FDBRead::execute(const eckit::option::CmdArgs& args) {
                 requests.push_back(r);
         }
         else {
-            metkit::mars::MarsExpansion expand(/* inherit */ false);
+            metkit::mars::MarsExpension expand(/* inherit */ false);
             requests = expand.expand(parsedRequests);
         }
     }

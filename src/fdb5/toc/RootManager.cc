@@ -607,7 +607,7 @@ TocPath RootManager::directory(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
         if (i->match(keystr)) {
-            TocPath db = i->filesystem(key, dbpath);
+            TocPath db = i->filesystem(config_, key, dbpath);
             LOG_DEBUG_LIB(LibFdb5) << "Database directory " << db.directory_ << std::endl;
             return db;
         }

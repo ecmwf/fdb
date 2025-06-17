@@ -27,7 +27,7 @@
 #include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
@@ -122,7 +122,8 @@ CASE("test_fdb_stepunit_archive") {
     fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
     fdb.flush();
 
-    metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest req     = key.request();
+    metkit::mars::MarsRequest listReq = key.request("list");
 
     {
         fdb5::FDBToolRequest r(req);
@@ -175,12 +176,12 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.values("step", {"0", "to", "2", "by", "30m"});
-    req.unsetValues("param");
+    listReq.values("step", {"0", "to", "2", "by", "30m"});
+    listReq.unsetValues("param");
     {
-        metkit::mars::MarsExpansion expand{false};
+        metkit::mars::MarsExpension expand{false};
 
-        metkit::mars::MarsRequest expandedRequests = expand.expand(req);
+        metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
         fdb5::FDBToolRequest r(expandedRequests);
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;

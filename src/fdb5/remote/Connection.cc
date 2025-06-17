@@ -42,14 +42,8 @@ void Connection::teardown() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Connection::writeUnsafe(const bool control, const void* const data, const size_t length) const {
-    long written = 0;
-    if (control || single_) {
-        written = controlSocket().write(data, length);
-    }
-    else {
-        written = dataSocket().write(data, length);
-    }
+void Connection::writeUnsafe(const eckit::net::TCPSocket& socket, const void* const data, const size_t length) const {
+    long written = socket.write(data, length);
     if (written < 0) {
         isValid_ = false;
         std::stringstream ss;
@@ -64,14 +58,8 @@ void Connection::writeUnsafe(const bool control, const void* const data, const s
     }
 }
 
-bool Connection::readUnsafe(bool control, void* data, size_t length) const {
-    long read = 0;
-    if (control || single_) {
-        read = controlSocket().read(data, length);
-    }
-    else {
-        read = dataSocket().read(data, length);
-    }
+bool Connection::readUnsafe(const eckit::net::TCPSocket& socket, void* data, size_t length) const {
+    long read = socket.read(data, length);
     if (length != read) {
         isValid_ = false;
         if (closingSocket_) {
@@ -89,18 +77,18 @@ bool Connection::readUnsafe(bool control, void* data, size_t length) const {
 }
 
 eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
+    const auto& socket = getSocket(control);
     eckit::FixedString<4> tail;
     hdr.payloadSize = 0;
-
-    if (readUnsafe(control, &hdr, sizeof(hdr))) {
+    if (readUnsafe(socket, &hdr, sizeof(hdr))) {
         ASSERT(hdr.marker == MessageHeader::StartMarker);
         ASSERT(hdr.version == MessageHeader::currentVersion);
         ASSERT(single_ || hdr.control() == control);
 
         eckit::Buffer payload{hdr.payloadSize};
-        if ((hdr.payloadSize == 0 || readUnsafe(control, payload, hdr.payloadSize))
+        if ((hdr.payloadSize == 0 || readUnsafe(socket, payload, hdr.payloadSize))
             // Ensure we have consumed exactly the correct amount from the socket.
-            && readUnsafe(control, &tail, sizeof(tail))) {
+            && readUnsafe(socket, &tail, sizeof(tail))) {
 
             ASSERT(tail == MessageHeader::EndMarker);
 
@@ -130,21 +118,22 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    const auto& socket = control ? controlSocket() : dataSocket();
+    const auto& socket = getSocket(control);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
                            << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
                            << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
 
-    std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
 
-    writeUnsafe(control, &message, sizeof(message));
+    writeUnsafe(socket, &message, sizeof(message));
 
     for (const auto& payload : payloads) {
-        writeUnsafe(control, payload.data, payload.length);
+        writeUnsafe(socket, payload.data, payload.length);
     }
 
-    writeUnsafe(control, &MessageHeader::EndMarker, MessageHeader::markerBytes);
+    writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
 void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
@@ -159,5 +148,20 @@ eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
 eckit::Buffer Connection::readData(MessageHeader& hdr) const {
     return read(false, hdr);
 }
+
+const eckit::net::TCPSocket& Connection::getSocket(bool control) const {
+    if (control || single_) {
+        return controlSocket();
+    }
+    return dataSocket();
+}
+
+std::mutex& Connection::getSocketMutex(bool control) const {
+    if (control || single_) {
+        return controlMutex_;
+    }
+    return dataMutex_;
+}
+
 
 }  // namespace fdb5::remote
