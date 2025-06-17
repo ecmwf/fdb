@@ -78,6 +78,11 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
     return (dh != 0);
 }
 
+void RetrieveVisitor::deselectDatabase() {
+    catalogue_ = nullptr;
+    return;
+}
+
 void RetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
                              const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;

@@ -681,8 +681,10 @@ void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor&
             for (const auto& rule : visitor.databaseSchema().matchingRule(key).rules()) {
                 rule->expand(request, visitor, key);
             }
+	    visitor.deselectDatabase();
         }
     }
+
 }
 
 bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
