@@ -12,21 +12,24 @@
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
-
-#ifndef fdb5_TocCatalogueReader_H
-#define fdb5_TocCatalogueReader_H
-
+#pragma once
+#include <cstddef>
 #include <iosfwd>
-#include <map>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "eckit/filesystem/URI.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
 
@@ -65,17 +68,17 @@ private:  // members
 
     std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const override;
 
-    // Indexes matching current key. If there is a key remapping for a mounted
-    // SubToc, then this is stored alongside
+    /// Indexes matching current key. If there is a key remapping for a mounted
+    /// SubToc, then this is stored alongside
     std::vector<std::pair<Index, Key>*> matching_;
 
-    // All indexes
-    // If there is a key remapping for a mounted SubToc, this is stored alongside
+    /// All indexes
+    /// If there is a key remapping for a mounted SubToc, this is stored alongside
     mutable std::vector<std::pair<Index, Key>> indexes_;
+
+    mutable std::unordered_map<std::string, std::unique_ptr<eckit::DenseSet<std::string>>> axisCache_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
