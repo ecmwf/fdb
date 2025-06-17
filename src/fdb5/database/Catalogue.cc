@@ -70,7 +70,8 @@ bool CatalogueImpl::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
-std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> CatalogueReader::axis(const std::string& keyword) const {
+std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> CatalogueReader::axis(
+    const std::string& keyword) const {
     if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
         return *iter->second;
     }

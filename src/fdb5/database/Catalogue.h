@@ -152,7 +152,7 @@ public:
     std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> axis(const std::string& keyword) const;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 
-protected: // methods
+protected:  // methods
 
     virtual std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const = 0;
 

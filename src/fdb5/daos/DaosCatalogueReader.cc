@@ -103,7 +103,8 @@ bool DaosCatalogueReader::open() {
     return true;
 }
 
-std::unique_ptr<eckit::DenseSet<std::string>> DaosCatalogueReader::computeAxis(const std::string& /*keyword*/) const override;
+std::unique_ptr<eckit::DenseSet<std::string>> DaosCatalogueReader::computeAxis(
+    const std::string& /*keyword*/) const override;
 bool DaosCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
 
     bool found = false;
