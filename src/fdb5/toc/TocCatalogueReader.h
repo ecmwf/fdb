@@ -75,8 +75,6 @@ private:  // members
     /// All indexes
     /// If there is a key remapping for a mounted SubToc, this is stored alongside
     mutable std::vector<std::pair<Index, Key>> indexes_;
-
-    mutable std::unordered_map<std::string, std::unique_ptr<eckit::DenseSet<std::string>>> axisCache_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

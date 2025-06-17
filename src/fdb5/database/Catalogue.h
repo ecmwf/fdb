@@ -154,9 +154,13 @@ public:
 
 protected:  // methods
 
+    void invalidateAxis();
+
+private:  // methods
+
     virtual std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const = 0;
 
-protected:  // members
+private:  // members
 
     mutable std::unordered_map<std::string, std::unique_ptr<const eckit::DenseSet<std::string>>> axisCache_;
 };

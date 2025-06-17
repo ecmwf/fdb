@@ -54,7 +54,7 @@ bool TocCatalogueReader::selectIndex(const Key& idxKey) {
 
     currentIndexKey_ = idxKey;
     matching_.clear();
-    axisCache_.clear();
+    invalidateAxis();
 
     for (auto& pair : indexes_) {
         if (pair.first.key() == idxKey) {
