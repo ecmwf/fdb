@@ -14,10 +14,10 @@
 /// @date   April 2016
 
 #include "fdb5/rules/SchemaParser.h"
+#include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
-#include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchOptional.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
@@ -96,7 +96,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume("=");
 
         std::string val = parseIdent(true, false);
-        bool exclude = val[0] == '!';
+        bool exclude    = val[0] == '!';
 
         if (exclude) {
             notValues.insert(val.substr(1));

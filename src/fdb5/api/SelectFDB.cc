@@ -89,7 +89,9 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
 
     std::string schema = config.getString("schema", "");
     for (auto& c : config.getSubConfigs("fdbs")) {
-        // inherit default schema from the SelectFDB
+        /// inject parent schema into the SelectFDB sub-fdbs
+        /// note: a sub-fdb can be a remote or select FDB, se we do not worry if neither parent nor children are
+        /// defining a schema: it could be defined in the grand-children
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
         }
