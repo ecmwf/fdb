@@ -17,7 +17,7 @@
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
-#include "fdb5/rules/MatchNone.h"
+#include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchOptional.h"
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
@@ -96,7 +96,9 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume("=");
 
         std::string val = parseIdent(true, false);
-        if (val[0] == '!') {
+        bool exclude = val[0] == '!';
+
+        if (exclude) {
             notValues.insert(val.substr(1));
         }
         else {
@@ -105,7 +107,13 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
 
         while ((c = peek()) == '/') {
             consume(c);
-            values.insert(parseIdent(true, false));
+            val = parseIdent(true, false);
+            if (exclude) {
+                notValues.insert(val);
+            }
+            else {
+                values.insert(val);
+            }
         }
     }
 
@@ -115,7 +123,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     switch (values.size()) {
         case 0:
             if (notValues.size()) {
-                return std::make_unique<Predicate>(k, new MatchNone(notValues));
+                return std::make_unique<Predicate>(k, new ExcludeAll(notValues));
             }
             return std::make_unique<Predicate>(k, new MatchAlways());
         case 1:

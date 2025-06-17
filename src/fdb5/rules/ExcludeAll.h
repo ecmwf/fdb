@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   MatchNone.h
+/// @file   ExcludeAll.h
 /// @author Emanuele Danovaro
 /// @date   April 2025
 
@@ -24,12 +24,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchNone : public Matcher {
+class ExcludeAll : public Matcher {
 
 public:  // methods
 
-    MatchNone(const std::set<std::string>& values);
-    MatchNone(eckit::Stream& s);
+    ExcludeAll(const std::set<std::string>& values);
+    ExcludeAll(eckit::Stream& s);
 
     bool match(const std::string& value) const override;
 
@@ -49,7 +49,7 @@ private:  // methods
 private:  // members
 
     static eckit::ClassSpec classSpec_;
-    static eckit::Reanimator<MatchNone> reanimator_;
+    static eckit::Reanimator<ExcludeAll> reanimator_;
 
     std::set<std::string> values_;
 };
