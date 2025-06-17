@@ -613,7 +613,6 @@ void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
 
         full.pushFrom(key);
 
-        bool idx = visitor.selectIndex(key, full);
         if (visitor.selectIndex(key, full)) {
             for (const auto& rule : rules_) {
                 rule->expand(request, visitor, full);
@@ -686,8 +685,10 @@ void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor&
             for (const auto& rule : visitor.databaseSchema().matchingRule(key).rules()) {
                 rule->expand(request, visitor, key);
             }
+	    visitor.deselectDatabase();
         }
     }
+
 }
 
 bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
