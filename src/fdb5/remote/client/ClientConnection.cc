@@ -465,9 +465,9 @@ void ClientConnection::listeningDataThreadLoop() {
                         auto it = clients_.find(hdr.clientID());
                         if (it == clients_.end()) {
                             std::stringstream ss;
-                            ss << "ERROR: DATA connection=" << dataEndpoint_
-                                << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                                << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
+                               << ",requestID=" << hdr.requestID << ",message=" << hdr.message
+                               << ",payload=" << hdr.payloadSize << "]" << std::endl;
                             ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
                             eckit::Log::status() << ss.str() << std::endl;
                             eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
