@@ -363,9 +363,10 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     ASSERT(hdr.control() || single_);
 
+                    std::lock_guard<std::mutex> lock(promisesMutex_);
+
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
-                        std::lock_guard<std::mutex> lock(promisesMutex_);
                         if (hdr.payloadSize == 0) {
                             ASSERT(hdr.message == Message::Received);
                             pp->second.set_value(eckit::Buffer(0));
@@ -384,10 +385,10 @@ void ClientConnection::listeningControlThreadLoop() {
                             auto it = clients_.find(hdr.clientID());
                             if (it == clients_.end()) {
                                 std::stringstream ss;
-                                ss << "ERROR: connection=" << controlEndpoint_
+                                ss << "ERROR: CONTROL connection=" << controlEndpoint_
                                    << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
                                    << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                                ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
+                                ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
                                 eckit::Log::status() << ss.str() << std::endl;
                                 eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
                                 throw eckit::SeriousBug(ss.str(), Here());
@@ -405,7 +406,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     if (!handled) {
                         std::stringstream ss;
-                        ss << "ERROR: connection=" << controlEndpoint_
+                        ss << "ERROR: CONTROL connection=" << controlEndpoint_
                            << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
                            << ",requestID=" << hdr.requestID << "]. ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
@@ -464,9 +465,10 @@ void ClientConnection::listeningDataThreadLoop() {
                         auto it = clients_.find(hdr.clientID());
                         if (it == clients_.end()) {
                             std::stringstream ss;
-                            ss << "ERROR: Received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                               << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
+                            ss << "ERROR: DATA connection=" << dataEndpoint_
+                                << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                                << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
                             eckit::Log::status() << ss.str() << std::endl;
                             eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
                             throw eckit::SeriousBug(ss.str(), Here());
@@ -485,7 +487,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
                     if (!handled) {
                         std::stringstream ss;
-                        ss << "ERROR: DATA connection=" << controlEndpoint_ << " Unexpected message recieved ("
+                        ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
                            << hdr.message << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
