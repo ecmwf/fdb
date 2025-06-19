@@ -14,6 +14,7 @@
 /// @date   April 2016
 
 #include "fdb5/rules/SchemaParser.h"
+#include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
@@ -53,7 +54,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
                 if (!value) {
                     return s;
                 }
-
+                [[fallthrough]];
             default:
                 consume(c);
                 s += c;
@@ -64,6 +65,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
 
 std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types) {
 
+    bool exclude = false;
     std::set<std::string> values;
     std::string k = parseIdent(false, false);
 
@@ -93,7 +95,15 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
-        values.insert(parseIdent(true, false));
+        std::string val = parseIdent(true, false);
+        exclude         = val[0] == '!';
+
+        if (exclude) {
+            values.insert(val.substr(1));
+        }
+        else {
+            values.insert(val);
+        }
 
         while ((c = peek()) == '/') {
             consume(c);
@@ -104,13 +114,13 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     switch (values.size()) {
         case 0:
             return std::make_unique<Predicate>(k, new MatchAlways());
-            break;
         case 1:
             return std::make_unique<Predicate>(k, new MatchValue(*values.begin()));
-            break;
         default:
+            if (exclude) {
+                return std::make_unique<Predicate>(k, new ExcludeAll(values));
+            }
             return std::make_unique<Predicate>(k, new MatchAny(values));
-            break;
     }
 }
 
