@@ -90,13 +90,16 @@ CASE("Remote protocol: the basics") {
 
     ListElement elem;
     size_t count = 0;
+    eckit::Log::info() << "Clientside list:"  << std::endl;
     while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
+        eckit::Log::info() << "  " << elem << std::endl;
         count++;
     }
     EXPECT_EQUAL(count, Nfields);
 
     // -- retrieve all fields
+    eckit::Log::info() << "Clientside: start of fdb.retrieve."  << std::endl;
+
     std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(make_request(keys)));
 
     eckit::AutoClose closer(*dh);
@@ -108,7 +111,10 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(retrieved_string, data_string);
     }
 
+    eckit::Log::info() << "Clientside: end of fdb.retrieve."  << std::endl;
+    
     /// @todo: add wipe when it is implemented.
+    eckit::Log::info() << "Clientside: reached end of test."  << std::endl;
 }
 
 }  // namespace fdb5::test
