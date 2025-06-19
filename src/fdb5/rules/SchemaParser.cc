@@ -65,8 +65,8 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
 
 std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types) {
 
+    bool exclude = false;
     std::set<std::string> values;
-    std::set<std::string> notValues;
     std::string k = parseIdent(false, false);
 
     char c = peek();
@@ -96,10 +96,10 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume("=");
 
         std::string val = parseIdent(true, false);
-        bool exclude    = val[0] == '!';
+        exclude         = val[0] == '!';
 
         if (exclude) {
-            notValues.insert(val.substr(1));
+            values.insert(val.substr(1));
         }
         else {
             values.insert(val);
@@ -107,28 +107,19 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
 
         while ((c = peek()) == '/') {
             consume(c);
-            val = parseIdent(true, false);
-            if (exclude) {
-                notValues.insert(val);
-            }
-            else {
-                values.insert(val);
-            }
+            values.insert(parseIdent(true, false));
         }
     }
 
-    if (values.size() && notValues.size()) {
-        throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
-    }
     switch (values.size()) {
         case 0:
-            if (notValues.size()) {
-                return std::make_unique<Predicate>(k, new ExcludeAll(notValues));
-            }
             return std::make_unique<Predicate>(k, new MatchAlways());
         case 1:
             return std::make_unique<Predicate>(k, new MatchValue(*values.begin()));
         default:
+            if (exclude) {
+                return std::make_unique<Predicate>(k, new ExcludeAll(values));
+            }
             return std::make_unique<Predicate>(k, new MatchAny(values));
     }
 }
