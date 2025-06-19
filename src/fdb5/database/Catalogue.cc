@@ -74,25 +74,23 @@ void CatalogueReader::invalidateAxis() {
     axisCache_.clear();
 }
 
-std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> CatalogueReader::axis(
+std::optional<std::reference_wrapper<const Axis>> CatalogueReader::axis(
     const std::string& keyword) const {
     if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
-        return *iter->second;
+        return iter->second;
     }
 
-    auto newAxis = computeAxis(keyword);
-
-    if (newAxis == nullptr) {
+    std::optional<Axis> newAxis{computeAxis(keyword)};
+    if (!newAxis) {
         return std::nullopt;
     }
 
-    const eckit::DenseSet<std::string>& out = *newAxis;
-
-    const auto [_, success] = axisCache_.emplace(keyword, std::move(newAxis));
+    const auto [it, success] = axisCache_.emplace(keyword, std::move(newAxis.value()));
+    ASSERT(success);
     LOG_DEBUG_LIB(LibFdb5) << "axis(" << keyword << ") cache miss " << std::endl;
-    LOG_DEBUG_LIB(LibFdb5) << out << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << it->second << std::endl;
 
-    return out;
+    return it->second;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

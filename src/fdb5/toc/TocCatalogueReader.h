@@ -66,7 +66,7 @@ private:  // methods
 
 private:  // members
 
-    std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const override;
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
 
     /// Indexes matching current key. If there is a key remapping for a mounted
     /// SubToc, then this is stored alongside

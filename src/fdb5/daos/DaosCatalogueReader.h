@@ -44,7 +44,7 @@ public:  // methods
 
 private:  // types
 
-    std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& /*keyword*/) const override;
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
     typedef std::map<Key, Index> IndexStore;
 
 private:  // members

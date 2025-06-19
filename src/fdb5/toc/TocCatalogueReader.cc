@@ -85,23 +85,23 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-std::unique_ptr<eckit::DenseSet<std::string>> TocCatalogueReader::computeAxis(const std::string& keyword) const {
+std::optional<Axis> TocCatalogueReader::computeAxis(const std::string& keyword) const {
 
-    auto s = std::make_unique<eckit::DenseSet<std::string>>();
+    Axis s;
 
     bool found = false;
     for (const auto* pair : matching_) {
         const auto& index = pair->first;
         if (index.axes().has(keyword)) {
             found = true;
-            s->merge(index.axes().values(keyword));
+            s.merge(index.axes().values(keyword));
         }
     }
 
     if (found) {
         return s;
     }
-    return nullptr;
+    return std::nullopt;
 }
 
 void TocCatalogueReader::close() {

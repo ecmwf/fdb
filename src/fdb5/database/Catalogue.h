@@ -141,6 +141,8 @@ protected:  // members
     ControlIdentifiers controlIdentifiers_;
 };
 
+typedef eckit::DenseSet<std::string> Axis;
+
 class CatalogueReader : virtual public Catalogue {
 
 public:
@@ -149,7 +151,7 @@ public:
 
     virtual DbStats stats() const = 0;
 
-    std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> axis(const std::string& keyword) const;
+    std::optional<std::reference_wrapper<const Axis>> axis(const std::string& keyword) const;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 
 protected:  // methods
@@ -158,11 +160,11 @@ protected:  // methods
 
 private:  // methods
 
-    virtual std::unique_ptr<eckit::DenseSet<std::string>> computeAxis(const std::string& keyword) const = 0;
+    virtual std::optional<Axis> computeAxis(const std::string& keyword) const = 0;
 
 private:  // members
 
-    mutable std::unordered_map<std::string, std::unique_ptr<const eckit::DenseSet<std::string>>> axisCache_;
+    mutable std::unordered_map<std::string, Axis> axisCache_;
 };
 
 
