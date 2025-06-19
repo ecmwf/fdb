@@ -74,8 +74,7 @@ void CatalogueReader::invalidateAxis() {
     axisCache_.clear();
 }
 
-std::optional<std::reference_wrapper<const Axis>> CatalogueReader::axis(
-    const std::string& keyword) const {
+std::optional<std::reference_wrapper<const Axis>> CatalogueReader::axis(const std::string& keyword) const {
     if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
         return iter->second;
     }
