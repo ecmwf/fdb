@@ -71,12 +71,11 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::st
     if (cat) {
 
         // Get the axis
-
-        eckit::DenseSet<std::string> ax;
-        cat->axis("step", ax);
+        auto ax = cat->axis("step");
+        ASSERT(ax);
 
         std::vector<StepRange> axis;
-        for (auto step : ax) {
+        for (auto step : ax->get()) {
             if (!step.empty()) {
                 axis.push_back(StepRange(step));
             }
