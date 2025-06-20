@@ -6,22 +6,25 @@ ecbuild_add_executable(
     LIBS      fdb5
     NOINSTALL
 )
-ecbuild_configure_file( test_server.sh.in fdb_test_server.sh @ONLY )
-set(FDB_TEST_SERVER_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/fdb_test_server.sh" CACHE INTERNAL "")
 
-# Basic API test using "standard" configuration
-ecbuild_configure_file( catalogue.yaml.in catalogue.yaml @ONLY )
-ecbuild_configure_file( store.yaml.in store.yaml @ONLY )
-ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
+if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
+    ecbuild_configure_file( test_server.sh.in fdb_test_server.sh @ONLY )
+    set(FDB_TEST_SERVER_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/fdb_test_server.sh" CACHE INTERNAL "")
 
-ecbuild_add_test(
-    TARGET         fdb_test_remote_api
-    TYPE           SCRIPT
-    COMMAND        ${FDB_TEST_SERVER_SCRIPT}
-    ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
-    TEST_DEPENDS   fdb_test_remote_api_bin
-    RESOURCE_LOCK  fdb_remote_tests # Prevent concurrent runs of remote tests
-    LABELS         remotefdb
-)
+    # Basic API test using "standard" configuration
+    ecbuild_configure_file( catalogue.yaml.in catalogue.yaml @ONLY )
+    ecbuild_configure_file( store.yaml.in store.yaml @ONLY )
+    ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
 
-set_tests_properties(fdb_test_remote_api PROPERTIES TIMEOUT 300)
+    ecbuild_add_test(
+        TARGET         fdb_test_remote_api
+        TYPE           SCRIPT
+        COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
+        TEST_DEPENDS   fdb_test_remote_api_bin
+        RESOURCE_LOCK  fdb_remote_tests # Prevent concurrent runs of remote tests
+        LABELS         remotefdb
+    )
+    set_tests_properties(fdb_test_remote_api PROPERTIES TIMEOUT 300)
+endif()
+
