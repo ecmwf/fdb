@@ -329,6 +329,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {
+    std::cout << "TocCatalogueWriter::flush catalogue had " << archivedLocations_ << " and store had " << archivedFields << std::endl;
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {
