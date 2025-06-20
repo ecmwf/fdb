@@ -90,6 +90,10 @@ private:
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
+    // From CatalogueReader
+    // not implemented since the catalogue traversal is performed on the remote side
+    std::optional<Axis> computeAxis(const std::string& keyword) const override { NOTIMP; }
+
 protected:
 
     Config config_;

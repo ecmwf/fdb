@@ -70,6 +70,28 @@ bool CatalogueImpl::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
+void CatalogueReader::invalidateAxis() {
+    axisCache_.clear();
+}
+
+std::optional<std::reference_wrapper<const Axis>> CatalogueReader::axis(const std::string& keyword) const {
+    if (const auto iter = axisCache_.find(keyword); iter != std::end(axisCache_)) {
+        return iter->second;
+    }
+
+    std::optional<Axis> newAxis{computeAxis(keyword)};
+    if (!newAxis) {
+        return std::nullopt;
+    }
+
+    const auto [it, success] = axisCache_.emplace(keyword, std::move(newAxis.value()));
+    ASSERT(success);
+    LOG_DEBUG_LIB(LibFdb5) << "axis(" << keyword << ") cache miss " << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << it->second << std::endl;
+
+    return it->second;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CatalogueReaderFactory::CatalogueReaderFactory() {}

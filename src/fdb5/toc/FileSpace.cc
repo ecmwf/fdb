@@ -39,7 +39,7 @@ FileSpace::FileSpace(const std::string& name, const std::string& re, const std::
                      const std::vector<Root>& roots) :
     name_(name), handler_(handler), re_(re), roots_(roots) {}
 
-TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
+TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
     // if it is, then return that path
 
@@ -52,7 +52,7 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
-    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
+    return TocPath{FileSpaceHandler::lookup(handler_, config).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
 }
 
 std::vector<eckit::PathName> FileSpace::enabled(const ControlIdentifier& controlIdentifier) const {
