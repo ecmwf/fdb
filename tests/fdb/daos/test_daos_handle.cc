@@ -353,7 +353,8 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         EXPECT(keys.size() == 2);
         if (keys[0] == "test_key_3") {
             EXPECT(keys[1] == "test_key_4");
-        } else {
+        }
+        else {
             EXPECT(keys[0] == "test_key_4");
             EXPECT(keys[1] == "test_key_3");
         }

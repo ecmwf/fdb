@@ -14,7 +14,6 @@
 #include <cstring>
 #include <iomanip>
 
-#include "eckit/utils/Literals.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Literals.h"
@@ -228,7 +227,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT(listed_keys.size() == 2);
     if (listed_keys[0] == key) {
         EXPECT(listed_keys[1] == key2);
-    } else {
+    }
+    else {
         EXPECT(listed_keys[1] == key);
         EXPECT(listed_keys[0] == key2);
     }
