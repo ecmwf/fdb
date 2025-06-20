@@ -116,7 +116,7 @@ std::optional<Axis> DaosCatalogueReader::computeAxis(const std::string& keyword)
     if (found) {
         return s;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {

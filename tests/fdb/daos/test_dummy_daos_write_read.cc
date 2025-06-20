@@ -14,6 +14,7 @@
 #include <cstring>
 #include <iomanip>
 
+#include "eckit/utils/Literals.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Literals.h"
