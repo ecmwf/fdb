@@ -12,21 +12,24 @@
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
-
-#ifndef fdb5_TocCatalogueReader_H
-#define fdb5_TocCatalogueReader_H
-
+#pragma once
+#include <cstddef>
 #include <iosfwd>
-#include <map>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "eckit/filesystem/URI.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
 
@@ -57,25 +60,23 @@ private:  // methods
     void clean() override {}
     void close() override;
 
-    bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const override;
-
     bool retrieve(const Key& key, Field& field) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
 
-    // Indexes matching current key. If there is a key remapping for a mounted
-    // SubToc, then this is stored alongside
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
+
+    /// Indexes matching current key. If there is a key remapping for a mounted
+    /// SubToc, then this is stored alongside
     std::vector<std::pair<Index, Key>*> matching_;
 
-    // All indexes
-    // If there is a key remapping for a mounted SubToc, this is stored alongside
+    /// All indexes
+    /// If there is a key remapping for a mounted SubToc, this is stored alongside
     mutable std::vector<std::pair<Index, Key>> indexes_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

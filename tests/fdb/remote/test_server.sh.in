@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# --- Documentation
+# This script is used to start a test server for the remote fdb tests
+
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <test_directory> <client_config> <catalogue_config> <store_config>" >&2
+    exit 1
+fi
+
+set -ux
+
+#  --- Variables
+testdir=$1
+client_config="$testdir/$2"
+catalogue_config="$testdir/$3"
+store_config="$testdir/$4"
+catalogue_rootdir=$testdir/catalogue_root
+store_rootdir=$testdir/store_root
+server_pidfile=$testdir/servers.pid
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+server="$<TARGET_FILE:fdb-server>"
+test="$<TARGET_FILE:fdb_test_remote_api_bin>"
+
+# If test exceeds this time, the servers will be killed. Required to ensure servers are eventually killed when ctest is SIGKILL'd
+SERVER_LIFETIME=300
+
+# --- Cleanup and setup
+cleanup() {
+    if [[ -f $server_pidfile ]]; then
+        while read -r SERVER_PID; do
+            kill -TERM $SERVER_PID || true
+            sleep 0.2
+            kill -KILL $SERVER_PID || true
+        done < $server_pidfile
+        rm $server_pidfile
+    fi
+
+    rm -rf $catalogue_rootdir
+    rm -rf $store_rootdir
+}
+trap cleanup EXIT # Ensure cleanup is called when the script exits
+
+#  -- Start fresh
+cleanup
+mkdir -p $catalogue_rootdir $store_rootdir
+
+# --- Start the servers in the background.
+FDB5_CONFIG_FILE=${catalogue_config} timeout $SERVER_LIFETIME $server &
+echo $! > $server_pidfile
+
+FDB5_CONFIG_FILE=$store_config timeout $SERVER_LIFETIME $server &
+echo $! >> $server_pidfile
+
+sleep 0.5
+
+# --- Run the client test
+FDB5_CONFIG_FILE=$client_config $test
+exit $?
