@@ -37,6 +37,8 @@ class FDBCopy : public fdb5::tools::FDBVisitTool {
     bool fromList_ = false;
     bool sort_     = false;
 
+    std::string modifiers_;
+
     eckit::PathName sourceConfig_ = {};
     eckit::PathName targetConfig_ = {};
 
@@ -56,6 +58,10 @@ FDBCopy::FDBCopy(int argc, char** argv) : fdb5::tools::FDBVisitTool(argc, argv, 
     options_.push_back(new SimpleOption<eckit::PathName>("source", "Configuration of FDB to read from"));
     options_.push_back(new eckit::option::SimpleOption<bool>(
         "from-list", "Interpret argument(s) as fdb-list partial requests, rather than request files"));
+    options_.push_back(new eckit::option::SimpleOption<std::string>(
+        "modifiers",
+        "List of comma separated key-values of modifiers to each message "
+        "in input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
 }
 
 void FDBCopy::usage(const std::string& tool) const {
@@ -81,6 +87,8 @@ void FDBCopy::usage(const std::string& tool) const {
 void FDBCopy::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
+
+    args.get("modifiers", modifiers_);
 
     verbose_  = args.getBool("verbose", verbose_);
     fromList_ = args.getBool("from-list", fromList_);
@@ -155,6 +163,7 @@ void FDBCopy::execute(const CmdArgs& args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose_, writeConfig);
+    fdbWriter.modifiers(modifiers_);
     fdbWriter.archive(*dh);
 }
 
