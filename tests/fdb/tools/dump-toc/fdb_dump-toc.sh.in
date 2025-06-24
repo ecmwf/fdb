@@ -5,6 +5,7 @@ set -eu
 yell() { echo "$(basename "$0"): $*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+cleanup() { echo "cleanup"; try rm -rf "$@"; }
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -13,8 +14,8 @@ export FDB_HOME=@PROJECT_BINARY_DIR@
 tname=dump-toc_test
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
-
 fdbstore="$bindir/$tname/localroot"
+
 ########################################################################################################################
 
 try cd $bindir
@@ -44,12 +45,11 @@ for f in *.grib; do
 done
 
 ########################################################################################################################
-# Simple top-level toc
-args="--structure $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
-
+echo "Running tests on dump-toc for simple toc..."
 
 try fdb-write "$tname.grib"
 
+args="--structure $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
 out=$(fdb-dump-toc $args)
 
 # Extract record type, toc-offset, length, and toc-path
@@ -67,5 +67,47 @@ try test "$exp" = "$parsed"
 
 ########################################################################################################################
 
-echo "cleanup"
-try rm -rf "$fdbstore/*"
+cleanup "$fdbstore/*"
+
+########################################################################################################################
+echo "Running tests on dump-toc for tocs with subtoc..."
+
+
+try env FDB5_SUB_TOCS=1 fdb-write "$tname.grib"
+
+args="--structure --walk $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
+out=$(fdb-dump-toc $args)
+
+# Extract record type, toc-offset, length, and toc-path
+parsed=$(echo "$out" | grep '^TOC_' | sed -E 's/^([A-Z_]+).*toc-offset: ([0-9]+), length: ([0-9]+),.*toc-path: .*\/([^/\s]+).*$/\1 \2 \3 \4/')
+
+# Normalise subtoc names
+normalised=$(echo "$parsed" | awk '
+  {
+    if ($4 != "toc" && !($4 in map)) {
+      map[$4] = "toc." ++count
+    }
+    if ($4 in map) {
+      $4 = map[$4]
+    }
+    print $1, $2, $3, $4
+  }
+')
+
+exp=$(cat <<EOF
+TOC_INIT 0 1024 toc
+TOC_INDEX 1024 1024 toc
+TOC_INDEX 2048 1024 toc
+TOC_SUB_TOC 3072 1024 toc
+TOC_INIT 0 1024 toc.1
+TOC_INDEX 1024 1024 toc.1
+TOC_INDEX 2048 1024 toc.1
+TOC_INDEX 4096 1024 toc
+TOC_INDEX 5120 1024 toc
+TOC_CLEAR 6144 1024 toc
+EOF
+)
+
+try test "$exp" = "$normalised"
+
+cleanup "$fdbstore/*"

@@ -454,7 +454,7 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
         if (subTocRead_) {
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
-                subTocRead_ = nullptr;
+                subTocRead_    = nullptr;
                 *parentTocPath = eckit::LocalPathName();
             }
             else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
@@ -487,8 +487,8 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
                 LocalPathName absPath = parseSubTocRecord(r, readMasked);
                 if (absPath == "")
                     continue;
-                
-                if(parentTocPath != nullptr){
+
+                if (parentTocPath != nullptr) {
                     *parentTocPath = currentTocPath();
                 }
                 selectSubTocRead(absPath);
@@ -1463,7 +1463,8 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
     LocalPathName parentTocPath;
     std::map<LocalPathName, off_t> tocOffsets;
 
-    while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, nullptr, nullptr, &parentTocPath)) {
+    while (
+        readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, nullptr, nullptr, &parentTocPath)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         LocalPathName path;
@@ -1525,10 +1526,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
 
         if (dumpStructure) {
             LocalPathName currentToc = currentTocPath();
-            if(r->header_.tag_ == TocRecord::TOC_SUB_TOC && subTocRead_ != nullptr){
+            if (r->header_.tag_ == TocRecord::TOC_SUB_TOC && subTocRead_ != nullptr) {
                 /**
-                    currentTocPath will already point to 'child' toc - even though context is still `TOC_SUB_TOC` which exists on the 'parent'.
-                    to ensure we have consistent offsets, we need to increment offsets for the parent toc instead
+                    currentTocPath will already point to 'child' toc - even though context is still `TOC_SUB_TOC` which
+                exists on the 'parent'. to ensure we have consistent offsets, we need to increment offsets for the
+                parent toc instead
                 **/
                 currentToc = parentTocPath;
             }
