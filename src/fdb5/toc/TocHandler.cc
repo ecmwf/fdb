@@ -433,7 +433,7 @@ bool TocHandler::ignoreIndex(const TocRecord& r, bool readMasked) const {
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
 bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries,
-                          bool readMasked, const TocRecord** data, size_t* length) const {
+                          bool readMasked, const TocRecord** data, size_t* length, LocalPathName* parentTocPath) const {
 
     int len;
 
@@ -451,11 +451,11 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
     }
 
     while (true) {
-
         if (subTocRead_) {
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
                 subTocRead_ = nullptr;
+                *parentTocPath = eckit::LocalPathName();
             }
             else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
                 // Check if a TOC_CLEAR in this toc is masking the subtoc index
@@ -487,7 +487,10 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
                 LocalPathName absPath = parseSubTocRecord(r, readMasked);
                 if (absPath == "")
                     continue;
-
+                
+                if(parentTocPath != nullptr){
+                    *parentTocPath = currentTocPath();
+                }
                 selectSubTocRead(absPath);
 
                 if (hideSubTocEntries) {
@@ -1457,27 +1460,24 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
     bool hideClearEntries  = false;
     bool readMasked = dumpStructure;  // disabled by default, to get accurate file offsets we need to read masked data.
 
-    off_t tocOffset    = 0;
-    off_t subtocOffset = 0;
+    LocalPathName parentTocPath;
+    std::map<LocalPathName, off_t> tocOffsets;
 
-    bool isSubToc;
-
-    while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked)) {
+    while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, nullptr, nullptr, &parentTocPath)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         LocalPathName path;
         std::string type;
+        bool isSubToc;
 
         off_t offset;
         std::vector<Index>::iterator j;
-
+        
         r->dump(out, simple);
 
         switch (r->header_.tag_) {
 
             case TocRecord::TOC_INIT: {
-                subtocOffset = 0;
-
                 isSubToc = false;
                 fdb5::Key key(s);
                 if (r->header_.serialisationVersion_ > 1) {
@@ -1523,28 +1523,21 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
             }
         }
 
-        isSubToc = subTocRead_ != nullptr &&
-                   r->header_.tag_ != TocRecord::TOC_SUB_TOC;  // subTocRead_ still points to a subtoc even when reading
-                                                               // a `TOC_SUB_TOC` which belongs on the toc?
         if (dumpStructure) {
-
-            const char* label;
-            off_t* offsetPtr;
-            if (isSubToc) {
-                label     = "sub-toc-offset";
-                offsetPtr = &subtocOffset;
-            }
-            else {
-                label     = "toc-offset";
-                offsetPtr = &tocOffset;
+            LocalPathName currentToc = currentTocPath();
+            if(r->header_.tag_ == TocRecord::TOC_SUB_TOC && subTocRead_ != nullptr){
+                /**
+                    currentTocPath will already point to 'child' toc - even though context is still `TOC_SUB_TOC` which exists on the 'parent'.
+                    to ensure we have consistent offsets, we need to increment offsets for the parent toc instead
+                **/
+                currentToc = parentTocPath;
             }
 
-            out << ", " << label << ": " << *offsetPtr << ", length: " << r->header_.size_
-                << ", toc-path: " << currentTocPath();
+            out << ", toc-offset: " << tocOffsets[currentToc] << ", length: " << r->header_.size_
+                << ", toc-path: " << currentToc;
 
-            *offsetPtr += r->header_.size_;
+            tocOffsets[currentToc] += r->header_.size_;
         }
-
         out << std::endl;
     }
 }
