@@ -14,6 +14,7 @@ tname=dump-toc_test
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
+fdbstore="$bindir/$tname/localroot"
 ########################################################################################################################
 
 try cd $bindir
@@ -42,9 +43,29 @@ for f in *.grib; do
   try cat "$f" >> "$tname.grib"
 done
 
+########################################################################################################################
+# Simple top-level toc
+args="--structure $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
+
+
 try fdb-write "$tname.grib"
 
-########################################################################################################################
-# test all
+out=$(fdb-dump-toc $args)
 
-# TODO
+# Extract record type, toc-offset, length, and toc-path
+parsed=$(echo "$out" | grep '^TOC_' | sed -E 's/^([A-Z_]+).*toc-offset: ([0-9]+), length: ([0-9]+),.*toc-path: .*\/([^/\s]+).*$/\1 \2 \3 \4/')
+
+exp=$(cat <<EOF
+TOC_INIT 0 1024 toc
+TOC_INDEX 1024 1024 toc
+TOC_INDEX 2048 1024 toc
+EOF
+)
+
+try test "$exp" = "$parsed"
+
+
+########################################################################################################################
+
+echo "cleanup"
+try rm -rf "$fdbstore/*"
