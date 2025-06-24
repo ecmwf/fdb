@@ -1472,7 +1472,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
 
         off_t offset;
         std::vector<Index>::iterator j;
-        
+
         r->dump(out, simple);
 
         switch (r->header_.tag_) {

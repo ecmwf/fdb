@@ -227,7 +227,8 @@ private:  // methods
     // readMasked=true will walk subtocs and read indexes even if they are masked. This is
     // useful for dumping indexes which are cleared, or only referred to in cleared subtocs.
     bool readNext(TocRecord& r, bool walkSubTocs = true, bool hideSubTocEntries = true, bool hideClearEntries = true,
-                  bool readMasked = false, const TocRecord** data = nullptr, size_t* length = nullptr, eckit::LocalPathName* parentTocPath = nullptr) const;
+                  bool readMasked = false, const TocRecord** data = nullptr, size_t* length = nullptr,
+                  eckit::LocalPathName* parentTocPath = nullptr) const;
 
     void selectSubTocRead(const eckit::LocalPathName& path) const;
 
