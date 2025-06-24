@@ -112,7 +112,7 @@ bool KeyStore::tryInsert(const std::array<Key, 3>& keyParts) {
     // And then for the third level, we try and insert. And if it does not
     // already exist, that is great!
 
-    auto [_, ins] = level2.insert(keyParts[3].valuesToString());
+    auto [_, ins] = level2.insert(keyParts[2].valuesToString());
     return ins;
 }
 
