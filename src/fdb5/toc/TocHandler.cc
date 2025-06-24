@@ -454,8 +454,10 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
         if (subTocRead_) {
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
-                subTocRead_    = nullptr;
-                *parentTocPath = eckit::LocalPathName();
+                subTocRead_ = nullptr;
+                if (parentTocPath) {
+                    *parentTocPath = "";
+                }
             }
             else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
                 // Check if a TOC_CLEAR in this toc is masking the subtoc index
@@ -488,7 +490,7 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
                 if (absPath == "")
                     continue;
 
-                if (parentTocPath != nullptr) {
+                if (parentTocPath) {
                     *parentTocPath = currentTocPath();
                 }
                 selectSubTocRead(absPath);
