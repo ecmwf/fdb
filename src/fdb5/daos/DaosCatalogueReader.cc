@@ -103,15 +103,20 @@ bool DaosCatalogueReader::open() {
     return true;
 }
 
-bool DaosCatalogueReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
+std::optional<Axis> DaosCatalogueReader::computeAxis(const std::string& keyword) const {
+
+    Axis s;
 
     bool found = false;
     if (current_.axes().has(keyword)) {
-        found                                 = true;
-        const eckit::DenseSet<std::string>& a = current_.axes().values(keyword);
-        s.merge(a);
+        found = true;
+        s.merge(current_.axes().values(keyword));
     }
-    return found;
+
+    if (found) {
+        return s;
+    }
+    return std::nullopt;
 }
 
 bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {

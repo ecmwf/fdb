@@ -385,6 +385,7 @@ CASE("DaosStore tests") {
             ++count;
         }
         EXPECT(count == 0);
+        std::cout << "Listed 0 fields" << std::endl;
 
         // store data
 
@@ -394,13 +395,16 @@ CASE("DaosStore tests") {
         /// below.
         //   Should this be avoided?
         fdb.archive(request_key, data, sizeof(data));
+        std::cout << "Archived 1 field" << std::endl;
 
         fdb.flush();
+        std::cout << "Flushed 1 field" << std::endl;
 
         // retrieve data
 
         metkit::mars::MarsRequest r = request_key.request("retrieve");
         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
+        std::cout << "Retrieved 1 field location" << std::endl;
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -451,6 +455,7 @@ CASE("DaosStore tests") {
         EXPECT(count == 0);
         /// @todo: really needed?
         fdb.flush();
+        std::cout << "Flushed 0 fields" << std::endl;
 
         // wipe index and store unit (and DB container as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
@@ -458,8 +463,10 @@ CASE("DaosStore tests") {
         while (wipeObject.next(elem))
             count++;
         EXPECT(count > 0);
+        std::cout << "Wiped 1 field" << std::endl;
         /// @todo: really needed?
         fdb.flush();
+        std::cout << "Flushed 0 fields" << std::endl;
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
@@ -467,6 +474,7 @@ CASE("DaosStore tests") {
         while (listObject.next(info))
             count++;
         EXPECT(count == 0);
+        std::cout << "Listed 0 fields" << std::endl;
 
         /// @todo: ensure index and corresponding container do not exist
 
