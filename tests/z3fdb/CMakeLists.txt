@@ -23,6 +23,7 @@ endfunction()
 
 set(test_files 
   test_store_v3.py
+  test_store_v3_pattern.py
 )
 
 foreach(test_file ${test_files})
