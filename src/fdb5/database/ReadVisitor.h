@@ -47,6 +47,8 @@ public:  // methods
     virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
     virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
+    virtual void deselectDatabase() = 0;
+
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
 

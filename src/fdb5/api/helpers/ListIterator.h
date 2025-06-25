@@ -48,6 +48,17 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class KeyStore {
+
+    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> fingerprints_;
+
+public:
+
+    bool tryInsert(const std::array<Key, 3>& keyParts);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class ListIterator : public APIIterator<ListElement> {
 public:
 
@@ -64,7 +75,7 @@ public:
 
 private:
 
-    std::unordered_set<Key> seenKeys_;
+    KeyStore seenKeys_;
     bool deduplicate_;
 };
 

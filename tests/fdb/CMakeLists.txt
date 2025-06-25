@@ -68,3 +68,7 @@ add_subdirectory( database )
 add_subdirectory( tools )
 add_subdirectory( type )
 add_subdirectory( daos )
+
+if (HAVE_FDB_REMOTE)
+    add_subdirectory( remote )
+endif()

@@ -17,8 +17,10 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -140,6 +142,8 @@ protected:  // members
     ControlIdentifiers controlIdentifiers_;
 };
 
+typedef eckit::DenseSet<std::string> Axis;
+
 class CatalogueReader : virtual public Catalogue {
 
 public:
@@ -148,8 +152,20 @@ public:
 
     virtual DbStats stats() const = 0;
 
-    virtual bool axis(const std::string& /*keyword*/, eckit::DenseSet<std::string>& /*string*/) const { NOTIMP; }
+    std::optional<std::reference_wrapper<const Axis>> axis(const std::string& keyword) const;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
+
+protected:  // methods
+
+    void invalidateAxis();
+
+private:  // methods
+
+    virtual std::optional<Axis> computeAxis(const std::string& keyword) const = 0;
+
+private:  // members
+
+    mutable std::unordered_map<std::string, Axis> axisCache_;
 };
 
 

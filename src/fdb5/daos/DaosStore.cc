@@ -24,7 +24,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosStore::DaosStore(const Key& key, const Config& config) :
-    Store(), DaosCommon(config, "store", key), db_str_(db_cont_) {}
+    Store(), DaosCommon(config, "store", key), db_str_(db_cont_), archivedFields_(0) {}
 
 eckit::URI DaosStore::uri() const {
 
