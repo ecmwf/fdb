@@ -251,3 +251,108 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
     return fdb_config_path
+
+@pytest.fixture(scope="session", autouse=False)
+def read_only_fdb_pattern_setup(data_path, session_tmp, build_pattern_grib_messages) -> pathlib.Path:
+    """
+    Creates a FDB setup in this tests temp directory.
+    Test FDB currently reads all grib files in `tests/data`
+    This setup can be shared between tests as we will only read
+    data from this FDB
+    """
+    schema_path_src = data_path / "schema"
+    assert schema_path_src.is_file()
+    schema_path = session_tmp / "schema"
+    shutil.copy(schema_path_src, schema_path)
+
+    db_store_path = session_tmp / "db_store_pattern"
+    db_store_path.mkdir()
+    fdb_config = dict(
+        type="local",
+        engine="toc",
+        schema=str(schema_path),
+        spaces=[
+            dict(
+                handler="Default",
+                roots=[
+                    {"path": str(db_store_path)},
+                ],
+            )
+        ],
+    )
+    fdb_config_str = yaml.dump(fdb_config)
+    fdb_config_path = session_tmp / "fdb_config.yaml"
+    fdb_config_path.write_text(fdb_config_str)
+    fdb = pyfdb.FDB(fdb_config_str)
+    fdb.archive(build_pattern_grib_messages.read_bytes())
+    fdb.flush()
+    return fdb_config_path
+
+@pytest.fixture(scope="session")
+def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
+    """
+    Build messages which have a certain pattern to control the correct assembly of 
+    zarr files
+    """
+    tmp = session_tmp / "build_pattern_grib_messages"
+    tmp.mkdir()
+    template_grib = data_path / "template.grib"
+    assert template_grib.is_file()
+    template_grib_fd = open(template_grib, "rb")
+
+    gid = ec.codes_grib_new_from_file(template_grib_fd)
+    template_grib_fd.close()
+
+    count_data_points = int(ec.codes_get(gid, "numberOfDataPoints"))
+    count_values = int(ec.codes_get(gid, "numberOfValues"))
+    count_missing = int(ec.codes_get(gid, "numberOfMissing"))
+
+    # This only supports messages without missing data points
+    assert count_data_points == count_values
+    assert count_missing == 0
+
+    # Set common keys / data "pattern"
+    ec.codes_set_string(gid, "type", "an")
+    ec.codes_set_string(gid, "class", "ea")
+    ec.codes_set_string(gid, "expver", "0001")
+    ec.codes_set_string(gid, "stream", "oper")
+
+
+    dates = [20200101, 20200102, 20200103]
+    times = [0, 6, 12, 18]
+    # 10u/10v
+    parameters_sfc = [165, 166, 167]
+
+    # u/v
+    parameters_pl = [131, 132, 133]
+    levels = [50, 100, 150]
+
+    messages = tmp / "test_data_pattern.grib"
+    with open(messages, "wb") as out:
+        ec.codes_set_string(gid, "levtype", "sfc")
+        
+        total_values = 0
+
+        for value, (date, time, parameter) in enumerate(itertools.product(dates, times, parameters_sfc)):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "paramId", parameter)
+            ec.codes_set_values(gid, list(itertools.repeat(value, count_values)))
+            ec.codes_write(gid, out)
+
+            total_values += 1
+
+
+        ec.codes_set_string(gid, "levtype", "pl")
+        for value, (date, time, parameter, level) in enumerate(itertools.product(
+            dates, times, parameters_pl, levels
+        )):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "paramId", parameter)
+            ec.codes_set(gid, "level", level)
+            ec.codes_set_values(gid, list(itertools.repeat(total_values + value, count_values)))
+            ec.codes_write(gid, out)
+
+    ec.codes_release(gid)
+    return messages
