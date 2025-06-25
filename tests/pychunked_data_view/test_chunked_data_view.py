@@ -5,17 +5,13 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
-import eccodes as ec
-import pytest
 import numpy as np
 import itertools
-from pathlib import Path
 
 
 from pychunked_data_view import (
     AxisDefinition,
     ChunkedDataViewBuilder,
-    ChunkedDataView,
     ExtractorType,
 )
 
@@ -56,4 +52,4 @@ def test_builder(read_only_fdb_setup):
 
     expected = list(range(0, 5248))
     for a, b in itertools.product(range(0, 32), range(0, 3)):
-        np.testing.assert_array_almost_equal_nulp(view.at((a, b)), expected)
+        np.testing.assert_array_almost_equal_nulp(view.at((a, b, 0)), expected)
