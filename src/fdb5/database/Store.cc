@@ -24,7 +24,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool Store::canMoveTo(const Key&, const Config&, const eckit::URI& dest) const {
+void Store::archive(const Key& key, const void* data, eckit::Length length,
+                    std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+    catalogue_archive(archive(key, data, length));
+}
+
+std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const void* /*data*/,
+                                                    eckit::Length /*length*/) {
+    NOTIMP;
+}
+
+bool Store::canMoveTo(const Key& /*key*/, const Config& /*config*/, const eckit::URI& /*dest*/) const {
     std::stringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
     throw eckit::UserError(ss.str(), Here());
@@ -72,7 +82,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
     std::string name          = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
@@ -89,7 +99,7 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(schema, key, config);
+    return (*j).second->make(key, config);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

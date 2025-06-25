@@ -35,11 +35,11 @@ class ExpverFileSpaceHandler : public FileSpaceHandler {
 
 public:  // methods
 
-    ExpverFileSpaceHandler();
+    ExpverFileSpaceHandler(const Config& config);
 
-    virtual ~ExpverFileSpaceHandler() override;
+    ~ExpverFileSpaceHandler() override;
 
-    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
+    eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
 
 protected:  // methods
 

@@ -17,9 +17,10 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/fdb5_config.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/io/LustreSettings.h"
+#include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
 
@@ -30,15 +31,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocCatalogueWriter::TocCatalogueWriter(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config), umask_(config.umask()) {
-    writeInitRecord(key);
+TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
+    TocCatalogue(dbKey, config), umask_(config.umask()), archivedLocations_(0) {
+    writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()) {
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()), archivedLocations_(0) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -49,21 +50,22 @@ TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
-bool TocCatalogueWriter::selectIndex(const Key& key) {
-    currentIndexKey_ = key;
+// selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
+bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+    currentIndexKey_ = idxKey;
 
-    if (indexes_.find(key) == indexes_.end()) {
-        PathName indexPath(generateIndexPath(key));
+    if (indexes_.find(idxKey) == indexes_.end()) {
+        PathName indexPath(generateIndexPath(idxKey));
 
         // Enforce lustre striping if requested
         if (stripeLustre()) {
-            fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
+            fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
         }
 
-        indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
     }
 
-    current_ = indexes_[key];
+    current_ = indexes_[idxKey];
     current_.open();
     current_.flock();
 
@@ -72,20 +74,20 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     if (useSubToc()) {
 
-        if (fullIndexes_.find(key) == fullIndexes_.end()) {
+        if (fullIndexes_.find(idxKey) == fullIndexes_.end()) {
 
             // TODO TODO TODO .master.index
-            PathName indexPath(generateIndexPath(key));
+            PathName indexPath(generateIndexPath(idxKey));
 
             // Enforce lustre striping if requested
             if (stripeLustre()) {
-                fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
+                fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
             }
 
-            fullIndexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
         }
 
-        currentFull_ = fullIndexes_[key];
+        currentFull_ = fullIndexes_[idxKey];
         currentFull_.open();
         currentFull_.flock();
     }
@@ -107,7 +109,7 @@ void TocCatalogueWriter::clean() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
-    flush();  // closes the TOC entries & indexes but not data files
+    flush(archivedLocations_);  // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -120,7 +122,7 @@ void TocCatalogueWriter::close() {
 }
 
 void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {
-    dirty_ = true;
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -151,11 +153,11 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     private:
 
-        void visitDatum(const Field& field, const Key& key) override {
-            // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
+        void visitDatum(const Field& field, const Key& datumKey) override {
+            /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(key, location.uri(), location.offset(), location.length());
+            writer_.index(datumKey, location.uri(), location.offset(), location.length());
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
             EntryVisitor::visitDatum(field, keyFingerprint);
@@ -194,6 +196,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     // Add masking entries for all the indexes and subtocs visited so far
 
     Buffer buf(sizeof(TocRecord) * (subtocs.size() + maskable_indexes));
+    buf.zero();
     size_t combinedSize = 0;
 
     for (size_t i = 0; i < readIndexes.size(); i++) {
@@ -201,14 +204,14 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         if (!indexInSubtoc[i]) {
             Index& idx(readIndexes[i]);
             TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-            combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
+            combinedSize += recordSizes(*r, buildClearRecord(*r, idx)).second;
             Log::info() << "Masking index: " << idx.location().uri() << std::endl;
         }
     }
 
     for (const std::string& subtoc_path : subtocs) {
         TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r, subtoc_path));
+        combinedSize += recordSizes(*r, buildSubTocMaskRecord(*r, subtoc_path)).second;
         Log::info() << "Masking sub-toc: " << subtoc_path << std::endl;
     }
 
@@ -225,6 +228,11 @@ const Index& TocCatalogueWriter::currentIndex() {
     }
 
     return current_;
+}
+
+const Key TocCatalogueWriter::currentIndexKey() {
+    currentIndex();
+    return currentIndexKey_;
 }
 
 const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
@@ -246,8 +254,8 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
     for (const auto& kv : TocCatalogue::dbKey_) {
 
-        auto it = otherKey.find(kv.first);
-        if (it == otherKey.end()) {
+        const auto [it, found] = otherKey.find(kv.first);
+        if (!found) {
             std::stringstream ss;
             ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());
@@ -296,32 +304,42 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
-    dirty_ = true;
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+                                 std::shared_ptr<const FieldLocation> fieldLocation) {
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }
+    else {
+        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
+        // indexKey used for store archival. Reset it
+        if (currentIndexKey_ != idxKey) {
+            selectIndex(idxKey);
+        }
+    }
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
-    current_.put(key, field);
+    current_.put(datumKey, field);
 
     if (useSubToc())
-        currentFull_.put(key, field);
+        currentFull_.put(datumKey, field);
 }
 
-void TocCatalogueWriter::flush() {
-    if (!dirty_) {
+void TocCatalogueWriter::flush(size_t archivedFields) {
+    ASSERT(archivedFields == archivedLocations_);
+
+    if (archivedLocations_ == 0) {
         return;
     }
 
     flushIndexes();
 
-    dirty_       = false;
-    current_     = Index();
-    currentFull_ = Index();
+    archivedLocations_ = 0;
+    current_           = Index();
+    currentFull_       = Index();
 }
 
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
@@ -370,6 +388,7 @@ void TocCatalogueWriter::compactSubTocIndexes() {
     // subtoc, written by this process. Then we append a masking entry.
 
     Buffer buf(sizeof(TocRecord) * (fullIndexes_.size() + 1));
+    buf.zero();
     size_t combinedSize = 0;
 
     // n.b. we only need to compact the subtocs if we are actually writing something...
@@ -385,14 +404,14 @@ void TocCatalogueWriter::compactSubTocIndexes() {
 
                 idx.flush();
                 TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_INDEX);
-                combinedSize += roundRecord(*r, buildIndexRecord(*r, idx));
+                combinedSize += recordSizes(*r, buildIndexRecord(*r, idx)).second;
             }
         }
 
         // And add the masking record for the subtoc
 
         TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
-        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r));
+        combinedSize += recordSizes(*r, buildSubTocMaskRecord(*r)).second;
 
         // Write all of these  records to the toc in one go.
 
@@ -405,7 +424,7 @@ void TocCatalogueWriter::print(std::ostream& out) const {
     out << "TocCatalogueWriter(" << directory() << ")";
 }
 
-static CatalogueBuilder<TocCatalogueWriter> builder("toc.writer");
+static CatalogueWriterBuilder<TocCatalogueWriter> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

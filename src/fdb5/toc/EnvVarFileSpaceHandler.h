@@ -34,11 +34,11 @@ class EnvVarFileSpaceHandler : public FileSpaceHandler {
 
 public:  // methods
 
-    EnvVarFileSpaceHandler();
+    EnvVarFileSpaceHandler(const Config& config);
 
-    virtual ~EnvVarFileSpaceHandler() override;
+    ~EnvVarFileSpaceHandler() override;
 
-    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
+    eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
 
 protected:  // methods
 

@@ -17,9 +17,11 @@
 #include "eckit/log/Progress.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Timer.h"
+
+#include "eckit/utils/Tokenizer.h"
+
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -27,6 +29,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
+#include "fdb5/message/MessageArchiver.h"
 
 // For HAVE_FAIL_ON_CCSDS
 #include "metkit/metkit_config.h"
@@ -36,12 +39,9 @@ namespace fdb5 {
 using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
+namespace {
 
-MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
-    MessageDecoder(), fdb_(config), key_(key), completeTransfers_(completeTransfers), verbose_(verbose) {}
-
-
-static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     // parse requests
 
@@ -74,12 +74,12 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
     return v;
 }
 
-static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
 
     if (str.empty())
-        return std::vector<metkit::mars::MarsRequest>();
+        return {};
 
-    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys();  //< keys to filter from that request
+    std::set<std::string> keys = Key::parse(str).keys();  //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -91,6 +91,13 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
 
     return r;
 }
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+    MessageDecoder(), fdb_(config), key_(key), completeTransfers_(completeTransfers), verbose_(verbose) {}
 
 void MessageArchiver::filters(const std::string& include, const std::string& exclude) {
     include_ = make_filter_requests(include);
@@ -184,8 +191,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
             messageToKey(msg, key);
 
             LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
-                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
-                                   << std::endl;
+                                   << " key: " << key << " length:" << msg.length() << std::endl;
 
             ASSERT(key.match(key_));
 

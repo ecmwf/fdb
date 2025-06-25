@@ -18,8 +18,6 @@
 #include <iosfwd>
 #include <map>
 #include <set>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "eckit/filesystem/PathName.h"
 
@@ -29,6 +27,9 @@
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/toc/TocCatalogueReader.h"
+
+#include <unordered_map>
+#include <unordered_set>
 
 namespace fdb5 {
 
@@ -59,9 +60,9 @@ public:
 
     TocDbStats& operator+=(const TocDbStats& rhs);
 
-    virtual void add(const DbStatsContent&) override;
+    void add(const DbStatsContent&) override;
 
-    virtual void report(std::ostream& out, const char* indent) const override;
+    void report(std::ostream& out, const char* indent) const override;
 
 public:  // For Streamable
 
@@ -69,8 +70,8 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    void encode(eckit::Stream&) const override;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TocDbStats> reanimator_;
@@ -92,35 +93,35 @@ public:
     unsigned long long fieldsSize_;
     unsigned long long duplicatesSize_;
 
-    virtual size_t fieldsCount() const override { return fieldsCount_; }
-    virtual size_t duplicatesCount() const override { return duplicatesCount_; }
+    size_t fieldsCount() const override { return fieldsCount_; }
+    size_t duplicatesCount() const override { return duplicatesCount_; }
 
-    virtual size_t fieldsSize() const override { return fieldsSize_; }
-    virtual size_t duplicatesSize() const override { return duplicatesSize_; }
+    size_t fieldsSize() const override { return fieldsSize_; }
+    size_t duplicatesSize() const override { return duplicatesSize_; }
 
-    virtual size_t addFieldsCount(size_t i) override {
+    size_t addFieldsCount(size_t i) override {
         fieldsCount_ += i;
         return fieldsCount_;
     }
-    virtual size_t addDuplicatesCount(size_t i) override {
+    size_t addDuplicatesCount(size_t i) override {
         duplicatesCount_ += i;
         return duplicatesCount_;
     }
 
-    virtual size_t addFieldsSize(size_t i) override {
+    size_t addFieldsSize(size_t i) override {
         fieldsSize_ += i;
         return fieldsSize_;
     }
-    virtual size_t addDuplicatesSize(size_t i) override {
+    size_t addDuplicatesSize(size_t i) override {
         duplicatesSize_ += i;
         return duplicatesSize_;
     }
 
     TocIndexStats& operator+=(const TocIndexStats& rhs);
 
-    virtual void add(const IndexStatsContent&) override;
+    void add(const IndexStatsContent&) override;
 
-    virtual void report(std::ostream& out, const char* indent = "") const override;
+    void report(std::ostream& out, const char* indent = "") const override;
 
 public:  // For Streamable
 
@@ -128,8 +129,8 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    void encode(eckit::Stream&) const override;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TocIndexStats> reanimator_;
@@ -163,16 +164,17 @@ class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
     TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced = true);
-    virtual ~TocStatsReportVisitor() override;
+    ~TocStatsReportVisitor() override;
 
     IndexStats indexStatistics() const override;
     DbStats dbStatistics() const override;
 
 private:  // methods
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
     // This visitor is only legit for one DB - so don't reset database
     void catalogueComplete(const Catalogue& catalogue) override;

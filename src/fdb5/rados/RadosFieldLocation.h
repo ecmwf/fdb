@@ -20,7 +20,6 @@
 
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/FileStore.h"
-#include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
 
@@ -29,25 +28,15 @@ namespace fdb5 {
 class RadosFieldLocation : public FieldLocation {
 public:
 
-    // RadosFieldLocation();
     RadosFieldLocation(const RadosFieldLocation& rhs);
     RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     RadosFieldLocation(const eckit::URI& uri);
     RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length);
-    RadosFieldLocation(const FileStore& store, const FieldRef& ref);
     RadosFieldLocation(eckit::Stream&);
-
-    //    const eckit::PathName path() const { return uri_.name(); }
-    //    const eckit::Offset&   offset() const { return offset_; }
-
     eckit::DataHandle* dataHandle() const override;
     eckit::DataHandle* dataHandle(const Key& remapKey) const override;
-
-    // eckit::URI uri() const override;
-
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
-
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
 
@@ -55,26 +44,14 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    // virtual void encode(eckit::Stream&) const override;
-
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RadosFieldLocation> reanimator_;
 
 private:  // methods
 
-    //    void dump(std::ostream &out) const override;
-
     void print(std::ostream& out) const override;
-
     eckit::URI uri(const eckit::PathName& path);
-
-private:  // members
-
-    //    eckit::PathName path_;
-    //    eckit::Offset offset_;
-
-    // For streamability
 };
 
 

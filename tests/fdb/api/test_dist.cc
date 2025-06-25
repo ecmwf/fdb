@@ -25,6 +25,8 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 
+#include "ApiSpy.h"
+
 using namespace eckit::testing;
 using namespace eckit;
 

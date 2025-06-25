@@ -18,6 +18,9 @@
 
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
+
+#include "fdb5/tools/FDBVisitTool.h"
 
 
 using namespace eckit;
@@ -32,7 +35,7 @@ namespace tools {
 FDBVisitTool::FDBVisitTool(int argc, char** argv, std::string minimumKeys) :
     FDBTool(argc, argv), fail_(true), all_(false), raw_(false) {
 
-    minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
+    minimumKeys_ = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", minimumKeys, true);
 
     if (minimumKeys_.size() != 0) {
         options_.push_back(new VectorOption<std::string>(
@@ -100,7 +103,7 @@ std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) cons
 
     if (all_) {
         ASSERT(requests_.empty());
-        requests.emplace_back(FDBToolRequest(metkit::mars::MarsRequest{}, all_, minimumKeys_));
+        requests.emplace_back(metkit::mars::MarsRequest{}, all_, minimumKeys_);
     }
     else {
 

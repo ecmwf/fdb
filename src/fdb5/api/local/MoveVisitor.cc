@@ -16,15 +16,15 @@
 
 #include "fdb5/api/local/MoveVisitor.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/local/QueueStringLogTarget.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Index.h"
 
 #include "eckit/os/Stat.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include <dirent.h>
+#include <sys/stat.h>
 
 using namespace eckit;
 
@@ -39,7 +39,7 @@ MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::M
                          const eckit::URI& dest) :
     QueryVisitor<MoveElement>(queue, request), dest_(dest) {}
 
-bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool MoveVisitor::visitDatabase(const Catalogue& catalogue) {
     if (catalogue.key().match(request_)) {
         catalogue.control(ControlAction::Disable,
                           ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
@@ -49,11 +49,11 @@ bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
         ASSERT(!catalogue.enabled(ControlIdentifier::Wipe));
         ASSERT(!catalogue.enabled(ControlIdentifier::UniqueRoot));
 
-        EntryVisitor::visitDatabase(catalogue, store);
+        EntryVisitor::visitDatabase(catalogue);
 
         ASSERT(!internalVisitor_);
-        internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, queue_));
-        internalVisitor_->visitDatabase(catalogue, store);
+        internalVisitor_.reset(catalogue.moveVisitor(store(), request_, dest_, queue_));
+        internalVisitor_->visitDatabase(catalogue);
 
         return true;
     }

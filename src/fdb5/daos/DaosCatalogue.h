@@ -16,7 +16,7 @@
 #include "fdb5/daos/DaosCommon.h"
 #include "fdb5/daos/DaosEngine.h"
 #include "fdb5/daos/DaosOID.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -25,14 +25,12 @@ namespace fdb5 {
 
 /// DB that implements the FDB on DAOS
 
-class DaosCatalogue : public Catalogue, public DaosCommon {
+class DaosCatalogue : public CatalogueImpl, public DaosCommon {
 
 public:  // methods
 
     DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
-
-    static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
 
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
@@ -46,6 +44,7 @@ public:  // methods
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;
+    const Rule& rule() const override;
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
@@ -76,6 +75,7 @@ protected:  // members
 private:  // members
 
     Schema schema_;
+    const RuleDatabase* rule_{nullptr};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

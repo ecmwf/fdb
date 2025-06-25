@@ -15,6 +15,11 @@
 #pragma once
 
 #include "eckit/distributed/Transport.h"
+
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/MoveVisitor.h"
+
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/api/helpers/MoveIterator.h"
@@ -39,10 +44,13 @@ public:  // methods
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
-    bool visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
+    bool visitDatabase(const Catalogue& catalogue) override;
+
+    bool visitIndex(const Index& /*index*/) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
 private:  // members
 

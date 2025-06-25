@@ -9,6 +9,9 @@
  */
 
 #include "fdb5/toc/FileSpace.h"
+#include "eckit/config/Resource.h"
+#include "eckit/filesystem/StdDir.h"
+#include "eckit/utils/StringTools.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/FileSpaceStrategies.h"
@@ -36,20 +39,20 @@ FileSpace::FileSpace(const std::string& name, const std::string& re, const std::
                      const std::vector<Root>& roots) :
     name_(name), handler_(handler), re_(re), roots_(roots) {}
 
-TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
+TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
     // if it is, then return that path
 
-    TocPath root;
-    if (existsDB(key, db, root)) {
-        LOG_DEBUG_LIB(LibFdb5) << "Found FDB root for key " << key << " -> " << root.directory_ << std::endl;
-        return root;
+    TocPath existingDB;
+    if (existsDB(key, db, existingDB)) {
+        LOG_DEBUG_LIB(LibFdb5) << "Found existing DB for key " << key << " -> " << existingDB.directory_ << std::endl;
+        return existingDB;
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
-    // LOG_DEBUG_LIB(LibFdb5) << eckit::BackTrace::dump() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
-    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), ControlIdentifiers{}};
+    return TocPath{FileSpaceHandler::lookup(handler_, config).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
 }
 
 std::vector<eckit::PathName> FileSpace::enabled(const ControlIdentifier& controlIdentifier) const {
@@ -82,25 +85,60 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const {
+eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
+
+    static bool searchCaseSensitiveDB =
+        eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
+
+    if (searchCaseSensitiveDB) {
+
+        eckit::StdDir d(path.path().c_str());
+        if (d == nullptr) {
+            Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
+            throw eckit::FailedSystemCall("opendir");
+        }
+
+        // Once readdir_r finally gets deprecated and removed, we may need to
+        // protecting readdir() as not yet guarranteed thread-safe by POSIX
+        // technically it should only be needed on a per-directory basis
+        // this should be a resursive mutex
+        // AutoLock<Mutex> lock(mutex_);
+        std::string ldb = eckit::StringTools::lower(db);
+
+        for (;;) {
+            struct dirent* e = d.dirent();
+            if (e == nullptr) {
+                break;
+            }
+
+            if (ldb == eckit::StringTools::lower(e->d_name)) {
+                return path / e->d_name;
+            }
+        }
+    }
+
+    return path / db;
+}
+
+
+bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const {
     unsigned count = 0;
     bool found     = false;
 
-    //    std::vector<const Root&> visitables = visitable();
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->enabled(ControlIdentifier::List) && i->exists()) {
-            eckit::PathName fullDB = i->path() / db;
-            eckit::PathName dbToc  = i->path() / db / "toc";
+            eckit::PathName fullDB = getFullDB(i->path(), db);
+            eckit::PathName dbToc  = fullDB / "toc";
             if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
                 bool allowMultipleDbs =
                     (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
                 if (!count || allowMultipleDbs) {  // take last
-                    root.directory_          = i->path();
-                    root.controlIdentifiers_ = i->controlIdentifiers();
-                    found                    = true;
+                    existsDB.directory_          = fullDB;
+                    existsDB.controlIdentifiers_ = i->controlIdentifiers();
+                    found                        = true;
                 }
                 if (!allowMultipleDbs)
                     ++count;

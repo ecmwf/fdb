@@ -16,6 +16,8 @@
 #ifndef fdb5_io_LustreFileHandle_h
 #define fdb5_io_LustreFileHandle_h
 
+#include "fdb5/fdb5_config.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
@@ -23,7 +25,6 @@
 #include "eckit/log/Bytes.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/fdb5_config.h"
 #include "fdb5/io/LustreSettings.h"
 
 namespace fdb5 {
@@ -41,21 +42,22 @@ public:  // methods
     LustreFileHandle(const std::string& path, size_t buffcount, size_t buffsize, LustreStripe stripe) :
         HANDLE(path, buffcount, buffsize), stripe_(stripe) {}
 
-    virtual ~LustreFileHandle() override {}
+    ~LustreFileHandle() override {}
 
-    virtual void openForAppend(const eckit::Length& len) override {
+    void openForAppend(const eckit::Length& len) override {
 
-        std::string path = HANDLE::path_;
+        std::string pathStr = HANDLE::path_;
+        eckit::PathName path{pathStr};
 
-        if (eckit::PathName(path).exists())
+        if (path.exists())
             return;  //< Lustre API outputs ioctl error messages when called on files exist
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << path << " with " << stripe_.count_ << " stripes "
+        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << pathStr << " with " << stripe_.count_ << " stripes "
                                << "of " << eckit::Bytes(stripe_.size_) << std::endl;
 
-        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_);
+        int err = fdb5LustreapiFileCreate(path, stripe_);
 
         if (err == EINVAL) {
 

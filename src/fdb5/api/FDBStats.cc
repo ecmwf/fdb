@@ -13,8 +13,6 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "fdb5/api/FDBStats.h"
-
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
@@ -22,6 +20,7 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBStats.h"
 
 
 using namespace eckit;
@@ -30,6 +29,7 @@ namespace fdb5 {
 
 FDBStats::FDBStats() :
     numArchive_(0),
+    numLocation_(0),
     numFlush_(0),
     numRetrieve_(0),
     bytesArchive_(0),
@@ -49,6 +49,7 @@ FDBStats::~FDBStats() {}
 
 FDBStats& FDBStats::operator+=(const FDBStats& rhs) {
     numArchive_ += rhs.numArchive_;
+    numLocation_ += rhs.numLocation_;
     numFlush_ += rhs.numFlush_;
     numRetrieve_ += rhs.numRetrieve_;
     bytesArchive_ += rhs.bytesArchive_;
@@ -80,6 +81,9 @@ void FDBStats::addArchive(size_t length, eckit::Timer& timer, size_t nfields) {
                            << ", total: " << Seconds(elapsedArchive_) << std::endl;
 }
 
+void FDBStats::addLocation(size_t nfields) {
+    numLocation_ += nfields;
+}
 
 void FDBStats::addRetrieve(size_t length, eckit::Timer& timer) {
 

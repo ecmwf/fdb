@@ -19,6 +19,10 @@
 #ifndef fdb5_api_local_WipeVisitor_H
 #define fdb5_api_local_WipeVisitor_H
 
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/WipeVisitor.h"
+
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -43,14 +47,15 @@ public:  // methods
 
     bool visitEntries() override { return false; }
     bool visitIndexes() override;
-
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+    bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
 
-    virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
+    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+    void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
+
+    void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
 private:  // members
 

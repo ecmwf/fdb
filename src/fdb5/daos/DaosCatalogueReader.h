@@ -30,15 +30,13 @@ public:  // methods
 
     DbStats stats() const override { NOTIMP; }
 
-    bool selectIndex(const Key& key) override;
+    bool selectIndex(const Key& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;
-    void flush() override {}
+    void flush(size_t archivedFields) override {}
     void clean() override {}
     void close() override {}
-
-    bool axis(const std::string& keyword, eckit::StringSet& s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
@@ -46,6 +44,7 @@ public:  // methods
 
 private:  // types
 
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
     typedef std::map<Key, Index> IndexStore;
 
 private:  // members

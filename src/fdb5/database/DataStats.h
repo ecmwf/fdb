@@ -28,7 +28,7 @@ namespace fdb5 {
 class DataStatsContent : public eckit::Counted, public eckit::Statistics {
 public:
 
-    virtual ~DataStatsContent() override;
+    ~DataStatsContent() override;
 
     virtual void add(const DataStatsContent&) = 0;
 

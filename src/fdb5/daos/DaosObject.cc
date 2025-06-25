@@ -14,12 +14,16 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/utils/Literals.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosSession.h"
+
+using namespace eckit::literals;
 
 namespace fdb5 {
 
@@ -406,7 +410,7 @@ std::vector<std::string> DaosKeyValue::keys() {
     daos_key_desc_t key_sizes[max_keys_per_rpc];
     d_sg_list_t sgl;
     d_iov_t sg_iov;
-    size_t bufsize = 1024;
+    const size_t bufsize = 1_KiB;
     eckit::Buffer list_buf{bufsize};
     d_iov_set(&sg_iov, (char*)list_buf, bufsize);
     sgl.sg_nr                    = 1;

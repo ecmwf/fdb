@@ -13,9 +13,8 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-
 #include "fdb5/rules/SchemaParser.h"
-
+#include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
 #include "fdb5/rules/MatchHidden.h"
@@ -23,7 +22,8 @@
 #include "fdb5/rules/MatchValue.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/types/TypesRegistry.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -54,7 +54,7 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
                 if (!value) {
                     return s;
                 }
-
+                [[fallthrough]];
             default:
                 consume(c);
                 s += c;
@@ -63,8 +63,9 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     }
 }
 
-Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& types) {
+std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types) {
 
+    bool exclude = false;
     std::set<std::string> values;
     std::string k = parseIdent(false, false);
 
@@ -79,7 +80,7 @@ Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& type
 
     if (c == '?') {
         consume(c);
-        return new Predicate(k, new MatchOptional(parseIdent(true, true)));
+        return std::make_unique<Predicate>(k, new MatchOptional(parseIdent(true, true)));
     }
 
     if (c == '-') {
@@ -88,13 +89,21 @@ Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& type
             // Register ignore type
             types[k] = "Ignore";
         }
-        return new Predicate(k, new MatchHidden(parseIdent(true, true)));
+        return std::make_unique<Predicate>(k, new MatchHidden(parseIdent(true, true)));
     }
 
     if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
-        values.insert(parseIdent(true, false));
+        std::string val = parseIdent(true, false);
+        exclude         = val[0] == '!';
+
+        if (exclude) {
+            values.insert(val.substr(1));
+        }
+        else {
+            values.insert(val);
+        }
 
         while ((c = peek()) == '/') {
             consume(c);
@@ -104,94 +113,156 @@ Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& type
 
     switch (values.size()) {
         case 0:
-            return new Predicate(k, new MatchAlways());
-            break;
-
+            return std::make_unique<Predicate>(k, new MatchAlways());
         case 1:
-            return new Predicate(k, new MatchValue(*values.begin()));
-            break;
-
+            return std::make_unique<Predicate>(k, new MatchValue(*values.begin()));
         default:
-            return new Predicate(k, new MatchAny(values));
-            break;
+            if (exclude) {
+                return std::make_unique<Predicate>(k, new ExcludeAll(values));
+            }
+            return std::make_unique<Predicate>(k, new MatchAny(values));
     }
 }
 
-void SchemaParser::parseTypes(std::map<std::string, std::string>& types) {
+void SchemaParser::parseTypes(eckit::StringDict& types) {
     for (;;) {
-        std::string name = parseIdent(false, true);
+        const auto name = parseIdent(false, true);
         if (name.empty()) {
             break;
         }
         consume(':');
-        std::string type = parseIdent(false, false);
+        const auto type = parseIdent(false, false);
         consume(';');
         ASSERT(types.find(name) == types.end());
         types[name] = type;
     }
 }
 
-Rule* SchemaParser::parseRule(const Schema& owner) {
-    std::vector<Predicate*> predicates;
-    std::vector<Rule*> rules;
-    std::map<std::string, std::string> types;
+std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
+    Rule::Predicates predicates;
+    eckit::StringDict types;
 
     consume('[');
 
-    size_t line = line_ + 1;
+    const std::size_t line = line_ + 1;
 
     char c = peek();
     if (c == ']') {
         consume(c);
-        return new Rule(owner, line, predicates, rules, types);
+        return std::make_unique<RuleDatum>(line, predicates, types);
     }
-
 
     for (;;) {
 
-        char c = peek();
+        c = peek();
+
+        predicates.emplace_back(parsePredicate(types));
+        while ((c = peek()) == ',') {
+            consume(c);
+            predicates.emplace_back(parsePredicate(types));
+        }
+
+        c = peek();
+        if (c == ']') {
+            consume(c);
+            return std::make_unique<RuleDatum>(line, predicates, types);
+        }
+    }
+}
+
+std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
+    Rule::Predicates predicates;
+    eckit::StringDict types;
+    RuleIndex::Children rules;
+
+    consume('[');
+
+    const std::size_t line = line_ + 1;
+
+    char c = peek();
+    if (c == ']') {
+        consume(c);
+        return std::make_unique<RuleIndex>(line, predicates, types, rules);
+    }
+
+    for (;;) {
+
+        c = peek();
 
         if (c == '[') {
-            while (c == '[') {
-                rules.push_back(parseRule(owner));
-                c = peek();
-            }
+            rules.emplace_back(parseDatum());
         }
         else {
-            predicates.push_back(parsePredicate(types));
+            predicates.emplace_back(parsePredicate(types));
             while ((c = peek()) == ',') {
                 consume(c);
-                predicates.push_back(parsePredicate(types));
+                predicates.emplace_back(parsePredicate(types));
             }
         }
 
         c = peek();
         if (c == ']') {
             consume(c);
-            return new Rule(owner, line, predicates, rules, types);
+            return std::make_unique<RuleIndex>(line, predicates, types, rules);
         }
     }
 }
 
-SchemaParser::SchemaParser(std::istream& in) : StreamParser(in, true) {}
+std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
+    Rule::Predicates predicates;
+    eckit::StringDict types;
+    RuleDatabase::Children rules;
 
-void SchemaParser::parse(const Schema& owner, std::vector<Rule*>& result, TypesRegistry& registry) {
-    char c;
-    std::map<std::string, std::string> types;
+    consume('[');
+
+    const std::size_t line = line_ + 1;
+
+    char c = peek();
+    if (c == ']') {
+        consume(c);
+        return std::make_unique<RuleDatabase>(line, predicates, types, rules);
+    }
+
+    for (;;) {
+
+        c = peek();
+
+        if (c == '[') {
+            rules.emplace_back(parseIndex());
+        }
+        else {
+            predicates.emplace_back(parsePredicate(types));
+            while ((c = peek()) == ',') {
+                consume(c);
+                predicates.emplace_back(parsePredicate(types));
+            }
+        }
+
+        c = peek();
+        if (c == ']') {
+            consume(c);
+            return std::make_unique<RuleDatabase>(line, predicates, types, rules);
+        }
+    }
+}
+
+void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
+    eckit::StringDict types;
 
     parseTypes(types);
-    for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        registry.addType(i->first, i->second);
+    for (const auto& [keyword, type] : types) {
+        registry.addType(keyword, type);
     }
 
+    char c;
     while ((c = peek()) == '[') {
-        result.push_back(parseRule(owner));
+        result.emplace_back(parseDatabase());
     }
+
     if (c) {
         throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);
     }
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -10,6 +10,7 @@
 
 
 #include "fdb5/types/TypeIgnore.h"
+#include "fdb5/types/TypesFactory.h"
 
 #include "fdb5/types/TypesFactory.h"
 
@@ -23,12 +24,12 @@ TypeIgnore::TypeIgnore(const std::string& name, const std::string& type) : Type(
 TypeIgnore::~TypeIgnore() {}
 
 
-std::string TypeIgnore::toKey(const std::string&, const std::string&) const {
+std::string TypeIgnore::toKey(const std::string&) const {
     return "";
 }
 
 void TypeIgnore::getValues(const metkit::mars::MarsRequest&, const std::string&, eckit::StringList&, const Notifier&,
-                           const DB*) const {}
+                           const CatalogueReader*) const {}
 
 void TypeIgnore::print(std::ostream& out) const {
     out << "TypeIgnore[name=" << name_ << "]";

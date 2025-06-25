@@ -26,15 +26,18 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/fdb5_config.h"
+
+#include "fdb5/toc/TocStore.h"
+
 #include "fdb5/daos/DaosArrayPartHandle.h"
+#include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosSession.h"
+
 #include "fdb5/daos/DaosCatalogueReader.h"
 #include "fdb5/daos/DaosCatalogueWriter.h"
 #include "fdb5/daos/DaosFieldLocation.h"
-#include "fdb5/daos/DaosPool.h"
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosStore.h"
-#include "fdb5/fdb5_config.h"
-#include "fdb5/toc/TocStore.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -196,15 +199,15 @@ CASE("DaosCatalogue tests") {
         /// @note: a=11,b=22 instead of a=1,b=2 to avoid collision with potential parallel runs of store tests using
         /// a=1,b=2
         fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         // archive
 
         /// DaosManager is configured with client config from the file
-        std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
-            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key(nullptr, true)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
+            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key()));
 
         {
             fdb5::DaosCatalogueWriter dcatw{db_key, config};
@@ -223,7 +226,7 @@ CASE("DaosCatalogue tests") {
             EXPECT(cat_kv.has(index_key.valuesToString()));
 
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
             EXPECT(index_kv.has(field_key.valuesToString()));
             fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
             fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
@@ -313,9 +316,9 @@ CASE("DaosCatalogue tests") {
 
         char data[] = "test";
 
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -327,7 +330,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
@@ -363,7 +366,7 @@ CASE("DaosCatalogue tests") {
             std::ostream out(std::cout.rdbuf());
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -411,9 +414,9 @@ CASE("DaosCatalogue tests") {
 
         char data[] = "test";
 
-        fdb5::TocStore tstore{schema, db_key, config};
+        fdb5::TocStore tstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -425,7 +428,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, std::move(loc));
+            catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             tstore.flush();
@@ -476,7 +479,7 @@ CASE("DaosCatalogue tests") {
             std::ostream out(std::cout.rdbuf());
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -546,7 +549,7 @@ CASE("DaosCatalogue tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }
@@ -760,7 +763,7 @@ CASE("DaosCatalogue tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }
@@ -780,7 +783,7 @@ CASE("DaosCatalogue tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }
@@ -812,7 +815,7 @@ CASE("DaosCatalogue tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }

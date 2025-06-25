@@ -8,9 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rules/MatchAlways.h"
-
-#include "eckit/log/Log.h"
+#include <ostream>
 
 #include "fdb5/types/TypesRegistry.h"
 
@@ -18,13 +16,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchAlways::MatchAlways() : Matcher() {}
+eckit::ClassSpec MatchAlways::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchAlways",
+};
 
-MatchAlways::~MatchAlways() {}
+eckit::Reanimator<MatchAlways> MatchAlways::reanimator_;
 
-bool MatchAlways::match(const std::string&, const Key&) const {
-    return true;
-}
+
+MatchAlways::MatchAlways(eckit::Stream&) : Matcher() {}
+
+void MatchAlways::encode(eckit::Stream& s) const {}
 
 void MatchAlways::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);

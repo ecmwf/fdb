@@ -15,7 +15,7 @@
 #include "metkit/mars/Param.h"
 #include "metkit/mars/ParamID.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/types/TypesFactory.h"
 
@@ -30,22 +30,21 @@ TypeParam::TypeParam(const std::string& name, const std::string& type) : Type(na
 TypeParam::~TypeParam() {}
 
 void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                          eckit::StringList& values, const Notifier& wind, const DB* db) const {
-    ASSERT(db);
+                          eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const {
+    ASSERT(cat);
 
-    eckit::StringSet ax;
-
-    db->axis(keyword, ax);
+    auto ax = cat->axis(keyword);
+    ASSERT(ax);
 
     eckit::StringList us;
 
-    Type::getValues(request, keyword, us, wind, db);
+    Type::getValues(request, keyword, us, wind, cat);
 
     std::vector<Param> user;
     std::copy(us.begin(), us.end(), std::back_inserter(user));
 
     std::vector<Param> axis;
-    std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
+    std::copy(ax->get().begin(), ax->get().end(), std::back_inserter(axis));
     std::sort(axis.begin(), axis.end());
 
     bool windConversion = false;

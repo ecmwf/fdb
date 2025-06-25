@@ -25,8 +25,6 @@ namespace fdb5 {
 class HandleGatherer;
 class Notifier;
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class RetrieveVisitor : public ReadVisitor {
@@ -35,31 +33,31 @@ public:  // methods
 
     RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer);
 
-    ~RetrieveVisitor();
-
-
-private:  // methods
+protected:  // methods
 
     // From Visitor
 
-    virtual bool selectDatabase(const Key& key, const Key& full) override;
+    bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
 
-    virtual bool selectIndex(const Key& key, const Key& full) override;
+    bool selectIndex(const Key& idxKey, const Key& fullKey) override;
 
-    virtual bool selectDatum(const Key& key, const Key& full) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    virtual void values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                        const TypesRegistry& registry, eckit::StringList& values) override;
+    void deselectDatabase() override;
 
-    virtual void print(std::ostream& out) const override;
+    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
+                eckit::StringList& values) override;
 
-    virtual const Schema& databaseSchema() const override;
+    void print(std::ostream& out) const override;
+
+    Store& store();
+    const Schema& databaseSchema() const override;
 
 private:
 
-    const Notifier& wind_;
+    std::unique_ptr<Store> store_;
 
-    std::unique_ptr<DB> db_;
+    const Notifier& wind_;
 
     HandleGatherer& gatherer_;
 };

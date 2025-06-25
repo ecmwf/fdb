@@ -10,8 +10,6 @@
 
 #include "fdb5/daos/DaosCommon.h"
 
-#include <algorithm>
-
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 

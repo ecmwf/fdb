@@ -8,7 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rados/RadosStore.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Timer.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/EmptyHandle.h"
@@ -20,6 +21,7 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/rados/RadosFieldLocation.h"
+#include "fdb5/rados/RadosStore.h"
 #include "fdb5/rules/Rule.h"
 
 using namespace eckit;
@@ -28,8 +30,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), directory_("mars:" + key.valuesToString()) {}
+RadosStore::RadosStore(const Key& key, const Config& config) :
+    Store(), directory_("mars:" + key.valuesToString()), archivedFields_(0) {}
+
+RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint) :
+    Store(), directory_("mars:" + key.valuesToString()), archivedFields_(0) {
+    NOTIMP;
+}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
@@ -43,8 +50,9 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
     return remapKey.empty() ? field.dataHandle() : field.dataHandle(remapKey);
 }
 
-FieldLocation* RadosStore::archive(const Key& key, const void* data, eckit::Length length) {
-    dirty_ = true;
+std::unique_ptr<const FieldLocation> RadosStore::archive(const uint32_t, const Key& key, const void* data,
+                                                         eckit::Length length) {
+    archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(key);
     eckit::URI dataUri("rados", dataPath);
@@ -57,19 +65,21 @@ FieldLocation* RadosStore::archive(const Key& key, const void* data, eckit::Leng
 
     ASSERT(len == length);
 
-    return new RadosFieldLocation(dataUri, position, length);
+    return std::unique_ptr<const RadosFieldLocation>(new RadosFieldLocation(dataUri, position, length));
 }
 
-void RadosStore::flush() {
-    if (!dirty_) {
-        return;
+size_t RadosStore::flush() {
+    if (archivedFields_ == 0) {
+        return 0;
     }
 
     // ensure consistent state before writing Toc entry
 
     flushDataHandles();
 
-    dirty_ = false;
+    size_t out      = archivedFields_;
+    archivedFields_ = 0;
+    return out;
 }
 
 void RadosStore::close() {

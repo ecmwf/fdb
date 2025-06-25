@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
 #include "eckit/config/Resource.h"
@@ -66,7 +69,7 @@ unsigned int TocSerialisationVersion::latest() {
 }
 
 unsigned int TocSerialisationVersion::defaulted() {
-    return 2;
+    return 3;
 }
 
 unsigned int TocSerialisationVersion::used() const {

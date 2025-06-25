@@ -19,12 +19,12 @@
 #ifndef fdb5_helpers_APIIteratorBase_H
 #define fdb5_helpers_APIIteratorBase_H
 
+#include "eckit/container/Queue.h"
+
 #include <exception>
 #include <functional>
 #include <memory>
 #include <queue>
-
-#include "eckit/container/Queue.h"
 
 /*
  * Given a standard, copyable, element, provide a mechanism for iterating over
@@ -82,9 +82,9 @@ public:  // methods
 
     APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) : iterators_(std::move(iterators)) {}
 
-    virtual ~APIAggregateIterator() override {}
+    ~APIAggregateIterator() override {}
 
-    virtual bool next(ValueType& elem) override {
+    bool next(ValueType& elem) override {
 
         while (!iterators_.empty()) {
             if (iterators_.front().next(elem)) {
@@ -104,6 +104,11 @@ private:  // members
 
 
 //----------------------------------------------------------------------------------------------------------------------
+
+/// AsyncIterationCancellation is used to indicate a worker needs to be cancelled.
+/// AsyncIterationCancellation is send through eckit::Queue::interrupt to the writing thread and cancels the task via
+/// unwinding.
+class AsyncIterationCancellation : public eckit::Exception {};
 
 // For some uses, we have a generator function (i.e. through a visitor
 // pattern). We want to invert the control such that the next element
@@ -126,6 +131,9 @@ public:  // methods
                 workerFn(queue_);
                 queue_.close();
             }
+            catch (const AsyncIterationCancellation&) {
+                // WorkerFn has been cancelled, nothing to do.
+            }
             catch (...) {
                 // Really avoid calling std::terminate on worker thread.
                 queue_.interrupt(std::current_exception());
@@ -135,15 +143,16 @@ public:  // methods
         workerThread_ = std::thread(fullWorker);
     }
 
-    virtual ~APIAsyncIterator() override {
+    ~APIAsyncIterator() override {
         if (!queue_.closed()) {
-            queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
+            // Cancel worker operation by causing a throw on next emplace/push/resize operation.
+            queue_.interrupt(std::make_exception_ptr(AsyncIterationCancellation()));
         }
         ASSERT(workerThread_.joinable());
         workerThread_.join();
     }
 
-    virtual bool next(ValueType& elem) override { return !(queue_.pop(elem) == -1); }
+    bool next(ValueType& elem) override { return !(queue_.pop(elem) == -1); }
 
 private:  // members
 

@@ -21,7 +21,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/toc/TocCommon.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
 #define MAX_THREADS 256

@@ -52,7 +52,7 @@ public:
 template <class T>
 class TypeBuilder : public TypesFactory {
 
-    virtual Type* make(const std::string& keyword) const override { return new T(keyword, name_); }
+    Type* make(const std::string& keyword) const override { return new T(keyword, name_); }
 
 public:
 

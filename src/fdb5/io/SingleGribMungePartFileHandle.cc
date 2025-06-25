@@ -18,6 +18,9 @@
 
 #include "eckit/log/Log.h"
 
+#include <cstdio>
+#include "eccodes.h"
+
 using namespace eckit;
 
 namespace fdb5 {

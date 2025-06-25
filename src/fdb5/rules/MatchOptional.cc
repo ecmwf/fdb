@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rules/MatchOptional.h"
+#include <string>
+#include <utility>
 
-#include "eckit/log/Log.h"
-#include "eckit/types/Types.h"
+#include "fdb5/rules/MatchOptional.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -20,15 +20,40 @@
 
 namespace fdb5 {
 
-static std::string empty;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchOptional::MatchOptional(const std::string& def) : Matcher() {
-    default_.push_back(def);
+eckit::ClassSpec MatchOptional::classSpec_ = {
+    &Matcher::classSpec(),
+    "MatchOptional",
+};
+
+eckit::Reanimator<MatchOptional> MatchOptional::reanimator_;
+
+
+MatchOptional::MatchOptional(std::string def) : default_{std::move(def)} {}
+
+MatchOptional::MatchOptional(eckit::Stream& s) : Matcher() {
+
+    size_t numValues;
+    std::string value;
+
+    s >> numValues;
+    for (size_t i = 0; i < numValues; i++) {
+        s >> value;
+        default_.push_back(value);
+    }
 }
 
-MatchOptional::~MatchOptional() {}
+void MatchOptional::encode(eckit::Stream& s) const {
+    s << default_.size();
+    for (const std::string& value : default_) {
+        s << value;
+    }
+}
+
+bool MatchOptional::match(const std::string& /*value*/) const {
+    return true;
+}
 
 bool MatchOptional::match(const std::string&, const Key&) const {
     return true;
@@ -45,13 +70,12 @@ void MatchOptional::fill(Key& key, const std::string& keyword, const std::string
 }
 
 const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
-    Key::const_iterator i = key.find(keyword);
 
-    if (i == key.end()) {
-        return default_[0];
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return iter->second;
     }
 
-    return key.get(keyword);
+    return default_[0];
 }
 
 const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq,

@@ -29,7 +29,7 @@ namespace fdb5 {
 class DbStatsContent : public eckit::Counted, public eckit::Statistics, public eckit::Streamable {
 public:
 
-    virtual ~DbStatsContent() override;
+    ~DbStatsContent() override;
 
     virtual void add(const DbStatsContent&) = 0;
 
@@ -37,7 +37,7 @@ public:
 
 public:  // For Streamable
 
-    virtual void encode(eckit::Stream& s) const override = 0;
+    void encode(eckit::Stream& s) const override = 0;
 
 protected:  // For Streamable
 

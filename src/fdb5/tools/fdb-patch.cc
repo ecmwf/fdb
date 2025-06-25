@@ -10,14 +10,16 @@
 
 #include "eccodes.h"
 
-#include <iomanip>
-
-#include "eckit/config/Resource.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/message/MessageArchiver.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 #include "metkit/codes/CodesContent.h"
 
@@ -42,7 +44,7 @@ public:  // methods
 
 private:  // methods
 
-    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
+    eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private:  // members
 
@@ -142,7 +144,7 @@ void FDBPatch::execute(const CmdArgs& args) {
             //    (n.b. listed key is broken down as-per the schema)
 
             Key key;
-            for (const Key& k : elem.keyParts_) {
+            for (const Key& k : elem.keys()) {
                 for (const auto& kv : k) {
                     key.set(kv.first, kv.second);
                 }

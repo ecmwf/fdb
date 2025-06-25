@@ -21,31 +21,27 @@
 
 #include "fdb5/database/FieldLocation.h"
 
-namespace fdb5 {
+namespace fdb5::remote {
 
-class RemoteFDB;
-
-namespace remote {
+class RemoteStore;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteFieldLocation : public FieldLocation {
 public:
 
-    RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation);
     RemoteFieldLocation(const eckit::URI& uri);
     RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
                         const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
-    eckit::Offset offset() const override { return internal_->offset(); }
-    eckit::Length length() const override { return internal_->length(); }
+    eckit::DataHandle* dataHandle() const override;
 
-    virtual eckit::DataHandle* dataHandle() const override;
-
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
 
@@ -53,28 +49,22 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual void encode(eckit::Stream&) const override;
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    void encode(eckit::Stream&) const override;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
 private:  // methods
 
-    virtual void dump(std::ostream& out) const override;
-    virtual void print(std::ostream& out) const override;
+    void print(std::ostream& out) const override;
 
 private:  // members
-
-    // not Owning
-    RemoteFDB* remoteFDB_;
-    std::shared_ptr<const FieldLocation> internal_;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote
 
 #endif  // fdb5_RemoteFieldLocation_H

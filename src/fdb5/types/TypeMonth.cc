@@ -9,13 +9,15 @@
  */
 
 // #include "eckit/exception/Exceptions.h"
-#include "fdb5/types/TypeMonth.h"
+#include <iomanip>
+#include <sstream>
 
 #include "eckit/types/Date.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeMonth.h"
 #include "fdb5/types/TypesFactory.h"
 
 
@@ -23,18 +25,20 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeMonth::TypeMonth(const std::string& name, const std::string& type) : Type(name, type) {}
+TypeMonth::TypeMonth(const std::string& name, const std::string& type, const std::string& alias) :
+    Type(name, type, alias) {}
 
 TypeMonth::~TypeMonth() {}
 
-std::string TypeMonth::toKey(const std::string&, const std::string& value) const {
+std::string TypeMonth::toKey(const std::string& value) const {
 
     eckit::Date date(value);
-    return std::to_string(date.year() * 100 + date.month());
+
+    return std::to_string(date.month());
 }
 
 void TypeMonth::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                          eckit::StringList& values, const Notifier&, const DB*) const {
+                          eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);

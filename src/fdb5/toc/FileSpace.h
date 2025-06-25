@@ -28,6 +28,7 @@
 
 namespace fdb5 {
 
+class Config;
 class FileSpaceHandler;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -50,7 +51,7 @@ public:  // methods
     /// @note This method must be idempotent -- it returns always the same value after the first call
     /// @param key is a complete identifier for the first level of the schema
     /// @param db part of the full path
-    TocPath filesystem(const Key& key, const eckit::PathName& db) const;
+    TocPath filesystem(const Config& config, const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
     void enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet&) const;
@@ -67,7 +68,7 @@ public:  // methods
 
 private:  // methods
 
-    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const;
 
     void print(std::ostream& out) const;
 

@@ -20,6 +20,7 @@
 #include "eckit/types/Types.h"
 #include "eckit/utils/Regex.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/toc/Root.h"
 
 namespace fdb5 {
@@ -35,7 +36,7 @@ class FileSpaceHandler : private eckit::NonCopyable {
 
 public:  // methods
 
-    static const FileSpaceHandler& lookup(const std::string& name);
+    static const FileSpaceHandler& lookup(const std::string& name, const Config& config);
     static void regist(const std::string& name, FileSpaceHandlerInstance* h);
     static void unregist(const std::string& name);
 
@@ -45,7 +46,9 @@ public:  // methods
 
 protected:  // methods
 
-    FileSpaceHandler();
+    FileSpaceHandler(const Config& config);
+
+    const Config& config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -53,7 +56,7 @@ protected:  // methods
 class FileSpaceHandlerInstance {
 public:
 
-    const FileSpaceHandler& get();
+    const FileSpaceHandler& get(const Config& config);
 
 protected:
 
@@ -63,7 +66,7 @@ protected:
 
 private:
 
-    virtual FileSpaceHandler* make() const = 0;
+    virtual FileSpaceHandler* make(const Config& config) const = 0;
 
     std::string name_;
     mutable FileSpaceHandler* instance_;
@@ -77,7 +80,7 @@ public:
 
 private:
 
-    virtual FileSpaceHandler* make() const override { return new T(); }
+    FileSpaceHandler* make(const Config& config) const override { return new T(config); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

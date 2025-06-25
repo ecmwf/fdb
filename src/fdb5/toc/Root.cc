@@ -14,6 +14,7 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/toc/Root.h"
 
 using eckit::Log;
 using eckit::Stat;

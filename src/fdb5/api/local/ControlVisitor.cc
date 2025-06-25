@@ -23,9 +23,9 @@ ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit
     QueryVisitor<ControlElement>(queue, request), action_(action), identifiers_(identifiers) {}
 
 
-bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool ControlVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     // Only lock/unlock things that match exactly.
 

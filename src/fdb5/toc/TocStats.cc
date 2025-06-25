@@ -171,19 +171,19 @@ TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
 
     std::set<eckit::PathName> intersect;
     std::set_union(allDataFiles_.begin(), allDataFiles_.end(), rhs.allDataFiles_.begin(), rhs.allDataFiles_.end(),
-                   std::insert_iterator<std::set<eckit::PathName> >(intersect, intersect.begin()));
+                   std::insert_iterator<std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(allDataFiles_, intersect);
 
     intersect.clear();
     std::set_union(activeDataFiles_.begin(), activeDataFiles_.end(), rhs.activeDataFiles_.begin(),
                    rhs.activeDataFiles_.end(),
-                   std::insert_iterator<std::set<eckit::PathName> >(intersect, intersect.begin()));
+                   std::insert_iterator<std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(activeDataFiles_, intersect);
 
-    for (std::map<eckit::PathName, size_t>::const_iterator i = rhs.dataUsage_.begin(); i != rhs.dataUsage_.end(); ++i) {
-        dataUsage_[i->first] += i->second;
+    for (const auto& [path, size] : rhs.dataUsage_) {
+        dataUsage_[path] += size;
     }
 
     return *this;
@@ -209,7 +209,7 @@ TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(&catalogue == currentCatalogue_);
     return true;
 }
@@ -217,15 +217,15 @@ bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Stor
 
 void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
-    //    ASSERT(currIndex_ != 0);
-
     TocDbStats* dbStats = new TocDbStats();
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
-        if (!currentIndex_->location().uri().path().dirName().sameAs(((TocCatalogue*)currentCatalogue_)->basePath()))
+        const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+
+        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath()))
             return;
-        if (!field.location().uri().path().dirName().sameAs(((TocCatalogue*)currentCatalogue_)->basePath()))
+        if (!field.location().uri().path().dirName().sameAs(cat->basePath()))
             return;
     }
 
@@ -248,20 +248,20 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     const eckit::PathName& indexPath = currentIndex_->location().uri().path();
 
     if (dataPath != lastDataPath_) {
+        if (dataPath.exists()) {
+            if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
 
-        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-
-            if (dataPath.dirName().sameAs(directory_)) {
-                dbStats->ownedFilesSize_ += dataPath.size();
-                dbStats->ownedFilesCount_++;
+                if (dataPath.dirName().sameAs(directory_)) {
+                    dbStats->ownedFilesSize_ += dataPath.size();
+                    dbStats->ownedFilesCount_++;
+                }
+                else {
+                    dbStats->adoptedFilesSize_ += dataPath.size();
+                    dbStats->adoptedFilesCount_++;
+                }
+                allDataFiles_.insert(dataPath);
             }
-            else {
-                dbStats->adoptedFilesSize_ += dataPath.size();
-                dbStats->adoptedFilesCount_++;
-            }
-            allDataFiles_.insert(dataPath);
         }
-
         lastDataPath_ = dataPath;
     }
 

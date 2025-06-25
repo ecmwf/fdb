@@ -8,15 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/types/TypeStep.h"
-
+#include "eckit/container/DenseSet.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/StepRange.h"
 #include "metkit/mars/StepRangeNormalise.h"
 
-#include "fdb5/database/DB.h"
+#include <string>
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/types/TypeStep.h"
 #include "fdb5/types/TypesFactory.h"
 
 using metkit::mars::StepRange;
@@ -32,7 +33,7 @@ TypeStep::TypeStep(const std::string& name, const std::string& type) : Type(name
 TypeStep::~TypeStep() {}
 
 
-std::string TypeStep::toKey(const std::string&, const std::string& value) const {
+std::string TypeStep::toKey(const std::string& value) const {
     return StepRange(value);
 }
 
@@ -55,7 +56,7 @@ bool TypeStep::match(const std::string&, const std::string& value1, const std::s
 }
 
 void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                         eckit::StringList& values, const Notifier&, const DB* db) const {
+                         eckit::StringList& values, const Notifier&, const CatalogueReader* cat) const {
 
     // Get the steps / step ranges from the request
 
@@ -65,17 +66,16 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::st
     std::vector<StepRange> ranges;
     std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
-    // If this is before knowing the DB, we are constrained on what we can do.
+    // If this is before knowing the Catalogue, we are constrained on what we can do.
 
-    if (db) {
+    if (cat) {
 
         // Get the axis
-
-        eckit::StringSet ax;
-        db->axis("step", ax);
+        auto ax = cat->axis("step");
+        ASSERT(ax);
 
         std::vector<StepRange> axis;
-        for (auto step : ax) {
+        for (auto step : ax->get()) {
             if (!step.empty()) {
                 axis.push_back(StepRange(step));
             }

@@ -35,11 +35,11 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
-    virtual std::shared_ptr<FieldLocation> stableLocation() const override;
+    std::shared_ptr<const FieldLocation> stableLocation() const override;
 
 private:  // methods
 

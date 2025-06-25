@@ -9,6 +9,7 @@
  */
 
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBTool.h"
@@ -22,7 +23,8 @@ class FDBDumpToc : public fdb5::FDBTool {
 public:  // methods
 
     FDBDumpToc(int argc, char** argv) : fdb5::FDBTool(argc, argv) {
-
+        // FDBDumpToc does not require to read the configuration
+        needsConfig_ = false;
         options_.push_back(
             new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
     }

@@ -15,6 +15,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeClimateMonthly.h"
 #include "fdb5/types/TypesFactory.h"
 
 
@@ -32,7 +33,11 @@ TypeClimateMonthly::~TypeClimateMonthly() {}
 
 static int month(const std::string& value) {
     if (isdigit(value[0])) {
-        eckit::Date date(value);
+        int n = stoi(value);
+        if (n <= 12) {
+            return n;
+        }
+        eckit::Date date(n);
         return date.month();
     }
     else {
@@ -47,13 +52,13 @@ static int month(const std::string& value) {
     }
 }
 
-std::string TypeClimateMonthly::toKey(const std::string&, const std::string& value) const {
+std::string TypeClimateMonthly::toKey(const std::string& value) const {
 
     return std::to_string(month(value));
 }
 
 void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                                   eckit::StringList& values, const Notifier&, const DB*) const {
+                                   eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<std::string> dates;
 
     request.getValues(keyword, dates, true);

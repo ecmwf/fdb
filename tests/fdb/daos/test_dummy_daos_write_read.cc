@@ -10,17 +10,18 @@
 
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include "daos.h"
-#include "daos/tests_lib.h"
-#include "dummy_daos.h"
-
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
 
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
+#include "eckit/utils/Literals.h"
 
+#include "daos.h"
+#include "dummy_daos.h"
+
+using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace eckit;
 
@@ -203,8 +204,8 @@ CASE("dummy_daos_write_then_read") {
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
     char* list_buf;
-    int bufsize = 1024;
-    list_buf    = (char*)malloc(bufsize);
+    const auto bufsize = 1_KiB;
+    list_buf           = (char*)malloc(bufsize);
     d_iov_set(&iov_kv_list, list_buf, bufsize);
     sgl_kv_list.sg_nr            = 1;
     sgl_kv_list.sg_nr_out        = 0;
@@ -224,8 +225,13 @@ CASE("dummy_daos_write_then_read") {
         }
     }
     EXPECT(listed_keys.size() == 2);
-    EXPECT(listed_keys[0] == key);
-    EXPECT(listed_keys[1] == key2);
+    if (listed_keys[0] == key) {
+        EXPECT(listed_keys[1] == key2);
+    }
+    else {
+        EXPECT(listed_keys[1] == key);
+        EXPECT(listed_keys[0] == key2);
+    }
 
     rc = daos_kv_remove(oh_kv, DAOS_TX_NONE, 0, key.c_str(), NULL);
     EXPECT(rc == 0);

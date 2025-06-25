@@ -56,7 +56,7 @@ public:
 template <class T>
 class IndexBuilder : public BTreeIndexFactory {
 
-    virtual BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const override {
+    BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const override {
         return new T(path, readOnly, offset);
     }
 

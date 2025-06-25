@@ -17,6 +17,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeTime.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -27,21 +28,12 @@ TypeTime::TypeTime(const std::string& name, const std::string& type) : Type(name
 
 TypeTime::~TypeTime() {}
 
-std::string TypeTime::tidy(const std::string&, const std::string& value) const {
+std::string TypeTime::tidy(const std::string& value) const {
 
-    eckit::Translator<std::string, long> t;
-
-    long n = t(value);
-    if (n < 100) {
-        n *= 100;
-    }
-
-    std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(4) << n;
-    return oss.str();
+    return toKey(value);
 }
 
-std::string TypeTime::toKey(const std::string& keyword, const std::string& value) const {
+std::string TypeTime::toKey(const std::string& value) const {
 
     // if value just contains a digit, add a leading zero to be compliant with eckit::Time
     std::string t = value.size() < 2 ? "0" + value : value;

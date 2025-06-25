@@ -58,14 +58,15 @@ void FdbSchema::execute(const eckit::option::CmdArgs& args) {
             eckit::PathName path(args(i));
 
             if (path.isDir()) {
-                std::unique_ptr<DB> db = DB::buildReader(eckit::URI("toc", path));
-                ASSERT(db->open());
-                db->schema().dump(Log::info());
+                std::unique_ptr<CatalogueReader> cat =
+                    CatalogueReaderFactory::instance().build(eckit::URI("toc", path), fdb5::Config());
+                ASSERT(cat->open());
+                cat->schema().dump(Log::info());
             }
             else {
-                Schema schema;
-                schema.load(args(i));
-                schema.dump(Log::info());
+                Schema* schema = new Schema(args(i));
+                schema->dump(Log::info());
+                delete schema;
             }
         }
     }

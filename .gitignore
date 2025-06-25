@@ -1,4 +1,12 @@
-build/
-.vscode/
-!.vscode/launch.json
-compile_commands.json
+.cache
+.vscode
+.clangd
+**/venv
+**/_build
+build
+install.sh
+**/.DS_Store
+**/Doxyfile.in.bak
+
+# LLVM debug
+launch.json

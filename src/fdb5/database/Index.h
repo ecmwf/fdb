@@ -15,12 +15,13 @@
 #ifndef fdb5_Index_H
 #define fdb5_Index_H
 
-#include "eckit/eckit.h"
+#include <ctime>
+#include <iosfwd>
+#include <vector>
+
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/Counted.h"
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/FixedString.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -29,7 +30,7 @@
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Indexer.h"
-#include "fdb5/database/Key.h"
+
 
 namespace eckit {
 class Stream;
@@ -37,9 +38,9 @@ class Stream;
 
 namespace fdb5 {
 
-class Key;
 class Index;
 class IndexLocationVisitor;
+class Rule;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -55,11 +56,11 @@ public:  // methods
     IndexBase(const Key& key, const std::string& type);
     IndexBase(eckit::Stream& s, const int version);
 
-    virtual ~IndexBase() override;
+    ~IndexBase() override;
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual const std::vector<eckit::URI> dataURIs() const { NOTIMP; }
+    virtual std::vector<eckit::URI> dataURIs() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
 
@@ -83,11 +84,15 @@ public:  // methods
     virtual void put(const Key& key, const Field& field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
-    virtual void entries(EntryVisitor& visitor) const                                                            = 0;
+    virtual void entries(EntryVisitor& visitor) const = 0;
+
+    /// @note default args on virtual methods is not best practice; no guarantee that overrides will have same defaults
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
-    virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
+    bool partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                      const metkit::mars::MarsRequest& datumRequest) const;
     virtual bool mayContain(const Key& key) const;
+    virtual bool mayContainPartial(const Key& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -102,11 +107,11 @@ protected:  // methods
 
 private:  // methods
 
-    void encodeCurrent(eckit::Stream& s, const int version) const;
-    void encodeLegacy(eckit::Stream& s, const int version) const;
+    void encodeCurrent(eckit::Stream& s, int version) const;
+    void encodeLegacy(eckit::Stream& s, int version) const;
 
-    void decodeCurrent(eckit::Stream& s, const int version);
-    void decodeLegacy(eckit::Stream& s, const int version);
+    void decodeCurrent(eckit::Stream& s, int version);
+    void decodeLegacy(eckit::Stream& s, int version);
 
     virtual void add(const Key& key, const Field& field) = 0;
 
@@ -115,9 +120,9 @@ protected:  // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis axes_;    ///< This Index spans along these axis
-    Key key_;           ///< key that selected this index
-    time_t timestamp_;  ///< timestamp when this Index was flushed
+    IndexAxis axes_;       ///< This Index spans along these axis
+    Key key_;              ///< key that selected this index
+    time_t timestamp_{0};  ///< timestamp when this Index was flushed
 
     Indexer indexer_;
 
@@ -143,14 +148,17 @@ public:  // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
+    std::vector<eckit::URI> dataURIs() const { return content_->dataURIs(); }
 
     bool dirty() const { return content_->dirty(); }
 
-    void open() { return content_->open(); }
-    void reopen() { return content_->reopen(); }
-    void close() { return content_->close(); }
-    void flush() { return content_->flush(); }
+    void open() { content_->open(); }
+
+    void reopen() { content_->reopen(); }
+
+    void close() { content_->close(); }
+
+    void flush() { content_->flush(); }
 
     void visit(IndexLocationVisitor& visitor) const { content_->visit(visitor); }
 
@@ -175,8 +183,12 @@ public:  // methods
     IndexBase* content() { return content_; }
     const IndexBase* content() const { return content_; }
 
-    bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
+    bool partialMatch(const metkit::mars::MarsRequest& indexRequest,
+                      const metkit::mars::MarsRequest& datumRequest) const {
+        return content_->partialMatch(indexRequest, datumRequest);
+    }
     bool mayContain(const Key& key) const { return content_->mayContain(key); }
+    bool mayContainPartial(const Key& key) const { return content_->mayContainPartial(key); }
 
     bool null() const { return null_; }
 

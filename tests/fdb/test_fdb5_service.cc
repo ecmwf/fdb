@@ -14,16 +14,14 @@
 #include <dirent.h>
 #include <fcntl.h>
 
-#include <cstring>
-#include <memory>
-
+#include "eckit/io/AutoCloser.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/io/MultiHandle.h"
 #include "eckit/runtime/Main.h"
-#include "eckit/testing/Test.h"
+#include "eckit/serialisation/FileStream.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsExpension.h"
@@ -36,8 +34,11 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
 
+#include "eckit/testing/Test.h"
+
 using namespace std;
 using namespace eckit;
+using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace fdb5;
 
@@ -87,7 +88,7 @@ struct FixtureService {
                          << " param " << *param << " step " << step << " level " << level << std::endl;
                     std::string data_str = data.str();
 
-                    fdb5::Key k(p, config.schema().registry());
+                    fdb5::Key k{p};
                     ArchiveVisitor visitor(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
                     fdb.archive(k, visitor);
                 }
@@ -118,7 +119,8 @@ CASE("test_fdb_stepunit_archive") {
     fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
     fdb.flush();
 
-    metkit::mars::MarsRequest req = key.request();
+    metkit::mars::MarsRequest req     = key.request();
+    metkit::mars::MarsRequest listReq = key.request("list");
 
     {
         fdb5::FDBToolRequest r(req);
@@ -156,37 +158,37 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    // sub-hourly data are not yet supported in metkit
-    /*	key.set("step","30");
-        key.set("stepunits","m");
-        fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
-        fdb.flush();
+    key.set("step", "30");
+    key.set("stepunits", "m");
+    fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
+    fdb.flush();
 
-        req.setValue("step", "30m");
-        {
-            fdb5::FDBToolRequest r(req);
-            fdb5::ListIterator iter = fdb.list(r, true);
-            fdb5::ListElement el;
-            EXPECT(iter.next(el));
-            EXPECT(el.combinedKey().get("step") == "30m");
-            EXPECT(!iter.next(el));
-        }
+    req.setValue("step", "30m");
+    {
+        fdb5::FDBToolRequest r(req);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(!iter.next(el));
+    }
 
-        req.setValue("step", "0/to/2/by/30m");
-        {
-            metkit::mars::MarsExpension expand{false};
-            metkit::mars::MarsRequest expandedRequests = expand.expand(req);
-            fdb5::FDBToolRequest r(expandedRequests);
-            fdb5::ListIterator iter = fdb.list(r, true);
-            fdb5::ListElement el;
-            EXPECT(iter.next(el));
-            EXPECT(el.combinedKey().get("step") == "30m");
-            EXPECT(iter.next(el));
-            EXPECT(el.combinedKey().get("step") == "2");
-            EXPECT(!iter.next(el));
-        }*/
+    listReq.values("step", {"0", "to", "2", "by", "30m"});
+    listReq.unsetValues("param");
+    {
+        metkit::mars::MarsExpension expand{false};
+
+        metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
+        fdb5::FDBToolRequest r(expandedRequests);
+        fdb5::ListIterator iter = fdb.list(r, true);
+        fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(!iter.next(el));
+    }
 }
-
 
 CASE("test_fdb_service") {
 
@@ -230,7 +232,7 @@ CASE("test_fdb_service") {
         SECTION("test_fdb_service_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
@@ -287,13 +289,14 @@ CASE("test_fdb_service") {
                 fdb5::ListElement el;
                 EXPECT(iter.next(el));
 
-                eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
                 DIR* dirp = ::opendir(path.asString().c_str());
                 struct dirent* dp;
                 while ((dp = ::readdir(dirp)) != nullptr) {
                     EXPECT_NOT(strstr(dp->d_name, "toc."));
                 }
+                ::closedir(dirp);
 
                 // consuming the rest of the queue
                 while (iter.next(el))
@@ -398,7 +401,7 @@ CASE("test_fdb_service_subtoc") {
         SECTION("test_fdb_service_subtoc_readtobuffer") {
             fdb5::FDB retriever;
 
-            Buffer buffer(1024);
+            Buffer buffer(1_KiB);
 
             f.p["expver"] = "0002";
 
@@ -460,7 +463,7 @@ CASE("test_fdb_service_subtoc") {
                 fdb5::ListElement el;
                 EXPECT(iter.next(el));
 
-                eckit::PathName path = el.location().uri().path().dirName();
+                eckit::PathName path = el.uri().path().dirName();
 
                 DIR* dirp = ::opendir(path.asString().c_str());
                 struct dirent* dp;
@@ -471,6 +474,7 @@ CASE("test_fdb_service_subtoc") {
                     }
                 }
                 EXPECT(subtoc);
+                ::closedir(dirp);
 
                 // consuming the rest of the queue
                 while (iter.next(el))
@@ -523,6 +527,42 @@ CASE("test_fdb_service_subtoc") {
 
             dh->saveInto(path);
         }
+    }
+}
+
+CASE("schemaSerialisation") {
+
+    PathName filename    = PathName::unique("data");
+    std::string filepath = filename.asString();
+
+    std::string original;
+
+    {
+        eckit::FileStream sout(filepath.c_str(), "w");
+        auto c = eckit::closer(sout);
+
+        fdb5::Config config;
+        config = config.expandConfig();
+
+        std::stringstream ss;
+        config.schema().dump(ss);
+        original = ss.str();
+
+        sout << config.schema();
+    }
+    {
+        eckit::FileStream sin(filepath.c_str(), "r");
+        auto c = eckit::closer(sin);
+
+        std::unique_ptr<fdb5::Schema> clone(eckit::Reanimator<fdb5::Schema>::reanimate(sin));
+
+        std::stringstream ss;
+        clone->dump(ss);
+
+        EXPECT(original == ss.str());
+    }
+    if (filename.exists()) {
+        filename.unlink();
     }
 }
 

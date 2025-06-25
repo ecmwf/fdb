@@ -17,9 +17,10 @@
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosOID.h"
-#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 

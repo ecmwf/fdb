@@ -13,10 +13,14 @@
 #include <iomanip>
 #include <sstream>
 
+#include "eckit/utils/StringTools.h"
+#include "eckit/utils/Translator.h"
+
 #include "eckit/types/Date.h"
 #include "eckit/utils/StringTools.h"
 #include "eckit/utils/Translator.h"
 
+#include "fdb5/types/TypeExpver.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -28,8 +32,7 @@ TypeExpver::TypeExpver(const std::string& name, const std::string& type) : Type(
 TypeExpver::~TypeExpver() {}
 
 
-std::string TypeExpver::tidy(const std::string&, const std::string& value) const {
-
+std::string TypeExpver::tidy(const std::string& value) const {
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(4) << eckit::StringTools::trim(value);

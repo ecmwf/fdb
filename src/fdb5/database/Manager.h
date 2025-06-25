@@ -21,10 +21,8 @@
 #include <vector>
 
 #include "eckit/filesystem/URI.h"
-
-#include "metkit/mars/MarsRequest.h"
-
 #include "fdb5/config/Config.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -49,17 +47,8 @@ public:  // methods
     /// Uniquely selects the engine that will handle this URI by checking possible handlers
     std::string engine(const eckit::URI& uri);
 
-    /// Uniquely selects a location where the Key will be put or already exists
-    eckit::URI location(const Key& key);
-
-    /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::URI> allLocations(const Key& key);
-
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
-
-    /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::URI> writableLocations(const Key& key);
 
 private:  // members
 

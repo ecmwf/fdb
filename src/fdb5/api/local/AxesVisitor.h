@@ -13,13 +13,22 @@
 
 #pragma once
 
+#include "eckit/container/Queue.h"
+
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
-
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
-namespace api {
-namespace local {
+
+class Index;
+class Field;
+class Schema;
+class Store;
+class Catalogue;
+
+namespace api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -28,28 +37,31 @@ namespace local {
 class AxesVisitor : public QueryVisitor<AxesElement> {
 public:
 
-    AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, const Config& config,
-                int level);
+    AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level);
 
     bool visitIndexes() override { return true; }
-    bool visitEntries() override { return false; }
-    void catalogueComplete(const fdb5::Catalogue& catalogue) override;
 
-    //    bool preVisitDatabase(const eckit::URI& uri) override;
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
-    bool visitIndex(const Index&) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    bool visitEntries() override { return false; }
+
+    void catalogueComplete(const Catalogue& catalogue) override;
+
+    bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override;
+
+    bool visitDatabase(const Catalogue& catalogue) override;
+
+    bool visitIndex(const Index& index) override;
+
+    void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
 private:  // members
 
     Key dbKey_;
     IndexAxis axes_;
-    const Schema& schema_;
     int level_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
+}  // namespace api::local
+
 }  // namespace fdb5

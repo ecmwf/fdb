@@ -24,6 +24,10 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 
+#include "eckit/utils/RendezvousHash.h"
+
+#include <tuple>
+
 
 namespace fdb5 {
 
@@ -36,8 +40,6 @@ class DistFDB : public FDBBase {
 
 public:  // method
 
-    using FDBBase::stats;
-
     DistFDB(const Config& config, const std::string& name);
     ~DistFDB() override;
 
@@ -45,7 +47,9 @@ public:  // method
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int level) override;
+
+    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3) override { NOTIMP; }
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
@@ -64,11 +68,9 @@ public:  // method
 
     void flush() override;
 
-    FDBStats stats() const override;
-
 private:  // methods
 
-    virtual void print(std::ostream& s) const override;
+    void print(std::ostream& s) const override;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
@@ -77,7 +79,8 @@ private:
 
     eckit::RendezvousHash hash_;
 
-    std::vector<FDB> lanes_;
+    /// Stores FDB and its enabled status
+    std::vector<std::tuple<FDB, bool>> lanes_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -26,15 +26,18 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/daos/DaosArrayPartHandle.h"
-#include "fdb5/daos/DaosException.h"
-#include "fdb5/daos/DaosFieldLocation.h"
-#include "fdb5/daos/DaosPool.h"
-#include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosStore.h"
 #include "fdb5/fdb5_config.h"
+
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
+
+#include "fdb5/daos/DaosArrayPartHandle.h"
+#include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosSession.h"
+
+#include "fdb5/daos/DaosException.h"
+#include "fdb5/daos/DaosFieldLocation.h"
+#include "fdb5/daos/DaosStore.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -169,7 +172,7 @@ CASE("DaosStore tests") {
         fdb5::Schema schema{schema_file()};
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
@@ -177,9 +180,9 @@ CASE("DaosStore tests") {
         // archive
 
         /// DaosManager is configured with client config from the file
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = dstore;
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: two cont create with label happen here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -246,17 +249,17 @@ CASE("DaosStore tests") {
         // request
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 
         char data[] = "test";
 
-        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::DaosStore dstore{db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: there are two cont create with label here
         /// @todo: again, daos_fini happening before cont and pool close
 
@@ -269,7 +272,7 @@ CASE("DaosStore tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             // const fdb5::Index& idx = tcat.currentIndex();
-            static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, std::move(loc));
+            static_cast<fdb5::CatalogueWriter&>(tcat).archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
@@ -315,7 +318,7 @@ CASE("DaosStore tests") {
             fdb5::Catalogue& cat        = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
+            cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -377,11 +380,12 @@ CASE("DaosStore tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }
         EXPECT(count == 0);
+        std::cout << "Listed 0 fields" << std::endl;
 
         // store data
 
@@ -391,13 +395,16 @@ CASE("DaosStore tests") {
         /// below.
         //   Should this be avoided?
         fdb.archive(request_key, data, sizeof(data));
+        std::cout << "Archived 1 field" << std::endl;
 
         fdb.flush();
+        std::cout << "Flushed 1 field" << std::endl;
 
         // retrieve data
 
         metkit::mars::MarsRequest r = request_key.request("retrieve");
         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
+        std::cout << "Retrieved 1 field location" << std::endl;
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -448,6 +455,7 @@ CASE("DaosStore tests") {
         EXPECT(count == 0);
         /// @todo: really needed?
         fdb.flush();
+        std::cout << "Flushed 0 fields" << std::endl;
 
         // wipe index and store unit (and DB container as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
@@ -455,8 +463,10 @@ CASE("DaosStore tests") {
         while (wipeObject.next(elem))
             count++;
         EXPECT(count > 0);
+        std::cout << "Wiped 1 field" << std::endl;
         /// @todo: really needed?
         fdb.flush();
+        std::cout << "Flushed 0 fields" << std::endl;
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
@@ -464,6 +474,7 @@ CASE("DaosStore tests") {
         while (listObject.next(info))
             count++;
         EXPECT(count == 0);
+        std::cout << "Listed 0 fields" << std::endl;
 
         /// @todo: ensure index and corresponding container do not exist
 

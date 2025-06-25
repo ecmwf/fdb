@@ -8,9 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/fdb_c.h"
-
-#include "eckit/io/FileDescHandle.h"
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
@@ -21,9 +20,14 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
+
+#include "fdb5/api/fdb_c.h"
 
 using namespace fdb5;
 using namespace eckit;
@@ -89,54 +93,58 @@ private:
 };
 
 struct fdb_split_key_t {
-public:
+    using value_type = std::array<Key, 3>;
 
-    fdb_split_key_t() : key_(nullptr), level_(-1) {}
-
-    void set(const std::vector<Key>& key) {
-        key_   = &key;
-        level_ = -1;
+    auto operator=(const value_type& keys) -> fdb_split_key_t& {
+        keys_  = &keys;
+        level_ = keys_->end();
+        return *this;
     }
 
-    int next_metadata(const char** k, const char** v, size_t* level) {
-        if (key_ == nullptr) {
-            std::stringstream ss;
-            ss << "fdb_split_key_t not valid. Key not configured";
-            throw eckit::UserError(ss.str(), Here());
+    auto operator++() -> fdb_split_key_t& {
+        /// @todo the following "if" is an unfortunate consequence of a flaw in this iterator
+        if (level_ == keys_->end()) {
+            level_ = keys_->begin();
+            curr_  = level_->begin();
+            return *this;
         }
-        if (level_ == -1) {
-            if (0 < key_->size()) {
-                level_ = 0;
-                it_    = key_->at(0).begin();
-            }
-            else {
-                return FDB_ITERATION_COMPLETE;
+        if (curr_ != level_->end()) {
+            ++curr_;
+            if (curr_ == level_->end() && level_ != keys_->end() - 1) {
+                curr_ = (++level_)->begin();
             }
         }
-        while (it_ == key_->at(level_).end()) {
-            if (level_ < key_->size() - 1) {
-                level_++;
-                it_ = key_->at(level_).begin();
-            }
-            else {
-                return FDB_ITERATION_COMPLETE;
-            }
-        }
+        return *this;
+    }
 
-        *k = it_->first.c_str();
-        *v = it_->second.c_str();
-        if (level != nullptr) {
-            *level = level_;
+    int next() {
+        ++(*this);
+        if (curr_ == level_->end()) {
+            return FDB_ITERATION_COMPLETE;
         }
-        it_++;
         return FDB_SUCCESS;
     }
 
-private:
+    void metadata(const char** k, const char** v, size_t* level) const {
+        ASSERT_MSG(keys_, "keys are missing!");
 
-    const std::vector<Key>* key_;
-    int level_;
-    Key::const_iterator it_;
+        const auto& [key, val] = *curr_;
+
+        *k = key.c_str();
+        *v = val.c_str();
+
+        if (level) {
+            *level = level_ - keys_->begin();
+        }
+    }
+
+private:  // members
+
+    const value_type* keys_{nullptr};
+
+    value_type::const_iterator level_;
+
+    Key::const_iterator curr_;
 };
 
 struct fdb_listiterator_t {
@@ -153,17 +161,20 @@ public:
     void attrs(const char** uri, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
-        const FieldLocation& loc = el_.location();
-        *uri                     = loc.uri().name().c_str();
-        *off                     = loc.offset();
-        *len                     = loc.length();
+        // guard against negative values
+        ASSERT(0 <= el_.offset());
+        ASSERT(0 <= el_.length());
+
+        *uri = el_.uri().name().c_str();
+        *off = el_.offset();
+        *len = el_.length();
     }
 
     void key(fdb_split_key_t* key) {
         ASSERT(validEl_);
         ASSERT(key);
 
-        key->set(el_.key());
+        *key = el_.keys();
     }
 
 private:
@@ -200,9 +211,12 @@ public:
         ASSERT(dh_);
         return dh_->read(buf, length);
     }
+    long size() {
+        ASSERT(dh_);
+        return dh_->size();
+    }
     void set(DataHandle* dh) {
-        if (dh_)
-            delete dh_;
+        delete dh_;
         dh_ = dh;
     }
 
@@ -210,6 +224,53 @@ private:
 
     DataHandle* dh_;
 };
+
+// Wipe iterator
+struct fdb_wipe_iterator_t {
+
+    fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
+
+    int next(WipeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
+
+private:
+
+    WipeIterator iter_;
+};
+
+struct fdb_wipe_element_t {
+
+    fdb_wipe_element_t(WipeElement&& e) : element_(std::move(e)) {}
+
+    const char* c_str() const { return element_.c_str(); }
+
+private:
+
+    WipeElement element_;
+};
+
+// Purge iterator
+struct fdb_purge_iterator_t {
+
+    fdb_purge_iterator_t(PurgeIterator&& iter) : iter_(std::move(iter)) {}
+
+    int next(PurgeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
+
+private:
+
+    PurgeIterator iter_;
+};
+
+struct fdb_purge_element_t {
+
+    fdb_purge_element_t(PurgeElement&& e) : element_(std::move(e)) {}
+
+    const char* c_str() const { return element_.c_str(); }
+
+private:
+
+    PurgeElement element_;
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -337,6 +398,15 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     return wrapApiFunction([fdb] { *fdb = new fdb_handle_t(); });
 }
 
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config) {
+    return wrapApiFunction([fdb, system_config, user_config] {
+        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(user_config))};
+        cfg.set("configSource", "yaml");
+        cfg.expandConfig();
+        *fdb = new fdb_handle_t(cfg);
+    });
+}
+
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
         ASSERT(fdb);
@@ -361,17 +431,23 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
     });
 }
 
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates) {
-    return wrapApiFunction([fdb, req, it, duplicates] {
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, const bool duplicates, int depth) {
+    return wrapApiFunction([fdb, req, it, duplicates, depth] {
         ASSERT(fdb);
         ASSERT(it);
+        int d = depth;
+        if (depth < 1 || 3 < depth) {
+            Log::warning() << "Invalid value depth=" << depth << " - setting depth=3" << std::endl;
+            d = 3;
+        }
 
         std::vector<std::string> minKeySet;  // we consider an empty set
         const FDBToolRequest toolRequest(req ? req->request() : metkit::mars::MarsRequest(), req == nullptr, minKeySet);
 
-        *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates));
+        *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates, d));
     });
 }
+
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
     return wrapApiFunction([fdb, req, dr] {
         ASSERT(fdb);
@@ -380,6 +456,7 @@ int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
         dr->set(fdb->retrieve(req->request()));
     });
 }
+
 int fdb_flush(fdb_handle_t* fdb) {
     return wrapApiFunction([fdb] {
         ASSERT(fdb);
@@ -387,6 +464,99 @@ int fdb_flush(fdb_handle_t* fdb) {
         fdb->flush();
     });
 }
+
+// ---------------------------------------------------------------
+// Wipe
+// ---------------------------------------------------------------
+
+int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll,
+             fdb_wipe_iterator_t** it) {
+    return wrapApiFunction([=] {
+        ASSERT(fdb);
+        ASSERT(req);
+        ASSERT(it);
+
+        *it = new fdb_wipe_iterator_t(fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll));
+    });
+}
+
+int fdb_wipe_iterator_next(fdb_wipe_iterator_t* it, fdb_wipe_element_t** element) {
+    return wrapApiFunction(std::function<int()>{[=] {
+        ASSERT(it);
+        ASSERT(element);
+
+        WipeElement e;
+        int ret  = it->next(e);
+        *element = new fdb_wipe_element_t(std::move(e));
+        return ret;
+    }});
+}
+
+int fdb_wipe_element_string(fdb_wipe_element_t* element, const char** str) {
+    return wrapApiFunction([element, str] {
+        ASSERT(element);
+        ASSERT(str);
+        *str = element->c_str();
+    });
+}
+
+int fdb_delete_wipe_element(fdb_wipe_element_t* element) {
+    return wrapApiFunction([element] {
+        ASSERT(element);
+        delete element;
+    });
+}
+
+int fdb_delete_wipe_iterator(fdb_wipe_iterator_t* it) {
+    return wrapApiFunction([it] { delete it; });
+}
+
+// ---------------------------------------------------------------
+// Purge
+// ---------------------------------------------------------------
+
+int fdb_purge(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, fdb_purge_iterator_t** it) {
+    return wrapApiFunction([=] {
+        ASSERT(fdb);
+        ASSERT(req);
+        ASSERT(it);
+
+        *it = new fdb_purge_iterator_t(fdb->purge(req->request(), doit, porcelain));
+    });
+}
+
+int fdb_purge_iterator_next(fdb_purge_iterator_t* it, fdb_purge_element_t** element) {
+    return wrapApiFunction(std::function<int()>{[=] {
+        ASSERT(it);
+        ASSERT(element);
+
+        PurgeElement e;
+        int ret  = it->next(e);
+        *element = new fdb_purge_element_t(std::move(e));
+        return ret;
+    }});
+}
+
+int fdb_purge_element_string(fdb_purge_element_t* element, const char** str) {
+    return wrapApiFunction([element, str] {
+        ASSERT(element);
+        ASSERT(str);
+        *str = element->c_str();
+    });
+}
+
+int fdb_delete_purge_element(fdb_purge_element_t* element) {
+    return wrapApiFunction([element] {
+        ASSERT(element);
+        delete element;
+    });
+}
+
+int fdb_delete_purge_iterator(fdb_purge_iterator_t* it) {
+    return wrapApiFunction([it] { delete it; });
+}
+
+// ------------------------------------------------------------------
 
 int fdb_delete_handle(fdb_handle_t* fdb) {
     return wrapApiFunction([fdb] {
@@ -482,7 +652,11 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->next_metadata(key, value, level);
+        const auto stat = it->next();
+        if (stat == FDB_SUCCESS) {
+            it->metadata(key, value, level);
+        }
+        return stat;
     }});
 }
 int fdb_delete_splitkey(fdb_split_key_t* key) {
@@ -535,6 +709,12 @@ int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read)
         ASSERT(buf);
         ASSERT(read);
         *read = dr->read(buf, count);
+    });
+}
+int fdb_datareader_size(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([=] {
+        ASSERT(dr);
+        *size = dr->size();
     });
 }
 int fdb_delete_datareader(fdb_datareader_t* dr) {

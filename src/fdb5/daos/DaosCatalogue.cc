@@ -8,13 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/daos/DaosCatalogue.h"
+#include <optional>
 
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
+
+#include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
@@ -28,7 +31,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
-    Catalogue(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
+    CatalogueImpl(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
 
     // TODO: apply the mechanism in RootManager::directory, using
     //   FileSpaceTables to determine root_pool_name_ according to key
@@ -38,7 +41,7 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
 
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
                              const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
+    CatalogueImpl(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
     // Read the real DB key into the DB base object
     try {
@@ -74,6 +77,10 @@ const Schema& DaosCatalogue::schema() const {
     return schema_;
 }
 
+const Rule& DaosCatalogue::rule() const {
+    return *rule_;
+}
+
 void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
@@ -92,6 +99,8 @@ void DaosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
+
+    rule_ = &schema_.matchingRule(dbKey_);
 }
 
 WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
@@ -150,7 +159,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
             /// @todo: the index_kv may exist even if it does not have the "key" key
         }
 
-        res.push_back(Index(new fdb5::DaosIndex(index_key.value(), index_kv_name, false)));
+        res.push_back(Index(new fdb5::DaosIndex(index_key.value(), *this, index_kv_name, false)));
     }
 
     return res;
@@ -158,7 +167,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
 std::string DaosCatalogue::type() const {
 
-    return DaosCatalogue::catalogueTypeName();
+    return fdb5::DaosEngine::typeName();
 }
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {

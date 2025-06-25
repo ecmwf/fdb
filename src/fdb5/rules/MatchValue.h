@@ -29,21 +29,34 @@ class MatchValue : public Matcher {
 
 public:  // methods
 
-    MatchValue(const std::string& value);
+    MatchValue(std::string value);
 
-    virtual ~MatchValue() override;
+    MatchValue(eckit::Stream& stream);
 
-    virtual bool match(const std::string& keyword, const Key& key) const override;
+    bool match(const std::string& value) const override;
 
-    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
+    bool match(const std::string& keyword, const Key& key) const override;
+
+    void dump(std::ostream& out, const std::string& keyword, const TypesRegistry& registry) const override;
+
+    // streamable
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
 private:  // methods
 
-    virtual void print(std::ostream& out) const override;
+    void encode(eckit::Stream& out) const override;
+
+    void print(std::ostream& out) const override;
 
 private:  // members
 
     std::string value_;
+
+    // streamable
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<MatchValue> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -8,12 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Engine.h"
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
+
+#include "fdb5/database/Engine.h"
 
 using eckit::AutoLock;
 using eckit::Mutex;

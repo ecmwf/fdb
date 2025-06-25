@@ -16,6 +16,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeGrid.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -26,7 +27,7 @@ TypeGrid::TypeGrid(const std::string& name, const std::string& type) : Type(name
 
 TypeGrid::~TypeGrid() {}
 
-std::string TypeGrid::toKey(const std::string&, const std::string& value) const {
+std::string TypeGrid::toKey(const std::string& value) const {
 
     std::string s(value);
     std::replace(s.begin(), s.end(), '/', '+');
@@ -34,7 +35,7 @@ std::string TypeGrid::toKey(const std::string&, const std::string& value) const 
 }
 
 void TypeGrid::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                         eckit::StringList& values, const Notifier&, const DB*) const {
+                         eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<std::string> v;
     request.getValues(keyword, v, true);
     values.push_back(eckit::StringTools::join("+", v));

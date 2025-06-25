@@ -12,8 +12,9 @@
 /// @author Emanuele Danovaro
 /// @date   August 2019
 
-#ifndef fdb5_Store_H
-#define fdb5_Store_H
+#pragma once
+
+#include <memory>
 
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
@@ -21,7 +22,7 @@
 
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
@@ -31,12 +32,15 @@ namespace fdb5 {
 class Store {
 public:
 
-    Store(const Schema& schema) : schema_(schema) {}
+    Store() {}
 
-    virtual ~Store() {}
+    virtual ~Store() = default;
 
-    virtual eckit::DataHandle* retrieve(Field& field) const                                                = 0;
-    virtual std::unique_ptr<FieldLocation> archive(const Key& key, const void* data, eckit::Length length) = 0;
+    virtual eckit::DataHandle* retrieve(Field& field) const = 0;
+    virtual void archive(
+        const Key& idxKey, const void* data, eckit::Length length,
+        std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive);
+    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void* data, eckit::Length length);
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose,
                         bool doit = true) const = 0;
@@ -46,7 +50,7 @@ public:
 
     virtual std::string type() const = 0;
     virtual bool open()              = 0;
-    virtual void flush()             = 0;
+    virtual size_t flush()           = 0;
     virtual void close()             = 0;
 
     //    virtual std::string owner() const = 0;
@@ -66,9 +70,8 @@ public:
     virtual std::vector<eckit::URI> collocatedDataURIs() const                              = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
-protected:  // members
-
-    const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
+    virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
 };
 
 
@@ -81,13 +84,13 @@ public:
 
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
-    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override {
-        return std::unique_ptr<T>(new T(schema, key, config));
+    std::unique_ptr<Store> make(const Key& key, const Config& config) override {
+        return std::unique_ptr<T>(new T(key, config));
     }
 
 public:
@@ -107,11 +110,10 @@ public:
     bool has(const std::string& name);
     void list(std::ostream&);
 
-    /// @param schema    the schema read by the catalog
     /// @param key       the user-specified key
     /// @param config    the fdb config
     /// @returns         store built by specified builder
-    std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
+    std::unique_ptr<Store> build(const Key& key, const Config& config);
 
 private:
 
@@ -122,4 +124,3 @@ private:
 };
 
 }  // namespace fdb5
-#endif  // fdb5_Store_H

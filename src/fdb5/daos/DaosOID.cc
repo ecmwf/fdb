@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/daos/DaosOID.h"
-
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -19,6 +17,7 @@
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/daos/DaosContainer.h"
+#include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {

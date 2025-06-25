@@ -47,7 +47,7 @@ TocFieldLocation::TocFieldLocation(const UriStore& store, const FieldRef& ref) :
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
-std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(std::move(*this));
 }
 

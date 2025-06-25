@@ -34,14 +34,14 @@ class AdoptVisitor : public BaseArchiveVisitor {
 
 public:  // methods
 
-    AdoptVisitor(Archiver& owner, const Key& field, const eckit::PathName& path, eckit::Offset offset,
+    AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const eckit::PathName& path, eckit::Offset offset,
                  eckit::Length length);
 
 protected:  // methods
 
-    virtual bool selectDatum(const Key& key, const Key& full) override;
+    bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
-    virtual void print(std::ostream& out) const override;
+    void print(std::ostream& out) const override;
 
 private:  // members
 

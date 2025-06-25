@@ -11,8 +11,8 @@
 #include "fdb5/daos/DaosEngine.h"
 
 #include "eckit/serialisation/MemoryStream.h"
-
 #include "fdb5/LibFdb5.h"
+
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
 

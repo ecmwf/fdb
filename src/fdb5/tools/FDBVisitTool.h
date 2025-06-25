@@ -27,13 +27,13 @@ class FDBVisitTool : public FDBTool {
 protected:  // methods
 
     FDBVisitTool(int argc, char** argv, std::string minimunKeys = std::string());
-    virtual ~FDBVisitTool() override;
+    ~FDBVisitTool() override;
 
-    virtual void usage(const std::string& tool) const override;
+    void usage(const std::string& tool) const override;
 
-    virtual void init(const eckit::option::CmdArgs& args) override;
+    void init(const eckit::option::CmdArgs& args) override;
 
-    virtual void run() override;
+    void run() override;
 
     bool fail() const;
 

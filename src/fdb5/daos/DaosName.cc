@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/daos/DaosName.h"
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/utils/Tokenizer.h"
@@ -19,6 +17,7 @@
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosKeyValueHandle.h"
+#include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
 

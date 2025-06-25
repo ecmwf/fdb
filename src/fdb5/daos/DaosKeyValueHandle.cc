@@ -16,6 +16,7 @@
 
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
+#include "fdb5/daos/DaosKeyValueHandle.h"
 #include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"

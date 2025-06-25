@@ -13,6 +13,7 @@
 
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -83,7 +84,7 @@ void FDBRead::execute(const eckit::option::CmdArgs& args) {
 
     // Evaluate the requests to obtain data handles
 
-    fdb5::HandleGatherer handles(false);
+    fdb5::HandleGatherer handles(true);
 
     fdb5::FDB fdb(config(args));
 
@@ -98,7 +99,7 @@ void FDBRead::execute(const eckit::option::CmdArgs& args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    dh->copyTo(out);
+    dh->saveInto(out);
 }
 
 

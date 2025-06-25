@@ -27,9 +27,9 @@ class DaosIndex : public IndexBase {
 public:  // methods
 
     /// @note: creates a new index in DAOS, in the container pointed to by 'name'
-    DaosIndex(const Key& key, const fdb5::DaosName& name);
+    DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name);
     /// @note: used to represent and operate with an index which already exists in DAOS
-    DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes = true);
+    DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosKeyValueName& name, bool readAxes = true);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
@@ -37,12 +37,13 @@ public:  // methods
 private:  // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::URI> dataURIs() const override;
+
+    std::vector<eckit::URI> dataURIs() const override;
 
     bool dirty() const override { NOTIMP; }
 
-    void open() override { NOTIMP; };
-    void close() override { NOTIMP; }
+    void open() override { NOTIMP; }
+    void close() override {}
     void reopen() override { NOTIMP; }
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }

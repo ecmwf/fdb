@@ -16,6 +16,7 @@
 
 #include <cstddef>
 
+#include "eckit/filesystem/PathName.h"
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -38,7 +39,7 @@ LustreStripe stripeDataLustreSettings();
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int fdb5LustreapiFileCreate(const char* path, LustreStripe stripe);
+int fdb5LustreapiFileCreate(const eckit::PathName& path, LustreStripe stripe);
 
 bool fdb5LustreapiSupported();
 

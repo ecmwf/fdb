@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/types/TypeDefault.h"
+#include "fdb5/types/TypesFactory.h"
 
 #include "fdb5/types/TypesFactory.h"
 

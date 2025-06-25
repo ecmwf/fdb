@@ -42,7 +42,7 @@ public:  // methods
     const eckit::PathName& path() const;
 
     /// Root exists in the filesystem, use this check to avoid errors when accessing
-    /// This result is cached at construction
+    /// This result is computed with a lazy approach and then memoized
     bool exists() const;
 
     bool enabled(const ControlIdentifier& controlIdentifier) const {

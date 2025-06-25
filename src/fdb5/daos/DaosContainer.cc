@@ -15,6 +15,7 @@
 #include "eckit/filesystem/TmpDir.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosPool.h"

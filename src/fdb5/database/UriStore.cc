@@ -75,6 +75,7 @@ void UriStore::encode(eckit::Stream& s) const {
 UriStore::UriID UriStore::insert(const eckit::URI& path) {
     ASSERT(!readOnly_);
 
+
     IdStore::iterator itr = ids_.find(path);
     if (itr != ids_.end())
         return itr->second;

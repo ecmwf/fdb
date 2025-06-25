@@ -15,6 +15,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeDate.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -26,7 +27,7 @@ TypeDate::TypeDate(const std::string& name, const std::string& type) : Type(name
 TypeDate::~TypeDate() {}
 
 
-std::string TypeDate::tidy(const std::string&, const std::string& value) const {
+std::string TypeDate::tidy(const std::string& value) const {
 
     if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
         eckit::Translator<std::string, long> t;
@@ -41,7 +42,7 @@ std::string TypeDate::tidy(const std::string&, const std::string& value) const {
 }
 
 void TypeDate::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                         eckit::StringList& values, const Notifier&, const DB*) const {
+                         eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);

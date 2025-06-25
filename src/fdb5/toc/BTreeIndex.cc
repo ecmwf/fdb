@@ -8,11 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/BTreeIndex.h"
-
 #include "eckit/config/Resource.h"
 #include "eckit/log/BigNum.h"
 
+#include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
 #include "fdb5/toc/TocIndex.h"
 

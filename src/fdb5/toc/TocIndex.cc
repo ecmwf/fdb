@@ -9,9 +9,6 @@
  */
 
 #include "fdb5/toc/TocIndex.h"
-
-#include "eckit/log/BigNum.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
@@ -43,9 +40,9 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note We use a FileStoreWrapper base that only exists to initialise the files_ member function
+/// @note We use a FileStoreWrapper base that only exists to initialise the uris_ member function
 ///       before the Index constructor is called. This is necessary as due to (preexisting)
-///       serialisation ordering, the files_ member needs to be initialised from a Stream
+///       serialisation ordering, the uris_ member needs to be initialised from a Stream
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
@@ -73,7 +70,7 @@ TocIndex::~TocIndex() {
 }
 
 void TocIndex::encode(eckit::Stream& s, const int version) const {
-    files_.encode(s);
+    uris_.encode(s);
     IndexBase::encode(s, version);
 }
 
@@ -84,7 +81,7 @@ bool TocIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
     bool found = btree_->get(key.valuesToString(), ref);
     if (found) {
-        const eckit::URI& uri = files_.get(ref.uriId());
+        const eckit::URI& uri = uris_.get(ref.uriId());
         FieldLocation* loc =
             FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey);
         field = Field(std::move(*loc), timestamp_, ref.details());
@@ -130,7 +127,7 @@ void TocIndex::add(const Key& key, const Field& field) {
     ASSERT(btree_);
     ASSERT(mode_ == TocIndex::WRITE);
 
-    FieldRef ref(files_, field);
+    FieldRef ref(uris_, field);
 
     //  bool replace =
     btree_->set(key.valuesToString(), ref);  // returns true if replace, false if new insert
@@ -166,15 +163,16 @@ void TocIndex::funlock() const {
 }
 
 class TocIndexVisitor : public BTreeIndexVisitor {
-    const UriStore& files_;
+    const UriStore& uris_;
     EntryVisitor& visitor_;
 
 public:
 
-    TocIndexVisitor(const UriStore& files, EntryVisitor& visitor) : files_(files), visitor_(visitor) {}
+    TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor) : uris_(uris), visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
+
+        Field field(TocFieldLocation(uris_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };
@@ -186,7 +184,7 @@ void TocIndex::entries(EntryVisitor& visitor) const {
     // Allow the visitor to selectively decline to visit the entries in this index
     if (visitor.visitIndex(instantIndex)) {
         TocIndexCloser closer(*this);
-        TocIndexVisitor v(files_, visitor);
+        TocIndexVisitor v(uris_, visitor);
         btree_->visit(v);
     }
 }
@@ -200,8 +198,8 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::URI> TocIndex::dataURIs() const {
-    return files_.paths();
+std::vector<eckit::URI> TocIndex::dataURIs() const {
+    return uris_.paths();
 }
 
 bool TocIndex::dirty() const {
@@ -230,7 +228,7 @@ void TocIndex::dump(std::ostream& out, const char* indent, bool simple, bool dum
 
     if (!simple) {
         out << std::endl;
-        files_.dump(out, indent);
+        uris_.dump(out, indent);
         axes_.dump(out, indent);
     }
 

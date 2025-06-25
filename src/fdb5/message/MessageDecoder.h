@@ -18,6 +18,8 @@
 
 
 #include <vector>
+#include "eckit/io/Buffer.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/io/Buffer.h"
 

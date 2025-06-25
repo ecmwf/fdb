@@ -7,27 +7,39 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
 #include "fdb5/database/ArchiveVisitor.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
 
-#include "eckit/exception/Exceptions.h"
-
-#include "fdb5/database/DB.h"
+#include <functional>
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size,
+ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const void* data, size_t size,
                                const ArchiveCallback& callback) :
-    BaseArchiveVisitor(owner, field), data_(data), size_(size), callback_(callback) {}
+    BaseArchiveVisitor(owner, initialFieldKey), data_(data), size_(size), callback_(callback) {}
 
-bool ArchiveVisitor::selectDatum(const Key& key, const Key& full) {
+void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey,
+                               std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
+                               std::shared_ptr<const FieldLocation> fieldLocation) {
+    p->set_value(fieldLocation);
+    catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
+}
 
-    // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
-    checkMissingKeys(full);
+bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
 
-    ASSERT(current());
+    checkMissingKeys(fullKey);
+    const Key idxKey = catalogue()->currentIndexKey();
 
-    current()->archive(key, data_, size_, field_, callback_);
+    std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p =
+        std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(
+            std::promise<std::shared_ptr<const FieldLocation>>());
+
+    store()->archive(
+        idxKey, data_, size_,
+        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
+    callback_(initialFieldKey(), data_, size_, p->get_future());
 
     return true;
 }

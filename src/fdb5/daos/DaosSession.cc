@@ -16,6 +16,7 @@
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/daos/DaosException.h"
+#include "fdb5/daos/DaosSession.h"
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
 extern "C" {

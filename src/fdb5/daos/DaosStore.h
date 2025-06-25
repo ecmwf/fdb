@@ -25,7 +25,7 @@ class DaosStore : public Store, public DaosCommon {
 
 public:  // methods
 
-    DaosStore(const Schema& schema, const Key& key, const Config& config);
+    DaosStore(const Key& key, const Config& config);
 
     ~DaosStore() override {}
 
@@ -36,10 +36,14 @@ public:  // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override {};
 
     void checkUID() const override { /* nothing to do */ }
+
+    // DAOS store does not currently support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
+    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
 protected:  // methods
 
@@ -48,7 +52,7 @@ protected:  // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -57,6 +61,7 @@ protected:  // methods
 private:  // members
 
     std::string db_str_;
+    size_t archivedFields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

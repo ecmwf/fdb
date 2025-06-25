@@ -8,16 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/message/MessageDecoder.h"
-
-#include <algorithm>
 #include <cctype>
+
+#include "fdb5/message/MessageDecoder.h"
 
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/mars/MarsExpandContext.h"
-#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/Type.h"
 
 namespace fdb5 {
@@ -28,13 +25,13 @@ class KeySetter : public eckit::message::MetadataGatherer {
     void setValue(const std::string& key, const std::string& value) override { key_.set(key, value); }
 
     void setValue(const std::string& key, long value) override {
-        if (key_.find(key) == key_.end()) {
+        if (const auto [iter, found] = key_.find(key); !found) {
             key_.set(key, std::to_string(value));
         }
     }
 
     void setValue(const std::string& key, double value) override {
-        if (key_.find(key) == key_.end()) {
+        if (const auto [iter, found] = key_.find(key); !found) {
             key_.set(key, std::to_string(value));
         }
     }
@@ -105,7 +102,7 @@ std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const e
     eckit::message::Reader reader(path);
     eckit::message::Message msg;
 
-    std::map<std::string, std::set<std::string> > s;
+    std::map<std::string, std::set<std::string>> s;
 
     while ((msg = reader.next())) {
 

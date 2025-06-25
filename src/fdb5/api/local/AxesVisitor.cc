@@ -11,41 +11,41 @@
 #include "fdb5/api/local/AxesVisitor.h"
 
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/types/Type.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+#include <utility>
+
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request,
-                         const Config& config, int level) :
-    QueryVisitor<AxesElement>(queue, request), schema_(config.schema()), level_(level) {}
+AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+    QueryVisitor<AxesElement>(queue, request), level_(level) {}
 
-#if 0
-
-// TODO: Here we can do nice tricks to make things go muuuuuuuuuuuuuch faster...
-//       See improvements to the EntryVisitMechanism... & the schema
-
-bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
-
+bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) {
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
     if (level_ == 1 && uri.scheme() == "toc") {
-        // TODO: This is hacky, only works with the toc backend...
-        if (schema_.matchFirstLevel(uri.path().baseName(), dbKey_)) {
+        /// @todo This is hacky, only works with the toc backend...
+        if (auto found = schema.matchDatabase(uri.path().baseName())) {
+            dbKey_ = *found;
             axes_.wipe();
             axes_.insert(dbKey_);
             axes_.sort();
-            queue_.emplace(AxesElement{std::move(dbKey_), std::move(axes_)});
+            queue_.emplace(std::move(dbKey_), std::move(axes_));
         }
         return false;
     }
 
     return true;
 }
-#endif
 
-bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
+    if (level_ > 1) {
+        EntryVisitor::visitDatabase(catalogue);
+    }
+
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
@@ -54,7 +54,9 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
 }
 
 bool AxesVisitor::visitIndex(const Index& index) {
-    if (index.partialMatch(request_)) {
+    EntryVisitor::visitIndex(index);
+
+    if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
@@ -73,6 +75,4 @@ void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local

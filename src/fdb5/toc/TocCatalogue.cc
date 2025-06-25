@@ -15,6 +15,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
@@ -30,11 +31,11 @@ TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
     TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
 
 TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
-    Catalogue(key, tocPath.controlIdentifiers_, config), TocHandler(tocPath.directory_, config) {}
+    CatalogueImpl(key, tocPath.controlIdentifiers_, config), TocHandler(tocPath.directory_, config) {}
 
 TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers,
                            const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config), TocHandler(directory, config) {
+    CatalogueImpl(Key(), controlIdentifiers, config), TocHandler(directory, config) {
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
 }
@@ -61,8 +62,9 @@ const Schema& TocCatalogue::schema() const {
     return *schema_;
 }
 
-const eckit::PathName& TocCatalogue::basePath() const {
-    return directory_;
+const Rule& TocCatalogue::rule() const {
+    ASSERT(rule_);
+    return *rule_;
 }
 
 std::vector<PathName> TocCatalogue::metadataPaths() const {
@@ -81,6 +83,7 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
+    rule_   = &schema_->matchingRule(dbKey_);
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
@@ -115,7 +118,7 @@ void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata, std::se
 }
 
 std::string TocCatalogue::type() const {
-    return TocCatalogue::catalogueTypeName();
+    return TocEngine::typeName();
 }
 
 void TocCatalogue::checkUID() const {
@@ -142,7 +145,7 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
-    return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
+    return CatalogueImpl::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

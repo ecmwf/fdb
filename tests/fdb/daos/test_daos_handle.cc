@@ -21,6 +21,8 @@
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/testing/Test.h"
 
+#include "fdb5/fdb5_config.h"
+
 #include "fdb5/daos/DaosArrayHandle.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
@@ -28,7 +30,6 @@
 #include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
-#include "fdb5/fdb5_config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -350,8 +351,13 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         EXPECT(nkv.has("test_key_4"));
         std::vector<std::string> keys = kv.keys();
         EXPECT(keys.size() == 2);
-        EXPECT(keys[0] == "test_key_3");
-        EXPECT(keys[1] == "test_key_4");
+        if (keys[0] == "test_key_3") {
+            EXPECT(keys[1] == "test_key_4");
+        }
+        else {
+            EXPECT(keys[0] == "test_key_4");
+            EXPECT(keys[1] == "test_key_3");
+        }
     }
 
     SECTION("DaosHandle write, append and read") {

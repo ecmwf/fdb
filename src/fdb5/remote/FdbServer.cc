@@ -15,17 +15,22 @@
 
 #include "fdb5/remote/FdbServer.h"
 
+#include <cstdlib>
+
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
-#include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
+#include "fdb5/remote/FdbServer.h"
+
+#include "eckit/config/Resource.h"
+#include "fdb5/remote/server/AvailablePortList.h"
+#include "fdb5/remote/server/CatalogueHandler.h"
+#include "fdb5/remote/server/StoreHandler.h"
 
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,10 +47,22 @@ void FDBForker::run() {
     ::srand(::getpid() + ::time(nullptr));
     ::srandom(::getpid() + ::time(nullptr));
 
-    eckit::Log::info() << "FDB forked pid " << ::getpid() << std::endl;
+    eckit::Log::info() << "FDB forked pid " << ::getpid() << "  --  connection: " << socket_.localHost() << ":"
+                       << socket_.localPort() << "-->" << socket_.remoteHost() << ":" << socket_.remotePort()
+                       << std::endl;
 
-    RemoteHandler handler(socket_, config_);
-    handler.handle();
+    if (config_.getString("type", "local") == "catalogue" ||
+        (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
+        eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
+        CatalogueHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else if (config_.getString("type", "local") == "store" ||
+             (::getenv("FDB_IS_STORE") && ::getenv("FDB_IS_STORE")[0] == '1')) {
+        eckit::Log::info() << "FDB using Store Handler" << std::endl;
+        StoreHandler handler(socket_, config_);
+        handler.handle();
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -73,8 +90,18 @@ FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
 void FDBServerThread::run() {
     eckit::Log::info() << "FDB started handler thread" << std::endl;
 
-    RemoteHandler handler(socket_, config_);
-    handler.handle();
+    if (config_.getString("type", "local") == "catalogue" ||
+        (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
+        eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
+        CatalogueHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else if (config_.getString("type", "local") == "store" ||
+             (::getenv("FDB_IS_STORE") && ::getenv("FDB_IS_STORE")[0] == '1')) {
+        eckit::Log::info() << "FDB using Store Handler" << std::endl;
+        StoreHandler handler(socket_, config_);
+        handler.handle();
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -158,5 +185,4 @@ void FdbServer::hookUnique() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote

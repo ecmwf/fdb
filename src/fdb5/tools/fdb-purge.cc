@@ -8,6 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBVisitTool.h"
+
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
@@ -61,9 +65,7 @@ void FDBPurge::init(const CmdArgs& args) {
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
-
-    FDB fdb;
-
+    FDB fdb(config(args));
     for (const FDBToolRequest& request : requests()) {
 
         if (!porcelain_) {

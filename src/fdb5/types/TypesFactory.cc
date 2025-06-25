@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/types/TypesFactory.h"
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 

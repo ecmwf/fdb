@@ -36,10 +36,10 @@ class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public:  // methods
 
-    TocCatalogueWriter(const Key& key, const fdb5::Config& config);
+    TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config);
     TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
-    virtual ~TocCatalogueWriter() override;
+    ~TocCatalogueWriter() override;
 
     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
@@ -57,22 +57,25 @@ public:  // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
     const Index& currentIndex() override;
+    const Key currentIndexKey() override;
     const TocSerialisationVersion& serialisationVersion() const;
+
+    size_t archivedLocations() const override { return archivedLocations_; }
 
 protected:  // methods
 
-    virtual bool selectIndex(const Key& key) override;
-    virtual void deselectIndex() override;
+    bool selectIndex(const Key& idxKey) override;
+    void deselectIndex() override;
 
     bool open() override;
-    void flush() override;
+    void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
 
-    void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
     void reconsolidateIndexesAndTocs();
 
-    virtual void print(std::ostream& out) const override;
+    void print(std::ostream& out) const override;
 
 private:  // methods
 
@@ -104,6 +107,7 @@ private:  // members
     Index currentFull_;
 
     eckit::AutoUmask umask_;
+    size_t archivedLocations_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

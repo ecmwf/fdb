@@ -14,6 +14,7 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/daos/DaosArrayPartHandle.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosObject.h"

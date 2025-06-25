@@ -33,9 +33,9 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
 
@@ -43,7 +43,7 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<DaosFieldLocation> reanimator_;

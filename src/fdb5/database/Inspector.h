@@ -20,12 +20,12 @@
 #include <iosfwd>
 #include <map>
 
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
+
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/CacheLRU.h"
 #include "eckit/memory/NonCopyable.h"
-
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/config/Config.h"
 
 namespace eckit {
 class DataHandle;
@@ -41,7 +41,7 @@ namespace fdb5 {
 
 class Key;
 class Op;
-class DB;
+class CatalogueReader;
 class Schema;
 class Notifier;
 class FDBToolRequest;
@@ -103,7 +103,7 @@ private:  // methods
 
 private:  // data
 
-    mutable eckit::CacheLRU<Key, DB*> databases_;
+    mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
     Config dbConfig_;
 };

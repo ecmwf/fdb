@@ -8,14 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/daos/DaosIndex.h"
-
-#include <limits.h>  // for PATH_MAX
+#include <climits>  // for PATH_MAX
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
-
+#include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosLazyFieldLocation.h"
 #include "fdb5/daos/DaosSession.h"
 
@@ -35,7 +33,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
+DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosName& name) :
     IndexBase(key, "daosKeyValue"), location_(buildIndexKvName(key, name), 0) {
 
     fdb5::DaosSession s{};
@@ -64,7 +62,7 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     index_kv_obj.put("key", h.data(), hs.bytesWritten());
 }
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
+DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosKeyValueName& name, bool readAxes) :
     IndexBase(key, "daosKeyValue"), location_(name, 0) {
 
     if (readAxes)
@@ -223,7 +221,7 @@ void DaosIndex::entries(EntryVisitor& visitor) const {
     }
 }
 
-const std::vector<eckit::URI> DaosIndex::dataURIs() const {
+std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
     /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files

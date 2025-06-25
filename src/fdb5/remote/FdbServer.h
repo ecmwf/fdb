@@ -12,12 +12,9 @@
 /// @author Tiagop Quintino
 /// @date   Nov 2019
 
-#ifndef fdb5_remote_FdbServer_H
-#define fdb5_remote_FdbServer_H
+#pragma once
 
-#include <stdlib.h>
 #include <unistd.h>
-
 #include <thread>
 
 #include "eckit/net/Port.h"
@@ -30,12 +27,8 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,11 +38,11 @@ class FDBForker : public eckit::ProcessControler {
 public:  // methods
 
     FDBForker(eckit::net::TCPSocket& socket, const Config& config);
-    virtual ~FDBForker() override;
+    ~FDBForker() override;
 
 private:  // methods
 
-    virtual void run() override;
+    void run() override;
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
@@ -86,16 +79,13 @@ public:
 
     FdbServer(int argc, char** argv, const char* home);
 
-    virtual ~FdbServer() override;
+    ~FdbServer() override;
 
-    virtual void run() override;
+    void run() override;
 
-    void virtual hookUnique() override;  // non-unique
+    void hookUnique() override;  // non-unique
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
-
-#endif  // fdb5_remote_FdbServer_H
+}  // namespace fdb5::remote

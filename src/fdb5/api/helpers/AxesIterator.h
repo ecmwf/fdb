@@ -44,6 +44,7 @@ public:  // methods
     }
 
     void print(std::ostream& out) const;
+    size_t encodeSize() const;
 
 private:  // methods
 

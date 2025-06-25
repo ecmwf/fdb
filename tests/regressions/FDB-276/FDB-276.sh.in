@@ -11,7 +11,7 @@ gribset="$<TARGET_FILE:grib_set>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-export FDB5_HOME=$bindir
+export FDB_HOME=$bindir
 export FDB5_ROOT=./root
 export FDB_EXPVER_FILE=$bindir/expver_to_fdb_root.map
 
@@ -65,9 +65,7 @@ EOF
 
 $fdbread --raw req.1 out.grib >> out.1 2>&1
 
-set +e
-grep "Invalid expver value xxxx" out.1 # should fail
-set -e
+! grep "Invalid expver value xxxx" out.1 # should fail
 
 ### TEST 2 - invalid expver: more than 4 characters
 
@@ -85,9 +83,7 @@ retrieve,
    param=166
 EOF
 
-set +e
-$fdbread --raw req.2 out.grib >> out.2 2>&1 # should fail
-set -e
+! $fdbread --raw req.2 out.grib >> out.2 2>&1 # should fail
 
 grep "Invalid expver value 777777" out.2
 
@@ -107,9 +103,7 @@ retrieve,
    param=166
 EOF
 
-set +e
-$fdbread --raw req.3 out.grib >> out.3 2>&1 # should fail
-set -e
+! $fdbread --raw req.3 out.grib >> out.3 2>&1 # should fail
 
 grep "Invalid expver value rq.t" out.3
 
@@ -129,9 +123,7 @@ retrieve,
    param=166
 EOF
 
-set +e
-$fdbread --raw req.4 out.grib >> out.4 2>&1 # should fail
-set -e
+! $fdbread --raw req.4 out.grib >> out.4 2>&1 # should fail
 
 grep "Invalid expver value abc" out.4
 
@@ -153,9 +145,7 @@ EOF
 
 $fdbread --raw req.5 out.grib >> out.5 2>&1
 
-set +e
-grep "Invalid expver value abcd" out.5 # should fail
-set -e
+! grep "Invalid expver value abcd" out.5 # should fail
 
 ### TEST 6 - entry yyyy is NOT in map file, neither data is present in FDB. check that map file is unchanged
 ###        NOTE: This test currently is not failing when it shoould. The code needs to be adapted not to change the expver map file on retrieve

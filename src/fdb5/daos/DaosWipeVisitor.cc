@@ -17,6 +17,8 @@
 
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
+#include "fdb5/daos/DaosWipeVisitor.h"
+#include "fdb5/database/Store.h"
 
 using namespace eckit;
 
@@ -31,13 +33,13 @@ DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue, const Store& st
 
 DaosWipeVisitor::~DaosWipeVisitor() {}
 
-bool DaosWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool DaosWipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // Overall checks
 
     ASSERT(&catalogue_ == &catalogue);
     ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
-    WipeVisitor::visitDatabase(catalogue, store);
+    WipeVisitor::visitDatabase(catalogue);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
 

@@ -33,7 +33,8 @@ class Config : public eckit::LocalConfiguration {
 public:  // static methods
 
     static Config make(const eckit::PathName& path,
-                       const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+                       const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
+                       const std::string& fdb_home            = "");
 
 public:  // methods
 
@@ -44,12 +45,14 @@ public:  // methods
     /// may involve loading a specific config.json
     Config expandConfig() const;
 
-    virtual ~Config() override;
+    ~Config() override;
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
+
+    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
     const eckit::PathName& schemaPath() const;
     eckit::PathName configPath() const;
 
@@ -69,6 +72,7 @@ private:  // methods
 private:  // members
 
     mutable eckit::PathName schemaPath_;
+    mutable bool schemaPathInitialised_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 

@@ -13,40 +13,54 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "fdb5/api/FDB.h"
+#include <cstddef>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-
-#include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
+
+#include <memory>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 FDB::FDB(const Config& config) :
-    internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {}
+    internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {
+    LibFdb5::instance().constructorCallback()(*internal_);
+}
 
 
 FDB::~FDB() {
     flush();
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
 }
+
+FDB::FDB(FDB&&) = default;
+
+FDB& FDB::operator=(FDB&&) = default;
 
 void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
@@ -103,16 +117,14 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
     // serialisation won't work properly...)
     Key keyInternal(key);
-    keyInternal.registry(config().schema().registry());
 
     // step in archival requests from the model is just an integer. We need to include the stepunit
-    auto stepunit = keyInternal.find("stepunits");
-    if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size() > 0 && stepunit->second[0] != 'h') {
-            auto step = keyInternal.find("step");
-            if (step != keyInternal.end()) {
-                std::string canonicalStep =
-                    keyInternal.registry().lookupType("step").toKey("step", step->second + stepunit->second);
+    if (const auto [stepunit, found] = keyInternal.find("stepunits"); found) {
+        if (stepunit->second.size() > 0 && static_cast<char>(tolower(stepunit->second[0])) != 'h') {
+            if (auto [step, foundStep] = keyInternal.find("step"); foundStep) {
+                std::string canonicalStep = config().schema().registry().lookupType("step").toKey(
+                    step->second + static_cast<char>(tolower(stepunit->second[0])));
+                keyInternal.set("step", canonicalStep);
             }
         }
         keyInternal.unset("stepunits");
@@ -123,6 +135,11 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
 
     timer.stop();
     stats_.addArchive(length, timer);
+}
+
+void FDB::reindex(const Key& key, const FieldLocation& location) {
+    internal_->reindex(key, location);
+    dirty_ = true;
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest& request) {
@@ -141,30 +158,21 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
     return sorted;
 }
 
-class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
-public:
-
-    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.timestamp() < replacement.timestamp();
-    }
-};
-
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
-    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-    return loc->dataHandle();
+    auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+    return location->dataHandle();
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
-        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
-        result.add(loc->dataHandle());
-        delete loc;
+        auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+        result.add(location->dataHandle());
     }
+
     return result.dataHandle();
 }
-
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
@@ -186,10 +194,10 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
             }
 
             // checking all retrieved fields against the hypercube, to remove duplicates
-            ListElementDeduplicator dedup;
-            metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
-            for (auto el : elements) {
-                cube.add(el.combinedKey().request(), el);
+            ListElementDeduplicator deduplicator;
+            metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, deduplicator);
+            for (const auto& elem : elements) {
+                cube.add(elem.combinedKey().request(), el);
             }
 
             if (cube.countVacant() > 0) {
@@ -201,7 +209,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
                 eckit::Log::warning() << ss.str() << std::endl;
             }
 
-            for (size_t i = 0; i < cube.size(); i++) {
+            for (std::size_t i = 0; i < cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
                     result.add(element.location().dataHandle());
@@ -218,16 +226,18 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
 }
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
+
     ListIterator it = inspect(request);
-    return read(it, sorted(request));
+    return seekable ? new FieldHandle(it) : read(it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
-ListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
-    return ListIterator(internal_->list(request), deduplicate);
+ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
+    return {internal_->list(request, level), deduplicate};
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
@@ -266,10 +276,6 @@ FDBStats FDB::stats() const {
     return stats_;
 }
 
-FDBStats FDB::internalStats() const {
-    return internal_->stats();
-}
-
 const std::string& FDB::name() const {
     return internal_->name();
 }
@@ -284,7 +290,6 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
-
         eckit::Timer timer;
         timer.start();
 
@@ -299,31 +304,31 @@ void FDB::flush() {
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
     IndexAxis axes;
     AxesElement elem;
-    auto it = internal_->axes(request, level);
+    auto it = axesIterator(request, level);
     while (it.next(elem)) {
         axes.merge(elem.axes());
     }
     return axes;
 }
 
+AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
+    return internal_->axesIterator(request, level);
+}
+
 bool FDB::dirty() const {
     return dirty_;
-}
-
-void FDB::disable() {
-    internal_->disable();
-}
-
-bool FDB::disabled() const {
-    return internal_->disabled();
 }
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
 }
 
-void FDB::registerCallback(ArchiveCallback callback) {
-    internal_->registerCallback(callback);
+void FDB::registerArchiveCallback(ArchiveCallback callback) {
+    internal_->registerArchiveCallback(callback);
+}
+
+void FDB::registerFlushCallback(FlushCallback callback) {
+    internal_->registerFlushCallback(callback);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

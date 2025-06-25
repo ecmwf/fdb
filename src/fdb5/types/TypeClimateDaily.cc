@@ -17,6 +17,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeClimateDaily.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -56,7 +57,7 @@ static int month(const std::string& value) {
     }
 }
 
-std::string TypeClimateDaily::toKey(const std::string&, const std::string& value) const {
+std::string TypeClimateDaily::toKey(const std::string& value) const {
     std::ostringstream out;
     char prev = out.fill('0');
     out.width(4);
@@ -66,7 +67,7 @@ std::string TypeClimateDaily::toKey(const std::string&, const std::string& value
 }
 
 void TypeClimateDaily::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                                 eckit::StringList& values, const Notifier&, const DB*) const {
+                                 eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates, true);
@@ -81,7 +82,6 @@ void TypeClimateDaily::getValues(const metkit::mars::MarsRequest& request, const
 }
 
 bool TypeClimateDaily::match(const std::string&, const std::string& value1, const std::string& value2) const {
-    // std::cout << value1 << " vs. " << value2 << " are " << (month(value1) == month(value2)) << std::endl;
 
     return month(value1) == month(value2);
 }

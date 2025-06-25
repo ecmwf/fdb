@@ -12,6 +12,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <memory>
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/AIOHandle.h"
@@ -27,6 +28,7 @@
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocStore.h"
 
 using namespace eckit;
 
@@ -34,8 +36,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
+TocStore::TocStore(const Key& key, const Config& config) :
+    Store(),
+    TocCommon(StoreRootManager(config).directory(key).directory_),
+    archivedFields_(0),
+    auxFileExtensions_{auxFileExtensions()} {}
 
 eckit::URI TocStore::uri() const {
 
@@ -61,11 +66,18 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
     return p.exists();
 }
 
+bool TocStore::auxiliaryURIExists(const eckit::URI& uri) const {
+    ASSERT(uri.scheme() == type());
+    eckit::PathName p(uri.path());
+    ASSERT(p.dirName().sameAs(directory_));
+    return p.exists();
+}
+
 std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
-    (directory_).children(files, dirs);
+    PathName(directory_).children(files, dirs);
 
     std::vector<eckit::URI> res;
     for (const auto& f : files) {
@@ -99,10 +111,10 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void* data, eckit::Length length) {
-    dirty_ = true;
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void* data, eckit::Length length) {
+    archivedFields_++;
 
-    eckit::PathName dataPath = getDataPath(key);
+    eckit::PathName dataPath = getDataPath(idxKey);
 
     eckit::DataHandle& dh = getDataHandle(dataPath);
 
@@ -112,19 +124,21 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void* dat
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key(nullptr, true)));
+    return std::make_unique<TocFieldLocation>(dataPath, position, length, Key());
 }
 
-void TocStore::flush() {
-    if (!dirty_) {
-        return;
+size_t TocStore::flush() {
+    if (archivedFields_ == 0) {
+        return 0;
     }
 
     // ensure consistent state before writing Toc entry
-
     flushDataHandles();
 
-    dirty_ = false;
+    size_t out      = archivedFields_;
+    archivedFields_ = 0;
+
+    return out;
 }
 
 void TocStore::close() {
@@ -150,61 +164,62 @@ void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
 }
 
 eckit::DataHandle* TocStore::getCachedHandle(const eckit::PathName& path) const {
-    HandleStore::const_iterator j = handles_.find(path);
-    if (j != handles_.end())
-        return j->second;
-    else
-        return nullptr;
+    std::lock_guard lock(handlesMutex_);
+    if (auto j = handles_.find(path); j != handles_.end()) {
+        return j->second.get();
+    }
+    return nullptr;
 }
 
 void TocStore::closeDataHandles() {
-    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle* dh = j->second;
+    std::lock_guard lock(handlesMutex_);
+    for (const auto& [p, dh] : handles_) {
         dh->close();
-        delete dh;
     }
     handles_.clear();
 }
 
-eckit::DataHandle* TocStore::createFileHandle(const eckit::PathName& path) {
+std::unique_ptr<eckit::DataHandle> TocStore::createFileHandle(const eckit::PathName& path) {
 
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64_MiB);
 
     if (stripeLustre()) {
 
         LOG_DEBUG_LIB(LibFdb5) << "Creating LustreFileHandle<FDBFileHandle> to " << path << " buffer size "
                                << sizeBuffer << std::endl;
 
-        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
+        return std::make_unique<LustreFileHandle<FDBFileHandle>>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Creating FDBFileHandle to " << path << " with buffer of " << eckit::Bytes(sizeBuffer)
                            << std::endl;
 
-    return new FDBFileHandle(path, sizeBuffer);
+    return std::make_unique<FDBFileHandle>(path, sizeBuffer);
 }
 
-eckit::DataHandle* TocStore::createAsyncHandle(const eckit::PathName& path) {
+std::unique_ptr<eckit::DataHandle> TocStore::createAsyncHandle(const eckit::PathName& path) {
 
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64_MiB);
 
     if (stripeLustre()) {
 
         LOG_DEBUG_LIB(LibFdb5) << "Creating LustreFileHandle<AIOHandle> to " << path << " with " << nbBuffers
                                << " buffer each with " << eckit::Bytes(sizeBuffer) << std::endl;
 
-        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
+        return std::make_unique<LustreFileHandle<eckit::AIOHandle>>(path, nbBuffers, sizeBuffer,
+                                                                    stripeDataLustreSettings());
     }
 
-    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
+    return std::make_unique<eckit::AIOHandle>(path, nbBuffers, sizeBuffer);
 }
 
-eckit::DataHandle* TocStore::createDataHandle(const eckit::PathName& path) {
+std::unique_ptr<eckit::DataHandle> TocStore::createDataHandle(const eckit::PathName& path) {
 
     static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if (fdbWriteToNull)
-        return new eckit::EmptyHandle();
+    if (fdbWriteToNull) {
+        return std::make_unique<eckit::EmptyHandle>();
+    }
 
     static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
     if (fdbAsyncWrite)
@@ -214,14 +229,15 @@ eckit::DataHandle* TocStore::createDataHandle(const eckit::PathName& path) {
 }
 
 eckit::DataHandle& TocStore::getDataHandle(const eckit::PathName& path) {
+    std::lock_guard lock(handlesMutex_);
     eckit::DataHandle* dh = getCachedHandle(path);
-    if (!dh) {
-        dh = createDataHandle(path);
-        ASSERT(dh);
-        handles_[path] = dh;
-        dh->openForAppend(0);
+    if (dh) {
+        return *dh;
     }
-    return *dh;
+    auto dataHandle = createDataHandle(path);
+    ASSERT(dataHandle);
+    dataHandle->openForAppend(0);
+    return *(handles_[path] = std::move(dataHandle));
 }
 
 eckit::PathName TocStore::generateDataPath(const Key& key) const {
@@ -245,9 +261,8 @@ eckit::PathName TocStore::getDataPath(const Key& key) const {
 }
 
 void TocStore::flushDataHandles() {
-
-    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle* dh = j->second;
+    std::lock_guard lock(handlesMutex_);
+    for (const auto& [p, dh] : handles_) {
         dh->flush();
     }
 }
@@ -276,9 +291,34 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
 //     src.copyTo(dest);
 // }
 
+eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const {
+    // Filebackend: ext is a suffix to append to the file name
+    ASSERT(uri.scheme() == type());
+    eckit::PathName path = uri.path() + "." + ext;
+    return eckit::URI(type(), path);
+}
+
+std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const {
+    ASSERT(uri.scheme() == type());
+    std::vector<eckit::URI> uris;
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
+        uris.push_back(getAuxiliaryURI(uri, e));
+    }
+    return uris;
+}
+
+std::set<std::string> TocStore::auxFileExtensions() const {
+    std::set<std::string> extensions;
+    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
+        extensions.insert("." + e);
+    }
+    return extensions;
+}
+
 void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest,
                       eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
+
     for (const eckit::PathName& root : StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {
             eckit::PathName src_db  = directory_;
@@ -291,9 +331,12 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr(dp->d_name, ".data")) {
                     eckit::PathName file(src_db / dp->d_name);
-                    struct stat fileStat;
-                    ::stat(file.asString().c_str(), &fileStat);
-                    files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    if ((file.extension() == ".data") ||
+                        auxFileExtensions_.find(file.extension()) != auxFileExtensions_.end()) {
+                        struct stat fileStat;
+                        SYSCALL(::stat(file.asString().c_str(), &fileStat));
+                        files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    }
                 }
             }
             closedir(dirp);

@@ -27,6 +27,9 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/MD5.h"
 
+#include "../dummy_daos.h"
+#include "tests_lib.h"
+
 namespace {
 void deldir(eckit::PathName& p) {
     if (!p.exists()) {

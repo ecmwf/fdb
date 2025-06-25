@@ -17,6 +17,7 @@
 #define fdb5_Report_H
 
 #include <map>
+#include <set>
 
 #include "eckit/memory/NonCopyable.h"
 

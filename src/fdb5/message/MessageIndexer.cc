@@ -8,6 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Plural.h"
+#include "eckit/log/Progress.h"
+#include "eckit/log/Seconds.h"
+#include "eckit/log/Timer.h"
+
+#include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
+
 #include "fdb5/message/MessageIndexer.h"
 
 #include "eckit/log/Bytes.h"

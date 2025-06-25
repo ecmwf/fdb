@@ -14,6 +14,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "fdb5/types/TypeDouble.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -24,7 +25,7 @@ TypeDouble::TypeDouble(const std::string& name, const std::string& type) : Type(
 
 TypeDouble::~TypeDouble() {}
 
-std::string TypeDouble::toKey(const std::string&, const std::string& value) const {
+std::string TypeDouble::toKey(const std::string& value) const {
     double v     = eckit::Translator<std::string, double>()(value);
     long long ll = static_cast<long long>(v);
 
@@ -37,7 +38,7 @@ std::string TypeDouble::toKey(const std::string&, const std::string& value) cons
 }
 
 void TypeDouble::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                           eckit::StringList& values, const Notifier&, const DB*) const {
+                           eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
     std::vector<double> dblValues;
 
     request.getValues(keyword, dblValues, true);

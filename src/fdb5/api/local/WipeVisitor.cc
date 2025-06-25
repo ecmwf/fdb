@@ -16,15 +16,15 @@
 
 #include "fdb5/api/local/WipeVisitor.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/local/QueueStringLogTarget.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Index.h"
 
 #include "eckit/os/Stat.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include <dirent.h>
+#include <sys/stat.h>
 
 using namespace eckit;
 
@@ -44,18 +44,18 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::M
     unsafeWipeAll_(unsafeWipeAll) {}
 
 
-bool WipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    // If the DB is locked for wiping, then it "doesn't exist"
+    // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.wipeVisitor(store, request_, out_, doit_, porcelain_, unsafeWipeAll_));
-    internalVisitor_->visitDatabase(catalogue, store);
+    internalVisitor_.reset(catalogue.wipeVisitor(store(), request_, out_, doit_, porcelain_, unsafeWipeAll_));
+    internalVisitor_->visitDatabase(catalogue);
 
     return true;  // Explore contained indexes
 }

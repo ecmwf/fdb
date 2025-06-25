@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include <ostream>
+#include <string>
+#include <utility>
+
+#include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchValue.h"
 
 #include "fdb5/database/Key.h"
@@ -17,18 +22,33 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string& value) : Matcher(), value_(value) {}
+eckit::ClassSpec MatchValue::classSpec_ = {&Matcher::classSpec(), "MatchValue"};
 
-MatchValue::~MatchValue() {}
+eckit::Reanimator<MatchValue> MatchValue::reanimator_;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+MatchValue::MatchValue(std::string value) : value_{std::move(value)} {}
+
+MatchValue::MatchValue(eckit::Stream& stream) {
+    stream >> value_;
+}
+
+void MatchValue::encode(eckit::Stream& out) const {
+    out << value_;
+}
+
+bool MatchValue::match(const std::string& value) const {
+    return value == value_;
+}
 
 bool MatchValue::match(const std::string& keyword, const Key& key) const {
-    Key::const_iterator i = key.find(keyword);
 
-    if (i == key.end()) {
-        return false;
+    if (const auto [iter, found] = key.find(keyword); found) {
+        return match(iter->second);
     }
 
-    return (i->second == value_);
+    return false;
 }
 
 void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
