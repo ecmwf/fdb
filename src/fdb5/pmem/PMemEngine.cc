@@ -13,20 +13,20 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/pmem/PMemEngine.h"
+
 #include <ostream>
 
-#include "eckit/utils/Regex.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/utils/Regex.h"
 
 #include "fdb5/LibFdb5.h"
-
-#include "fdb5/pmem/PMemEngine.h"
-#include "fdb5/pmem/PoolManager.h"
 #include "fdb5/pmem/PMemDBReader.h"
+#include "fdb5/pmem/PoolManager.h"
 #include "fdb5/rules/Schema.h"
 
-using eckit::Regex;
 using eckit::Log;
+using eckit::Regex;
 
 namespace fdb5 {
 
@@ -40,8 +40,7 @@ std::string PMemEngine::dbType() const {
     return PMemEngine::typeName();
 }
 
-eckit::PathName PMemEngine::location(const Key& key, const Config& config) const
-{
+eckit::PathName PMemEngine::location(const Key& key, const Config& config) const {
     return PoolManager(config).pool(key);
 }
 
@@ -51,26 +50,23 @@ static bool isPMemDB(const eckit::PathName& path) {
 }
 
 
-bool PMemEngine::canHandle(const eckit::PathName& path) const
-{
+bool PMemEngine::canHandle(const eckit::PathName& path) const {
     return isPMemDB(path);
 }
 
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
-{
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config) {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
-{
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing,
+                             const Config& config) {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const Key &key,
-                                                   const std::vector<eckit::PathName>& dirs,
+std::vector<eckit::PathName> PMemEngine::databases(const Key& key, const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
     std::set<Key> keys;
@@ -85,8 +81,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const Key &key,
 }
 
 std::vector<eckit::PathName> PMemEngine::databases(const metkit::mars::MarsRequest& request,
-                                                   const std::vector<eckit::PathName>& dirs,
-                                                   const Config& config) {
+                                                   const std::vector<eckit::PathName>& dirs, const Config& config) {
 
     std::set<Key> keys;
 
@@ -103,16 +98,16 @@ std::vector<eckit::PathName> PMemEngine::databases(const metkit::mars::MarsReque
             if (db.key().partialMatch(request)) {
                 result.push_back(path);
             }
-        } catch (eckit::Exception& e) {
-            eckit::Log::error() <<  "Error loading PMem FDB database from " << path << std::endl;
+        }
+        catch (eckit::Exception& e) {
+            eckit::Log::error() << "Error loading PMem FDB database from " << path << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
     }
     return result;
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
-                                                   const std::vector<eckit::PathName>& dirs,
+std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
     std::vector<eckit::PathName> result;
@@ -133,22 +128,23 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
 
             for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
 
-                if(seen.find(*k) != seen.end()) {
+                if (seen.find(*k) != seen.end()) {
                     continue;
                 }
 
                 if (re.match((*k).baseName())) {
                     try {
-                        if(isPMemDB(*k)) {
+                        if (isPMemDB(*k)) {
                             result.push_back(*k);
                         }
-                    } catch (eckit::Exception& e) {
-                        Log::error() <<  "Error loading FDB database from " << *k << std::endl;
+                    }
+                    catch (eckit::Exception& e) {
+                        Log::error() << "Error loading FDB database from " << *k << std::endl;
                         Log::error() << e.what() << std::endl;
                     }
-                    seen.insert(*k);;
+                    seen.insert(*k);
+                    ;
                 }
-
             }
         }
     }
@@ -156,28 +152,24 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
     return result;
 }
 
-std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Config& config) const
-{
+std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Config& config) const {
     return databases(key, PoolManager(config).allPools(key), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const
-{
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const {
     return databases(key, PoolManager(config).visitablePools(key), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const
-{
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::mars::MarsRequest& rq,
+                                                            const Config& config) const {
     return databases(rq, PoolManager(config).visitablePools(rq), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key, const Config& config) const
-{
+std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key, const Config& config) const {
     return databases(key, PoolManager(config).writablePools(key), config);
 }
 
-void PMemEngine::print(std::ostream& out) const
-{
+void PMemEngine::print(std::ostream& out) const {
     out << "PMemEngine()";
 }
 
@@ -185,4 +177,4 @@ static EngineBuilder<PMemEngine> pmem_builder;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

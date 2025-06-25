@@ -8,14 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeParam.h"
+
 #include <algorithm>
 
-#include "metkit/mars/ParamID.h"
 #include "metkit/mars/Param.h"
+#include "metkit/mars/ParamID.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Notifier.h"
-#include "fdb5/types/TypeParam.h"
 #include "fdb5/types/TypesFactory.h"
 
 using metkit::Param;
@@ -24,18 +25,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeParam::TypeParam(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeParam::TypeParam(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeParam::~TypeParam() {
-}
+TypeParam::~TypeParam() {}
 
-void TypeParam::getValues(const metkit::mars::MarsRequest &request,
-                          const std::string &keyword,
-                          eckit::StringList &values,
-                          const Notifier &wind,
-                          const DB *db) const {
+void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                          eckit::StringList& values, const Notifier& wind, const DB* db) const {
     ASSERT(db);
 
     eckit::StringSet ax;
@@ -78,34 +73,30 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
     }
 }
 
-bool TypeParam::match(const std::string&,
-                       const std::string& value1,
-                       const std::string& value2) const {
-    if(value1 == value2) {
+bool TypeParam::match(const std::string&, const std::string& value1, const std::string& value2) const {
+    if (value1 == value2) {
         return true;
     }
 
     Param p1(value1);
     Param p2(value2);
 
-    if((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
+    if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
         return true;
     }
 
-    if(p1.table() * 1000 + p1.value() == p2.value())
-    {
+    if (p1.table() * 1000 + p1.value() == p2.value()) {
         return true;
     }
 
-    if(p2.table() * 1000 + p2.value() == p1.value())
-    {
+    if (p2.table() * 1000 + p2.value() == p1.value()) {
         return true;
     }
 
     return false;
 }
 
-void TypeParam::print(std::ostream &out) const {
+void TypeParam::print(std::ostream& out) const {
     out << "TypeParam[name=" << name_ << "]";
 }
 
@@ -113,4 +104,4 @@ static TypeBuilder<TypeParam> type("Param");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -33,37 +33,38 @@ class RemoteFieldLocation : public FieldLocation {
 public:
 
     RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
+    RemoteFieldLocation(const eckit::URI& uri);
+    RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
+                        const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
     eckit::Offset offset() const override { return internal_->offset(); }
     eckit::Length length() const override { return internal_->length(); }
 
-    virtual eckit::DataHandle *dataHandle() const override;
+    virtual eckit::DataHandle* dataHandle() const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
     virtual void visit(FieldLocationVisitor& visitor) const override;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     virtual void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec                       classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
-private: // methods
+private:  // methods
 
-    virtual void dump(std::ostream &out) const override;
-    virtual void print(std::ostream &out) const override;
+    virtual void dump(std::ostream& out) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     // not Owning
     RemoteFDB* remoteFDB_;
@@ -73,7 +74,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5
 
-#endif // fdb5_RemoteFieldLocation_H
+#endif  // fdb5_RemoteFieldLocation_H

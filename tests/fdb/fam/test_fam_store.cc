@@ -17,13 +17,15 @@
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
+#include "test_fam_common.h"
+
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/testing/Test.h"
+
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fam/FamStore.h"
 #include "fdb5/rules/Schema.h"
-#include "test_fam_common.h"
 
 using namespace eckit::testing;
 
@@ -33,30 +35,32 @@ namespace fdb::test {
 
 namespace {
 
-const std::string testSchema = "[ fam1a, fam1b, fam1c\n"
-                               "    [ fam2a, fam2b, fam2c\n"
-                               "       [ fam3a, fam3b, fam3c ]]]\n";
+const std::string testSchema =
+    "[ fam1a, fam1b, fam1c\n"
+    "    [ fam2a, fam2b, fam2c\n"
+    "       [ fam3a, fam3b, fam3c ]]]\n";
 
-const std::string testConfig = "---\n"
-                               "type: local\n"
-                               "schema: ./schema\n"
-                               "store: fam\n"
-                               "catalogue: toc\n"
-                               "spaces:\n"
-                               "- handler: Default\n"
-                               "  roots:\n"
-                               "  - path: ./root\n"
-                               "  - path: fam://endpoint/region\n"
-                               "  - path: ./backup\n"
-                               "    wipe: true\n"
-                               "    list: true\n"
-                               "    retrieve: false\n"
-                               "fam_roots:\n"
-                               "- uri: " +
-                               TEST_FDB_FAM_URI +
-                               "\n"
-                               "  writable: true\n"
-                               "  visit: true\n";
+const std::string testConfig =
+    "---\n"
+    "type: local\n"
+    "schema: ./schema\n"
+    "store: fam\n"
+    "catalogue: toc\n"
+    "spaces:\n"
+    "- handler: Default\n"
+    "  roots:\n"
+    "  - path: ./root\n"
+    "  - path: fam://endpoint/region\n"
+    "  - path: ./backup\n"
+    "    wipe: true\n"
+    "    list: true\n"
+    "    retrieve: false\n"
+    "fam_roots:\n"
+    "- uri: " +
+    TEST_FDB_FAM_URI +
+    "\n"
+    "  writable: true\n"
+    "  visit: true\n";
 
 }  // namespace
 
@@ -66,7 +70,10 @@ CASE("FamStore: create test region") {
     auto name = eckit::FamRegionName(TEST_FDB_FAM_ENDPOINT, TEST_FDB_FAM_REGION);
     try {
         name.create(1024 * 4, 0640);
-    } catch (const eckit::AlreadyExists& e) { eckit::Log::debug() << "FamCommon: " << name << " already exists.\n"; }
+    }
+    catch (const eckit::AlreadyExists& e) {
+        eckit::Log::debug() << "FamCommon: " << name << " already exists.\n";
+    }
 }
 
 CASE("FamStore: Archive, Retrieve, Remove") {
@@ -74,7 +81,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     const fam::FamSetup setup(testSchema, testConfig);
 
-    const auto config = fdb5::Config {eckit::YAMLConfiguration(setup.configPath)};
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto& schema = config.schema();
 
@@ -86,8 +93,8 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    const char* value  = "Testing fam: ARCHIVE DATA!";
-    const auto  length = std::char_traits<char>::length(value);
+    const char* value = "Testing fam: ARCHIVE DATA!";
+    const auto length = std::char_traits<char>::length(value);
 
     const auto key = fdb5::Key({{"fam1a", "val1a"},
                                 {"fam1b", "val1b"},

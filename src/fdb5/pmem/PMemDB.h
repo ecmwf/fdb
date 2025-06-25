@@ -26,12 +26,11 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/rules/Schema.h"
-
 #include "fdb5/pmem/DataPoolManager.h"
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/PMemEngine.h"
 #include "fdb5/pmem/Pool.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -42,7 +41,7 @@ namespace pmem {
 
 class PMemDB : public DB {
 
-public: // methods
+public:  // methods
 
     PMemDB(const Key& key, const Config& config);
     PMemDB(const eckit::PathName& directory, const Config& config);
@@ -59,7 +58,7 @@ public: // methods
     /// The total size of all of the pools involved in this database
     size_t dataPoolsSize() const;
 
-protected: // methods
+protected:  // methods
 
     virtual std::string dbType() const;
 
@@ -69,17 +68,17 @@ protected: // methods
     void close() override;
     void flush() override;
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, bool sorted=false) override;
+    void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void visit(DBVisitor& visitor) override;
-    void dump(std::ostream& out, bool simple=false) const override;
+    void dump(std::ostream& out, bool simple = false) const override;
     std::string owner() const override;
     eckit::PathName basePath() const override;
     std::vector<eckit::PathName> metadataPaths() const;
     const Schema& schema() const override;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    virtual eckit::DataHandle* retrieve(const Key& key) const;
+    virtual void archive(const Key& key, const void* data, eckit::Length length);
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
     virtual PurgeVisitor* purgeVisitor() const override;
@@ -87,12 +86,12 @@ protected: // methods
 
     // void loadSchema();
 
-    virtual bool selectIndex(const Key &key);
+    virtual bool selectIndex(const Key& key);
     virtual void deselectIndex();
 
     virtual DbStats statistics() const;
 
-    virtual std::vector<Index> indexes(bool sorted=false) const;
+    virtual std::vector<Index> indexes(bool sorted = false) const;
 
     // Control access properties of the DB
 
@@ -103,16 +102,16 @@ protected: // methods
     bool listLocked() const override { NOTIMP; }
     bool wipeLocked() const override { NOTIMP; }
 
-private: // methods
+private:  // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor
     void initialisePool();
 
-protected: // types
+protected:  // types
 
     typedef std::map<Key, Index> IndexStore;
 
-protected: // members
+protected:  // members
 
     eckit::PathName poolDir_;
     Config dbConfig_;
@@ -125,7 +124,7 @@ protected: // members
 
     std::unique_ptr<DataPoolManager> dataPoolMgr_;
 
-    IndexStore  indexes_;
+    IndexStore indexes_;
     Index currentIndex_;
 
     Schema schema_;
@@ -135,7 +134,7 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 #endif

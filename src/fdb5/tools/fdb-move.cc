@@ -18,11 +18,11 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/thread/ThreadPool.h"
 
-#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocCommon.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 #define MAX_THREADS 256
 
@@ -36,26 +36,25 @@ namespace fdb5::tools {
 
 struct fdb_moveiterator_t {
 public:
+
     fdb_moveiterator_t(fdb5::MoveIterator&& iter) : iter_(std::move(iter)) {}
 
-    bool next(fdb5::MoveElement& elem) {
-        return iter_.next(elem); }
+    bool next(fdb5::MoveElement& elem) { return iter_.next(elem); }
 
 private:
+
     fdb5::MoveIterator iter_;
 };
 
 
 class MoveProducer : public eckit::distributed::Producer {
-public: // methods
+public:  // methods
 
-    MoveProducer(eckit::distributed::Transport &transport,
-                 const Config& config,
-                 const std::vector<fdb5::FDBToolRequest>& requests,
-                 const eckit::option::CmdArgs &args) :
+    MoveProducer(eckit::distributed::Transport& transport, const Config& config,
+                 const std::vector<fdb5::FDBToolRequest>& requests, const eckit::option::CmdArgs& args) :
         eckit::distributed::Producer(transport), fdb_(config), keep_(false), removeDelay_(0) {
 
-        keep_ = args.getBool("keep", false);
+        keep_        = args.getBool("keep", false);
         removeDelay_ = args.getInt("delay", 0);
 
         eckit::URI destination;
@@ -64,12 +63,13 @@ public: // methods
             std::stringstream ss;
             ss << "No destination root specified.";
             throw UserError(ss.str(), Here());
-        } else {
+        }
+        else {
             destination = eckit::URI(dest);
         }
 
         fdb5::FDBToolRequest request = metkit::mars::MarsRequest();
-        size_t count = 0;
+        size_t count                 = 0;
         for (const FDBToolRequest& toolReq : requests) {
             if (count) {
                 std::stringstream ss;
@@ -85,13 +85,14 @@ public: // methods
 
             // check that the request is only referring a single DB - no ranges of values
             const metkit::mars::MarsRequest& marsReq = toolReq.request();
-            std::vector<std::string> params = marsReq.params();
-            for (const std::string& param: params) {
+            std::vector<std::string> params          = marsReq.params();
+            for (const std::string& param : params) {
                 const std::vector<std::string>& values = marsReq.values(param);
 
                 if (values.size() != 1) {
                     std::stringstream ss;
-                    ss << "Move requires a single value for each parameter in the request." << std::endl << "Parameter " << param << "=" << values << " not supported." << std::endl;
+                    ss << "Move requires a single value for each parameter in the request." << std::endl
+                       << "Parameter " << param << "=" << values << " not supported." << std::endl;
                     throw eckit::UserError(ss.str(), Here());
                 }
             }
@@ -101,12 +102,14 @@ public: // methods
             StatsElement se;
             if (!it.next(se)) {
                 std::stringstream ss;
-                ss << "Request " << toolReq << " does not matches with an existing database. Please specify a single database." << std::endl;
+                ss << "Request " << toolReq
+                   << " does not matches with an existing database. Please specify a single database." << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
             if (it.next(se)) {
                 std::stringstream ss;
-                ss << "Request " << toolReq << " matches with more than one existing database. Please specify a single database." << std::endl;
+                ss << "Request " << toolReq
+                   << " matches with more than one existing database. Please specify a single database." << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
 
@@ -127,7 +130,7 @@ public: // methods
     }
     ~MoveProducer() {}
 
-private: // methods
+private:  // methods
 
     virtual bool produce(eckit::distributed::Message& message) {
         ASSERT(moveIterator_);
@@ -163,10 +166,10 @@ private: // methods
             }
         }
     }
-    
-    void messageFromWorker( eckit::distributed::Message& message, int worker) const {}
 
-private: // attributes
+    void messageFromWorker(eckit::distributed::Message& message, int worker) const {}
+
+private:  // attributes
 
     fdb5::FDB fdb_;
     fdb5::MoveElement last_;
@@ -175,19 +178,18 @@ private: // attributes
 
     bool keep_;
     int removeDelay_;
-
 };
 
 
 class MoveWorker : public eckit::distributed::Consumer {
 
-public: // methods
+public:  // methods
 
-    MoveWorker(eckit::distributed::Transport& transport, const eckit::option::CmdArgs &args) :
+    MoveWorker(eckit::distributed::Transport& transport, const eckit::option::CmdArgs& args) :
         eckit::distributed::Consumer(transport), count_(0) {}
     ~MoveWorker() {}
 
-protected: // members
+protected:  // members
 
     void consume(eckit::distributed::Message& message) override {
         fdb5::FileCopy fileCopy(message);
@@ -196,22 +198,18 @@ protected: // members
         count_++;
         fileCopy.execute();
     }
-    void finalise() override {
-        transport_.synchronise();
-    };
+    void finalise() override { transport_.synchronise(); };
 
     // virtual void getNextMessage(eckit::Message& message) const;
     // virtual void failure(eckit::Message &message);
-    void shutdown(eckit::distributed::Message & message) override {
+    void shutdown(eckit::distributed::Message& message) override {
         LOG_DEBUG_LIB(LibFdb5) << "Shuting down MoveWorker..." << std::endl;
         message << count_;
     }
 
-    void getNextMessage(eckit::distributed::Message & message) const override {
-        getNextWorkMessage(message);
-    }
+    void getNextMessage(eckit::distributed::Message& message) const override { getNextWorkMessage(message); }
 
-private: // attributes
+private:  // attributes
 
     size_t count_;
 };
@@ -219,22 +217,19 @@ private: // attributes
 //----------------------------------------------------------------------------------------------------------------------
 
 class MoveLoner : public eckit::distributed::Actor {
-public: // methods
+public:  // methods
 
-    MoveLoner(eckit::distributed::Transport &transport,
-              eckit::distributed::Producer* producer,
-              eckit::distributed::Consumer* consumer,
-              size_t numThreads=1) :
-        eckit::distributed::Actor(transport),
-        producer_(producer), consumer_(consumer), numThreads_(numThreads) {}
+    MoveLoner(eckit::distributed::Transport& transport, eckit::distributed::Producer* producer,
+              eckit::distributed::Consumer* consumer, size_t numThreads = 1) :
+        eckit::distributed::Actor(transport), producer_(producer), consumer_(consumer), numThreads_(numThreads) {}
 
-private: // methods
+private:  // methods
 
     virtual void run() {
         eckit::distributed::Message message;
 
-        eckit::distributed::Producer &producer = *producer_;
-        eckit::distributed::Consumer &consumer = *consumer_;
+        eckit::distributed::Producer& producer = *producer_;
+        eckit::distributed::Consumer& consumer = *consumer_;
 
         eckit::ThreadPool pool("move", numThreads_);
 
@@ -242,7 +237,8 @@ private: // methods
             message.rewind();
             try {
                 pool.push(new FileCopy(message));
-            } catch (eckit::Exception &e) {
+            }
+            catch (eckit::Exception& e) {
                 eckit::Log::error() << e.what() << std::endl;
                 consumer.failure(message);
             }
@@ -257,14 +253,14 @@ private: // methods
     }
 
     virtual void finalise() {
-        eckit::distributed::Producer &producer = *producer_;
-        eckit::distributed::Consumer &consumer = *consumer_;
+        eckit::distributed::Producer& producer = *producer_;
+        eckit::distributed::Consumer& consumer = *consumer_;
 
         consumer.finalise();
         producer.finalise();
     }
 
-private: // members
+private:  // members
 
     std::unique_ptr<eckit::distributed::Producer> producer_;
     std::unique_ptr<eckit::distributed::Consumer> consumer_;
@@ -275,24 +271,23 @@ private: // members
 
 
 class FDBMove : public FDBVisitTool {
-public: // methods
+public:  // methods
 
-    FDBMove(int argc, char **argv);
+    FDBMove(int argc, char** argv);
     ~FDBMove() override;
 
-private: // methods
+private:  // methods
 
     void execute(const CmdArgs& args) override;
-    void init(const CmdArgs &args) override;
+    void init(const CmdArgs& args) override;
 
-private: // members
+private:  // members
 
     std::unique_ptr<eckit::distributed::Transport> transport_;
     int threads_;
 };
 
-FDBMove::FDBMove(int argc, char **argv) :
-    FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
+FDBMove::FDBMove(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
     options_.push_back(new SimpleOption<std::string>("dest", "Destination root"));
     options_.push_back(new SimpleOption<bool>("keep", "Keep source DB"));
@@ -324,15 +319,16 @@ void FDBMove::execute(const CmdArgs& args) {
                 throw UserError(ss.str(), Here());
             }
 
-            actor.reset(new MoveLoner(*transport,
-                            new MoveProducer(*transport, config(args), requests("read"), args),
-                            new MoveWorker(*transport, args),
-                            threads_)); // do it all actor :)
-        } else {
+            actor.reset(new MoveLoner(*transport, new MoveProducer(*transport, config(args), requests("read"), args),
+                                      new MoveWorker(*transport, args),
+                                      threads_));  // do it all actor :)
+        }
+        else {
             if (transport->producer()) {
-                actor.reset(new MoveProducer(*transport, config(args), requests("read"), args)); // work dispatcher
-            } else {
-                actor.reset(new MoveWorker(*transport, args)); // worker
+                actor.reset(new MoveProducer(*transport, config(args), requests("read"), args));  // work dispatcher
+            }
+            else {
+                actor.reset(new MoveWorker(*transport, args));  // worker
             }
         }
 
@@ -346,14 +342,13 @@ void FDBMove::execute(const CmdArgs& args) {
         //                    << ": "
         //                    << eckit::system::ResourceUsage()
         //                    << std::endl;
-
-    } catch (std::exception &e) {
+    }
+    catch (std::exception& e) {
         eckit::Log::info()
-                        //    << eckit::TimeStamp()
-                        //    << " "
-                        //    << title
-                           << " EXCEPTION: "
-                           << e.what() << std::endl;
+            //    << eckit::TimeStamp()
+            //    << " "
+            //    << title
+            << " EXCEPTION: " << e.what() << std::endl;
         transport->abort();
         throw;
     }
@@ -361,9 +356,9 @@ void FDBMove::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5::tools
+}  // namespace fdb5::tools
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBMove app(argc, argv);
     return app.start();
 }

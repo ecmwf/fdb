@@ -15,12 +15,13 @@
 
 #include "fdb5/fam/FamCommon.h"
 
-#include "eckit/filesystem/URI.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
-
 #include <algorithm>
 #include <string>
+
+#include "eckit/filesystem/URI.h"
+
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -32,9 +33,11 @@ namespace {
 auto parseRoot(const Config& config) -> eckit::URI {
     eckit::LocalConfiguration fam;
 
-    if (config.has("fam_roots")) { fam = config.getSubConfigurations("fam_roots")[0]; }
+    if (config.has("fam_roots")) {
+        fam = config.getSubConfigurations("fam_roots")[0];
+    }
 
-    return eckit::URI {fam.getString("uri")};
+    return eckit::URI{fam.getString("uri")};
 }
 
 }  // namespace
@@ -47,12 +50,12 @@ auto FamCommon::toString(const Key& key) -> std::string {
     return name;
 }
 
-FamCommon::FamCommon(const eckit::FamRegionName& root): root_ {root} { }
+FamCommon::FamCommon(const eckit::FamRegionName& root) : root_{root} {}
 
-FamCommon::FamCommon(const Config& config): FamCommon(parseRoot(config)) { }
+FamCommon::FamCommon(const Config& config) : FamCommon(parseRoot(config)) {}
 
 /// @todo use key once fam root manager is implemented
-FamCommon::FamCommon(const Config& config, const Key& /* key */): FamCommon(config) { }
+FamCommon::FamCommon(const Config& config, const Key& /* key */) : FamCommon(config) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -17,14 +17,15 @@
 #define fdb5_Archiver_H
 
 #include <time.h>
+
 #include <utility>
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/DB.h"
 
-namespace eckit   {
+namespace eckit {
 class DataHandle;
 }
 
@@ -40,35 +41,35 @@ class Schema;
 
 class Archiver : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_NOOP);
 
     virtual ~Archiver();
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    friend std::ostream &operator<<(std::ostream &s, const Archiver &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+private:  // methods
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
 
-    DB& database(const Key &key);
+    DB& database(const Key& key);
 
-private: // members
+private:  // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
+    typedef std::map<Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
 
     Config dbConfig_;
 
@@ -83,6 +84,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

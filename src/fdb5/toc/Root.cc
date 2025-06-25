@@ -8,10 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/Root.h"
+
 #include "eckit/log/Log.h"
 #include "eckit/os/Stat.h"
 
-#include "fdb5/toc/Root.h"
 #include "fdb5/LibFdb5.h"
 
 using eckit::Log;
@@ -21,26 +22,24 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Root::Root(const std::string &path, const std::string& filespace,
-           bool list, bool retrieve, bool archive, bool wipe):
-    path_(path),
-    filespace_(filespace),
-    checked_(false),
-    exists_(false),
-    controlIdentifiers_()
-{
-    if (!list) controlIdentifiers_ |= ControlIdentifier::List;
-    if (!retrieve) controlIdentifiers_ |= ControlIdentifier::Retrieve;
-    if (!archive) controlIdentifiers_ |= ControlIdentifier::Archive;
-    if (!wipe) controlIdentifiers_ |= ControlIdentifier::Wipe;
+Root::Root(const std::string& path, const std::string& filespace, bool list, bool retrieve, bool archive, bool wipe) :
+    path_(path), filespace_(filespace), checked_(false), exists_(false), controlIdentifiers_() {
+    if (!list)
+        controlIdentifiers_ |= ControlIdentifier::List;
+    if (!retrieve)
+        controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    if (!archive)
+        controlIdentifiers_ |= ControlIdentifier::Archive;
+    if (!wipe)
+        controlIdentifiers_ |= ControlIdentifier::Wipe;
 }
 
 bool Root::exists() const {
     if (!checked_) {
         errno = 0;
         Stat::Struct info;
-        int err = Stat::stat(path_.asString().c_str(),&info);
-        if(not err) {
+        int err = Stat::stat(path_.asString().c_str(), &info);
+        if (not err) {
             exists_ = S_ISDIR(info.st_mode);
         }
         else {
@@ -50,7 +49,7 @@ bool Root::exists() const {
         LOG_DEBUG_LIB(LibFdb5) << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
         checked_ = true;
     }
-    
+
     return exists_;
 }
 
@@ -58,17 +57,14 @@ const eckit::PathName& Root::path() const {
     return path_;
 }
 
-const std::string& Root::filespace() const
-{
+const std::string& Root::filespace() const {
     return filespace_;
 }
 
-void Root::print( std::ostream &out ) const  {
+void Root::print(std::ostream& out) const {
 
     out << "Root("
-        << "path=" << path_
-        << ",controlIdentifiers=" << controlIdentifiers_
-        <<")";
+        << "path=" << path_ << ",controlIdentifiers=" << controlIdentifiers_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

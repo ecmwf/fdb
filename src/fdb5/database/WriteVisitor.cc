@@ -14,15 +14,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WriteVisitor::WriteVisitor(std::vector<Key> &prev) :
-    prev_(prev),
-    rule_(0) {
+WriteVisitor::WriteVisitor(std::vector<Key>& prev) : prev_(prev), rule_(0) {
     prev.resize(3);
 }
 
-WriteVisitor::~WriteVisitor() {
-}
+WriteVisitor::~WriteVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

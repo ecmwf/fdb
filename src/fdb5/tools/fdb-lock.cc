@@ -13,7 +13,7 @@
 using namespace eckit::option;
 using namespace eckit;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBLock app(argc, argv);
     return app.start();
 }

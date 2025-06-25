@@ -35,7 +35,7 @@ namespace pmem {
 
 class PDataRoot : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     PDataRoot();
 
@@ -49,7 +49,7 @@ public: // methods
 
     void print(std::ostream& s) const;
 
-private: // members
+private:  // members
 
     eckit::FixedString<8> tag_;
 
@@ -61,20 +61,23 @@ private: // members
 
     bool finalised_;
 
-private: // friends
+private:  // friends
 
-    friend std::ostream& operator<<(std::ostream& s, const PDataRoot& r) { r.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s, const PDataRoot& r) {
+        r.print(s);
+        return s;
+    }
 };
 
 
 // A consistent definition of the tag for comparison purposes.
-const eckit::FixedString<8> PDataRootTag = "66FDB566";
+const eckit::FixedString<8> PDataRootTag  = "66FDB566";
 const unsigned short int PDataRootVersion = 2;
 
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PDataRoot_H
+#endif  // fdb5_pmem_PDataRoot_H

@@ -15,21 +15,20 @@
 #ifndef fdb5_TocDbStats_H
 #define fdb5_TocDbStats_H
 
-#include <set>
-#include <map>
 #include <iosfwd>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/database/DbStats.h"
-#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/DataStats.h"
-#include "fdb5/database/StatsReportVisitor.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/IndexStats.h"
+#include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/toc/TocCatalogueReader.h"
-
-#include <unordered_set>
-#include <unordered_map>
 
 namespace fdb5 {
 
@@ -58,22 +57,22 @@ public:
     size_t adoptedFilesCount_;
     size_t indexFilesCount_;
 
-    TocDbStats& operator+= (const TocDbStats& rhs);
+    TocDbStats& operator+=(const TocDbStats& rhs);
 
     virtual void add(const DbStatsContent&) override;
 
-    virtual void report(std::ostream &out, const char* indent) const override;
+    virtual void report(std::ostream& out, const char* indent) const override;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     virtual void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec                 classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TocDbStats> reanimator_;
 };
 
@@ -99,28 +98,40 @@ public:
     virtual size_t fieldsSize() const override { return fieldsSize_; }
     virtual size_t duplicatesSize() const override { return duplicatesSize_; }
 
-    virtual size_t addFieldsCount(size_t i) override { fieldsCount_ += i; return fieldsCount_; }
-    virtual size_t addDuplicatesCount(size_t i) override { duplicatesCount_ += i; return duplicatesCount_; }
+    virtual size_t addFieldsCount(size_t i) override {
+        fieldsCount_ += i;
+        return fieldsCount_;
+    }
+    virtual size_t addDuplicatesCount(size_t i) override {
+        duplicatesCount_ += i;
+        return duplicatesCount_;
+    }
 
-    virtual size_t addFieldsSize(size_t i) override { fieldsSize_ += i; return fieldsSize_; }
-    virtual size_t addDuplicatesSize(size_t i) override { duplicatesSize_ += i; return duplicatesSize_; }
+    virtual size_t addFieldsSize(size_t i) override {
+        fieldsSize_ += i;
+        return fieldsSize_;
+    }
+    virtual size_t addDuplicatesSize(size_t i) override {
+        duplicatesSize_ += i;
+        return duplicatesSize_;
+    }
 
-    TocIndexStats& operator+= (const TocIndexStats& rhs);
+    TocIndexStats& operator+=(const TocIndexStats& rhs);
 
     virtual void add(const IndexStatsContent&) override;
 
-    virtual void report(std::ostream &out, const char* indent = "") const override;
+    virtual void report(std::ostream& out, const char* indent = "") const override;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     virtual void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    static eckit::ClassSpec                 classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<TocIndexStats> reanimator_;
 };
 
@@ -137,11 +148,11 @@ public:
     std::set<eckit::PathName> activeDataFiles_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
-    TocDataStats& operator+= (const TocDataStats& rhs);
+    TocDataStats& operator+=(const TocDataStats& rhs);
 
     virtual void add(const DataStatsContent&);
 
-    virtual void report(std::ostream &out, const char* indent) const;
+    virtual void report(std::ostream& out, const char* indent) const;
 };
 
 
@@ -151,13 +162,13 @@ public:
 class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
-    TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced=true);
+    TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced = true);
     virtual ~TocStatsReportVisitor() override;
 
     IndexStats indexStatistics() const override;
-    DbStats    dbStatistics() const override;
+    DbStats dbStatistics() const override;
 
-private: // methods
+private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
@@ -167,7 +178,7 @@ private: // methods
     void catalogueComplete(const Catalogue& catalogue) override;
 
 
-protected: // members
+protected:  // members
 
     eckit::PathName directory_;
 
@@ -195,6 +206,6 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

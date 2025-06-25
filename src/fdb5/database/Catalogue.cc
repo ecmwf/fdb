@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/Catalogue.h"
+
 #include <cstring>
 #include <map>
-
-#include "fdb5/database/Catalogue.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -37,24 +37,23 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
         if (visitor.visitIndexes()) {
             for (const Index& idx : all) {
                 if (visitor.visitEntries()) {
-                    idx.entries(visitor); // contains visitIndex
-                } else {
+                    idx.entries(visitor);  // contains visitIndex
+                }
+                else {
                     visitor.visitIndex(idx);
                 }
             }
         }
-
     }
 
     visitor.catalogueComplete(*this);
-
 }
 
 bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
-std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
+std::ostream& operator<<(std::ostream& s, const Catalogue& x) {
     x.print(s);
     return s;
 }
@@ -95,14 +94,15 @@ bool CatalogueFactory::has(const std::string& name) {
 void CatalogueFactory::list(std::ostream& out) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     const char* sep = "";
-    for (std::map<std::string, CatalogueBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+    for (std::map<std::string, CatalogueBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end();
+         ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
 }
 
 std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config& config, bool read) {
-    std::string name = Manager(config).engine(key);
+    std::string name          = Manager(config).engine(key);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     nameLowercase += read ? ".reader" : ".writer";
@@ -124,7 +124,7 @@ std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config&
 }
 
 std::unique_ptr<Catalogue> CatalogueFactory::build(const eckit::URI& uri, const fdb5::Config& config, bool read) {
-    std::string name = uri.scheme();
+    std::string name          = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     nameLowercase += read ? ".reader" : ".writer";
@@ -152,7 +152,8 @@ CatalogueBuilderBase::CatalogueBuilderBase(const std::string& name) : name_(name
 }
 
 CatalogueBuilderBase::~CatalogueBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     CatalogueFactory::instance().remove(name_);
 }
 

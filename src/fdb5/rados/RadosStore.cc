@@ -8,19 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Timer.h"
-#include "eckit/log/Bytes.h"
+#include "fdb5/rados/RadosStore.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/io/rados/RadosWriteHandle.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/rados/RadosFieldLocation.h"
-#include "fdb5/rados/RadosStore.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/rados/RadosFieldLocation.h"
+#include "fdb5/rules/Rule.h"
 
 using namespace eckit;
 
@@ -29,7 +29,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), directory_("mars:"+key.valuesToString()) {}
+    Store(schema), directory_("mars:" + key.valuesToString()) {}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
@@ -40,22 +40,20 @@ bool RadosStore::exists() const {
 }
 
 eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
-    return remapKey.empty() ?
-        field.dataHandle() :
-        field.dataHandle(remapKey);
+    return remapKey.empty() ? field.dataHandle() : field.dataHandle(remapKey);
 }
 
-FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Length length) {
+FieldLocation* RadosStore::archive(const Key& key, const void* data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
     eckit::URI dataUri("rados", dataPath);
 
-    eckit::DataHandle &dh = getDataHandle(dataPath);
+    eckit::DataHandle& dh = getDataHandle(dataPath);
 
     eckit::Offset position = dh.position();
 
-    long len = dh.write( data, length );
+    long len = dh.write(data, length);
 
     ASSERT(len == length);
 
@@ -85,67 +83,71 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
-        if (doit) path.rmdir(false);
-    } else {
+        if (doit)
+            path.rmdir(false);
+    }
+    else {
         logVerbose << "Unlinking: ";
         logAlways << path << std::endl;
-        if (doit) path.unlink(false);
+        if (doit)
+            path.unlink(false);
     }
 }
 
-eckit::DataHandle *RadosStore::getCachedHandle( const eckit::PathName &path ) const {
-    HandleStore::const_iterator j = handles_.find( path );
-    if ( j != handles_.end() )
+eckit::DataHandle* RadosStore::getCachedHandle(const eckit::PathName& path) const {
+    HandleStore::const_iterator j = handles_.find(path);
+    if (j != handles_.end())
         return j->second;
     else
         return nullptr;
 }
 
 void RadosStore::closeDataHandles() {
-    for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
-        eckit::DataHandle *dh = j->second;
+    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
+        eckit::DataHandle* dh = j->second;
         dh->close();
         delete dh;
     }
     handles_.clear();
 }
 
-eckit::DataHandle *RadosStore::createFileHandle(const eckit::PathName &path) {
+eckit::DataHandle* RadosStore::createFileHandle(const eckit::PathName& path) {
 
-//    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+    //    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Creating RadosWriteHandle to " << path
-//                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
-                                 << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Creating RadosWriteHandle to "
+                           << path
+                           //                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
+                           << std::endl;
 
     return new RadosWriteHandle(path, 0);
 }
 
-eckit::DataHandle *RadosStore::createAsyncHandle(const eckit::PathName &path) {
+eckit::DataHandle* RadosStore::createAsyncHandle(const eckit::PathName& path) {
     NOTIMP;
 
-/*    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
+    /*    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
+        static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
 
-    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);*/
+        return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);*/
 }
 
-eckit::DataHandle *RadosStore::createDataHandle(const eckit::PathName &path) {
+eckit::DataHandle* RadosStore::createDataHandle(const eckit::PathName& path) {
 
     static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if(fdbWriteToNull)
+    if (fdbWriteToNull)
         return new eckit::EmptyHandle();
 
     static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-    if(fdbAsyncWrite)
+    if (fdbAsyncWrite)
         return createAsyncHandle(path);
 
     return createFileHandle(path);
 }
 
-eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
-    eckit::DataHandle *dh = getCachedHandle(path);
-    if ( !dh ) {
+eckit::DataHandle& RadosStore::getDataHandle(const eckit::PathName& path) {
+    eckit::DataHandle* dh = getCachedHandle(path);
+    if (!dh) {
         dh = createDataHandle(path);
         ASSERT(dh);
         handles_[path] = dh;
@@ -154,22 +156,22 @@ eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName RadosStore::generateDataPath(const Key &key) const {
+eckit::PathName RadosStore::generateDataPath(const Key& key) const {
 
-    eckit::PathName dpath ( directory_ );
-    dpath /=  key.valuesToString();
+    eckit::PathName dpath(directory_);
+    dpath /= key.valuesToString();
     dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;
 }
 
-eckit::PathName RadosStore::getDataPath(const Key &key) {
+eckit::PathName RadosStore::getDataPath(const Key& key) {
     PathStore::const_iterator j = dataPaths_.find(key);
-    if ( j != dataPaths_.end() )
+    if (j != dataPaths_.end())
         return j->second;
 
     eckit::PathName dataPath = generateDataPath(key);
 
-    dataPaths_[ key ] = dataPath;
+    dataPaths_[key] = dataPath;
 
     return dataPath;
 }
@@ -177,12 +179,12 @@ eckit::PathName RadosStore::getDataPath(const Key &key) {
 void RadosStore::flushDataHandles() {
 
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle *dh = j->second;
+        eckit::DataHandle* dh = j->second;
         dh->flush();
     }
 }
 
-void RadosStore::print(std::ostream &out) const {
+void RadosStore::print(std::ostream& out) const {
     out << "RadosStore(" << directory_ << ")";
 }
 
@@ -190,4 +192,4 @@ static StoreBuilder<RadosStore> builder("rados");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

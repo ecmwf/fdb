@@ -13,17 +13,16 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "pmem/PersistentPtr.h"
+#include "test_persistent_helpers.h"
+
 #include <string>
 
-
-#include "pmem/PersistentPtr.h"
+#include "eckit/testing/Test.h"
 
 #include "fdb5/pmem/PBaseNode.h"
-#include "fdb5/pmem/PDataNode.h"
 #include "fdb5/pmem/PBranchingNode.h"
-
-#include "test_persistent_helpers.h"
-#include "eckit/testing/Test.h"
+#include "fdb5/pmem/PDataNode.h"
 
 using namespace eckit::testing;
 using namespace fdb5::pmem;
@@ -50,7 +49,6 @@ public:  // methods
 
     ANode(ANode::NodeType type, const KeyType& key, const ValueType& value) :
         PBaseNode(PBaseNode::NodeType(int(PBaseNode::NULL_NODE) + type - ANode::NULL_NODE), key, value) {}
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -64,7 +62,7 @@ class RootType {
 public:  // constructor
 
     class Constructor : public AtomicConstructor<RootType> {
-        virtual void make(RootType &object) const {
+        virtual void make(RootType& object) const {
             for (size_t i = 0; i < root_elems; i++) {
                 object.data_[i].nullify();
             }
@@ -80,7 +78,8 @@ public:  // members
 
 // Only need type_id for RootType. Others defined in Pool.cc
 
-template<> uint64_t pmem::PersistentType<RootType>::type_id = POBJ_ROOT_TYPE_NUM;
+template <>
+uint64_t pmem::PersistentType<RootType>::type_id = POBJ_ROOT_TYPE_NUM;
 
 // Create a global fixture, so that this pool is only created once, and destroyed once.
 
@@ -88,12 +87,8 @@ PersistentPtr<RootType> global_root;
 
 struct SuitePoolFixture {
 
-    SuitePoolFixture() : autoPool_(RootType::Constructor()) {
-        global_root = autoPool_.pool_.getRoot<RootType>();
-    }
-    ~SuitePoolFixture() {
-        global_root.nullify();
-    }
+    SuitePoolFixture() : autoPool_(RootType::Constructor()) { global_root = autoPool_.pool_.getRoot<RootType>(); }
+    ~SuitePoolFixture() { global_root.nullify(); }
 
     AutoPool autoPool_;
 };
@@ -102,19 +97,16 @@ SuitePoolFixture global_fixture;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "test_fdb5_pmem_pbasenode_construction" )
-{
+CASE("test_fdb5_pmem_pbasenode_construction") {
 
     class BNInspector : public PBaseNode {
     public:
-        BNInspector() :
-            PBaseNode(PBaseNode::NULL_NODE, "key1", "value1") {}
+
+        BNInspector() : PBaseNode(PBaseNode::NULL_NODE, "key1", "value1") {}
 
         bool check() const {
 
-            return type_ == PBaseNode::NULL_NODE &&
-                   idKey_ == std::string("key1") &&
-                   idValue_ == std::string("value1");
+            return type_ == PBaseNode::NULL_NODE && idKey_ == std::string("key1") && idValue_ == std::string("value1");
         }
     };
 
@@ -123,8 +115,7 @@ CASE( "test_fdb5_pmem_pbasenode_construction" )
     EXPECT(bn.check());
 }
 
-CASE( "test_fdb5_pmem_pbasenode_types" )
-{
+CASE("test_fdb5_pmem_pbasenode_types") {
     ANode n1(ANode::NULL_NODE, "key11", "value11");
 
     EXPECT(n1.isNull());
@@ -145,8 +136,7 @@ CASE( "test_fdb5_pmem_pbasenode_types" )
 }
 
 
-CASE( "test_fdb5_pmem_pbasenode_matches" )
-{
+CASE("test_fdb5_pmem_pbasenode_matches") {
     ANode n(ANode::NULL_NODE, "key11", "value11");
 
     EXPECT(n.matches("key11", "value11"));
@@ -157,36 +147,28 @@ CASE( "test_fdb5_pmem_pbasenode_matches" )
 }
 
 
-CASE( "test_fdb5_pmem_pbasenode_type_validator" )
-{
+CASE("test_fdb5_pmem_pbasenode_type_validator") {
     // As a base node, it is invalid to directly instantiate a PBaseNode. The type validation should
     // fail for the base type, and pass for PDataNode and PBranchingNode
 
-    EXPECT(!::pmem::PersistentType<PBaseNode>::validate_type_id(
-                    ::pmem::PersistentType<PBaseNode>::type_id));
-    EXPECT(::pmem::PersistentType<PBaseNode>::validate_type_id(
-                    ::pmem::PersistentType<PDataNode>::type_id));
-    EXPECT(::pmem::PersistentType<PBaseNode>::validate_type_id(
-                    ::pmem::PersistentType<PBranchingNode>::type_id));
+    EXPECT(!::pmem::PersistentType<PBaseNode>::validate_type_id(::pmem::PersistentType<PBaseNode>::type_id));
+    EXPECT(::pmem::PersistentType<PBaseNode>::validate_type_id(::pmem::PersistentType<PDataNode>::type_id));
+    EXPECT(::pmem::PersistentType<PBaseNode>::validate_type_id(::pmem::PersistentType<PBranchingNode>::type_id));
 }
 
 
-CASE( "test_fdb5_pmem_pbasenode_valid_allocated" )
-{
+CASE("test_fdb5_pmem_pbasenode_valid_allocated") {
     // When we allocate PDataNodes and PBranchingNodes into a PBasenode pointer, everything is just fine
 
     std::string str_data("Testing testing");
 
     global_root->data_[0].allocate_ctr(
-                PDataNode::BaseConstructor(
-                    PDataNode::Constructor("AKey", "AValue", str_data.data(), str_data.length())));
+        PDataNode::BaseConstructor(PDataNode::Constructor("AKey", "AValue", str_data.data(), str_data.length())));
 
     EXPECT(global_root->data_[0].valid());
 
-    global_root->data_[1].allocate_ctr(
-                PBranchingNode::BaseConstructor(
-                    AtomicConstructor2<PBranchingNode, std::string, std::string>(
-                        std::string("key2"), std::string("value2"))));
+    global_root->data_[1].allocate_ctr(PBranchingNode::BaseConstructor(
+        AtomicConstructor2<PBranchingNode, std::string, std::string>(std::string("key2"), std::string("value2"))));
 
     EXPECT(global_root->data_[1].valid());
 
@@ -207,7 +189,6 @@ CASE( "test_fdb5_pmem_pbasenode_valid_allocated" )
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

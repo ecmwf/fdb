@@ -1,32 +1,20 @@
 
 
-#include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
-
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/testing/Test.h"
 
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
+
 namespace {
 
-fdb5::Key EXAMPLE_K1{{
-    {"class", "od"},
-    {"expver", "0001"},
-    {"date", "20240223"}
-}};
+fdb5::Key EXAMPLE_K1{{{"class", "od"}, {"expver", "0001"}, {"date", "20240223"}}};
 
-fdb5::Key EXAMPLE_K2{{
-    {"class", "rd"},
-    {"expver", "0001"},
-    {"time", "1200"}
-}};
+fdb5::Key EXAMPLE_K2{{{"class", "rd"}, {"expver", "0001"}, {"time", "1200"}}};
 
-fdb5::Key EXAMPLE_K3{{
-    {"class", "rd"},
-    {"expver", "gotx"},
-    {"time", "0000"}
-}};
+fdb5::Key EXAMPLE_K3{{{"class", "rd"}, {"expver", "gotx"}, {"time", "0000"}}};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -52,7 +40,7 @@ CASE("Insertion and comparison") {
     ia2.insert(EXAMPLE_K1);
     EXPECT(!(ia1 == ia2));
     EXPECT(ia1 != ia2);
-    
+
     ia1.sort();
     ia2.sort();
     EXPECT(ia1 == ia2);
@@ -91,7 +79,9 @@ CASE("iostream and JSON output functions correctly") {
         std::ostringstream ss;
         eckit::JSON json(ss);
         json << ia;
-        EXPECT(ss.str() == "{\"class\":[\"od\",\"rd\"],\"date\":[\"20240223\"],\"expver\":[\"0001\",\"gotx\"],\"time\":[\"0000\",\"1200\"]}");
+        EXPECT(ss.str() ==
+               "{\"class\":[\"od\",\"rd\"],\"date\":[\"20240223\"],\"expver\":[\"0001\",\"gotx\"],\"time\":[\"0000\","
+               "\"1200\"]}");
     }
 }
 
@@ -174,7 +164,7 @@ CASE("Copy internal map") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // anonymous namespace
+}  // anonymous namespace
 
 int main(int argc, char** argv) {
 

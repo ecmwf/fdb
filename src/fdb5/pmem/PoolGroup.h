@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-#include "eckit/utils/Regex.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Regex.h"
 
 #include "fdb5/pmem/PoolEntry.h"
 
@@ -34,11 +34,9 @@ namespace fdb5 {
 
 class PoolGroup {
 
-public: // methods
+public:  // methods
 
-    PoolGroup(const std::string& name,
-              const std::string& re,
-              const std::string& handler,
+    PoolGroup(const std::string& name, const std::string& re, const std::string& handler,
               const std::vector<PoolEntry>& pools);
 
     /// Selects the pool where this Key will be inserted
@@ -54,7 +52,7 @@ public: // methods
     std::vector<eckit::PathName> writable() const;
     std::vector<eckit::PathName> visitable() const;
 
-private: // members
+private:  // members
 
     typedef std::vector<PoolEntry> PoolVec;
 
@@ -69,6 +67,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

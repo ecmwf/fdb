@@ -16,7 +16,6 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Report.h"
 #include "fdb5/database/ReportVisitor.h"
-
 #include "fdb5/tools/FDBInspect.h"
 
 
@@ -24,36 +23,33 @@
 
 class FDBStats : public fdb5::FDBInspect {
 
-  public: // methods
+public:  // methods
 
-    FDBStats(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
-        count_(0),
-        details_(false) {
+    FDBStats(int argc, char** argv) : fdb5::FDBInspect(argc, argv), count_(0), details_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("details", "Print report for each database visited"));
     }
 
-  private: // methods
+private:  // methods
 
-    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void finish(const eckit::option::CmdArgs &args);
+    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
+    virtual void init(const eckit::option::CmdArgs& args);
+    virtual void finish(const eckit::option::CmdArgs& args);
 
     fdb5::Report report_;
 
     size_t count_;
     bool details_;
-
 };
 
-void FDBStats::usage(const std::string &tool) const {
+void FDBStats::usage(const std::string& tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--details] [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [--details] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
 
-void FDBStats::init(const eckit::option::CmdArgs &args) {
+void FDBStats::init(const eckit::option::CmdArgs& args) {
     details_ = args.getBool("details", false);
 }
 
@@ -75,7 +71,7 @@ void FDBStats::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
     report_ += visitor.report();
 
-    count_ ++;
+    count_++;
 }
 
 
@@ -89,7 +85,7 @@ void FDBStats::finish(const eckit::option::CmdArgs&) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBStats app(argc, argv);
     return app.start();
 }

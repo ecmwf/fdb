@@ -19,13 +19,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PoolEntry::PoolEntry(const std::string &path, const std::string& poolgroup, bool active, bool visit):
-    path_(path),
-    poolgroup_(poolgroup),
-    writable_(active),
-    visit_(visit) {
-
-}
+PoolEntry::PoolEntry(const std::string& path, const std::string& poolgroup, bool active, bool visit) :
+    path_(path), poolgroup_(poolgroup), writable_(active), visit_(visit) {}
 
 const eckit::PathName& PoolEntry::path() const {
     return path_;
@@ -39,8 +34,7 @@ bool PoolEntry::visit() const {
     return visit_;
 }
 
-const std::string& PoolEntry::poolgroup() const
-{
+const std::string& PoolEntry::poolgroup() const {
     return poolgroup_;
 }
 

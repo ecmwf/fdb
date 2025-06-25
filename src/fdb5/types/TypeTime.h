@@ -24,26 +24,23 @@ namespace fdb5 {
 
 class TypeTime : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeTime(const std::string &name, const std::string &type);
+    TypeTime(const std::string& name, const std::string& type);
 
     virtual ~TypeTime() override;
 
-    virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const override;
-                             
-    virtual std::string toKey(const std::string &keyword,
-                              const std::string &value) const override;
+    virtual std::string tidy(const std::string& keyword, const std::string& value) const override;
 
-private: // methods
+    virtual std::string toKey(const std::string& keyword, const std::string& value) const override;
 
-    virtual void print( std::ostream &out ) const override;
+private:  // methods
 
+    virtual void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

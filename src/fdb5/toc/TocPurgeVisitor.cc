@@ -13,8 +13,8 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/toc/TocHandler.h"
 
 using namespace eckit;
 
@@ -23,9 +23,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store) :
-    PurgeVisitor(),
-    TocStatsReportVisitor(catalogue, false),
-    store_(store) {}
+    PurgeVisitor(), TocStatsReportVisitor(catalogue, false), store_(store) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
@@ -54,11 +52,11 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
 
 void TocPurgeVisitor::report(std::ostream& out) const {
 
-    const eckit::PathName& directory(((TocCatalogue*) currentCatalogue_)->basePath());
+    const eckit::PathName& directory(((TocCatalogue*)currentCatalogue_)->basePath());
 
     out << std::endl;
     out << "Index Report:" << std::endl;
-    for (const auto& it : indexStats_) { // <Index, IndexStats>
+    for (const auto& it : indexStats_) {  // <Index, IndexStats>
         out << "    Index " << it.first << std::endl;
         it.second.report(out, "          ");
     }
@@ -66,7 +64,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     size_t indexToDelete = 0;
     out << std::endl;
     out << "Number of reachable fields per index file:" << std::endl;
-    for (const auto& it : indexUsage_) { // <std::string, size_t>
+    for (const auto& it : indexUsage_) {  // <std::string, size_t>
         out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
         if (it.second == 0) {
             indexToDelete++;
@@ -76,7 +74,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     size_t dataToDelete = 0;
     out << std::endl;
     out << "Number of reachable fields per data file:" << std::endl;
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
+    for (const auto& it : dataUsage_) {  // <std::string, size_t>
         out << "    " << it.first << ": " << eckit::BigNum(it.second) << std::endl;
         if (it.second == 0) {
             dataToDelete++;
@@ -86,7 +84,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     out << std::endl;
     size_t cnt = 0;
     out << "Unreferenced owned data files:" << std::endl;
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
+    for (const auto& it : dataUsage_) {  // <std::string, size_t>
         if (it.second == 0) {
             if (eckit::PathName(it.first).dirName().sameAs(directory)) {
                 out << "    " << it.first << std::endl;
@@ -101,7 +99,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     out << std::endl;
     size_t cnt2 = 0;
     out << "Unreferenced adopted data files:" << std::endl;
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
+    for (const auto& it : dataUsage_) {  // <std::string, size_t>
         if (it.second == 0) {
             if (!eckit::PathName(it.first).dirName().sameAs(directory)) {
                 out << "    " << it.first << std::endl;
@@ -116,7 +114,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     out << std::endl;
     size_t cnt3 = 0;
     out << "Index files to be deleted:" << std::endl;
-    for (const auto& it : indexUsage_) { // <std::string, size_t>
+    for (const auto& it : indexUsage_) {  // <std::string, size_t>
         if (it.second == 0) {
             out << "    " << it.first << std::endl;
             cnt3++;
@@ -141,7 +139,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
 
     const eckit::PathName directory((currentCatalogue)->basePath());
 
-    for (const auto& it : indexStats_) { // <Index, IndexStats>
+    for (const auto& it : indexStats_) {  // <Index, IndexStats>
 
         const fdb5::IndexStats& stats = it.second;
 
@@ -154,7 +152,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         }
     }
 
-    for (const auto& it : dataUsage_) { // <std::string, size_t>
+    for (const auto& it : dataUsage_) {  // <std::string, size_t>
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
@@ -163,16 +161,16 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         }
     }
 
-    for (const auto& it : indexUsage_) { // <std::string, size_t>
+    for (const auto& it : indexUsage_) {  // <std::string, size_t>
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
                 currentCatalogue->remove(path, logAlways, logVerbose, doit);
             }
-       }
+        }
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -42,8 +42,7 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
     return cfg;
 }
 
-Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config) {
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig) : LocalConfiguration(config) {
     initializeSchemaPath();
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
@@ -180,8 +179,7 @@ mode_t Config::umask() const {
     if (has("permissions")) {
         return FileMode(getString("permissions")).mask();
     }
-    static eckit::FileMode fdbFileMode(
-        eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
 

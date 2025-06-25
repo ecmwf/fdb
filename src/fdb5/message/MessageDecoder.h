@@ -17,9 +17,11 @@
 #define fdb5_MessageDecoder_H
 
 
-#include "eckit/io/Buffer.h"
-#include "metkit/mars/MarsRequest.h"
 #include <vector>
+
+#include "eckit/io/Buffer.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 struct grib_handle;
 
@@ -31,8 +33,8 @@ namespace metkit {
 namespace data {
 class Reader;
 class Message;
-}
-}
+}  // namespace data
+}  // namespace metkit
 
 #include "fdb5/database/Key.h"
 
@@ -49,9 +51,10 @@ public:
     virtual ~MessageDecoder();
 
     static Key messageToKey(const eckit::message::Message& msg);
-    void messageToKey(const eckit::message::Message& msg, Key &key);
-    metkit::mars::MarsRequest messageToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-    std::vector<metkit::mars::MarsRequest> messageToRequests(const eckit::PathName &path, const char *verb = "retrieve");
+    void messageToKey(const eckit::message::Message& msg, Key& key);
+    metkit::mars::MarsRequest messageToRequest(const eckit::PathName& path, const char* verb = "retrieve");
+    std::vector<metkit::mars::MarsRequest> messageToRequests(const eckit::PathName& path,
+                                                             const char* verb = "retrieve");
 
 
 private:
@@ -65,6 +68,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

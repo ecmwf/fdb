@@ -15,17 +15,17 @@
 /// @author Tiago Quintino
 /// @date   Sept 2016
 
+#include "fdb5/pmem/PIndexRoot.h"
+
 #include <unistd.h>
+#include "pmem/PoolRegistry.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/pmem/PIndexRoot.h"
-#include "fdb5/pmem/MemoryBufferStream.h"
 #include "fdb5/config/Config.h"
-
-#include "pmem/PoolRegistry.h"
+#include "fdb5/pmem/MemoryBufferStream.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -36,8 +36,7 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PIndexRoot::PIndexRoot(const PersistentPtr<PersistentBuffer>& key,
-                       const PersistentPtr<PersistentString>& schema,
+PIndexRoot::PIndexRoot(const PersistentPtr<PersistentBuffer>& key, const PersistentPtr<PersistentString>& schema,
                        const PersistentPtr<PBranchingNode>& rootNode) :
     tag_(PIndexRootTag),
     version_(PIndexRootVersion),
@@ -182,5 +181,5 @@ void PIndexRoot::print(std::ostream& s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

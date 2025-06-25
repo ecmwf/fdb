@@ -13,15 +13,16 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/pmem/PMemIndex.h"
+
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/pmem/PMemStats.h"
-#include "fdb5/pmem/PMemIndex.h"
+#include "fdb5/pmem/MemoryBufferStream.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/pmem/MemoryBufferStream.h"
+#include "fdb5/pmem/PMemStats.h"
 
 using namespace eckit;
 
@@ -32,9 +33,8 @@ namespace pmem {
 //-----------------------------------------------------------------------------
 
 
-PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
-    IndexBase(key, type),
-    location_(node, mgr) {
+PMemIndex::PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
+    IndexBase(key, type), location_(node, mgr) {
 
     if (!location_.node().axis_.null()) {
 
@@ -55,7 +55,7 @@ void PMemIndex::visit(IndexLocationVisitor& visitor) const {
 }
 
 
-bool PMemIndex::get(const Key &key, Field &field) const {
+bool PMemIndex::get(const Key& key, Field& field) const {
 
     ::pmem::PersistentPtr<PDataNode> node = location_.node().getDataNode(key, location_.pool_manager());
 
@@ -80,21 +80,20 @@ void PMemIndex::close() {
     // Intentionally left blank. Indices neither opened nor closed (part of open DB).
 }
 
-void PMemIndex::add(const Key &key, const Field &field) {
+void PMemIndex::add(const Key& key, const Field& field) {
 
     struct Inserter : FieldLocationVisitor {
         Inserter(PBranchingNode& indexNode, const Key& key, DataPoolManager& poolManager) :
-            indexNode_(indexNode),
-            key_(key),
-            poolManager_(poolManager) {}
+            indexNode_(indexNode), key_(key), poolManager_(poolManager) {}
 
-        virtual void operator() (const FieldLocation& location) {
+        virtual void operator()(const FieldLocation& location) {
 
-            const PMemFieldLocation& ploc = dynamic_cast<const PMemFieldLocation& >( location);
+            const PMemFieldLocation& ploc = dynamic_cast<const PMemFieldLocation&>(location);
             indexNode_.insertDataNode(key_, ploc.node(), poolManager_);
         }
 
     private:
+
         PBranchingNode& indexNode_;
         const Key& key_;
         DataPoolManager& poolManager_;
@@ -128,11 +127,11 @@ void PMemIndex::encode(Stream& s) const {
     NOTIMP;
 }
 
-void PMemIndex::entries(EntryVisitor &visitor) const {
+void PMemIndex::entries(EntryVisitor& visitor) const {
     NOTIMP;
 }
 
-void PMemIndex::print(std::ostream &out) const {
+void PMemIndex::print(std::ostream& out) const {
     out << "PMemIndex[]";
 }
 
@@ -156,8 +155,7 @@ void PMemIndex::dump(std::ostream& out, const char* indent, bool simple, bool du
     NOTIMP;
 }
 
-IndexStats PMemIndex::statistics() const
-{
+IndexStats PMemIndex::statistics() const {
     IndexStats s(new PMemIndexStats());
 
     NOTIMP;
@@ -173,5 +171,5 @@ bool PMemIndex::dirty() const {
 
 //-----------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

@@ -14,35 +14,46 @@
 /// @author Simon Smart
 /// @date   Feb 2016
 
+#include "fdb5/pmem/Pool.h"
+
+#include "pmem/Exceptions.h"
+#include "pmem/PersistentPtr.h"
+
 #include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 
-#include "pmem/PersistentPtr.h"
-#include "pmem/Exceptions.h"
-
+#include "fdb5/LibFdb5.h"
 #include "fdb5/pmem/PBaseNode.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataRoot.h"
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/PRoot.h"
-#include "fdb5/pmem/Pool.h"
-#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 using namespace pmem;
 
 
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PRoot>::type_id = POBJ_ROOT_TYPE_NUM;
 
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PBaseNode>::type_id = 1;
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PBranchingNode>::type_id = 2;
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PDataNode>::type_id = 3;
-template<> uint64_t pmem::PersistentType<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
-template<> uint64_t pmem::PersistentType<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
-template<> uint64_t pmem::PersistentType<pmem::PersistentBuffer>::type_id = 6;
-template<> uint64_t pmem::PersistentType<pmem::PersistentString>::type_id = 7;
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PIndexRoot>::type_id = 8;
-template<> uint64_t pmem::PersistentType<fdb5::pmem::PDataRoot>::type_id = 9;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PBaseNode>::type_id = 1;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PBranchingNode>::type_id = 2;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PDataNode>::type_id = 3;
+template <>
+uint64_t pmem::PersistentType<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
+template <>
+uint64_t pmem::PersistentType<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
+template <>
+uint64_t pmem::PersistentType<pmem::PersistentBuffer>::type_id = 6;
+template <>
+uint64_t pmem::PersistentType<pmem::PersistentString>::type_id = 7;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PIndexRoot>::type_id = 8;
+template <>
+uint64_t pmem::PersistentType<fdb5::pmem::PDataRoot>::type_id = 9;
 
 
 // --------------------------------------------------------------------------------------------------
@@ -52,8 +63,7 @@ namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-Pool::Pool(const PathName& path, const std::string& name) :
-    PersistentPool(path, name) {
+Pool::Pool(const PathName& path, const std::string& name) : PersistentPool(path, name) {
 
     ASSERT(baseRoot().valid());
     ASSERT(baseRoot()->valid());
@@ -63,10 +73,8 @@ Pool::Pool(const PathName& path, const std::string& name) :
 }
 
 
-
-
 Pool::Pool(const PathName& path, const size_t size, const std::string& name,
-                   const AtomicConstructor<PRoot>& constructor) :
+           const AtomicConstructor<PRoot>& constructor) :
     PersistentPool(path, size, name, constructor) {}
 
 
@@ -96,7 +104,7 @@ Pool* Pool::obtain(const PathName& poolDir, const size_t size, const Key& dbKey,
     Pool* pool = 0;
 
 
-    if(exists(poolDir)) {
+    if (exists(poolDir)) {
         LOG_DEBUG_LIB(LibFdb5) << "Opening FDB PMem master pool  " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), "pmem-pool");
     }
@@ -111,12 +119,12 @@ Pool* Pool::obtain(const PathName& poolDir, const size_t size, const Key& dbKey,
 }
 
 
-bool Pool::exists(const PathName &poolDir) {
+bool Pool::exists(const PathName& poolDir) {
     return poolMaster(poolDir).exists();
 }
 
 
-eckit::PathName Pool::poolMaster(const PathName &poolDir) {
+eckit::PathName Pool::poolMaster(const PathName& poolDir) {
 
     return poolDir / "master";
 }
@@ -144,5 +152,5 @@ PIndexRoot& Pool::root() const {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace tree
+}  // namespace pmem
+}  // namespace fdb5

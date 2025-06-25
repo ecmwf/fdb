@@ -24,30 +24,25 @@ namespace fdb5 {
 
 class TypeAbbreviation : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeAbbreviation(const std::string &name, const std::string &type);
+    TypeAbbreviation(const std::string& name, const std::string& type);
 
     virtual ~TypeAbbreviation() override;
 
-    virtual std::string toKey(const std::string& keyword,
-                              const std::string& value) const override;
+    virtual std::string toKey(const std::string& keyword, const std::string& value) const override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const DB *db) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const DB* db) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
     size_t count_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

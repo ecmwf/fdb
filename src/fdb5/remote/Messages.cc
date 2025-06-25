@@ -15,7 +15,7 @@
 
 #include "fdb5/remote/Messages.h"
 
-//#include "eckit/serialisation/Stream.h"
+// #include "eckit/serialisation/Stream.h"
 
 using namespace eckit;
 
@@ -25,33 +25,33 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//ClassSpec MessageHeader::classSpec_ = {&MessageHeader::classSpec(), "MessageHeader",};
-//Reanimator<MessageHeader> MessageHeader::reanimator_;
+// ClassSpec MessageHeader::classSpec_ = {&MessageHeader::classSpec(), "MessageHeader",};
+// Reanimator<MessageHeader> MessageHeader::reanimator_;
 //
 //
-//MessageHeader::MessageHeader(Message message, uint16_t payloadSize=0) :
-//    marker(StartMarker),
-//    version(CurrentVersion),
-//    message(message),
-//    payloadSize(payloadSize) {}
+// MessageHeader::MessageHeader(Message message, uint16_t payloadSize=0) :
+//     marker(StartMarker),
+//     version(CurrentVersion),
+//     message(message),
+//     payloadSize(payloadSize) {}
 //
-//MessageHeader::MessageHeader(Stream &s) :
-//    marker(s) {
-//    s >> version;
-//    uint16_t tmp;
-//    s >> tmp;
-//    message = static_cast<Message>(tmp);
-//    s >> payloadSize;
-//}
+// MessageHeader::MessageHeader(Stream &s) :
+//     marker(s) {
+//     s >> version;
+//     uint16_t tmp;
+//     s >> tmp;
+//     message = static_cast<Message>(tmp);
+//     s >> payloadSize;
+// }
 //
-//void MessageHeader::encode(Stream &s) const {
-//    s << marker;
-//    s << version;
-//    s << static_cast<uint16_t>(message);
-//    s << payloadSize;
-//}
+// void MessageHeader::encode(Stream &s) const {
+//     s << marker;
+//     s << version;
+//     s << static_cast<uint16_t>(message);
+//     s << payloadSize;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5

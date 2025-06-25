@@ -13,6 +13,8 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/remote/Handler.h"
+
 #include <chrono>
 
 #include "eckit/config/Resource.h"
@@ -25,11 +27,10 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/fdb5_version.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/fdb5_version.h"
 #include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 
@@ -44,6 +45,7 @@ namespace remote {
 namespace {
 class TCPException : public Exception {
 public:
+
     TCPException(const std::string& msg, const CodeLocation& here) :
         Exception(std::string("TCPException: ") + msg, here) {}
 };
@@ -88,26 +90,21 @@ struct BaseHelper {
 };
 
 struct ListHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.list(request);
-    }
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.list(request); }
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.inspect(request.request());
-    }
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.inspect(request.request()); }
 };
 
 
 struct DumpHelper : public BaseHelper<DumpElement> {
     void extraDecode(eckit::Stream& s) { s >> simple_; }
 
-    DumpIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.dump(request, simple_);
-    }
+    DumpIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.dump(request, simple_); }
 
 private:
+
     bool simple_;
 };
 
@@ -123,21 +120,18 @@ struct PurgeHelper : public BaseHelper<PurgeElement> {
     }
 
 private:
+
     bool doit_;
     bool porcelain_;
 };
 
 
 struct StatsHelper : public BaseHelper<StatsElement> {
-    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.stats(request);
-    }
+    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.stats(request); }
 };
 
 struct StatusHelper : public BaseHelper<StatusElement> {
-    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.status(request);
-    }
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.status(request); }
 };
 
 struct WipeHelper : public BaseHelper<WipeElement> {
@@ -152,6 +146,7 @@ struct WipeHelper : public BaseHelper<WipeElement> {
     }
 
 private:
+
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;
@@ -168,6 +163,7 @@ struct ControlHelper : public BaseHelper<ControlElement> {
     }
 
 private:
+
     ControlAction action_;
     ControlIdentifiers identifiers_;
 };
@@ -203,13 +199,14 @@ RemoteHandler::~RemoteHandler() {
 
 eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-//    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
+    //    Add to the configuration all the components that require to be versioned, as in the following example, with a
+    //    vector of supported version numbers
     std::vector<int> remoteFieldLocationVersions = {1};
     conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }
 
-std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfiguration& c2, const std::string& field){
+std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfiguration& c2, const std::string& field) {
 
     std::vector<int> v1 = c1.getIntVector(field);
     std::vector<int> v2 = c2.getIntVector(field);
@@ -218,9 +215,7 @@ std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfigura
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
 
-    std::set_intersection(v1.begin(),v1.end(),
-                          v2.begin(),v2.end(),
-                          back_inserter(v3));
+    std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
     return v3;
 }
 
@@ -248,14 +243,16 @@ void RemoteHandler::initialiseConnections() {
 
     try {
         s1 >> remoteProtocolVersion;
-    } catch (...) {
+    }
+    catch (...) {
         errorMsg = "Error retrieving client protocol version";
     }
 
     if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
         std::stringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
-        ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr() << std::endl;
+        ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr()
+           << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
         errorMsg = ss.str();
     }
@@ -263,21 +260,23 @@ void RemoteHandler::initialiseConnections() {
     if (errorMsg.empty()) {
         LocalConfiguration clientAvailableFunctionality(s1);
         LocalConfiguration serverConf = availableFunctionality();
-        agreedConf_ = LocalConfiguration();
+        agreedConf_                   = LocalConfiguration();
 
         // agree on a common functionality by intersecting server and client version numbers
-         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-         if (rflCommon.size() > 0) {
-             LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
-             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
-         }
-         else {
-             std::stringstream ss;
-             ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client" << std::endl;
-             ss << "    server functionality: " << serverConf << std::endl;
-             ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
-             errorMsg = ss.str();
-         }
+        std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+        if (rflCommon.size() > 0) {
+            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back()
+                                   << std::endl;
+            agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+        }
+        else {
+            std::stringstream ss;
+            ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
+               << std::endl;
+            ss << "    server functionality: " << serverConf << std::endl;
+            ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
+            errorMsg = ss.str();
+        }
     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -303,7 +302,7 @@ void RemoteHandler::initialiseConnections() {
 
         s << agreedConf_.get();
 
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }
@@ -421,8 +420,7 @@ void RemoteHandler::handle() {
 
                 default: {
                     std::stringstream ss;
-                    ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
-                       << "). ABORTING";
+                    ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
                     Log::status() << ss.str() << std::endl;
                     Log::error() << "Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
@@ -455,16 +453,14 @@ int RemoteHandler::selectDataPort() {
     eckit::Log::info() << config_ << std::endl;
     if (config_.has("dataPortStart")) {
         ASSERT(config_.has("dataPortCount"));
-        return AvailablePortList(config_.getInt("dataPortStart"), config_.getLong("dataPortCount"))
-            .acquire();
+        return AvailablePortList(config_.getInt("dataPortStart"), config_.getLong("dataPortCount")).acquire();
     }
 
     // Use a system assigned port
     return 0;
 }
 
-void RemoteHandler::controlWrite(Message msg, uint32_t requestID, const void* payload,
-                                 uint32_t payloadLength) {
+void RemoteHandler::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
     MessageHeader message(msg, requestID, payloadLength);
@@ -493,8 +489,7 @@ void RemoteHandler::socketRead(void* data, size_t length, eckit::net::TCPSocket&
     }
 }
 
-void RemoteHandler::dataWrite(Message msg, uint32_t requestID, const void* payload,
-                              uint32_t payloadLength) {
+void RemoteHandler::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
     MessageHeader message(msg, requestID, payloadLength);
@@ -577,30 +572,29 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
 
     ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
 
-    workerThreads_.emplace(
-        hdr.requestID, std::async(std::launch::async, [request, hdr, helper, this]() {
-            try {
-                auto iterator = helper.apiCall(fdb_, request);
+    workerThreads_.emplace(hdr.requestID, std::async(std::launch::async, [request, hdr, helper, this]() {
+                               try {
+                                   auto iterator = helper.apiCall(fdb_, request);
 
-                typename decltype(iterator)::value_type elem;
-                while (iterator.next(elem)) {
-                    auto encoded(helper.encode(elem, *this));
-                    dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
-                }
+                                   typename decltype(iterator)::value_type elem;
+                                   while (iterator.next(elem)) {
+                                       auto encoded(helper.encode(elem, *this));
+                                       dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
+                                   }
 
-                dataWrite(Message::Complete, hdr.requestID);
-            }
-            catch (std::exception& e) {
-                // n.b. more general than eckit::Exception
-                std::string what(e.what());
-                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
-            }
-            catch (...) {
-                // We really don't want to std::terminate the thread
-                std::string what("Caught unexpected, unknown exception in worker");
-                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
-            }
-        }));
+                                   dataWrite(Message::Complete, hdr.requestID);
+                               }
+                               catch (std::exception& e) {
+                                   // n.b. more general than eckit::Exception
+                                   std::string what(e.what());
+                                   dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+                               }
+                               catch (...) {
+                                   // We really don't want to std::terminate the thread
+                                   std::string what("Caught unexpected, unknown exception in worker");
+                                   dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+                               }
+                           }));
 }
 
 
@@ -654,9 +648,8 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
                 if (elem.second) {
                     // Handle MultiBlob
 
-                    const char* firstData =
-                        static_cast<const char*>(elem.first.data());  // For pointer arithmetic
-                    const char* charData = firstData;
+                    const char* firstData = static_cast<const char*>(elem.first.data());  // For pointer arithmetic
+                    const char* charData  = firstData;
                     while (size_t(charData - firstData) < elem.first.size()) {
                         const MessageHeader* hdr =
                             static_cast<const MessageHeader*>(static_cast<const void*>(charData));
@@ -669,8 +662,8 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
                         const void* payloadData = charData;
                         charData += hdr->payloadSize;
 
-                        const decltype(EndMarker)* e = static_cast<const decltype(EndMarker)*>(
-                            static_cast<const void*>(charData));
+                        const decltype(EndMarker)* e =
+                            static_cast<const decltype(EndMarker)*>(static_cast<const void*>(charData));
                         ASSERT(*e == EndMarker);
                         charData += sizeof(EndMarker);
 
@@ -725,12 +718,10 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
             size_t sz = payload.size();
             LOG_DEBUG_LIB(LibFdb5) << "Queueing data: " << sz << std::endl;
-            size_t queuelen = queue.emplace(
-                std::make_pair(std::move(payload), hdr.message == Message::MultiBlob));
+            size_t queuelen = queue.emplace(std::make_pair(std::move(payload), hdr.message == Message::MultiBlob));
             Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
-            LOG_DEBUG_LIB(LibFdb5) << "Queued data (" << queuelen << ", size=" << sz << ")"
-                                  << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
         }
 
@@ -817,8 +808,7 @@ void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<ecki
         long dataRead;
 
         dh->openForRead();
-        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size() << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
             dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
@@ -826,8 +816,7 @@ void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<ecki
 
         // And when we are done, add a complete message.
 
-        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID
-                              << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID << std::endl;
 
         dataWrite(Message::Complete, requestID);
 

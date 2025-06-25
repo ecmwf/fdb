@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/tools/FDBTool.h"
+
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/tools/FDBTool.h"
 
 using eckit::Log;
 
@@ -36,8 +37,7 @@ static void usage(const std::string& tool) {
 void FDBTool::run() {
     options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
 
-    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
-                                minimumPositionalArguments());
+    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
 
     init(args);
@@ -79,8 +79,7 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
 FDBToolException::FDBToolException(const std::string& w) : Exception(w) {}
 
-FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 
 //----------------------------------------------------------------------------------------------------------------------

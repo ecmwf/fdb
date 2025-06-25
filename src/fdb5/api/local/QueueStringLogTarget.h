@@ -19,11 +19,11 @@
 #ifndef fdb5_api_local_QueueStringLogTarget_H
 #define fdb5_api_local_QueueStringLogTarget_H
 
+#include <string>
+
 #include "eckit/container/Queue.h"
 #include "eckit/log/Channel.h"
 #include "eckit/log/LineBasedTarget.h"
-
-#include <string>
 
 namespace fdb5 {
 namespace api {
@@ -38,18 +38,17 @@ public:
 
     QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
 
-    void line(const char* line) override {
-        queue_.emplace(std::string(line));
-    }
+    void line(const char* line) override { queue_.emplace(std::string(line)); }
 
-private: // members
+private:  // members
+
     eckit::Queue<std::string>& queue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

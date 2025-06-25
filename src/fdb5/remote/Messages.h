@@ -19,13 +19,13 @@
 #ifndef fdb5_remote_Messages_H
 #define fdb5_remote_Messages_H
 
-#include "eckit/types/FixedString.h"
-#include "eckit/serialisation/Streamable.h"
-
 #include <cstdint>
 
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/types/FixedString.h"
+
 namespace eckit {
-    class Stream;
+class Stream;
 }
 
 
@@ -34,8 +34,8 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const static eckit::FixedString<4> StartMarker {"SFDB"};
-const static eckit::FixedString<4> EndMarker {"EFDB"};
+const static eckit::FixedString<4> StartMarker{"SFDB"};
+const static eckit::FixedString<4> EndMarker{"EFDB"};
 
 constexpr uint16_t CurrentVersion = 9;
 
@@ -77,38 +77,34 @@ enum class Message : uint16_t {
 
 struct MessageHeader {
 
-public: // methods
+public:  // methods
 
-    MessageHeader() :
-        version(CurrentVersion),
-        message(Message::None),
-        requestID(0),
-        payloadSize(0) {}
+    MessageHeader() : version(CurrentVersion), message(Message::None), requestID(0), payloadSize(0) {}
 
-    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
+    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize = 0) :
         marker(StartMarker),
         version(CurrentVersion),
         message(message),
         requestID(requestID),
         payloadSize(payloadSize) {}
 
-    eckit::FixedString<4> marker;   // 4 bytes  --> 4
+    eckit::FixedString<4> marker;  // 4 bytes  --> 4
 
-    uint16_t version;               // 2 bytes  --> 6
+    uint16_t version;  // 2 bytes  --> 6
 
-    Message message;                // 2 bytes  --> 8
+    Message message;  // 2 bytes  --> 8
 
-    uint32_t requestID;             // 4 bytes  --> 12
+    uint32_t requestID;  // 4 bytes  --> 12
 
-    uint32_t payloadSize;           // 4 bytes  --> 16
+    uint32_t payloadSize;  // 4 bytes  --> 16
 
-    eckit::FixedString<16> hash;    // 16 bytes --> 32
+    eckit::FixedString<16> hash;  // 16 bytes --> 32
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5
 
-#endif // fdb5_remote_Messages_H
+#endif  // fdb5_remote_Messages_H

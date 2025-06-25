@@ -12,20 +12,19 @@
 /// @author Tiago Quintino
 /// @date   Nov 2016
 
-#include <algorithm>
-
 #include "fdb5/LibFdb5.h"
 
-#include "eckit/eckit_version.h"
+#include <algorithm>
+
 #include "eckit/config/LibEcKit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/eckit_version.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/fdb5_version.h"
-
 #include "fdb5/config/Config.h"
+#include "fdb5/fdb5_version.h"
 
 namespace fdb5 {
 
@@ -40,16 +39,17 @@ LibFdb5& LibFdb5::instance() {
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) { 
-    if(!config_) {
+const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) {
+    if (!config_) {
         Config cfg;
-        config_.reset( new Config( std::move(cfg.expandConfig()), userConfig ) );
+        config_.reset(new Config(std::move(cfg.expandConfig()), userConfig));
     }
     return *config_;
 }
 
 bool LibFdb5::dontDeregisterFactories() const {
-#if eckit_VERSION_MAJOR > 1 || (eckit_VERSION_MAJOR == 1 && (eckit_VERSION_MINOR > 17 || (eckit_VERSION_MINOR == 17 && eckit_VERSION_PATCH >0)))
+#if eckit_VERSION_MAJOR > 1 || \
+    (eckit_VERSION_MAJOR == 1 && (eckit_VERSION_MINOR > 17 || (eckit_VERSION_MINOR == 17 && eckit_VERSION_PATCH > 0)))
     return eckit::LibEcKit::instance().dontDeregisterFactories();
 #else
     return false;
@@ -82,7 +82,7 @@ static unsigned getUserEnvRemoteProtocol() {
         eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
     if (fdbRemoteProtocolVersion) {
         LOG_DEBUG_LIB(LibFdb5) << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
-                            << std::endl;
+                               << std::endl;
     }
     return 0;  // no version override
 }
@@ -92,10 +92,10 @@ static bool getUserEnvSkipSanityCheck() {
 }
 
 RemoteProtocolVersion::RemoteProtocolVersion() {
-    static unsigned  user = getUserEnvRemoteProtocol();
+    static unsigned user  = getUserEnvRemoteProtocol();
     static bool skipcheck = getUserEnvSkipSanityCheck();
 
-    if(not user) {
+    if (not user) {
         used_ = defaulted();
         return;
     }

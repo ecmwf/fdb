@@ -27,21 +27,19 @@ namespace tools {
 
 class FDBDump : public FDBVisitTool {
 
-public: // methods
+public:  // methods
 
-    FDBDump(int argc, char **argv) :
-        FDBVisitTool(argc, argv),
-        simple_(false) {
+    FDBDump(int argc, char** argv) : FDBVisitTool(argc, argv), simple_(false) {
 
         options_.push_back(new SimpleOption<bool>("simple", "Dump one (simpler) record per line"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void execute(const CmdArgs& args) override;
-    virtual void init(const CmdArgs &args) override;
+    virtual void init(const CmdArgs& args) override;
 
-private: // members
+private:  // members
 
     bool simple_;
 };
@@ -79,11 +77,10 @@ void FDBDump::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBDump app(argc, argv);
     return app.start();
 }
-

@@ -22,7 +22,8 @@ namespace fdb5 {
 
 class PurgeVisitor : public virtual StatsReportVisitor {
 
-public: // methods
+public:  // methods
+
     using StatsReportVisitor::StatsReportVisitor;
 
     // n.b. report is only called when either doit=false OR porcelain=false
@@ -33,6 +34,6 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_StatsReportVisitor_H
+#endif  // fdb5_StatsReportVisitor_H

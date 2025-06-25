@@ -16,9 +16,9 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
-#include <string>
 #include <map>
 #include <memory>
+#include <string>
 
 #include "eckit/memory/NonCopyable.h"
 
@@ -30,37 +30,36 @@ class Type;
 
 class TypesRegistry : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     TypesRegistry();
 
     ~TypesRegistry();
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    void addType(const std::string &, const std::string &);
+    void addType(const std::string&, const std::string&);
     void updateParent(std::shared_ptr<TypesRegistry> parent);
-    void dump( std::ostream &out ) const;
-    void dump( std::ostream &out, const std::string &keyword ) const;
+    void dump(std::ostream& out) const;
+    void dump(std::ostream& out, const std::string& keyword) const;
 
 
-private: // members
+private:  // members
 
-    typedef std::map<std::string, Type *> TypeMap;
+    typedef std::map<std::string, Type*> TypeMap;
 
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;
     std::shared_ptr<TypesRegistry> parent_;
 
-    friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
+    friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
 
-    void print( std::ostream &out ) const;
-
+    void print(std::ostream& out) const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

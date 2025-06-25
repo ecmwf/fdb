@@ -23,32 +23,34 @@ namespace fdb5 {
 
 class DaosCatalogueWriter : public DaosCatalogue, public CatalogueWriter {
 
-public: // methods
+public:  // methods
 
-    DaosCatalogueWriter(const Key &key, const fdb5::Config& config);
+    DaosCatalogueWriter(const Key& key, const fdb5::Config& config);
     DaosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
     virtual ~DaosCatalogueWriter() override;
 
-    void index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
+    void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 
     void reconsolidate() override { NOTIMP; }
 
     /// Mount an existing TocCatalogue, which has a different metadata key (within
     /// constraints) to allow on-line rebadging of data
     /// variableKeys: The keys that are allowed to differ between the two DBs
-    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override { NOTIMP; };
+    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override {
+        NOTIMP;
+    };
 
-//     // Hide the contents of the DB!!!
-//     void hideContents() override;
+    //     // Hide the contents of the DB!!!
+    //     void hideContents() override;
 
-//     bool enabled(const ControlIdentifier& controlIdentifier) const override;
+    //     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
     const Index& currentIndex() override;
 
-protected: // methods
+protected:  // methods
 
-    virtual bool selectIndex(const Key &key) override;
+    virtual bool selectIndex(const Key& key) override;
     virtual void deselectIndex() override;
 
     bool open() override { NOTIMP; }
@@ -58,26 +60,25 @@ protected: // methods
 
     void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
 
-    virtual void print( std::ostream &out ) const override { NOTIMP; }
+    virtual void print(std::ostream& out) const override { NOTIMP; }
 
-private: // methods
+private:  // methods
 
     void closeIndexes();
 
-private: // types
+private:  // types
 
-    typedef std::map< Key, Index> IndexStore;
+    typedef std::map<Key, Index> IndexStore;
 
-private: // members
+private:  // members
 
-    IndexStore  indexes_;
+    IndexStore indexes_;
 
     Index current_;
 
     bool firstIndexWrite_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

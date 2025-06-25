@@ -18,7 +18,9 @@
 
 #include "fdb5/database/WriteVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -30,35 +32,35 @@ class Schema;
 
 class BaseArchiveVisitor : public WriteVisitor {
 
-public: // methods
+public:  // methods
 
-    BaseArchiveVisitor(Archiver &owner, const Key &field);
+    BaseArchiveVisitor(Archiver& owner, const Key& field);
 
-protected: // methods
+protected:  // methods
 
-    virtual bool selectDatabase(const Key &key, const Key &full);
+    virtual bool selectDatabase(const Key& key, const Key& full);
 
-    virtual bool selectIndex(const Key &key, const Key &full);
+    virtual bool selectIndex(const Key& key, const Key& full);
 
-    virtual void checkMissingKeys(const Key &full);
+    virtual void checkMissingKeys(const Key& full);
 
     virtual const Schema& databaseSchema() const;
 
     fdb5::DB* current() const;
 
-protected: // members
+protected:  // members
 
     const Key& field_;
 
-private: // members
+private:  // members
 
-    Archiver &owner_;
+    Archiver& owner_;
 
     bool checkMissingKeysOnWrite_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -24,4 +24,4 @@ using ArchiveCallback = std::function<void(const Key&, const FieldLocation&)>;
 
 static const ArchiveCallback CALLBACK_NOOP = [](const Key&, const FieldLocation&) {};
 
-} // namespace fdb5
+}  // namespace fdb5

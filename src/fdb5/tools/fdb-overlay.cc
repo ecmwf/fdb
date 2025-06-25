@@ -12,10 +12,10 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/VectorOption.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 /*#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocDBReader.h"*/
@@ -32,34 +32,30 @@ namespace tools {
 
 class FdbOverlay : public FDBTool {
 
-public: // methods
+public:  // methods
 
-    FdbOverlay(int argc, char **argv) :
-        FDBTool(argc, argv),
-        variableKeys_{"class", "expver"},
-        remove_(false),
-        force_(false) {
-        options_.push_back(new VectorOption<std::string>("variable-keys",
-                                                         "The keys that may vary between mounted DBs",
-                                                         0, ","));
+    FdbOverlay(int argc, char** argv) :
+        FDBTool(argc, argv), variableKeys_{"class", "expver"}, remove_(false), force_(false) {
+        options_.push_back(
+            new VectorOption<std::string>("variable-keys", "The keys that may vary between mounted DBs", 0, ","));
         options_.push_back(new SimpleOption<bool>("remove", "Remove a previously FDB overlay"));
         options_.push_back(new SimpleOption<bool>("force", "Apply overlay even if target already exists"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void init(const option::CmdArgs& args);
     virtual void execute(const option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-private: // members
+private:  // members
 
     std::vector<std::string> variableKeys_;
     bool remove_;
     bool force_;
 };
 
-void FdbOverlay::usage(const std::string &tool) const {
+void FdbOverlay::usage(const std::string& tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [source DB request] [target DB request]" << std::endl
@@ -72,7 +68,7 @@ void FdbOverlay::init(const option::CmdArgs& args) {
     FDBTool::init(args);
     args.get("variable-keys", variableKeys_);
     remove_ = args.getBool("remove", false);
-    force_ = args.getBool("force", false);
+    force_  = args.getBool("force", false);
 }
 
 void FdbOverlay::execute(const option::CmdArgs& args) {
@@ -92,7 +88,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(!sourceRequest.all());
     ASSERT(!targetRequest.all());
 
-    Config conf = config(args);
+    Config conf          = config(args);
     const Schema& schema = conf.schema();
 
     Key source;
@@ -102,7 +98,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     if (remove_) {
         Log::info() << "Removing " << source << " from " << target << std::endl;
-    } else {
+    }
+    else {
         Log::info() << "Applying " << source << " onto " << target << std::endl;
     }
 
@@ -144,7 +141,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
             ss << "Target database must already already exist: " << target << std::endl;
             throw UserError(ss.str(), Here());
         }
-    } else {
+    }
+    else {
         if (dbTarget->exists() && !force_) {
             std::stringstream ss;
             ss << "Target database already exists: " << target << std::endl;
@@ -160,20 +158,20 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     // This only works for tocDBs
 
-/*    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
-    TocDBWriter* tocTargetDB = dynamic_cast<TocDBWriter*>(newDB.get());
-    ASSERT(tocSourceDB);
-    ASSERT(tocTargetDB);*/
+    /*    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
+        TocDBWriter* tocTargetDB = dynamic_cast<TocDBWriter*>(newDB.get());
+        ASSERT(tocSourceDB);
+        ASSERT(tocTargetDB);*/
 
     newDB->overlayDB(*dbSource, vkeys, remove_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fbb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbOverlay app(argc, argv);
     return app.start();
 }

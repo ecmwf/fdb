@@ -15,8 +15,8 @@
 
 #include "eckit/io/DataHandle.h"
 
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
@@ -28,7 +28,7 @@ class DaosArrayName;
 
 class DaosArrayHandle : public eckit::DataHandle {
 
-public: // methods
+public:  // methods
 
     DaosArrayHandle(const fdb5::DaosArrayName&);
 
@@ -63,11 +63,11 @@ public: // methods
 
     // static const ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
+private:  // methods
 
     fdb5::DaosSession& session();
 
-private: // members
+private:  // members
 
     // mutable because title() calls DaosArrayName::asString which may update (generate) OID
     mutable fdb5::DaosArrayName name_;
@@ -78,7 +78,6 @@ private: // members
 
     // static ClassSpec classSpec_;
     // static Reanimator<DataHandle> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

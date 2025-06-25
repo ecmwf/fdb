@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/AxesIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 
 
 namespace fdb5 {
@@ -28,21 +28,19 @@ namespace local {
 class AxesVisitor : public QueryVisitor<AxesElement> {
 public:
 
-    AxesVisitor(eckit::Queue<AxesElement>& queue,
-                const metkit::mars::MarsRequest& request,
-                const Config& config,
+    AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, const Config& config,
                 int level);
 
     bool visitIndexes() override { return true; }
     bool visitEntries() override { return false; }
     void catalogueComplete(const fdb5::Catalogue& catalogue) override;
 
-//    bool preVisitDatabase(const eckit::URI& uri) override;
+    //    bool preVisitDatabase(const eckit::URI& uri) override;
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index&) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
-private: // members
+private:  // members
 
     Key dbKey_;
     IndexAxis axes_;
@@ -52,6 +50,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

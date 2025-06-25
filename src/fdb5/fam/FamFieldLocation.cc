@@ -16,6 +16,7 @@
 #include "fdb5/fam/FamFieldLocation.h"
 
 #include "eckit/io/fam/FamObjectName.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fam/FamCommon.h"
 
@@ -29,17 +30,16 @@ static const FieldLocationBuilder<FamFieldLocation> builder(FamCommon::typeName)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamFieldLocation::FamFieldLocation(const eckit::URI& uri): FieldLocation(uri) { }
+FamFieldLocation::FamFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
-FamFieldLocation::FamFieldLocation(const eckit::URI&    uri,
-                                   const eckit::Offset& offset,
-                                   const eckit::Length& length,
-                                   const Key&           remapKey): FieldLocation(uri, offset, length, remapKey) { }
+FamFieldLocation::FamFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
+                                   const Key& remapKey) :
+    FieldLocation(uri, offset, length, remapKey) {}
 
-FamFieldLocation::FamFieldLocation(const FamFieldLocation& rhs):
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) { }
+FamFieldLocation::FamFieldLocation(const FamFieldLocation& rhs) :
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-FamFieldLocation::FamFieldLocation(eckit::Stream& stream): FieldLocation(stream) { }
+FamFieldLocation::FamFieldLocation(eckit::Stream& stream) : FieldLocation(stream) {}
 
 std::shared_ptr<FieldLocation> FamFieldLocation::make_shared() const {
     return std::make_shared<FamFieldLocation>(*this);

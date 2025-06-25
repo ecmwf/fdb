@@ -14,7 +14,9 @@
 #ifndef fdb5_remote_RemoteConfiguration_H
 #define fdb5_remote_RemoteConfiguration_H
 
-namespace eckit { class Stream; }
+namespace eckit {
+class Stream;
+}
 
 namespace fdb5 {
 
@@ -61,6 +63,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_remote_RemoteFDB_H
+#endif  // fdb5_remote_RemoteFDB_H

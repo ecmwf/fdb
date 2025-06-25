@@ -21,17 +21,16 @@
 #define fdb5_PMemDBStats_H
 
 #include <iosfwd>
+#include <unordered_map>
+#include <unordered_set>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/DataStats.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/StatsReportVisitor.h"
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/PathName.h"
-
-#include <unordered_set>
-#include <unordered_map>
 
 namespace fdb5 {
 
@@ -61,22 +60,22 @@ public:
     size_t indexPoolsCount_;
     size_t indexesCount_;
 
-    PMemDbStats& operator+= (const PMemDbStats &rhs) ;
+    PMemDbStats& operator+=(const PMemDbStats& rhs);
 
     virtual void add(const DbStatsContent&);
-    virtual void report(std::ostream &out, const char* indent = "") const;
+    virtual void report(std::ostream& out, const char* indent = "") const;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     virtual void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
-    static eckit::ClassSpec                 classSpec_;
-    static eckit::Reanimator<PMemDbStats>   reanimator_;
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<PMemDbStats> reanimator_;
 };
 
 
@@ -95,7 +94,7 @@ public:
     unsigned long long fieldsSize_;
     unsigned long long duplicatesSize_;
 
-    PMemIndexStats& operator+= (const PMemIndexStats& rhs);
+    PMemIndexStats& operator+=(const PMemIndexStats& rhs);
 
     virtual size_t fieldsCount() const { return fieldsCount_; }
     virtual size_t duplicatesCount() const { return duplicatesCount_; }
@@ -103,26 +102,38 @@ public:
     virtual size_t fieldsSize() const { return fieldsSize_; }
     virtual size_t duplicatesSize() const { return duplicatesSize_; }
 
-    virtual size_t addFieldsCount(size_t i) { fieldsCount_ += i; return fieldsCount_; }
-    virtual size_t addDuplicatesCount(size_t i) { duplicatesCount_ += i; return duplicatesCount_; }
+    virtual size_t addFieldsCount(size_t i) {
+        fieldsCount_ += i;
+        return fieldsCount_;
+    }
+    virtual size_t addDuplicatesCount(size_t i) {
+        duplicatesCount_ += i;
+        return duplicatesCount_;
+    }
 
-    virtual size_t addFieldsSize(size_t i) { fieldsSize_ += i; return fieldsSize_; }
-    virtual size_t addDuplicatesSize(size_t i) { duplicatesSize_ += i; return duplicatesSize_; }
+    virtual size_t addFieldsSize(size_t i) {
+        fieldsSize_ += i;
+        return fieldsSize_;
+    }
+    virtual size_t addDuplicatesSize(size_t i) {
+        duplicatesSize_ += i;
+        return duplicatesSize_;
+    }
 
     virtual void add(const IndexStatsContent&);
 
-    virtual void report(std::ostream &out, const char* indent) const;
+    virtual void report(std::ostream& out, const char* indent) const;
 
-public: // For Streamable
+public:  // For Streamable
 
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     virtual void encode(eckit::Stream&) const override;
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
-    static eckit::ClassSpec                  classSpec_;
+    static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<PMemIndexStats> reanimator_;
 };
 
@@ -135,11 +146,11 @@ public:
 
     PMemDataStats();
 
-    PMemDataStats& operator+= (const PMemDataStats& rhs);
+    PMemDataStats& operator+=(const PMemDataStats& rhs);
 
     virtual void add(const DataStatsContent&);
 
-    virtual void report(std::ostream &out, const char* indent) const;
+    virtual void report(std::ostream& out, const char* indent) const;
 };
 
 
@@ -153,12 +164,12 @@ public:
     virtual ~PMemStatsReportVisitor() override;
 
     virtual IndexStats indexStatistics() const;
-    virtual DbStats    dbStatistics() const;
+    virtual DbStats dbStatistics() const;
 
-private: // methods
+private:  // methods
 
 
-private: // methods
+private:  // methods
 
     bool visitDatabase(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
@@ -167,7 +178,7 @@ private: // methods
     // This visitor is only legit for one DB - so don't reset database
     void databaseComplete(const DB& db) override;
 
-protected: // members
+protected:  // members
 
     std::unordered_set<std::string> allDataPools_;
     std::unordered_set<std::string> allIndexPools_;
@@ -187,7 +198,7 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 #endif

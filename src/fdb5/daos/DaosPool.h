@@ -15,12 +15,11 @@
 
 #include <daos.h>
 
-#include <string>
 #include <deque>
+#include <string>
 
-#include "fdb5/daos/UUID.h"
 #include "fdb5/daos/DaosContainer.h"
-
+#include "fdb5/daos/UUID.h"
 #include "fdb5/fdb5_config.h"
 
 namespace fdb5 {
@@ -33,7 +32,7 @@ class DaosSession;
 
 class DaosPool {
 
-public: // methods
+public:  // methods
 
     DaosPool(DaosPool&&) noexcept;
     ~DaosPool();
@@ -54,12 +53,12 @@ public: // methods
     std::vector<std::string> listContainers();
 
     const daos_handle_t& getOpenHandle();
-    
+
     std::string name() const;
     const fdb5::UUID& uuid() const;
     std::string label() const;
 
-private: // methods
+private:  // methods
 
     friend class DaosSession;
 
@@ -74,13 +73,13 @@ private: // methods
 
     fdb5::DaosContainer& getContainer(const std::string&, bool);
 
-    void closeContainers();    
+    void closeContainers();
 
     bool exists();
 
     ContainerCache::iterator getCachedContainer(const std::string&);
 
-private: // members
+private:  // members
 
     fdb5::UUID uuid_;
     bool known_uuid_;
@@ -89,22 +88,20 @@ private: // members
     bool open_;
 
     ContainerCache cont_cache_;
-
 };
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
 class AutoPoolDestroy {
 
-public: // methods
+public:  // methods
 
     AutoPoolDestroy(fdb5::DaosPool& pool) : pool_(pool) {}
 
     ~AutoPoolDestroy() noexcept(false);
 
-private: // members
+private:  // members
 
     fdb5::DaosPool& pool_;
-
 };
 #endif
 

@@ -29,48 +29,45 @@ namespace fdb5 {
 
 class PMemEngine : public fdb5::Engine {
 
-public: // methods
+public:  // methods
 
     static const char* typeName() { return "pmem"; }
 
-    static std::vector<eckit::PathName> databases(const Key& key,
-                                                  const std::vector<eckit::PathName>& dirs,
+    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
     static std::vector<eckit::PathName> databases(const metkit::mars::MarsRequest& request,
-                                                  const std::vector<eckit::PathName>& dirs,
+                                                  const std::vector<eckit::PathName>& dirs, const Config& config);
+
+private:  // methods
+
+    static std::vector<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
-private: // methods
-
-    static std::vector<eckit::PathName> databases(const std::set<Key>& keys,
-                                                  const std::vector<eckit::PathName>& dirs,
-                                                  const Config& config);
-
-protected: // methods
+protected:  // methods
 
     virtual std::string name() const;
 
     virtual std::string dbType() const;
 
-    virtual eckit::PathName location(const Key &key, const Config& config) const;
+    virtual eckit::PathName location(const Key& key, const Config& config) const;
 
     virtual bool canHandle(const eckit::PathName& path) const;
 
     virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
-    virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const;
+    virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                                            const Config& config) const;
 
     virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 
-    virtual void print( std::ostream &out ) const override;
-
+    virtual void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

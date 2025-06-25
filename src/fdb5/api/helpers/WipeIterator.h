@@ -19,9 +19,9 @@
 #ifndef fdb5_api_WipeIterator_H
 #define fdb5_api_WipeIterator_H
 
-#include "fdb5/api/helpers/APIIterator.h"
-
 #include <string>
+
+#include "fdb5/api/helpers/APIIterator.h"
 
 /*
  * Define a standard object which can be used to iterate the results of a
@@ -42,6 +42,6 @@ using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

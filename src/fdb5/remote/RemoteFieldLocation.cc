@@ -14,21 +14,25 @@
  */
 
 #include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/api/RemoteFDB.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URIManager.h"
 
+#include "fdb5/api/RemoteFDB.h"
+
 namespace fdb5 {
 namespace remote {
 
-::eckit::ClassSpec RemoteFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "RemoteFieldLocation",};
+::eckit::ClassSpec RemoteFieldLocation::classSpec_ = {
+    &FieldLocation::classSpec(),
+    "RemoteFieldLocation",
+};
 ::eckit::Reanimator<RemoteFieldLocation> RemoteFieldLocation::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI("fdb", remoteFDB->controlEndpoint().host(),  remoteFDB->controlEndpoint().port())),
+    FieldLocation(eckit::URI("fdb", remoteFDB->controlEndpoint().host(), remoteFDB->controlEndpoint().port())),
     remoteFDB_(remoteFDB),
     internal_(remoteLocation.make_shared()) {
     ASSERT(remoteFDB);
@@ -39,18 +43,17 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
     FieldLocation(eckit::URI("fdb://" + uri.hostport())),
     internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri))) {}
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset,
+                                         const eckit::Length& length, const Key& remapKey) :
     FieldLocation(eckit::URI("fdb://" + uri.hostport())),
-    internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
+    internal_(std::shared_ptr<FieldLocation>(
+        FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
-    FieldLocation(s),
-    internal_(std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
+    FieldLocation(s), internal_(std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
-    FieldLocation(rhs.uri_),
-    remoteFDB_(rhs.remoteFDB_),
-    internal_(rhs.internal_) {}
+    FieldLocation(rhs.uri_), remoteFDB_(rhs.remoteFDB_), internal_(rhs.internal_) {}
 
 
 std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
@@ -97,7 +100,8 @@ class FdbURIManager : public eckit::URIManager {
 
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol,
+                                             const eckit::LengthList& ll) override {
         return f.path().partHandle(ol, ll);
     }
 
@@ -111,11 +115,13 @@ class FdbURIManager : public eckit::URIManager {
 
         return uri.name() + q + f;
     }
+
 public:
+
     FdbURIManager(const std::string& name) : eckit::URIManager(name) {}
 };
 
 static FdbURIManager manager_fdb_file("fdb");
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5

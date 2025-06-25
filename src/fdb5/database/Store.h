@@ -35,34 +35,39 @@ public:
 
     virtual ~Store() {}
 
-    virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) = 0;
+    virtual eckit::DataHandle* retrieve(Field& field) const                                                = 0;
+    virtual std::unique_ptr<FieldLocation> archive(const Key& key, const void* data, eckit::Length length) = 0;
 
-    virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
+    virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose,
+                        bool doit = true) const = 0;
 
-    friend std::ostream &operator<<(std::ostream &s, const Store &x);
-    virtual void print( std::ostream &out ) const = 0;
+    friend std::ostream& operator<<(std::ostream& s, const Store& x);
+    virtual void print(std::ostream& out) const = 0;
 
     virtual std::string type() const = 0;
-    virtual bool open() = 0;
-    virtual void flush() = 0;
-    virtual void close() = 0;
+    virtual bool open()              = 0;
+    virtual void flush()             = 0;
+    virtual void close()             = 0;
 
-//    virtual std::string owner() const = 0;
-    virtual bool exists() const = 0;
+    //    virtual std::string owner() const = 0;
+    virtual bool exists() const   = 0;
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const { NOTIMP; }
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest,
+                        eckit::Queue<MoveElement>& queue) const {
+        NOTIMP;
+    }
     virtual void remove(const Key& key) const { NOTIMP; }
 
-    virtual eckit::URI uri() const = 0;
-    virtual bool uriBelongs(const eckit::URI&) const = 0;
-    virtual bool uriExists(const eckit::URI& uri) const = 0;
-    virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
+    virtual eckit::URI uri() const                                                          = 0;
+    virtual bool uriBelongs(const eckit::URI&) const                                        = 0;
+    virtual bool uriExists(const eckit::URI& uri) const                                     = 0;
+    virtual std::vector<eckit::URI> collocatedDataURIs() const                              = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
-protected: // members
+protected:  // members
+
     const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
 };
 
@@ -73,6 +78,7 @@ class StoreBuilderBase {
     std::string name_;
 
 public:
+
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
@@ -80,15 +86,19 @@ public:
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
-    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
+    virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override {
+        return std::unique_ptr<T>(new T(schema, key, config));
+    }
 
 public:
+
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
     virtual ~StoreBuilder() = default;
 };
 
 class StoreFactory {
 public:
+
     static StoreFactory& instance();
 
     void add(const std::string& name, StoreBuilderBase* builder);
@@ -104,11 +114,12 @@ public:
     std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
 
 private:
+
     StoreFactory();
 
     std::map<std::string, StoreBuilderBase*> builders_;
     eckit::Mutex mutex_;
 };
 
-}
+}  // namespace fdb5
 #endif  // fdb5_Store_H

@@ -10,9 +10,9 @@
 
 #include "fdb5/toc/FileSpace.h"
 
-#include "eckit/os/BackTrace.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/FileSpaceStrategies.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
@@ -84,22 +84,23 @@ bool FileSpace::match(const std::string& s) const {
 
 bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const {
     unsigned count = 0;
-    bool found = false;
+    bool found     = false;
 
-//    std::vector<const Root&> visitables = visitable();
+    //    std::vector<const Root&> visitables = visitable();
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->enabled(ControlIdentifier::List) && i->exists()) {
             eckit::PathName fullDB = i->path() / db;
-            eckit::PathName dbToc = i->path() / db / "toc";
+            eckit::PathName dbToc  = i->path() / db / "toc";
             if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
-                bool allowMultipleDbs = (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
-                if (!count || allowMultipleDbs) { // take last
-                    root.directory_ = i->path();
+                bool allowMultipleDbs =
+                    (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
+                if (!count || allowMultipleDbs) {  // take last
+                    root.directory_          = i->path();
                     root.controlIdentifiers_ = i->controlIdentifiers();
-                    found = true;
+                    found                    = true;
                 }
                 if (!allowMultipleDbs)
                     ++count;
@@ -117,14 +118,12 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
 
 void FileSpace::print(std::ostream& out) const {
     out << "FileSpace("
-        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_
-        << ")";
+        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_ << ")";
 }
 
 std::vector<eckit::PathName> FileSpace::roots() const {
     std::vector<eckit::PathName> result;
-    std::transform(roots_.begin(), roots_.end(), std::back_inserter(result),
-                   [](const Root& r) { return r.path(); });
+    std::transform(roots_.begin(), roots_.end(), std::back_inserter(result), [](const Root& r) { return r.path(); });
     return result;
 }
 

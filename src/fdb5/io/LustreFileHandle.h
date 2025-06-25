@@ -16,41 +16,30 @@
 #ifndef fdb5_io_LustreFileHandle_h
 #define fdb5_io_LustreFileHandle_h
 
-#include "fdb5/fdb5_config.h"
-
-#include "eckit/io/Length.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/filesystem/PathName.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Length.h"
+#include "eckit/log/Bytes.h"
 
-#include "fdb5/io/LustreSettings.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_config.h"
+#include "fdb5/io/LustreSettings.h"
 
 namespace fdb5 {
 
-template< class HANDLE >
+template <class HANDLE>
 class LustreFileHandle : public HANDLE {
 
-public: // methods
+public:  // methods
 
-    LustreFileHandle(const std::string& path, LustreStripe stripe) :
-        HANDLE(path),
-        stripe_(stripe)
-    {
-    }
+    LustreFileHandle(const std::string& path, LustreStripe stripe) : HANDLE(path), stripe_(stripe) {}
 
     LustreFileHandle(const std::string& path, size_t buffsize, LustreStripe stripe) :
-        HANDLE(path, buffsize),
-        stripe_(stripe)
-    {
-    }
+        HANDLE(path, buffsize), stripe_(stripe) {}
 
     LustreFileHandle(const std::string& path, size_t buffcount, size_t buffsize, LustreStripe stripe) :
-        HANDLE(path, buffcount, buffsize),
-        stripe_(stripe)
-    {
-    }
+        HANDLE(path, buffcount, buffsize), stripe_(stripe) {}
 
     virtual ~LustreFileHandle() override {}
 
@@ -58,42 +47,39 @@ public: // methods
 
         std::string path = HANDLE::path_;
 
-        if(eckit::PathName(path).exists()) return; //< Lustre API outputs ioctl error messages when called on files exist
+        if (eckit::PathName(path).exists())
+            return;  //< Lustre API outputs ioctl error messages when called on files exist
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << path
-                                    << " with " << stripe_.count_ << " stripes "
-                                    << "of " << eckit::Bytes(stripe_.size_)
-                                    << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << path << " with " << stripe_.count_ << " stripes "
+                               << "of " << eckit::Bytes(stripe_.size_) << std::endl;
 
         int err = fdb5LustreapiFileCreate(path.c_str(), stripe_);
 
-        if(err == EINVAL) {
+        if (err == EINVAL) {
 
             std::ostringstream oss;
             oss << "Invalid stripe parameters for Lustre file system"
-                << " - stripe count " << stripe_.count_
-                << " - stripe size "  << stripe_.size_;
+                << " - stripe count " << stripe_.count_ << " - stripe size " << stripe_.size_;
 
             throw eckit::BadParameter(oss.str(), Here());
         }
 
-        if(err && err != EEXIST && err != EALREADY) {
+        if (err && err != EEXIST && err != EALREADY) {
             throw eckit::FailedSystemCall("llapi_file_create", Here());
         }
 
         this->HANDLE::openForAppend(len);
     }
 
-private: // members
+private:  // members
 
     LustreStripe stripe_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

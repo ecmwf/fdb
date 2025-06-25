@@ -16,9 +16,8 @@
 
 #include "fdb5/pmem/PDataRoot.h"
 
-#include "pmem/PersistentPtr.h"
-
 #include <unistd.h>
+#include "pmem/PersistentPtr.h"
 
 using namespace eckit;
 
@@ -28,11 +27,7 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 PDataRoot::PDataRoot() :
-    tag_(PDataRootTag),
-    version_(PDataRootVersion),
-    created_(time(0)),
-    createdBy_(getuid()),
-    finalised_(false) {}
+    tag_(PDataRootTag), version_(PDataRootVersion), created_(time(0)), createdBy_(getuid()), finalised_(false) {}
 
 
 bool PDataRoot::valid() const {
@@ -70,5 +65,5 @@ void PDataRoot::print(std::ostream& s) const {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

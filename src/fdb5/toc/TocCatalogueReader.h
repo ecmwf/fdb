@@ -26,7 +26,7 @@ namespace fdb5 {
 
 class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 
-public: // methods
+public:  // methods
 
     TocCatalogueReader(const Key& key, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
@@ -36,24 +36,24 @@ public: // methods
     std::vector<Index> indexes(bool sorted) const override;
     DbStats stats() const override { return TocHandler::stats(); }
 
-private: // methods
+private:  // methods
 
     void loadIndexesAndRemap();
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const Key& key) override;
     void deselectIndex() override;
 
     bool open() override;
     void flush() override {}
     void clean() override {}
     void close() override;
-    
-    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
+
+    bool axis(const std::string& keyword, eckit::StringSet& s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print( std::ostream &out ) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
@@ -62,11 +62,10 @@ private: // members
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
     std::vector<std::pair<Index, Key>> indexes_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

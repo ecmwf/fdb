@@ -13,16 +13,16 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "ApiSpy.h"
+
 #include <cstdlib>
 
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/TypeAny.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-
-#include "ApiSpy.h"
+#include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -52,13 +52,13 @@ fdb5::Config defaultConfig() {
 
     fdb5::Config cfg;
     cfg.set("type", "select");
-    cfg.set("fdbs", { cfg_od, cfg_rd1, cfg_rd2 });
+    cfg.set("fdbs", {cfg_od, cfg_rd1, cfg_rd2});
 
     return cfg;
 }
 
 
-CASE( "archives_distributed_according_to_select" ) {
+CASE("archives_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -134,7 +134,7 @@ CASE( "archives_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().inspect == 0);
@@ -149,7 +149,7 @@ CASE( "archives_distributed_according_to_select" ) {
 }
 
 
-CASE( "retrieves_distributed_according_to_select" ) {
+CASE("retrieves_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -205,7 +205,7 @@ CASE( "retrieves_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -220,7 +220,7 @@ CASE( "retrieves_distributed_according_to_select" ) {
     }
 }
 
-CASE( "lists_distributed_according_to_select" ) {
+CASE("lists_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -271,7 +271,7 @@ CASE( "lists_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -287,7 +287,7 @@ CASE( "lists_distributed_according_to_select" ) {
 }
 
 
-CASE( "dump_distributed_according_to_select" ) {
+CASE("dump_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -338,7 +338,7 @@ CASE( "dump_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -353,7 +353,7 @@ CASE( "dump_distributed_according_to_select" ) {
     }
 }
 
-CASE( "status_distributed_according_to_select" ) {
+CASE("status_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -404,7 +404,7 @@ CASE( "status_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -420,7 +420,7 @@ CASE( "status_distributed_according_to_select" ) {
 }
 
 
-CASE( "wipe_distributed_according_to_select" ) {
+CASE("wipe_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -471,7 +471,7 @@ CASE( "wipe_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -487,7 +487,7 @@ CASE( "wipe_distributed_according_to_select" ) {
 }
 
 
-CASE( "purge_distributed_according_to_select" ) {
+CASE("purge_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -538,7 +538,7 @@ CASE( "purge_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -554,7 +554,7 @@ CASE( "purge_distributed_according_to_select" ) {
 }
 
 
-CASE( "stats_distributed_according_to_select" ) {
+CASE("stats_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -605,7 +605,7 @@ CASE( "stats_distributed_according_to_select" ) {
 
     // And unused functions
 
-    ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
+    ApiSpy* spies[] = {&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
@@ -621,7 +621,7 @@ CASE( "stats_distributed_according_to_select" ) {
 }
 
 
-CASE( "control_distributed_according_to_select" ) {
+CASE("control_distributed_according_to_select") {
 
     // Build FDB from default config
 
@@ -633,15 +633,15 @@ CASE( "control_distributed_according_to_select" ) {
 
     // Do some archiving
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0],
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy_od.counts().control == 1);
     EXPECT(spy_rd1.counts().control == 0);
     EXPECT(spy_rd2.counts().control == 0);
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0],
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0], fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
 
     EXPECT(spy_od.counts().control == 1);
     EXPECT(spy_rd1.counts().control == 1);
@@ -650,8 +650,8 @@ CASE( "control_distributed_according_to_select" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0],
-                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0], fdb5::ControlAction::Enable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
 
     EXPECT(spy_od.counts().control == 1);
     EXPECT(spy_rd1.counts().control == 1);
@@ -659,8 +659,8 @@ CASE( "control_distributed_according_to_select" ) {
 
     //// Now match all the rd lanes
 
-    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd")[0],
-                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
+    fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd")[0], fdb5::ControlAction::Enable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
 
     EXPECT(spy_od.counts().control == 1);
     EXPECT(spy_rd1.counts().control == 2);
@@ -668,8 +668,8 @@ CASE( "control_distributed_according_to_select" ) {
 
     // Explicitly match everything
 
-    fdb.control(fdb5::FDBToolRequest({}, true),
-                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+    fdb.control(fdb5::FDBToolRequest({}, true), fdb5::ControlAction::Disable,
+                fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy_od.counts().control == 2);
     EXPECT(spy_rd1.counts().control == 3);
@@ -695,7 +695,6 @@ CASE( "control_distributed_according_to_select" ) {
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

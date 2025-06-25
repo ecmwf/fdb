@@ -15,17 +15,18 @@
 /// @date   Sept 2016
 
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/thread/AutoLock.h"
-#include "eckit/config/Resource.h"
+#include "fdb5/pmem/DataPoolManager.h"
 
 #include "pmem/PersistentMutex.h"
 
-#include "fdb5/pmem/DataPoolManager.h"
-#include "fdb5/pmem/DataPool.h"
-#include "fdb5/pmem/Pool.h"
-#include "fdb5/pmem/PIndexRoot.h"
+#include "eckit/config/Resource.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/thread/AutoLock.h"
+
 #include "fdb5/LibFdb5.h"
+#include "fdb5/pmem/DataPool.h"
+#include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/Pool.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -37,10 +38,7 @@ namespace pmem {
 // ---------------------------------------------------------------------------------------------------------------------
 
 DataPoolManager::DataPoolManager(const PathName& poolDir, PIndexRoot& masterRoot, uint64_t rootUUID) :
-    poolDir_(poolDir),
-    masterRoot_(masterRoot),
-    masterUUID_(rootUUID),
-    currentPool_(0) {}
+    poolDir_(poolDir), masterRoot_(masterRoot), masterUUID_(rootUUID), currentPool_(0) {}
 
 
 DataPoolManager::~DataPoolManager() {
@@ -74,7 +72,7 @@ DataPool& DataPoolManager::currentWritePool() {
 
             // TODO: Given index, get UUID
             // TODO: Given UUID, have function that checks if it is in the pools_ list, and if not, open it.
-            size_t idx = pool_count - 1;
+            size_t idx  = pool_count - 1;
             size_t uuid = masterRoot_.dataPoolUUIDs_[idx];
             DataPool* pool;
 
@@ -83,9 +81,10 @@ DataPool& DataPoolManager::currentWritePool() {
                 LOG_DEBUG_LIB(LibFdb5) << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
                 pool = new DataPool(poolDir_, idx);
 
-                uuid = pool->uuid();
+                uuid         = pool->uuid();
                 pools_[uuid] = pool;
-            } else {
+            }
+            else {
                 pool = pools_[uuid];
             }
 
@@ -98,8 +97,10 @@ DataPool& DataPoolManager::currentWritePool() {
 
             size_t idx = pool_count;
 
-            LOG_DEBUG_LIB(LibFdb5) << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
-            currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize;$fdbPMemDataPoolSize", 1024 * 1024 * 1024));
+            LOG_DEBUG_LIB(LibFdb5) << "[" << *this << "]: " << "Creating a new data pool with index: " << idx
+                                   << std::endl;
+            currentPool_ = new DataPool(
+                poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize;$fdbPMemDataPoolSize", 1024 * 1024 * 1024));
             currentPool_->buildRoot();
 
             // Add pool to the list of opened pools
@@ -193,7 +194,6 @@ size_t DataPoolManager::dataPoolsCount() const {
 }
 
 
-
 size_t DataPoolManager::dataSize() {
 
     // Don't need to lock access to master pools list, as it is append only and always valid for read.
@@ -227,5 +227,5 @@ void DataPoolManager::print(std::ostream& s) const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

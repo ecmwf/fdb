@@ -14,8 +14,8 @@
 #ifndef fdb5_api_local_ControlVisitor_H
 #define fdb5_api_local_ControlVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 
 
 namespace fdb5 {
@@ -29,9 +29,7 @@ namespace local {
 class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
 
-    ControlVisitor(eckit::Queue<ControlElement>& queue,
-                   const metkit::mars::MarsRequest& request,
-                   ControlAction action,
+    ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request, ControlAction action,
                    ControlIdentifiers identifiers);
 
     bool visitIndexes() override { return false; }
@@ -41,7 +39,7 @@ public:
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
-private: // members
+private:  // members
 
     ControlAction action_;
     ControlIdentifiers identifiers_;
@@ -49,8 +47,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

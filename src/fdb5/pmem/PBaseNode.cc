@@ -14,11 +14,12 @@
 /// @author Simon Smart
 /// @date   Sep 2016
 
+#include "fdb5/pmem/PBaseNode.h"
+
 #include "eckit/log/Log.h"
 
-#include "fdb5/pmem/PBaseNode.h"
-#include "fdb5/pmem/PDataNode.h"
 #include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PDataNode.h"
 
 
 namespace fdb5 {
@@ -26,10 +27,8 @@ namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PBaseNode::PBaseNode(NodeType type, const KeyType &key, const ValueType &value) :
-    type_(type),
-    idKey_(key),
-    idValue_(value) {}
+PBaseNode::PBaseNode(NodeType type, const KeyType& key, const ValueType& value) :
+    type_(type), idKey_(key), idValue_(value) {}
 
 
 bool PBaseNode::isNull() const {
@@ -68,7 +67,7 @@ std::string PBaseNode::value() const {
     return idValue_;
 }
 
-std::ostream& operator<< (std::ostream& s, const PBaseNode& n) {
+std::ostream& operator<<(std::ostream& s, const PBaseNode& n) {
 
     // TODO: Include the node _type_ here
 
@@ -78,5 +77,5 @@ std::ostream& operator<< (std::ostream& s, const PBaseNode& n) {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace tree
+}  // namespace pmem
+}  // namespace fdb5

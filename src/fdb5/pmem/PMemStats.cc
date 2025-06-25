@@ -14,27 +14,29 @@
  */
 
 #include "fdb5/pmem/PMemStats.h"
+
 #include "fdb5/pmem/PMemDB.h"
 
 namespace fdb5 {
 namespace pmem {
 
-::eckit::ClassSpec PMemDbStats::classSpec_ = {&FieldLocation::classSpec(), "PMemDbStats",};
+::eckit::ClassSpec PMemDbStats::classSpec_ = {
+    &FieldLocation::classSpec(),
+    "PMemDbStats",
+};
 ::eckit::Reanimator<PMemDbStats> PMemDbStats::reanimator_;
 
-::eckit::ClassSpec PMemIndexStats::classSpec_ = {&FieldLocation::classSpec(), "PMemIndexStats",};
+::eckit::ClassSpec PMemIndexStats::classSpec_ = {
+    &FieldLocation::classSpec(),
+    "PMemIndexStats",
+};
 ::eckit::Reanimator<PMemIndexStats> PMemIndexStats::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDbStats::PMemDbStats():
-    dataPoolsSize_(0),
-    indexPoolsSize_(0),
-    schemaSize_(0),
-    dataPoolsCount_(0),
-    indexPoolsCount_(0),
-    indexesCount_(0) {}
+PMemDbStats::PMemDbStats() :
+    dataPoolsSize_(0), indexPoolsSize_(0), schemaSize_(0), dataPoolsCount_(0), indexPoolsCount_(0), indexesCount_(0) {}
 
 PMemDbStats::PMemDbStats(eckit::Stream& s) {
     s >> dataPoolsSize_;
@@ -47,7 +49,7 @@ PMemDbStats::PMemDbStats(eckit::Stream& s) {
 }
 
 
-PMemDbStats& PMemDbStats::operator+=(const PMemDbStats &rhs) {
+PMemDbStats& PMemDbStats::operator+=(const PMemDbStats& rhs) {
     dataPoolsSize_ += rhs.dataPoolsSize_;
     indexPoolsSize_ += rhs.indexPoolsSize_;
     schemaSize_ += rhs.schemaSize_;
@@ -58,13 +60,12 @@ PMemDbStats& PMemDbStats::operator+=(const PMemDbStats &rhs) {
 }
 
 
-void PMemDbStats::add(const DbStatsContent& rhs)
-{
+void PMemDbStats::add(const DbStatsContent& rhs) {
     const PMemDbStats& stats = dynamic_cast<const PMemDbStats&>(rhs);
     *this += stats;
 }
 
-void PMemDbStats::report(std::ostream &out, const char *indent) const {
+void PMemDbStats::report(std::ostream& out, const char* indent) const {
     reportCount(out, "Data Pools ", dataPoolsCount_, indent);
     reportBytes(out, "Size of data pools", dataPoolsSize_, indent);
     reportCount(out, "Index Pools ", indexPoolsCount_, indent);
@@ -87,11 +88,7 @@ void PMemDbStats::encode(eckit::Stream& s) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemIndexStats::PMemIndexStats():
-    fieldsCount_(0),
-    duplicatesCount_(0),
-    fieldsSize_(0),
-    duplicatesSize_(0) {}
+PMemIndexStats::PMemIndexStats() : fieldsCount_(0), duplicatesCount_(0), fieldsSize_(0), duplicatesSize_(0) {}
 
 PMemIndexStats::PMemIndexStats(eckit::Stream& s) {
     s >> fieldsCount_;
@@ -101,7 +98,7 @@ PMemIndexStats::PMemIndexStats(eckit::Stream& s) {
 }
 
 
-PMemIndexStats &PMemIndexStats::operator+=(const PMemIndexStats &rhs) {
+PMemIndexStats& PMemIndexStats::operator+=(const PMemIndexStats& rhs) {
     fieldsCount_ += rhs.fieldsCount_;
     duplicatesCount_ += rhs.duplicatesCount_;
     fieldsSize_ += rhs.fieldsSize_;
@@ -110,13 +107,12 @@ PMemIndexStats &PMemIndexStats::operator+=(const PMemIndexStats &rhs) {
     return *this;
 }
 
-void PMemIndexStats::add(const IndexStatsContent& rhs)
-{
+void PMemIndexStats::add(const IndexStatsContent& rhs) {
     const PMemIndexStats& stats = dynamic_cast<const PMemIndexStats&>(rhs);
     *this += stats;
 }
 
-void PMemIndexStats::report(std::ostream &out, const char *indent) const {
+void PMemIndexStats::report(std::ostream& out, const char* indent) const {
     reportCount(out, "Fields", fieldsCount_, indent);
     reportBytes(out, "Size of fields", fieldsSize_, indent);
     reportCount(out, "Duplicated fields ", duplicatesCount_, indent);
@@ -136,24 +132,22 @@ void PMemIndexStats::encode(eckit::Stream& s) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDataStats::PMemDataStats() {
-}
+PMemDataStats::PMemDataStats() {}
 
 
-PMemDataStats &PMemDataStats::operator+=(const PMemDataStats &rhs) {
+PMemDataStats& PMemDataStats::operator+=(const PMemDataStats& rhs) {
 
     NOTIMP;
 
     return *this;
 }
 
-void PMemDataStats::add(const DataStatsContent& rhs)
-{
+void PMemDataStats::add(const DataStatsContent& rhs) {
     const PMemDataStats& stats = dynamic_cast<const PMemDataStats&>(rhs);
     *this += stats;
 }
 
-void PMemDataStats::report(std::ostream &out, const char *indent) const {
+void PMemDataStats::report(std::ostream& out, const char* indent) const {
     NOTIMP;
 }
 
@@ -162,15 +156,14 @@ void PMemDataStats::report(std::ostream &out, const char *indent) const {
 
 
 PMemStatsReportVisitor::PMemStatsReportVisitor(const PMemDB& db) :
-//    directory_(reader.directory()),
+    //    directory_(reader.directory()),
     dbStats_(new PMemDbStats()) {
 
     currentDatabase_ = &db;
-    dbStats_ = currentDatabase_->statistics();
+    dbStats_         = currentDatabase_->statistics();
 }
 
-PMemStatsReportVisitor::~PMemStatsReportVisitor() {
-}
+PMemStatsReportVisitor::~PMemStatsReportVisitor() {}
 
 bool PMemStatsReportVisitor::visitDatabase(const DB& db) {
     ASSERT(&db == currentDatabase_);
@@ -179,7 +172,7 @@ bool PMemStatsReportVisitor::visitDatabase(const DB& db) {
 
 void PMemStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
-//    ASSERT(currIndex_ != 0);
+    //    ASSERT(currIndex_ != 0);
 
     // If this index is not yet in the map, then create an entry
 
@@ -208,13 +201,14 @@ void PMemStatsReportVisitor::visitDatum(const Field& field, const std::string& f
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;
         dataUsage_[dataPath]++;
-    } else {
+    }
+    else {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
     }
 }
 
-void PMemStatsReportVisitor::databaseComplete(const DB &db) {}
+void PMemStatsReportVisitor::databaseComplete(const DB& db) {}
 
 DbStats PMemStatsReportVisitor::dbStatistics() const {
     return dbStats_;
@@ -230,8 +224,7 @@ IndexStats PMemStatsReportVisitor::indexStatistics() const {
 }
 
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

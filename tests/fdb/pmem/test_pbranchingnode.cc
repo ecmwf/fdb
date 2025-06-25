@@ -13,20 +13,19 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "pmem/PersistentPtr.h"
+#include "test_persistent_helpers.h"
+
 #include <string>
 
+#include "eckit/testing/Test.h"
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
-#include "pmem/PersistentPtr.h"
-
+#include "fdb5/database/Key.h"
+#include "fdb5/pmem/DataPoolManager.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
-#include "fdb5/pmem/DataPoolManager.h"
-#include "fdb5/database/Key.h"
-
-#include "test_persistent_helpers.h"
-#include "eckit/testing/Test.h"
 
 using namespace eckit::testing;
 using namespace fdb5::pmem;
@@ -38,6 +37,7 @@ namespace test {
 
 class BrSpy : public PBranchingNode {
 public:
+
     const pmem::PersistentVector<PBaseNode>& nodes() const { return nodes_; }
     const pmem::PersistentPtr<pmem::PersistentBuffer>& axis() const { return axis_; }
 };
@@ -50,17 +50,17 @@ const size_t root_elems = 6;
 
 class RootType {
 
-public: // constructor
+public:  // constructor
 
     class Constructor : public pmem::AtomicConstructor<RootType> {
-        virtual void make(RootType &object) const {
+        virtual void make(RootType& object) const {
             for (size_t i = 0; i < root_elems; i++) {
                 object.data_[i].nullify();
             }
         }
     };
 
-public: // members
+public:  // members
 
     pmem::PersistentPtr<PBranchingNode> data_[root_elems];
 };
@@ -69,7 +69,8 @@ public: // members
 
 // Only need type_id for RootType. Others defined in Pool.cc
 
-template<> uint64_t pmem::PersistentType<RootType>::type_id = POBJ_ROOT_TYPE_NUM;
+template <>
+uint64_t pmem::PersistentType<RootType>::type_id = POBJ_ROOT_TYPE_NUM;
 
 // Create a global fixture, so that this pool is only created once, and destroyed once.
 
@@ -98,8 +99,7 @@ SuitePoolFixture global_fixture;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "test_fdb5_pmem_pbranchingnode_basenode_functionality" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_basenode_functionality") {
     std::vector<char> elem(sizeof(PBranchingNode));
 
     PBranchingNode& dn = *new (&elem[0]) PBranchingNode("key1", "value1");
@@ -114,8 +114,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_basenode_functionality" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_trivial_constructor" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_trivial_constructor") {
     std::vector<char> elem(sizeof(PBranchingNode));
 
     PBranchingNode& dn = *new (&elem[0]) PBranchingNode("key1", "value1");
@@ -125,8 +124,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_trivial_constructor" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_insert_mismatched_key" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_insert_mismatched_key") {
     // If a data node is added whose key-value pair doesn't match that supplied to the
     // branching node, then we should throw a wobbly.
 
@@ -148,8 +146,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_mismatched_key" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_insert_retrieve" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_insert_retrieve") {
     // Test that we can insert/retrieve with variously branching keys
 
     // Global objects. The Manager won't do anything, as everything is within the pool pointed to
@@ -210,8 +207,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_retrieve" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_insert_masking" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_insert_masking") {
     // If data is repeatedly added with the same key, it masks existing data (which is not overwritten).
 
     // Global objects. The Manager won't do anything, as everything is within the pool pointed to
@@ -252,12 +248,10 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_masking" )
     // Test that the original data is still there.
 
     EXPECT(static_cast<BrSpy*>(&root)->nodes().size() == size_t(1));
-    EXPECT(static_cast<BrSpy*>(
-                                &static_cast<BrSpy*>(&root)->nodes()[0]->asBranchingNode()
-                              )->nodes().size() == size_t(2));
-    pmem::PersistentPtr<PDataNode> pdata2 = static_cast<BrSpy*>(
-                                               &static_cast<BrSpy*>(&root)->nodes()[0]->asBranchingNode()
-                                            )->nodes()[0].as<PDataNode>();
+    EXPECT(static_cast<BrSpy*>(&static_cast<BrSpy*>(&root)->nodes()[0]->asBranchingNode())->nodes().size() ==
+           size_t(2));
+    pmem::PersistentPtr<PDataNode> pdata2 =
+        static_cast<BrSpy*>(&static_cast<BrSpy*>(&root)->nodes()[0]->asBranchingNode())->nodes()[0].as<PDataNode>();
     EXPECT(pdata2 == ptr);
 
     std::string check_str2(static_cast<const char*>(pdata2->data()), pdata2->length());
@@ -265,8 +259,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_masking" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_insert_collision" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_insert_collision") {
     // If we insert a data node that would mask a branching node, then something has gone
     // wrong. We should hit an assertion.
 
@@ -301,8 +294,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_collision" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_find_fail" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_find_fail") {
     // If we attempt to find a non-existent data node (or worse, one that is present but not
     // a data node) then fail gracefully.
 
@@ -344,8 +336,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_find_fail" )
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_thread_testing") {
     // Try and test the thread safety by throwing LOTS of data at the tree from multiple threads.
 
     // Global objects. The Manager won't do anything, as everything is within the pool pointed to
@@ -357,24 +348,25 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
     class WriterThread : public eckit::Thread {
     public:
+
         WriterThread(const std::vector<std::pair<fdb5::Key, std::string> >& keys, PBranchingNode& root) :
-            keys_(keys), root_(root),
-            mgrMock_("", *reinterpret_cast<PIndexRoot*>(0), global_root.uuid()) {}
+            keys_(keys), root_(root), mgrMock_("", *reinterpret_cast<PIndexRoot*>(0), global_root.uuid()) {}
         virtual ~WriterThread() {}
 
         virtual void run() {
 
             // Iterate over the unique key descriptors passed in
 
-            for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it = keys_.begin();
-                 it != keys_.end(); it++) {
+            for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it = keys_.begin(); it != keys_.end();
+                 it++) {
 
-                std::string datakey = it->first.names()[it->first.names().size()-1];
+                std::string datakey   = it->first.names()[it->first.names().size() - 1];
                 std::string datavalue = it->first.value(datakey);
-                std::string data_str = it->second;
+                std::string data_str  = it->second;
 
                 pmem::PersistentPtr<PDataNode> pdata;
-                pdata.allocate_ctr(*global_pool, PDataNode::Constructor(datakey, datavalue, data_str.data(), data_str.length()));
+                pdata.allocate_ctr(*global_pool,
+                                   PDataNode::Constructor(datakey, datavalue, data_str.data(), data_str.length()));
 
                 // And insert into the tree
 
@@ -383,6 +375,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
         }
 
     private:
+
         const std::vector<std::pair<fdb5::Key, std::string> >& keys_;
         PBranchingNode& root_;
         DataPoolManager mgrMock_;
@@ -392,7 +385,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
     class Threads {
 
-    public: // methods
+    public:  // methods
 
         Threads() {}
         ~Threads() {
@@ -409,7 +402,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
                 (*it)->wait();
         }
 
-    private: // members
+    private:  // members
 
         std::vector<eckit::ThreadControler*> threads_;
     };
@@ -420,7 +413,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
     // is going to add.
 
     const size_t keys_per_thread = 10;
-    size_t thread_key_count = 0;
+    size_t thread_key_count      = 0;
     std::vector<std::vector<std::pair<fdb5::Key, std::string> > > keys;
     std::vector<std::pair<fdb5::Key, std::string> > part_key;
 
@@ -470,7 +463,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
                 break;
             }
         }
-    } while(found);
+    } while (found);
 
     // --------------------
 
@@ -486,8 +479,8 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
     for (std::vector<std::vector<std::pair<fdb5::Key, std::string> > >::const_iterator it = keys.begin();
          it != keys.end(); ++it) {
 
-        for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it2 = it->begin();
-             it2 != it->end(); ++it2) {
+        for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it2 = it->begin(); it2 != it->end();
+             ++it2) {
 
             pmem::PersistentPtr<PDataNode> pdata = root.getDataNode(it2->first, mgrMock);
             EXPECT(!pdata.null());
@@ -497,12 +490,10 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
             eckit::Log::error() << "Check success" << std::endl;
         }
     }
-
 }
 
 
-CASE( "test_fdb5_pmem_pbranchingnode_datasize" )
-{
+CASE("test_fdb5_pmem_pbranchingnode_datasize") {
     // Check that the objects haven't changed size unexpectedly
     // (Important as data layout is persistent...)
     // n.b. There is padding on the PBaseNode, which rounds it up in size...
@@ -511,27 +502,21 @@ CASE( "test_fdb5_pmem_pbranchingnode_datasize" )
 }
 
 
-CASE( "test_fdb5_pmem_branchingnode_atomicconstructor" )
-{
+CASE("test_fdb5_pmem_branchingnode_atomicconstructor") {
     // Check that the AtomicConstructor correctly picks up the size
 
-    typedef pmem::AtomicConstructor2<PBranchingNode,
-                                     PBranchingNode::KeyType,
-                                     PBranchingNode::ValueType> BranchingConstructor2;
+    typedef pmem::AtomicConstructor2<PBranchingNode, PBranchingNode::KeyType, PBranchingNode::ValueType>
+        BranchingConstructor2;
 
     EXPECT(BranchingConstructor2("k1", "v1").size() == size_t(128));
-    EXPECT(BranchingConstructor2("k1", "v1").type_id() ==
-                            pmem::PersistentType<PBranchingNode>::type_id);
+    EXPECT(BranchingConstructor2("k1", "v1").type_id() == pmem::PersistentType<PBranchingNode>::type_id);
 
     // Check that the cast-to-PBaseNode constructor retains the type_id
 
-    EXPECT(PBranchingNode::BaseConstructor(
-                BranchingConstructor2("k1", "v1")).type_id()
-                == pmem::PersistentType<PBranchingNode>::type_id);
-    EXPECT(PBranchingNode::BaseConstructor(
-                BranchingConstructor2("k1", "v1")).type_id()
-                != pmem::PersistentType<PBaseNode>::type_id);
-
+    EXPECT(PBranchingNode::BaseConstructor(BranchingConstructor2("k1", "v1")).type_id() ==
+           pmem::PersistentType<PBranchingNode>::type_id);
+    EXPECT(PBranchingNode::BaseConstructor(BranchingConstructor2("k1", "v1")).type_id() !=
+           pmem::PersistentType<PBaseNode>::type_id);
 }
 
 
@@ -540,7 +525,6 @@ CASE( "test_fdb5_pmem_branchingnode_atomicconstructor" )
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

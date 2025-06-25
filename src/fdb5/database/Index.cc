@@ -8,21 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/rules/Schema.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexBase::IndexBase(const Key& key, const std::string& type) :
-    type_(type),
-    axes_(),
-    key_(key)
-{
-}
+IndexBase::IndexBase(const Key& key, const std::string& type) : type_(type), axes_(), key_(key) {}
 
 enum IndexBaseStreamKeys {
     IndexKeyUnrecognised,
@@ -32,14 +28,14 @@ enum IndexBaseStreamKeys {
 };
 
 IndexBaseStreamKeys keyId(const std::string& s) {
-    static const std::map<std::string, IndexBaseStreamKeys> keys {
-        {"key" , IndexKey},
+    static const std::map<std::string, IndexBaseStreamKeys> keys{
+        {"key", IndexKey},
         {"type", IndexType},
         {"time", IndexTimestamp},
     };
 
     auto it = keys.find(s);
-    if( it != keys.end() ) {
+    if (it != keys.end()) {
         return it->second;
     }
     return IndexKeyUnrecognised;
@@ -66,7 +62,7 @@ void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
                 s >> timestamp_;
                 break;
             default:
-                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
+                throw eckit::SeriousBug("IndexBase de-serialization error: " + k + " field is not recognized");
         }
     }
     ASSERT(!key_.empty());
@@ -74,14 +70,15 @@ void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
     ASSERT(timestamp_);
 }
 
-void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding of old Stream format, for backward compatibility
+void IndexBase::decodeLegacy(eckit::Stream& s,
+                             const int version) {  // decoding of old Stream format, for backward compatibility
     ASSERT(version <= 2);
 
     axes_.decode(s, version);
 
     std::string dummy;
     s >> key_;
-    s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
+    s >> dummy;  ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
     timestamp_ = 0;
 }
@@ -94,13 +91,13 @@ IndexBase::IndexBase(eckit::Stream& s, const int version) {
         decodeLegacy(s, version);
 }
 
-IndexBase::~IndexBase() {
-}
+IndexBase::~IndexBase() {}
 
 void IndexBase::encode(eckit::Stream& s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);
-    } else {
+    }
+    else {
         encodeLegacy(s, version);
     }
 }
@@ -121,11 +118,11 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
 
     axes_.encode(s, version);
     s << key_;
-    s << key_.valuesToString(); // we no longer write this field, required in the previous index format
+    s << key_.valuesToString();  // we no longer write this field, required in the previous index format
     s << type_;
 }
 
-void IndexBase::put(const Key &key, const Field &field) {
+void IndexBase::put(const Key& key, const Field& field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
@@ -135,26 +132,28 @@ void IndexBase::put(const Key &key, const Field &field) {
 
 bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
 
-    if (!key_.partialMatch(request)) return false;
+    if (!key_.partialMatch(request))
+        return false;
 
-    if (!axes_.partialMatch(request)) return false;
+    if (!axes_.partialMatch(request))
+        return false;
 
     return true;
 }
 
-bool IndexBase::mayContain(const Key &key) const {
+bool IndexBase::mayContain(const Key& key) const {
     return axes_.contains(key);
 }
 
-const Key &IndexBase::key() const {
+const Key& IndexBase::key() const {
     return key_;
 }
 
-const std::string &IndexBase::type() const {
+const std::string& IndexBase::type() const {
     return type_;
 }
 
-const IndexAxis &IndexBase::axes() const {
+const IndexAxis& IndexBase::axes() const {
     return axes_;
 }
 
@@ -183,14 +182,14 @@ const IndexAxis &IndexBase::axes() const {
 
 class NullIndex : public IndexBase {
 
-public: // methods
+public:  // methods
 
     NullIndex() : IndexBase(Key(), "null") {}
 
-private: // methods
+private:  // methods
 
     virtual const IndexLocation& location() const override { NOTIMP; }
-//    virtual const std::vector<eckit::URI> dataUris() const { NOTIMP; }
+    //    virtual const std::vector<eckit::URI> dataUris() const { NOTIMP; }
 
     virtual bool dirty() const override { NOTIMP; }
 
@@ -200,39 +199,34 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get( const Key&, const Key&, Field&) const override { NOTIMP; }
-    virtual void add( const Key&, const Field&) override { NOTIMP; }
+    virtual bool get(const Key&, const Key&, Field&) const override { NOTIMP; }
+    virtual void add(const Key&, const Field&) override { NOTIMP; }
     virtual void flush() override { NOTIMP; }
     virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }
     virtual void entries(EntryVisitor&) const override { NOTIMP; }
 
-    virtual void print( std::ostream& s) const override { s << "NullIndex()"; }
+    virtual void print(std::ostream& s) const override { s << "NullIndex()"; }
     virtual void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
 
     virtual void flock() const override { NOTIMP; }
     virtual void funlock() const override { NOTIMP; }
 
     virtual IndexStats statistics() const override { NOTIMP; }
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Index::Index() :
-    content_(new NullIndex()),
-    null_(true) {
+Index::Index() : content_(new NullIndex()), null_(true) {
     content_->attach();
 }
 
-Index::Index(IndexBase* p) :
-    content_(p),
-    null_(false) {
+Index::Index(IndexBase* p) : content_(p), null_(false) {
     ASSERT(p);
     content_->attach();
 }
 
 Index::~Index() {
-   content_->detach();
+    content_->detach();
 }
 
 Index::Index(const Index& s) : content_(s.content_), null_(s.null_) {
@@ -249,4 +243,4 @@ Index& Index::operator=(const Index& s) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

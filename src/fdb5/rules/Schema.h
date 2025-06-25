@@ -17,8 +17,8 @@
 #define fdb5_Schema_H
 
 #include <iosfwd>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
@@ -27,7 +27,9 @@
 
 #include "fdb5/types/TypesRegistry.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -41,59 +43,58 @@ class Schema;
 
 class Schema : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     Schema();
-    Schema(const eckit::PathName &path);
+    Schema(const eckit::PathName& path);
     Schema(std::istream& s);
 
     ~Schema();
 
-    void expand(const Key &field, WriteVisitor &visitor) const;
-    void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
+    void expand(const Key& field, WriteVisitor& visitor) const;
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
     // Each database has its own internal schema. So expand() above results in
     // expandFurther being called on the relevant schema from the DB, to start
     // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+    void expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const;
+    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const;
 
-    bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;
-    void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    bool expandFirstLevel(const Key& dbKey, Key& result) const;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result) const;
+    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
 
-    const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
+    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
 
-    void load(const eckit::PathName &path, bool replace = false);
+    void load(const eckit::PathName& path, bool replace = false);
     void load(std::istream& s, bool replace = false);
 
-    void dump(std::ostream &s) const;
+    void dump(std::ostream& s) const;
 
     bool empty() const;
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    const std::string &path() const;
+    const std::string& path() const;
 
     const std::shared_ptr<TypesRegistry> registry() const;
 
 
-private: // methods
+private:  // methods
 
     void clear();
     void check();
 
-    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
-    void print( std::ostream &out ) const;
+    void print(std::ostream& out) const;
 
-private: // members
+private:  // members
 
     std::shared_ptr<TypesRegistry> registry_;
-    std::vector<Rule *>  rules_;
+    std::vector<Rule*> rules_;
     std::string path_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -102,16 +103,18 @@ private: // members
 ///
 class SchemaRegistry {
 public:
+
     static SchemaRegistry& instance();
     const Schema& get(const eckit::PathName& path);
 
 private:
+
     std::mutex m_;
     std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -8,45 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeGrid.h"
+
 #include <algorithm>
 
 #include "eckit/utils/StringTools.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeGrid.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeGrid::TypeGrid(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeGrid::TypeGrid(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeGrid::~TypeGrid() {
-}
+TypeGrid::~TypeGrid() {}
 
-std::string TypeGrid::toKey(const std::string&,
-                            const std::string& value) const {
+std::string TypeGrid::toKey(const std::string&, const std::string& value) const {
 
     std::string s(value);
-    std::replace( s.begin(), s.end(), '/', '+');
+    std::replace(s.begin(), s.end(), '/', '+');
     return s;
 }
 
-void TypeGrid::getValues(const metkit::mars::MarsRequest& request,
-                         const std::string& keyword,
-                         eckit::StringList& values,
-                         const Notifier&,
-                         const DB*) const {
+void TypeGrid::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                         eckit::StringList& values, const Notifier&, const DB*) const {
     std::vector<std::string> v;
     request.getValues(keyword, v, true);
     values.push_back(eckit::StringTools::join("+", v));
 }
 
 
-void TypeGrid::print(std::ostream &out) const {
+void TypeGrid::print(std::ostream& out) const {
     out << "TypeGrid[name=" << name_ << "]";
 }
 
@@ -54,4 +49,4 @@ static TypeBuilder<TypeGrid> type("Grid");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

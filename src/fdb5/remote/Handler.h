@@ -48,6 +48,7 @@ struct MessageHeader;
 
 class RemoteHandler : private eckit::NonCopyable {
 public:  // methods
+
     RemoteHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~RemoteHandler();
 
@@ -58,20 +59,19 @@ public:  // methods
     const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
 
 private:  // methods
+
     // Socket methods
 
     int selectDataPort();
     void initialiseConnections();
     eckit::LocalConfiguration availableFunctionality() const;
 
-    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
-                      uint32_t payloadLength = 0);
+    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     void controlWrite(const void* data, size_t length);
     void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
-    void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
-                   uint32_t payloadLength = 0);
+    void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     void dataWriteUnsafe(const void* data, size_t length);
 
     eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket);
@@ -100,6 +100,7 @@ private:  // methods
     void readLocationThreadLoop();
 
 private:  // members
+
     Config config_;
     eckit::SessionID sessionID_;
 

@@ -9,52 +9,43 @@
  */
 
 #include "fdb5/types/Type.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Type::Type(const std::string &name, const std::string &type) :
-    name_(name),
-    type_(type) {
-}
+Type::Type(const std::string& name, const std::string& type) : name_(name), type_(type) {}
 
-Type::~Type() {
-}
+Type::~Type() {}
 
-void Type::getValues(const metkit::mars::MarsRequest &request,
-                     const std::string &keyword,
-                     eckit::StringList &values,
-                     const Notifier&,
-                     const DB*) const {
+void Type::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword, eckit::StringList& values,
+                     const Notifier&, const DB*) const {
     request.getValues(keyword, values, true);
 }
 
-const std::string &Type::type() const {
+const std::string& Type::type() const {
     return type_;
 }
 
-std::string Type::tidy(const std::string&,
-                       const std::string &value) const  {
+std::string Type::tidy(const std::string&, const std::string& value) const {
     return value;
 }
 
-std::string Type::toKey(const std::string&,
-                        const std::string &value) const {
+std::string Type::toKey(const std::string&, const std::string& value) const {
     return value;
 }
 
-std::ostream &operator<<(std::ostream &s, const Type &x) {
+std::ostream& operator<<(std::ostream& s, const Type& x) {
     x.print(s);
     return s;
 }
 
-bool Type::match(const std::string&, const std::string& value1, const std::string& value2) const
-{
+bool Type::match(const std::string&, const std::string& value1, const std::string& value2) const {
     return (value1 == value2);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

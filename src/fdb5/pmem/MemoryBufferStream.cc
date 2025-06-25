@@ -14,11 +14,11 @@
 /// @author Simon Smart
 /// @date   Dec 2016
 
+#include "fdb5/pmem/MemoryBufferStream.h"
+
 #include <cstring>
 
 #include "eckit/exception/Exceptions.h"
-
-#include "fdb5/pmem/MemoryBufferStream.h"
 
 using namespace eckit;
 
@@ -28,10 +28,7 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 
-MemoryBufferStream::MemoryBufferStream() :
-    size_(4096),
-    position_(0),
-    buffer_(size_) {}
+MemoryBufferStream::MemoryBufferStream() : size_(4096), position_(0), buffer_(size_) {}
 
 
 MemoryBufferStream::~MemoryBufferStream() {}
@@ -42,8 +39,8 @@ long MemoryBufferStream::read(void* buffer, long length) {
     // Intentionally not implemented. This is a write buffer.
     NOTIMP;
 
-    (void) buffer;
-    (void) length;
+    (void)buffer;
+    (void)length;
 }
 
 
@@ -66,8 +63,7 @@ long MemoryBufferStream::write(const void* buffer, long length) {
 }
 
 
-void MemoryBufferStream::rewind()
-{
+void MemoryBufferStream::rewind() {
     position_ = 0;
 }
 
@@ -88,5 +84,5 @@ const MemoryBuffer& MemoryBufferStream::buffer() const {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

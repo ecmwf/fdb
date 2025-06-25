@@ -20,11 +20,11 @@
 #ifndef fdb5_pmem_PDataNode_H
 #define fdb5_pmem_PDataNode_H
 
-#include "eckit/types/Types.h"
-
 #include "pmem/AtomicConstructor.h"
 #include "pmem/AtomicConstructorCast.h"
 #include "pmem/PersistentVector.h"
+
+#include "eckit/types/Types.h"
 
 #include "fdb5/pmem/PBaseNode.h"
 
@@ -44,16 +44,13 @@ class DataPoolManager;
 
 class PDataNode : public PBaseNode {
 
-public: // types
+public:  // types
 
-    typedef ::pmem::AtomicConstructor4<PDataNode, KeyType,
-                                                  ValueType,
-                                                  const void*,
-                                                  eckit::Length> Constructor;
+    typedef ::pmem::AtomicConstructor4<PDataNode, KeyType, ValueType, const void*, eckit::Length> Constructor;
 
     typedef ::pmem::AtomicConstructorCast<PDataNode, PBaseNode> BaseConstructor;
 
-public: // methods
+public:  // methods
 
     PDataNode(const KeyType& key, const ValueType& value, const void* data, eckit::Length length);
 
@@ -63,36 +60,31 @@ public: // methods
 
     static size_t data_size(eckit::Length length);
 
-private: // members
+private:  // members
 
     eckit::Length length_;
 
     // We use a length of 8 to ensure (a) this is legal c++, and (b) there is no possibility of the complier
     // adding unecessary padding due to an unreasonable desire for structure alignment.
     char data_[8];
-
 };
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 // -------------------------------------------------------------------------------------------------
 
 namespace pmem {
 
-template<>
-inline size_t AtomicConstructor4Base<fdb5::pmem::PDataNode,
-                                                fdb5::pmem::PBaseNode::KeyType,
-                                                fdb5::pmem::PBaseNode::ValueType,
-                                                const void*,
-                                                eckit::Length>::size() const {
+template <>
+inline size_t AtomicConstructor4Base<fdb5::pmem::PDataNode, fdb5::pmem::PBaseNode::KeyType,
+                                     fdb5::pmem::PBaseNode::ValueType, const void*, eckit::Length>::size() const {
     return fdb5::pmem::PDataNode::data_size(x4_);
-
 }
 
-}
+}  // namespace pmem
 
 
-#endif // fdb5_pmem_PDataNode_H
+#endif  // fdb5_pmem_PDataNode_H

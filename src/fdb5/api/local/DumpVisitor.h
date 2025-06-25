@@ -19,9 +19,9 @@
 #ifndef fdb5_api_local_DumpVisitor_H
 #define fdb5_api_local_DumpVisitor_H
 
+#include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/database/DB.h"
 
 namespace fdb5 {
@@ -37,9 +37,7 @@ class DumpVisitor : public QueryVisitor<DumpElement> {
 public:
 
     DumpVisitor(eckit::Queue<DumpElement>& queue, const metkit::mars::MarsRequest& request, bool simple) :
-        QueryVisitor<DumpElement>(queue, request),
-        out_(new QueueStringLogTarget(queue)),
-        simple_(simple) {}
+        QueryVisitor<DumpElement>(queue, request), out_(new QueueStringLogTarget(queue)), simple_(simple) {}
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
@@ -56,14 +54,15 @@ public:
     }
 
 private:
+
     eckit::Channel out_;
     bool simple_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

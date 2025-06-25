@@ -15,8 +15,8 @@
 #ifndef fdb5_FDBFileHandle_h
 #define fdb5_FDBFileHandle_h
 
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 
 namespace fdb5 {
 
@@ -37,32 +37,31 @@ public:  // methods
     ~FDBFileHandle();
 
     virtual eckit::Length openForRead() override;
-    virtual void   openForWrite(const eckit::Length &) override;
-    virtual void   openForAppend(const eckit::Length &) override;
+    virtual void openForWrite(const eckit::Length&) override;
+    virtual void openForAppend(const eckit::Length&) override;
 
-    virtual long   read(void *, long) override;
-    virtual long   write(const void *, long) override;
-    virtual void   close() override;
-    virtual void   flush() override;
-    virtual void print(std::ostream &) const override;
+    virtual long read(void*, long) override;
+    virtual long write(const void*, long) override;
+    virtual void close() override;
+    virtual void flush() override;
+    virtual void print(std::ostream&) const override;
     virtual eckit::Offset position() override;
     virtual std::string title() const override;
     virtual bool canSeek() const override { return false; }
 
-protected: // members
+protected:  // members
 
-    std::string      path_;
+    std::string path_;
 
-private: // members
+private:  // members
 
-    FILE            *file_;
-    eckit::Buffer    buffer_;
+    FILE* file_;
+    eckit::Buffer buffer_;
     off_t pos_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

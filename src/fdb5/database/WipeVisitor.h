@@ -26,12 +26,9 @@ namespace fdb5 {
 
 class WipeVisitor : public EntryVisitor {
 
-public: // methods
+public:  // methods
 
-    WipeVisitor(const metkit::mars::MarsRequest& request,
-                std::ostream& out,
-                bool doit,
-                bool porcelain,
+    WipeVisitor(const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain,
                 bool unsafeWipeAll);
 
     ~WipeVisitor() override;
@@ -40,7 +37,7 @@ public: // methods
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
-protected: // members
+protected:  // members
 
     const metkit::mars::MarsRequest& request_;
 
@@ -52,6 +49,6 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_WipeVisitor_H
+#endif  // fdb5_WipeVisitor_H

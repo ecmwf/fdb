@@ -18,15 +18,15 @@
 #ifndef fdb_testing_ApiSpy_H
 #define fdb_testing_ApiSpy_H
 
-#include <vector>
 #include <tuple>
+#include <vector>
 
 #include "eckit/message/Message.h"
 
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/api/FDB.h"
-
 #include "metkit/mars/MarsRequest.h"
+
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
 
 namespace fdb {
 namespace test {
@@ -35,12 +35,21 @@ namespace test {
 
 class ApiSpy : public fdb5::FDBBase {
 
-private: // types
+private:  // types
 
     struct Counts {
         Counts() :
-            archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
-            purge(0), stats(0), flush(0), control(0), move(0) {}
+            archive(0),
+            inspect(0),
+            list(0),
+            dump(0),
+            status(0),
+            wipe(0),
+            purge(0),
+            stats(0),
+            flush(0),
+            control(0),
+            move(0) {}
         size_t archive;
         size_t inspect;
         size_t list;
@@ -54,7 +63,7 @@ private: // types
         size_t move;
     };
 
-    using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
+    using Archives  = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
     using Retrieves = std::vector<metkit::mars::MarsRequest>;
 
     class FakeDataHandle : public eckit::DataHandle {
@@ -63,21 +72,19 @@ private: // types
         void openForWrite(const eckit::Length&) override { NOTIMP; }
         void openForAppend(const eckit::Length&) override { NOTIMP; }
         eckit::Length estimate() override { return 999; }
-        long read(void*,long) override { NOTIMP; }
-        long write(const void*,long) override { NOTIMP; }
+        long read(void*, long) override { NOTIMP; }
+        long write(const void*, long) override { NOTIMP; }
         void close() override { NOTIMP; }
     };
 
-public: // methods
+public:  // methods
 
     using FDBBase::stats;
 
     ApiSpy(const fdb5::Config& config, const std::string& name) : FDBBase(config, name) {
         knownSpies().push_back(this);
     }
-    ~ApiSpy() override {
-        knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this));
-    }
+    ~ApiSpy() override { knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this)); }
 
     void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
@@ -125,16 +132,13 @@ public: // methods
         return fdb5::MoveIterator(0);
     }
 
-    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,
-                                  fdb5::ControlAction action,
-                                  fdb5::ControlIdentifiers identifiers) override {
+    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request, fdb5::ControlAction action,
+                                 fdb5::ControlIdentifiers identifiers) override {
         counts_.control += 1;
         return fdb5::StatusIterator(0);
     }
 
-    void flush() override {
-        counts_.flush += 1;
-    }
+    void flush() override { counts_.flush += 1; }
 
     // For diagnostics
 
@@ -148,11 +152,11 @@ public: // methods
         return s;
     }
 
-private: // methods
+private:  // methods
 
     void print(std::ostream& s) const override { s << "ApiSpy()"; }
 
-private: // members
+private:  // members
 
     Counts counts_;
 
@@ -165,7 +169,7 @@ static fdb5::FDBBuilder<ApiSpy> selectFdbBuilder("spy");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace test
-} // namespace fdb
+}  // namespace test
+}  // namespace fdb
 
 #endif

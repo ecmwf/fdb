@@ -13,11 +13,12 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/pmem/PMemFieldLocation.h"
+
 #include "eckit/io/MemoryHandle.h"
 
-#include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/pmem/PDataNode.h"
 #include "fdb5/pmem/DataPool.h"
+#include "fdb5/pmem/PDataNode.h"
 #include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
@@ -39,15 +40,11 @@ namespace pmem {
 
 
 PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
-    FieldLocation(rhs.length()),
-    dataNode_(rhs.dataNode_),
-    dataPool_(rhs.dataPool_) {}
+    FieldLocation(rhs.length()), dataNode_(rhs.dataNode_), dataPool_(rhs.dataPool_) {}
 
 
 PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool) :
-    FieldLocation(dataNode->length()),
-    dataNode_(dataNode),
-    dataPool_(pool) {}
+    FieldLocation(dataNode->length()), dataNode_(dataNode), dataPool_(pool) {}
 
 
 std::shared_ptr<FieldLocation> PMemFieldLocation::make_shared() const {
@@ -59,12 +56,12 @@ std::shared_ptr<FieldLocation> PMemFieldLocation::stableLocation() const {
 }
 
 
-eckit::DataHandle *PMemFieldLocation::dataHandle() const {
+eckit::DataHandle* PMemFieldLocation::dataHandle() const {
     const PDataNode& node(*dataNode_);
     return new eckit::MemoryHandle(node.data(), node.length());
 }
 
-eckit::DataHandle *PMemFieldLocation::dataHandle(const Key& remapKey) const {
+eckit::DataHandle* PMemFieldLocation::dataHandle(const Key& remapKey) const {
     throw eckit::NotImplemented("fdb-mount functionality not implemented in pmem backend (yet)", Here());
 }
 
@@ -85,15 +82,13 @@ DataPool& PMemFieldLocation::pool() const {
 }
 
 void PMemFieldLocation::encode(eckit::Stream& s) const {
-    NOTIMP; // See comment
+    NOTIMP;  // See comment
 }
 
-void PMemFieldLocation::dump(std::ostream& out) const
-{
+void PMemFieldLocation::dump(std::ostream& out) const {
     out << "  pool_uuid: " << node().uuid() << std::endl;
     out << "  data_pool: " << pool().path() << std::endl;
-    out << "  offset: "    << node().offset() << std::endl;
-
+    out << "  offset: " << node().offset() << std::endl;
 }
 
 eckit::PathName fdb5::pmem::PMemFieldLocation::url() const {
@@ -102,5 +97,5 @@ eckit::PathName fdb5::pmem::PMemFieldLocation::url() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

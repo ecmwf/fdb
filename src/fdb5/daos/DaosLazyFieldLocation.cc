@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/daos/DaosLazyFieldLocation.h"
+
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/daos/DaosLazyFieldLocation.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
 
@@ -31,10 +32,9 @@ std::shared_ptr<FieldLocation> DaosLazyFieldLocation::make_shared() const {
 eckit::DataHandle* DaosLazyFieldLocation::dataHandle() const {
 
     return realise()->dataHandle();
-    
 }
 
-void DaosLazyFieldLocation::print(std::ostream &out) const {
+void DaosLazyFieldLocation::print(std::ostream& out) const {
     out << *realise();
 }
 
@@ -48,7 +48,8 @@ std::shared_ptr<FieldLocation> DaosLazyFieldLocation::stableLocation() const {
 
 std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
 
-    if (fl_) return fl_;
+    if (fl_)
+        return fl_;
 
     /// @note: performed RPCs:
     /// - index kv get (daos_kv_get)
@@ -64,7 +65,6 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
     fl_.reset(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
 
     return fl_;
-
 }
 
-} // namespace fdb5
+}  // namespace fdb5

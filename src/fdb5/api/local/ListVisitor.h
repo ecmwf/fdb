@@ -19,10 +19,10 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ListIterator.h"
 
 namespace fdb5 {
 namespace api {
@@ -35,6 +35,7 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
+
     using QueryVisitor<ListElement>::QueryVisitor;
 
     /// Make a note of the current database. Subtract its key from the current
@@ -73,9 +74,9 @@ public:
         }
 
         if (index.partialMatch(request_)) {
-            return true; // Explore contained entries
+            return true;  // Explore contained entries
         }
-        return false; // Skip contained entries
+        return false;  // Skip contained entries
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
@@ -84,7 +85,8 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(),
+                                       field.timestamp()));
         }
     }
 
@@ -92,7 +94,7 @@ public:
         EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
-private: // members
+private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
@@ -100,8 +102,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

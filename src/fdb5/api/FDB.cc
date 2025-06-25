@@ -13,6 +13,8 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/api/FDB.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
@@ -23,7 +25,6 @@
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
@@ -35,10 +36,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDB::FDB(const Config &config) :
-    internal_(FDBFactory::instance().build(config)),
-    dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
+FDB::FDB(const Config& config) :
+    internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {}
 
 
 FDB::~FDB() {
@@ -57,7 +56,7 @@ void FDB::archive(eckit::DataHandle& handle) {
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
-    while ( (msg = reader.next()) ) {
+    while ((msg = reader.next())) {
         archive(msg);
     }
 }
@@ -72,12 +71,12 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
 
     metkit::hypercube::HyperCube cube(request);
 
-    while ( (msg = reader.next()) ) {
+    while ((msg = reader.next())) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
         if (!cube.clear(key.request())) {
             std::stringstream ss;
             ss << "FDB archive - found unexpected message" << std::endl;
-            ss << "  user request:"  << std::endl << "    " << request << std::endl;
+            ss << "  user request:" << std::endl << "    " << request << std::endl;
             ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
             LOG_DEBUG_LIB(LibFdb5) << ss.str();
             throw eckit::UserError(ss.str(), Here());
@@ -87,7 +86,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     if (cube.countVacant()) {
         std::stringstream ss;
         ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
-        ss << "  user request:"  << std::endl << "    " << request << std::endl;
+        ss << "  user request:" << std::endl << "    " << request << std::endl;
         ss << "  missing messages:" << std::endl;
         for (auto vacantRequest : cube.vacantRequests()) {
             ss << "    " << vacantRequest << std::endl;
@@ -109,10 +108,11 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     // step in archival requests from the model is just an integer. We need to include the stepunit
     auto stepunit = keyInternal.find("stepunits");
     if (stepunit != keyInternal.end()) {
-        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+        if (stepunit->second.size() > 0 && stepunit->second[0] != 'h') {
             auto step = keyInternal.find("step");
             if (step != keyInternal.end()) {
-                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
+                std::string canonicalStep =
+                    keyInternal.registry().lookupType("step").toKey("step", step->second + stepunit->second);
             }
         }
         keyInternal.unset("stepunits");
@@ -125,7 +125,7 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     stats_.addArchive(length, timer);
 }
 
-bool FDB::sorted(const metkit::mars::MarsRequest &request) {
+bool FDB::sorted(const metkit::mars::MarsRequest& request) {
 
     bool sorted = false;
 
@@ -143,6 +143,7 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 
 class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
 public:
+
     bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
         return existing.timestamp() < replacement.timestamp();
     }
@@ -163,7 +164,7 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     }
     return result.dataHandle();
 }
-    
+
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
@@ -187,20 +188,20 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
             // checking all retrieved fields against the hypercube, to remove duplicates
             ListElementDeduplicator dedup;
             metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
-            for(auto el: elements) {
+            for (auto el : elements) {
                 cube.add(el.combinedKey().request(), el);
             }
 
             if (cube.countVacant() > 0) {
                 std::stringstream ss;
                 ss << "No matching data for requests:" << std::endl;
-                for (auto req: cube.vacantRequests()) {
+                for (auto req : cube.vacantRequests()) {
                     ss << "    " << req << std::endl;
                 }
                 eckit::Log::warning() << ss.str() << std::endl;
             }
 
-            for (size_t i=0; i< cube.size(); i++) {
+            for (size_t i = 0; i < cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
                     result.add(element.location().dataHandle());
@@ -241,11 +242,11 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
     return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
 }
 
-PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool porcelain) {
+PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     return internal_->purge(request, doit, porcelain);
 }
 
-StatsIterator FDB::stats(const FDBToolRequest &request) {
+StatsIterator FDB::stats(const FDBToolRequest& request) {
     return internal_->stats(request);
 }
 
@@ -273,7 +274,7 @@ const std::string& FDB::name() const {
     return internal_->name();
 }
 
-const Config &FDB::config() const {
+const Config& FDB::config() const {
     return internal_->config();
 }
 
@@ -327,4 +328,4 @@ void FDB::registerCallback(ArchiveCallback callback) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -8,13 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/DB.h"
+
 #include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/api/helpers/ArchiveCallback.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
 
 using eckit::Log;
 
@@ -22,10 +23,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildReader(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, true));
 }
-std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildWriter(const Key& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
@@ -52,7 +53,7 @@ Store& DB::store() const {
 }
 
 std::string DB::dbType() const {
-    return catalogue_->type();// + ":" + store_->type();
+    return catalogue_->type();  // + ":" + store_->type();
 }
 
 const Key& DB::key() const {
@@ -65,7 +66,7 @@ const Schema& DB::schema() const {
     return catalogue_->schema();
 }
 
-bool DB::selectIndex(const Key &key) {
+bool DB::selectIndex(const Key& key) {
     return catalogue_->selectIndex(key);
 }
 
@@ -78,7 +79,7 @@ void DB::visitEntries(EntryVisitor& visitor, bool sorted) {
 }
 
 
-bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool DB::axis(const std::string& keyword, eckit::StringSet& s) const {
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);
     return cat->axis(keyword, s);
@@ -94,7 +95,7 @@ bool DB::inspect(const Key& key, Field& field) {
     return cat->retrieve(key, field);
 }
 
-eckit::DataHandle *DB::retrieve(const Key& key) {
+eckit::DataHandle* DB::retrieve(const Key& key) {
 
     Field field;
     if (inspect(key, field)) {
@@ -104,7 +105,8 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& field, const ArchiveCallback& callback) {
+void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& field,
+                 const ArchiveCallback& callback) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
@@ -120,7 +122,7 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
 bool DB::open() {
     bool ret = catalogue_->open();
     if (!ret)
-            return ret;
+        return ret;
 
     return store().open();
 }
@@ -140,7 +142,7 @@ void DB::close() {
 }
 
 bool DB::exists() const {
-    return (catalogue_->exists()/* && store_->exists()*/);
+    return (catalogue_->exists() /* && store_->exists()*/);
 }
 
 void DB::hideContents() {
@@ -154,7 +156,7 @@ eckit::URI DB::uri() const {
 }
 
 void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount) {
-    if (catalogue_->type() == TocEngine::typeName() && otherDB.catalogue_->type() == TocEngine::typeName())  {
+    if (catalogue_->type() == TocEngine::typeName() && otherDB.catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 
@@ -169,7 +171,7 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void DB::index(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length) {
     if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
@@ -196,18 +198,17 @@ bool DB::enabled(const ControlIdentifier& controlIdentifier) const {
     return catalogue_->enabled(controlIdentifier);
 };
 
-void DB::print( std::ostream &out ) const {
+void DB::print(std::ostream& out) const {
     catalogue_->print(out);
 }
 
-std::ostream &operator<<(std::ostream &s, const DB &x) {
+std::ostream& operator<<(std::ostream& s, const DB& x) {
     x.print(s);
     return s;
 }
 
-DBVisitor::~DBVisitor() {
-}
+DBVisitor::~DBVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

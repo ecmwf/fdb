@@ -8,11 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/AdoptVisitor.h"
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/database/DB.h"
-#include "fdb5/toc/AdoptVisitor.h"
 
 using namespace eckit;
 
@@ -20,16 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &path, Offset offset, Length length) :
-    BaseArchiveVisitor(owner, field),
-    path_(path),
-    offset_(offset),
-    length_(length) {
+AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& field, const PathName& path, Offset offset, Length length) :
+    BaseArchiveVisitor(owner, field), path_(path), offset_(offset), length_(length) {
     ASSERT(offset_ >= Offset(0));
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
+bool AdoptVisitor::selectDatum(const Key& key, const Key& full) {
 
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(full);
@@ -41,14 +39,11 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
     return true;
 }
 
-void AdoptVisitor::print(std::ostream &out) const {
+void AdoptVisitor::print(std::ostream& out) const {
     out << "AdoptVisitor["
-        << "path=" << path_
-        << ",offset=" << offset_
-        << ",length=" << length_
-        << "]";
+        << "path=" << path_ << ",offset=" << offset_ << ",length=" << length_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

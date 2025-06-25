@@ -20,19 +20,19 @@
 #ifndef fdb5_pmem_PIndexRoot_H
 #define fdb5_pmem_PIndexRoot_H
 
+#include "pmem/AtomicConstructor.h"
+#include "pmem/PersistentPODVector.h"
+#include "pmem/PersistentPtr.h"
+#include "pmem/PersistentString.h"
+
+#include <ctime>
+
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
 #include "eckit/types/Types.h"
 
-#include "pmem/AtomicConstructor.h"
-#include "pmem/PersistentPtr.h"
-#include "pmem/PersistentPODVector.h"
-#include "pmem/PersistentString.h"
-
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
-
-#include <ctime>
 
 
 namespace fdb5 {
@@ -47,7 +47,7 @@ namespace pmem {
 
 class PIndexRoot : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     PIndexRoot(const ::pmem::PersistentPtr< ::pmem::PersistentBuffer>& key,
                const ::pmem::PersistentPtr< ::pmem::PersistentString>& schema,
@@ -74,7 +74,7 @@ public: // methods
 
     Key databaseKey() const;
 
-private: // members
+private:  // members
 
     eckit::FixedString<8> tag_;
 
@@ -99,22 +99,25 @@ private: // members
 
     ::pmem::PersistentPtr< ::pmem::PersistentBuffer> dbKey_;
 
-private: // friends
+private:  // friends
 
     friend class DataPoolManager;
 
-    friend std::ostream& operator<<(std::ostream& s, const PIndexRoot& r) { r.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s, const PIndexRoot& r) {
+        r.print(s);
+        return s;
+    }
 };
 
 
 // A consistent definition of the tag for comparison purposes.
-const eckit::FixedString<8> PIndexRootTag = "77FDB577";
+const eckit::FixedString<8> PIndexRootTag  = "77FDB577";
 const unsigned short int PIndexRootVersion = 2;
 
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PIndexRoot_H
+#endif  // fdb5_pmem_PIndexRoot_H

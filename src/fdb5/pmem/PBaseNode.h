@@ -20,11 +20,11 @@
 #ifndef fdb5_pmem_PBaseNode_H
 #define fdb5_pmem_PBaseNode_H
 
-#include "eckit/types/FixedString.h"
-
 #include "pmem/PersistentPtr.h"
 
 #include <iosfwd>
+
+#include "eckit/types/FixedString.h"
 
 
 namespace fdb5 {
@@ -39,12 +39,12 @@ class PDataNode;
 
 class PBaseNode {
 
-public: // Types
+public:  // Types
 
     typedef eckit::FixedString<12> KeyType;
     typedef eckit::FixedString<12> ValueType;
 
-protected: // Types
+protected:  // Types
 
     enum NodeType {
         NULL_NODE,
@@ -52,13 +52,13 @@ protected: // Types
         BRANCHING_NODE
     };
 
-protected: // Construction objects
+protected:  // Construction objects
 
     // This object MUST NOT be constructed manually. Only as part of a derived base
 
     PBaseNode(NodeType type, const KeyType& key, const ValueType& value);
 
-public: // methods
+public:  // methods
 
     bool isNull() const;
     bool isBranchingNode() const;
@@ -72,7 +72,7 @@ public: // methods
     std::string key() const;
     std::string value() const;
 
-protected: // members
+protected:  // members
 
     unsigned int type_;
 
@@ -81,16 +81,16 @@ protected: // members
     KeyType idKey_;
     ValueType idValue_;
 
-private: // friends
+private:  // friends
 
-    friend std::ostream& operator<< (std::ostream&, const PBaseNode&);
+    friend std::ostream& operator<<(std::ostream&, const PBaseNode&);
 };
 
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 // -------------------------------------------------------------------------------------------------
 
@@ -106,9 +106,9 @@ inline bool PersistentType<fdb5::pmem::PBaseNode>::validate_type_id(uint64_t id)
            PersistentType<fdb5::pmem::PDataNode>::validate_type_id(id);
 }
 
-}
+}  // namespace pmem
 
 // -------------------------------------------------------------------------------------------------
 
 
-#endif // fdb5_pmem_PBaseNode_H
+#endif  // fdb5_pmem_PBaseNode_H

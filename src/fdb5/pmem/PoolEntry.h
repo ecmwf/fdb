@@ -29,23 +29,20 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class PoolEntry  {
+class PoolEntry {
 
-public: // methods
+public:  // methods
 
-    PoolEntry(const std::string& path,
-         const std::string& poolgroup,
-         bool writable = true,
-         bool visit  = true);
+    PoolEntry(const std::string& path, const std::string& poolgroup, bool writable = true, bool visit = true);
 
-    const eckit::PathName &path() const;
+    const eckit::PathName& path() const;
 
-    bool writable() const; ///< PoolEntry is in use, when archiving
-    bool visit() const;    ///< PoolEntry is visited, when retrievind
+    bool writable() const;  ///< PoolEntry is in use, when archiving
+    bool visit() const;     ///< PoolEntry is visited, when retrievind
 
     const std::string& poolgroup() const;
 
-private: // members
+private:  // members
 
     eckit::PathName path_;
 
@@ -57,6 +54,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

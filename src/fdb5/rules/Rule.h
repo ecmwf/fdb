@@ -17,18 +17,19 @@
 #define fdb5_Rule_H
 
 #include <iosfwd>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
+
 #include "fdb5/types/TypesRegistry.h"
 
 namespace metkit {
 namespace mars {
-    class MarsRequest;
+class MarsRequest;
 }
-}
+}  // namespace metkit
 
 namespace fdb5 {
 
@@ -42,101 +43,84 @@ class Key;
 
 class Rule : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     /// Takes ownership of vectors
-    Rule(const Schema &schema,
-         size_t line,
-         std::vector<Predicate *> &predicates,
-         std::vector<Rule *> &rules,
-         const std::map<std::string, std::string> &types
-        );
+    Rule(const Schema& schema, size_t line, std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
+         const std::map<std::string, std::string>& types);
 
     ~Rule();
 
-    bool match(const Key &key) const;
+    bool match(const Key& key) const;
 
     eckit::StringList keys(size_t level) const;
 
-    void dump(std::ostream &s, size_t depth = 0) const;
+    void dump(std::ostream& s, size_t depth = 0) const;
 
-    void expand(const metkit::mars::MarsRequest &request,
-                ReadVisitor &Visitor,
-                size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& Visitor, size_t depth,
+                std::vector<fdb5::Key>& keys, Key& full) const;
 
-    void expand(const Key &field,
-                WriteVisitor &Visitor,
-                size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+    void expand(const Key& field, WriteVisitor& Visitor, size_t depth, std::vector<fdb5::Key>& keys, Key& full) const;
 
-    const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
+    const Rule* ruleFor(const std::vector<fdb5::Key>& keys, size_t depth) const;
     void fill(Key& key, const eckit::StringList& values) const;
 
 
     size_t depth() const;
-    void updateParent(const Rule *parent);
+    void updateParent(const Rule* parent);
 
-    const Rule &topRule() const;
+    const Rule& topRule() const;
 
-    const Schema &schema() const;
+    const Schema& schema() const;
     const std::shared_ptr<TypesRegistry> registry() const;
 
     void check(const Key& key) const;
 
-private: // methods
+private:  // methods
 
-    void expand(const metkit::mars::MarsRequest &request,
-                std::vector<Predicate *>::const_iterator cur,
-                size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
-                ReadVisitor &Visitor) const;
+    void expand(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur, size_t depth,
+                std::vector<Key>& keys, Key& full, ReadVisitor& Visitor) const;
 
-    void expand(const Key &field,
-                std::vector<Predicate *>::const_iterator cur,
-                size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
-                WriteVisitor &Visitor) const;
+    void expand(const Key& field, std::vector<Predicate*>::const_iterator cur, size_t depth, std::vector<Key>& keys,
+                Key& full, WriteVisitor& Visitor) const;
 
-    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& result, bool& done) const;
+    void expandFirstLevel(const Key& dbKey, Key& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
+                          Key& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result, bool& done) const;
 
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& tmp, std::set<Key>& result,
+                         const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
+                         Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const;
 
 
-    void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;
+    void keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const Rule &x);
+    friend std::ostream& operator<<(std::ostream& s, const Rule& x);
 
-    void print( std::ostream &out ) const;
+    void print(std::ostream& out) const;
 
 
-private: // members
+private:  // members
 
     const Schema& schema_;
     const Rule* parent_;
 
-    std::vector<Predicate *> predicates_;
-    std::vector<Rule *>      rules_;
+    std::vector<Predicate*> predicates_;
+    std::vector<Rule*> rules_;
 
     std::shared_ptr<TypesRegistry> registry_;
 
     friend class Schema;
     size_t line_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

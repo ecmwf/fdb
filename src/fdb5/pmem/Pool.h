@@ -26,7 +26,8 @@
 
 // Forward declaration
 namespace pmem {
-    template <typename T> class PersistentPtr;
+template <typename T>
+class PersistentPtr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -52,12 +53,12 @@ class PIndexRoot;
 
 class Pool : public ::pmem::PersistentPool {
 
-public: // methods
+public:  // methods
 
     Pool(const eckit::PathName& path, const std::string& name);
 
     Pool(const eckit::PathName& path, const size_t size, const std::string& name,
-             const ::pmem::AtomicConstructor<PRoot>& constructor);
+         const ::pmem::AtomicConstructor<PRoot>& constructor);
 
     ~Pool();
 
@@ -69,20 +70,21 @@ public: // methods
 
     static bool exists(const eckit::PathName& poolDir);
 
-    static Pool* obtain(const eckit::PathName& poolDir, const size_t size, const Key& dbKey, const eckit::PathName& schemaPath);
+    static Pool* obtain(const eckit::PathName& poolDir, const size_t size, const Key& dbKey,
+                        const eckit::PathName& schemaPath);
 
     ::pmem::PersistentPtr<PRoot> baseRoot() const;
     PIndexRoot& root() const;
 
-private: // methods
+private:  // methods
 
     static eckit::PathName poolMaster(const eckit::PathName& poolDir);
 };
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 
-#endif // fdb5_pmem_Pool_H
+#endif  // fdb5_pmem_Pool_H

@@ -20,13 +20,13 @@
 #ifndef fdb5_pmem_PBranchingNode_H
 #define fdb5_pmem_PBranchingNode_H
 
-#include "eckit/types/Types.h"
-
 #include "pmem/AtomicConstructor.h"
 #include "pmem/AtomicConstructorCast.h"
-#include "pmem/PersistentVector.h"
-#include "pmem/PersistentMutex.h"
 #include "pmem/PersistentBuffer.h"
+#include "pmem/PersistentMutex.h"
+#include "pmem/PersistentVector.h"
+
+#include "eckit/types/Types.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
@@ -49,11 +49,11 @@ class DataPoolManager;
 
 class PBranchingNode : public PBaseNode {
 
-public: // types
+public:  // types
 
     typedef std::vector<std::pair<std::string, std::string> > KeyValueVector;
 
-public: // Construction objects
+public:  // Construction objects
 
     /// The Index constructor creates a BranchingNode, and then recursively creates required
     /// subnodes until the key is exhausted with a BranchingNode.
@@ -62,13 +62,12 @@ public: // Construction objects
 
     typedef ::pmem::AtomicConstructorCast<PBranchingNode, PBaseNode> BaseConstructor;
 
-public: // methods
+public:  // methods
 
     PBranchingNode(const KeyType& key, const ValueType& value);
 
     /// Recursively create a chain of nodes, returning a pointer to the tail of the chain
-    PBranchingNode(KeyValueVector::const_iterator start,
-                   KeyValueVector::const_iterator end,
+    PBranchingNode(KeyValueVector::const_iterator start, KeyValueVector::const_iterator end,
                    PBranchingNode** const tailNode);
 
     /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
@@ -88,20 +87,17 @@ public: // methods
     /// @return A PersistentPtr to the node, or a null() pointer.
     ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
 
-    void visitLeaves(EntryVisitor &visitor,
-                     DataPoolManager& mgr,
-                     std::vector<Key>& keys,
-                     size_t depth,
+    void visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, std::vector<Key>& keys, size_t depth,
                      Index index = Index());
 
     /// Returns true if this node is (or at least has been used as) an Index.
     bool isIndex() const;
 
-private: // methods
+private:  // methods
 
     PBranchingNode& getCreateBranchingNode(const KeyValueVector& identifier);
 
-protected: // members
+protected:  // members
 
     ::pmem::PersistentVector<PBaseNode> nodes_;
 
@@ -110,7 +106,7 @@ protected: // members
     // TODO: Do we want to have a separate IndexNode?
     ::pmem::PersistentPtr< ::pmem::PersistentBuffer> axis_;
 
-private: // friends
+private:  // friends
 
     friend class PMemIndex;
 };
@@ -118,8 +114,8 @@ private: // friends
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 
-#endif // fdb5_pmem_PBranchingNode_H
+#endif  // fdb5_pmem_PBranchingNode_H

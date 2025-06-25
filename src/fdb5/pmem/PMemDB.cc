@@ -13,23 +13,22 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/pmem/PMemDB.h"
+
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include "pmem/PersistentString.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/Rule.h"
-
-#include "fdb5/pmem/PMemDB.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/pmem/PoolManager.h"
 #include "fdb5/pmem/PMemStats.h"
-
-#include "pmem/PersistentString.h"
-
-#include <pwd.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include "fdb5/pmem/PoolManager.h"
+#include "fdb5/rules/Rule.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -39,23 +38,20 @@ namespace pmem {
 
 static std::string userName(long id) {
 
-  struct passwd *p = getpwuid(id);
+    struct passwd* p = getpwuid(id);
 
-  if (p) {
-    return p->pw_name;
-  } else {
-    return eckit::Translator<long, std::string>()(id);
-  }
+    if (p) {
+        return p->pw_name;
+    }
+    else {
+        return eckit::Translator<long, std::string>()(id);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 PMemDB::PMemDB(const Key& key, const Config& config) :
-    DB(key),
-    poolDir_(PoolManager(config).pool(key)),
-    dbConfig_(config),
-    init_(false)
-{
+    DB(key), poolDir_(PoolManager(config).pool(key)), dbConfig_(config), init_(false) {
 
     // If opened with a key in this manner, it is for write, so should open up fully.
     initialisePool();
@@ -63,11 +59,7 @@ PMemDB::PMemDB(const Key& key, const Config& config) :
 
 
 PMemDB::PMemDB(const PathName& poolDir, const Config& config) :
-    DB(Key()),
-    poolDir_(poolDir),
-    dbConfig_(config),
-    init_(false)
-{
+    DB(Key()), poolDir_(poolDir), dbConfig_(config), init_(false) {
     initialisePool();
 }
 
@@ -80,7 +72,8 @@ void PMemDB::initialisePool() {
     ASSERT(init_ == false);
 
     // Get (or create) the pool
-    pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024), dbKey_, dbConfig_.schemaPath()));
+    pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024), dbKey_,
+                             dbConfig_.schemaPath()));
 
     root_ = &pool_->root();
 
@@ -111,7 +104,7 @@ bool PMemDB::exists() const {
     return Pool::exists(poolDir_);
 }
 
-void PMemDB::archive(const Key &key, const void *data, Length length) {
+void PMemDB::archive(const Key& key, const void* data, Length length) {
     Log::error() << "archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -119,7 +112,7 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
 void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     // There is no meaningfully more-efficient way or sorting the indexes!
-    (void) sorted;
+    (void)sorted;
 
     LOG_DEBUG_LIB(LibFdb5) << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
@@ -133,7 +126,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     visitor.databaseComplete(*this);
 }
 
-eckit::DataHandle * PMemDB::retrieve(const Key &key) const {
+eckit::DataHandle* PMemDB::retrieve(const Key& key) const {
     Log::error() << "retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -154,12 +147,12 @@ void PMemDB::close() {
     indexes_.clear();
 }
 
-void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
+void PMemDB::axis(const std::string& keyword, eckit::StringSet& s) const {
     Log::error() << "axis not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-bool PMemDB::selectIndex(const Key &key) {
+bool PMemDB::selectIndex(const Key& key) {
     NOTIMP;
 }
 
@@ -208,7 +201,7 @@ std::string PMemDB::owner() const {
     return userName(root_->uid());
 }
 
-void PMemDB::visit(DBVisitor &visitor) {
+void PMemDB::visit(DBVisitor& visitor) {
     visitor(*this);
 }
 
@@ -220,20 +213,19 @@ const Schema& PMemDB::schema() const {
 }
 
 void PMemDB::deselectIndex() {
-    currentIndex_ = Index(); // essentially a no-op, as we don't have any files to open, etc.
+    currentIndex_ = Index();  // essentially a no-op, as we don't have any files to open, etc.
 }
 
-DbStats PMemDB::statistics() const
-{
+DbStats PMemDB::statistics() const {
     PMemDbStats* stats = new PMemDbStats();
 
     stats->dataPoolsCount_ += dataPoolsCount();
-    stats->indexPoolsCount_ += 1; // FTM we use a single pool, but we may support overspill in the future
-    stats->indexesCount_ += 1;    // FTM we use a single index, but we may support overspill in the future
+    stats->indexPoolsCount_ += 1;  // FTM we use a single pool, but we may support overspill in the future
+    stats->indexesCount_ += 1;     // FTM we use a single index, but we may support overspill in the future
 
     stats->schemaSize_ += schemaSize();
     stats->indexPoolsSize_ += pool_->size();
-    stats->dataPoolsSize_  += dataPoolsSize();
+    stats->dataPoolsSize_ += dataPoolsSize();
 
     return DbStats(stats);
 }
@@ -242,19 +234,21 @@ StatsReportVisitor* PMemDB::statsReportVisitor() const {
     return new PMemStatsReportVisitor(*this);
 }
 
-PurgeVisitor *PMemDB::purgeVisitor() const {
+PurgeVisitor* PMemDB::purgeVisitor() const {
     NOTIMP;
     //    return new TocPurgeVisitor(*this);
 }
 
-void PMemDB::maskIndexEntry(const Index &index) const {
+void PMemDB::maskIndexEntry(const Index& index) const {
     NOTIMP;
 }
 
 
 std::vector<Index> PMemDB::indexes(bool sorted) const {
-    throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
-                                "-- perhaps this is a writer?", Here());
+    throw eckit::NotImplemented(
+        "TocDB::indexes() isn't implemented for this DB type "
+        "-- perhaps this is a writer?",
+        Here());
 }
 
 eckit::PathName PMemDB::basePath() const {
@@ -267,7 +261,7 @@ std::vector<PathName> PMemDB::metadataPaths() const {
     ASSERT(root_);
     ASSERT(dataPoolMgr_);
 
-    return { pool_->path() };
+    return {pool_->path()};
 }
 
 
@@ -280,8 +274,7 @@ size_t PMemDB::dataPoolsSize() const {
     return dataPoolMgr_->dataSize();
 }
 
-std::string PMemDB::dbType() const
-{
+std::string PMemDB::dbType() const {
     return PMemDB::dbTypeName();
 }
 
@@ -295,22 +288,18 @@ void PMemDB::checkUID() const {
         return;
     }
 
-    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+    static std::vector<std::string> fdbSuperUsers =
+        eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
 
     long uid = ::getuid();
 
     if (root_->uid() != uid) {
 
-        if(std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(uid)) == fdbSuperUsers.end()) {
+        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(uid)) == fdbSuperUsers.end()) {
 
             std::ostringstream oss;
-            oss << "Only user '"
-                << userName(root_->uid())
-                << "' can write to FDB "
-                << basePath()
-                << ", current user is '"
-                << userName(uid)
-                << "'";
+            oss << "Only user '" << userName(root_->uid()) << "' can write to FDB " << basePath()
+                << ", current user is '" << userName(uid) << "'";
 
             throw eckit::UserError(oss.str());
         }
@@ -324,5 +313,5 @@ size_t PMemDB::schemaSize() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

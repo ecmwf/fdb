@@ -20,7 +20,9 @@
 
 #include "fdb5/database/BaseArchiveVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -30,30 +32,26 @@ class Archiver;
 
 class AdoptVisitor : public BaseArchiveVisitor {
 
-public: // methods
+public:  // methods
 
-    AdoptVisitor(Archiver &owner,
-                 const Key &field,
-                 const eckit::PathName &path,
-                 eckit::Offset offset,
+    AdoptVisitor(Archiver& owner, const Key& field, const eckit::PathName& path, eckit::Offset offset,
                  eckit::Length length);
 
-protected: // methods
+protected:  // methods
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    virtual bool selectDatum(const Key& key, const Key& full) override;
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     const eckit::PathName path_;
     eckit::Offset offset_;
     eckit::Length length_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

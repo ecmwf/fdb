@@ -12,10 +12,10 @@
 
 #include "eckit/io/AutoCloser.h"
 
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Manager.h"
-#include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
 
 using namespace eckit;
@@ -27,6 +27,7 @@ namespace fdb5 {
 
 class FDBVisitException : public eckit::Exception {
 public:
+
     using Exception::Exception;
 };
 
@@ -38,7 +39,7 @@ EntryVisitor::~EntryVisitor() {}
 
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
-    currentStore_ = &store;
+    currentStore_     = &store;
     return true;
 }
 
@@ -47,8 +48,8 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
-    currentStore_ = nullptr;
-    currentIndex_ = nullptr;
+    currentStore_     = nullptr;
+    currentIndex_     = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
@@ -71,9 +72,7 @@ time_t EntryVisitor::indexTimestamp() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
-    dbConfig_(config),
-    fail_(true) {}
+EntryVisitMechanism::EntryVisitMechanism(const Config& config) : dbConfig_(config), fail_(true) {}
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
 
@@ -99,36 +98,35 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // And do the visitation
 
         for (URI uri : uris) {
-            /// @note: the schema of a URI returned by visitableLocations 
+            /// @note: the schema of a URI returned by visitableLocations
             ///   matches the corresponding Engine type name
             // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 
             std::unique_ptr<DB> db;
 
             try {
-                
-                db = DB::buildReader(uri, dbConfig_);
 
-            } catch (fdb5::DatabaseNotFoundException& e) {
+                db = DB::buildReader(uri, dbConfig_);
+            }
+            catch (fdb5::DatabaseNotFoundException& e) {
 
                 visitor.onDatabaseNotFound(e);
-
             }
 
             ASSERT(db->open());
             eckit::AutoCloser<DB> closer(*db);
 
             db->visitEntries(visitor, false);
-
         }
-
-    } catch (eckit::UserError&) {
-        throw;
-    } catch (eckit::Exception& e) {
-        Log::warning() << e.what() << std::endl;
-        if (fail_) throw;
     }
-
+    catch (eckit::UserError&) {
+        throw;
+    }
+    catch (eckit::Exception& e) {
+        Log::warning() << e.what() << std::endl;
+        if (fail_)
+            throw;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

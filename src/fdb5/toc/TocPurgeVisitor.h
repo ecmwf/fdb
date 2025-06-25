@@ -36,13 +36,13 @@ public:
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool porcelain, bool doit) const override;
 
-private: // members
+private:  // members
 
     const Store& store_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

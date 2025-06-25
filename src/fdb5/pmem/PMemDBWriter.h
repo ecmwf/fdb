@@ -31,25 +31,25 @@ namespace pmem {
 
 class PMemDBWriter : public PMemDB {
 
-public: // methods
+public:  // methods
 
-    PMemDBWriter(const Key &key, const eckit::Configuration& config);
+    PMemDBWriter(const Key& key, const eckit::Configuration& config);
     PMemDBWriter(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual ~PMemDBWriter() override;
 
-    virtual bool selectIndex(const Key &key);
+    virtual bool selectIndex(const Key& key);
     virtual void close();
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual void archive(const Key& key, const void* data, eckit::Length length);
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 #endif

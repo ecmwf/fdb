@@ -8,29 +8,24 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeInteger.h"
+
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeInteger.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeInteger::TypeInteger(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeInteger::~TypeInteger() {
-}
+TypeInteger::~TypeInteger() {}
 
-void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
-                            const std::string& keyword,
-                            eckit::StringList& values,
-                            const Notifier&,
-                            const DB*) const {
+void TypeInteger::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                            eckit::StringList& values, const Notifier&, const DB*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues, true);
@@ -44,7 +39,7 @@ void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
     }
 }
 
-void TypeInteger::print(std::ostream &out) const {
+void TypeInteger::print(std::ostream& out) const {
     out << "TypeInteger[name=" << name_ << "]";
 }
 
@@ -52,4 +47,4 @@ static TypeBuilder<TypeInteger> type("Integer");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

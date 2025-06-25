@@ -27,31 +27,31 @@ namespace fdb5 {
 
 class MatchHidden : public Matcher {
 
-public: // methods
+public:  // methods
 
-    MatchHidden(const std::string &def);
+    MatchHidden(const std::string& def);
 
     virtual ~MatchHidden() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
+    virtual bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
-private: // methods
+private:  // methods
 
     virtual bool optional() const override;
-    virtual const std::string &value(const Key &, const std::string &keyword) const override;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
-    virtual void print( std::ostream &out ) const override;
-    virtual const std::string &defaultValue() const override;
+    virtual const std::string& value(const Key&, const std::string& keyword) const override;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
+                                                   const std::string& keyword) const override;
+    virtual void print(std::ostream& out) const override;
+    virtual const std::string& defaultValue() const override;
 
 
     std::vector<std::string> default_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

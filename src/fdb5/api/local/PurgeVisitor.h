@@ -19,12 +19,12 @@
 #ifndef fdb5_api_local_PurgeVisitor_H
 #define fdb5_api_local_PurgeVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
+#include "eckit/filesystem/PathName.h"
+
 #include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/Store.h"
-
-#include "eckit/filesystem/PathName.h"
 
 
 namespace fdb5 {
@@ -38,19 +38,17 @@ namespace local {
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
 
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                 const metkit::mars::MarsRequest& request,
-                 bool doit,
+    PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                  bool porcelain);
 
-    //bool visitCatalogue(const Catalogue& catalogue) override;
+    // bool visitCatalogue(const Catalogue& catalogue) override;
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;
 
-private: // members
+private:  // members
 
     eckit::Channel out_;
     bool doit_;
@@ -61,8 +59,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

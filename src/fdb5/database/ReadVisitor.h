@@ -23,9 +23,9 @@
 
 namespace metkit {
 namespace mars {
-    class MarsRequest;
+class MarsRequest;
 }
-}
+}  // namespace metkit
 
 namespace fdb5 {
 
@@ -37,37 +37,34 @@ class Schema;
 
 class ReadVisitor : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     virtual ~ReadVisitor();
 
-    virtual bool selectDatabase(const Key &key, const Key &full) = 0;
-    virtual bool selectIndex(const Key &key, const Key &full) = 0;
-    virtual bool selectDatum(const Key &key, const Key &full) = 0;
+    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
+    virtual bool selectIndex(const Key& key, const Key& full)    = 0;
+    virtual bool selectDatum(const Key& key, const Key& full)    = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
 
-    virtual void values(const metkit::mars::MarsRequest &request,
-                        const std::string &keyword,
-                        const TypesRegistry &registry,
-                        eckit::StringList &values) = 0;
+    virtual void values(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                        const TypesRegistry& registry, eckit::StringList& values) = 0;
 
-protected: // methods
+protected:  // methods
 
-    virtual void print( std::ostream &out ) const = 0;
+    virtual void print(std::ostream& out) const = 0;
 
-private: // members
+private:  // members
 
-    friend std::ostream &operator<<(std::ostream &s, const ReadVisitor &x) {
+    friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);
         return s;
     }
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

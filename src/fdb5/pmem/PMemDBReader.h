@@ -31,9 +31,9 @@ namespace pmem {
 
 class PMemDBReader : public PMemDB {
 
-public: // methods
+public:  // methods
 
-    PMemDBReader(const Key &key, const eckit::Configuration& config);
+    PMemDBReader(const Key& key, const eckit::Configuration& config);
     PMemDBReader(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual bool open();
@@ -41,22 +41,21 @@ public: // methods
 
     virtual ~PMemDBReader() override;
 
-    virtual bool selectIndex(const Key &key);
-    virtual eckit::DataHandle* retrieve(const Key &key) const;
+    virtual bool selectIndex(const Key& key);
+    virtual eckit::DataHandle* retrieve(const Key& key) const;
 
     virtual std::vector<Index> indexes(bool sorted) const;
 
     virtual StatsReportVisitor* statsReportVisitor();
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
-
+    virtual void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_PMemDBReader_H
+#endif  // fdb5_PMemDBReader_H

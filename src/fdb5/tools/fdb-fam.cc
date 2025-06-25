@@ -13,6 +13,11 @@
  * (Grant agreement: 101092984) horizon-opencube.eu
  */
 
+#include <cstdint>
+#include <cstdlib>
+#include <ostream>
+#include <string>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamProperty.h"
@@ -21,16 +26,11 @@
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
 #include "eckit/option/CmdArgs.h"
-
 #include "eckit/option/SimpleOption.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
-
-#include <cstdint>
-#include <cstdlib>
-#include <ostream>
-#include <string>
 
 namespace fdb5 ::tools {
 
@@ -39,6 +39,7 @@ namespace fdb5 ::tools {
 class FDBFam : public FDBTool {
 
 public:  // methods
+
     FDBFam(int argc, char** argv) : FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("endpoint", "FAM remote endpoint"));
 
@@ -52,6 +53,7 @@ public:  // methods
     }
 
 private:  // methods
+
     void usage(const std::string& tool) const override;
 
     void init(const eckit::option::CmdArgs& args) override;
@@ -59,16 +61,17 @@ private:  // methods
     void execute(const eckit::option::CmdArgs& args) override;
 
 private:  // members
-    std::string    endpoint_ {"127.0.0.1:8080"};
+
+    std::string endpoint_{"127.0.0.1:8080"};
     eckit::FamPath path_;
 
-    bool lookup_ {false};
-    bool create_ {false};
-    bool delete_ {false};
+    bool lookup_{false};
+    bool create_{false};
+    bool delete_{false};
 
     eckit::FamProperty item_;
 
-    bool isRegion_ {true};
+    bool isRegion_{true};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -103,15 +106,16 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
 
     if (create_) {
         try {
-            item_ = eckit::FamProperty {args.getUnsigned("size"), args.getString("perm", "0640")};
-        } catch (const eckit::Exception& e) {
+            item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
+        }
+        catch (const eckit::Exception& e) {
             eckit::Log::info() << "!!! missing option [size] (see usage below) !!!\n";
             usage(args.tool());
             exit(1);
         }
     }
 
-    path_     = eckit::FamPath {args(0)};
+    path_     = eckit::FamPath{args(0)};
     isRegion_ = path_.objectName.empty();
 
     LOG_DEBUG_LIB(LibFdb5) << "Item " << item_ << std::endl;
@@ -129,22 +133,27 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
             try {
                 auto region = regionName.lookup();
                 eckit::Log::info() << region << std::endl;
-            } catch (const eckit::Exception& e) {
+            }
+            catch (const eckit::Exception& e) {
                 eckit::Log::info() << "Failed to lookup: " << regionName << std::endl;
             }
-        } else if (delete_) {
+        }
+        else if (delete_) {
             try {
                 const auto region = regionName.lookup();
                 region.destroy();
                 eckit::Log::info() << "Deleted " << region << std::endl;
-            } catch (const eckit::Exception& e) {
+            }
+            catch (const eckit::Exception& e) {
                 eckit::Log::info() << "Failed to delete: " << regionName << std::endl;
             }
-        } else if (create_) {
+        }
+        else if (create_) {
             try {
                 const auto region = regionName.create(item_.size, item_.perm);
                 eckit::Log::info() << "Created " << region << std::endl;
-            } catch (const eckit::Exception& e) {
+            }
+            catch (const eckit::Exception& e) {
                 eckit::Log::info() << "Failed to create: " << regionName << std::endl;
             }
         }

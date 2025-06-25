@@ -9,36 +9,35 @@
  */
 
 
+#include "fdb5/types/TypeClimateMonthly.h"
+
 #include "eckit/types/Date.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeClimateMonthly.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static const char *months[] = {
-    "jan", "feb", "mar", "apr", "may", "jun",
-    "jul", "aug", "sep", "oct", "nov", "dec",
+static const char* months[] = {
+    "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
 };
 
-TypeClimateMonthly::TypeClimateMonthly(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeClimateMonthly::TypeClimateMonthly(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeClimateMonthly::~TypeClimateMonthly() {
-}
+TypeClimateMonthly::~TypeClimateMonthly() {}
 
-static int month(const std::string &value) {
+static int month(const std::string& value) {
     if (isdigit(value[0])) {
         eckit::Date date(value);
         return date.month();
-    } else {
+    }
+    else {
 
-        for (int i = 0; i < 12 ; i++ ) {
+        for (int i = 0; i < 12; i++) {
             if (value == months[i]) {
                 return i + 1;
             }
@@ -48,17 +47,13 @@ static int month(const std::string &value) {
     }
 }
 
-std::string TypeClimateMonthly::toKey(const std::string&,
-                                      const std::string &value) const {
+std::string TypeClimateMonthly::toKey(const std::string&, const std::string& value) const {
 
     return std::to_string(month(value));
 }
 
-void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest &request,
-                                   const std::string &keyword,
-                                   eckit::StringList &values,
-                                   const Notifier&,
-                                   const DB*) const {
+void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                                   eckit::StringList& values, const Notifier&, const DB*) const {
     std::vector<std::string> dates;
 
     request.getValues(keyword, dates, true);
@@ -70,7 +65,7 @@ void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest &request,
     }
 }
 
-void TypeClimateMonthly::print(std::ostream &out) const {
+void TypeClimateMonthly::print(std::ostream& out) const {
     out << "TypeClimateMonthly[name=" << name_ << "]";
 }
 
@@ -78,4 +73,4 @@ static TypeBuilder<TypeClimateMonthly> type("ClimateMonthly");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -18,8 +18,8 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
+#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
@@ -27,7 +27,8 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
-    if (path.exists()) return path.realName();
+    if (path.exists())
+        return path.realName();
 
     return findRealPath(path.dirName()) / path.baseName();
 }
@@ -49,11 +50,9 @@ void TocCommon::checkUID() const {
         eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
-        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) ==
-            fdbSuperUsers.end()) {
+        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
             std::ostringstream oss;
-            oss << "Only user '" << userName(dbUID())
-                << "' can write to FDB " << directory_ << ", current user is '"
+            oss << "Only user '" << userName(dbUID()) << "' can write to FDB " << directory_ << ", current user is '"
                 << userName(userUID_) << "'";
 
             throw eckit::UserError(oss.str());
@@ -79,4 +78,4 @@ std::string TocCommon::userName(uid_t uid) {
     }
 }
 
-}
+}  // namespace fdb5

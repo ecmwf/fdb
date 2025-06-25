@@ -22,9 +22,9 @@
 
 #include "pmem/PersistentPtr.h"
 
-#include "fdb5/database/FieldLocation.h"
-
 #include <memory>
+
+#include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -44,8 +44,8 @@ public:
 
     virtual eckit::PathName url() const;
 
-    virtual eckit::DataHandle *dataHandle() const;
-    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const;
+    virtual eckit::DataHandle* dataHandle() const;
+    virtual eckit::DataHandle* dataHandle(const Key& remapKey) const;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const;
 
@@ -59,17 +59,17 @@ public:
 
     DataPool& pool() const;
 
-protected: // For Streamable (see comments. This is a bit odd).
+protected:  // For Streamable (see comments. This is a bit odd).
 
     virtual void encode(eckit::Stream&) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void dump(std::ostream &out) const;
+    virtual void dump(std::ostream& out) const;
 
-    virtual void print(std::ostream &out) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     ::pmem::PersistentPtr<PDataNode> dataNode_;
 
@@ -78,7 +78,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PMemFieldLocation_H
+#endif  // fdb5_pmem_PMemFieldLocation_H

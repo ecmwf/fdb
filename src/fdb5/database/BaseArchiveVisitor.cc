@@ -8,23 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/BaseArchiveVisitor.h"
+
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Archiver.h"
-#include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Rule.h"
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &field) :
-    WriteVisitor(owner.prev_),
-    owner_(owner),
-    field_(field) {
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& field) :
+    WriteVisitor(owner.prev_), owner_(owner), field_(field) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key&) {
+bool BaseArchiveVisitor::selectDatabase(const Key& key, const Key&) {
     LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.database(key);
     owner_.current_->deselectIndex();
@@ -32,13 +31,13 @@ bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key &key, const Key&) {
+bool BaseArchiveVisitor::selectIndex(const Key& key, const Key&) {
     // eckit::Log::info() << "selectIndex " << key << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(key);
 }
 
-void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
+void BaseArchiveVisitor::checkMissingKeys(const Key& full) {
     if (checkMissingKeysOnWrite_) {
         field_.validateKeysOf(full);
     }
@@ -55,4 +54,4 @@ DB* BaseArchiveVisitor::current() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

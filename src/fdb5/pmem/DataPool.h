@@ -25,7 +25,8 @@
 
 // Forward declaration
 namespace pmem {
-    template <typename T> class PersistentPtr;
+template <typename T>
+class PersistentPtr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -50,7 +51,7 @@ class PDataRoot;
 
 class DataPool : public ::pmem::PersistentPool {
 
-public: // methods
+public:  // methods
 
     DataPool(const eckit::PathName& poolDir, size_t poolIndex);
 
@@ -67,7 +68,7 @@ public: // methods
     bool finalised() const;
     void finalise();
 
-private: // methods
+private:  // methods
 
     ::pmem::PersistentPtr<PRoot> baseRoot() const;
     PDataRoot& root() const;
@@ -76,8 +77,8 @@ private: // methods
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 
-#endif // fdb5_pmem_DataPool_H
+#endif  // fdb5_pmem_DataPool_H

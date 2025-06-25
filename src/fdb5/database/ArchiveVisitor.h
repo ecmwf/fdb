@@ -18,7 +18,9 @@
 
 #include "fdb5/database/BaseArchiveVisitor.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -28,27 +30,27 @@ class Archiver;
 
 class ArchiveVisitor : public BaseArchiveVisitor {
 
-public: // methods
+public:  // methods
 
-    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, const ArchiveCallback& callback = CALLBACK_NOOP);
+    ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size,
+                   const ArchiveCallback& callback = CALLBACK_NOOP);
 
-protected: // methods
+protected:  // methods
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    virtual bool selectDatum(const Key& key, const Key& full) override;
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
-    const void *data_;
+    const void* data_;
     size_t size_;
 
     const ArchiveCallback& callback_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

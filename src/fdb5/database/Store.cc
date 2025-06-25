@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include <map>
-
 #include "fdb5/database/Store.h"
+
+#include <map>
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -73,7 +73,7 @@ void StoreFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
-    std::string name = config.getString("store", "file");
+    std::string name          = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -99,10 +99,11 @@ StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     StoreFactory::instance().remove(name_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace eckit
+}  // namespace fdb5

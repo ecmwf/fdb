@@ -17,23 +17,24 @@
 #define fdb5_Key_H
 
 #include <map>
+#include <memory>
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
-#include <memory>
 
 #include "eckit/types/Types.h"
 
 namespace eckit {
-    class JSON;
-    template<class T> class DenseSet;
-}
+class JSON;
+template <class T>
+class DenseSet;
+}  // namespace eckit
 
 namespace metkit {
 namespace mars {
-    class MarsRequest;
+class MarsRequest;
 }
-}
+}  // namespace metkit
 
 namespace fdb5 {
 
@@ -44,13 +45,14 @@ class Rule;
 
 class Key {
 
-public: // methods
+public:  // methods
 
     explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
-    explicit Key(const std::string &keys, const Rule* rule);
-    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    explicit Key(eckit::Stream&, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit Key(const std::string& keys, const Rule* rule);
+    explicit Key(const eckit::StringDict& keys, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>,
+        const std::shared_ptr<TypesRegistry> reg = nullptr);
 
     static Key parseStringUntyped(const std::string& s);
     /// @todo - this functionality should not be supported any more.
@@ -58,13 +60,13 @@ public: // methods
 
     std::set<std::string> keys() const;
 
-    void set(const std::string &k, const std::string &v);
-    void unset(const std::string &k);
+    void set(const std::string& k, const std::string& v);
+    void unset(const std::string& k);
 
-    void push(const std::string &k, const std::string &v);
-    void pop(const std::string &k);
+    void push(const std::string& k, const std::string& v);
+    void pop(const std::string& k);
 
-    const std::string& get( const std::string &k ) const;
+    const std::string& get(const std::string& k) const;
 
     void clear();
 
@@ -80,24 +82,18 @@ public: // methods
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key &other) const {
-        return keys_ < other.keys_;
-    }
+    bool operator<(const Key& other) const { return keys_ < other.keys_; }
 
-    bool operator!= (const Key &other) const {
-        return keys_ != other.keys_;
-    }
+    bool operator!=(const Key& other) const { return keys_ != other.keys_; }
 
-    bool operator== (const Key &other) const {
-        return keys_ == other.keys_;
-    }
+    bool operator==(const Key& other) const { return keys_ == other.keys_; }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Key& x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
+    friend eckit::Stream& operator<<(eckit::Stream& s, const Key& x) {
         x.encode(s);
         return s;
     }
@@ -109,7 +105,7 @@ public: // methods
 
     // Registry is needed before we can stringise/canonicalise.
     void registry(const std::shared_ptr<TypesRegistry> reg);
-    [[ nodiscard ]]
+    [[nodiscard]]
     const TypesRegistry& registry() const;
     const void* reg() const;
 
@@ -146,14 +142,14 @@ public: // methods
 
     operator eckit::StringDict() const;
 
-private: // members
+private:  // members
 
-    //TODO add unit test for each type
+    // TODO add unit test for each type
     std::string canonicalise(const std::string& keyword, const std::string& value) const;
 
-    void print( std::ostream &out ) const;
+    void print(std::ostream& out) const;
     void decode(eckit::Stream& s);
-    void encode(eckit::Stream &s) const;
+    void encode(eckit::Stream& s) const;
 
     std::string toString() const;
 
@@ -166,15 +162,13 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 namespace std {
-    template <>
-    struct hash<fdb5::Key> {
-        size_t operator() (const fdb5::Key& key) const {
-            return std::hash<std::string>()(key.valuesToString());
-        }
-    };
-}
+template <>
+struct hash<fdb5::Key> {
+    size_t operator()(const fdb5::Key& key) const { return std::hash<std::string>()(key.valuesToString()); }
+};
+}  // namespace std
 
 #endif

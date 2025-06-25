@@ -8,22 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/ArchiveVisitor.h"
+
 #include "eckit/exception/Exceptions.h"
 
-
 #include "fdb5/database/DB.h"
-#include "fdb5/database/ArchiveVisitor.h"
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, const ArchiveCallback& callback) :
-    BaseArchiveVisitor(owner, field),
-    data_(data),
-    size_(size),
-    callback_(callback){
-}
+ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size,
+                               const ArchiveCallback& callback) :
+    BaseArchiveVisitor(owner, field), data_(data), size_(size), callback_(callback) {}
 
-bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
+bool ArchiveVisitor::selectDatum(const Key& key, const Key& full) {
 
     // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
@@ -35,12 +32,11 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
     return true;
 }
 
-void ArchiveVisitor::print(std::ostream &out) const {
+void ArchiveVisitor::print(std::ostream& out) const {
     out << "ArchiveVisitor["
-        << "size=" << size_
-        << "]";
+        << "size=" << size_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

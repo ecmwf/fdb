@@ -23,38 +23,37 @@ namespace fdb5 {
 
 class DaosCatalogueReader : public DaosCatalogue, public CatalogueReader {
 
-public: // methods
+public:  // methods
 
     DaosCatalogueReader(const Key& key, const fdb5::Config& config);
     DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     DbStats stats() const override { NOTIMP; }
 
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const Key& key) override;
     void deselectIndex() override;
 
     bool open() override;
     void flush() override {}
     void clean() override {}
     void close() override {}
-    
-    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
+
+    bool axis(const std::string& keyword, eckit::StringSet& s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print( std::ostream &out ) const override { NOTIMP; }
+    void print(std::ostream& out) const override { NOTIMP; }
 
-private: // types
+private:  // types
 
-    typedef std::map< Key, Index> IndexStore;
+    typedef std::map<Key, Index> IndexStore;
 
-private: // members
+private:  // members
 
     IndexStore indexes_;
     Index current_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -13,13 +13,13 @@
 #include "eckit/option/VectorOption.h"
 #include "eckit/os/AutoUmask.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocCatalogueReader.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -33,31 +33,26 @@ namespace tools {
 
 class FdbHide : public FDBTool {
 
-public: // methods
+public:  // methods
 
-    FdbHide(int argc, char **argv) :
-        FDBTool(argc, argv),
-        doit_(false) {
+    FdbHide(int argc, char** argv) : FDBTool(argc, argv), doit_(false) {
         options_.push_back(new SimpleOption<bool>("doit", "Do the actual change"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void init(const option::CmdArgs& args);
     virtual void execute(const option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-private: // members
+private:  // members
 
     bool doit_;
 };
 
-void FdbHide::usage(const std::string &tool) const {
+void FdbHide::usage(const std::string& tool) const {
 
-    Log::info() << std::endl
-                << "Usage: " << tool << " [options] [DB request]" << std::endl
-                << std::endl
-                << std::endl;
+    Log::info() << std::endl << "Usage: " << tool << " [options] [DB request]" << std::endl << std::endl << std::endl;
     FDBTool::usage(tool);
 }
 
@@ -102,19 +97,20 @@ void FdbHide::execute(const option::CmdArgs& args) {
     eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
     if (doit_) {
         std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbkey, conf, false);
-        TocCatalogueWriter* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
+        TocCatalogueWriter* tocDB           = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
         tocDB->hideContents();
-    } else {
+    }
+    else {
         eckit::Log::info() << "Run with --doit to make changes" << std::endl;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fbb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbHide app(argc, argv);
     return app.start();
 }

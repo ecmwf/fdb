@@ -19,12 +19,12 @@
 #ifndef fdb5_helpers_APIIteratorBase_H
 #define fdb5_helpers_APIIteratorBase_H
 
-#include "eckit/container/Queue.h"
-
+#include <exception>
 #include <functional>
 #include <memory>
 #include <queue>
-#include <exception>
+
+#include "eckit/container/Queue.h"
 
 /*
  * Given a standard, copyable, element, provide a mechanism for iterating over
@@ -38,7 +38,7 @@ namespace fdb5 {
 template <typename ValueType>
 class APIIteratorBase {
 
-public: // methods
+public:  // methods
 
     APIIteratorBase() {}
     virtual ~APIIteratorBase() {}
@@ -51,22 +51,22 @@ public: // methods
 template <typename ValueType>
 class APIIterator {
 
-public: // types
+public:  // types
 
     using value_type = ValueType;
 
-public: // methods
+public:  // methods
 
-    APIIterator(APIIteratorBase<ValueType>* impl) :
-        impl_(impl) {}
+    APIIterator(APIIteratorBase<ValueType>* impl) : impl_(impl) {}
 
     /// Get the next element. Return false if at end
     bool next(ValueType& elem) {
-        if (!impl_) return false;
+        if (!impl_)
+            return false;
         return impl_->next(elem);
     }
 
-private: // members
+private:  // members
 
     std::unique_ptr<APIIteratorBase<ValueType>> impl_;
 };
@@ -78,10 +78,9 @@ private: // members
 template <typename ValueType>
 class APIAggregateIterator : public APIIteratorBase<ValueType> {
 
-public: // methods
+public:  // methods
 
-    APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) :
-        iterators_(std::move(iterators)) {}
+    APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) : iterators_(std::move(iterators)) {}
 
     virtual ~APIAggregateIterator() override {}
 
@@ -98,7 +97,7 @@ public: // methods
         return false;
     }
 
-private: // members
+private:  // members
 
     std::queue<APIIterator<ValueType>> iterators_;
 };
@@ -116,10 +115,9 @@ private: // members
 template <typename ValueType>
 class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
-public: // methods
+public:  // methods
 
-    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn,
-                     size_t queueSize=100) :
+    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn, size_t queueSize = 100) :
         queue_(queueSize) {
 
         // Add a call to set_done() on the eckit::Queue.
@@ -127,7 +125,8 @@ public: // methods
             try {
                 workerFn(queue_);
                 queue_.close();
-            } catch (...) {
+            }
+            catch (...) {
                 // Really avoid calling std::terminate on worker thread.
                 queue_.interrupt(std::current_exception());
             }
@@ -144,11 +143,9 @@ public: // methods
         workerThread_.join();
     }
 
-    virtual bool next(ValueType& elem) override {
-        return !(queue_.pop(elem) == -1);
-    }
+    virtual bool next(ValueType& elem) override { return !(queue_.pop(elem) == -1); }
 
-private: // members
+private:  // members
 
     eckit::Queue<ValueType> queue_;
 
@@ -158,6 +155,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

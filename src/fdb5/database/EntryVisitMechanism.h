@@ -17,8 +17,8 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Field.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/Field.h"
 
 namespace fdb5 {
 
@@ -41,8 +41,9 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index); // return true if index should be explored
+    virtual bool visitDatabase(const Catalogue& catalogue,
+                               const Store& store);  // return true if Catalogue should be explored
+    virtual bool visitIndex(const Index& index);     // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
@@ -50,7 +51,7 @@ public:  // methods
 
     time_t indexTimestamp() const;
 
-private: // methods
+private:  // methods
 
     virtual void visitDatum(const Field& field, const Key& key) = 0;
 

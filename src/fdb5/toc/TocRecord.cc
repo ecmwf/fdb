@@ -8,27 +8,26 @@
  * does it submit to any jurisdiction.
  */
 
-#include <sys/types.h>
-#include <pwd.h>
+#include "TocRecord.h"
 
-#include "fdb5/fdb5_version.h"
-#include "fdb5/LibFdb5.h"
+#include <pwd.h>
+#include <sys/types.h>
 
 #include <iomanip>
 
-#include "TocRecord.h"
-
-#include "eckit/memory/Zero.h"
-#include "eckit/log/TimeStamp.h"
 #include "eckit/log/Log.h"
+#include "eckit/log/TimeStamp.h"
+#include "eckit/memory/Zero.h"
 #include "eckit/runtime/Main.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_version.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag):
-    tag_(tag) {
+TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag) : tag_(tag) {
 
     if (tag_ != TOC_NULL) {
         eckit::zero(*this);
@@ -37,21 +36,20 @@ TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag):
 
         fdbVersion_ = ::fdb5_version_int();
 
-        SYSCALL( ::gettimeofday( &timestamp_, 0 ) );
+        SYSCALL(::gettimeofday(&timestamp_, 0));
 
-        pid_       = ::getpid();
-        uid_       = ::getuid();
+        pid_ = ::getpid();
+        uid_ = ::getuid();
 
         std::string host = eckit::Main::hostname();
-        host = host.substr(0, host.find(".")); // guaranteed to be less than 64 chars -- seee RFC 1035
-        hostname_ = host;
+        host             = host.substr(0, host.find("."));  // guaranteed to be less than 64 chars -- seee RFC 1035
+        hostname_        = host;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::TocRecord(unsigned int serialisationVersion, unsigned char tag):
-    header_(serialisationVersion, tag) {}
+TocRecord::TocRecord(unsigned int serialisationVersion, unsigned char tag) : header_(serialisationVersion, tag) {}
 
 void TocRecord::dump(std::ostream& out, bool simple) const {
 
@@ -80,39 +78,27 @@ void TocRecord::dump(std::ostream& out, bool simple) const {
     std::ostringstream oss;
     oss << (header_.timestamp_.tv_usec / 1000000.0);
 
-    out << " "
-        << eckit::TimeStamp(header_.timestamp_.tv_sec)
-        << "."
-        << std::setw(6)
-        << std::left
-        << std::setfill('0')
-        << oss.str().substr(2)
-        << std::setfill(' ')
-        << ", version:"
-        << header_.serialisationVersion_
-        << ", fdb: "
-        << header_.fdbVersion_
-        << ", uid: "
-        << std::setw(4);
+    out << " " << eckit::TimeStamp(header_.timestamp_.tv_sec) << "." << std::setw(6) << std::left << std::setfill('0')
+        << oss.str().substr(2) << std::setfill(' ') << ", version:" << header_.serialisationVersion_
+        << ", fdb: " << header_.fdbVersion_ << ", uid: " << std::setw(4);
 
-    struct passwd * p = getpwuid(header_.uid_);
+    struct passwd* p = getpwuid(header_.uid_);
 
     if (p) {
-        out  << p->pw_name;
-    } else {
+        out << p->pw_name;
+    }
+    else {
         out << header_.uid_;
     }
 
-    out << ", pid "
-        << std::setw(5)
-        << header_.pid_
-        << ", host: "
-        << header_.hostname_;
+    out << ", pid " << std::setw(5) << header_.pid_ << ", host: " << header_.hostname_;
 
-    if(!simple) { out << std::endl; }
+    if (!simple) {
+        out << std::endl;
+    }
 }
 
-void TocRecord::print(std::ostream & out) const {
+void TocRecord::print(std::ostream& out) const {
     out << "TocRecord["
         << "tag=" << header_.tag_ << ","
         << "tocVersion=" << header_.serialisationVersion_ << ","
@@ -125,4 +111,4 @@ void TocRecord::print(std::ostream & out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

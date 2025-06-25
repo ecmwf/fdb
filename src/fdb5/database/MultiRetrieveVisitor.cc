@@ -22,35 +22,26 @@
 #include "fdb5/types/TypesRegistry.h"
 
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
-                                           InspectIterator& iterator,
-                                           eckit::CacheLRU<Key,DB*>& databases,
-                                           const Config& config) :
-    db_(nullptr),
-    wind_(wind),
-    databases_(databases),
-    iterator_(iterator),
-    config_(config) {
-}
+MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, InspectIterator& iterator,
+                                           eckit::CacheLRU<Key, DB*>& databases, const Config& config) :
+    db_(nullptr), wind_(wind), databases_(databases), iterator_(iterator), config_(config) {}
 
-MultiRetrieveVisitor::~MultiRetrieveVisitor() {
-}
+MultiRetrieveVisitor::~MultiRetrieveVisitor() {}
 
 // From Visitor
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
-	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << key  << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << key << std::endl;
 
     /* is it the current DB ? */
 
-    if(db_) {
-        if(key == db_->key()) {
+    if (db_) {
+        if (key == db_->key()) {
             eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
@@ -58,7 +49,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* is the DB already open ? */
 
-    if(databases_.exists(key)) {
+    if (databases_.exists(key)) {
         LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << key << std::endl;
         db_ = databases_.access(key);
         return true;
@@ -66,7 +57,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* DB not yet open */
 
-    //std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
+    // std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
     std::unique_ptr<DB> newDB = DB::buildReader(key, config_);
 
     // If this database is locked for retrieval then it "does not exist"
@@ -77,12 +68,14 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         return false;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")"
+                           << std::endl;
 
     if (!newDB->open()) {
         LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << key << std::endl;
         return false;
-    } else {
+    }
+    else {
         db_ = newDB.release();
         databases_.insert(key, db_);
         return true;
@@ -108,17 +101,16 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
                 simplifiedKey.set(k->first, k->second);
         }
 
-        iterator_.emplace(ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
+        iterator_.emplace(
+            ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
         return true;
     }
 
     return false;
 }
 
-void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
-                             const std::string &keyword,
-                             const TypesRegistry &registry,
-                             eckit::StringList &values) {
+void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                                  const TypesRegistry& registry, eckit::StringList& values) {
     eckit::StringList list;
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_);
 
@@ -128,7 +120,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
         toFilter = db_->axis(keyword, filter);
     }
 
-    for(auto l: list) {
+    for (auto l : list) {
         std::string v = registry.lookupType(keyword).toKey(keyword, l);
         if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);
@@ -136,7 +128,7 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 }
 
-void MultiRetrieveVisitor::print( std::ostream &out ) const {
+void MultiRetrieveVisitor::print(std::ostream& out) const {
     out << "MultiRetrieveVisitor[]";
 }
 
@@ -147,4 +139,4 @@ const Schema& MultiRetrieveVisitor::databaseSchema() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

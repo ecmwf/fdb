@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocCatalogueReader.h"
+
 #include <algorithm>
 
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
@@ -21,8 +22,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config) {
+TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) : TocCatalogue(key, config) {
     loadIndexesAndRemap();
 }
 
@@ -47,9 +47,9 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const Key& key) {
 
-    if(currentIndexKey_ == key) {
+    if (currentIndexKey_ == key) {
         return true;
     }
 
@@ -62,14 +62,14 @@ bool TocCatalogueReader::selectIndex(const Key &key) {
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found "
-                                << matching_.size() << " matche(s)" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found " << matching_.size()
+                           << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
 }
 
 void TocCatalogueReader::deselectIndex() {
-    NOTIMP; //< should not be called
+    NOTIMP;  //< should not be called
 }
 
 bool TocCatalogueReader::open() {
@@ -86,11 +86,11 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool TocCatalogueReader::axis(const std::string& keyword, eckit::StringSet& s) const {
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {
-            found = true;
+            found                                 = true;
             const eckit::DenseSet<std::string>& a = (*m)->first.axes().values(keyword);
             s.insert(a.begin(), a.end());
         }
@@ -122,7 +122,7 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     return false;
 }
 
-void TocCatalogueReader::print(std::ostream &out) const {
+void TocCatalogueReader::print(std::ostream& out) const {
     out << "TocCatalogueReader(" << directory() << ")";
 }
 
@@ -146,4 +146,4 @@ static CatalogueBuilder<TocCatalogueReader> builder("toc.reader");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

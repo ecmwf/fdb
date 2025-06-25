@@ -8,14 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/daos/DaosIndex.h"
+
 #include <limits.h>  // for PATH_MAX
 
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/HandleStream.h"
-#include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosIndex.h"
+#include "eckit/serialisation/MemoryStream.h"
+
 #include "fdb5/daos/DaosLazyFieldLocation.h"
+#include "fdb5/daos/DaosSession.h"
 
 fdb5::DaosKeyValueName buildIndexKvName(const fdb5::Key& key, const fdb5::DaosName& name) {
 
@@ -27,16 +29,14 @@ fdb5::DaosKeyValueName buildIndexKvName(const fdb5::Key& key, const fdb5::DaosNa
     fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
 
     return fdb5::DaosKeyValueName{name.poolName(), name.containerName(), index_kv_oid};
-
 }
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) : 
-    IndexBase(key, "daosKeyValue"), 
-    location_(buildIndexKvName(key, name), 0) {
+DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
+    IndexBase(key, "daosKeyValue"), location_(buildIndexKvName(key, name), 0) {
 
     fdb5::DaosSession s{};
 
@@ -46,7 +46,7 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     fdb5::DaosKeyValue index_kv_obj{s, location_.daosName()};
 
     /// write indexKey under "key"
-    eckit::MemoryHandle h{(size_t) PATH_MAX};
+    eckit::MemoryHandle h{(size_t)PATH_MAX};
     eckit::HandleStream hs{h};
     h.openForWrite(eckit::Length(0));
     {
@@ -62,15 +62,13 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     /// @note: performed RPCs:
     /// - record index key into index kv (daos_kv_put)
     index_kv_obj.put("key", h.data(), hs.bytesWritten());
-    
 }
 
 DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
-    IndexBase(key, "daosKeyValue"),
-    location_(name, 0) {
+    IndexBase(key, "daosKeyValue"), location_(name, 0) {
 
-    if (readAxes) updateAxes();
-
+    if (readAxes)
+        updateAxes();
 }
 
 void DaosIndex::updateAxes() {
@@ -83,7 +81,7 @@ void DaosIndex::updateAxes() {
     fdb5::DaosKeyValue index_kv{s, index_kv_name};
 
     int axis_names_max_len = 512;  /// @todo: take from config
-    std::vector<char> axes_data((long) axis_names_max_len);
+    std::vector<char> axes_data((long)axis_names_max_len);
 
     /// @note: performed RPCs:
     /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get)
@@ -109,10 +107,9 @@ void DaosIndex::updateAxes() {
     }
 
     axes_.sort();
-
 }
 
-bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
+bool DaosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
     const fdb5::DaosKeyValueName& n = location_.daosName();
 
@@ -125,7 +122,7 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     std::string query{key.valuesToString()};
 
     int field_loc_max_len = 512;  /// @todo: read from config
-    std::vector<char> loc_data((long) field_loc_max_len);
+    std::vector<char> loc_data((long)field_loc_max_len);
     long res;
 
     try {
@@ -133,46 +130,44 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
         /// @note: performed RPCs:
         /// - retrieve field array location from index kv (daos_kv_get)
         res = index.get(query, &loc_data[0], field_loc_max_len);
-
-    } catch (fdb5::DaosEntityNotFoundException& e) {
+    }
+    catch (fdb5::DaosEntityNotFoundException& e) {
 
         /// @note: performed RPCs:
         /// - close index kv (daos_obj_close)
 
         return false;
-
     }
 
-    eckit::MemoryStream ms{&loc_data[0], (size_t) res};
+    eckit::MemoryStream ms{&loc_data[0], (size_t)res};
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
     time_t ts;
     ms >> ts;
 
     fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
-    field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
+    field                    = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
 
     return true;
-
 }
 
-void DaosIndex::add(const Key &key, const Field &field) {
+void DaosIndex::add(const Key& key, const Field& field) {
 
-    eckit::MemoryHandle h{(size_t) PATH_MAX};
+    eckit::MemoryHandle h{(size_t)PATH_MAX};
     eckit::HandleStream hs{h};
     h.openForWrite(eckit::Length(0));
     {
         eckit::AutoClose closer(h);
         /// @note: in the POSIX back-end, keeping a timestamp per index is necessary, to allow
-        ///   determining which was the latest indexed field in cases where multiple processes 
+        ///   determining which was the latest indexed field in cases where multiple processes
         ///   index a same field or in cases where multiple catalogues are combined with DistFDB.
         ///   In the DAOS back-end, however, determining the latest indexed field is straigthforward
-        ///   as all parallel processes writing fields for a same index key will share a DAOS 
+        ///   as all parallel processes writing fields for a same index key will share a DAOS
         ///   key-value, and the last indexing will supersede the previous ones.
-        ///   DistFDB will be obsoleted in favour of a centralised catalogue mechanism which can 
+        ///   DistFDB will be obsoleted in favour of a centralised catalogue mechanism which can
         ///   index fields on multiple catalogues.
         ///   Therefore keeping timestamps in DAOS should not be necessary.
         ///   They are kept for now only for informational purposes.
@@ -191,12 +186,11 @@ void DaosIndex::add(const Key &key, const Field &field) {
     /// - ensure index kv exists (daos_obj_open)
     /// - record field key and location into index kv (daos_kv_put)
     /// - close index kv when destroyed (daos_obj_close)
-    fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());   
-
+    fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());
 }
 
-void DaosIndex::entries(EntryVisitor &visitor) const {
-    
+void DaosIndex::entries(EntryVisitor& visitor) const {
+
     Index instantIndex(const_cast<DaosIndex*>(this));
 
     // Allow the visitor to selectively decline to visit the entries in this index
@@ -211,22 +205,21 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
 
         for (const auto& key : index_kv.keys()) {
 
-            if (key == "axes" || key == "key") continue;
+            if (key == "axes" || key == "key")
+                continue;
 
-            /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each 
-            ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field 
-            ///   keys present in an index -- without retrieving the actual location --, and 
+            /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each
+            ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field
+            ///   keys present in an index -- without retrieving the actual location --, and
             ///   ListVisitor::visitDatum is called for each (see note at the top of DaosLazyFieldLocation.h).
-            ///   When a field key is matched in visitDatum, DaosLazyFieldLocation::stableLocation is called, 
-            ///   which in turn calls this method here and triggers retrieval and deserialisation of the 
-            ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a 
+            ///   When a field key is matched in visitDatum, DaosLazyFieldLocation::stableLocation is called,
+            ///   which in turn calls this method here and triggers retrieval and deserialisation of the
+            ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a
             ///   polymorphic class, it needs to be reanimated.
             fdb5::FieldLocation* loc = new fdb5::DaosLazyFieldLocation(location_.daosName(), key);
             fdb5::Field field(std::move(*loc), time_t(), fdb5::FieldDetails());
             visitor.visitDatum(field, key);
-
         }
-
     }
 }
 
@@ -235,11 +228,13 @@ const std::vector<eckit::URI> DaosIndex::dataURIs() const {
     /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
     /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files
     ///   in this index (one for each writer process that has written to the index)
-    /// @note: in the case where we have a daos store, the current implementation of dataURIs is unnecessarily inefficient.
-    ///   This method is only called in DaosWipeVisitor, where the uris obtained from this method are processed to obtain
-    ///   unique store container paths - will always result in just one container uri! Having a URI store for each index in
-    ///   DAOS could make this process more efficient, but it would imply more KV operations and slow down field writes.
-    /// @note: in the case where we have a posix store there will be more than one unique store file paths. The current 
+    /// @note: in the case where we have a daos store, the current implementation of dataURIs is unnecessarily
+    /// inefficient.
+    ///   This method is only called in DaosWipeVisitor, where the uris obtained from this method are processed to
+    ///   obtain unique store container paths - will always result in just one container uri! Having a URI store for
+    ///   each index in DAOS could make this process more efficient, but it would imply more KV operations and slow down
+    ///   field writes.
+    /// @note: in the case where we have a posix store there will be more than one unique store file paths. The current
     ///   implementation is still inefficient but preferred to maintaining a URI store in the DAOS catalogue
 
     fdb5::DaosSession s{};
@@ -249,23 +244,22 @@ const std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     for (const auto& key : index_kv.keys()) {
 
-        if (key == "axes" || key == "key") continue;
+        if (key == "axes" || key == "key")
+            continue;
 
         std::vector<char> data;
         eckit::MemoryStream ms = index_kv.getMemoryStream(data, key, "index kv");
-        
+
         time_t ts;
         ms >> ts;
 
         std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
         res.insert(fl->uri());
-
     }
 
     return std::vector<eckit::URI>(res.begin(), res.end());
-
 }
 
 //-----------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

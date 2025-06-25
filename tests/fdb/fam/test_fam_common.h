@@ -19,31 +19,32 @@
 
 #pragma once
 
+#include <string.h>
+
+#include <fstream>
+#include <regex>
+
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
-
-#include <string.h>
-
-#include <fstream>
-#include <regex>
 
 using namespace std::string_literals;
 
 namespace {
 // const auto TEST_FDB_ENDPOINT = eckit::net::Endpoint("127.0.0.1", 8880);
-const auto TEST_FDB_FAM_ENDPOINT = "127.0.0.1:8880"s;
+const auto TEST_FDB_FAM_ENDPOINT = "172.31.0.2:8880"s;
 const auto TEST_FDB_FAM_REGION   = "test_region_fdb"s;
 const auto TEST_FDB_FAM_URI      = "fam://" + TEST_FDB_FAM_ENDPOINT + "/" + TEST_FDB_FAM_REGION;
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-#define TEST_LOG_INFO(msg)  eckit::Log::info() << "INFO  [TEST_FAM] : " << msg << std::endl
+#define TEST_LOG_INFO(msg) eckit::Log::info() << "INFO  [TEST_FAM] : " << msg << std::endl
 #define TEST_LOG_DEBUG(msg) eckit::Log::debug<fdb5::LibFdb5>() << "DEBUG [TEST_FAM] : " << msg << std::endl
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,7 +73,9 @@ void readAndValidate(eckit::DataHandle* dh, const char* data, const long length)
 
 void write(const std::string& buffer, const eckit::PathName& path) {
     std::ofstream file(path);
-    if (!file) { throw eckit::CantOpenFile(path); }
+    if (!file) {
+        throw eckit::CantOpenFile(path);
+    }
     file << buffer;
 }
 
@@ -86,10 +89,10 @@ struct FamSetup {
         write(std::regex_replace(config, std::regex("./schema"), schemaPath.asString()), configPath.asString());
     }
 
-    const eckit::LocalPathName cwd_ {eckit::LocalPathName::cwd() + "/" + "fam_test_dir"};
+    const eckit::LocalPathName cwd_{eckit::LocalPathName::cwd() + "/" + "fam_test_dir"};
 
-    const eckit::PathName schemaPath {cwd_ + "/" + "schema"};
-    const eckit::PathName configPath {cwd_ + "/" + "config.yaml"};
+    const eckit::PathName schemaPath{cwd_ + "/" + "schema"};
+    const eckit::PathName configPath{cwd_ + "/" + "config.yaml"};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

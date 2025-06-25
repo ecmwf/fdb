@@ -27,28 +27,27 @@ namespace fdb5 {
 
 class MatchAny : public Matcher {
 
-public: // methods
+public:  // methods
 
-    MatchAny(const std::set<std::string> &values);
+    MatchAny(const std::set<std::string>& values);
 
     virtual ~MatchAny() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
+    virtual bool match(const std::string& keyword, const Key& key) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
     std::set<std::string> values_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

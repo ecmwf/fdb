@@ -18,25 +18,19 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeAbbreviation::TypeAbbreviation(const std::string &name, const std::string &type) :
-    Type(name, type) {
+TypeAbbreviation::TypeAbbreviation(const std::string& name, const std::string& type) : Type(name, type) {
     count_ = char(type[type.length() - 1]) - '0';
 }
 
-TypeAbbreviation::~TypeAbbreviation() {
-}
+TypeAbbreviation::~TypeAbbreviation() {}
 
-std::string TypeAbbreviation::toKey(const std::string&,
-                                    const std::string &value) const {
+std::string TypeAbbreviation::toKey(const std::string&, const std::string& value) const {
 
     return value.substr(0, count_);
 }
 
-void TypeAbbreviation::getValues(const metkit::mars::MarsRequest &request,
-                                 const std::string &keyword,
-                                 eckit::StringList &values,
-                                 const Notifier&,
-                                 const DB*) const {
+void TypeAbbreviation::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                                 eckit::StringList& values, const Notifier&, const DB*) const {
     std::vector<std::string> vals;
 
     request.getValues(keyword, vals, true);
@@ -48,7 +42,7 @@ void TypeAbbreviation::getValues(const metkit::mars::MarsRequest &request,
     }
 }
 
-void TypeAbbreviation::print(std::ostream &out) const {
+void TypeAbbreviation::print(std::ostream& out) const {
     out << "TypeAbbreviation[name=" << name_ << ",count=" << count_ << "]";
 }
 
@@ -56,4 +50,4 @@ static TypeBuilder<TypeAbbreviation> type("First3");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

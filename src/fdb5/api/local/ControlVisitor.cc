@@ -18,13 +18,9 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue,
-                               const metkit::mars::MarsRequest& request,
-                               ControlAction action,
-                               ControlIdentifiers identifiers) :
-    QueryVisitor<ControlElement>(queue, request),
-    action_(action),
-    identifiers_(identifiers) {}
+ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request,
+                               ControlAction action, ControlIdentifiers identifiers) :
+    QueryVisitor<ControlElement>(queue, request), action_(action), identifiers_(identifiers) {}
 
 
 bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
@@ -43,6 +39,6 @@ bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

@@ -24,29 +24,24 @@ namespace fdb5 {
 
 class TypeDouble : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeDouble(const std::string &name, const std::string &type);
+    TypeDouble(const std::string& name, const std::string& type);
 
     virtual ~TypeDouble() override;
 
-    virtual std::string toKey(const std::string& keyword,
-                              const std::string& value) const override;
+    virtual std::string toKey(const std::string& keyword, const std::string& value) const override;
 
-    virtual void getValues(const metkit::mars::MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const Notifier &wind,
-                           const DB *db) const override;
+    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                           eckit::StringList& values, const Notifier& wind, const DB* db) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
-
+    virtual void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

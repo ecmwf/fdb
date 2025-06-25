@@ -21,13 +21,15 @@
 #ifndef fdb5_PoolManager_H
 #define fdb5_PoolManager_H
 
-#include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/utils/Regex.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/pmem/PoolGroup.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+class MarsRequest;
+}
 
 namespace fdb5 {
 
@@ -35,14 +37,14 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class PoolManager  {
+class PoolManager {
 
-public: // methods
+public:  // methods
 
-    PoolManager(const Config& config=Config());
+    PoolManager(const Config& config = Config());
 
     /// Uniquely selects a pool where the Key will be put or already exists
-    eckit::PathName pool(const Key &key);
+    eckit::PathName pool(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allPools(const Key& key);
@@ -55,7 +57,7 @@ public: // methods
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writablePools(const Key& key);
 
-private: // members
+private:  // members
 
     const std::vector<PoolGroup> poolGroupTable_;
     Config config_;
@@ -63,6 +65,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

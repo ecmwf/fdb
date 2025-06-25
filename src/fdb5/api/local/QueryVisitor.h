@@ -19,11 +19,11 @@
 #ifndef fdb5_api_local_QueryVisitor_H
 #define fdb5_api_local_QueryVisitor_H
 
-#include "fdb5/database/EntryVisitMechanism.h"
-
 #include "eckit/container/Queue.h"
 
 #include "metkit/mars/MarsRequest.h"
+
+#include "fdb5/database/EntryVisitMechanism.h"
 
 namespace fdb5 {
 namespace api {
@@ -36,14 +36,14 @@ namespace local {
 template <typename T>
 class QueryVisitor : public EntryVisitor {
 
-public: // methods
+public:  // methods
 
     using ValueType = T;
 
     QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
         queue_(queue), request_(request) {}
 
-protected: // members
+protected:  // members
 
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
@@ -52,8 +52,8 @@ protected: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

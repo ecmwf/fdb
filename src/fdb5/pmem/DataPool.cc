@@ -15,17 +15,17 @@
 /// @date   Feb 2016
 
 
+#include "fdb5/pmem/DataPool.h"
+
+#include <unistd.h>
+#include "pmem/PersistentPtr.h"
+
 #include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 
-#include "pmem/PersistentPtr.h"
-
-#include "fdb5/pmem/DataPool.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/pmem/PDataRoot.h"
 #include "fdb5/pmem/PRoot.h"
-#include "fdb5/LibFdb5.h"
-
-#include <unistd.h>
 
 
 using namespace eckit;
@@ -106,5 +106,5 @@ PDataRoot& DataPool::root() const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace tree
+}  // namespace pmem
+}  // namespace fdb5

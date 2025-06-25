@@ -41,13 +41,13 @@ class FDB;
 
 class RemoteFDB : public FDBBase {
 
-public: // types
+public:  // types
 
     using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
-    using MessageQueue = eckit::Queue<StoredMessage>;
-    using ArchiveQueue = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
+    using MessageQueue  = eckit::Queue<StoredMessage>;
+    using ArchiveQueue  = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
 
-public: // method
+public:  // method
 
     using FDBBase::stats;
 
@@ -74,8 +74,7 @@ public: // method
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
@@ -84,7 +83,7 @@ public: // method
 
     const eckit::net::Endpoint& controlEndpoint() const { return controlEndpoint_; }
 
-private: // methods
+private:  // methods
 
     // Methods to control the connection
 
@@ -105,11 +104,13 @@ private: // methods
     void listeningThreadLoop();
 
     // Handle data going in either direction on the wire
-    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload = nullptr,
+                                   uint32_t payloadLength = 0);
+    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload = nullptr,
+                      uint32_t payloadLength = 0);
     void controlWrite(const void* data, size_t length);
     void controlRead(void* data, size_t length);
-    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     void dataWrite(const void* data, size_t length);
     void dataRead(void* data, size_t length);
     void handleError(const remote::MessageHeader& hdr);
@@ -117,7 +118,8 @@ private: // methods
     // Worker for the API functions
 
     template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+        -> APIIterator<typename HelperClass::ValueType>;
 
     // Workers for archiving
 
@@ -130,7 +132,7 @@ private: // methods
 
     virtual FDBStats stats() const override;
 
-private: // members
+private:  // members
 
     eckit::SessionID sessionID_;
 
@@ -173,6 +175,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_remote_RemoteFDB_H
+#endif  // fdb5_remote_RemoteFDB_H

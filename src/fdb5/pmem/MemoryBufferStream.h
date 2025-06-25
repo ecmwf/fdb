@@ -20,12 +20,12 @@
 #ifndef fdb5_pmem_MemoryBufferStream_H
 #define fdb5_pmem_MemoryBufferStream_H
 
-#include "eckit/serialisation/Stream.h"
-#include "eckit/memory/MemoryBuffer.h"
+#include <string>
+
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-
-#include <string>
+#include "eckit/memory/MemoryBuffer.h"
+#include "eckit/serialisation/Stream.h"
 
 
 namespace fdb5 {
@@ -37,20 +37,20 @@ namespace pmem {
 
 class MemoryBufferStream : public eckit::Stream {
 
-public: // methods
+public:  // methods
 
     MemoryBufferStream();
     ~MemoryBufferStream();
 
-    virtual long read(void*,long);
-    virtual long write(const void*,long);
+    virtual long read(void*, long);
+    virtual long write(const void*, long);
     virtual void rewind();
     virtual std::string name() const;
 
     size_t position() const;
     const eckit::MemoryBuffer& buffer() const;
 
-private: // members
+private:  // members
 
     eckit::Length size_;
     eckit::Offset position_;
@@ -61,7 +61,7 @@ private: // members
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_MemoryBufferStream_H
+#endif  // fdb5_pmem_MemoryBufferStream_H

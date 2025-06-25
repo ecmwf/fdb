@@ -14,24 +14,24 @@
 /// @author Simon Smart
 /// @date   Feb 2016
 
+#include "fdb5/pmem/PBranchingNode.h"
+
+#include <unistd.h>
+#include "pmem/PoolRegistry.h"
+
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/types/Types.h"
 
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/pmem/DataPoolManager.h"
-#include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
-#include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PRoot.h"
 #include "fdb5/rules/Schema.h"
-
-#include "pmem/PoolRegistry.h"
-
-#include <unistd.h>
 
 using namespace eckit;
 using namespace pmem;
@@ -43,8 +43,7 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 
-PBranchingNode::PBranchingNode(const KeyType &key, const ValueType &value) :
-    PBaseNode(BRANCHING_NODE, key, value) {}
+PBranchingNode::PBranchingNode(const KeyType& key, const ValueType& value) : PBaseNode(BRANCHING_NODE, key, value) {}
 
 
 // -------------------------------------------------------------------------------------------------
@@ -162,7 +161,8 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
                 if (next == identifier.end()) {
                     ASSERT(subnode->isDataNode());
                     ret = subnode.as<PDataNode>();
-                } else {
+                }
+                else {
                     ASSERT(subnode->isBranchingNode());
                     current = &subnode->asBranchingNode();
                 }
@@ -203,7 +203,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 
     for (KeyValueVector::const_iterator it = identifier.begin(); it != identifier.end(); ++it) {
 
-        //TODO: Is this locking overzealous?
+        // TODO: Is this locking overzealous?
 
         AutoLock<PersistentMutex> lock(current->mutex_);
 
@@ -221,7 +221,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
                 // correct type --> we can request it directly.
                 ASSERT(subnode->isBranchingNode());
 
-                ret = subnode.as<PBranchingNode>();
+                ret     = subnode.as<PBranchingNode>();
                 current = &subnode->asBranchingNode();
                 break;
             }
@@ -257,7 +257,7 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
 
     // Some sanity checking
 
-    std::string k = ordered_keys[ordered_keys.size()-1];
+    std::string k = ordered_keys[ordered_keys.size() - 1];
     std::string v = key.value(k);
     ASSERT(dataNode->matches(k, v));
 
@@ -376,10 +376,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
 #endif
 
 
-void PBranchingNode::visitLeaves(EntryVisitor &visitor,
-                                 DataPoolManager& mgr,
-                                 std::vector<Key>& keys,
-                                 size_t depth,
+void PBranchingNode::visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, std::vector<Key>& keys, size_t depth,
                                  Index index) {
 
     // Get a list of sub-nodes in memory before starting to visit them, so that we can
@@ -428,18 +425,18 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
             if (subnode->isDataNode()) {
 
                 // This would do masking...
-                //if (leaves.find(kv) == leaves.end())
+                // if (leaves.find(kv) == leaves.end())
                 //    leaves[kv] = subnode.as<PDataNode>();
                 leaves.push_back(subnode.as<PDataNode>());
-
-            } else {
+            }
+            else {
 
                 // n.b. Should be no masked subtrees, and no mixed data/trees
                 ASSERT(subnode->isBranchingNode());
-//                ASSERT(subtrees.find(kv) == subtrees.end());
-//                ASSERT(leaves.find(kv) == leaves.end());
+                //                ASSERT(subtrees.find(kv) == subtrees.end());
+                //                ASSERT(leaves.find(kv) == leaves.end());
                 subtrees.push_back(&subnode->asBranchingNode());
-//                subtrees[kv] = &(subnode->asBranchingNode());
+                //                subtrees[kv] = &(subnode->asBranchingNode());
             }
         }
     }
@@ -484,5 +481,5 @@ bool PBranchingNode::isIndex() const {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace tree
+}  // namespace pmem
+}  // namespace fdb5

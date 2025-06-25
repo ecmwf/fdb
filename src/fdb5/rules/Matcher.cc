@@ -8,49 +8,48 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/rules/Matcher.h"
+
 #include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/rules/Matcher.h"
 #include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Matcher::Matcher() {
-}
+Matcher::Matcher() {}
 
-Matcher::~Matcher() {
-}
+Matcher::~Matcher() {}
 
 bool Matcher::optional() const {
     return false;
 }
 
-const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
+const std::string& Matcher::value(const Key& key, const std::string& keyword) const {
     return key.get(keyword);
 }
 
-const std::vector<std::string> &Matcher::values(const metkit::mars::MarsRequest& rq, const std::string &keyword) const {
+const std::vector<std::string>& Matcher::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
     return rq.values(keyword);
 }
 
-void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {
+void Matcher::fill(Key& key, const std::string& keyword, const std::string& value) const {
     key.push(keyword, value);
 }
 
 
-const std::string &Matcher::defaultValue() const {
+const std::string& Matcher::defaultValue() const {
     NOTIMP;
 }
 
-std::ostream &operator<<(std::ostream &s, const Matcher &x) {
+std::ostream& operator<<(std::ostream& s, const Matcher& x) {
     x.print(s);
     return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

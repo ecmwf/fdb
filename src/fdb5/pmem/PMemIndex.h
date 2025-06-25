@@ -23,7 +23,6 @@
 #include "eckit/eckit.h"
 
 #include "fdb5/database/Index.h"
-
 #include "fdb5/pmem/PMemIndexLocation.h"
 
 namespace fdb5 {
@@ -36,9 +35,9 @@ class PBranchingNode;
 
 class PMemIndex : public IndexBase {
 
-public: // methods
+public:  // methods
 
-    PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
+    PMemIndex(const Key& key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type = defaulType());
 
     virtual ~PMemIndex() override;
 
@@ -46,7 +45,7 @@ public: // methods
 
     static std::string defaulType();
 
-protected: // methods
+protected:  // methods
 
     virtual const IndexLocation& location() const { return location_; }
     virtual const std::vector<eckit::URI> dataURIs() const override;
@@ -57,25 +56,25 @@ protected: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual bool get( const Key &key, Field &field ) const;
-    virtual void add( const Key &key, const Field &field );
+    virtual bool get(const Key& key, Field& field) const;
+    virtual void add(const Key& key, const Field& field);
     virtual void flush();
-    virtual void encode(eckit::Stream &s) const override;
-    virtual void entries(EntryVisitor &visitor) const;
+    virtual void encode(eckit::Stream& s) const override;
+    virtual void entries(EntryVisitor& visitor) const;
 
-    virtual void print( std::ostream &out ) const override;
+    virtual void print(std::ostream& out) const override;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const;
 
     virtual IndexStats statistics() const;
 
-private: // members
+private:  // members
 
     PMemIndexLocation location_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
 #endif

@@ -14,17 +14,18 @@
 /// @author Simon Smart
 /// @date   Feb 2016
 
+#include "fdb5/pmem/PDataNode.h"
+
+#include <unistd.h>
+
 #include "eckit/io/Length.h"
 #include "eckit/log/Log.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/pmem/PDataNode.h"
-#include "fdb5/pmem/PMemIndex.h"
-#include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PBranchingNode.h"
-
-#include <unistd.h>
+#include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PMemIndex.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -37,8 +38,7 @@ namespace pmem {
 
 
 PDataNode::PDataNode(const KeyType& key, const ValueType& value, const void* data, eckit::Length length) :
-    PBaseNode(DATA_NODE, key, value),
-    length_(length) {
+    PBaseNode(DATA_NODE, key, value), length_(length) {
 
     ::memcpy(data_, data, length_);
 }
@@ -61,5 +61,5 @@ eckit::Length PDataNode::length() const {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace tree
+}  // namespace pmem
+}  // namespace fdb5

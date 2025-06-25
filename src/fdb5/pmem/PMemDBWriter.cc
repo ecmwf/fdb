@@ -14,10 +14,11 @@
  */
 
 #include "fdb5/pmem/PMemDBWriter.h"
-#include "fdb5/pmem/PMemIndex.h"
-#include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/pmem/PDataNode.h"
+
 #include "fdb5/LibFdb5.h"
+#include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PMemIndex.h"
 
 using namespace eckit;
 
@@ -27,17 +28,14 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBWriter::PMemDBWriter(const Key &key, const eckit::Configuration& config) :
-    PMemDB(key, config) {}
+PMemDBWriter::PMemDBWriter(const Key& key, const eckit::Configuration& config) : PMemDB(key, config) {}
 
 
-PMemDBWriter::PMemDBWriter(const PathName &directory, const eckit::Configuration& config) :
-    PMemDB(directory, config) {}
+PMemDBWriter::PMemDBWriter(const PathName& directory, const eckit::Configuration& config) : PMemDB(directory, config) {}
 
-PMemDBWriter::~PMemDBWriter() {
-}
+PMemDBWriter::~PMemDBWriter() {}
 
-bool PMemDBWriter::selectIndex(const Key &key) {
+bool PMemDBWriter::selectIndex(const Key& key) {
 
     if (indexes_.find(key) == indexes_.end()) {
         indexes_[key] = Index(new PMemIndex(key, root_->getCreateBranchingNode(key), *dataPoolMgr_));
@@ -61,11 +59,11 @@ void PMemDBWriter::close() {
     indexes_.clear();
 }
 
-void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
+void PMemDBWriter::archive(const Key& key, const void* data, Length length) {
 
     // Get the key:value identifier associated with this key
 
-    std::string data_key = key.names().back();
+    std::string data_key   = key.names().back();
     std::string data_value = key.value(data_key);
 
     // Note that this pointer is NOT inside persistent space. The craeated object will be
@@ -74,12 +72,12 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
     ::pmem::PersistentPtr<PDataNode> ptr;
     dataPoolMgr_->allocate(ptr, PDataNode::Constructor(data_key, data_value, data, length));
 
-    Field field( (PMemFieldLocation(ptr, dataPoolMgr_->getPool(ptr.uuid()))) );
+    Field field((PMemFieldLocation(ptr, dataPoolMgr_->getPool(ptr.uuid()))));
 
     currentIndex_.put(key, field);
 }
 
-void PMemDBWriter::print(std::ostream &out) const {
+void PMemDBWriter::print(std::ostream& out) const {
     out << "PMemDBWriter["
         /// @todo should print more here
         << "]";
@@ -89,5 +87,5 @@ static DBBuilder<PMemDBWriter> builder("pmem.writer", false, true);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

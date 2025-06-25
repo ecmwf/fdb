@@ -21,21 +21,20 @@
 #define fdb5_pmem_DataPoolManager_H
 
 #include <stdint.h>
+#include "pmem/AtomicConstructor.h"
+#include "pmem/PersistentPtr.h"
+
 #include <iosfwd>
 #include <map>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
-
-#include "pmem/AtomicConstructor.h"
-#include "pmem/PersistentPtr.h"
+#include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/pmem/DataPool.h"
 
 
-
 namespace eckit {
-    class PathName;
+class PathName;
 }
 
 
@@ -58,7 +57,7 @@ class PIndexRoot;
 
 class DataPoolManager : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     DataPoolManager(const eckit::PathName& poolDir, PIndexRoot& masterRoot, uint64_t rootUUID);
 
@@ -85,7 +84,7 @@ public: // methods
 
     std::vector<eckit::PathName> dataPoolPaths();
 
-protected: // methods
+protected:  // methods
 
     /// Obtain the current pool for writing. If no pool is opened, then open/create the latest one.
     DataPool& currentWritePool();
@@ -98,7 +97,7 @@ protected: // methods
 
     const std::map<uint64_t, DataPool*>& pools() const;
 
-private: // members
+private:  // members
 
     eckit::PathName poolDir_;
 
@@ -110,9 +109,12 @@ private: // members
 
     DataPool* currentPool_;
 
-private: // friends
+private:  // friends
 
-    friend std::ostream& operator<<(std::ostream& s,const DataPoolManager& p) { p.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s, const DataPoolManager& p) {
+        p.print(s);
+        return s;
+    }
 };
 
 
@@ -132,8 +134,8 @@ void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::Atom
 
             ptr.allocate_ctr(pool, ctr);
             break;
-
-        } catch (::pmem::AtomicConstructorBase::AllocationError& e) {
+        }
+        catch (::pmem::AtomicConstructorBase::AllocationError& e) {
             // TODO: Check errno
             // If the allocation fails due to lack of space, this is fine. We just need to retry.
         }
@@ -142,7 +144,7 @@ void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::Atom
     };
 }
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PMemDataPoolManager_H
+#endif  // fdb5_pmem_PMemDataPoolManager_H

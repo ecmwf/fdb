@@ -16,8 +16,8 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
-#include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
@@ -25,32 +25,29 @@ namespace fdb5 {
 
 
 Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
-    dbConfig_(dbConfig),
-    current_(nullptr),
-    callback_(callback) {
-}
+    dbConfig_(dbConfig), current_(nullptr), callback_(callback) {}
 
 Archiver::~Archiver() {
 
-    flush(); // certify that all sessions are flushed before closing them
+    flush();  // certify that all sessions are flushed before closing them
 
-    databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
+    databases_.clear();  //< explicitly delete the DBs before schemas are destroyed
 }
 
-void Archiver::archive(const Key &key, const void* data, size_t len) {
+void Archiver::archive(const Key& key, const void* data, size_t len) {
     ArchiveVisitor visitor(*this, key, data, len, callback_);
     archive(key, visitor);
 }
 
-void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
-    
+
 
     dbConfig_.schema().expand(key, visitor);
 
     const Rule* rule = visitor.rule();
-    if (rule == nullptr) { // Make sure we did find a rule that matched
+    if (rule == nullptr) {  // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
         throw eckit::SeriousBug(oss.str());
@@ -66,12 +63,12 @@ void Archiver::flush() {
 }
 
 
-DB& Archiver::database(const Key &key) {
+DB& Archiver::database(const Key& key) {
 
     store_t::iterator i = databases_.find(key);
 
-    if (i != databases_.end() ) {
-        DB& db = *(i->second.second);
+    if (i != databases_.end()) {
+        DB& db          = *(i->second.second);
         i->second.first = ::time(0);
         return db;
     }
@@ -79,13 +76,13 @@ DB& Archiver::database(const Key &key) {
     static size_t fdbMaxNbDBsOpen = eckit::Resource<size_t>("fdbMaxNbDBsOpen", 64);
 
     if (databases_.size() >= fdbMaxNbDBsOpen) {
-        bool found = false;
+        bool found    = false;
         time_t oldest = ::time(0) + 24 * 60 * 60;
         Key oldK;
         for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
             if (i->second.first <= oldest) {
-                found = true;
-                oldK = i->first;
+                found  = true;
+                oldK   = i->first;
                 oldest = i->second.first;
             }
         }
@@ -106,17 +103,16 @@ DB& Archiver::database(const Key &key) {
         throw eckit::UserError(ss.str(), Here());
     }
 
-    DB& out = *db;
+    DB& out         = *db;
     databases_[key] = std::make_pair(::time(0), std::move(db));
     return out;
 }
 
-void Archiver::print(std::ostream &out) const {
+void Archiver::print(std::ostream& out) const {
     out << "Archiver["
-        << "]"
-        << std::endl;
+        << "]" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

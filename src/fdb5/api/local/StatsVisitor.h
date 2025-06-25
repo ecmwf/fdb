@@ -19,8 +19,8 @@
 #ifndef fdb5_api_local_StatsVisitor_H
 #define fdb5_api_local_StatsVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/Store.h"
 
@@ -44,15 +44,15 @@ public:
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;
 
-private: // members
+private:  // members
 
     std::unique_ptr<StatsReportVisitor> internalVisitor_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

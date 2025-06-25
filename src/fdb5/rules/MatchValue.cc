@@ -8,41 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchValue.h"
+
+#include "fdb5/database/Key.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string &value) :
-    Matcher(),
-    value_(value) {
-}
+MatchValue::MatchValue(const std::string& value) : Matcher(), value_(value) {}
 
-MatchValue::~MatchValue() {
-}
+MatchValue::~MatchValue() {}
 
-bool MatchValue::match(const std::string &keyword, const Key &key) const {
+bool MatchValue::match(const std::string& keyword, const Key& key) const {
     Key::const_iterator i = key.find(keyword);
 
     if (i == key.end()) {
         return false;
     }
 
-    return ( i->second == value_ );
+    return (i->second == value_);
 }
 
-void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
     s << "=" << value_;
 }
 
-void MatchValue::print(std::ostream &out) const {
+void MatchValue::print(std::ostream& out) const {
     out << "MatchValue[value=" << value_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

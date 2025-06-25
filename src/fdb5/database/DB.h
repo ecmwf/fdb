@@ -18,12 +18,12 @@
 
 #include "eckit/types/Types.h"
 
+#include "fdb5/api/helpers/ArchiveCallback.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
 
 namespace eckit {
 class DataHandle;
@@ -41,10 +41,10 @@ class ControlIdentifiers;
 
 class DB final : public eckit::OwnedLock {
 
-public: // methods
+public:  // methods
 
-    static std::unique_ptr<DB> buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
-    static std::unique_ptr<DB> buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildReader(const Key& key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildWriter(const Key& key, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildReader(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildWriter(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
 
@@ -54,10 +54,11 @@ public: // methods
     const Key& indexKey() const;
     const Schema& schema() const;
 
-    bool axis(const std::string &keyword, eckit::StringSet &s) const;
+    bool axis(const std::string& keyword, eckit::StringSet& s) const;
     bool inspect(const Key& key, Field& field);
-    eckit::DataHandle *retrieve(const Key &key);
-    void archive(const Key &key, const void *data, eckit::Length length, const Key &field, const ArchiveCallback& callback = CALLBACK_NOOP);
+    eckit::DataHandle* retrieve(const Key& key);
+    void archive(const Key& key, const void* data, eckit::Length length, const Key& field,
+                 const ArchiveCallback& callback = CALLBACK_NOOP);
 
     bool open();
     void flush();
@@ -65,9 +66,10 @@ public: // methods
 
     bool exists() const;
 
-    void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const;
+    void dump(std::ostream& out, bool simple = false,
+              const eckit::Configuration& conf = eckit::LocalConfiguration()) const;
 
-    bool selectIndex(const Key &key);
+    bool selectIndex(const Key& key);
     void deselectIndex();
 
     DbStats stats() const;
@@ -80,21 +82,21 @@ public: // methods
 
     void visitEntries(EntryVisitor& visitor, bool sorted = false);
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    void index(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-protected: // methods
+protected:  // methods
 
-    friend std::ostream &operator<<(std::ostream &s, const DB &x);
-    void print( std::ostream &out ) const;
+    friend std::ostream& operator<<(std::ostream& s, const DB& x);
+    void print(std::ostream& out) const;
 
-private: // members
+private:  // members
 
-    DB(const Key &key, const fdb5::Config& config, bool read);
-    DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
+    DB(const Key& key, const fdb5::Config& config, bool read);
+    DB(const eckit::URI& uri, const fdb5::Config& config, bool read);
 
     Store& store() const;
 
@@ -108,11 +110,11 @@ class DBVisitor : private eckit::NonCopyable {
 public:
 
     virtual ~DBVisitor();
-    virtual void operator() (DB& db) = 0;
+    virtual void operator()(DB& db) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

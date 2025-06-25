@@ -17,13 +17,13 @@
 #define fdb5_Engine_H
 
 #include <iosfwd>
-#include <vector>
 #include <string>
+#include <vector>
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/memory/NonCopyable.h"
 
 #include "metkit/mars/MarsRequest.h"
-
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/URI.h"
 
 #include "fdb5/database/DB.h"
 
@@ -37,40 +37,40 @@ class Config;
 
 class Engine : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     static Engine& backend(const std::string& name);
 
-public: // methods
+public:  // methods
 
     virtual ~Engine();
 
     /// @returns the named identifier of this engine
-    virtual std::string name() const = 0;
+    virtual std::string name() const   = 0;
     virtual std::string dbType() const = 0;
 
     /// @returns if an Engine is capable of opening this path
     virtual bool canHandle(const eckit::URI& uri, const Config&) const = 0;
 
     /// Uniquely selects a location where the Key will be put or already exists
-    virtual eckit::URI location(const Key &key, const Config& config) const = 0;
+    virtual eckit::URI location(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const = 0;
+    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                                       const Config& config) const                 = 0;
 
     /// Lists the roots where a DB key would be able to be written
     virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const = 0;
 
-    friend std::ostream &operator<<(std::ostream &s, const Engine& x);
+    friend std::ostream& operator<<(std::ostream& s, const Engine& x);
 
-protected: // methods
+protected:  // methods
 
-    virtual void print( std::ostream &out ) const = 0;
-
+    virtual void print(std::ostream& out) const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ protected: // methods
 
 class EngineRegistry : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
     static bool has(const std::string& name);
 
@@ -89,25 +89,24 @@ public: // methods
 
     static std::vector<std::string> list();
 
-    static void list(std::ostream &);
+    static void list(std::ostream&);
 
-protected: // methods
+protected:  // methods
 
     static void add(Engine*);
     static Engine* remove(const std::string&);
-
 };
 
 
 /// Templated for self-registering engines that does the self-registration into the registry
 
-template< class T>
+template <class T>
 class EngineBuilder : public EngineRegistry {
 public:
 
     EngineBuilder() {
         Engine* e = new T();
-        name_ = e->name();
+        name_     = e->name();
         EngineRegistry::add(e);
     }
 
@@ -117,11 +116,10 @@ public:
     }
 
     std::string name_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

@@ -20,6 +20,7 @@
 #pragma once
 
 #include "eckit/io/fam/FamObjectName.h"
+
 #include "fdb5/database/Store.h"
 #include "fdb5/fam/FamCommon.h"
 
@@ -29,8 +30,9 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FamStore: protected FamCommon, public Store {
+class FamStore : protected FamCommon, public Store {
 public:  // methods
+
     FamStore(const Schema& schema, const Key& key, const Config& config);
 
     ~FamStore() override;
@@ -53,11 +55,12 @@ public:  // methods
 
     void close() override;
 
-    void checkUID() const override { }
+    void checkUID() const override {}
 
     auto makeObject(const Key& key) const -> eckit::FamObjectName;
 
 protected:  // methods
+
     auto exists() const -> bool override;
 
     auto retrieve(Field& field) const -> eckit::DataHandle* override;
@@ -71,6 +74,7 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // members
+
     const Config& config_;
 };
 

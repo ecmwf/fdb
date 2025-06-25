@@ -13,15 +13,14 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include <string>
-
 #include "pmem/PersistentPtr.h"
 
-#include "fdb5/pmem/PDataNode.h"
-
 #include <cstddef>
+#include <string>
 
 #include "eckit/testing/Test.h"
+
+#include "fdb5/pmem/PDataNode.h"
 
 using namespace eckit::testing;
 using namespace fdb5::pmem;
@@ -31,8 +30,7 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "test_fdb5_pmem_pdatanode_basenode_functionality" )
-{
+CASE("test_fdb5_pmem_pdatanode_basenode_functionality") {
     std::string buf("Hello there, testing, testing");
 
     std::vector<char> elem(PDataNode::data_size(buf.length()));
@@ -49,8 +47,7 @@ CASE( "test_fdb5_pmem_pdatanode_basenode_functionality" )
 }
 
 
-CASE( "test_fdb5_pmem_pdatanode_data" )
-{
+CASE("test_fdb5_pmem_pdatanode_data") {
     std::string buf("Hello there, testing, testing");
 
     std::vector<char> elem(PDataNode::data_size(buf.length()));
@@ -65,8 +62,7 @@ CASE( "test_fdb5_pmem_pdatanode_data" )
 }
 
 
-CASE( "test_fdb5_pmem_pdatanode_datasize" )
-{
+CASE("test_fdb5_pmem_pdatanode_datasize") {
     // Check that the objects haven't changed size unexpectedly
     // (Important as data layout is persistent...)
     // n.b. There is padding on the PBaseNode, which rounds it up in size...
@@ -78,22 +74,18 @@ CASE( "test_fdb5_pmem_pdatanode_datasize" )
 }
 
 
-CASE( "test_fdb5_pmem_datanode_atomicconstructor" )
-{
+CASE("test_fdb5_pmem_datanode_atomicconstructor") {
     // Check that the AtomicConstructor correctly picks up the size
 
     EXPECT(PDataNode::Constructor("k1", "v1", NULL, 15).size() == size_t(55));
-    EXPECT(PDataNode::Constructor("k1", "v1", NULL, 15).type_id()
-                    == pmem::PersistentType<PDataNode>::type_id);
+    EXPECT(PDataNode::Constructor("k1", "v1", NULL, 15).type_id() == pmem::PersistentType<PDataNode>::type_id);
 
     // Check that the cast-to-PBaseNode constructor retains the type_id
 
-    EXPECT(PDataNode::BaseConstructor(
-                PDataNode::Constructor("k1", "v1", NULL, 15)).type_id()
-             == pmem::PersistentType<PDataNode>::type_id);
-    EXPECT(PDataNode::BaseConstructor(
-                PDataNode::Constructor("k1", "v1", NULL, 15)).type_id()
-             != pmem::PersistentType<PBaseNode>::type_id);
+    EXPECT(PDataNode::BaseConstructor(PDataNode::Constructor("k1", "v1", NULL, 15)).type_id() ==
+           pmem::PersistentType<PDataNode>::type_id);
+    EXPECT(PDataNode::BaseConstructor(PDataNode::Constructor("k1", "v1", NULL, 15)).type_id() !=
+           pmem::PersistentType<PBaseNode>::type_id);
 }
 
 //-----------------------------------------------------------------------------
@@ -101,7 +93,6 @@ CASE( "test_fdb5_pmem_datanode_atomicconstructor" )
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

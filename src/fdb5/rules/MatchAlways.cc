@@ -8,34 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/rules/MatchAlways.h"
+
 #include "eckit/log/Log.h"
 
-#include "fdb5/rules/MatchAlways.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchAlways::MatchAlways() :
-    Matcher() {
-}
+MatchAlways::MatchAlways() : Matcher() {}
 
-MatchAlways::~MatchAlways() {
-}
+MatchAlways::~MatchAlways() {}
 
 bool MatchAlways::match(const std::string&, const Key&) const {
     return true;
 }
 
-void MatchAlways::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchAlways::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const {
     registry.dump(s, keyword);
 }
 
-void MatchAlways::print(std::ostream &out) const {
+void MatchAlways::print(std::ostream& out) const {
     out << "MatchAlways[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

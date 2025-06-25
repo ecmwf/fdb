@@ -13,24 +13,22 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include <string>
 #include <dirent.h>
-#include <cstdio>
-
-#include "eckit/filesystem/PathName.h"
-#include "eckit/runtime/Main.h"
-#include "eckit/io/Buffer.h"
-
-#include "pmem/PersistentPtr.h"
 #include "pmem/AtomicConstructor.h"
-
-#include "fdb5/pmem/PRoot.h"
-#include "fdb5/pmem/PIndexRoot.h"
-#include "fdb5/pmem/DataPoolManager.h"
-
+#include "pmem/PersistentPtr.h"
 #include "test_persistent_helpers.h"
 
+#include <cstdio>
+#include <string>
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/runtime/Main.h"
 #include "eckit/testing/Test.h"
+
+#include "fdb5/pmem/DataPoolManager.h"
+#include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/PRoot.h"
 
 using namespace fdb5::pmem;
 using namespace eckit;
@@ -77,6 +75,7 @@ struct UniquePoolDir {
 
 class MgrSpy : public DataPoolManager {
 public:
+
     DataPool& currentWritePool() { return DataPoolManager::currentWritePool(); }
     void invalidateCurrentPool(DataPool& p) { DataPoolManager::invalidateCurrentPool(p); }
     const std::map<uint64_t, DataPool*>& pools() const { return DataPoolManager::pools(); }
@@ -84,8 +83,7 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "test_fdb5_pmem_pool_manager_schema_create_pool" )
-{
+CASE("test_fdb5_pmem_pool_manager_schema_create_pool") {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
     up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
 
@@ -117,17 +115,16 @@ CASE( "test_fdb5_pmem_pool_manager_schema_create_pool" )
         // But if the pool is invalidated, we get another one!
 
         static_cast<MgrSpy*>(&mgr)->invalidateCurrentPool(pool);
-       /// DataPool& pool3(static_cast<MgrSpy*>(&mgr)->currentWritePool());
-       /// BOOST_CHECK_EQUAL(ir.dataPoolUUIDs().size(), size_t(2));
-       /// BOOST_CHECK(&pool != &pool3);
-       /// BOOST_CHECK(pool.uuid() != pool3.uuid());
+        /// DataPool& pool3(static_cast<MgrSpy*>(&mgr)->currentWritePool());
+        /// BOOST_CHECK_EQUAL(ir.dataPoolUUIDs().size(), size_t(2));
+        /// BOOST_CHECK(&pool != &pool3);
+        /// BOOST_CHECK(pool.uuid() != pool3.uuid());
 
-       /// BOOST_CHECK_EQUAL(pool3.path().baseName(), "data-1");
+        /// BOOST_CHECK_EQUAL(pool3.path().baseName(), "data-1");
     }
 }
 
-CASE( "test_fdb5_pmem_pool_manager_print" )
-{
+CASE("test_fdb5_pmem_pool_manager_print") {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
     up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
@@ -143,8 +140,7 @@ CASE( "test_fdb5_pmem_pool_manager_print" )
     }
 }
 
-CASE( "test_fdb5_pmem_pool_manager_pool_reopen" )
-{
+CASE("test_fdb5_pmem_pool_manager_pool_reopen") {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
     up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
@@ -176,8 +172,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_reopen" )
 }
 
 
-CASE( "test_fdb5_pmem_pool_manager_pool_invalidation" )
-{
+CASE("test_fdb5_pmem_pool_manager_pool_invalidation") {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
     up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
@@ -215,8 +210,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_invalidation" )
 }
 
 
-CASE( "test_fdb5_pmem_pool_manager_pool_load_pool" )
-{
+CASE("test_fdb5_pmem_pool_manager_pool_load_pool") {
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
     up.basePool_.getRoot<PRoot>()->buildRoot(fdb5::Key(), "");
     PIndexRoot& ir(up.basePool_.getRoot<PRoot>()->indexRoot());
@@ -250,8 +244,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_load_pool" )
     }
 }
 
-CASE( "test_fdb5_pmem_pool_manager_pool_allocate" )
-{
+CASE("test_fdb5_pmem_pool_manager_pool_allocate") {
     // Perform two allocations, one which fits and the other which will overflow the buffer.
 
     UniquePoolDir up((PRoot::Constructor(PRoot::IndexClass)));
@@ -268,7 +261,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_allocate" )
 
         PersistentPtr<PersistentBuffer> tmp1;
         mgr.allocate(tmp1, AtomicConstructor2<PersistentBuffer, const void*, size_t>(
-                         static_cast<const char*>(scratch_buf), scratch_buf.size()));
+                               static_cast<const char*>(scratch_buf), scratch_buf.size()));
 
         DataPool& pool2(static_cast<MgrSpy*>(&mgr)->currentWritePool());
         uint64_t uuid2 = pool2.uuid();
@@ -277,7 +270,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_allocate" )
 
         PersistentPtr<PersistentBuffer> tmp2;
         mgr.allocate(tmp2, AtomicConstructor2<PersistentBuffer, const void*, size_t>(
-                         static_cast<const char*>(scratch_buf), scratch_buf.size()));
+                               static_cast<const char*>(scratch_buf), scratch_buf.size()));
 
         DataPool& pool3(static_cast<MgrSpy*>(&mgr)->currentWritePool());
         uint64_t uuid3 = pool3.uuid();
@@ -293,8 +286,7 @@ CASE( "test_fdb5_pmem_pool_manager_pool_allocate" )
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     eckit::Main::initialise(argc, argv, "FDB_HOME");
-    return run_tests ( argc, argv, false );
+    return run_tests(argc, argv, false);
 }

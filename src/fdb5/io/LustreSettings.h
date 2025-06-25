@@ -22,11 +22,7 @@ namespace fdb5 {
 
 struct LustreStripe {
 
-    LustreStripe(unsigned int count, size_t size) :
-        count_(count),
-        size_(size)
-    {
-    }
+    LustreStripe(unsigned int count, size_t size) : count_(count), size_(size) {}
 
     unsigned int count_;
     size_t size_;
@@ -48,4 +44,4 @@ bool fdb5LustreapiSupported();
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

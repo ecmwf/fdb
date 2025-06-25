@@ -19,15 +19,15 @@
 #ifndef fdb5_pmem_PRoot_H
 #define fdb5_pmem_PRoot_H
 
+#include "pmem/PersistentMutex.h"
+#include "pmem/PersistentPtr.h"
+
+#include <ctime>
+
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
 
-#include "pmem/PersistentPtr.h"
-#include "pmem/PersistentMutex.h"
-
 #include "fdb5/database/Key.h"
-
-#include <ctime>
 
 
 namespace fdb5 {
@@ -49,7 +49,7 @@ class PDataRoot;
 
 class PRoot : public eckit::NonCopyable {
 
-public: // types
+public:  // types
 
     enum RootClass {
         IndexClass = 0,
@@ -58,7 +58,7 @@ public: // types
 
     typedef ::pmem::AtomicConstructor1<PRoot, RootClass> Constructor;
 
-public: // methods
+public:  // methods
 
     PRoot(RootClass cls);
 
@@ -79,7 +79,7 @@ public: // methods
     PIndexRoot& indexRoot() const;
     PDataRoot& dataRoot() const;
 
-private: // members
+private:  // members
 
     eckit::FixedString<8> tag_;
 
@@ -103,21 +103,24 @@ private: // members
     /// Ensure that only one thread at a time tries to allocate a root!
     ::pmem::PersistentMutex rootMutex_;
 
-private: // friends
+private:  // friends
 
-    friend std::ostream& operator<<(std::ostream& s, const PRoot& r) { r.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s, const PRoot& r) {
+        r.print(s);
+        return s;
+    }
 };
 
 
 // A consistent definition of the tag for comparison purposes.
 
-const eckit::FixedString<8> PRootTag = "99FDB599";
+const eckit::FixedString<8> PRootTag  = "99FDB599";
 const unsigned short int PRootVersion = 2;
 
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PRoot_H
+#endif  // fdb5_pmem_PRoot_H

@@ -14,9 +14,10 @@
  */
 
 #include "fdb5/pmem/PMemDBReader.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PMemStats.h"
-#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -26,16 +27,14 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBReader::PMemDBReader(const Key &key, const eckit::Configuration& config) :
-    PMemDB(key, config) {}
+PMemDBReader::PMemDBReader(const Key& key, const eckit::Configuration& config) : PMemDB(key, config) {}
 
 
 PMemDBReader::PMemDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
     PMemDB(directory, config) {}
 
 
-PMemDBReader::~PMemDBReader() {
-}
+PMemDBReader::~PMemDBReader() {}
 
 
 bool PMemDBReader::open() {
@@ -48,7 +47,7 @@ bool PMemDBReader::open() {
 }
 
 
-bool PMemDBReader::selectIndex(const Key &key) {
+bool PMemDBReader::selectIndex(const Key& key) {
 
     if (indexes_.find(key) == indexes_.end()) {
 
@@ -61,8 +60,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    LOG_DEBUG_LIB(LibFdb5) << "PMemDBReader::selectIndex " << key
-                                << ", found match" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "PMemDBReader::selectIndex " << key << ", found match" << std::endl;
 
     return true;
 }
@@ -73,7 +71,7 @@ void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 }
 
 
-eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
+eckit::DataHandle* PMemDBReader::retrieve(const Key& key) const {
 
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "From index " << currentIndex_ << std::endl;
@@ -89,11 +87,11 @@ std::vector<Index> PMemDBReader::indexes(bool sorted) const {
     NOTIMP;
 }
 
-StatsReportVisitor *PMemDBReader::statsReportVisitor() {
+StatsReportVisitor* PMemDBReader::statsReportVisitor() {
     return new PMemStatsReportVisitor(*this);
 }
 
-void PMemDBReader::print(std::ostream &out) const {
+void PMemDBReader::print(std::ostream& out) const {
     out << "PMemDBReader["
         /// @todo should print more here
         << "]";
@@ -103,5 +101,5 @@ static DBBuilder<PMemDBReader> builder("pmem.reader", true, false);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

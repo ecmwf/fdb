@@ -16,20 +16,18 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/rules/Predicate.h"
-#include "fdb5/rules/Schema.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
+#include "fdb5/rules/Predicate.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rule::Rule(const Schema &schema,
-           size_t line,
-           std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
-           const std::map<std::string, std::string> &types):
+Rule::Rule(const Schema& schema, size_t line, std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
+           const std::map<std::string, std::string>& types) :
     schema_(schema), registry_(new TypesRegistry()), line_(line) {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
@@ -39,23 +37,19 @@ Rule::Rule(const Schema &schema,
 }
 
 Rule::~Rule() {
-    for (std::vector<Predicate *>::iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
+    for (std::vector<Predicate*>::iterator i = predicates_.begin(); i != predicates_.end(); ++i) {
         delete *i;
     }
 
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i) {
         delete *i;
     }
 }
 
-void Rule::expand( const metkit::mars::MarsRequest &request,
-                   std::vector<Predicate *>::const_iterator cur,
-                   size_t depth,
-                   std::vector<Key> &keys,
-                   Key &full,
-                   ReadVisitor &visitor) const {
+void Rule::expand(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur, size_t depth,
+                  std::vector<Key>& keys, Key& full, ReadVisitor& visitor) const {
 
-	ASSERT(depth < 3);
+    ASSERT(depth < 3);
 
     if (cur == predicates_.end()) {
 
@@ -63,52 +57,53 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
         // TODO: join these 2 methods
         if (rules_.empty()) {
-            ASSERT(depth == 2); /// we have 3 levels ATM
-            if (!visitor.selectDatum( keys[2], full)) {
-                return; // This it not useful
+            ASSERT(depth == 2);  /// we have 3 levels ATM
+            if (!visitor.selectDatum(keys[2], full)) {
+                return;  // This it not useful
             }
-        } else {
+        }
+        else {
 
             switch (depth) {
-            case 0:
-                if (!visitor.selectDatabase(keys[0], full)) {
+                case 0:
+                    if (!visitor.selectDatabase(keys[0], full)) {
+                        return;
+                    };
+
+                    // Here we recurse on the database's schema (rather than the master schema)
+                    ASSERT(keys[0] == full);
+                    visitor.databaseSchema().expandSecond(request, visitor, keys[0]);
                     return;
-                };
 
-                // Here we recurse on the database's schema (rather than the master schema)
-                ASSERT(keys[0] == full);
-                visitor.databaseSchema().expandSecond(request, visitor, keys[0]);
-                return;
+                case 1:
+                    if (!visitor.selectIndex(keys[1], full)) {
+                        return;
+                    }
+                    break;
 
-            case 1:
-                if (!visitor.selectIndex(keys[1], full)) {
-                    return;
-                }
-                break;
-
-            default:
-                ASSERT(depth == 0 || depth == 1);
-                break;
+                default:
+                    ASSERT(depth == 0 || depth == 1);
+                    break;
             }
 
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+            for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
                 (*i)->expand(request, visitor, depth + 1, keys, full);
             }
         }
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
-    const std::string &keyword = (*cur)->keyword();
+    const std::string& keyword = (*cur)->keyword();
 
     eckit::StringList values;
     visitor.values(request, keyword, *registry_, values);
 
     // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
-    Key &k = keys[depth];
+    Key& k = keys[depth];
 
     if (values.empty() && (*cur)->optional()) {
         values.push_back((*cur)->defaultValue());
@@ -124,22 +119,17 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
         full.pop(keyword);
         k.pop(keyword);
-
     }
-
 }
 
-void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+void Rule::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, size_t depth, std::vector<Key>& keys,
+                  Key& full) const {
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
 
-void Rule::expand( const Key &field,
-                   std::vector<Predicate *>::const_iterator cur,
-                   size_t depth,
-                   std::vector<Key> &keys,
-                   Key &full,
-                   WriteVisitor &visitor) const {
+void Rule::expand(const Key& field, std::vector<Predicate*>::const_iterator cur, size_t depth, std::vector<Key>& keys,
+                  Key& full, WriteVisitor& visitor) const {
 
     static bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
 
@@ -155,59 +145,56 @@ void Rule::expand( const Key &field,
         keys[depth].registry(registry());
 
         if (rules_.empty()) {
-            ASSERT(depth == 2); /// we have 3 levels ATM
+            ASSERT(depth == 2);  /// we have 3 levels ATM
             if (visitor.rule() != 0) {
                 std::ostringstream oss;
-                oss << "More than one rule matching "
-                    << keys[0] << ", "
-                    << keys[1] << ", "
-                    << keys[2] << " "
-                    << topRule() << " and "
-                    << visitor.rule()->topRule();
+                oss << "More than one rule matching " << keys[0] << ", " << keys[1] << ", " << keys[2] << " "
+                    << topRule() << " and " << visitor.rule()->topRule();
                 throw eckit::SeriousBug(oss.str());
             }
             visitor.rule(this);
-            visitor.selectDatum( keys[2], full);
-        } else {
+            visitor.selectDatum(keys[2], full);
+        }
+        else {
 
             switch (depth) {
-            case 0:
-                if (keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
-                    visitor.selectDatabase(keys[0], full);
-                    visitor.prev_[0] = keys[0];
-                    visitor.prev_[1] = Key();
-                }
+                case 0:
+                    if (keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
+                        visitor.selectDatabase(keys[0], full);
+                        visitor.prev_[0] = keys[0];
+                        visitor.prev_[1] = Key();
+                    }
 
-                // Here we recurse on the database's schema (rather than the master schema)
-                visitor.databaseSchema().expandSecond(field, visitor, keys[0]);
-                return;
+                    // Here we recurse on the database's schema (rather than the master schema)
+                    visitor.databaseSchema().expandSecond(field, visitor, keys[0]);
+                    return;
 
-            case 1:
-                if (keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
-                    visitor.selectIndex(keys[1], full);
-                    visitor.prev_[1] = keys[1];
-                }
-                break;
+                case 1:
+                    if (keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
+                        visitor.selectIndex(keys[1], full);
+                        visitor.prev_[1] = keys[1];
+                    }
+                    break;
 
-            default:
-                ASSERT(depth == 0 || depth == 1);
-                break;
+                default:
+                    ASSERT(depth == 0 || depth == 1);
+                    break;
             }
 
-            for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+            for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
                 (*i)->expand(field, visitor, depth + 1, keys, full);
             }
         }
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
-    const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(field);
+    const std::string& keyword = (*cur)->keyword();
+    const std::string& value   = (*cur)->value(field);
 
-    Key &k = keys[depth];
+    Key& k = keys[depth];
 
     k.push(keyword, value);
     full.push(keyword, value);
@@ -218,26 +205,25 @@ void Rule::expand( const Key &field,
 
     full.pop(keyword);
     k.pop(keyword);
-
-
 }
-void Rule::expand(const Key &field, WriteVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const {
     ASSERT(keys.size() == 3);
     expand(field, predicates_.begin(), depth, keys, full, visitor);
 }
 
-void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
+void Rule::expandFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& result,
+                            bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
-    const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(dbKey);
+    const std::string& keyword = (*cur)->keyword();
+    const std::string& value   = (*cur)->value(dbKey);
 
     result.push(keyword, value);
 
@@ -250,21 +236,22 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
     }
 }
 
-void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
+void Rule::expandFirstLevel(const Key& dbKey, Key& result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate*>::const_iterator cur,
+                            Key& result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
-    const std::string& keyword = (*cur)->keyword();
+    const std::string& keyword             = (*cur)->keyword();
     const std::vector<std::string>& values = (*cur)->values(rq);
 
     // Gives a unique expansion --> only considers the first of the values suggested.
@@ -280,7 +267,8 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
 
         if (!found) {
             result.pop(keyword);
-        } else {
+        }
+        else {
             return;
         }
     }
@@ -291,7 +279,8 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& resul
 }
 
 
-void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const Key& dbKey, std::vector<Predicate*>::const_iterator cur, Key& tmp,
+                           std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
@@ -300,16 +289,17 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
-    const std::string &keyword = (*cur)->keyword();
+    const std::string& keyword = (*cur)->keyword();
 
     if (dbKey.find(keyword) == dbKey.end()) {
         tmp.push(keyword, missing);
         matchFirstLevel(dbKey, next, tmp, result, missing);
-    } else {
-        const std::string &value = (*cur)->value(dbKey);
+    }
+    else {
+        const std::string& value = (*cur)->value(dbKey);
 
         tmp.push(keyword, value);
 
@@ -319,25 +309,25 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
     }
 
     tmp.pop(keyword);
-
 }
 
-void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const {
     Key tmp;
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
 
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate*>::const_iterator cur,
+                           Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
-//        if (tmp.match(request)) {
-            result.insert(tmp);
-//        }
+        //        if (tmp.match(request)) {
+        result.insert(tmp);
+        //        }
         return;
     }
 
-    std::vector<Predicate *>::const_iterator next = cur;
+    std::vector<Predicate*>::const_iterator next = cur;
     ++next;
 
     const std::string& keyword = (*cur)->keyword();
@@ -353,21 +343,22 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
             }
             tmp.pop(keyword);
         }
-    } else {
+    }
+    else {
         tmp.push(keyword, missing);
         matchFirstLevel(request, next, tmp, result, missing);
         tmp.pop(keyword);
     }
 }
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const {
     Key tmp(registry());
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 
 
-bool Rule::match(const Key &key) const {
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
+bool Rule::match(const Key& key) const {
+    for (std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i) {
         if (!(*i)->match(key)) {
             return false;
         }
@@ -376,7 +367,7 @@ bool Rule::match(const Key &key) const {
 }
 
 // Find the first rule that matches a list of keys
-const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const {
+const Rule* Rule::ruleFor(const std::vector<fdb5::Key>& keys, size_t depth) const {
 
     if (depth == keys.size()) {
         return this;
@@ -384,8 +375,8 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
 
     if (match(keys[depth])) {
 
-        for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-            const Rule *r = (*i)->ruleFor(keys, depth + 1);
+        for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
+            const Rule* r = (*i)->ruleFor(keys, depth + 1);
             if (r) {
                 return r;
             }
@@ -413,11 +404,11 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
-    auto it_pred = predicates_.begin();
+    auto it_pred  = predicates_.begin();
 
     for (; it_pred != predicates_.end() && it_value != values.end(); ++it_pred, ++it_value) {
 
@@ -427,7 +418,8 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
             ASSERT(it_value != values.end());
             actualQuantile += std::string(":") + (*it_value);
             (*it_pred)->fill(key, actualQuantile);
-        } else {
+        }
+        else {
             (*it_pred)->fill(key, *it_value);
         }
     }
@@ -437,16 +429,16 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     ASSERT(it_pred == predicates_.end());
 }
 
-void Rule::dump(std::ostream &s, size_t depth) const {
+void Rule::dump(std::ostream& s, size_t depth) const {
     s << "[";
-    const char *sep = "";
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
+    const char* sep = "";
+    for (std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i) {
         s << sep;
         (*i)->dump(s, *registry_);
         sep = ",";
     }
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
         (*i)->dump(s, depth + 1);
     }
     s << "]";
@@ -454,18 +446,18 @@ void Rule::dump(std::ostream &s, size_t depth) const {
 
 size_t Rule::depth() const {
     size_t result = 0;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i) {
         result = std::max(result, (*i)->depth());
     }
     return result + 1;
 }
 
-void Rule::updateParent(const Rule *parent) {
+void Rule::updateParent(const Rule* parent) {
     parent_ = parent;
     if (parent) {
         registry_->updateParent(parent_->registry_);
     }
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i) {
         (*i)->updateParent(this);
     }
 }
@@ -474,33 +466,35 @@ const std::shared_ptr<TypesRegistry> Rule::registry() const {
     return registry_;
 }
 
-void Rule::print(std::ostream &out) const {
-    out << "Rule[line=" << line_ ;
+void Rule::print(std::ostream& out) const {
+    out << "Rule[line=" << line_;
     out << "]";
 }
 
-const Rule &Rule::topRule() const {
+const Rule& Rule::topRule() const {
     if (parent_) {
         return parent_->topRule();
-    } else {
+    }
+    else {
         return *this;
     }
 }
 
-const Schema &Rule::schema() const {
+const Schema& Rule::schema() const {
     return schema_;
 }
 
 void Rule::check(const Key& key) const {
-    for (const auto& pred : predicates_ ) {
+    for (const auto& pred : predicates_) {
         auto k = key.find(pred->keyword());
         if (k != key.end()) {
             const std::string& value = (*k).second;
-            const Type& type = registry_->lookupType(pred->keyword());
+            const Type& type         = registry_->lookupType(pred->keyword());
             if (value != type.tidy(pred->keyword(), value)) {
                 std::stringstream ss;
                 ss << "Rule check - metadata not valid (not in canonical form) - found: ";
-                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(pred->keyword(), value) << std::endl;
+                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(pred->keyword(), value)
+                   << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
         }
@@ -510,11 +504,11 @@ void Rule::check(const Key& key) const {
     }
 }
 
-std::ostream &operator<<(std::ostream &s, const Rule &x) {
+std::ostream& operator<<(std::ostream& s, const Rule& x) {
     x.print(s);
     return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

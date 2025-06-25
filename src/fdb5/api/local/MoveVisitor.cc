@@ -16,15 +16,15 @@
 
 #include "fdb5/api/local/MoveVisitor.h"
 
-#include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/LibFdb5.h"
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include "eckit/os/Stat.h"
 
-#include <sys/stat.h>
-#include <dirent.h>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/local/QueueStringLogTarget.h"
+#include "fdb5/database/DB.h"
+#include "fdb5/database/Index.h"
 
 using namespace eckit;
 
@@ -35,17 +35,14 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue,
-                         const metkit::mars::MarsRequest& request,
+MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request,
                          const eckit::URI& dest) :
-    QueryVisitor<MoveElement>(queue, request),
-    dest_(dest) {}
+    QueryVisitor<MoveElement>(queue, request), dest_(dest) {}
 
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     if (catalogue.key().match(request_)) {
-        catalogue.control(
-            ControlAction::Disable,
-            ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
+        catalogue.control(ControlAction::Disable,
+                          ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
 
         // assert the source is locked for archival...
         ASSERT(!catalogue.enabled(ControlIdentifier::Archive));
@@ -66,6 +63,6 @@ bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

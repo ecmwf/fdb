@@ -17,6 +17,7 @@
 
 #include "eckit/io/fam/FamObject.h"
 #include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fam/FamFieldLocation.h"
 
@@ -26,8 +27,8 @@ static const StoreBuilder<FamStore> builder(FamCommon::typeName);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamStore::FamStore(const Schema& schema, const Key& key, const Config& config)
-    : FamCommon(config, key), Store(schema), config_(config) { }
+FamStore::FamStore(const Schema& schema, const Key& key, const Config& config) :
+    FamCommon(config, key), Store(schema), config_(config) {}
 
 FamStore::~FamStore() = default;
 
@@ -106,7 +107,9 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     logVerbose << "remove: ";
     logAlways << uri << '\n';
 
-    if (doit) { root_.object(eckit::FamPath(uri).objectName).lookup().deallocate(); }
+    if (doit) {
+        root_.object(eckit::FamPath(uri).objectName).lookup().deallocate();
+    }
 }
 
 void FamStore::print(std::ostream& out) const {

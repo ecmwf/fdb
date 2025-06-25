@@ -11,10 +11,10 @@
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -25,29 +25,29 @@ namespace tools {
 
 class FdbRoot : public FDBTool {
 
-public: // methods
+public:  // methods
 
-    FdbRoot(int argc, char **argv) :
-        FDBTool(argc, argv) {
-        options_.push_back(new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
+    FdbRoot(int argc, char** argv) : FDBTool(argc, argv) {
+        options_.push_back(
+            new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void execute(const eckit::option::CmdArgs& args);
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 };
 
-void FdbRoot::usage(const std::string &tool) const {
+void FdbRoot::usage(const std::string& tool) const {
 
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [options] [request1] [request2] ..." << std::endl
                        << std::endl
                        << std::endl
                        << "Examples:" << std::endl
-                       << "=========" << std::endl << std::endl
-                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200"
+                       << "=========" << std::endl
                        << std::endl
+                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200" << std::endl
                        << std::endl;
     FDBTool::usage(tool);
 }
@@ -63,10 +63,10 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
         for (const auto& request : parsed) {
 
-            Config conf = config(args);
+            Config conf          = config(args);
             const Schema& schema = conf.schema();
             Key result;
-            ASSERT( schema.expandFirstLevel(request.request(), result) );
+            ASSERT(schema.expandFirstLevel(request.request(), result));
 
             eckit::Log::info() << result << std::endl;
 
@@ -86,10 +86,10 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fbb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FdbRoot app(argc, argv);
     return app.start();
 }

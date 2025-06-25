@@ -17,9 +17,10 @@
 /// @date Nov 2016
 
 #include "fdb5/pmem/PMemIndexLocation.h"
-#include "fdb5/pmem/PBranchingNode.h"
 
 #include "pmem/PoolRegistry.h"
+
+#include "fdb5/pmem/PBranchingNode.h"
 
 using namespace eckit;
 
@@ -42,9 +43,7 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemIndexLocation::PMemIndexLocation(PBranchingNode& node, DataPoolManager& mgr) :
-    node_(node),
-    poolManager_(mgr) {}
+PMemIndexLocation::PMemIndexLocation(PBranchingNode& node, DataPoolManager& mgr) : node_(node), poolManager_(mgr) {}
 
 
 PBranchingNode& PMemIndexLocation::node() const {
@@ -56,8 +55,7 @@ DataPoolManager& PMemIndexLocation::pool_manager() const {
     return poolManager_;
 }
 
-PathName PMemIndexLocation::url() const
-{
+PathName PMemIndexLocation::url() const {
     ::pmem::PersistentPool& pool(::pmem::PoolRegistry::instance().poolFromPointer(&node_));
 
     return pool.path();
@@ -67,17 +65,15 @@ IndexLocation* PMemIndexLocation::clone() const {
     return new PMemIndexLocation(node_, poolManager_);
 }
 
-void PMemIndexLocation::encode(Stream &) const {
-    NOTIMP; // See comment at top of file
+void PMemIndexLocation::encode(Stream&) const {
+    NOTIMP;  // See comment at top of file
 }
 
-void PMemIndexLocation::print(std::ostream &out) const
-{
+void PMemIndexLocation::print(std::ostream& out) const {
     out << "(" << url() << ")";
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

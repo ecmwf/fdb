@@ -15,15 +15,16 @@
 /// @author Simon Smart
 /// @date   Sept 2016
 
+#include "fdb5/pmem/PRoot.h"
+
+#include <unistd.h>
+
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/pmem/PRoot.h"
-#include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/PDataRoot.h"
-
-#include <unistd.h>
+#include "fdb5/pmem/PIndexRoot.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -55,7 +56,8 @@ void PRoot::buildRoot(const Key& dbKey, const eckit::PathName& schemaPath) {
 
     if (class_ == IndexClass) {
         PIndexRoot::build(indexRoot_, dbKey, schemaPath);
-    } else {
+    }
+    else {
         ASSERT(class_ == DataClass);
         dataRoot_.allocate();
     }
@@ -84,8 +86,8 @@ bool PRoot::valid() const {
         return false;
     }
 
-    if ((class_ == IndexClass && ( indexRoot_.null() || !dataRoot_.null())) ||
-        (class_ == DataClass  && (!indexRoot_.null() ||  dataRoot_.null())) ||
+    if ((class_ == IndexClass && (indexRoot_.null() || !dataRoot_.null())) ||
+        (class_ == DataClass && (!indexRoot_.null() || dataRoot_.null())) ||
         (class_ != IndexClass && class_ != DataClass)) {
 
         Log::error() << "Inconsistent root node" << std::endl;
@@ -121,5 +123,5 @@ PDataRoot& PRoot::dataRoot() const {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5

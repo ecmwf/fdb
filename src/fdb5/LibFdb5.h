@@ -30,6 +30,7 @@ class Config;
 
 class RemoteProtocolVersion {
 public:
+
     RemoteProtocolVersion();
 
     /// Defines the serialisation versions the software is able to handle
@@ -56,13 +57,15 @@ public:
     bool check(unsigned int version, bool throwOnFail = true);
 
 private:
-    unsigned int used_; //< version to be used for remote protocol
+
+    unsigned int used_;  //< version to be used for remote protocol
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class LibFdb5 : public eckit::system::Library {
 public:
+
     LibFdb5();
 
     static LibFdb5& instance();
@@ -76,11 +79,13 @@ public:
     bool dontDeregisterFactories() const;
 
 protected:
+
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
 
 private:
+
     std::unique_ptr<Config> config_;
 };
 

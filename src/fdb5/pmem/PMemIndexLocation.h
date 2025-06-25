@@ -35,7 +35,7 @@ class PBranchingNode;
 
 class PMemIndexLocation : public IndexLocation {
 
-public: // methods
+public:  // methods
 
     PMemIndexLocation(PBranchingNode& node, DataPoolManager& mgr);
 
@@ -46,15 +46,15 @@ public: // methods
 
     eckit::PathName url() const override;
 
-protected: // For Streamable (see comments. This is a bit odd).
+protected:  // For Streamable (see comments. This is a bit odd).
 
     virtual void encode(eckit::Stream&) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print(std::ostream &out) const override;
+    virtual void print(std::ostream& out) const override;
 
-private: // friends
+private:  // friends
 
     PBranchingNode& node_;
     DataPoolManager& poolManager_;
@@ -63,7 +63,7 @@ private: // friends
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
-} // namespace fdb5
+}  // namespace pmem
+}  // namespace fdb5
 
-#endif // fdb5_pmem_PMemIndexLocation_H
+#endif  // fdb5_pmem_PMemIndexLocation_H
