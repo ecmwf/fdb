@@ -13,7 +13,10 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/api/FDB.h"
+
 #include <cstddef>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -38,8 +41,6 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
-
-#include <memory>
 
 namespace fdb5 {
 

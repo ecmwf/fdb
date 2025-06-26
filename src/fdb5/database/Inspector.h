@@ -18,24 +18,22 @@
 
 #include <cstdlib>
 #include <iosfwd>
-#include <map>
+#include <vector>
+
+#include "eckit/container/CacheLRU.h"
+#include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/config/Config.h"
-
-#include "eckit/config/LocalConfiguration.h"
-#include "eckit/container/CacheLRU.h"
-#include "eckit/memory/NonCopyable.h"
 
 namespace eckit {
 class DataHandle;
 }
 
-namespace metkit {
-namespace mars {
+namespace metkit::mars {
 class MarsRequest;
 }
-}  // namespace metkit
+
 
 namespace fdb5 {
 
@@ -70,9 +68,7 @@ class Inspector : public eckit::NonCopyable {
 
 public:  // methods
 
-    Inspector(const Config& dbConfig);
-
-    ~Inspector();
+    explicit Inspector(const Config& dbConfig);
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from

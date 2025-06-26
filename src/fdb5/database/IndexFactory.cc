@@ -8,8 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/IndexFactory.h"
+
+#include <map>
+#include <ostream>
+#include <string>
+
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
 

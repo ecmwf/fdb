@@ -8,8 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypesFactory.h"
+
+#include <pthread.h>
+
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
 

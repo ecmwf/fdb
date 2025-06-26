@@ -21,12 +21,8 @@
 
 #include <memory>
 
-#include "eckit/distributed/Transport.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/utils/Regex.h"
 
-#include "fdb5/api/FDBStats.h"
-#include "fdb5/api/helpers/ArchiveCallback.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -38,7 +34,6 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
 
 namespace eckit::message {
 
@@ -46,16 +41,17 @@ class Message;
 
 }  // namespace eckit::message
 
-namespace metkit {
+namespace metkit::mars {
 
 class MarsRequest;
 
-}  // namespace metkit
+}  // namespace metkit::mars
 
 namespace fdb5 {
 
 class Key;
 class FDBToolRequest;
+class FieldLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -66,7 +62,8 @@ class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
 public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
-    virtual ~FDBBase();
+
+    virtual ~FDBBase() = default;
 
     // -------------- Primary API functions ----------------------------
 
