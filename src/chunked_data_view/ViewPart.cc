@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 #include "ViewPart.h"
+#include "chunked_data_view/Axis.h"
+#include "chunked_data_view/RequestManipulation.h"
 
 namespace chunked_data_view {
 
@@ -55,7 +57,7 @@ void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t s
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-        axes_[idx].updateRequest(request, chunkIndex[idx]);
+      RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto dh = fdb_->retrieve(request);
     extractor_->writeInto(*dh, data, layout_);
@@ -65,7 +67,7 @@ metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIn
     ASSERT(chunkIndex.size() == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
-        axes_[idx].updateRequest(request, chunkIndex[idx]);
+      RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     return request;
 }
