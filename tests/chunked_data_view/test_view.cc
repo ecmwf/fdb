@@ -119,7 +119,7 @@ CASE("ChunkedDataView | View from 1 request | read data") {
     // Expect to get: 4 dates, 4 times, 2 fields, 10 values per field (implicit axis)
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 2, 10}));
 
-    const auto& values = view->at({0, 0, 0});
+    const auto& values = view->at({0, 0, 0, 0});
     for (int val = 0; val < 10; ++val) {
         EXPECT_EQUAL(static_cast<double>(val), values[val]);
     }
