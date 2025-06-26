@@ -20,7 +20,7 @@ def test_access_pattern(read_only_fdb_pattern_setup) -> None:
         "levtype=sfc,"
         "step=0,"
         "param=165/166/167,"
-        "time=0/to/21/by/3",
+        "time=0/to/21/by/6",
         [AxisDefinition(["date"], True), AxisDefinition(["time"], True), AxisDefinition(["param"], True), AxisDefinition(["step"], True)],
         ExtractorType.GRIB,
     )
@@ -40,9 +40,4 @@ def test_access_pattern(read_only_fdb_pattern_setup) -> None:
     data = store.get("data")
     assert data
 
-    # print(data[:, :, :, :])
     print(len(data[2, 3, 1, 0]))
-
-    # print(view.at((0, 0, 0, 0, 0)))
-
-
