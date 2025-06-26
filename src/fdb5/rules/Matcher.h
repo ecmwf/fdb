@@ -26,7 +26,6 @@ class MarsTask;
 namespace metkit::mars {
 class MarsRequest;
 }
-}  // namespace metkit
 
 namespace fdb5 {
 

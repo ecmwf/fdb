@@ -20,12 +20,12 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
+
 #include "fdb5/database/Catalogue.h"
 
 namespace metkit::mars {
 class MarsRequest;
 }
-}  // namespace metkit
 
 namespace fdb5 {
 

@@ -15,12 +15,12 @@
 
 #pragma once
 
-#include "fdb5/database/BaseKey.h"
-#include "fdb5/types/TypesRegistry.h"
-
 #include <cstddef>
 #include <functional>
 #include <string>
+
+#include "fdb5/database/BaseKey.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace eckit {
 template <class T>
@@ -29,8 +29,7 @@ class DenseSet;
 
 namespace metkit::mars {
 class MarsRequest;
-}
-}  // namespace metkit
+}  // namespace metkit::mars
 
 namespace fdb5 {
 
