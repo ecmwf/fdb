@@ -39,7 +39,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     data_.resize(parts_[0].layout().countValues);
 }
 
-const std::vector<double>& ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex) {
+const std::vector<double> ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex) {
     size_t extensionAxisOffset{};
     for (const auto& part : parts_) {
         if (chunkIndex[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
@@ -48,7 +48,7 @@ const std::vector<double>& ChunkedDataViewImpl::at(const std::vector<size_t>& ch
         }
         auto idx = chunkIndex;
         idx[extensionAxisIndex_] -= extensionAxisOffset;
-        part.at(chunkIndex, reinterpret_cast<uint8_t*>(data_.data()), size());
+        part.at(idx, reinterpret_cast<uint8_t*>(data_.data()), size());
         break;
     }
     return data_;
