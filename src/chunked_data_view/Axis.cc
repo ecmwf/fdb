@@ -29,31 +29,5 @@ size_t combinedSize(const Params& params) {
 Axis::Axis(std::vector<Parameter> parameters, bool chunked) :
     parameters_(std::move(parameters)), size_(combinedSize(parameters_)), chunked_(chunked) {}
 
-void Axis::updateRequest(metkit::mars::MarsRequest& request, size_t chunkIndex) const {
-    if (!chunked_) {
-        ASSERT(chunkIndex == 0);
-        for (const auto& [key, values] : parameters_) {
-            request.values(key, values);
-        }
-        return;
-    }
-    ASSERT(chunkIndex < size_);
-    const auto dimCount = parameters_.size();
-    static std::vector<size_t> index(dimCount);
-    for (size_t i = 0; i < dimCount; ++i) {
-        const size_t dim = std::get<1>(parameters_[dimCount - 1 - i]).size();
-        index[i]         = chunkIndex % dim;
-        chunkIndex /= dim;
-    }
-
-    auto indexRemainder = chunkIndex;
-    for (auto iter = parameters_.rbegin(); iter != parameters_.rend(); ++iter) {
-        const auto& [key, values] = *iter;
-        const auto dim            = values.size();
-        const auto dimIndex       = indexRemainder % dim;
-        indexRemainder /= dim;
-        request.values(key, {values[dimIndex]});
-    }
-}
 
 }  // namespace chunked_data_view

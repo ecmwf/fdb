@@ -1,5 +1,6 @@
 list(APPEND tests
     view
+    axis
 )
 
 foreach(test ${tests})
