@@ -32,6 +32,7 @@ public:
     size_t size() const { return size_; }
 
     bool isChunked() const { return chunked_; }
+    const std::vector<Parameter>& parameters() const { return parameters_; }
 
 private:
 
