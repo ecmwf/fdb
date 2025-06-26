@@ -16,7 +16,13 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
-#include <utility>
+#include <cstddef>
+#include <ctime>
+#include <iosfwd>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
