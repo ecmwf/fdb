@@ -8,9 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include <ostream>
-
 #include "fdb5/rules/MatchAlways.h"
+
+#include <ostream>
+#include <string>
+
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/Stream.h"
+
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
