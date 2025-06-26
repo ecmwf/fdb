@@ -10,20 +10,18 @@
 
 #include "eccodes.h"
 
+#include <iomanip>
+
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/message/MessageArchiver.h"
-#include "fdb5/tools/FDBVisitTool.h"
-
 #include "metkit/codes/CodesContent.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBVisitTool.h"
