@@ -183,7 +183,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
     ec.codes_set_values(gid, list(range(0, count_values)))
 
     dates = [20200101, 20200102, 20200103, 20200104]
-    times = [0, 3, 6, 9, 12, 15, 18, 21]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
     parameters = [167, 131, 132]
 
     messages = session_tmp / "test_data.grib"
@@ -317,9 +317,9 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
     ec.codes_set_string(gid, "expver", "0001")
     ec.codes_set_string(gid, "stream", "oper")
 
-
     dates = [20200101, 20200102, 20200103]
-    times = [0, 6, 12, 18]
+    times = [0000, 600, 1200, 1800] 
+
     # 10u/10v
     parameters_sfc = [165, 166, 167]
 
