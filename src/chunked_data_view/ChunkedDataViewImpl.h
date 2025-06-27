@@ -28,7 +28,7 @@ public:
     ChunkedDataViewImpl(std::vector<ViewPart> partialViews, size_t extensionAxisIndex);
 
     /// @param index n-dim chunk index
-    const std::vector<double> at(const std::vector<size_t>& chunkIndex) override;
+    const std::vector<double>& at(const std::vector<size_t>& chunkIndex) override;
     size_t size() const override { return data_.size() * sizeof(decltype(data_)::value_type); };
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
