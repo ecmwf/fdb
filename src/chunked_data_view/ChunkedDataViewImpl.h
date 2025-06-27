@@ -36,6 +36,19 @@ public:
 
 private:
 
+    /**
+     * @brief Returns the number of entries in a chunk including the implicit field entries
+     *
+     * @return number of entries
+     */
+    std::size_t countChunkValues() const {
+        std::size_t result = 1;
+        for (auto i : chunkShape_) {
+            result *= i;
+        }
+        return result;
+    }
+
     std::vector<size_t> chunkShape_{};
     std::vector<size_t> shape_{};
     std::vector<size_t> chunks_{};
