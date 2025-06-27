@@ -1,4 +1,3 @@
-import pytest
 import zarr
 from pychunked_data_view.chunked_data_view import AxisDefinition, ChunkedDataViewBuilder, ExtractorType
 from z3fdb.mapping import (
@@ -40,4 +39,9 @@ def test_access_pattern(read_only_fdb_pattern_setup) -> None:
     data = store.get("data")
     assert data
 
-    print(len(data[2, 3, 1, 0]))
+    for date in range(0, 3):
+        for time in range(0, 4):
+            for param in range(0, 3):
+                for step in range(0, 1):
+                    index = step + param * 1 + time * 3 * 1 + date * 4 * 3 * 1
+                    assert(all(data[date, time, param, step] == index))
