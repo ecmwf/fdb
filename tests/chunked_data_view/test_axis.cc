@@ -71,12 +71,71 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
             EXPECT_EQUAL(date_values.size(), 10);
             EXPECT(date_values == dates[i]);
 
-            std::cout << "Expecting: " << time_values << " == " << times[j] << std::endl;
-            std::cout << request_copy << std::endl;
+            eckit::Log::debug() << "Expecting: " << time_values << " == " << times[j] << std::endl;
+            eckit::Log::debug() << request_copy << std::endl;
 
             EXPECT(time_values == times[j]);
         }
     }
+}
+
+
+bool assert_arrays(
+    const metkit::mars::MarsRequest& request,
+    const chunked_data_view::Axis&
+        axis) {  // chunked_data_view::Axis::Parameter first, chunked_data_view::Axis::Parameter second,
+                 // chunked_data_view::Axis::Parameter third, chunked_data_view::Axis::Parameter fourth) {
+
+    EXPECT(axis.parameters().size() == 4);
+
+    const std::string first_name                = std::get<0>(axis.parameters()[0]);
+    const std::vector<std::string> first_values = std::get<1>(axis.parameters()[0]);
+
+    const std::string second_name                = std::get<0>(axis.parameters()[1]);
+    const std::vector<std::string> second_values = std::get<1>(axis.parameters()[1]);
+
+    const std::string third_name                = std::get<0>(axis.parameters()[2]);
+    const std::vector<std::string> third_values = std::get<1>(axis.parameters()[2]);
+
+    const std::string fourth_name                = std::get<0>(axis.parameters()[3]);
+    const std::vector<std::string> fourth_values = std::get<1>(axis.parameters()[3]);
+
+
+    for (std::size_t i = 0; i < first_values.size(); ++i) {
+
+        for (std::size_t j = 0; j < second_values.size(); ++j) {
+
+            for (std::size_t k = 0; k < third_values.size(); ++k) {
+
+                for (std::size_t l = 0; l < fourth_values.size(); ++l) {
+
+                    auto request_copy = request;
+                    auto chunk_index = l + k * fourth_values.size() + j * (fourth_values.size() * third_values.size()) +
+                                       i * (fourth_values.size() * third_values.size() * second_values.size());
+
+                    chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, chunk_index);
+
+                    // Then
+                    auto first_result_values  = request_copy[first_name];
+                    auto second_result_values = request_copy[second_name];
+                    auto third_result_values  = request_copy[third_name];
+                    auto fourth_result_values = request_copy[fourth_name];
+
+                    eckit::Log::debug() << "Chunk Index: " << chunk_index << std::endl;
+                    eckit::Log::debug() << "Expecting: " << first_result_values << " == " << first_values[i] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    EXPECT(first_result_values == first_values[i]);
+                    eckit::Log::debug() << "Expecting: " << second_result_values << " == " << second_values[j] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    EXPECT(second_result_values == second_values[j]);
+                    eckit::Log::debug() << "Expecting: " << third_result_values << " == " << third_values[k] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    EXPECT(third_result_values == third_values[k]);
+                    eckit::Log::debug() << "Expecting: " << fourth_result_values << " == " << fourth_values[l] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    EXPECT(fourth_result_values == fourth_values[l]);
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle mixed axis") {
@@ -99,40 +158,99 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
     std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     std::vector<std::string> params = {"v"};
 
-    chunked_data_view::Axis axis({{"date", dates}, {"time", times}, {"step", steps}, {"parm", params}}, true);
+    chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
+    chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
+    chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Axis::Parameter param_parameter = {"param", params};
 
-    // When
+    const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, true};
 
-    for (std::size_t i = 0; i < dates.size(); ++i) {
+    EXPECT(assert_arrays(request, axis));
+}
 
-        for (std::size_t j = 0; j < times.size(); ++j) {
+CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
 
-            for (std::size_t k = 0; k < steps.size(); ++k) {
-                auto request_copy = request;
-                auto chunk_index = k + j * steps.size() + i * (times.size() * steps.size());
+    // Given
+    const std::string keys{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v,"
+        "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
+        "time=0/6/12/18"};
 
-                chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, chunk_index);
+    auto request                    = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    std::vector<std::string> dates  = {"20200101", "20200102", "20200103", "20200104"};
+    std::vector<std::string> times  = {"0000", "0600", "1200", "1800"};
+    std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+    std::vector<std::string> params = {"v"};
 
-                // Then
-                auto date_values = request_copy["date"];
-                auto time_values = request_copy["time"];
-                auto step_values = request_copy["step"];
-                auto params_values = request_copy["param"];
+    chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
+    chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
+    chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Axis::Parameter param_parameter = {"param", params};
 
-                EXPECT_EQUAL(date_values.size(), 10);
+    const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, false};
 
-                std::cout << "Chunk Index: " << chunk_index << std::endl;
-                std::cout << "Expecting: " << date_values << " == " << dates[i] << " | (i, j, k)=("<< i<< "," << j << "," << k <<")" << std::endl;
-                EXPECT(date_values == dates[i]);
-                std::cout << "Expecting: " << time_values << " == " << times[j] << " | (i, j, k)=("<< i<< "," << j << "," << k <<")" << std::endl;
-                EXPECT(time_values == times[j]);
-                std::cout << "Expecting: " << step_values << " == " << steps[k] << " | (i, j, k)=("<< i<< "," << j << "," << k <<")" << std::endl;
-                EXPECT(step_values == steps[k]);
-                std::cout << "Expecting: " << params_values << " == " << "132" << std::endl;
-                EXPECT(params_values == "132");
-            }
-        }
+    auto request_copy = request;
+    EXPECT_NO_THROW(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, 0));
+
+    for (std::size_t i = 1; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
+        auto request_copy = request;
+        EXPECT_THROWS(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i));
     }
+}
+
+CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations") {
+
+    // Given
+    const std::string keys{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v,"
+        "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
+        "time=0/6/12/18"};
+
+    const auto request                    = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    const std::vector<std::string> dates  = {"2020-01-01", "2020-01-02", "2020-01-03"};
+    const std::vector<std::string> times  = {"0", "6", "12", "18"};
+    const std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+    const std::vector<std::string> params = {"v"};
+
+    const chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
+    const chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
+    const chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
+    const chunked_data_view::Axis::Parameter param_parameter = {"param", params};
+
+    const std::vector<chunked_data_view::Axis::Parameter> param_vector = {date_parameter, time_parameter,
+                                                                          step_parameter, param_parameter};
+
+    std::vector<std::size_t> perm = {0, 1, 2, 3};
+
+    do {
+
+        auto& first  = param_vector[perm[0]];
+        auto& second = param_vector[perm[1]];
+        auto& third  = param_vector[perm[2]];
+        auto& fourth = param_vector[perm[3]];
+
+        const chunked_data_view::Axis axis = {{first, second, third, fourth}, true};
+
+        eckit::Log::debug() << "Current permutation: (" << perm[0] << ", " << perm[1] << ", " << perm[2] << ", " << perm[3]
+                  << ") | ";
+        eckit::Log::debug() << "Current order: (" << std::get<0>(param_vector[perm[0]]) << ", "
+                  << std::get<0>(param_vector[perm[1]]) << ", " << std::get<0>(param_vector[perm[2]]) << ", "
+                  << std::get<0>(param_vector[perm[3]]) << ") " << std::endl;
+        EXPECT(assert_arrays(request, axis));
+
+    } while (std::next_permutation(perm.begin(), perm.end()));
 }
 
 int main(int argc, char** argv) {
