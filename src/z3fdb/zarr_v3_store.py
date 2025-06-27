@@ -5,6 +5,7 @@ from zarr.abc import store
 from zarr.core.buffer import Buffer, BufferPrototype, default_buffer_prototype
 from zarr.core.buffer.core import Buffer as AbstractBuffer
 from zarr.core.buffer.cpu import Buffer as CpuBuffer
+from zarr.core.common import BytesLike
 
 from z3fdb.zarr import FdbZarrArray, FdbZarrGroup
 
