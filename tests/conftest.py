@@ -8,10 +8,9 @@
 
 """Top-level pytest configuration."""
 
-import os
+import itertools
 import pathlib
 import shutil
-import itertools
 
 import eccodes as ec
 import pyfdb
