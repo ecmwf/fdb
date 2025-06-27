@@ -5,5 +5,6 @@ CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
 if ("${SIZEOF_OFF_T}" LESS 8)
     ecbuild_add_test(
         TYPE     SCRIPT
-        COMMAND  FDB-271.sh )
+        COMMAND  FDB-271.sh
+        ENVIRONMENT "${test_environment}" )
 endif()

@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbcopy="$<TARGET_FILE:fdb-copy>"
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribset="$<TARGET_FILE:grib_set>"
+gribget="$<TARGET_FILE:grib_get>"
+gribcmp="$<TARGET_FILE:grib_compare>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+rm -rf $bindir/read-root
+rm -rf $bindir/write-root
+mkdir read-root
+mkdir write-root
+
+for f in read.yaml write.yaml schema x.req x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+### populate read fdb
+
+export FDB5_CONFIG_FILE=read.yaml
+
+$fdbwrite x.grib
+
+$fdbread x.req ref.grib
+
+unset FDB5_CONFIG_FILE
+
+### copy to write fdb
+
+x_list_req="domain=g,levtype=sfc,date=20201102,time=0000,step=12,param=166.128,class=rd,type=fc,stream=oper,expver=xxxx"
+x_db_list_req="domain=g,date=20201102,time=0000,class=rd,stream=oper,expver=xxxx"
+
+$fdbcopy --source=read.yaml --target=write.yaml --from-list $x_db_list_req
+
+### read and check it
+
+export FDB5_CONFIG_FILE=write.yaml
+
+$fdbread x.req out.grib
+
+$gribcmp -r ref.grib out.grib
+
+### list
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+unset FDB5_CONFIG_FILE
+
+### copy with modifiers
+
+$fdbcopy --source=read.yaml --target=write.yaml --from-list $x_db_list_req --modifiers "expver=yyyy,step=7"
+
+### list
+
+export FDB5_CONFIG_FILE=write.yaml
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=7,param=166}
+EOF
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list 
+
+### read and check it
+
+cat x.req | sed -e 's/expver=xxxx/expver=yyyy/g' | sed -e 's/step=12/step=7/g' > x_modifiers.req
+
+$fdbread x_modifiers.req out_modifiers.grib
+
+expver=$($gribget -m -p expver out_modifiers.grib)
+step=$($gribget -m -p step out_modifiers.grib)
+
+if [[ "$expver" != "yyyy" ]] ; then
+  echo "Found unexpected expver: $expver"
+  exit 1
+fi
+
+if [[ "$step" != "7" ]] ; then
+  echo "Found unexpected step: $step"
+  exit 1
+fi
