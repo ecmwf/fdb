@@ -410,22 +410,22 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
     }
 }
 
-uint64_t xorshift(uint64_t& state) {
+uint32_t xorshift(uint32_t& state) {
     state ^= (state << 13);
-    state ^= (state >> 7);
-    state ^= (state << 17);
+    state ^= (state >> 17);
+    state ^= (state << 5);
     return state;
 }
 
-double generateRandomDouble(uint64_t& state) {
-    uint64_t randomInt = xorshift(state);
-    return static_cast<double>(randomInt) / std::numeric_limits<uint64_t>::max();
+float generateRandomFloat(uint32_t& state) {
+    uint32_t randomInt = xorshift(state);
+    return static_cast<float>(randomInt) / std::numeric_limits<uint32_t>::max();
 }
 
-uint64_t generateRandomUint64() {
+uint32_t generateRandomUint32() {
     static std::random_device rd;
-    static std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dis;
     return dis(gen);
 }
 
@@ -539,7 +539,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t writeCount   = 0;
     size_t bytesWritten = 0;
 
-    uint64_t random_seed = generateRandomUint64();
+    uint32_t random_seed = generateRandomUint32();
 
     if (itt_) barrier(ppn, nodelist, port, max_wait);
 
@@ -576,8 +576,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                         CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
 
                         // randomise field data
-                        for (int i = offsetBeforeData; i <= (offsetAfterData - sizeof(double)); i += sizeof(double)) {
-                            *((double*)(const_cast<char*>(buffer) + i)) = generateRandomDouble(random_seed);
+                        for (int i = offsetBeforeData; i <= (offsetAfterData - sizeof(float)); i += sizeof(float)) {
+                            *((float*)(const_cast<char*>(buffer) + i)) = generateRandomFloat(random_seed);
                         }
 
                     }
