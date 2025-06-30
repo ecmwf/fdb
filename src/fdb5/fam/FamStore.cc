@@ -15,10 +15,27 @@
 
 #include "fdb5/fam/FamStore.h"
 
+#include <cstddef>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/fam/FamObject.h"
+#include "eckit/io/fam/FamObjectName.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamFieldLocation.h"
 
 namespace fdb5 {
@@ -27,8 +44,7 @@ static const StoreBuilder<FamStore> builder(FamCommon::typeName);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamStore::FamStore(const Schema& schema, const Key& key, const Config& config) :
-    FamCommon(config, key), Store(schema), config_(config) {}
+FamStore::FamStore(const Key& key, const Config& config) : FamCommon(config, key), config_(config) {}
 
 FamStore::~FamStore() = default;
 
@@ -51,7 +67,7 @@ auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
     return eckit::FamObjectName(uri).exists();
 }
 
-void FamStore::flush() {
+size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
 }
 
@@ -76,7 +92,7 @@ auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
     return field.dataHandle();
 }
 
-auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> {
+auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<const FieldLocation> {
     auto object = makeObject(key);
 
     LOG_DEBUG_LIB(LibFdb5) << "FamStore archiving object: " << object << '\n';
@@ -113,7 +129,7 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
 }
 
 void FamStore::print(std::ostream& out) const {
-    out << "FamStore[schema=" << schema_ << ", root=" << root_ << ']';
+    out << "FamStore[root=" << root_ << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------

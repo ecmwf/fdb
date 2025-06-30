@@ -41,7 +41,7 @@ FamFieldLocation::FamFieldLocation(const FamFieldLocation& rhs) :
 
 FamFieldLocation::FamFieldLocation(eckit::Stream& stream) : FieldLocation(stream) {}
 
-std::shared_ptr<FieldLocation> FamFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> FamFieldLocation::make_shared() const {
     return std::make_shared<FamFieldLocation>(*this);
 }
 

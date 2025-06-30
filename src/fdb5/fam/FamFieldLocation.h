@@ -17,6 +17,8 @@
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
+#include <memory>
+
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 
@@ -40,7 +42,7 @@ public:
 
     eckit::DataHandle* dataHandle() const override;
 
-    std::shared_ptr<FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
     void visit(FieldLocationVisitor& visitor) const override;
 

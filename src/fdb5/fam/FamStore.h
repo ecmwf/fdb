@@ -19,8 +19,19 @@
 
 #pragma once
 
+#include <cstddef>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/fam/FamObjectName.h"
 
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/fam/FamCommon.h"
 
@@ -33,7 +44,7 @@ class Schema;
 class FamStore : protected FamCommon, public Store {
 public:  // methods
 
-    FamStore(const Schema& schema, const Key& key, const Config& config);
+    FamStore(const Key& key, const Config& config);
 
     ~FamStore() override;
 
@@ -51,7 +62,7 @@ public:  // methods
 
     auto open() -> bool override { return true; }
 
-    void flush() override;
+    size_t flush() override;
 
     void close() override;
 
@@ -65,7 +76,8 @@ protected:  // methods
 
     auto retrieve(Field& field) const -> eckit::DataHandle* override;
 
-    auto archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<FieldLocation> override;
+    auto archive(const Key& key, const void* data, eckit::Length length)
+        -> std::unique_ptr<const FieldLocation> override;
 
     void remove(const Key& key) const override;
 
