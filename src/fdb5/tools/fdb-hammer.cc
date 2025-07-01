@@ -540,6 +540,17 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t bytesWritten = 0;
 
     uint32_t random_seed = generateRandomUint32();
+    long offsetBeforeData = 0, offsetAfterData = 0, numberOfValues = 0;
+
+    // get message data offset
+    CODES_CHECK(codes_get_long(handle, std::string("offsetBeforeData").c_str(), &offsetBeforeData), 0);
+    CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
+    CODES_CHECK(codes_get_long(handle, std::string("numberOfValues").c_str(), &numberOfValues), 0);
+
+    std::optional<std::vector<float>> random_values;
+    if (!full_check_) {
+        random_values->resize(numberOfValues);
+    }
 
     if (itt_) barrier(ppn, nodelist, port, max_wait);
 
@@ -570,24 +581,16 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
                     if (!full_check_) {
 
-                        // get message data offset
-                        long offsetBeforeData = 0, offsetAfterData = 0;
-                        CODES_CHECK(codes_get_long(handle, std::string("offsetBeforeData").c_str(), &offsetBeforeData), 0);
-                        CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
-
                         // randomise field data
-                        for (int i = offsetBeforeData; i <= (offsetAfterData - sizeof(float)); i += sizeof(float)) {
-                            *((float*)(const_cast<char*>(buffer) + i)) = generateRandomFloat(random_seed);
+                        for (int i = 0; i < numberOfValues; ++i) {
+                            random_values.value()[i] = generateRandomFloat(random_seed);
                         }
+
+                        CODES_CHECK(codes_set_float_array(handle, "values", random_values->data()));
 
                     }
 
                     if (full_check_ or md_check_) {
-
-                        // get message data offset
-                        long offsetBeforeData = 0, offsetAfterData = 0;
-                        CODES_CHECK(codes_get_long(handle, std::string("offsetBeforeData").c_str(), &offsetBeforeData), 0);
-                        CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
 
                         // generate a checksum of the FDB key
                         fdb5::Key key({
