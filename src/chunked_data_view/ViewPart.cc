@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 #include "ViewPart.h"
+#include <tuple>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/RequestManipulation.h"
 
@@ -22,14 +23,14 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     std::set<std::string> processedKeywords{};
     for (const auto& axis : axes) {
 
-        std::vector<Axis::Parameter> parameters{};
+        std::vector<Parameter> parameters{};
         parameters.reserve(axis.keys.size());
         for (const auto& key : axis.keys) {
             if (processedKeywords.count(key) != 0) {
                 throw std::runtime_error("ViewPart::ViewPart:Keyword already mapped by another axis");
             }
             processedKeywords.insert(key);
-            parameters.emplace_back(key, request_.values(key));
+            parameters.emplace_back(std::make_tuple(key, request_.values(key)));
         }
         axes_.emplace_back(parameters, axis.chunked);
     }
@@ -53,14 +54,18 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     shape_.push_back(layout_.countValues);
 }
 
+
 void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t size) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
       RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
-    auto dh = fdb_->retrieve(request);
-    extractor_->writeInto(*dh, data, layout_);
+    auto dh = fdb_->inspect(request);
+    extractor_->writeInto(dh, axes_, layout_, data);
+
+    // auto dh = fdb_->retrieve(request);
+    // extractor_->writeInto(*dh, data, layout_);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {

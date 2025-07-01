@@ -10,6 +10,11 @@
 #include "GribExtractor.h"
 
 #include <eckit/message/Reader.h>
+#include <exception>
+#include <iterator>
+#include "IndexMapper.h"
+#include "eckit/exception/Exceptions.h"
+#include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
 DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
@@ -33,6 +38,57 @@ void GribExtractor::writeInto(eckit::DataHandle& handle, uint8_t* out, const Dat
         size_t countValues = msg.getSize("values");
         msg.getDoubleArray("values", copyInto, countValues);
         copyInto += countValues;
+    }
+}
+
+
+std::size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
+
+    std::vector<std::size_t> result;
+
+    for (const Axis& axis : axes) {
+
+        if(axis.isChunked()) {
+            result.push_back(0);
+            continue;
+        }
+
+        std::vector<std::size_t> parameter_indices = IndexMapper::indexInAxisParameters(axis, key);
+        std::size_t axis_index = IndexMapper::linearize(parameter_indices, axis);
+        result.push_back(axis_index);
+    }
+
+    ASSERT(result.size() == axes.size());
+
+    auto final_index = IndexMapper::linearize(result, axes);
+
+    return final_index;
+}
+
+void GribExtractor::writeInto(std::vector<KeyDatahandlePair>& key_datahandle_vec, const std::vector<Axis>& axes,
+                              const DataLayout& layout, uint8_t* out) const {
+
+    const auto data_pointer = reinterpret_cast<double*>(out);
+
+    for (const auto& [key, uri, datahandle] : key_datahandle_vec) {
+        eckit::Log::debug() << "Computed offset "<< computeBufferIndex(axes, key) << std::endl;
+        std::size_t offset = computeBufferIndex(axes, key);
+
+        try {
+            eckit::message::Reader reader(*datahandle);
+            eckit::message::Message msg{};
+
+            auto copyInto = data_pointer + offset * layout.countValues;
+
+            while ((msg = reader.next())) {
+                size_t countValues = msg.getSize("values");
+                msg.getDoubleArray("values", copyInto, countValues);
+                copyInto += countValues;
+            }
+        }
+        catch (std::exception e) {
+            eckit::Log::debug() << e.what() << std::endl;
+        }
     }
 }
 
