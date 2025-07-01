@@ -6,8 +6,8 @@ namespace chunked_data_view {
 void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, std::size_t chunkIndex) {
     if (!axis.isChunked()) {
         ASSERT(chunkIndex == 0);
-        for (const auto& [key, values] : axis.parameters()) {
-            request.values(key, values);
+        for (const auto& parameter : axis.parameters()) {
+            request.values(parameter.name(), parameter.values());
         }
         return;
     }
@@ -25,7 +25,7 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
         std::size_t dim_prod = 1;
 
         for (size_t j = i+1; j < dimCount; ++j) {
-            dim_prod *= std::get<1>(axis.parameters()[j]).size();
+            dim_prod *= axis.parameters()[j].values().size();
         }
 
         std::size_t index_in_dim = chunk_index / dim_prod; // (1)
@@ -34,11 +34,12 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
     }
 
     // Compute the final remainder
-    index[dimCount - 1] = chunk_index % std::get<1>(axis.parameters()[dimCount - 1]).size();
+    index[dimCount - 1] = chunk_index % axis.parameters()[dimCount - 1].values().size();
 
+    // Add all parameter values to the request
     for (std::size_t i = 0; i < dimCount; ++i) {
-        const auto& [key, values] = axis.parameters()[i];
-        request.values(key, {values[index[i]]});
+        const auto& parameter = axis.parameters()[i];
+        request.values(parameter.name(), {parameter.values()[index[i]]});
     }
 }
 
