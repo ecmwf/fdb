@@ -54,3 +54,4 @@ def test_access(read_only_fdb_setup) -> None:
     data = store.get("data")
     assert data
     print(data[:, :])
+    print(data.shape)

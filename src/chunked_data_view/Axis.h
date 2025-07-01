@@ -9,34 +9,49 @@
  */
 #pragma once
 
-#include <metkit/mars/MarsRequest.h>
-
 #include <string>
 #include <tuple>
 #include <vector>
 
 namespace chunked_data_view {
 
+class Parameter {
+    
+    public:
+        Parameter(std::tuple<const std::string, const std::vector<std::string>> tuple);
+        Parameter(const std::string name, const std::vector<std::string> values);
+
+        const std::string& name() const { return std::get<0>(_internal);}
+        const std::vector<std::string>& values() const { return std::get<1>(_internal);}
+
+    private:
+        std::tuple<const std::string, const std::vector<std::string>> _internal;
+        
+};
+
 class Axis {
 public:
 
-    using Parameter = std::tuple<const std::string, const std::vector<std::string>>;
-
-    Axis(std::vector<Parameter> parameters, bool chunked);
-
-    /// Updates MarsRequest parameters to match the requested chunk index.
-    /// @param[in,out] request to modify
-    /// @param chunkIndex to compute parameter values from
-    void updateRequest(metkit::mars::MarsRequest& request, size_t chunkIndex) const;
+    Axis(std::vector<chunked_data_view::Parameter> parameters, bool chunked);
 
     size_t size() const { return size_; }
 
+    bool contains(const std::string& key) {
+      for(const auto& param : parameters_) {
+        if(param.name() == key) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     bool isChunked() const { return chunked_; }
-    const std::vector<Parameter>& parameters() const { return parameters_; }
+    const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
 
 private:
 
-    std::vector<Parameter> parameters_{};
+    std::vector<chunked_data_view::Parameter> parameters_{};
     size_t size_{};
     bool chunked_{};
 };

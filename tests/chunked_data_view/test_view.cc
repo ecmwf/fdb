@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <string>
+#include "chunked_data_view/Axis.h"
 using fdb5::FDBToolRequest;
 
 //==============================================================================
@@ -31,6 +32,10 @@ struct MockFdb final : public cdv::Fdb {
     std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) override {
         return fn(request);
     };
+
+    std::vector<chunked_data_view::KeyDatahandlePair> inspect(const metkit::mars::MarsRequest& request) override {
+      return {};
+    }
 
     RetFunc fn{};
 };
@@ -52,6 +57,10 @@ struct FakeExtractor : public cdv::Extractor {
         const size_t totalBytes = layout.countValues * layout.bytesPerValue;
         EXPECT_EQUAL(handle.read(out, totalBytes), totalBytes);
     }
+
+    void writeInto(std::vector<chunked_data_view::KeyDatahandlePair>& key_datahandle_vec, const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout, uint8_t* out) const override {
+       // TODO(TKR) implement functionality
+    };
 };
 
 std::unique_ptr<eckit::DataHandle> makeHandle(const std::vector<double>& values) {
