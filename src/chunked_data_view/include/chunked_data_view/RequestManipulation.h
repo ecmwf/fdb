@@ -1,6 +1,9 @@
 #pragma once
 
 #include "chunked_data_view/Axis.h"
+
+#include <metkit/mars/MarsRequest.h>
+
 namespace chunked_data_view {
 
 class RequestManipulation {
