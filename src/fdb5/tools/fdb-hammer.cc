@@ -547,9 +547,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
     CODES_CHECK(codes_get_long(handle, std::string("numberOfValues").c_str(), &numberOfValues), 0);
 
-    std::optional<std::vector<float>> random_values;
+    std::vector<double> random_values;
     if (!full_check_) {
-        random_values->resize(numberOfValues);
+        random_values.resize(numberOfValues);
     }
 
     if (itt_) barrier(ppn, nodelist, port, max_wait);
@@ -583,10 +583,10 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
                         // randomise field data
                         for (int i = 0; i < numberOfValues; ++i) {
-                            random_values.value()[i] = generateRandomFloat(random_seed);
+                            random_values[i] = generateRandomFloat(random_seed);
                         }
 
-                        CODES_CHECK(codes_set_float_array(handle, "values", random_values->data()));
+                        CODES_CHECK(codes_set_double_array(handle, "values", random_values.data(), random_values.size()), 0);
 
                     }
 
