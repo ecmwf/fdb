@@ -1,6 +1,7 @@
 list(APPEND tests
     view
     axis
+    index_mapper
 )
 
 foreach(test ${tests})

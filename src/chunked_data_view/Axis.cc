@@ -18,9 +18,17 @@ namespace {
 template <typename Params>
 size_t combinedSize(const Params& params) {
     return std::accumulate(std::begin(params), std::end(params), 1,
-                           [](auto acc, const auto& p) { return acc * std::get<1>(p).size(); });
+                           [](auto acc, const auto& p) { return acc * p.values().size(); });
 }
 }  // namespace
+
+//======================================================================================================================
+// class Parameter
+//======================================================================================================================
+
+Parameter::Parameter(std::tuple<const std::string, const std::vector<std::string>> tuple) : _internal(tuple) {};
+Parameter::Parameter(const std::string name, const std::vector<std::string> values) : _internal(std::make_tuple(name, values)) {};
+
 
 //======================================================================================================================
 // class Axis

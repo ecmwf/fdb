@@ -11,6 +11,7 @@
 
 #include <fdb5/api/FDB.h>
 #include <fdb5/config/Config.h>
+#include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
 
@@ -22,6 +23,30 @@ public:
     std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) override {
         return std::unique_ptr<eckit::DataHandle>(fdb_.retrieve(request));
     };
+
+    std::vector<KeyDatahandlePair> inspect(const metkit::mars::MarsRequest& request) override {
+        auto list_iterator = fdb_.inspect(request);
+
+        std::vector<eckit::URI> uris;
+        std::vector<fdb5::Key> keys;
+        std::vector<std::unique_ptr<eckit::DataHandle>> data_handles;
+
+        fdb5::ListElement element;
+
+        while(list_iterator.next(element)) {
+          uris.emplace_back(element.uri());
+          keys.emplace_back(element.combinedKey());
+          data_handles.emplace_back(element.location().dataHandle());
+        }
+
+        std::vector<chunked_data_view::KeyDatahandlePair> result;
+
+        for(std::size_t i = 0; i < data_handles.size(); ++i) {
+          result.emplace_back(KeyDatahandlePair{keys[i], uris[i], std::move(data_handles[i])});
+        }
+
+        return result;
+    }
 
 private:
 

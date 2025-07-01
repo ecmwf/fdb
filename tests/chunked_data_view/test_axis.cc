@@ -33,7 +33,7 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
         auto values = request_copy["date"];
 
         EXPECT_EQUAL(values.size(), 10);
-        EXPECT(values == std::get<1>(axis.parameters()[0])[i]);
+        EXPECT(values == axis.parameters()[0].values()[i]);
     }
 }
 
@@ -88,17 +88,17 @@ bool assert_arrays(
 
     EXPECT(axis.parameters().size() == 4);
 
-    const std::string first_name                = std::get<0>(axis.parameters()[0]);
-    const std::vector<std::string> first_values = std::get<1>(axis.parameters()[0]);
+    const std::string first_name                = axis.parameters()[0].name();
+    const std::vector<std::string> first_values = axis.parameters()[0].values();
 
-    const std::string second_name                = std::get<0>(axis.parameters()[1]);
-    const std::vector<std::string> second_values = std::get<1>(axis.parameters()[1]);
+    const std::string second_name                = axis.parameters()[1].name();
+    const std::vector<std::string> second_values = axis.parameters()[1].values();
 
-    const std::string third_name                = std::get<0>(axis.parameters()[2]);
-    const std::vector<std::string> third_values = std::get<1>(axis.parameters()[2]);
+    const std::string third_name                = axis.parameters()[2].name();
+    const std::vector<std::string> third_values = axis.parameters()[2].values();
 
-    const std::string fourth_name                = std::get<0>(axis.parameters()[3]);
-    const std::vector<std::string> fourth_values = std::get<1>(axis.parameters()[3]);
+    const std::string fourth_name                = axis.parameters()[3].name();
+    const std::vector<std::string> fourth_values = axis.parameters()[3].values();
 
 
     for (std::size_t i = 0; i < first_values.size(); ++i) {
@@ -158,10 +158,10 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
     std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     std::vector<std::string> params = {"v"};
 
-    chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
-    chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
-    chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
-    chunked_data_view::Axis::Parameter param_parameter = {"param", params};
+    chunked_data_view::Parameter date_parameter  = {"date", dates};
+    chunked_data_view::Parameter time_parameter  = {"time", times};
+    chunked_data_view::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Parameter param_parameter = {"param", params};
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, true};
 
@@ -188,10 +188,10 @@ CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
     std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     std::vector<std::string> params = {"v"};
 
-    chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
-    chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
-    chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
-    chunked_data_view::Axis::Parameter param_parameter = {"param", params};
+    chunked_data_view::Parameter date_parameter  = {"date", dates};
+    chunked_data_view::Parameter time_parameter  = {"time", times};
+    chunked_data_view::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Parameter param_parameter = {"param", params};
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, false};
 
@@ -224,12 +224,12 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
     const std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     const std::vector<std::string> params = {"v"};
 
-    const chunked_data_view::Axis::Parameter date_parameter  = {"date", dates};
-    const chunked_data_view::Axis::Parameter time_parameter  = {"time", times};
-    const chunked_data_view::Axis::Parameter step_parameter  = {"step", steps};
-    const chunked_data_view::Axis::Parameter param_parameter = {"param", params};
+    const chunked_data_view::Parameter date_parameter  = {"date", dates};
+    const chunked_data_view::Parameter time_parameter  = {"time", times};
+    const chunked_data_view::Parameter step_parameter  = {"step", steps};
+    const chunked_data_view::Parameter param_parameter = {"param", params};
 
-    const std::vector<chunked_data_view::Axis::Parameter> param_vector = {date_parameter, time_parameter,
+    const std::vector<chunked_data_view::Parameter> param_vector = {date_parameter, time_parameter,
                                                                           step_parameter, param_parameter};
 
     std::vector<std::size_t> perm = {0, 1, 2, 3};
@@ -245,9 +245,9 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
 
         eckit::Log::debug() << "Current permutation: (" << perm[0] << ", " << perm[1] << ", " << perm[2] << ", " << perm[3]
                   << ") | ";
-        eckit::Log::debug() << "Current order: (" << std::get<0>(param_vector[perm[0]]) << ", "
-                  << std::get<0>(param_vector[perm[1]]) << ", " << std::get<0>(param_vector[perm[2]]) << ", "
-                  << std::get<0>(param_vector[perm[3]]) << ") " << std::endl;
+        eckit::Log::debug() << "Current order: (" << param_vector[perm[0]].name() << ", "
+                  << param_vector[perm[1]].name() << ", " << param_vector[perm[2]].name() << ", "
+                  << param_vector[perm[3]].name() << ") " << std::endl;
         EXPECT(assert_arrays(request, axis));
 
     } while (std::next_permutation(perm.begin(), perm.end()));
