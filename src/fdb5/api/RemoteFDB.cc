@@ -61,7 +61,8 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
                     fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
                                                       static_cast<const RemoteFieldLocation&>(elem.location()))
                         .make_shared();
-            } else {
+            }
+            else {
                 remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
             }
         }
