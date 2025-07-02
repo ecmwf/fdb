@@ -21,8 +21,8 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestK
     return *this;
 }
 
-// TODO(kkratz): extensionAxisIndex has to become an optional that _NEEDS_ to be set if more than one part has been added
-// because haveing multiple parts only makes sense if the extend on one axis.
+// TODO(kkratz): extensionAxisIndex has to become an optional that _NEEDS_ to be set if more than one part has been
+// added because haveing multiple parts only makes sense if the extend on one axis.
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     extensionAxisIndex_ = index;
     return *this;

@@ -76,11 +76,9 @@ void GribExtractor::writeInto(fdb5::ListIterator& list_iterator, const std::vect
 
     while (list_iterator.next(elem)) {
 
-        auto uri = elem.uri();
-        auto key = elem.combinedKey();
-        auto datahandle = elem.location().dataHandle();
-
-        size_t offset = computeBufferIndex(axes, key);
+        const auto key      = elem.combinedKey();
+        const size_t offset = computeBufferIndex(axes, key);
+        auto datahandle     = elem.location().dataHandle();
 
         try {
             eckit::message::Reader reader(*datahandle);
