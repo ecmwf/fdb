@@ -25,9 +25,7 @@ public:
         return std::unique_ptr<eckit::DataHandle>(fdb_.retrieve(request));
     };
 
-    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
-        return fdb_.inspect(request);
-    }
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override { return fdb_.inspect(request); }
 
 private:
 
