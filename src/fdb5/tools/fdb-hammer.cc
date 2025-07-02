@@ -577,8 +577,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
                     CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
 
-                    CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
-
                     if (!full_check_) {
 
                         // randomise field data
@@ -589,6 +587,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                         CODES_CHECK(codes_set_double_array(handle, "values", random_values.data(), random_values.size()), 0);
 
                     }
+                    CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
 
                     if (full_check_ or md_check_) {
 
