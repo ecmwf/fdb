@@ -16,17 +16,18 @@
 namespace chunked_data_view {
 
 class Parameter {
-    
-    public:
-        Parameter(std::tuple<const std::string, const std::vector<std::string>> tuple);
-        Parameter(const std::string name, const std::vector<std::string> values);
 
-        const std::string& name() const { return std::get<0>(_internal);}
-        const std::vector<std::string>& values() const { return std::get<1>(_internal);}
+public:
 
-    private:
-        std::tuple<const std::string, const std::vector<std::string>> _internal;
-        
+    Parameter(std::tuple<const std::string, const std::vector<std::string>> tuple);
+    Parameter(const std::string name, const std::vector<std::string> values);
+
+    const std::string& name() const { return std::get<0>(_internal); }
+    const std::vector<std::string>& values() const { return std::get<1>(_internal); }
+
+private:
+
+    std::tuple<const std::string, const std::vector<std::string>> _internal;
 };
 
 class Axis {
@@ -37,13 +38,13 @@ public:
     size_t size() const { return size_; }
 
     bool contains(const std::string& key) {
-      for(const auto& param : parameters_) {
-        if(param.name() == key) {
-          return true;
+        for (const auto& param : parameters_) {
+            if (param.name() == key) {
+                return true;
+            }
         }
-      }
 
-      return false;
+        return false;
     }
 
     bool isChunked() const { return chunked_; }

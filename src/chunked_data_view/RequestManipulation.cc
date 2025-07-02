@@ -24,13 +24,13 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
     for (size_t i = 0; i < dimCount - 1; ++i) {
         std::size_t dim_prod = 1;
 
-        for (size_t j = i+1; j < dimCount; ++j) {
+        for (size_t j = i + 1; j < dimCount; ++j) {
             dim_prod *= axis.parameters()[j].values().size();
         }
 
-        std::size_t index_in_dim = chunk_index / dim_prod; // (1)
-        index[i] = index_in_dim;
-        chunk_index -= index_in_dim * dim_prod; // (2)
+        std::size_t index_in_dim = chunk_index / dim_prod;  // (1)
+        index[i]                 = index_in_dim;
+        chunk_index -= index_in_dim * dim_prod;  // (2)
     }
 
     // Compute the final remainder
