@@ -12,6 +12,7 @@
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Fdb.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 #include <eckit/io/DataHandle.h>
 
@@ -42,7 +43,7 @@ public:
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enought memory allccated for all values to be copied into out.
     /// @param out pointer to write into.
-    virtual void writeInto(std::vector<KeyDatahandlePair>& key_datahandle_vec, const std::vector<Axis>& axes, const DataLayout& layout, uint8_t* out) const = 0;
+    virtual void writeInto(fdb5::ListIterator& list_iterator, const std::vector<Axis>& axes, const DataLayout& layout, uint8_t* out) const = 0;
 
 };
 

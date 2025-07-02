@@ -63,9 +63,6 @@ void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t s
     }
     auto dh = fdb_->inspect(request);
     extractor_->writeInto(dh, axes_, layout_, data);
-
-    // auto dh = fdb_->retrieve(request);
-    // extractor_->writeInto(*dh, data, layout_);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
