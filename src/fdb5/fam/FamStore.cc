@@ -69,6 +69,7 @@ auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
+    return stats_.archived;
 }
 
 void FamStore::close() {
@@ -89,6 +90,7 @@ auto FamStore::makeObject(const Key& key) const -> eckit::FamObjectName {
 }
 
 auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
+    stats_.retrieved++;
     return field.dataHandle();
 }
 
@@ -105,6 +107,8 @@ auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -
 
         handle->write(data, length);
     }
+
+    stats_.archived++;
 
     return std::make_unique<FamFieldLocation>(object.uri(), 0, length, fdb5::Key());
 }

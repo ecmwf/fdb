@@ -42,6 +42,15 @@ class Schema;
 //----------------------------------------------------------------------------------------------------------------------
 
 class FamStore : protected FamCommon, public Store {
+
+private:  // types
+
+    struct Stats {
+        size_t archived{0};
+        size_t retrieved{0};
+    };
+
+
 public:  // methods
 
     FamStore(const Key& key, const Config& config);
@@ -86,6 +95,8 @@ protected:  // methods
     void print(std::ostream& out) const override;
 
 private:  // members
+
+    mutable Stats stats_;
 
     const Config& config_;
 };
