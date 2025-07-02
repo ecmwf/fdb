@@ -61,7 +61,7 @@ std::vector<size_t> index_mapping::delinearize(const size_t& index, const Axis& 
         }
 
         size_t index_in_dim = chunk_index / dim_prod;  // (1)
-        result[i]                = index_in_dim;
+        result[i]           = index_in_dim;
         chunk_index -= index_in_dim * dim_prod;  // (2)
     }
 
