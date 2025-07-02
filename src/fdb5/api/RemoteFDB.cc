@@ -45,23 +45,27 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
+        std::shared_ptr<const fdb5::FieldLocation> remoteLocation;
 
-        eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
-        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        if (elem.hasLocation()) {
 
-        // TODO move the endpoint replacement to the server side ()
-        if (elem.location().uri().scheme() == "fdb") {
-            eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
+            eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
+            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
-            std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
-                fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                                  static_cast<const RemoteFieldLocation&>(elem.location()))
-                    .make_shared();
-            return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
+            // TODO move the endpoint replacement to the server side ()
+            if (elem.location().uri().scheme() == "fdb") {
+                eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
+
+                remoteLocation =
+                    fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                                      static_cast<const RemoteFieldLocation&>(elem.location()))
+                        .make_shared();
+            } else {
+                remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+            }
         }
-        std::shared_ptr<const fdb5::FieldLocation> remoteLocation =
-            fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+
         return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 
