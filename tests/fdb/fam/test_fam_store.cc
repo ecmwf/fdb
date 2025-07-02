@@ -19,11 +19,24 @@
 
 #include "test_fam_common.h"
 
+#include <ctime>
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/fam/FamRegion.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/fam/FamStore.h"
 #include "fdb5/rules/Schema.h"
 
@@ -85,9 +98,9 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     const auto& schema = config.schema();
 
-    const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}}, schema.registry());
+    const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
 
-    fdb5::FamStore famStore(schema, storeKey, config);
+    fdb5::FamStore famStore(storeKey, config);
 
     auto& store = static_cast<fdb5::Store&>(famStore);
 
@@ -104,8 +117,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
                                 {"fam2c", "val2c"},
                                 {"fam3a", "val3a"},
                                 {"fam3b", "val3b"},
-                                {"fam3c", "val3c"}},
-                               schema.registry());
+                                {"fam3c", "val3c"}});
 
     //------------------------------------------------------------------------------------------------------------------
 

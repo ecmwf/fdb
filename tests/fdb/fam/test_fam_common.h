@@ -19,10 +19,10 @@
 
 #pragma once
 
-#include <string.h>
-
 #include <fstream>
+#include <ostream>
 #include <regex>
+#include <string>
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
@@ -33,10 +33,10 @@
 
 #include "fdb5/LibFdb5.h"
 
+
 using namespace std::string_literals;
 
 namespace {
-// const auto TEST_FDB_ENDPOINT = eckit::net::Endpoint("127.0.0.1", 8880);
 const auto TEST_FDB_FAM_ENDPOINT = "172.31.0.2:8880"s;
 const auto TEST_FDB_FAM_REGION   = "test_region_fdb"s;
 const auto TEST_FDB_FAM_URI      = "fam://" + TEST_FDB_FAM_ENDPOINT + "/" + TEST_FDB_FAM_REGION;
@@ -81,9 +81,6 @@ void write(const std::string& buffer, const eckit::PathName& path) {
 
 struct FamSetup {
     FamSetup(const std::string& schema, const std::string& config) {
-        // TEST_LOG_INFO("- Working directory: " << cwd_);
-        // TEST_LOG_INFO("- Config path: " << configPath);
-        // TEST_LOG_INFO("- Schema path: " << schemaPath);
         cwd_.mkdir();
         write(schema, schemaPath);
         write(std::regex_replace(config, std::regex("./schema"), schemaPath.asString()), configPath.asString());
