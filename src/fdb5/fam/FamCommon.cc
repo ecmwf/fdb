@@ -18,7 +18,9 @@
 #include <algorithm>
 #include <string>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/fam/FamRegionName.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"

@@ -57,7 +57,7 @@ public:  // methods
 
     ~FamStore() override;
 
-    auto type() const -> std::string override { return FamCommon::typeName; }
+    auto type() const -> std::string override { return FamCommon::type; }
 
     auto uri() const -> eckit::URI override;
 

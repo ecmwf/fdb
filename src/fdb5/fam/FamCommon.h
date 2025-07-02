@@ -21,6 +21,7 @@
 
 #include <string>
 
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegionName.h"
 
 namespace fdb5 {
@@ -31,7 +32,7 @@ class Config;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct FamCommon {
-    static constexpr auto typeName = eckit::FamPath::scheme;
+    static constexpr auto type = eckit::FamPath::scheme;
 
     static auto toString(const Key& key) -> std::string;
 

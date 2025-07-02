@@ -26,7 +26,7 @@ namespace fdb5 {
 
 ::eckit::Reanimator<FamFieldLocation> FamFieldLocation::reanimator_;
 
-static const FieldLocationBuilder<FamFieldLocation> builder(FamCommon::typeName);
+static const FieldLocationBuilder<FamFieldLocation> builder(FamCommon::type);
 
 //----------------------------------------------------------------------------------------------------------------------
 

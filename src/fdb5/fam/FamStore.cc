@@ -40,7 +40,7 @@
 
 namespace fdb5 {
 
-static const StoreBuilder<FamStore> builder(FamCommon::typeName);
+static const StoreBuilder<FamStore> builder(FamCommon::type);
 
 //----------------------------------------------------------------------------------------------------------------------
 
