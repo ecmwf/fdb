@@ -48,7 +48,7 @@ struct FamCommon {
 
     auto uri() const -> eckit::URI;
 
-    const eckit::FamRegionName root_;
+    eckit::FamRegionName root_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
