@@ -4,7 +4,10 @@ target_link_libraries(chunked_data_view_bindings
     PRIVATE pybind11::module 
             pybind11::lto 
             chunked_data_view
-            eckit)
+            eckit
+            metkit
+            fdb5
+)
 
 # pybind11_extension(pychunked_data_view)
 if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)

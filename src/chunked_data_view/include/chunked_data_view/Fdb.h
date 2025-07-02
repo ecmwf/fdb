@@ -13,7 +13,7 @@
 #include <memory>
 #include <optional>
 #include "eckit/filesystem/URI.h"
-#include "fdb5/database/Key.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 namespace eckit {
 class DataHandle;
@@ -36,7 +36,7 @@ public:
 
     virtual ~Fdb()                                                                                = default;
     virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) = 0;
-    virtual std::vector<KeyDatahandlePair> inspect(const metkit::mars::MarsRequest& request) = 0;
+    virtual fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
 };
 
 std::unique_ptr<Fdb> makeFdb(std::optional<std::filesystem::path> configPath = std::nullopt);

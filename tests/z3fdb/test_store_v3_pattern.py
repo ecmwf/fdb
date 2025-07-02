@@ -1,5 +1,5 @@
 import logging
-from itertools import combinations, permutations, product
+from itertools import permutations, product
 
 import pytest
 import zarr
@@ -149,7 +149,6 @@ def test_access_pattern_shuffled_chunked(
 
 test_data = product(permutations([0, 1, 2]), product([True, False], repeat=3))
 
-@pytest.mark.skip(reason="This is a quite expensive test and should only run if really necessary")
 @pytest.mark.parametrize("index_permutation, chunked_permutations", test_data) 
 def test_access_pattern_shuffled_partially_chunked(
     read_only_fdb_pattern_setup, index_permutation, chunked_permutations
