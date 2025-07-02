@@ -59,7 +59,7 @@ void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t s
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-      RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto dh = fdb_->inspect(request);
     extractor_->writeInto(dh, axes_, layout_, data);
@@ -69,7 +69,7 @@ metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIn
     ASSERT(chunkIndex.size() == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
-      RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     return request;
 }

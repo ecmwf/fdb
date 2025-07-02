@@ -26,9 +26,9 @@ class MarsRequest;
 namespace chunked_data_view {
 
 struct KeyDatahandlePair {
-  fdb5::Key key;
-  eckit::URI uri;
-  std::unique_ptr<eckit::DataHandle> data_handle;
+    fdb5::Key key;
+    eckit::URI uri;
+    std::unique_ptr<eckit::DataHandle> data_handle;
 };
 
 class Fdb {
@@ -36,7 +36,7 @@ public:
 
     virtual ~Fdb()                                                                                = default;
     virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) = 0;
-    virtual fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
+    virtual fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request)                  = 0;
 };
 
 std::unique_ptr<Fdb> makeFdb(std::optional<std::filesystem::path> configPath = std::nullopt);
