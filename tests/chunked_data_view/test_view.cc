@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <string>
 #include "chunked_data_view/Axis.h"
+#include "fdb5/api/helpers/ListIterator.h"
 using fdb5::FDBToolRequest;
 
 //==============================================================================
@@ -33,8 +34,8 @@ struct MockFdb final : public cdv::Fdb {
         return fn(request);
     };
 
-    std::vector<chunked_data_view::KeyDatahandlePair> inspect(const metkit::mars::MarsRequest& request) override {
-      return {};
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
+      return {{{}}, false};
     }
 
     RetFunc fn{};
@@ -58,7 +59,7 @@ struct FakeExtractor : public cdv::Extractor {
         EXPECT_EQUAL(handle.read(out, totalBytes), totalBytes);
     }
 
-    void writeInto(std::vector<chunked_data_view::KeyDatahandlePair>& key_datahandle_vec, const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout, uint8_t* out) const override {
+    void writeInto(fdb5::ListIterator& key_datahandle_vec, const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout, uint8_t* out) const override {
        // TODO(TKR) implement functionality
     };
 };

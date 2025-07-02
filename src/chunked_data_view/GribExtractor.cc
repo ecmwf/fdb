@@ -14,6 +14,8 @@
 #include <iterator>
 #include "IndexMapper.h"
 #include "eckit/exception/Exceptions.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
@@ -42,37 +44,43 @@ void GribExtractor::writeInto(eckit::DataHandle& handle, uint8_t* out, const Dat
 }
 
 
-std::size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
+size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
 
-    std::vector<std::size_t> result;
+    std::vector<size_t> result;
 
     for (const Axis& axis : axes) {
 
-        if(axis.isChunked()) {
+        if (axis.isChunked()) {
             result.push_back(0);
             continue;
         }
 
-        std::vector<std::size_t> parameter_indices = IndexMapper::indexInAxisParameters(axis, key);
-        std::size_t axis_index = IndexMapper::linearize(parameter_indices, axis);
+        std::vector<size_t> parameter_indices = chunked_data_view::index_mapping::indexInAxisParameters(axis, key);
+        size_t axis_index                     = chunked_data_view::index_mapping::linearize(parameter_indices, axis);
         result.push_back(axis_index);
     }
 
     ASSERT(result.size() == axes.size());
 
-    auto final_index = IndexMapper::linearize(result, axes);
+    auto final_index = chunked_data_view::index_mapping::linearize(result, axes);
 
     return final_index;
 }
 
-void GribExtractor::writeInto(std::vector<KeyDatahandlePair>& key_datahandle_vec, const std::vector<Axis>& axes,
+void GribExtractor::writeInto(fdb5::ListIterator& list_iterator, const std::vector<Axis>& axes,
                               const DataLayout& layout, uint8_t* out) const {
 
     const auto data_pointer = reinterpret_cast<double*>(out);
 
-    for (const auto& [key, uri, datahandle] : key_datahandle_vec) {
-        eckit::Log::debug() << "Computed offset "<< computeBufferIndex(axes, key) << std::endl;
-        std::size_t offset = computeBufferIndex(axes, key);
+    fdb5::ListElement elem;
+
+    while (list_iterator.next(elem)) {
+
+        auto uri = elem.uri();
+        auto key = elem.combinedKey();
+        auto datahandle = elem.location().dataHandle();
+
+        size_t offset = computeBufferIndex(axes, key);
 
         try {
             eckit::message::Reader reader(*datahandle);
