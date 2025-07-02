@@ -38,11 +38,11 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def("at",
              [](cdv::ChunkedDataView* view, const cdv::ChunkedDataView::Index index) {
                  const auto& data = view->at(index);
-                 const auto len = data.size();
+                 const auto len   = data.size();
                  py::array_t<float> arr(len);
                  float* p = arr.mutable_data();
-                 for(size_t index = 0; index < len; ++index) {
-                    p[index] = static_cast<float>(data[index]);
+                 for (size_t index = 0; index < len; ++index) {
+                     p[index] = static_cast<float>(data[index]);
                  }
                  return arr;
              })

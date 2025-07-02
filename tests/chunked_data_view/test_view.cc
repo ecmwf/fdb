@@ -34,9 +34,7 @@ struct MockFdb final : public cdv::Fdb {
         return fn(request);
     };
 
-    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
-      return {{{}}, false};
-    }
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override { return {{{}}, false}; }
 
     RetFunc fn{};
 };
@@ -59,8 +57,9 @@ struct FakeExtractor : public cdv::Extractor {
         EXPECT_EQUAL(handle.read(out, totalBytes), totalBytes);
     }
 
-    void writeInto(fdb5::ListIterator& key_datahandle_vec, const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout, uint8_t* out) const override {
-       // TODO(TKR) implement functionality
+    void writeInto(fdb5::ListIterator& key_datahandle_vec, const std::vector<chunked_data_view::Axis>& axes,
+                   const chunked_data_view::DataLayout& layout, uint8_t* out) const override {
+        // TODO(TKR) implement functionality
     };
 };
 

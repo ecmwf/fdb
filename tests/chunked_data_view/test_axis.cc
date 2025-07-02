@@ -122,13 +122,21 @@ bool assert_arrays(
                     auto fourth_result_values = request_copy[fourth_name];
 
                     eckit::Log::debug() << "Chunk Index: " << chunk_index << std::endl;
-                    eckit::Log::debug() << "Expecting: " << first_result_values << " == " << first_values[i] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    eckit::Log::debug() << "Expecting: " << first_result_values << " == " << first_values[i]
+                                        << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
+                                        << std::endl;
                     EXPECT(first_result_values == first_values[i]);
-                    eckit::Log::debug() << "Expecting: " << second_result_values << " == " << second_values[j] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    eckit::Log::debug() << "Expecting: " << second_result_values << " == " << second_values[j]
+                                        << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
+                                        << std::endl;
                     EXPECT(second_result_values == second_values[j]);
-                    eckit::Log::debug() << "Expecting: " << third_result_values << " == " << third_values[k] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    eckit::Log::debug() << "Expecting: " << third_result_values << " == " << third_values[k]
+                                        << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
+                                        << std::endl;
                     EXPECT(third_result_values == third_values[k]);
-                    eckit::Log::debug() << "Expecting: " << fourth_result_values << " == " << fourth_values[l] << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")" << std::endl;
+                    eckit::Log::debug() << "Expecting: " << fourth_result_values << " == " << fourth_values[l]
+                                        << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
+                                        << std::endl;
                     EXPECT(fourth_result_values == fourth_values[l]);
                 }
             }
@@ -229,8 +237,8 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
     const chunked_data_view::Parameter step_parameter  = {"step", steps};
     const chunked_data_view::Parameter param_parameter = {"param", params};
 
-    const std::vector<chunked_data_view::Parameter> param_vector = {date_parameter, time_parameter,
-                                                                          step_parameter, param_parameter};
+    const std::vector<chunked_data_view::Parameter> param_vector = {date_parameter, time_parameter, step_parameter,
+                                                                    param_parameter};
 
     std::vector<std::size_t> perm = {0, 1, 2, 3};
 
@@ -243,11 +251,11 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
 
         const chunked_data_view::Axis axis = {{first, second, third, fourth}, true};
 
-        eckit::Log::debug() << "Current permutation: (" << perm[0] << ", " << perm[1] << ", " << perm[2] << ", " << perm[3]
-                  << ") | ";
+        eckit::Log::debug() << "Current permutation: (" << perm[0] << ", " << perm[1] << ", " << perm[2] << ", "
+                            << perm[3] << ") | ";
         eckit::Log::debug() << "Current order: (" << param_vector[perm[0]].name() << ", "
-                  << param_vector[perm[1]].name() << ", " << param_vector[perm[2]].name() << ", "
-                  << param_vector[perm[3]].name() << ") " << std::endl;
+                            << param_vector[perm[1]].name() << ", " << param_vector[perm[2]].name() << ", "
+                            << param_vector[perm[3]].name() << ") " << std::endl;
         EXPECT(assert_arrays(request, axis));
 
     } while (std::next_permutation(perm.begin(), perm.end()));
