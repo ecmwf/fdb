@@ -46,5 +46,6 @@ ecbuild_add_library(
         ${CMAKE_CURRENT_BINARY_DIR}
     PRIVATE_LIBS
         eckit
+        metkit
         fdb5
 )
