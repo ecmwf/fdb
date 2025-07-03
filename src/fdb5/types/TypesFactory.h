@@ -16,10 +16,8 @@
 #ifndef fdb5_TypesFactory_H
 #define fdb5_TypesFactory_H
 
+#include <iosfwd>
 #include <string>
-
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
 
 namespace fdb5 {
 

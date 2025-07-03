@@ -13,21 +13,14 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/api/LocalFDB.h"
+
 #include "eckit/container/Queue.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/api/LocalFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/database/Archiver.h"
-#include "fdb5/database/Catalogue.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/database/Inspector.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/rules/Schema.h"
-
 #include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
@@ -37,6 +30,11 @@
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Inspector.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Schema.h"
 
 
 using namespace fdb5::api::local;
