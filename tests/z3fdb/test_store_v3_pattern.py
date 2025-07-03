@@ -162,7 +162,7 @@ def test_access_pattern_shuffled_partially_chunked(
         AxisDefinition(["param"], chunked_permutations[1]),
         AxisDefinition(["step"], chunked_permutations[2]),
     ]
-    axis_names = ["date", "time", "param", "step"]
+    axis_names = ["datetime", "param", "step"]
     axis_permutation = [axis[i] for i in index_permutation]
 
     builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
@@ -197,11 +197,13 @@ def test_access_pattern_shuffled_partially_chunked(
     assert data
 
     logging.debug(f"Permutation: ({[axis_names[i] for i in index_permutation]})")
+    logging.debug(f"Permutation chunked: ({[i for i in chunked_permutations]})")
 
     def compute_value(date, time, param, step):
         return step + param * 1 + time * 3 * 1 + date * 4 * 3 * 1
 
-    logging.debug(data.shape)
+    logging.debug(f"Zarr array shape={data.shape}")
+    logging.debug(f"Chunk shape={data.chunks}")
     logging.debug(data[:, 0, 0])
 
     # This is coming from the read_only_fdb_pattern_setup fixtures, the data is filled in there
@@ -214,7 +216,6 @@ def test_access_pattern_shuffled_partially_chunked(
                     datetime = date * 4 + time
                     # Find the index the date gets mapped to, was index 0 in the non-permuted array
                     # Same for all other elements
-                    cur_index = [0, 0, 0]
                     cur_index = [0, 0, 0]
                     cur_index[index_permutation.index(0)] = datetime
                     cur_index[index_permutation.index(1)] = param
