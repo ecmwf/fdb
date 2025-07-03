@@ -62,26 +62,30 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
 
     ASSERT(result.size() == axes.size());
 
-    auto final_index = chunked_data_view::index_mapping::linearize(result, axes);
+    auto final_index = chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 
     return final_index;
 }
 
-void GribExtractor::writeInto(fdb5::ListIterator& list_iterator, const std::vector<Axis>& axes,
+void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                               const DataLayout& layout, uint8_t* out) const {
 
     const auto data_pointer = reinterpret_cast<double*>(out);
 
     fdb5::ListElement elem;
 
-    while (list_iterator.next(elem)) {
+    while (auto res = list_iterator->next()) {
 
-        const auto key      = elem.combinedKey();
+        if(!res) {
+            break;
+        }
+
+        const auto& key = std::get<0>(*res);
+        auto& data_handle = std::get<1>(*res);
         const size_t offset = computeBufferIndex(axes, key);
-        auto datahandle     = elem.location().dataHandle();
 
         try {
-            eckit::message::Reader reader(*datahandle);
+            eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
             auto copyInto = data_pointer + offset * layout.countValues;
