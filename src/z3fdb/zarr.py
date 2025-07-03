@@ -189,7 +189,7 @@ class FdbZarrArray:
         files = ["zarr.json"]
         if len(chunks_per_axis := self._datasource.chunks()) > 0:
             tuples = itertools.product(*[np.arange(0, x) for x in chunks_per_axis])
-            chunk_names = [".".join([str(i) for i in t]) for t in tuples]
+            chunk_names = ["/".join([str(i) for i in ["c", *t]]) for t in tuples]
             files += chunk_names
         return files
 
