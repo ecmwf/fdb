@@ -51,6 +51,7 @@ const std::vector<double>& ChunkedDataViewImpl::at(const std::vector<size_t>& ch
         part.at(idx, reinterpret_cast<uint8_t*>(data_.data()), size());
         break;
     }
+    std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << data_[0] << std::endl;
     return data_;
 };
 

@@ -125,6 +125,7 @@ class FdbZarrStore(store.Store):
         prototype: BufferPrototype = default_buffer_prototype(),
         byte_range: store.ByteRequest | None = None,
     ) -> Buffer | None:
+        print(key)
         return await self.__getitem__(key)
 
     def get_partial_values(
