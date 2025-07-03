@@ -1,4 +1,4 @@
-
+#include <algorithm>
 #include <cstddef>
 
 #include "chunked_data_view/Buffer.h"
