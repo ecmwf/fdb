@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <numeric>
 #include <utility>
+#include <algorithm>
 #include "eckit/exception/Exceptions.h"
 #include "fdb5/database/Key.h"
 
