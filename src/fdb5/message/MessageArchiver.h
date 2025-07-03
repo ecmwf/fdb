@@ -43,7 +43,7 @@ public:  // methods
                     const Config& config = Config().expandConfig());
 
     void setFilters(const std::string& include, const std::string& exclude);
-    void setModifiers(eckit::StringDict& modify);
+    void setModifiers(const eckit::StringDict& modify);
 
     eckit::Length archive(eckit::DataHandle& source);
 

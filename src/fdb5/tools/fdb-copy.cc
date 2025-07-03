@@ -141,9 +141,9 @@ static std::vector<metkit::mars::MarsRequest> readRequestsFromFile(const CmdArgs
 void FDBCopy::checkModifiers(const metkit::mars::MarsRequest& request, const eckit::StringDict& modifiers) {
     for (const auto& pair : modifiers) {
         std::ostringstream msg;
-        msg << "Provided modifiers for key '" << pair.first << 
-            "' not present in data to be copied";
-        if (!request.has(pair.first)) throw eckit::UserError(msg);
+        msg << "Provided modifiers for key '" << pair.first << "' not present in data to be copied";
+        if (!request.has(pair.first))
+            throw eckit::UserError(msg);
     }
 }
 
