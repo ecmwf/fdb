@@ -330,51 +330,91 @@ def import_data_cmd(args):
             import_grib_file(fdb, p, args.progress)
 
 
-def profile_cmd(args):
-    if args.source == "fdb-era5":
-        dataset = [
-            ds for ds in example_datasets() if isinstance(ds, AnemoiExampleDataSet)
-        ][0]
-        fdb = open_database(args.database / "fdb_config.yaml")
-        gribjump = open_gribjump(args.database / "gribjump_config.yaml")
-        store = zarr.open_group(
-            zfdb.make_anemoi_dataset_like_view(
-                recipe=yaml.safe_load(dataset.recipe.read_text()),
-                fdb=fdb,
-                gribjump=gribjump,
-            ),
-            mode="r",
-            zarr_format=3,
-        )
-    elif args.source == "fdb-fc":
-        dataset = [
-            ds for ds in example_datasets() if isinstance(ds, ForecastExampleDataSet)
-        ][0]
-        fdb = open_database(args.database / "fdb_config.yaml")
-        gribjump = open_gribjump(args.database / "gribjump_config.yaml")
-        store = zarr.open_group(
-            zfdb.make_forecast_data_view(
-                request=dataset.requests,
-                fdb=fdb,
-                gribjump=gribjump,
-            ),
-            mode="r",
-            zarr_format=3,
-        )
-    elif args.source == "zarr-era5":
-        dataset = [
-            ds for ds in example_datasets() if isinstance(ds, AnemoiExampleDataSet)
-        ][0]
-        store = zarr.open_group(dataset.anemoi_dataset, mode="r")
-    else:
-        logger.error(f"Unknown datasource {args.source}. Aborting.")
-        sys.exit(-1)
-
-    for _ in range(128):
-        t0 = time.perf_counter_ns()
-        compute_mean_per_field(store)
+def time_access(store, rand_indexes):
+    timings = []
+    means = []
+    t1_all = time.perf_counter_ns()
+    for idx in rand_indexes:
         t1 = time.perf_counter_ns()
-        logger.info(f"Computation took {print_in_closest_unit(t1 - t0)}")
+        field = store["data"][*idx]
+        means.append(np.mean(field))
+        t2 = time.perf_counter_ns()
+        timings.append(t2 - t1)
+    t2_all = time.perf_counter_ns()
+    return t2_all - t1_all, [t for t in zip(timings, means)]
+
+
+def profile_cmd(args):
+    fdb_store = open_view(args.database / "fdb_config.yaml")
+    copy_store_sync(fdb_store.store, args.zarr_path)
+    zarr_store = zarr.open_group(
+        args.zarr_path, mode="r", zarr_format=3, use_consolidated=False
+    )
+
+    # assert np.array_equal(fdb_store["data"], zarr_store["data"])
+
+    shape = fdb_store["data"].shape[:-1]
+
+    def gen(shape, limit):
+        for _ in range(0, limit):
+            gens = [range(0, len) for len in shape]
+            yield [random.choice(x) for x in gens]
+
+    indexes = list(gen(shape, 3000))
+
+    time_access(zarr_store, indexes)
+    zarr_timings = time_access(zarr_store, indexes)
+    time_access(fdb_store, indexes)
+    fdb_timings = time_access(fdb_store, indexes)
+    print(f"TOTOAL READ TIME ZFDB: {print_in_closest_unit(fdb_timings[0])}")
+    print(f"TOTOAL READ TIME ZARR-NATIVE: {print_in_closest_unit(zarr_timings[0])}")
+    for f, z in zip(fdb_timings[1], zarr_timings[1]):
+        assert f[1] == z[1]
+
+    # if args.source == "fdb-era5":
+    #     dataset = [
+    #         ds for ds in example_datasets() if isinstance(ds, AnemoiExampleDataSet)
+    #     ][0]
+    #     fdb = open_database(args.database / "fdb_config.yaml")
+    #     gribjump = open_gribjump(args.database / "gribjump_config.yaml")
+    #     store = zarr.open_group(
+    #         zfdb.make_anemoi_dataset_like_view(
+    #             recipe=yaml.safe_load(dataset.recipe.read_text()),
+    #             fdb=fdb,
+    #             gribjump=gribjump,
+    #         ),
+    #         mode="r",
+    #         zarr_format=3,
+    #     )
+    # elif args.source == "fdb-fc":
+    #     dataset = [
+    #         ds for ds in example_datasets() if isinstance(ds, ForecastExampleDataSet)
+    #     ][0]
+    #     fdb = open_database(args.database / "fdb_config.yaml")
+    #     gribjump = open_gribjump(args.database / "gribjump_config.yaml")
+    #     store = zarr.open_group(
+    #         zfdb.make_forecast_data_view(
+    #             request=dataset.requests,
+    #             fdb=fdb,
+    #             gribjump=gribjump,
+    #         ),
+    #         mode="r",
+    #         zarr_format=3,
+    #     )
+    # elif args.source == "zarr-era5":
+    #     dataset = [
+    #         ds for ds in example_datasets() if isinstance(ds, AnemoiExampleDataSet)
+    #     ][0]
+    #     store = zarr.open_group(dataset.anemoi_dataset, mode="r")
+    # else:
+    #     logger.error(f"Unknown datasource {args.source}. Aborting.")
+    #     sys.exit(-1)
+
+    # for _ in range(128):
+    #     t0 = time.perf_counter_ns()
+    #     compute_mean_per_field(store)
+    #     t1 = time.perf_counter_ns()
+    #     logger.info(f"Computation took {print_in_closest_unit(t1 - t0)}")
 
 
 # def simulate_training_cmd(args):
@@ -421,20 +461,12 @@ def profile_cmd(args):
 async def copy_store_v3(source_store: zarr.abc.store.Store, dest_path: str):
     copied_count = 0
     bytes_copied = 0
-
-    print(f"source store = {source_store}")
-    print(f"interface = {dir(source_store)}")
-
-    # Create destination store - will throw if path exists or cannot be created
     dest_store = zarr.storage.LocalStore(dest_path)
-
     try:
         # Copy all keys from source to destination
-        print(source_store)
         async for key in source_store.list():
             try:
                 data = await source_store.get(key)
-                print(f"{key}:{data}")
                 if data is not None:
                     await dest_store.set(key, data)
                     bytes_copied += len(data)
@@ -457,7 +489,6 @@ def copy_store_sync(
 
 def dump_zarr_cmd(args):
     store = open_view(args.database / "fdb_config.yaml")
-    compute_mean_per_field(store)
     copy_store_sync(store.store, args.out)
 
 
@@ -525,17 +556,18 @@ def parse_cli_args():
     )
     profile_parser.set_defaults(func=profile_cmd)
     profile_parser.add_argument(
-        "source",
-        choices=["zarr-era5", "fdb-era5", "fdb-fc"],
-        default="fdb-era5",
-        nargs="?",
-    )
-    profile_parser.add_argument(
         "-d",
         "--database",
         type=Path,
         help="Path to the database folder that contains configs, db_store and schema",
         default=Path.cwd(),
+    )
+    profile_parser.add_argument(
+        "-z",
+        "--zarr-path",
+        type=Path,
+        help="Path where to dump zarr store to.",
+        default=Path.cwd() / "dump.zarr",
     )
 
     #########################################################################

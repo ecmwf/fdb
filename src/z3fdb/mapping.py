@@ -125,7 +125,6 @@ class FdbZarrStore(store.Store):
         prototype: BufferPrototype = default_buffer_prototype(),
         byte_range: store.ByteRequest | None = None,
     ) -> Buffer | None:
-        print(key)
         return await self.__getitem__(key)
 
     def get_partial_values(
@@ -257,7 +256,6 @@ def make_anemoi_dataset_like_view(
     builder = ChunkedDataViewBuilder(fdb_config)
     for req in mars_requests:
         for k,v in req.items():
-            print(f"{k}={v}")
             if isinstance(v, list):
                 req[k] = "/".join([str(x) for x in v])
         s = to_str(req)
