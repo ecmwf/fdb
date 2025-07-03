@@ -20,12 +20,12 @@
 #define fdb5_api_LocalFDB_H
 
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/database/Inspector.h"
 #include "fdb5/database/Reindexer.h"
 
 
 namespace fdb5 {
 
-class Inspector;
 class Archiver;
 class FDB;
 

@@ -18,9 +18,6 @@
 
 #include <string>
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
-
 namespace eckit {
 class PathName;
 }
