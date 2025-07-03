@@ -1,9 +1,26 @@
-#include <tuple>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/RequestManipulation.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "metkit/mars/MarsRequest.h"
+
+template<class BidirIt>
+bool next_perm(BidirIt first, BidirIt last)
+{
+    auto r_first = std::make_reverse_iterator(last);
+    auto r_last = std::make_reverse_iterator(first);
+    auto left = std::is_sorted_until(r_first, r_last);
+ 
+    if (left != r_last)
+    {
+        auto right = std::upper_bound(r_first, left, *left);
+        std::iter_swap(left, right);
+    }
+ 
+    std::reverse(left.base(), last);
+    return left != r_last;
+}
+
 
 CASE("RequestManipulation | Axis test single axis for Indices | Can create a subindex") {
 
@@ -258,7 +275,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
                             << param_vector[perm[3]].name() << ") " << std::endl;
         EXPECT(assert_arrays(request, axis));
 
-    } while (std::next_permutation(perm.begin(), perm.end()));
+    } while (next_perm(perm.begin(), perm.end()));
 }
 
 int main(int argc, char** argv) {
