@@ -62,7 +62,8 @@ FDBCopy::FDBCopy(int argc, char** argv) : fdb5::tools::FDBVisitTool(argc, argv, 
     options_.push_back(new eckit::option::SimpleOption<std::string>(
         "modifiers",
         "List of comma separated key-values of modifiers to each message "
-        "in input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
+        "in input data. The modifier keys must also be present in the "
+        "supplied request. Example: --modifiers=expver=0042,date=20190603"));
 }
 
 void FDBCopy::usage(const std::string& tool) const {
