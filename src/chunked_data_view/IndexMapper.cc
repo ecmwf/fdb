@@ -32,7 +32,7 @@ size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indi
     return index;
 }
 
-std::vector<size_t> index_mapping::delinearize(const size_t& index, const Axis& axis) {
+std::vector<size_t> index_mapping::to_axis_parameter_index(const size_t& index, const Axis& axis) {
 
     if (index >= axis.size()) {
         throw eckit::Exception("Index is out of bound for axis.");
@@ -68,60 +68,5 @@ std::vector<size_t> index_mapping::delinearize(const size_t& index, const Axis& 
     return result;
 }
 
-size_t index_mapping::linearize(const std::vector<size_t>& indices, const Axis& axis) {
-
-    ASSERT(indices.size() == axis.parameters().size());
-
-    for (size_t i = 0; i < indices.size(); ++i) {
-        if (indices[i] >= axis.parameters()[i].values().size()) {
-            throw eckit::Exception("Out of bound exception: Index is out of bound for axis parameter");
-        }
-    }
-
-    if (indices.size() == 1) {
-        return indices[0];
-    }
-
-    size_t prod = 1;
-    size_t index = 0;
-
-    for (int i = axis.parameters().size() - 1; i >= 0; --i) {
-
-        index += indices[i] * prod;
-        prod *= axis.parameters()[i].values().size();
-
-    }
-
-    return index;
-}
-
-std::vector<size_t> index_mapping::indexInAxisParameters(const Axis& axes, const fdb5::Key& key) {
-
-    // Sanity check whether the key is containing information about the axis
-    const std::vector<std::string> keys = key.names();
-
-    std::vector<size_t> result;
-
-    for (const auto& param : axes.parameters()) {
-
-        auto [it, success] = key.find(param.name());
-
-        if (!success) {
-            throw eckit::Exception("Couldn't find the parameter name in the keys of the request.");
-        }
-
-        // Find the index of the key value in the axis
-        auto res = std::find(param.values().begin(), param.values().end(), it->second);
-
-        if (res == param.values().end()) {
-            throw eckit::Exception("Couldn't request's key value in the axis.");
-        }
-
-        size_t index = std::distance(param.values().begin(), res);
-        result.push_back(index);
-    }
-
-    return result;
-}
 
 };  // namespace chunked_data_view
