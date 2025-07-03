@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/RequestManipulation.h"
 #include "eckit/testing/Test.h"

@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 #include "ViewPart.h"
+#include <algorithm>
 #include <tuple>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/RequestManipulation.h"

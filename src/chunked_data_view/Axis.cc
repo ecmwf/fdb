@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <numeric>
 #include <utility>
+#include <algorithm>
 #include "eckit/exception/Exceptions.h"
 #include "fdb5/database/Key.h"
 
@@ -61,7 +62,7 @@ size_t Axis::index(const fdb5::Key& key) const {
         }
 
         // Find the index of the key value in the axis
-        auto res = std::find(param.values().begin(), param.values().end(), it->second);
+        auto res = std::find(std::begin(param.values()), std::end(param.values()), it->second);
 
         if (res == param.values().end()) {
             throw eckit::Exception("Couldn't request's key value in the axis.");
