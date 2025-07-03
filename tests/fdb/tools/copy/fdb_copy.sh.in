@@ -63,7 +63,12 @@ unset FDB5_CONFIG_FILE
 
 ### copy with modifiers
 
+set +e
 $fdbcopy --source=read.yaml --target=write.yaml --from-list $x_db_list_req --modifiers "expver=yyyy,step=7"
+[ "$?" -ne 1 ] && echo "fdb-copy with invalid modifiers unexpectedly did not fail" && exit 1
+set -e
+
+$fdbcopy --source=read.yaml --target=write.yaml --from-list $x_db_list_req --modifiers "expver=yyyy"
 
 ### list
 
@@ -71,7 +76,7 @@ export FDB5_CONFIG_FILE=write.yaml
 
 cat > list <<EOF
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
-{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=7,param=166}
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
 EOF
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
@@ -88,10 +93,5 @@ step=$($gribget -m -p step out_modifiers.grib)
 
 if [[ "$expver" != "yyyy" ]] ; then
   echo "Found unexpected expver: $expver"
-  exit 1
-fi
-
-if [[ "$step" != "7" ]] ; then
-  echo "Found unexpected step: $step"
   exit 1
 fi
