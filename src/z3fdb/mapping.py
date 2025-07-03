@@ -256,7 +256,6 @@ def make_anemoi_dataset_like_view(
     builder = ChunkedDataViewBuilder(fdb_config)
     for req in mars_requests:
         for k,v in req.items():
-            print(f"{k}={v}")
             if isinstance(v, list):
                 req[k] = "/".join([str(x) for x in v])
         s = to_str(req)
