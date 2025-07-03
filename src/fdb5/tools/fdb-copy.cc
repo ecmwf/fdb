@@ -42,6 +42,7 @@ class FDBCopy : public fdb5::tools::FDBVisitTool {
     eckit::PathName sourceConfig_ = {};
     eckit::PathName targetConfig_ = {};
 
+    void checkModifiers(const metkit::mars::MarsRequest&, const eckit::StringDict&);
     void execute(const CmdArgs& args) override;
     void usage(const std::string& tool) const override;
     void init(const CmdArgs& args) override;
@@ -137,6 +138,15 @@ static std::vector<metkit::mars::MarsRequest> readRequestsFromFile(const CmdArgs
     return requests;
 }
 
+void FDBCopy::checkModifiers(const metkit::mars::MarsRequest& request, const eckit::StringDict& modifiers) {
+    for (const auto& pair : modifiers) {
+        std::ostringstream msg;
+        msg << "Provided modifiers for key '" << pair.first << 
+            "' not present in data to be copied";
+        if (!request.has(pair.first)) throw eckit::UserError(msg);
+    }
+}
+
 void FDBCopy::execute(const CmdArgs& args) {
 
     fdb5::Config readConfig  = fdb5::Config::make(sourceConfig_);
@@ -145,8 +155,12 @@ void FDBCopy::execute(const CmdArgs& args) {
     fdb5::HandleGatherer handles(sort_);
     fdb5::FDB fdbRead(readConfig);
 
+    // parse modifiers if any
+    eckit::StringDict modifiers = fdb5::Key::parse(modifiers_).keyDict();
+
     if (fromList_) {
         for (const FDBToolRequest& request : requests("list")) {
+            checkModifiers(request.request(), modifiers);
             bool deduplicate = true;
             auto listObject  = fdbRead.list(request, deduplicate);
             handles.add(fdbRead.read(listObject, sort_));
@@ -155,6 +169,7 @@ void FDBCopy::execute(const CmdArgs& args) {
     else {
         std::vector<metkit::mars::MarsRequest> requests = readRequestsFromFile(args);
         for (const auto& request : requests) {
+            checkModifiers(request, modifiers);
             eckit::Log::info() << request << std::endl;
             handles.add(fdbRead.retrieve(request));
         }
@@ -162,8 +177,9 @@ void FDBCopy::execute(const CmdArgs& args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
+
     fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose_, writeConfig);
-    fdbWriter.modifiers(modifiers_);
+    fdbWriter.setModifiers(modifiers);
     fdbWriter.archive(*dh);
 }
 
