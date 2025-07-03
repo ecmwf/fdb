@@ -7,7 +7,7 @@
 
 namespace chunked_data_view::index_mapping {
 
-size_t linearize(const std::vector<size_t>& indices, const std::vector<Axis>& axes);
+size_t axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes);
 size_t linearize(const std::vector<size_t>& indices, const Axis& axes);
 std::vector<size_t> delinearize(const size_t& index, const Axis& axis);
 std::vector<size_t> indexInAxisParameters(const Axis& axes, const fdb5::Key& key);
