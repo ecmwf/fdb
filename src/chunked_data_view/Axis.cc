@@ -9,8 +9,11 @@
  */
 #include "Axis.h"
 
+#include <cstddef>
 #include <numeric>
 #include <utility>
+#include "eckit/exception/Exceptions.h"
+#include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
 
@@ -37,6 +40,42 @@ Parameter::Parameter(const std::string name, const std::vector<std::string> valu
 
 Axis::Axis(std::vector<Parameter> parameters, bool chunked) :
     parameters_(std::move(parameters)), size_(combinedSize(parameters_)), chunked_(chunked) {}
+
+size_t Axis::index(const fdb5::Key& key) const {
+
+
+    // Sanity check whether the key is containing information about the axis
+    const std::vector<std::string>& keys = key.names();
+
+    size_t prod = 1;
+    size_t index = 0;
+
+    for (int i = parameters().size() - 1; i >= 0; --i) {
+
+        const auto& param = parameters()[i];
+
+        auto [it, success] = key.find(param.name());
+
+        if (!success) {
+            throw eckit::Exception("Couldn't find the parameter name in the keys of the request.");
+        }
+
+        // Find the index of the key value in the axis
+        auto res = std::find(param.values().begin(), param.values().end(), it->second);
+
+        if (res == param.values().end()) {
+            throw eckit::Exception("Couldn't request's key value in the axis.");
+        }
+
+        size_t value_index = std::distance(param.values().begin(), res);
+
+        index += value_index * prod;
+        prod *= param.values().size();
+    }
+
+    return index;
+}
+
 
 
 }  // namespace chunked_data_view
