@@ -84,7 +84,7 @@ cmp out list
 
 ### read and check it
 
-cat x.req | sed -e 's/expver=xxxx/expver=yyyy/g' | sed -e 's/step=12/step=7/g' > x_modifiers.req
+cat x.req | sed -e 's/expver=xxxx/expver=yyyy/g' > x_modifiers.req
 
 $fdbread x_modifiers.req out_modifiers.grib
 
