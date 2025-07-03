@@ -11,7 +11,7 @@
 
 #include <fdb5/api/FDB.h>
 #include <fdb5/config/Config.h>
-#include "fdb5/api/helpers/ListIterator.h"
+#include "chunked_data_view/ListIterator.h"
 #include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
@@ -25,7 +25,7 @@ public:
         return std::unique_ptr<eckit::DataHandle>(fdb_.retrieve(request));
     };
 
-    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override { return fdb_.inspect(request); }
+    std::unique_ptr<chunked_data_view::ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request) override { return makeListIterator(fdb_.inspect(request)); }
 
 private:
 
