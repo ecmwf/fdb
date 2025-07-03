@@ -12,6 +12,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
 
@@ -49,6 +50,8 @@ public:
 
     bool isChunked() const { return chunked_; }
     const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
+
+    size_t index(const fdb5::Key& key) const ;
 
 private:
 
