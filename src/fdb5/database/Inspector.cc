@@ -10,16 +10,16 @@
 
 #include "fdb5/database/Inspector.h"
 
+#include <memory>
+
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
-#include "eckit/log/Plural.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
 #include "fdb5/database/Notifier.h"
-#include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Schema.h"
 
 using namespace eckit;
@@ -55,8 +55,6 @@ static void purgeCatalogue(Key& key, CatalogueReader*& db) {
 
 Inspector::Inspector(const Config& dbConfig) :
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue), dbConfig_(dbConfig) {}
-
-Inspector::~Inspector() {}
 
 ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
