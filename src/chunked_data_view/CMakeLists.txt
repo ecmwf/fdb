@@ -18,6 +18,7 @@ set(chunked_data_view_sources
     GribExtractor.cc
     GribExtractor.h
     LibChunkedDataView.cc
+    ListIterator.cc
     RequestManipulation.cc
     IndexMapper.cc
     ViewPart.cc
@@ -35,6 +36,7 @@ ecbuild_add_library(
         include/chunked_data_view/LibChunkedDataView.h
         include/chunked_data_view/DataLayout.h
         include/chunked_data_view/RequestManipulation.h
+        include/chunked_data_view/ListIterator.h
         include/chunked_data_view/IndexMapper.h
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/chunked_data_view
