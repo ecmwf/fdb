@@ -47,6 +47,7 @@ void GribExtractor::writeInto(eckit::DataHandle& handle, uint8_t* out, const Dat
 size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
 
     std::vector<size_t> result;
+    result.reserve(axes.size());
 
     for (const Axis& axis : axes) {
 
@@ -55,16 +56,12 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
             continue;
         }
 
-        std::vector<size_t> parameter_indices = chunked_data_view::index_mapping::indexInAxisParameters(axis, key);
-        size_t axis_index                     = chunked_data_view::index_mapping::linearize(parameter_indices, axis);
-        result.push_back(axis_index);
+        result.emplace_back(axis.index(key));
     }
 
     ASSERT(result.size() == axes.size());
 
-    auto final_index = chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
-
-    return final_index;
+    return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 }
 
 void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
