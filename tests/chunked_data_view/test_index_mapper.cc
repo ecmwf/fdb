@@ -11,7 +11,7 @@ CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access valid") {
     chunked_data_view::Parameter date_parameter = {"date", dates};
     const chunked_data_view::Axis axis          = {{date_parameter}, true};
 
-    EXPECT(chunked_data_view::index_mapping::delinearize({0}, axis) == std::vector{0UL});
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index({0}, axis) == std::vector{0UL});
 }
 
 CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access out of bounds") {
@@ -22,7 +22,7 @@ CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access out of bou
     chunked_data_view::Parameter date_parameter = {"date", dates};
     const chunked_data_view::Axis axis          = {{date_parameter}, true};
 
-    EXPECT_THROWS(chunked_data_view::index_mapping::delinearize({4}, axis));
+    EXPECT_THROWS(chunked_data_view::index_mapping::to_axis_parameter_index({4}, axis));
 }
 
 CASE("index_mapping | delinearize | 1 axes 2 param | Chunked | Valid access") {
@@ -36,12 +36,12 @@ CASE("index_mapping | delinearize | 1 axes 2 param | Chunked | Valid access") {
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter}, true};
 
-    EXPECT(chunked_data_view::index_mapping::delinearize(0, axis) == std::vector<std::size_t>({0UL, 0UL}));
-    EXPECT(chunked_data_view::index_mapping::delinearize(1, axis) == std::vector<std::size_t>({0UL, 1UL}));
-    EXPECT(chunked_data_view::index_mapping::delinearize(2, axis) == std::vector<std::size_t>({0UL, 2UL}));
-    EXPECT(chunked_data_view::index_mapping::delinearize(3, axis) == std::vector<std::size_t>({1UL, 0UL}));
-    EXPECT(chunked_data_view::index_mapping::delinearize(7, axis) == std::vector<std::size_t>({2UL, 1UL}));
-    EXPECT(chunked_data_view::index_mapping::delinearize(11, axis) == std::vector<std::size_t>({3UL, 2UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(0, axis) == std::vector<std::size_t>({0UL, 0UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(1, axis) == std::vector<std::size_t>({0UL, 1UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(2, axis) == std::vector<std::size_t>({0UL, 2UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(3, axis) == std::vector<std::size_t>({1UL, 0UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(7, axis) == std::vector<std::size_t>({2UL, 1UL}));
+    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(11, axis) == std::vector<std::size_t>({3UL, 2UL}));
 }
 
 CASE("index_mapping | 2 axes 2/1 param | Chunked | Valid access") {
