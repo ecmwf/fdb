@@ -143,7 +143,7 @@ void FDBCopy::checkModifiers(const metkit::mars::MarsRequest& request, const eck
         std::ostringstream msg;
         msg << "Provided modifiers for key '" << pair.first << "' not present in data to be copied";
         if (!request.has(pair.first))
-            throw eckit::UserError(msg);
+            throw eckit::UserError(msg.str());
     }
 }
 
@@ -176,7 +176,6 @@ void FDBCopy::execute(const CmdArgs& args) {
     }
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
-
 
     fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose_, writeConfig);
     fdbWriter.setModifiers(modifiers);
