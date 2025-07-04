@@ -34,9 +34,9 @@ struct KeyDatahandlePair {
 class Fdb {
 public:
 
-    virtual ~Fdb()                                                                                = default;
-    virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) = 0;
-    virtual std::unique_ptr<ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request)                  = 0;
+    virtual ~Fdb()                                                                                   = default;
+    virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request)    = 0;
+    virtual std::unique_ptr<ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request) = 0;
 };
 
 std::unique_ptr<Fdb> makeFdb(std::optional<std::filesystem::path> configPath = std::nullopt);
