@@ -4,19 +4,17 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "metkit/mars/MarsRequest.h"
 
-template<class BidirIt>
-bool next_perm(BidirIt first, BidirIt last)
-{
+template <class BidirIt>
+bool next_perm(BidirIt first, BidirIt last) {
     auto r_first = std::make_reverse_iterator(last);
-    auto r_last = std::make_reverse_iterator(first);
-    auto left = std::is_sorted_until(r_first, r_last);
- 
-    if (left != r_last)
-    {
+    auto r_last  = std::make_reverse_iterator(first);
+    auto left    = std::is_sorted_until(r_first, r_last);
+
+    if (left != r_last) {
         auto right = std::upper_bound(r_first, left, *left);
         std::iter_swap(left, right);
     }
- 
+
     std::reverse(left.base(), last);
     return left != r_last;
 }

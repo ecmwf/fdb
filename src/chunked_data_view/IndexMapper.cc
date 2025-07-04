@@ -5,7 +5,7 @@ namespace chunked_data_view {
 
 
 /**
- * @brief This function maps the axis indices to the buffer offset. Each index is the position in a 
+ * @brief This function maps the axis indices to the buffer offset. Each index is the position in a
  * axis object (either compound or normal axis). For chunked axis the axis has to contribution to the
  * buffer index because for each entry we send a request to the FDB.
  *
@@ -17,16 +17,15 @@ size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indi
 
     ASSERT(indices.size() == axes.size());
 
-    size_t prod = 1;
+    size_t prod  = 1;
     size_t index = 0;
 
     for (int i = axes.size() - 1; i >= 0; --i) {
 
-        if(!axes[i].isChunked()){
+        if (!axes[i].isChunked()) {
             index += indices[i] * prod;
             prod *= axes[i].size();
         }
-
     }
 
     return index;
