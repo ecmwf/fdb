@@ -73,12 +73,12 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
 
     while (auto res = list_iterator->next()) {
 
-        if(!res) {
+        if (!res) {
             break;
         }
 
-        const auto& key = std::get<0>(*res);
-        auto& data_handle = std::get<1>(*res);
+        const auto& key     = std::get<0>(*res);
+        auto& data_handle   = std::get<1>(*res);
         const size_t offset = computeBufferIndex(axes, key);
 
         try {

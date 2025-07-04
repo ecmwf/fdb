@@ -51,7 +51,7 @@ public:
     bool isChunked() const { return chunked_; }
     const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
 
-    size_t index(const fdb5::Key& key) const ;
+    size_t index(const fdb5::Key& key) const;
 
 private:
 
