@@ -7,4 +7,5 @@ ecbuild_add_executable( TARGET    fdb-url
 ecbuild_configure_file( FDB-310.sh.in FDB-310.sh @ONLY )
 ecbuild_add_test(
     TYPE     SCRIPT
-    COMMAND  FDB-310.sh )
+    COMMAND  FDB-310.sh
+    ENVIRONMENT "${test_environment}" )

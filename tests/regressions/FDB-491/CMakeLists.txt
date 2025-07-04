@@ -16,6 +16,7 @@ ecbuild_add_test(
     TEST_DEPENDS   fdb_test_remote_api_bin
     RESOURCE_LOCK  fdb_remote_tests  # Prevent concurrent runs of remote tests
     LABELS         remotefdb
+    ENVIRONMENT "${test_environment}"
 )
 
 set_tests_properties(FDB-491-remote-single-connection PROPERTIES TIMEOUT 300)
