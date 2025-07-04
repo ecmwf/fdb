@@ -34,7 +34,7 @@ public:
 
     ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<Fdb> fdb,
              const std::vector<AxisDefinition>& axes);
-    void at(const std::vector<size_t>& chunkIndex, Buffer& buffer, size_t size) const;
+    void at(const std::vector<size_t>& chunkIndex, Buffer& buffer) const;
     std::vector<size_t> shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
     bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };

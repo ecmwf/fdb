@@ -13,6 +13,7 @@ set(chunked_data_view_sources
     ChunkedDataViewBuilder.cc
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
+    Buffer.cc
     Extractor.cc
     Fdb.cc
     GribExtractor.cc
