@@ -64,7 +64,7 @@ def test_access(read_only_fdb_setup) -> None:
     print(data.shape)
 
 
-def test_axis_merge_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> None:
+def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> None:
     """This test checks whether an access to an axis which has no pendant in the data is failing.
     The request below has param 167 which is not given in the data of the setup fdb. Therefore this
     needs to fail. Accessing the first two params is fine.
