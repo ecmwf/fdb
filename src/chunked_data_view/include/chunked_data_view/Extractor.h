@@ -43,8 +43,8 @@ public:
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enought memory allccated for all values to be copied into out.
     /// @param out pointer to write into.
-    virtual void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes, const DataLayout& layout,
-                           uint8_t* out) const = 0;
+    virtual void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                           const DataLayout& layout, uint8_t* out) const = 0;
 };
 
 enum class ExtractorType {

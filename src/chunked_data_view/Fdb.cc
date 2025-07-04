@@ -25,7 +25,10 @@ public:
         return std::unique_ptr<eckit::DataHandle>(fdb_.retrieve(request));
     };
 
-    std::unique_ptr<chunked_data_view::ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request) override { return makeListIterator(fdb_.inspect(request)); }
+    std::unique_ptr<chunked_data_view::ListIteratorInterface> inspect(
+        const metkit::mars::MarsRequest& request) override {
+        return makeListIterator(fdb_.inspect(request));
+    }
 
 private:
 
