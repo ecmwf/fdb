@@ -47,7 +47,7 @@ size_t Axis::index(const fdb5::Key& key) const {
     // Sanity check whether the key is containing information about the axis
     const std::vector<std::string>& keys = key.names();
 
-    size_t prod = 1;
+    size_t prod  = 1;
     size_t index = 0;
 
     for (int i = parameters().size() - 1; i >= 0; --i) {
@@ -75,7 +75,6 @@ size_t Axis::index(const fdb5::Key& key) const {
 
     return index;
 }
-
 
 
 }  // namespace chunked_data_view
