@@ -23,7 +23,7 @@ public:
     DataLayout layout(eckit::DataHandle& handle) const override;
 
     void writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const override;
-    void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes, const DataLayout& layout,
-                   uint8_t* out) const override;
+    void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                   const DataLayout& layout, uint8_t* out) const override;
 };
 }  // namespace chunked_data_view
