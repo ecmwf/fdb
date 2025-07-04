@@ -68,6 +68,10 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
 
     bool iterator_empty = true;
 
+    if(buffer.filled()) {
+        buffer.resetBits();
+    }
+
     while (auto res = list_iterator->next()) {
 
         if (!res) {
