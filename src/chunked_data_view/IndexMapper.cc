@@ -1,4 +1,5 @@
-#include "IndexMapper.h"
+#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/Axis.h"
 #include "eckit/exception/Exceptions.h"
 
 namespace chunked_data_view {

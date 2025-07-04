@@ -13,6 +13,7 @@ import pathlib
 import shutil
 
 import eccodes as ec
+from numpy import repeat
 import pyfdb
 import pytest
 import yaml
@@ -98,12 +99,12 @@ def session_tmp(tmp_path_factory) -> pathlib.Path:
 
 
 @pytest.fixture(scope="session")
-def build_example_recipe_grib_messages(data_path, session_tmp) -> pathlib.Path:
+def build_example_sfc_pl_grib_messages(data_path, session_tmp) -> pathlib.Path:
     """
     Build messages that span the data required to match mars requests in
     'data/anemoi-recipes/example.yaml'
     """
-    tmp = session_tmp / "build_example_recipe_grib_messages"
+    tmp = session_tmp / "build_example_sfc_pl_messages"
     tmp.mkdir()
     template_grib = data_path / "template.grib"
     assert template_grib.is_file()
@@ -123,11 +124,9 @@ def build_example_recipe_grib_messages(data_path, session_tmp) -> pathlib.Path:
     ec.codes_set_string(gid, "class", "ea")
     ec.codes_set_string(gid, "expver", "0001")
     ec.codes_set_string(gid, "stream", "oper")
-    ec.codes_set_values(gid, list(range(0, count_values)))
-    #ec.codes_set_string(gid, "bitsPerValue", "66")
 
     dates = [20200101, 20200102]
-    times = [0, 6, 12, 18]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
     # 10u/10v
     parameters_sfc = [165, 166]
 
@@ -137,21 +136,27 @@ def build_example_recipe_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     messages = tmp / "test_data.grib"
     with open(messages, "wb") as out:
+
         ec.codes_set_string(gid, "levtype", "sfc")
-        for date, time, parameter in itertools.product(dates, times, parameters_sfc):
+        for value, (date, time, parameter) in enumerate(itertools.product(dates, times, parameters_sfc)):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
+
+            ec.codes_set_values(gid, repeat(value, count_values))
             ec.codes_write(gid, out)
 
+        offset = value
+
         ec.codes_set_string(gid, "levtype", "pl")
-        for date, time, parameter, level in itertools.product(
-            dates, times, parameters_pl, levels
-        ):
+        for value, (date, time, level, parameter) in enumerate(itertools.product(
+            dates, times, levels, parameters_pl
+        )):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
             ec.codes_set(gid, "level", level)
+            ec.codes_set_values(gid, repeat(offset + value, count_values))
             ec.codes_write(gid, out)
 
     ec.codes_release(gid)
@@ -198,8 +203,8 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
 
 @pytest.fixture(scope="session", autouse=False)
-def read_only_fdb_setup_for_anemoi_recipe_example(
-    data_path, session_tmp, build_example_recipe_grib_messages
+def read_only_fdb_setup_for_sfc_pl_example(
+    data_path, session_tmp, build_example_sfc_pl_grib_messages
 ) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
@@ -207,11 +212,11 @@ def read_only_fdb_setup_for_anemoi_recipe_example(
     This setup can be shared between tests as we will only read
     data from this FDB
     """
-    fdb_root = session_tmp / "anemoi-recipes-example-fdb"
+    fdb_root = session_tmp / "sfc-pl-example-fdb"
     fdb_root.mkdir()
     schema_path_src = data_path / "schema"
     cfg = create_fdb(fdb_root, schema_path_src)
-    populate_fdb(cfg, [build_example_recipe_grib_messages])
+    populate_fdb(cfg, [build_example_sfc_pl_grib_messages])
     return cfg
 
 
