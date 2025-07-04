@@ -7,10 +7,16 @@
 # nor does it submit to any jurisdiction.
 
 
+import pytest
 import zarr
 import zarr.storage
+import numpy as np
 
-from pychunked_data_view.chunked_data_view import AxisDefinition, ChunkedDataViewBuilder, ExtractorType
+from pychunked_data_view.chunked_data_view import (
+    AxisDefinition,
+    ChunkedDataViewBuilder,
+    ExtractorType,
+)
 from z3fdb.mapping import (
     FdbSource,
     FdbZarrArray,
@@ -22,6 +28,7 @@ from z3fdb.mapping import (
 def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3
 
+#
 def test_access(read_only_fdb_setup) -> None:
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     builder.add_part(
@@ -55,3 +62,48 @@ def test_access(read_only_fdb_setup) -> None:
     assert data
     print(data[:, :])
     print(data.shape)
+
+
+def test_axis_merge_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> None:
+    """This test checks whether an access to an axis which has no pendant in the data is failing.
+    The request below has param 167 which is not given in the data of the setup fdb. Therefore this
+    needs to fail. Accessing the first two params is fine.
+    """
+    builder = ChunkedDataViewBuilder(read_only_fdb_setup_for_sfc_pl_example)
+    builder.add_part(
+        "type=an,"
+        "class=ea,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/2020-01-02,"
+        "levtype=sfc,"
+        "step=0,"
+        "param=165/166/167,"
+        "time=0/to/21/by/3",
+        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        ExtractorType.GRIB,
+    )
+    view = builder.build()
+
+    mapping = FdbZarrStore(
+        FdbZarrGroup(
+            children=[
+                FdbZarrArray(
+                    name="data",
+                    datasource=FdbSource(view),
+                )
+            ]
+        )
+    )
+    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
+    data = store.get("data")
+
+    assert data
+
+    for i in range(16):
+        assert np.all(data[i, 0] == 2 * i)
+        assert np.all(data[i, 1] == (2 * i) + 1)
+
+    with pytest.raises(Exception) as re:
+        data[0, 2]

@@ -11,11 +11,10 @@
 
 #include <eckit/message/Reader.h>
 #include <exception>
-#include <iterator>
-#include "IndexMapper.h"
+
+#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/Buffer.h"
 #include "eckit/exception/Exceptions.h"
-#include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
@@ -65,17 +64,16 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
 }
 
 void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                              const DataLayout& layout, uint8_t* out) const {
+                              const DataLayout& layout, Buffer& buffer) const {
 
-    const auto data_pointer = reinterpret_cast<double*>(out);
-
-    fdb5::ListElement elem;
+    bool iterator_empty = true;
 
     while (auto res = list_iterator->next()) {
 
         if (!res) {
             break;
         }
+        iterator_empty = false;
 
         const auto& key     = std::get<0>(*res);
         auto& data_handle   = std::get<1>(*res);
@@ -85,17 +83,26 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
             eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
-            auto copyInto = data_pointer + offset * layout.countValues;
+            auto copyInto = buffer.dataPtr() + offset * layout.countValues;
 
             while ((msg = reader.next())) {
                 size_t countValues = msg.getSize("values");
                 msg.getDoubleArray("values", copyInto, countValues);
+                buffer.setBits(offset, countValues);
                 copyInto += countValues;
             }
         }
         catch (std::exception e) {
             eckit::Log::debug() << e.what() << std::endl;
         }
+    }
+
+    if(iterator_empty) {
+        throw eckit::Exception("Empty iterator for request. Is the request correctly specified?");
+    }
+
+    if(!buffer.filled()) {
+        throw eckit::Exception("Buffer not completely filled. Either request is spanning data which is not in the FDB or data of the FDB is missing.");
     }
 }
 

@@ -21,6 +21,7 @@
 #include <functional>
 #include <string>
 #include "chunked_data_view/Axis.h"
+#include "chunked_data_view/Buffer.h"
 #include "chunked_data_view/ListIterator.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
@@ -112,7 +113,7 @@ struct FakeExtractor : public cdv::Extractor {
 
     void writeInto(std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
                    const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
-                   uint8_t* out) const override {
+                   chunked_data_view::Buffer& buffer) const override {
         cdv::DataLayout readLayout{};
 
 
@@ -129,7 +130,7 @@ struct FakeExtractor : public cdv::Extractor {
             EXPECT_EQUAL(data_handle->read(&readLayout.countValues, sizeof(layout.countValues)), 8l);
             EXPECT_EQUAL(data_handle->read(&readLayout.bytesPerValue, sizeof(layout.bytesPerValue)), 8l);
             const size_t totalBytes = layout.countValues * layout.bytesPerValue;
-            EXPECT_EQUAL(data_handle->read(out, totalBytes), totalBytes);
+            EXPECT_EQUAL(data_handle->read(buffer.dataPtr(), totalBytes), totalBytes);
         }
     };
 };
