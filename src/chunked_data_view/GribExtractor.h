@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 #pragma once
+#include "chunked_data_view/Buffer.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "chunked_data_view/ListIterator.h"
 
 #include <fdb5/api/FDB.h>
 
@@ -23,7 +24,7 @@ public:
     DataLayout layout(eckit::DataHandle& handle) const override;
 
     void writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const override;
-    void writeInto(fdb5::ListIterator& list_iterator, const std::vector<Axis>& axes, const DataLayout& layout,
-                   uint8_t* out) const override;
+    void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                   const DataLayout& layout, Buffer& out) const override;
 };
 }  // namespace chunked_data_view

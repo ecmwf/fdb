@@ -11,11 +11,10 @@
 
 #include <eckit/message/Reader.h>
 #include <exception>
-#include <iterator>
-#include "IndexMapper.h"
+
+#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/Buffer.h"
 #include "eckit/exception/Exceptions.h"
-#include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
@@ -47,6 +46,7 @@ void GribExtractor::writeInto(eckit::DataHandle& handle, uint8_t* out, const Dat
 size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
 
     std::vector<size_t> result;
+    result.reserve(axes.size());
 
     for (const Axis& axis : axes) {
 
@@ -55,40 +55,44 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
             continue;
         }
 
-        std::vector<size_t> parameter_indices = chunked_data_view::index_mapping::indexInAxisParameters(axis, key);
-        size_t axis_index                     = chunked_data_view::index_mapping::linearize(parameter_indices, axis);
-        result.push_back(axis_index);
+        result.emplace_back(axis.index(key));
     }
 
     ASSERT(result.size() == axes.size());
 
-    auto final_index = chunked_data_view::index_mapping::linearize(result, axes);
-
-    return final_index;
+    return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 }
 
-void GribExtractor::writeInto(fdb5::ListIterator& list_iterator, const std::vector<Axis>& axes,
-                              const DataLayout& layout, uint8_t* out) const {
+void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                              const DataLayout& layout, Buffer& buffer) const {
 
-    const auto data_pointer = reinterpret_cast<double*>(out);
+    bool iterator_empty = true;
 
-    fdb5::ListElement elem;
+    if(buffer.filled()) {
+        buffer.resetBits();
+    }
 
-    while (list_iterator.next(elem)) {
+    while (auto res = list_iterator->next()) {
 
-        const auto key      = elem.combinedKey();
+        if (!res) {
+            break;
+        }
+        iterator_empty = false;
+
+        const auto& key     = std::get<0>(*res);
+        auto& data_handle   = std::get<1>(*res);
         const size_t offset = computeBufferIndex(axes, key);
-        auto datahandle     = elem.location().dataHandle();
 
         try {
-            eckit::message::Reader reader(*datahandle);
+            eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
-            auto copyInto = data_pointer + offset * layout.countValues;
+            auto copyInto = buffer.dataPtr() + offset * layout.countValues;
 
             while ((msg = reader.next())) {
                 size_t countValues = msg.getSize("values");
                 msg.getDoubleArray("values", copyInto, countValues);
+                buffer.setBits(offset, countValues);
                 copyInto += countValues;
             }
         }
@@ -96,6 +100,14 @@ void GribExtractor::writeInto(fdb5::ListIterator& list_iterator, const std::vect
             eckit::Log::debug() << e.what() << std::endl;
         }
     }
+
+    if(iterator_empty) {
+        throw eckit::Exception("Empty iterator for request. Is the request correctly specified?");
+    }
+
+    // if(!buffer.filled()) {
+    //     throw eckit::Exception("Buffer not completely filled. Either request is spanning data which is not in the FDB or data of the FDB is missing.");
+    // }
 }
 
 };  // namespace chunked_data_view

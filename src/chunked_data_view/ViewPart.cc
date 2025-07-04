@@ -10,6 +10,8 @@
 #include "ViewPart.h"
 #include <tuple>
 #include "chunked_data_view/Axis.h"
+#include "chunked_data_view/ChunkedDataViewImpl.h"
+#include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/RequestManipulation.h"
 
 namespace chunked_data_view {
@@ -55,14 +57,14 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, uint8_t* data, size_t size) const {
+void ViewPart::at(const std::vector<size_t>& chunkIndex, Buffer& buffer) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
-    auto dh = fdb_->inspect(request);
-    extractor_->writeInto(dh, axes_, layout_, data);
+    auto listIterator = fdb_->inspect(request);
+    extractor_->writeInto(std::move(listIterator), axes_, layout_, buffer);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {

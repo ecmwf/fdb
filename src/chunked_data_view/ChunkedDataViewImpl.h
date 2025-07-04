@@ -9,8 +9,8 @@
  */
 #pragma once
 
-#include "ViewPart.h"
 #include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/ViewPart.h"
 
 #include <eckit/io/DataHandle.h>
 #include <fdb5/api/helpers/FDBToolRequest.h>
@@ -18,7 +18,6 @@
 #include <metkit/mars/MarsRequest.h>
 
 #include <vector>
-
 
 namespace chunked_data_view {
 
@@ -29,7 +28,7 @@ public:
 
     /// @param index n-dim chunk index
     const std::vector<double>& at(const std::vector<size_t>& chunkIndex) override;
-    size_t size() const override { return data_.size() * sizeof(decltype(data_)::value_type); };
+    size_t size() const override { return buffer_.size() * buffer_.sizeOfValueType(); };
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
     const std::vector<size_t>& shape() const override { return shape_; }
@@ -54,7 +53,7 @@ private:
     std::vector<size_t> chunks_{};
     std::vector<ViewPart> parts_{};
     size_t extensionAxisIndex_{};
-    std::vector<double> data_{};
+    Buffer buffer_;
 };
 
 }  // namespace chunked_data_view

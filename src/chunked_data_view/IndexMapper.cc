@@ -1,41 +1,38 @@
-#include "IndexMapper.h"
+#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/Axis.h"
 #include "eckit/exception/Exceptions.h"
 
 namespace chunked_data_view {
 
 
-size_t index_mapping::linearize(const std::vector<size_t>& indices, const std::vector<Axis>& axes) {
+/**
+ * @brief This function maps the axis indices to the buffer offset. Each index is the position in a
+ * axis object (either compound or normal axis). For chunked axis the axis has to contribution to the
+ * buffer index because for each entry we send a request to the FDB.
+ *
+ * @param indices indices in the axes of the view
+ * @param axes the axes
+ * @return index in the buffer (an offset)
+ */
+size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes) {
 
     ASSERT(indices.size() == axes.size());
 
-    std::vector<size_t> axes_dimensions;
-    std::transform(axes.begin(), axes.end(), std::back_inserter(axes_dimensions),
-                   [](const chunked_data_view::Axis& axis) { return axis.isChunked() ? 1 : axis.size(); });
+    size_t prod  = 1;
+    size_t index = 0;
 
-    const auto dimCount = axes.size();
-    std::vector<size_t> dim_prods;
+    for (int i = axes.size() - 1; i >= 0; --i) {
 
-    for (size_t i = 0; i < dimCount; ++i) {
-
-        size_t dim_prod = 1;
-
-        for (size_t j = i + 1; j < dimCount; ++j) {
-            dim_prod *= axes_dimensions[j];
+        if (!axes[i].isChunked()) {
+            index += indices[i] * prod;
+            prod *= axes[i].size();
         }
-
-        dim_prods.push_back(dim_prod);
     }
 
-    size_t result_index = 0;
-
-    for (size_t i = 0; i < dimCount; ++i) {
-        result_index += dim_prods[i] * indices[i];
-    }
-
-    return result_index;
+    return index;
 }
 
-std::vector<size_t> index_mapping::delinearize(const size_t& index, const Axis& axis) {
+std::vector<size_t> index_mapping::to_axis_parameter_index(const size_t& index, const Axis& axis) {
 
     if (index >= axis.size()) {
         throw eckit::Exception("Index is out of bound for axis.");
@@ -71,70 +68,5 @@ std::vector<size_t> index_mapping::delinearize(const size_t& index, const Axis& 
     return result;
 }
 
-size_t index_mapping::linearize(const std::vector<size_t>& indices, const Axis& axis) {
-
-    ASSERT(indices.size() == axis.parameters().size());
-
-    for (size_t i = 0; i < indices.size(); ++i) {
-        if (indices[i] >= axis.parameters()[i].values().size()) {
-            throw eckit::Exception("Out of bound exception: Index is out of bound for axis parameter");
-        }
-    }
-
-    if (indices.size() == 1) {
-        return indices[0];
-    }
-
-    const auto dimCount = axis.parameters().size();
-    std::vector<size_t> dim_prods;
-
-    for (size_t i = 0; i < dimCount; ++i) {
-
-        size_t dim_prod = 1;
-
-        for (size_t j = i + 1; j < dimCount; ++j) {
-            dim_prod *= axis.parameters()[j].values().size();
-        }
-
-        dim_prods.push_back(dim_prod);
-    }
-
-    size_t result = 0;
-
-    for (size_t i = 0; i < dim_prods.size(); ++i) {
-        result += indices[i] * dim_prods[i];
-    }
-
-    return result;
-}
-
-std::vector<size_t> index_mapping::indexInAxisParameters(const Axis& axes, const fdb5::Key& key) {
-
-    // Sanity check whether the key is containing information about the axis
-    const std::vector<std::string> keys = key.names();
-
-    std::vector<size_t> result;
-
-    for (const auto& param : axes.parameters()) {
-
-        auto [it, success] = key.find(param.name());
-
-        if (!success) {
-            throw eckit::Exception("Couldn't find the parameter name in the keys of the request.");
-        }
-
-        // Find the index of the key value in the axis
-        auto res = std::find(param.values().begin(), param.values().end(), it->second);
-
-        if (res == param.values().end()) {
-            throw eckit::Exception("Couldn't request's key value in the axis.");
-        }
-
-        size_t index = std::distance(param.values().begin(), res);
-        result.push_back(index);
-    }
-
-    return result;
-}
 
 };  // namespace chunked_data_view
