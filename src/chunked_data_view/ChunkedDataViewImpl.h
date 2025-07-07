@@ -27,20 +27,17 @@ public:
     ChunkedDataViewImpl(std::vector<ViewPart> partialViews, size_t extensionAxisIndex);
 
     /// @param index n-dim chunk index
-    const std::vector<double>& at(const std::vector<size_t>& chunkIndex) override;
-    size_t size() const override { return buffer_.size() * buffer_.sizeOfValueType(); };
+    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) override;
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
     const std::vector<size_t>& shape() const override { return shape_; }
-
-private:
 
     /**
      * @brief Returns the number of entries in a chunk including the implicit field entries
      *
      * @return number of entries
      */
-    std::size_t countChunkValues() const {
+    std::size_t countChunkValues() const override {
         std::size_t result = 1;
         for (auto i : chunkShape_) {
             result *= i;
@@ -48,12 +45,22 @@ private:
         return result;
     }
 
+
+    std::size_t countFields() const {
+        std::size_t result = 1;
+        for (size_t i = 0; i < chunkShape_.size() - 1; ++i) {
+            result *= chunkShape_[i];
+        }
+        return result;
+    }
+
+private:
+
     std::vector<size_t> chunkShape_{};
     std::vector<size_t> shape_{};
     std::vector<size_t> chunks_{};
     std::vector<ViewPart> parts_{};
     size_t extensionAxisIndex_{};
-    Buffer buffer_;
 };
 
 }  // namespace chunked_data_view

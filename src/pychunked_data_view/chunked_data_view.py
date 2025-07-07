@@ -40,8 +40,8 @@ class ChunkedDataView:
     def at(self, index: list[int] | tuple[int]):
         return self._obj.at(index)
 
-    def size(self):
-        return self._obj.size()
+    # def size(self):
+    #     return self._obj.size()
 
     def chunkShape(self):
         return self._obj.chunk_shape()
