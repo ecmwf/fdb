@@ -92,7 +92,7 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
             while ((msg = reader.next())) {
                 size_t countValues = msg.getSize("values");
                 msg.getDoubleArray("values", copyInto, countValues);
-                buffer.setBits(offset, countValues);
+                buffer.setBits(offset);
                 copyInto += countValues;
             }
         }
@@ -105,9 +105,9 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
         throw eckit::Exception("Empty iterator for request. Is the request correctly specified?");
     }
 
-    // if(!buffer.filled()) {
-    //     throw eckit::Exception("Buffer not completely filled. Either request is spanning data which is not in the FDB or data of the FDB is missing.");
-    // }
+    if(!buffer.filled()) {
+        throw eckit::Exception("Buffer not completely filled. Either request is spanning data which is not in the FDB or data of the FDB is missing.");
+    }
 }
 
 };  // namespace chunked_data_view
