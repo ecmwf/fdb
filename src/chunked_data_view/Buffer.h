@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <vector>
+#include <algorithm>
 
 namespace chunked_data_view {
 
