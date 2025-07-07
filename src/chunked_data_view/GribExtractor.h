@@ -25,6 +25,6 @@ public:
 
     void writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const override;
     void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                   const DataLayout& layout, Buffer& out) const override;
+                   const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const override;
 };
 }  // namespace chunked_data_view
