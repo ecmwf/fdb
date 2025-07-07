@@ -6,7 +6,7 @@
 namespace chunked_data_view {
 
 class Buffer {
-    std::vector<double> data_;
+    std::vector<float> data_;
     std::vector<bool> bitset_;
 
 public:
@@ -21,7 +21,7 @@ public:
         }
 
         bitset_ = std::vector<bool>(prod); 
-        data_ = std::vector<double>(prod * chunkShape[chunkShape.size() - 1]);
+        data_ = std::vector<float>(prod * chunkShape[chunkShape.size() - 1]);
     };
 
     void resize(size_t size) {
@@ -35,7 +35,7 @@ public:
 
     auto dataPtr() { return data_.data(); }
 
-    std::vector<double>& values() { return data_; }
+    std::vector<float>& values() { return data_; }
 
     void setBits(size_t index);
 

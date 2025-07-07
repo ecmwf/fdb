@@ -55,14 +55,14 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, Buffer& buffer) const {
+void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(std::move(listIterator), axes_, layout_, buffer);
+    extractor_->writeInto(std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
