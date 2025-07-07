@@ -1,5 +1,5 @@
-#include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/Axis.h"
+#include "chunked_data_view/IndexMapper.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
