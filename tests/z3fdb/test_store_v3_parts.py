@@ -1,4 +1,5 @@
 import zarr
+import numpy as np
 
 from pychunked_data_view.chunked_data_view import (
     AxisDefinition,
@@ -63,11 +64,11 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
 
     assert data
 
-    print(data[0, 0])
-    print(data[0, 1])
-    print(data[0, 2])
-    print(data[0, 3])
-    print(data[0, 4])
-    print(data[0, 5])
+    assert( np.all(data[0, 0] == 0))
+    assert( np.all(data[0, 1] == 1))
+    assert( np.all(data[0, 2] == 31))
+    assert( np.all(data[0, 3] == 33))
+    assert( np.all(data[0, 4] == 32))
+    assert( np.all(data[0, 5] == 34))
 
 

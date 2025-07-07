@@ -13,7 +13,16 @@ public:
 
     Buffer() {};
 
-    Buffer(std::vector<double>& data) : data_(std::move(data)) { bitset_ = std::vector<bool>(data.size()); };
+    Buffer(const std::vector<size_t>& chunkShape) { 
+        size_t prod = 1;
+
+        for(size_t i = 0; i < chunkShape.size() - 1; ++i) {
+            prod *= chunkShape[i];
+        }
+
+        bitset_ = std::vector<bool>(prod); 
+        data_ = std::vector<double>(prod * chunkShape[chunkShape.size() - 1]);
+    };
 
     void resize(size_t size) {
         data_.resize(size);
@@ -28,9 +37,9 @@ public:
 
     std::vector<double>& values() { return data_; }
 
-    void setBits(size_t offset, size_t length);
+    void setBits(size_t index);
 
-    void resetBits() { bitset_ = std::vector<bool>(data_.size());};
+    void resetBits() { bitset_ = std::vector<bool>(bitset_.size());};
 
     bool filled() const;
 };
