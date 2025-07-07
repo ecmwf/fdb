@@ -36,7 +36,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
         chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
     }
     chunks_.back() = 1;
-    buffer_.resize(countChunkValues());  // chunk_shape * field_entries
+    buffer_ = Buffer(chunkShape_);  // chunk_shape * field_entries
 }
 
 const std::vector<double>& ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex) {
@@ -52,6 +52,7 @@ const std::vector<double>& ChunkedDataViewImpl::at(const std::vector<size_t>& ch
         part.at(idx, buffer_);
         break;
     }
+
     return buffer_.values();
 };
 

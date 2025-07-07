@@ -10,8 +10,6 @@
 #include "ViewPart.h"
 #include <tuple>
 #include "chunked_data_view/Axis.h"
-#include "chunked_data_view/ChunkedDataViewImpl.h"
-#include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/RequestManipulation.h"
 
 namespace chunked_data_view {
