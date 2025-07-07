@@ -37,16 +37,14 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
     py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView")
         .def("at",
              [](cdv::ChunkedDataView* view, const cdv::ChunkedDataView::Index index) {
-                 const auto& data = view->at(index);
-                 const auto len   = data.size();
+                 const auto len = view->countChunkValues();
                  py::array_t<float> arr(len);
                  float* p = arr.mutable_data();
-                 for (size_t index = 0; index < len; ++index) {
-                     p[index] = static_cast<float>(data[index]);
-                 }
+                 view->at(index, p, len);
+
                  return arr;
              })
-        .def("size", [](const cdv::ChunkedDataView* view) { return view->size(); })
+        // .def("size", [](const cdv::ChunkedDataView* view) { return view->size(); })
         .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
         .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
         .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); });
