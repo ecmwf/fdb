@@ -51,7 +51,6 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         part.at(idx, ptr, len, countFields());
         break;
     }
-
 };
 
 }  // namespace chunked_data_view
