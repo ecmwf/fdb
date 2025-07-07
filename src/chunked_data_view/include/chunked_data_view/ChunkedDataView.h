@@ -20,7 +20,7 @@ public:
 
     using Index = std::vector<size_t>;
 
-    virtual ~ChunkedDataView()                                = default;
+    virtual ~ChunkedDataView()                                       = default;
     virtual void at(const Index& index, float* data_ptr, size_t len) = 0;
     /// values in a field
     /// Shape of a chunk

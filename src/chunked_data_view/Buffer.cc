@@ -10,6 +10,6 @@ void Buffer::setBits(size_t index) {
     bitset_[index] = true;
 }
 bool Buffer::filled() const {
-    return std::all_of(bitset_.begin(), bitset_.end(), [](bool v) {return v;});
+    return std::all_of(bitset_.begin(), bitset_.end(), [](bool v) { return v; });
 }
 };  // namespace chunked_data_view
