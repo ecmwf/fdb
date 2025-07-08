@@ -19,4 +19,6 @@ ecbuild_add_test(
     ENVIRONMENT "${test_environment}"
 )
 
-set_tests_properties(FDB-491-remote-single-connection PROPERTIES TIMEOUT 300)
+if (TARGET FDB-491-remote-single-connection)
+    set_tests_properties(FDB-491-remote-single-connection PROPERTIES TIMEOUT 300)
+endif()
