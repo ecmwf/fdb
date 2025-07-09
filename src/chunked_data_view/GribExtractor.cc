@@ -9,13 +9,24 @@
  */
 #include "GribExtractor.h"
 
-#include <eckit/message/Reader.h>
-#include <exception>
-
-#include "chunked_data_view/Buffer.h"
+#include "chunked_data_view/Axis.h"
+#include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/IndexMapper.h"
-#include "eckit/exception/Exceptions.h"
-#include "fdb5/database/Key.h"
+#include "chunked_data_view/ListIterator.h"
+
+#include <eckit/exception/Exceptions.h>
+#include <eckit/log/Log.h>
+#include <eckit/message/Reader.h>
+#include <fdb5/database/Key.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <ostream>
+#include <vector>
+
 
 namespace chunked_data_view {
 DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {

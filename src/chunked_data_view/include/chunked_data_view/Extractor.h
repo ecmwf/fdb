@@ -10,7 +10,6 @@
 #pragma once
 
 #include "chunked_data_view/Axis.h"
-#include "chunked_data_view/Buffer.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
@@ -51,8 +50,6 @@ public:
 enum class ExtractorType {
     GRIB
 };
-
-class Extractor;
 
 std::unique_ptr<Extractor> makeExtractor(ExtractorType type);
 

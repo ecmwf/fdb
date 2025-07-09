@@ -12,11 +12,7 @@
 #include "chunked_data_view/ChunkedDataView.h"
 #include "chunked_data_view/ViewPart.h"
 
-#include <eckit/io/DataHandle.h>
-#include <fdb5/api/helpers/FDBToolRequest.h>
-#include <metkit/codes/GribHandle.h>
-#include <metkit/mars/MarsRequest.h>
-
+#include <cstddef>
 #include <vector>
 
 namespace chunked_data_view {
