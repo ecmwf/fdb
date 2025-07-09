@@ -9,6 +9,13 @@
  */
 #include "ChunkedDataViewImpl.h"
 
+#include "chunked_data_view/ViewPart.h"
+
+#include <cstddef>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+
 namespace chunked_data_view {
 
 ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t extensionAxisIndex) :

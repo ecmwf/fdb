@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "eckit/system/Library.h"
+#include <eckit/system/Library.h>
 
 namespace chunked_data_view {
 class LibChunkedDataView : public eckit::system::Library {

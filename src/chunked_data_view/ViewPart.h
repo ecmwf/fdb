@@ -11,21 +11,16 @@
 
 #include "Axis.h"
 #include "chunked_data_view/AxisDefinition.h"
-#include "chunked_data_view/Buffer.h"
-#include "chunked_data_view/ChunkedDataView.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 
-#include <eckit/io/DataHandle.h>
-#include <fdb5/api/helpers/FDBToolRequest.h>
-#include <metkit/codes/GribHandle.h>
 #include <metkit/mars/MarsRequest.h>
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
-
-#include <memory>
 
 namespace chunked_data_view {
 
