@@ -48,8 +48,8 @@ public:  // methods
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
-    WipeVisitor* wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                             bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+    //                          bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
@@ -67,6 +67,11 @@ public:  // methods
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
+
+    bool wipeInit() const override;
+    bool wipe(const Index& index, bool include) const override;
+    bool wipeFinish() const override;
+    bool doWipe() override;
 
 protected:  // members
 

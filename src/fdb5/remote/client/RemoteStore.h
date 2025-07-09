@@ -108,7 +108,7 @@ public:  // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
-    static const char* typeName() { return "remote"; }
+    static const char* typeName() { return "fdb"; }
 
 public:  // methods
 
@@ -120,6 +120,7 @@ public:  // methods
     static RemoteStore& get(const eckit::URI& uri);
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
 
     bool open() override;
     size_t flush() override;
@@ -147,8 +148,6 @@ public:  // methods
     bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
     void doWipe() override;
 
-    const Config& config() const { return config_; }
-
 protected:  // methods
 
     std::string type() const override { return typeName(); }
@@ -174,8 +173,6 @@ private:  // methods
 private:  // members
 
     Key dbKey_;
-
-    const Config& config_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.

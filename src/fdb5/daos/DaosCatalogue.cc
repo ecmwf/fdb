@@ -21,7 +21,7 @@
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosWipeVisitor.h"
+// #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
 
@@ -102,10 +102,10 @@ void DaosCatalogue::loadSchema() {
     rule_ = &schema_.matchingRule(dbKey_);
 }
 
-WipeVisitor* DaosCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new DaosWipeVisitor(*this, store, request, queue, doit, porcelain, unsafeWipeAll);
-}
+// WipeVisitor* DaosCatalogue::wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+//                                         bool doit, bool porcelain, bool unsafeWipeAll) const {
+//     return new DaosWipeVisitor(*this, request, queue, doit, porcelain, unsafeWipeAll);
+// }
 
 std::vector<Index> DaosCatalogue::indexes(bool) const {
 
@@ -178,6 +178,12 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
     if (doit)
         n.destroy();
 }
+
+
+bool DaosCatalogue::wipeInit() const { return true; }
+bool DaosCatalogue::wipe(const Index& index, bool include) const { return true; }
+bool DaosCatalogue::wipeFinish() const { return true; }
+bool DaosCatalogue::doWipe() { return true; }
 
 //----------------------------------------------------------------------------------------------------------------------
 

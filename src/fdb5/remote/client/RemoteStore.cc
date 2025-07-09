@@ -220,11 +220,11 @@ Client::EndpointList storeEndpoints(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(storeEndpoints(config)), dbKey_(dbKey) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
-RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
+RemoteStore::RemoteStore(const eckit::URI& uri, const Config&) :
+    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -242,7 +242,13 @@ RemoteStore::~RemoteStore() {
 }
 
 eckit::URI RemoteStore::uri() const {
-    return URI("fdb", "");
+    return URI("fdb", controlEndpoint().host(), controlEndpoint().port());
+}
+
+eckit::URI RemoteStore::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == "fdb");
+    auto path = URI{"file", dataURI.path().dirName()};
+    return URI("fdb", path, dataURI.host(), dataURI.port());
 }
 
 bool RemoteStore::exists() const {
@@ -486,31 +492,33 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));
 }
 
-bool RemoteStore::uriBelongs(const eckit::URI&) const {
-    NOTIMP;
-}
+// low-level methods for wipe/purge
+bool RemoteStore::uriBelongs(const eckit::URI&) const { NOTIMP; }
+bool RemoteStore::uriExists(const eckit::URI&) const { NOTIMP; }
+std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const { NOTIMP; }
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const { NOTIMP; }
+std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const { NOTIMP; }
 
-bool RemoteStore::uriExists(const eckit::URI&) const {
-    NOTIMP;
-}
-
-std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
-    NOTIMP;
-}
-
-std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
-    NOTIMP;
-}
-
-std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
-    NOTIMP;
-}
-
+// high-level API for wipe/purge
 bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
-    NOTIMP;
+
+    bool result = false;
+
+    eckit::Buffer sendBuf(1_KiB * uris.size());
+    eckit::MemoryStream sms(sendBuf);
+    sms << uris;
+    sms << all;
+
+    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
+
 void RemoteStore::doWipe() {
-    NOTIMP;
+    controlWriteCheckResponse(Message::Wipe, generateRequestID(), true);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

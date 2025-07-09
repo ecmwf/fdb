@@ -39,6 +39,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 enum WipeElementType {
+    WIPE_CATALOGUE_ERROR,
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
     WIPE_CATALOGUE_SAFE,
@@ -47,10 +48,7 @@ enum WipeElementType {
     WIPE_STORE_URI,
     WIPE_STORE,
     WIPE_STORE_AUX,
-    WIPE_STORE_SAFE,
 };
-
-using StoreWipeElements = std::map<WipeElementType, std::vector<eckit::URI>>;
 
 class WipeElement {
 public: // methods
@@ -88,10 +86,11 @@ private: // members
     std::vector<eckit::URI> uris_;
 };
 
+using WipeElementMap = std::map<WipeElementType, std::pair<std::string, std::vector<eckit::URI>>>;
+using WipeElements = std::map<WipeElementType, std::vector<WipeElement>>;
+
 using WipeIterator = APIIterator<WipeElement>;
-
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
-
 using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------

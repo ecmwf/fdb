@@ -36,6 +36,7 @@ endforeach()
 
 list( APPEND _test_data
   "rd.vod.grib"
+  "od.oper.grib"
 )
 
 ecbuild_get_test_multidata( TARGET fdb5_get_test_data NAMES ${_test_data} )

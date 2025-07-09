@@ -39,7 +39,7 @@
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
-#include "fdb5/database/WipeVisitor.h"
+// #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -76,8 +76,8 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const                                           = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const                                     = 0;
-    virtual WipeVisitor* wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                                     bool doit, bool porcelain, bool unsafeWipeAll) const            = 0;
+    // virtual WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+    //                                  bool doit, bool porcelain, bool unsafeWipeAll) const            = 0;
     virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                      const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
@@ -108,6 +108,12 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
+    virtual bool wipeInit() const = 0;
+    virtual bool wipe(const Index& index, bool include) const = 0;
+    virtual bool wipeFinish() const = 0;
+    virtual bool doWipe() = 0;
+    virtual const WipeElementMap& wipeElements() const = 0;
+
 protected:  // methods
 
     virtual void loadSchema() = 0;
@@ -131,6 +137,8 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
+    const WipeElementMap& wipeElements() const override { return wipeElements_; }
+
 protected:  // methods
 
     CatalogueImpl() : dbKey_(Key()), config_(Config()), controlIdentifiers_(ControlIdentifiers()) {}
@@ -140,6 +148,7 @@ protected:  // members
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
+    WipeElementMap wipeElements_;
 };
 
 typedef eckit::DenseSet<std::string> Axis;
@@ -184,6 +193,7 @@ public:
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate()                                                                          = 0;
     virtual size_t archivedLocations() const { NOTIMP; }
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -317,10 +327,10 @@ public:
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    WipeVisitor* wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override {
-        NOTIMP;
-    }
+    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, bool doit,
+    //                          bool porcelain, bool unsafeWipeAll) const override {
+    //     NOTIMP;
+    // }
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;

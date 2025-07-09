@@ -221,10 +221,11 @@ StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {
     NOTIMP;
 }
-WipeVisitor* RemoteCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request,
-                                          eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll) const {
-    NOTIMP;
-}
+// WipeVisitor* RemoteCatalogue::wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+//                             bool doit, bool porcelain, bool unsafeWipeAll) const {
+//     /// we delegate the visit to the server-side WipeVisitor (through a API level call RemoteFDB::wipe)
+//     NOTIMP;
+// }
 MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                           const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     NOTIMP;

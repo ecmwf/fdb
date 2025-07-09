@@ -46,6 +46,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 archiver();
                 return Handled::YesAddArchiveListener;
 
+            case Message::Wipe:  // request to do the actual wipe
+                wipe(clientID, requestID);
+                return Handled::Yes;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -81,6 +85,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Exists:  // given key (payload), check if store exists
                 exists(clientID, requestID, payload);
                 return Handled::Replied;
+
+            case Message::Wipe:  // notification that the client is starting to send data location for read
+                wipe(clientID, requestID, payload);
+                return Handled::Yes;
 
             default: {
                 std::stringstream ss;
@@ -301,6 +309,48 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     stream << exists;
 
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
+
+void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
+
+    auto& ss = store(clientID);
+    auto out = ss.wipeElements();
+    if (out.empty()) {
+        std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
+        Log::error() << what << std::endl;
+        error(what, clientID, requestID);
+        return;
+    }
+
+    write(Message::Received, true, clientID, requestID);
+}
+
+void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    ASSERT(payload.size() > 0);
+
+    std::vector<eckit::URI> uris;
+    bool all = false;
+    bool canWipe = false;
+
+    eckit::MemoryStream inStream(payload);
+    inStream >> uris;
+    inStream >> all;
+    auto& ss = store(clientID);
+    canWipe = ss.canWipe(uris, all);
+    const auto& elements = ss.wipeElements();
+    
+    eckit::Buffer wipeBuf(50_KiB * elements.size());
+    eckit::MemoryStream outStream(wipeBuf);    
+    outStream << canWipe;
+    outStream << elements.size();
+    for (const auto& [type, el] : elements) {
+        outStream << type;
+        outStream << el.first;
+        outStream << el.second;
+    }
+
+    write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -17,7 +17,7 @@
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/toc/TocWipeVisitor.h"
+// #include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -92,10 +92,10 @@ PurgeVisitor* TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-WipeVisitor* TocCatalogue::wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                                       bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new TocWipeVisitor(*this, store, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
-}
+// WipeVisitor* TocCatalogue::wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+//                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
+//     return new TocWipeVisitor(*this, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
+// }
 
 MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                        const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
@@ -145,6 +145,110 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     return CatalogueImpl::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
+
+
+bool TocCatalogue::wipeInit() const { 
+
+    ASSERT(subtocPaths_.empty());
+    ASSERT(lockfilePaths_.empty());
+    ASSERT(indexPaths_.empty());
+    ASSERT(safePaths_.empty());
+    ASSERT(indexesToMask_.empty());
+
+    return true;  // Explore contained indexes
+}
+
+bool TocCatalogue::wipe(const Index& index, bool include) const {
+
+    eckit::LocalPathName location{index.location().uri().path()};
+
+    if (!location.dirName().sameAs(basePath())) {
+        include = false;
+    }
+
+    std::cout << "TocCatalogue::canWipe: index=" << index << ", include=" << include
+              << ", basePath=" << basePath() << std::endl;
+    // Add the index paths to be removed.
+    if (include) {
+        indexesToMask_.emplace_back(index);
+        indexPaths_.insert(location);
+
+        std::cout << "TocCatalogue::canWipe: indexPaths=" << indexPaths_ << std::endl;
+    }
+    else {
+        // This will ensure that if only some indexes are to be removed from a file, then
+        // they will be masked out but the file not deleted.
+        safePaths_.insert(location);
+
+        std::cout << "TocCatalogue::canWipe: safePaths=" << safePaths_ << std::endl;
+    }
+    
+    return include;
+}
+
+
+std::set<eckit::URI> TocCatalogue::addMaskedPaths() {
+
+    std::set<std::pair<eckit::URI, Offset>> metadata;
+    std::set<eckit::URI> data;
+    catalogue_.allMasked(metadata, data);
+    for (const auto& entry : metadata) {
+        eckit::PathName path = entry.first.path();
+        if (path.dirName().sameAs(catalogue_.basePath())) {
+            if (path.baseName().asString().substr(0, 4) == "toc.") {
+                subtocPaths_.insert(path);
+            }
+            else {
+                indexPaths_.insert(path);
+            }
+        }
+    }
+    return data;  // Return the data paths for further processing
+    // for (const auto& uri : data) {
+    //     if (store_.uriBelongs(uri)) {
+    //         dataPaths_.insert(uri.path());
+    //         auto auxPaths = getAuxiliaryPaths(uri);
+    //         auxiliaryDataPaths_.insert(auxPaths.begin(), auxPaths.end());
+    //     }
+    // }
+}
+
+void TocCatalogue::addMetadataPaths() {
+
+    // toc, schema
+    schemaPath_ = catalogue_.schemaPath().path();
+    tocPath_    = catalogue_.tocPath().path();
+
+    // subtocs
+    const auto&& subtocs(catalogue_.subTocPaths());
+    subtocPaths_.insert(subtocs.begin(), subtocs.end());
+
+    // lockfiles
+    const auto&& lockfiles(catalogue_.lockfilePaths());
+    lockfilePaths_.insert(lockfiles.begin(), lockfiles.end());
+}
+
+bool TocCatalogue::wipeFinish() const {
+        // We wipe everything if there is nothingn within safePaths - i.e. there is
+    // no data that wasn't matched by the request
+
+    bool wipeAll = safePaths_.empty();
+
+    if (wipeAll) {
+        addMaskedPaths();
+        addMetadataPaths();
+    }
+    else {
+        // Ensure we _really_ don't delete these if not wiping everything
+        subtocPaths_.clear();
+        lockfilePaths_.clear();
+        tocPath_    = "";
+        schemaPath_ = "";
+    }
+
+}
+
+bool TocCatalogue::doWipe() { return true; }
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -24,6 +24,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& s, const Store& x) {
+    x.print(s);
+    return s;
+}
+
 void Store::archive(const Key& key, const void* data, eckit::Length length,
                     std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
     catalogue_archive(archive(key, data, length));
@@ -82,8 +87,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
-    std::string name          = config.getString("store", "file");
+StoreBuilderBase& StoreFactory::find(const std::string& name) {
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -99,7 +103,19 @@ std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config)
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(key, config);
+    return *(j->second);
+}
+
+std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
+    return find(config.getString("store", "file")).make(key, config);
+}
+
+std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& config) {
+    return find(uri.scheme()).make(uri, config);
+}
+
+eckit::URI StoreFactory::uri(const eckit::URI& dataURI) {
+    return find(dataURI.scheme()).uri(dataURI);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

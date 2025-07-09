@@ -75,9 +75,11 @@ std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
 
-    eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
-    dump(eckit::Log::debug<fdb5::LibFdb5>());
-    eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+    if (fdb5::LibFdb5::instance().debug()) {
+        eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
+        dump(eckit::Log::debug<fdb5::LibFdb5>());
+        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+    }
 
     RemoteStore& store = RemoteStore::get(uri_);
 

@@ -45,6 +45,10 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
+    void wipe(const uint32_t clientID, const uint32_t requestID);
+
+    void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+
     Store& store(uint32_t clientID);
 
     Store& store(uint32_t clientID, const Key& dbKey);

@@ -38,10 +38,13 @@ class TocStore : public Store, public TocCommon {
 public:  // methods
 
     TocStore(const Key& key, const Config& config);
+    TocStore(const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
+
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
     std::vector<eckit::URI> collocatedDataURIs() const override;
@@ -58,13 +61,12 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    bool canWipe(const std::vector<eckit::URI>& uris, bool all) const override;
+    bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
     void doWipe() override;
 
     // const std::vector<eckit::URI>& deleteURIs() override;
 
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
-    bool auxiliaryURIExists(const eckit::URI&) const override;
     std::set<std::string> auxFileExtensions() const;
 
 protected:  // methods
@@ -92,7 +94,7 @@ protected:  // methods
 
 private:  // methods
 
-    // std::vector<eckit::PathName> getAuxiliaryPaths(const eckit::URI& uri);
+    bool auxiliaryURIExists(const eckit::URI&) const;
     eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
 
 private:  // types

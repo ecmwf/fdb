@@ -46,9 +46,11 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
-        eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
-        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        if (fdb5::LibFdb5::instance().debug()) {
+            eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
+            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        }
 
         // TODO move the endpoint replacement to the server side ()
         if (elem.location().uri().scheme() == "fdb") {
@@ -87,9 +89,11 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
-        eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
-        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        if (fdb5::LibFdb5::instance().debug()) {
+            eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
+            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        }
 
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};

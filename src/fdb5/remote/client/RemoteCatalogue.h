@@ -59,8 +59,8 @@ public:  // methods
               const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                             bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+    //                          bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
@@ -78,6 +78,12 @@ public:  // methods
     bool exists() const override;
     void checkUID() const override;
     eckit::URI uri() const override;
+
+    // we only forward the high-level wipe request to the server
+    bool wipeInit() const override { NOTIMP; }
+    bool wipe(const Index&, bool) const override { NOTIMP; }
+    bool wipeFinish() const override { NOTIMP; }
+    bool doWipe() override { NOTIMP; }
 
 protected:
 

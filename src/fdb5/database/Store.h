@@ -72,16 +72,15 @@ public:
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
-    // virtual bool auxiliaryURIExists(const eckit::URI&) const = 0;
 
     // executed for each index
     virtual bool canWipe(const std::vector<eckit::URI>& uris, bool all) = 0;
-
     virtual void doWipe() = 0;
-    const StoreWipeElements& wipeElements() const { return elements_; }
+
+    const WipeElementMap& wipeElements() const { return wipeElements_; }
 
 protected:
-    StoreWipeElements elements_;
+    WipeElementMap wipeElements_;
 };
 
 
@@ -95,6 +94,8 @@ public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
+    virtual eckit::URI uri(const eckit::URI& dataURI) = 0;
 };
 
 template <class T>
@@ -102,7 +103,12 @@ class StoreBuilder : public StoreBuilderBase {
     std::unique_ptr<Store> make(const Key& key, const Config& config) override {
         return std::unique_ptr<T>(new T(key, config));
     }
-
+    std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override {
+        return std::unique_ptr<T>(new T(uri, config));
+    }
+    eckit::URI uri(const eckit::URI& dataURI) override {
+        return T::uri(dataURI);
+    }
 public:
 
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -125,9 +131,18 @@ public:
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Key& key, const Config& config);
 
+    /// @param uri       the user-specified data location URI
+    /// @param config    the fdb config
+    /// @returns         store built by specified builder
+    std::unique_ptr<Store> build(const eckit::URI& uri, const Config& config);
+
+    eckit::URI uri(const eckit::URI& dataURI);
+
 private:
 
     StoreFactory();
+
+    StoreBuilderBase& find(const std::string& name);
 
     std::map<std::string, StoreBuilderBase*> builders_;
     eckit::Mutex mutex_;

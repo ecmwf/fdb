@@ -55,6 +55,25 @@ std::vector<Key> write_data(FDB& fdb, const std::string& data, const std::string
     return keys;
 }
 
+std::vector<Key> keys_level_1(const std::string& start_date, int Ndates) {
+
+    std::vector<Key> keys;
+    Key k;
+    k.set("class", "od");
+    k.set("expver", "xxxx");
+    k.set("stream", "oper");
+    k.set("time", "0000");
+    k.set("domain", "g");
+
+    eckit::Date date{start_date};
+    for (int i = 0; i < Ndates; i++) {
+        k.set("date", std::to_string(date.yyyymmdd()));
+        keys.push_back(k);
+    }
+
+    return keys;
+}
+
 metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     metkit::mars::MarsRequest req;
     for (const auto& [key, value] : keys[0]) {
@@ -66,12 +85,16 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     std::vector<std::string> steps;
     for (const auto& k : keys) {
         dates.push_back(k.get("date"));
-        steps.push_back(k.get("step"));
+        auto [_, has_step] = k.find("step");
+        if (has_step)
+            steps.push_back(k.get("step"));
     }
 
     req.values("date", dates);
-    req.values("step", steps);
-
+    if (!steps.empty()) {
+        req.values("step", steps);
+    }
+    
     return req;
 }
 
@@ -108,7 +131,30 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(retrieved_string, data_string);
     }
 
-    /// @todo: add wipe when it is implemented.
+    auto k1 = keys_level_1("20000101", 1);
+    fdb.wipe(make_request(k1));
+
+    // -- list all fields
+    it = fdb.list(FDBToolRequest{{}, true, {}});
+
+    count = 0;
+    while (it.next(elem)) {
+        eckit::Log::info() << elem << " " << elem.location() << std::endl;
+        count++;
+    }
+    EXPECT_EQUAL(count, Nfields);
+
+    fdb.wipe(make_request(k1), true);
+
+    // -- list all remaining fields
+    it = fdb.list(FDBToolRequest{{}, true, {}});
+
+    count = 0;
+    while (it.next(elem)) {
+        eckit::Log::info() << elem << " " << elem.location() << std::endl;
+        count++;
+    }
+    EXPECT_EQUAL(count, 6);
 }
 
 }  // namespace fdb5::test

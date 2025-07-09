@@ -27,10 +27,12 @@ class DaosStore : public Store, public DaosCommon {
 public:  // methods
 
     DaosStore(const Key& key, const Config& config);
+    DaosStore(const eckit::URI& uri, const Config& config);
 
     ~DaosStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
     std::vector<eckit::URI> collocatedDataURIs() const override;

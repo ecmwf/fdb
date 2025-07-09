@@ -319,8 +319,8 @@ CASE("DaosStore tests") {
             fdb5::TocCatalogueWriter tcat{db_key, config};
             fdb5::Catalogue& cat        = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, queue, /*out,*/ true, false, false));
-            cat.visitEntries(*wv, false);
+            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
+            // cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before

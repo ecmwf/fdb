@@ -65,8 +65,8 @@ protected:  // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(Store& store, const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-                             bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
+    //                          bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void maskIndexEntry(const Index& index) const override;
@@ -80,18 +80,40 @@ protected:  // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
+    bool wipeInit() const override;
+    bool wipe(const Index& index, bool include) const override;
+    bool wipeFinish() const override;
+    bool doWipe() override;
+
+private: // methods
+
+    std::set<eckit::URI> addMaskedPaths();
+    void addMetadataPaths();
+    void ensureSafePaths();
+    void calculateResidualPaths();
+
 protected:  // members
 
     Key currentIndexKey_;
 
 private:  // members
 
-    friend class TocWipeVisitor;
+    // friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
     // non-owning
     const Schema* schema_;
     const RuleDatabase* rule_;
+
+    // wipe
+    mutable std::set<eckit::PathName> subtocPaths_;
+    mutable std::set<eckit::PathName> lockfilePaths_;
+    mutable std::set<eckit::PathName> indexPaths_;
+    mutable std::set<eckit::PathName> safePaths_;
+    mutable std::set<eckit::PathName> residualPaths_;
+    mutable std::vector<Index> indexesToMask_;
+
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

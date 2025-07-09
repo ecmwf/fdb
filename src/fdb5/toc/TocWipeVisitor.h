@@ -26,7 +26,7 @@ class TocWipeVisitor : public WipeVisitor {
 
 public:
 
-    TocWipeVisitor(const TocCatalogue& catalogue, Store& store, const metkit::mars::MarsRequest& request,
+    TocWipeVisitor(const TocCatalogue& catalogue, const metkit::mars::MarsRequest& request,
                    eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll);
     ~TocWipeVisitor() override;
 

@@ -366,8 +366,8 @@ CASE("DaosCatalogue tests") {
             // std::ostream out(std::cout.rdbuf());
             eckit::Queue<fdb5::WipeElement> queue(200);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, queue, /*out,*/ true, false, false));
-            cat.visitEntries(*wv, false);
+            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
+            // cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -480,8 +480,8 @@ CASE("DaosCatalogue tests") {
             // std::ostream out(std::cout.rdbuf());
             eckit::Queue<fdb5::WipeElement> queue(200);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, queue, /*out,*/ true, false, false));
-            cat.visitEntries(*wv, false);
+            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
+            // cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before

@@ -26,9 +26,17 @@ namespace fdb5 {
 DaosStore::DaosStore(const Key& key, const Config& config) :
     Store(), DaosCommon(config, "store", key), db_str_(db_cont_), archivedFields_(0) {}
 
+DaosStore::DaosStore(const eckit::URI& uri, const Config& config) :
+    Store(), DaosCommon(config, "store", uri), db_str_(db_cont_), archivedFields_(0) {}
+
 eckit::URI DaosStore::uri() const {
 
     return fdb5::DaosName(pool_, db_str_).URI();
+}
+
+eckit::URI DaosStore::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == "daos");
+    return eckit::URI{"daos", fdb5::DaosName(dataURI).containerName()};
 }
 
 bool DaosStore::uriBelongs(const eckit::URI& uri) const {

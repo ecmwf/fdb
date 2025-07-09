@@ -14,21 +14,15 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
 /// @date   November 2018
 
-#ifndef fdb5_api_local_WipeVisitor_H
-#define fdb5_api_local_WipeVisitor_H
+#pragma once
 
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/database/WipeVisitor.h"
 
-#include "eckit/filesystem/PathName.h"
-
-
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -38,36 +32,38 @@ class WipeVisitor : public QueryVisitor<WipeElement> {
 
 public:  // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
-                bool unsafeWipeAll);
+    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
-    bool visitIndexes() override;
+    // bool visitIndexes() override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
+    // These methods are not used in the wipe visitor
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
+private: // methods
+
+    void WipeVisitor::storeURI(const eckit::URI& dataURI);
+
 private:  // members
 
-    // eckit::Channel out_;
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;
 
-    std::unique_ptr<fdb5::WipeVisitor> internalVisitor_;
-};
+    metkit::mars::MarsRequest indexRequest_;
 
+    std::map<eckit::URI, std::unique_ptr<Store>> stores_;
+    std::map<eckit::URI, std::vector<eckit::URI>> dataURIbyStore_;
+    WipeElements catalogueWipeElements_;
+    WipeElements storeWipeElements_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

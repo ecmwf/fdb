@@ -16,6 +16,7 @@
 #include <cerrno>
 #include <cstring>
 
+#include "eckit/log/Plural.h"
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -87,10 +88,10 @@ public:
 
 // TODO: Warnings and errors form inside here back to the user.
 
-TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue, Store& store,
+TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
                                const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
                                bool doit, bool porcelain, bool unsafeWipeAll) :
-    WipeVisitor(request, store, queue, /*out,*/ doit, porcelain, unsafeWipeAll),
+    WipeVisitor(catalogue.config(), request, queue, /*out,*/ doit, porcelain, unsafeWipeAll),
     catalogue_(catalogue),
     tocPath_(""),
     schemaPath_("") {}
@@ -115,8 +116,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(!tocPath_.asString().size());
     ASSERT(!schemaPath_.asString().size());
 
-    // 
-    ASSERT(store_.wipeElements().empty());
+    ASSERT(stores_.empty());
 
     // Having selected a DB, construct the residual request. This is the request that is used for
     // matching Index(es) -- which is relevant if there is subselection of the DB.
@@ -159,7 +159,30 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files
     storeWipeElements_.reset();
-    return store_.canWipe(index.dataURIs(), unsafeWipeAll_);
+    
+    std::map<eckit::URI, std::vector<eckit::URI>> dataURIbyStore;
+    for (auto& dataURI : index.dataURIs()) {
+        auto storeURI = StoreFactory::instance().uri(dataURI);
+        auto storeIt = stores_.find(storeURI);
+        if (storeIt == stores_.end()) {
+            auto store = StoreFactory::instance().build(storeURI, config_);
+            ASSERT(store);
+            storeIt = stores_.emplace(storeURI, std::move(store)).first;
+        }
+        auto dataURIsIt = dataURIbyStore.find(storeURI);
+        if (dataURIsIt == dataURIbyStore.end()) {
+            dataURIsIt = dataURIbyStore.emplace(storeURI, std::vector<eckit::URI>{}).first; 
+        }
+        dataURIsIt->second.push_back(dataURI);
+    }
+    bool canWipe = true;
+    for (const auto& [storeURI, dataURIs] : dataURIbyStore) {
+        auto storeIt = stores_.find(storeURI);
+        ASSERT(storeIt != stores_.end());
+
+        canWipe = canWipe && storeIt->second->canWipe(dataURIs, unsafeWipeAll_);
+    }
+    return canWipe;
 }
 
 void TocWipeVisitor::addMaskedPaths() {
@@ -264,12 +287,14 @@ void TocWipeVisitor::calculateResidualPaths() {
 
     // add store URIs
     // if (store_.type() == "file")
-    auto elements = store_.wipeElements();
-    if (auto it = elements.find(WipeElementType::WIPE_STORE); it != elements.end()) {
-        deleteURIs.insert(it->second.begin(), it->second.end());
-    }
-    if (auto it = elements.find(WipeElementType::WIPE_STORE_AUX); it != elements.end()) {
-        deleteURIs.insert(it->second.begin(), it->second.end());
+    for (const auto& [uri, store] : stores_) {
+        auto elements = store->wipeElements();
+        if (auto it = elements.find(WipeElementType::WIPE_STORE); it != elements.end()) {
+            deleteURIs.insert(it->second.begin(), it->second.end());
+        }
+        if (auto it = elements.find(WipeElementType::WIPE_STORE_AUX); it != elements.end()) {
+            deleteURIs.insert(it->second.begin(), it->second.end());
+        }
     }
 
     // retrieve the total sets of URIs in the catalogue and store
@@ -277,11 +302,11 @@ void TocWipeVisitor::calculateResidualPaths() {
     StdDir(catalogue_.basePath()).children(allPathsVector);
     // add catalogue URIs
 
-    std::set<eckit::URI> allURIs;
-    for (const auto& p : allPathsVector)
-        allURIs.emplace("file", p);
-    // add store URIs
-    std::vector<eckit::URI> allCollocatedDataURIs(store_.collocatedDataURIs());
+    std::vector<eckit::URI> allCollocatedDataURIs;
+    for(const auto& [uri, store] : stores_) {
+        auto collocatedDataURIs = store->collocatedDataURIs();
+        allCollocatedDataURIs.insert(allCollocatedDataURIs.end(), collocatedDataURIs.begin(), collocatedDataURIs.end());
+    }
     allURIs.insert(allCollocatedDataURIs.begin(), allCollocatedDataURIs.end());
 
     ASSERT(residualURIs_.empty());
@@ -291,7 +316,7 @@ void TocWipeVisitor::calculateResidualPaths() {
 
         // First we check if there are paths marked to delete that don't exist. This is an error
 
-        std::set<PathName> uris;
+        std::set<eckit::URI> uris;
         std::set_difference(deleteURIs.begin(), deleteURIs.end(), allURIs.begin(), allURIs.end(),
                             std::inserter(uris, uris.begin()));
 
@@ -353,7 +378,6 @@ bool TocWipeVisitor::anythingToWipe() const {
             !indexesToMask_.empty() || tocPath_.asString().size() || schemaPath_.asString().size());
     if (catalogueToWipe)
         return true;
-
        
     return false;
 }
@@ -418,15 +442,25 @@ void TocWipeVisitor::report(bool wipeAll) {
         switch (t) {
             case WIPE_STORE:        queue_.emplace(t, "Data files to delete:", uris); break;
             case WIPE_STORE_AUX:    queue_.emplace(t, "Auxiliary files to delete:", uris); break;
-            case WIPE_STORE_SAFE:   queue_.emplace(t, "Protected files (explicitly untouched):", uris); break;
+            // case WIPE_STORE_SAFE:   queue_.emplace(t, "Protected files (explicitly untouched):", uris); break;
             default:
-                std::stringstream ss;
-                ss << "Unexpected WIPE group info " << t << " received from store " << store_ ;
+                std::ostringstream ss;
+                ss << "Unexpected WIPE group info " << t << " received ";
                 throw eckit::SeriousBug(ss.str(), Here());
         }
     }
-    if (store_.type() != "file" && wipeAll) {
-        queue_.emplace(WipeElementType::WIPE_STORE_URI, "Store URI to delete:", store_.uri());
+    if (wipeAll) {
+        std::vector<eckit::URI> storeURIs;
+        for (const auto& [uri, store] : stores_) {
+            if (uri != catalogue_.uri()) {
+                storeURIs.push_back(uri);
+            }
+        }
+        if (!storeURIs.empty()) {
+            std::ostringstream ss;
+            ss << "Store " << eckit::Plural(storeURIs.size(), "URI") << " to delete:";
+            queue_.emplace(WipeElementType::WIPE_STORE_URI, ss.str(), storeURIs);
+        }
     }
     if (safeCataloguePaths_.size()) {
         {
@@ -493,36 +527,40 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     /// @todo: are all these exist checks necessary?
 
-    for (const PathName& path : residualDataPaths_) {
-        eckit::URI uri(store_.type(), path);
-        if (store_.uriExists(uri)) {
-            store_.remove(uri, logAlways, logVerbose, doit_);
-        }
+    for (auto& [uri,store] : stores_) {
+        store->doWipe();
     }
-    for (const PathName& path : residualPaths_) {
+    // for (const PathName& path : residualDataPaths_) {
+    //     eckit::URI uri(store_.type(), path);
+    //     if (store_.uriExists(uri)) {
+    //         store_.remove(uri, logAlways, logVerbose, doit_);
+    //     }
+    // }
+    for (const auto& uri : residualURIs_) {
+        auto path = uri.path();
         if (path.exists()) {
             catalogue_.remove(path, logAlways, logVerbose, doit_);
         }
     }
 
-    for (const PathName& path : dataPaths_) {
-        eckit::URI uri(store_.type(), path);
-        if (store_.uriExists(uri)) {
-            store_.remove(uri, logAlways, logVerbose, doit_);
-        }
-    }
+    // for (const PathName& path : dataPaths_) {
+    //     eckit::URI uri(store_.type(), path);
+    //     if (store_.uriExists(uri)) {
+    //         store_.remove(uri, logAlways, logVerbose, doit_);
+    //     }
+    // }
 
-    for (const PathName& path : auxiliaryDataPaths_) {
-        eckit::URI uri(store_.type(), path);
-        if (store_.auxiliaryURIExists(uri)) {
-            store_.remove(uri, logAlways, logVerbose, doit_);
-        }
-    }
+    // for (const PathName& path : auxiliaryDataPaths_) {
+    //     eckit::URI uri(store_.type(), path);
+    //     if (store_.auxiliaryURIExists(uri)) {
+    //         store_.remove(uri, logAlways, logVerbose, doit_);
+    //     }
+    // }
 
-    if (wipeAll && store_.type() != "file")
-        /// @todo: if the store is holding catalogue information (e.g. daos KVs) it
-        ///    should not be removed
-        store_.remove(store_.uri(), logAlways, logVerbose, doit_);
+    // if (wipeAll && store_.type() != "file")
+    //     /// @todo: if the store is holding catalogue information (e.g. daos KVs) it
+    //     ///    should not be removed
+    //     store_.remove(store_.uri(), logAlways, logVerbose, doit_);
 
     for (const std::set<PathName>& pathset :
          {indexPaths_, std::set<PathName>{schemaPath_}, subtocPaths_, std::set<PathName>{tocPath_}, lockfilePaths_,
@@ -567,21 +605,18 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             report(wipeAll);
 
         // This is here as it needs to run whatever combination of doit/porcelain/...
-        if (wipeAll && !residualPaths_.empty()) {
+        if (wipeAll && !residualURIs_.empty()) {
+
 
             std::cout << "TO CHANGE " << "Unexpected files present in directory: " << std::endl;
-            for (const auto& p : residualPaths_) std::cout << "TO CHANGE " << "    " << p << std::endl;
+            for (const auto& u : residualURIs_) std::cout << "TO CHANGE " << "    " << u << std::endl;
             std::cout << "TO CHANGE " << std::endl;
 
-        }
-        if (wipeAll && !residualDataPaths_.empty()) {
 
-            std::cout << "TO CHANGE "  << "Unexpected store units present in store: " << std::endl;
-            for (const auto& p : residualDataPaths_) std::cout << "TO CHANGE "  << "    " << store_.type() << "://" << p << std::endl;
-            std::cout << "TO CHANGE "  << std::endl;
+        //     std::cout << "TO CHANGE "  << "Unexpected store units present in store: " << std::endl;
+        //     for (const auto& p : residualDataPaths_) std::cout << "TO CHANGE "  << "    " << store_.type() << "://" << p << std::endl;
+        //     std::cout << "TO CHANGE "  << std::endl;
 
-        }
-        if (wipeAll && (!residualPaths_.empty() || !residualDataPaths_.empty())) {
             if (!unsafeWipeAll_) {
                 // out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
                 queue_.emplace(WIPE_CATALOGUE_INFO, "Full wipe will not proceed without --unsafe-wipe-all", std::vector<eckit::URI>{});

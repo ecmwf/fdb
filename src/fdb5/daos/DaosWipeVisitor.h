@@ -25,7 +25,7 @@ class DaosWipeVisitor : public WipeVisitor {
 
 public:
 
-    DaosWipeVisitor(const DaosCatalogue& catalogue, Store& store, const metkit::mars::MarsRequest& request,
+    DaosWipeVisitor(const DaosCatalogue& catalogue, const metkit::mars::MarsRequest& request,
                     eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll);
     ~DaosWipeVisitor() override;
 
