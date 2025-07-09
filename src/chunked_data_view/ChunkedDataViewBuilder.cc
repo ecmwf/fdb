@@ -8,7 +8,21 @@
  * does it submit to any jurisdiction.
  */
 #include "chunked_data_view/ChunkedDataViewBuilder.h"
+
 #include "ChunkedDataViewImpl.h"
+#include "chunked_data_view/AxisDefinition.h"
+#include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/Fdb.h"
+#include "chunked_data_view/ViewPart.h"
+
+#include <fdb5/api/helpers/FDBToolRequest.h>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace chunked_data_view {
 
