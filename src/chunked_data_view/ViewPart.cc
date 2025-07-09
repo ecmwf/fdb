@@ -8,10 +8,29 @@
  * does it submit to any jurisdiction.
  */
 #include "ViewPart.h"
+
+#include "Axis.h"
+#include "RequestManipulation.h"
+#include "chunked_data_view/AxisDefinition.h"
+#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/Fdb.h"
+
+#include <eckit/exception/Exceptions.h>
+#include <eckit/io/DataHandle.h>
+#include <metkit/mars/MarsRequest.h>
+
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <tuple>
-#include "chunked_data_view/Axis.h"
-#include "chunked_data_view/RequestManipulation.h"
+#include <utility>
+#include <vector>
+
 
 namespace chunked_data_view {
 

@@ -8,14 +8,18 @@
  * does it submit to any jurisdiction.
  */
 #pragma once
-#include "chunked_data_view/Buffer.h"
+
+#include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/ListIterator.h"
 
 #include <fdb5/api/FDB.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace chunked_data_view {
 class GribExtractor final : public Extractor {
