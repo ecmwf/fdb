@@ -13,8 +13,6 @@
 
 namespace chunked_data_view {
 
-class Extractor;
-
 class ChunkedDataView {
 public:
 

@@ -9,10 +9,12 @@
  */
 #pragma once
 
+#include <fdb5/database/Key.h>
+
+#include <cstddef>
 #include <string>
 #include <tuple>
 #include <vector>
-#include "fdb5/database/Key.h"
 
 namespace chunked_data_view {
 

@@ -7,20 +7,15 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "Buffer.h"
+#pragma once
 
-#include <algorithm>
-#include <cassert>
+#include "Axis.h"
+
 #include <cstddef>
+#include <vector>
 
+namespace chunked_data_view::index_mapping {
 
-namespace chunked_data_view {
-
-void Buffer::setBits(size_t index) {
-    assert(index < bitset_.size());
-    bitset_[index] = true;
-}
-bool Buffer::filled() const {
-    return std::all_of(bitset_.begin(), bitset_.end(), [](bool v) { return v; });
-}
-};  // namespace chunked_data_view
+size_t axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes);
+std::vector<size_t> to_axis_parameter_index(const size_t& index, const Axis& axis);
+}  // namespace chunked_data_view::index_mapping

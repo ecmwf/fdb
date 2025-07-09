@@ -7,21 +7,19 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "chunked_data_view/Extractor.h"
+#pragma once
 
-#include "GribExtractor.h"
+#include "Axis.h"
 
-#include <memory>
-#include <stdexcept>
+#include <metkit/mars/MarsRequest.h>
+
+#include <cstddef>
 
 namespace chunked_data_view {
-std::unique_ptr<Extractor> makeExtractor(ExtractorType type) {
-    switch (type) {
-        case ExtractorType::GRIB:
-            return std::make_unique<GribExtractor>();
-        default:
-            // TODO(kkratz): Use proper exception type
-            throw std::runtime_error("makeExtractor: Unknown extractor type specified");
-    }
-}
+
+class RequestManipulation {
+public:
+
+    static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, std::size_t chunkIndex);
+};
 }  // namespace chunked_data_view

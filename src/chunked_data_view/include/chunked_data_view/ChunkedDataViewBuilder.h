@@ -9,9 +9,9 @@
  */
 #pragma once
 
-
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 
 #include <memory>

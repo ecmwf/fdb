@@ -11,6 +11,11 @@
 
 #include "chunked_data_view_version.h"
 
+#include <eckit/system/Library.h>
+
+#include <algorithm>
+#include <string>
+
 namespace chunked_data_view {
 
 REGISTER_LIBRARY(LibChunkedDataView);

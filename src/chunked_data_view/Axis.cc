@@ -9,12 +9,17 @@
  */
 #include "Axis.h"
 
-#include <cstddef>
-#include <numeric>
-#include <utility>
+#include <eckit/exception/Exceptions.h>
+#include <fdb5/database/Key.h>
+
 #include <algorithm>
-#include "eckit/exception/Exceptions.h"
-#include "fdb5/database/Key.h"
+#include <cstddef>
+#include <iterator>
+#include <numeric>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace chunked_data_view {
 
