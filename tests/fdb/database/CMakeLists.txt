@@ -1,3 +1,4 @@
+set( _test_environment ${test_environment})
 
 list( APPEND _test_environment
     FDB_HOME=${PROJECT_BINARY_DIR} )

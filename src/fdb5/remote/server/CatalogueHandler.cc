@@ -179,10 +179,13 @@ struct BaseHelper {
 };
 
 struct ListHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        /// @todo remember to add level_ to this helper
-        return fdb.list(request);
-    }
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.list(request, false, depth_); }
+
+    void extraDecode(eckit::Stream& s) { s >> depth_; }
+
+private:
+
+    int depth_{3};
 };
 
 struct AxesHelper : public BaseHelper<AxesElement> {

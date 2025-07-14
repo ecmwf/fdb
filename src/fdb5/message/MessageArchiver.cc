@@ -101,28 +101,13 @@ std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& s
 MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
     MessageDecoder(), fdb_(config), key_(key), completeTransfers_(completeTransfers), verbose_(verbose) {}
 
-void MessageArchiver::filters(const std::string& include, const std::string& exclude) {
+void MessageArchiver::setFilters(const std::string& include, const std::string& exclude) {
     include_ = make_filter_requests(include);
     exclude_ = make_filter_requests(exclude);
 }
 
-void MessageArchiver::modifiers(const std::string& modify) {
-    // split string in form k1=v1,k2=v2,...
-    eckit::Tokenizer comma(',');
-    eckit::Tokenizer equal('=');
-
-    std::vector<std::string> pairs = comma.tokenize(modify);
-
-    // Log::info() << "pairs : " << pairs << std::endl;
-
-    for (auto& pair : pairs) {
-        std::vector<std::string> kv = equal.tokenize(pair);
-        if (kv.size() != 2)
-            throw eckit::BadValue("Invalid key-value pair " + pair);
-        // Log::info() << "kv : " << kv[0] << " = " << kv[1] << std::endl;
-        modifiers_[kv[0]] = kv[1];
-    }
-    // Log::info() << "modifiers : " << modifiers_ << std::endl;
+void MessageArchiver::setModifiers(const eckit::StringDict& modify) {
+    modifiers_ = modify;
 }
 
 eckit::message::Message MessageArchiver::transform(eckit::message::Message& msg) {

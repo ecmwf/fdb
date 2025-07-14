@@ -12,10 +12,12 @@
 #include "fdb5/database/Archiver.h"
 
 #include <ctime>
+#include <mutex>
 
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/database/Store.h"

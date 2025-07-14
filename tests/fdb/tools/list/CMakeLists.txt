@@ -24,6 +24,7 @@ foreach( _test ${fdb_tools_list_tests} )
         LABELS list
         CONDITION HAVE_FDB_BUILD_TOOLS
         TEST_DEPENDS fdb5_get_test_data
-        COMMAND list_${_test}.sh )
+        COMMAND list_${_test}.sh
+        ENVIRONMENT "${test_environment}" )
 
 endforeach( )

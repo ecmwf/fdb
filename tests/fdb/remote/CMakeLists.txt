@@ -24,7 +24,10 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         TEST_DEPENDS   fdb_test_remote_api_bin
         RESOURCE_LOCK  fdb_remote_tests # Prevent concurrent runs of remote tests
         LABELS         remotefdb
+        ENVIRONMENT    "${test_environment}"
     )
-    set_tests_properties(fdb_test_remote_api PROPERTIES TIMEOUT 300)
+    if (TARGET fdb_test_remote_api)
+        set_tests_properties(fdb_test_remote_api PROPERTIES TIMEOUT 300)
+    endif()
 endif()
 
