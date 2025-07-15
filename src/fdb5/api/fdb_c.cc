@@ -158,14 +158,19 @@ public:
         return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
 
-    void attrs(const char** uri, size_t* off, size_t* len) {
+    void attrs(const char** scheme, const char** host, int* port, const char** path, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
         // guard against negative values
         ASSERT(0 <= el_.offset());
         ASSERT(0 <= el_.length());
 
-        *uri = el_.uri().name().c_str();
+        *scheme = el_.uri().scheme().c_str();
+        *host   = el_.uri().host().c_str();
+        *port   = el_.uri().port();
+        *path   = el_.uri().name().c_str();
+
+
         *off = el_.offset();
         *len = el_.length();
     }
@@ -620,13 +625,15 @@ int fdb_listiterator_next(fdb_listiterator_t* it) {
         return it->next();
     }});
 }
-int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len) {
-    return wrapApiFunction([it, uri, off, len] {
+int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** scheme, const char** host, int* port, const char** path,
+                           size_t* off, size_t* len) {
+    return wrapApiFunction([it, scheme, host, port, path, off, len] {
         ASSERT(it);
-        ASSERT(uri);
-        ASSERT(off);
-        ASSERT(len);
-        it->attrs(uri, off, len);
+        ASSERT(scheme);
+        ASSERT(host);
+        ASSERT(port);
+        ASSERT(path);
+        it->attrs(scheme, host, port, path, off, len);
     });
 }
 int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t* key) {

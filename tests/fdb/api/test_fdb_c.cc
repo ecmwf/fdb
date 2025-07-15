@@ -117,10 +117,11 @@ CASE("fdb_c - archive & list") {
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
-    const char* uri;
+    const char *scheme, *host, *path;
+    int port;
     size_t off, attr_len;
 
-    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    fdb_listiterator_attrs(it, &scheme, &host, &port, &path, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
     std::vector<fdb5::Key> k1test{
@@ -174,7 +175,7 @@ CASE("fdb_c - archive & list") {
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
-    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    fdb_listiterator_attrs(it, &scheme, &host, &port, &path, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
     std::vector<fdb5::Key> k2test{
@@ -202,7 +203,7 @@ CASE("fdb_c - archive & list") {
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
-    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    fdb_listiterator_attrs(it, &scheme, &host, &port, &path, &off, &attr_len);
     EXPECT(attr_len == 3280398);
 
     key_compare(k2test, it);
@@ -210,7 +211,7 @@ CASE("fdb_c - archive & list") {
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
-    fdb_listiterator_attrs(it, &uri, &off, &length);
+    fdb_listiterator_attrs(it, &scheme, &host, &port, &path, &off, &length);
     EXPECT(length == 3280398);
 
     key_compare(k1test, it);

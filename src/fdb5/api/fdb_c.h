@@ -215,7 +215,8 @@ int fdb_listiterator_next(fdb_listiterator_t* it);
  * \param len Length in bytes of the ListElement data
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
+int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** scheme, const char** host, int* port, const char** path,
+                           size_t* off, size_t* len);
 
 /** Lazy extraction of the key of a list element, key metadata can be retrieved with fdb_splitkey_next_metadata.
  * \param it SplitKey instance (must be already initialised by #fdb_new_splitkey)
