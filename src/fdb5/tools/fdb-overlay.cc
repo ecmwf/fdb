@@ -77,22 +77,15 @@ void FdbOverlay::execute(const CmdArgs& args) {
         return;
     }
 
-    auto parsedSource = FDBToolRequest::requestsFromString("domain=g," + args(0), {}, false, "read");
-    ASSERT(parsedSource.size() == 1);
-
-    auto parsedTarget = FDBToolRequest::requestsFromString("domain=g," + args(1), {}, false, "read");
-    ASSERT(parsedTarget.size() == 1);
-
-    const auto& sourceRequest = parsedSource.front();
-    ASSERT(!sourceRequest.all());
-
-    const auto& targetRequest = parsedTarget.front();
-    ASSERT(!targetRequest.all());
-
-    const auto sources = conf.schema().expandDatabase(sourceRequest.request());
+    bool injectDomain = false;
+    std::vector<Key> sources = parse(args(0), conf);
+    if (sources.empty()) {
+        injectDomain = true;
+        sources = parse(args(0), conf, injectDomain);
+    }
     ASSERT(!sources.empty());
 
-    const auto targets = conf.schema().expandDatabase(targetRequest.request());
+    const auto targets = parse(args(1), conf);
     ASSERT(!targets.empty());
 
     const auto& source = sources.front();

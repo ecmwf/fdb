@@ -66,14 +66,11 @@ void FdbHide::execute(const CmdArgs& args) {
         return;
     }
 
-    auto dbrequests = FDBToolRequest::requestsFromString("domain=g," + args(0), {}, false, "read");
-    ASSERT(dbrequests.size() == 1);
-
-    const auto& dbrequest = dbrequests.front();
-    ASSERT(!dbrequest.all());
-
-    const auto& keys = conf.schema().expandDatabase(dbrequest.request());
-
+    std::vector<Key> keys = parse(args(0), conf);
+    if (keys.empty()) {
+        keys = parse(args(0), conf, true);
+    }
+    
     if (keys.empty()) {
         throw eckit::UserError("Invalid request", Here());
     }
