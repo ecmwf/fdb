@@ -24,6 +24,7 @@
 #include "eckit/runtime/Tool.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
 namespace option {
@@ -64,6 +65,7 @@ protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
+    std::vector<Key> parse(const std::string& request, const Config& config, bool addDomain = false);
 
 private:  // methods
 
