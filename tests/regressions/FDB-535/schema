@@ -1,0 +1,44 @@
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+instrument: Integer;
+ident:      Integer;
+
+diagnostic: Integer;
+iteration:  Integer;
+system:     Integer;
+method:     Integer;
+
+# We need some fake types to bump the length of the 3rd level key to exceed the allotted size in BTree index
+type1:      Integer;
+type2:      Integer;
+type3:      Integer;
+type4:      Integer;
+type5:      Integer;
+type6:      Integer;
+type7:      Integer;
+type8:      Integer;
+type9:      Integer;
+
+[ class=rd, expver=xxxx, stream=oper, date, time, domain?
+       [ type, levtype
+               [ step, levelist?, param, type1?, type2?, type3?, type4?, type5?, type6?, type7?, type8? ]]
+]
