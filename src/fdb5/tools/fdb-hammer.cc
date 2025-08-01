@@ -266,7 +266,8 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
     bool leader_found = false;
     while (!leader_found) {
 
-        eckit::PathName run_path("/var/run/user");
+        eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", "/var/run/user"));
+
         uid_t uid = ::getuid();
         eckit::Translator<uid_t, std::string> uid_to_str;
         run_path /= uid_to_str(uid);
@@ -282,7 +283,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
         pid_file /= "fdb-hammer.pid";
 
         int fd;
-        fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY);
+        fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY, 0666);
         if (fd < 0 && errno != EEXIST) throw eckit::FailedSystemCall("open", Here(), errno);
 
         if (fd >= 0) {
