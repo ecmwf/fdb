@@ -34,8 +34,9 @@ namespace remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-                  remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {
+    FieldLocation(
+        eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {
 
     ASSERT(remoteLocation.uri().scheme() != RemoteFieldLocation::typeName());
     if (!remoteLocation.uri().scheme().empty()) {
@@ -48,8 +49,9 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, c
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint,
                                          const RemoteFieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-                  remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
+    FieldLocation(
+        eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {
 

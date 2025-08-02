@@ -14,8 +14,8 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/remote/server/ServerConnection.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/server/ServerConnection.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -53,6 +53,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
             case Message::Wipe:  // request to do the actual wipe
                 wipe(clientID, requestID);
+                return Handled::Yes;
+
+            case Message::WipeFinal:  // request to do the actual wipe
+                wipeFinal(clientID, requestID);
                 return Handled::Yes;
 
             case Message::WipeElement:  // request to do the actual wipe
@@ -351,15 +355,21 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
         return;
     }
 
-    ss.doWipe();
+    ss.doWipe(false);
+}
+
+void StoreHandler::wipeFinal(const uint32_t clientID, const uint32_t requestID) {
+
+    auto& ss = store(clientID);
+    ss.doWipe(true);
 }
 
 void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
-    auto& ss = store(clientID);
+    auto& ss             = store(clientID);
     const auto& elements = ss.wipeElements();
-    
+
     eckit::Buffer wipeBuf(50_KiB * elements.size());
-    eckit::MemoryStream outStream(wipeBuf);    
+    eckit::MemoryStream outStream(wipeBuf);
     outStream << elements.size();
     for (const auto& el : elements) {
         outStream << *el;
@@ -374,10 +384,10 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
 
     std::vector<eckit::URI> uris;
     std::vector<eckit::URI> urisafe;
-    bool all = false;
+    bool all     = false;
     bool canWipe = false;
 
-    eckit::MemoryStream inStream(payload); 
+    eckit::MemoryStream inStream(payload);
     inStream >> uris;
     inStream >> urisafe;
     inStream >> all;
@@ -386,7 +396,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     dataURIs.reserve(uris.size());
     std::vector<eckit::URI> safeURIs;
     safeURIs.reserve(urisafe.size());
-    
+
     for (const auto& uri : uris) {
         dataURIs.push_back(RemoteFieldLocation::internalURI(uri));
     }
@@ -399,12 +409,12 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
         return;
     }
 
-    auto& ss = store(clientID, dataURIs[0]);
-    canWipe = ss.canWipe(dataURIs, safeURIs, all);
+    auto& ss             = store(clientID, dataURIs[0]);
+    canWipe              = ss.canWipe(dataURIs, safeURIs, all);
     const auto& elements = ss.wipeElements();
-    
+
     eckit::Buffer wipeBuf(50_KiB * elements.size());
-    eckit::MemoryStream outStream(wipeBuf);    
+    eckit::MemoryStream outStream(wipeBuf);
     outStream << canWipe;
     outStream << elements.size();
     for (const auto& el : elements) {

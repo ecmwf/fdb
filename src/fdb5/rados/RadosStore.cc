@@ -37,7 +37,7 @@ RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& con
 }
 
 RadosStore::RadosStore(const eckit::URI& uri) :
-    Store(), directory_("mars:"+uri.path().dirName()), archivedFields_(0) {}
+    Store(), directory_("mars:" + uri.path().dirName()), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);

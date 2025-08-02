@@ -65,8 +65,6 @@ protected:  // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-    //                          bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void maskIndexEntry(const Index& index) const override;
@@ -83,9 +81,9 @@ protected:  // methods
     bool wipeInit() const override;
     bool wipeIndex(const Index& index, bool include) const override;
     std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe() const override;
+    bool doWipe(bool final) const override;
 
-private: // methods
+private:  // methods
 
     void addMaskedPaths(std::set<eckit::URI>& maskedDataPath) const;
     // void ensureSafePaths() const;
@@ -97,7 +95,6 @@ protected:  // members
 
 private:  // members
 
-    // friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
     // non-owning
@@ -105,14 +102,13 @@ private:  // members
     const RuleDatabase* rule_;
 
     // wipe
-    mutable std::set<eckit::URI> subtocPaths_ = {};
-    mutable std::set<eckit::PathName> lockfilePaths_ = {};
-    mutable std::set<eckit::URI> indexPaths_ = {};
-    mutable std::set<eckit::URI> safePaths_ = {};
-    mutable std::set<eckit::PathName> residualPaths_ = {};
-    mutable std::vector<Index> indexesToMask_ = {};
-
-
+    mutable std::set<eckit::URI> subtocPaths_         = {};
+    mutable std::set<eckit::PathName> lockfilePaths_  = {};
+    mutable std::set<eckit::URI> indexPaths_          = {};
+    mutable std::set<eckit::URI> safePaths_           = {};
+    mutable std::set<eckit::PathName> residualPaths_  = {};
+    mutable std::vector<Index> indexesToMask_         = {};
+    mutable std::set<eckit::PathName> cataloguePaths_ = {};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -120,4 +116,3 @@ private:  // members
 }  // namespace fdb5
 
 #endif
-                                                                                                 

@@ -24,13 +24,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue,
-                                 const metkit::mars::MarsRequest& request,
-                                 eckit::Queue<WipeElement>& queue,
-                                 bool doit,
-                                 bool porcelain,
-                                 bool unsafeWipeAll) :
-    WipeVisitor(catalogue.config(), request, queue, doit, porcelain, unsafeWipeAll), catalogue_(catalogue), dbKvName_("") {}
+DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue, const metkit::mars::MarsRequest& request,
+                                 eckit::Queue<WipeElement>& queue, bool doit, bool porcelain, bool unsafeWipeAll) :
+    WipeVisitor(catalogue.config(), request, queue, doit, porcelain, unsafeWipeAll),
+    catalogue_(catalogue),
+    dbKvName_("") {}
 
 DaosWipeVisitor::~DaosWipeVisitor() {}
 
@@ -121,7 +119,8 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     // for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataURIs)) {
     //     if (include) {
     //         if (!store_.uriBelongs(uri)) {
-    //             Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store."
+    //             Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured
+    //             store."
     //                          << std::endl;
     //             Log::error() << "Configured Store URI: " << store_.uri().asString() << std::endl;
     //             Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
@@ -208,7 +207,7 @@ void DaosWipeVisitor::calculateResidualURIs() {
 
             /// @todo: use multiple stores, as in TocWipeVisitor
 
-            
+
             // if (store_.uriExists(*it)) {
             //     ++it;
             // }
@@ -271,7 +270,7 @@ void DaosWipeVisitor::report(bool wipeAll) {
     // if (wipeAll) {
 
     //     out_ << "DB container to delete:" << std::endl;
-    //     const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue(); 
+    //     const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
     //     out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.containerName()}.URI() << std::endl;
     //     out_ << std::endl;
 
@@ -321,7 +320,6 @@ void DaosWipeVisitor::report(bool wipeAll) {
     //     out_ << "    " << f << std::endl;
     // }
     // out_ << std::endl;
-
 }
 
 void DaosWipeVisitor::wipe(bool wipeAll) {
@@ -441,14 +439,12 @@ void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             // out_ << "Unexpected KVs present in DB container: " << std::endl;
             // for (const auto& n : residualKvNames_) out_ << "    " << n.URI() << std::endl;
             // out_ << std::endl;
-
         }
         if (wipeAll && !residualStoreURIs_.empty()) {
 
             // out_ << "Unexpected store units (store files or arrays) present in store: " << std::endl;
             // for (const auto& u : residualStoreURIs_) out_ << "    " << store_.type() << "://" << u << std::endl;
             // out_ << std::endl;
-
         }
         if (wipeAll && (!residualKvNames_.empty() || !residualStoreURIs_.empty())) {
             if (!unsafeWipeAll_) {

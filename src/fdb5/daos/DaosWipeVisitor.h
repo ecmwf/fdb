@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/database/WipeVisitor.h"
 
 namespace fdb5 {

@@ -172,7 +172,7 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
 bool DaosStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
     return true;
 }
-void DaosStore::doWipe() const {}
+void DaosStore::doWipe(bool final) const {}
 
 void DaosStore::print(std::ostream& out) const {
 

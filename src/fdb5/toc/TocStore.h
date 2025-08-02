@@ -62,7 +62,7 @@ public:  // methods
     void remove(const Key& key) const override;
 
     bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) override;
-    void doWipe() const override;
+    void doWipe(bool final) const override;
 
     // const std::vector<eckit::URI>& deleteURIs() override;
 
@@ -109,6 +109,8 @@ private:  // members
     mutable PathStore dataPaths_;
     size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
+
+    mutable std::set<eckit::URI> storeURIs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

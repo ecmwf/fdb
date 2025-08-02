@@ -49,7 +49,8 @@ void WipeElement::print(std::ostream& out) const {
                 out << "    " << uri.asString() << std::endl;
             }
             out << std::endl;
-        } else {
+        }
+        else {
             out << "    - NONE -" << std::endl;
         }
     }
@@ -78,4 +79,4 @@ void WipeElement::encode(eckit::Stream& s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

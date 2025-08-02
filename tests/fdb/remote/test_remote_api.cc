@@ -94,7 +94,7 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     if (!steps.empty()) {
         req.values("step", steps);
     }
-    
+
     return req;
 }
 

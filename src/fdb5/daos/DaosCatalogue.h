@@ -48,8 +48,6 @@ public:  // methods
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
-    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-    //                          bool doit, bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
@@ -71,7 +69,7 @@ public:  // methods
     bool wipeInit() const override;
     bool wipeIndex(const Index& index, bool include) const override;
     std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe() const override;
+    bool doWipe(bool final) const override;
 
 protected:  // members
 

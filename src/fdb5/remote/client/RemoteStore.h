@@ -145,7 +145,7 @@ public:  // methods
     // bool auxiliaryURIExists(const eckit::URI&) const override;
 
     bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) override;
-    void doWipe() const override;
+    void doWipe(bool final) const override;
 
 protected:  // methods
 

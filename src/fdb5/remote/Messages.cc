@@ -95,6 +95,9 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::WipeElement:
             s << "WipeElement";
             break;
+        case Message::WipeFinal:
+            s << "WipeFinal";
+            break;
 
             // Responses
         case Message::Received:

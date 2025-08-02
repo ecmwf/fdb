@@ -62,7 +62,7 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& con
 
         /// write schema under "schema"
         LOG_DEBUG_LIB(LibFdb5) << "Copy schema from " << config_.schemaPath() << " to "
-                                     << catalogue_kv_name.URI().asString() << " at key 'schema'." << std::endl;
+                               << catalogue_kv_name.URI().asString() << " at key 'schema'." << std::endl;
 
         eckit::FileHandle in(config_.schemaPath());
         std::unique_ptr<eckit::DataHandle> out(catalogue_kv_name.dataHandle("schema"));

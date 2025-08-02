@@ -132,6 +132,7 @@ struct WipeHelper : BaseAPIHelper<fdb5::WipeElement, fdb5::remote::Message::Wipe
     }
 
 private:
+
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;

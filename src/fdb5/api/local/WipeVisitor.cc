@@ -36,10 +36,7 @@ namespace fdb5::api::local {
 
 WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                          bool porcelain, bool unsafeWipeAll) :
-    QueryVisitor<WipeElement>(queue, request),
-    doit_(doit),                                        
-    porcelain_(porcelain),
-    unsafeWipeAll_(unsafeWipeAll) {}
+    QueryVisitor<WipeElement>(queue, request), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
 
 
 bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
@@ -50,7 +47,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
     }
 
     EntryVisitor::visitDatabase(catalogue);
-    
+
     // // Check that we are in a clean state (i.e. we only visit one DB).
     ASSERT(stores_.empty());
     ASSERT(catalogue.wipeElements().empty());
@@ -59,7 +56,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // @todo: Catalogue specific checks
     if (!catalogue.wipeInit()) {
-        for(const auto& el : catalogue.wipeElements()) {
+        for (const auto& el : catalogue.wipeElements()) {
             queue_.push(*el);
         }
 
@@ -92,7 +89,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 void WipeVisitor::storeURI(const eckit::URI& dataURI, bool include) {
 
     auto storeURI = StoreFactory::instance().uri(dataURI);
-    auto storeIt = stores_.find(storeURI);
+    auto storeIt  = stores_.find(storeURI);
     if (storeIt == stores_.end()) {
         auto store = StoreFactory::instance().build(storeURI, currentCatalogue_->config());
         ASSERT(store);
@@ -100,7 +97,8 @@ void WipeVisitor::storeURI(const eckit::URI& dataURI, bool include) {
     }
     if (include) {
         storeIt->second.dataURIs.push_back(dataURI);
-    } else {
+    }
+    else {
         storeIt->second.safeURIs.push_back(dataURI);
     }
 }
@@ -131,7 +129,7 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 
     const auto& catalogueElements = catalogue.wipeElements();
-    bool wipeAll = true;
+    bool wipeAll                  = true;
     for (const auto& el : catalogueElements) {
         if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
             wipeAll = false;
@@ -142,7 +140,8 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     bool canWipe = true;
     for (const auto& [uri, ss] : stores_) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeVisitor::catalogueComplete: contacting store " << *(ss.store) << std::endl
-                               << "  dataURIs: " << ss.dataURIs.size() << ", safeURIs: " << ss.safeURIs.size() << std::endl;
+                               << "  dataURIs: " << ss.dataURIs.size() << ", safeURIs: " << ss.safeURIs.size()
+                               << std::endl;
         for (const auto& dataURI : ss.dataURIs) {
             LOG_DEBUG_LIB(LibFdb5) << "  dataURI: " << dataURI << std::endl;
         }
@@ -154,21 +153,25 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     }
 
     if (doit_) {
-        currentCatalogue_->doWipe();
+        currentCatalogue_->doWipe(false);
         for (const auto& [uri, ss] : stores_) {
-            ss.store->doWipe();
+            ss.store->doWipe(false);
+        }
+        currentCatalogue_->doWipe(true);
+        for (const auto& [uri, ss] : stores_) {
+            ss.store->doWipe(true);
         }
     }
 
     /// gather all the wipe elements from the catalogue and the stores
-    for(const auto& el : catalogueElements) {
+    for (const auto& el : catalogueElements) {
         queue_.push(*el);
     }
 
-    std::map<WipeElementType, std::vector<std::shared_ptr<WipeElement>>> storeElements;    
+    std::map<WipeElementType, std::vector<std::shared_ptr<WipeElement>>> storeElements;
     for (const auto& [uri, ss] : stores_) {
-        for(const auto& el : ss.store->wipeElements()) {
-            auto t = el->type();
+        for (const auto& el : ss.store->wipeElements()) {
+            auto t  = el->type();
             auto it = storeElements.find(t);
             if (it == storeElements.end()) {
                 it = storeElements.emplace(t, std::vector<std::shared_ptr<WipeElement>>{}).first;

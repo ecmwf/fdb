@@ -76,8 +76,6 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const                                           = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const                                     = 0;
-    // virtual WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-    //                                  bool doit, bool porcelain, bool unsafeWipeAll) const            = 0;
     virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                      const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
@@ -108,11 +106,11 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual bool wipeInit() const = 0;
+    virtual bool wipeInit() const                                  = 0;
     virtual bool wipeIndex(const Index& index, bool include) const = 0;
-    virtual std::set<eckit::URI> wipeFinish() const = 0;
-    virtual bool doWipe() const = 0;
-    virtual const WipeElements& wipeElements() const = 0;
+    virtual std::set<eckit::URI> wipeFinish() const                = 0;
+    virtual bool doWipe(bool final) const                          = 0;
+    virtual const WipeElements& wipeElements() const               = 0;
 
 protected:  // methods
 
@@ -193,7 +191,6 @@ public:
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate()                                                                          = 0;
     virtual size_t archivedLocations() const { NOTIMP; }
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -327,10 +324,6 @@ public:
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    // WipeVisitor* wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue, bool doit,
-    //                          bool porcelain, bool unsafeWipeAll) const override {
-    //     NOTIMP;
-    // }
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;

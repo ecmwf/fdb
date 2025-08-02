@@ -39,7 +39,8 @@ class WipeVisitor : public QueryVisitor<WipeElement> {
 
 public:  // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
+    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
+                bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     // bool visitIndexes() override;
@@ -53,7 +54,7 @@ public:  // methods
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
-private: // methods
+private:  // methods
 
     void storeURI(const eckit::URI& dataURI, bool include);
 

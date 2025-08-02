@@ -52,7 +52,7 @@ enum WipeElementType {
 };
 
 class WipeElement {
-public: // methods
+public:  // methods
 
     WipeElement() = default;
     WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri);
@@ -66,11 +66,9 @@ public: // methods
     const std::string& msg() const { return msg_; }
     const std::vector<eckit::URI>& uris() const { return uris_; }
 
-    void add(const eckit::URI& uri) {
-        uris_.push_back(uri);
-    }
+    void add(const eckit::URI& uri) { uris_.push_back(uri); }
 
-private: // methods
+private:  // methods
 
     void encode(eckit::Stream& s) const;
 
@@ -84,7 +82,7 @@ private: // methods
         return s;
     }
 
-private: // members
+private:  // members
 
     WipeElementType type_;
     std::string msg_;
@@ -93,9 +91,9 @@ private: // members
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
-using WipeIterator = APIIterator<WipeElement>;
+using WipeIterator          = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
+using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -48,6 +48,7 @@ private:  // methods
     void wipe(const uint32_t clientID, const uint32_t requestID);
     void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void wipeElements(const uint32_t clientID, const uint32_t requestID);
+    void wipeFinal(const uint32_t clientID, const uint32_t requestID);
 
     Store& store(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);

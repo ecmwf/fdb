@@ -102,11 +102,6 @@ void DaosCatalogue::loadSchema() {
     rule_ = &schema_.matchingRule(dbKey_);
 }
 
-// WipeVisitor* DaosCatalogue::wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-//                                         bool doit, bool porcelain, bool unsafeWipeAll) const {
-//     return new DaosWipeVisitor(*this, request, queue, doit, porcelain, unsafeWipeAll);
-// }
-
 std::vector<Index> DaosCatalogue::indexes(bool) const {
 
     /// @note: sorted is not implemented as is not necessary in this backend.
@@ -180,10 +175,18 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 }
 
 
-bool DaosCatalogue::wipeInit() const { return true; }
-bool DaosCatalogue::wipeIndex(const Index& index, bool include) const { return true; }
-std::set<eckit::URI> DaosCatalogue::wipeFinish() const { return {}; }
-bool DaosCatalogue::doWipe() const { return true; }
+bool DaosCatalogue::wipeInit() const {
+    return true;
+}
+bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
+    return true;
+}
+std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
+    return {};
+}
+bool DaosCatalogue::doWipe(bool final) const {
+    return true;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -17,7 +17,6 @@
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
-// #include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -92,11 +91,6 @@ PurgeVisitor* TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-// WipeVisitor* TocCatalogue::wipeVisitor(const metkit::mars::MarsRequest& request, eckit::Queue<WipeElement>& queue,
-//                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
-//     return new TocWipeVisitor(*this, request, queue, /*out,*/ doit, porcelain, unsafeWipeAll);
-// }
-
 MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                        const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     return new TocMoveVisitor(*this, store, request, dest, queue);
@@ -147,7 +141,7 @@ bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
 }
 
 
-bool TocCatalogue::wipeInit() const { 
+bool TocCatalogue::wipeInit() const {
 
     ASSERT(subtocPaths_.empty());
     ASSERT(lockfilePaths_.empty());
@@ -176,7 +170,7 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include) const {
         // they will be masked out but the file not deleted.
         safePaths_.insert(locationURI);
     }
-    
+
     return include;
 }
 
@@ -215,7 +209,8 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
 
     std::stringstream ss;
     ss << "FDB owner: " << owner();
-    wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::vector<eckit::URI>{}));
+    wipeElements_.push_back(
+        std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::vector<eckit::URI>{}));
 
     if (wipeAll) {
         addMaskedPaths(maskedDataPaths_);
@@ -228,7 +223,8 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
         for (const auto& sub : subTocPaths()) {
             catalogueURIs.emplace_back(sub);
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Toc files to delete:", std::move(catalogueURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
+                                                              "Toc files to delete:", std::move(catalogueURIs)));
 
 
         // schema, lockfiles
@@ -238,7 +234,8 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
         for (const auto& lck : lockfilePaths()) {
             auxURIs.emplace_back(lck);
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX, "Control files to delete:", std::move(auxURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
+                                                              "Control files to delete:", std::move(auxURIs)));
     }
     else {
         // Ensure we _really_ don't delete these if not wiping everything
@@ -253,7 +250,8 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
         for (const auto& p : safePaths_) {
             safeURIs.push_back(p);
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(
+            WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
     }
 
     // Add index paths to be removed
@@ -261,35 +259,40 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
     for (const auto& i : indexPaths_) {
         indexURIs.push_back(i);
     }
-    wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
+    wipeElements_.push_back(
+        std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
 
     return maskedDataPaths_;
 }
 
-bool TocCatalogue::doWipe() const {
-    bool wipeAll = true;
-    for(const auto& el : wipeElements_) {
-        if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
-            wipeAll = false;
+bool TocCatalogue::doWipe(bool final) const {
+    if (final) {
+        bool wipeAll = true;
+        for (const auto& el : wipeElements_) {
+            if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
+                wipeAll = false;
+            }
         }
-    }
 
-    std::set<eckit::PathName> cataloguePaths;
-    for (const auto& el : wipeElements_) {
-        auto type = el->type();
-        if (type == WipeElementType::WIPE_CATALOGUE || type == WipeElementType::WIPE_CATALOGUE_AUX) {
-            for (const auto& uri : el->uris()) {
-                if (wipeAll) {
-                    cataloguePaths.insert(uri.path().dirName());
+        for (const auto& el : wipeElements_) {
+            auto type = el->type();
+            if (type == WipeElementType::WIPE_CATALOGUE || type == WipeElementType::WIPE_CATALOGUE_AUX) {
+                for (const auto& uri : el->uris()) {
+                    if (wipeAll) {
+                        cataloguePaths_.insert(uri.path().dirName());
+                    }
+                    remove(uri.path(), std::cout, std::cout, true);
                 }
-                remove(uri.path(), std::cout, std::cout, true);
             }
         }
     }
-
-
-    for (const auto& path : cataloguePaths) {
-        remove(path, std::cout, std::cout, true);
+    else {
+        for (const auto& path : cataloguePaths_) {
+            if (path.exists()) {
+                remove(path, std::cout, std::cout, true);
+            }
+        }
+        cataloguePaths_.clear();
     }
     return true;
 }

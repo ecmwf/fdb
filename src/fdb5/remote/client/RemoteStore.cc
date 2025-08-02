@@ -219,8 +219,7 @@ Client::EndpointList storeEndpoints(const Config& config) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)), dbKey_(dbKey) {}
+RemoteStore::RemoteStore(const Key& dbKey, const Config& config) : Client(storeEndpoints(config)), dbKey_(dbKey) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config&) :
@@ -493,11 +492,21 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
 }
 
 // low-level methods for wipe/purge
-bool RemoteStore::uriBelongs(const eckit::URI&) const { NOTIMP; }
-bool RemoteStore::uriExists(const eckit::URI&) const { NOTIMP; }
-std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const { NOTIMP; }
-std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const { NOTIMP; }
-std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const { NOTIMP; }
+bool RemoteStore::uriBelongs(const eckit::URI&) const {
+    NOTIMP;
+}
+bool RemoteStore::uriExists(const eckit::URI&) const {
+    NOTIMP;
+}
+std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+    NOTIMP;
+}
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
+    NOTIMP;
+}
+std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
+    NOTIMP;
+}
 
 // high-level API for wipe/purge
 bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
@@ -518,8 +527,8 @@ bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector
     return result;
 }
 
-void RemoteStore::doWipe() const {
-    controlWriteCheckResponse(Message::Wipe, generateRequestID(), true);
+void RemoteStore::doWipe(bool final) const {
+    controlWriteCheckResponse(final ? Message::WipeFinal : Message::Wipe, generateRequestID(), true);
 }
 
 const WipeElements& RemoteStore::wipeElements() const {
@@ -539,11 +548,11 @@ const WipeElements& RemoteStore::wipeElements() const {
     return wipeElements_;
 }
 
- 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static StoreBuilder<RemoteStore> builder(RemoteStore::typeName(), {RemoteStore::typeName(), RemoteFieldLocation::typeName()});
+static StoreBuilder<RemoteStore> builder(RemoteStore::typeName(),
+                                         {RemoteStore::typeName(), RemoteFieldLocation::typeName()});
 
 //----------------------------------------------------------------------------------------------------------------------
 

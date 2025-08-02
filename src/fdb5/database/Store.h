@@ -75,11 +75,12 @@ public:
 
     // executed for each index
     virtual bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) = 0;
-    virtual void doWipe() const = 0;
+    virtual void doWipe(bool final) const                                                                        = 0;
 
     virtual const WipeElements& wipeElements() const { return wipeElements_; }
 
 protected:
+
     mutable WipeElements wipeElements_;
 };
 
@@ -93,9 +94,9 @@ public:
 
     StoreBuilderBase(const std::string&, const std::vector<std::string>&);
     virtual ~StoreBuilderBase();
-    virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const Key& key, const Config& config)        = 0;
     virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
-    virtual eckit::URI uri(const eckit::URI& dataURI) = 0;
+    virtual eckit::URI uri(const eckit::URI& dataURI)                                = 0;
 };
 
 template <class T>
@@ -106,9 +107,8 @@ class StoreBuilder : public StoreBuilderBase {
     std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override {
         return std::unique_ptr<T>(new T(uri, config));
     }
-    eckit::URI uri(const eckit::URI& dataURI) override {
-        return T::uri(dataURI);
-    }
+    eckit::URI uri(const eckit::URI& dataURI) override { return T::uri(dataURI); }
+
 public:
 
     StoreBuilder(const std::string& name) : StoreBuilderBase(name, {name}) {}
