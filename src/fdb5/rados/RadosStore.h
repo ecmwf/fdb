@@ -46,7 +46,6 @@ public:  // methods
 protected:  // methods
 
     std::string type() const override { return "rados"; }
-
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;

@@ -65,7 +65,7 @@ public:
     virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex()                = 0;
 
-    virtual std::vector<eckit::PathName> metadataPaths() const = 0;
+    // virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
     virtual void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
@@ -109,10 +109,10 @@ public:
     virtual eckit::URI uri() const = 0;
 
     virtual bool wipeInit() const = 0;
-    virtual bool wipe(const Index& index, bool include) const = 0;
-    virtual bool wipeFinish() const = 0;
-    virtual bool doWipe() = 0;
-    virtual const WipeElementMap& wipeElements() const = 0;
+    virtual bool wipeIndex(const Index& index, bool include) const = 0;
+    virtual std::set<eckit::URI> wipeFinish() const = 0;
+    virtual bool doWipe() const = 0;
+    virtual const WipeElements& wipeElements() const = 0;
 
 protected:  // methods
 
@@ -137,7 +137,7 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    const WipeElementMap& wipeElements() const override { return wipeElements_; }
+    const WipeElements& wipeElements() const override { return wipeElements_; }
 
 protected:  // methods
 
@@ -148,7 +148,7 @@ protected:  // members
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
-    WipeElementMap wipeElements_;
+    mutable WipeElements wipeElements_;
 };
 
 typedef eckit::DenseSet<std::string> Axis;
@@ -315,7 +315,7 @@ public:
     bool selectIndex(const Key& idxKey) override { NOTIMP; }
     void deselectIndex() override { NOTIMP; }
 
-    std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }
+    // std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }
 
     void hideContents() override { NOTIMP; }
 

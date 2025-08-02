@@ -48,8 +48,8 @@ public:  // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
     // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
-    bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
-    void doWipe() override;
+    bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) override;
+    void doWipe() const override;
 
 protected: // methods
 

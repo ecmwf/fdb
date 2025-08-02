@@ -92,6 +92,9 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Exists:
             s << "Exists";
             break;
+        case Message::WipeElement:
+            s << "WipeElement";
+            break;
 
             // Responses
         case Message::Received:

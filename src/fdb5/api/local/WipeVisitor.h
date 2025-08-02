@@ -28,6 +28,13 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct StoreURIs {
+    std::unique_ptr<Store> store;
+    std::vector<eckit::URI> dataURIs;
+    std::vector<eckit::URI> safeURIs;
+};
+//----------------------------------------------------------------------------------------------------------------------
+
 class WipeVisitor : public QueryVisitor<WipeElement> {
 
 public:  // methods
@@ -48,7 +55,7 @@ public:  // methods
 
 private: // methods
 
-    void WipeVisitor::storeURI(const eckit::URI& dataURI);
+    void storeURI(const eckit::URI& dataURI, bool include);
 
 private:  // members
 
@@ -58,10 +65,9 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    std::map<eckit::URI, std::unique_ptr<Store>> stores_;
-    std::map<eckit::URI, std::vector<eckit::URI>> dataURIbyStore_;
-    WipeElements catalogueWipeElements_;
-    WipeElements storeWipeElements_;
+    std::map<eckit::URI, StoreURIs> stores_;
+    // WipeElements catalogueWipeElements_;
+    // WipeElements storeWipeElements_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

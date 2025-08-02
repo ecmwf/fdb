@@ -47,6 +47,7 @@ enum WipeElementType {
     WIPE_STORE_INFO,
     WIPE_STORE_URI,
     WIPE_STORE,
+    WIPE_STORE_SAFE,
     WIPE_STORE_AUX,
 };
 
@@ -55,7 +56,7 @@ public: // methods
 
     WipeElement() = default;
     WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri);
-    WipeElement(WipeElementType type, const std::string& msg, const std::vector<eckit::URI>& uris);
+    WipeElement(WipeElementType type, const std::string& msg, std::vector<eckit::URI>&& uris);
     explicit WipeElement(eckit::Stream& s);
 
     void print(std::ostream& out) const;
@@ -64,6 +65,10 @@ public: // methods
     WipeElementType type() const { return type_; }
     const std::string& msg() const { return msg_; }
     const std::vector<eckit::URI>& uris() const { return uris_; }
+
+    void add(const eckit::URI& uri) {
+        uris_.push_back(uri);
+    }
 
 private: // methods
 
@@ -86,8 +91,7 @@ private: // members
     std::vector<eckit::URI> uris_;
 };
 
-using WipeElementMap = std::map<WipeElementType, std::pair<std::string, std::vector<eckit::URI>>>;
-using WipeElements = std::map<WipeElementType, std::vector<WipeElement>>;
+using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
 using WipeIterator = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;

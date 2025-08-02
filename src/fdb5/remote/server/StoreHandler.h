@@ -46,12 +46,12 @@ private:  // methods
     bool remove(bool control, uint32_t clientID) override;
 
     void wipe(const uint32_t clientID, const uint32_t requestID);
-
     void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void wipeElements(const uint32_t clientID, const uint32_t requestID);
 
     Store& store(uint32_t clientID);
-
     Store& store(uint32_t clientID, const Key& dbKey);
+    Store& store(uint32_t clientID, const eckit::URI& uri);
 
 private:  // members
 
@@ -65,6 +65,9 @@ private:  // members
 struct StoreHandler::StoreHelper {
     StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
         dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
+
+    StoreHelper(bool dataConnection, const eckit::URI& uri, const Config& config) :
+        dataConnection(dataConnection), store(StoreFactory::instance().build(uri, config)) {}
 
     bool controlConnection{true};
     bool dataConnection{false};

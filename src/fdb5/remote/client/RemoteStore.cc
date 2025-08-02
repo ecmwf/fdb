@@ -500,13 +500,14 @@ std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::
 std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const { NOTIMP; }
 
 // high-level API for wipe/purge
-bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
+bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
 
     bool result = false;
 
-    eckit::Buffer sendBuf(1_KiB * uris.size());
+    eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
     eckit::MemoryStream sms(sendBuf);
     sms << uris;
+    sms << safeURIs;
     sms << all;
 
     auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
@@ -517,13 +518,32 @@ bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
     return result;
 }
 
-void RemoteStore::doWipe() {
+void RemoteStore::doWipe() const {
     controlWriteCheckResponse(Message::Wipe, generateRequestID(), true);
 }
 
+const WipeElements& RemoteStore::wipeElements() const {
+    wipeElements_.clear();
+
+    auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
+
+    size_t size;
+    eckit::MemoryStream ms(recvBuf);
+    ms >> size;
+
+    wipeElements_.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+        wipeElements_.push_back(std::make_shared<WipeElement>(ms));
+    }
+
+    return wipeElements_;
+}
+
+ 
+
 //----------------------------------------------------------------------------------------------------------------------
 
-static StoreBuilder<RemoteStore> builder(RemoteStore::typeName());
+static StoreBuilder<RemoteStore> builder(RemoteStore::typeName(), {RemoteStore::typeName(), RemoteFieldLocation::typeName()});
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -42,7 +42,7 @@ public:  // methods
     void checkUID() const override { NOTIMP; };
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
-    std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
+    // std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;
     const Rule& rule() const override;
 
@@ -69,9 +69,9 @@ public:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
 
     bool wipeInit() const override;
-    bool wipe(const Index& index, bool include) const override;
-    bool wipeFinish() const override;
-    bool doWipe() override;
+    bool wipeIndex(const Index& index, bool include) const override;
+    std::set<eckit::URI> wipeFinish() const override;
+    bool doWipe() const override;
 
 protected:  // members
 

@@ -54,7 +54,7 @@ StoreFactory& StoreFactory::instance() {
     return theOne;
 }
 
-void StoreFactory::add(const std::string& name, StoreBuilderBase* builder) {
+void StoreFactory::add(const std::string& name, const std::vector<std::string>& sceme, StoreBuilderBase* builder) {
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -62,6 +62,9 @@ void StoreFactory::add(const std::string& name, StoreBuilderBase* builder) {
         throw eckit::SeriousBug("Duplicate entry in StoreFactory: " + nameLowercase, Here());
     }
     builders_[nameLowercase] = builder;
+    for (const auto& s : sceme) {
+        fieldLocationStoreMapping_[s] = nameLowercase;
+    }
 }
 
 void StoreFactory::remove(const std::string& name) {
@@ -106,22 +109,38 @@ StoreBuilderBase& StoreFactory::find(const std::string& name) {
     return *(j->second);
 }
 
+StoreBuilderBase& StoreFactory::findScheme(const std::string& scheme) {
+    std::string schemeLowercase = eckit::StringTools::lower(scheme);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    auto it = fieldLocationStoreMapping_.find(schemeLowercase);
+    if (it == fieldLocationStoreMapping_.end()) {
+        eckit::Log::error() << "No StoreBuilder for scheme [" << schemeLowercase << "]" << std::endl;
+        throw eckit::SeriousBug(std::string("No StoreBuilder for scheme ") + schemeLowercase);
+    }
+
+    auto j = builders_.find(it->second);
+    ASSERT(j != builders_.end());
+
+    return *(j->second);
+}
+
 std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
     return find(config.getString("store", "file")).make(key, config);
 }
 
 std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& config) {
-    return find(uri.scheme()).make(uri, config);
+    return findScheme(uri.scheme()).make(uri, config);
 }
 
 eckit::URI StoreFactory::uri(const eckit::URI& dataURI) {
-    return find(dataURI.scheme()).uri(dataURI);
+    return findScheme(dataURI.scheme()).uri(dataURI);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
-    StoreFactory::instance().add(name_, this);
+StoreBuilderBase::StoreBuilderBase(const std::string& name, const std::vector<std::string>& scheme) : name_(name) {
+    StoreFactory::instance().add(name_, scheme, this);
 }
 
 StoreBuilderBase::~StoreBuilderBase() {

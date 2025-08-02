@@ -55,9 +55,6 @@ TocStore::TocStore(const eckit::URI& uri, const Config& config) :
     Store(), TocCommon(directory(uri.path())), archivedFields_(0),
     auxFileExtensions_{auxFileExtensions()} {}
 
-    //     std::cout << "TocStore::TocStore(uri, config) called with URI: " << uri << std::endl;
-    // }
-
 eckit::URI TocStore::uri() const {
     return URI(type(), directory_);
 }
@@ -387,12 +384,11 @@ void TocStore::remove(const Key& key) const {
     closedir(dirp);
 }
 
-bool TocStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
+bool TocStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
 
-    std::cout << "TocStore::canWipe - store: " << uri() << " - data: " << std::endl;
-    for (const eckit::URI& uri : uris) {
-        std::cout << "    " << uri << std::endl;
-    }
+    std::vector<eckit::URI> dataURIs;
+    std::vector<eckit::URI> auxURIs;
+    std::vector<eckit::URI> safeDataURIs;
 
     for (const eckit::URI& uri : asCollocatedDataURIs(uris)) {
         if (!uriBelongs(uri)) {
@@ -404,13 +400,7 @@ bool TocStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
                             << std::endl;
             return false;
         }
-        auto it = wipeElements_.find(WipeElementType::WIPE_STORE);
-        if (it == wipeElements_.end()) {
-            auto [newIt, success] = wipeElements_.emplace(WipeElementType::WIPE_STORE, std::make_pair("", std::vector<eckit::URI>{}));
-            ASSERT(success);
-            it = newIt;
-        }
-        it->second.second.push_back(uri);
+        dataURIs.push_back(uri);
 
 /// @todo check if the URI exists
 
@@ -429,30 +419,46 @@ bool TocStore::canWipe(const std::vector<eckit::URI>& uris, bool all) {
 
 // }
 
-        auto auxURIs = getAuxiliaryURIs(uri, true);
-
-        it = wipeElements_.find(WipeElementType::WIPE_STORE_AUX);
-        if (it == wipeElements_.end()) {
-            auto [newIt, success] = wipeElements_.emplace(WipeElementType::WIPE_STORE_AUX, std::make_pair("", std::vector<eckit::URI>{}));
-            ASSERT(success);
-            it = newIt;
-        }
-        for (const auto& auxURI : auxURIs) {
-            it->second.second.push_back(auxURI);
+        for (const auto& au: getAuxiliaryURIs(uri, true)) {
+            auxURIs.push_back(au);
         }
     }
 
+    if (!dataURIs.empty()) {
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE, "Data files to delete:", std::move(dataURIs)));
+    }
+    if (!safeDataURIs.empty()) {
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_SAFE, "Protected data files (explicitly untouched)::", std::move(safeDataURIs)));
+    }
+    if (!auxURIs.empty()) {
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX, "Auxiliary files to delete:", std::move(auxURIs)));
+    }
     return true;
 }
 
-void TocStore::doWipe() {
+void TocStore::doWipe() const {
+    bool wipeAll = true;
+    for(const auto& el : wipeElements_) {
+        if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
+            wipeAll = false;
+        }
+    }
 
-    for (const auto& [type, el] : wipeElements_) {
+    std::set<eckit::URI> storeURIs;
+    for (const auto& el : wipeElements_) {
+        auto type = el->type();
         if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-            for (const auto& uri : el.second) {
+            for (const auto& uri : el->uris()) {
+                if (wipeAll) {
+                    storeURIs.emplace(uri.scheme(), uri.path().dirName());
+                }
                 remove(uri, std::cout, std::cout, true);
             }
         }
+    }
+
+    for (const auto& uri : storeURIs) {
+        remove(uri, std::cout, std::cout, true);
     }
 }
 

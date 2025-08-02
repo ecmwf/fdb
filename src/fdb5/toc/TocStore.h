@@ -61,8 +61,8 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
-    void doWipe() override;
+    bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) override;
+    void doWipe() const override;
 
     // const std::vector<eckit::URI>& deleteURIs() override;
 
@@ -72,7 +72,6 @@ public:  // methods
 protected:  // methods
 
     std::string type() const override { return "file"; }
-
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;

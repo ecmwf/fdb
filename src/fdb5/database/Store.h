@@ -74,13 +74,13 @@ public:
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
     // executed for each index
-    virtual bool canWipe(const std::vector<eckit::URI>& uris, bool all) = 0;
-    virtual void doWipe() = 0;
+    virtual bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) = 0;
+    virtual void doWipe() const = 0;
 
-    const WipeElementMap& wipeElements() const { return wipeElements_; }
+    virtual const WipeElements& wipeElements() const { return wipeElements_; }
 
 protected:
-    WipeElementMap wipeElements_;
+    mutable WipeElements wipeElements_;
 };
 
 
@@ -91,7 +91,7 @@ class StoreBuilderBase {
 
 public:
 
-    StoreBuilderBase(const std::string&);
+    StoreBuilderBase(const std::string&, const std::vector<std::string>&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
     virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
@@ -111,7 +111,8 @@ class StoreBuilder : public StoreBuilderBase {
     }
 public:
 
-    StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
+    StoreBuilder(const std::string& name) : StoreBuilderBase(name, {name}) {}
+    StoreBuilder(const std::string& name, const std::vector<std::string>& scheme) : StoreBuilderBase(name, scheme) {}
     virtual ~StoreBuilder() = default;
 };
 
@@ -120,7 +121,7 @@ public:
 
     static StoreFactory& instance();
 
-    void add(const std::string& name, StoreBuilderBase* builder);
+    void add(const std::string& name, const std::vector<std::string>& scheme, StoreBuilderBase* builder);
     void remove(const std::string& name);
 
     bool has(const std::string& name);
@@ -143,9 +144,12 @@ private:
     StoreFactory();
 
     StoreBuilderBase& find(const std::string& name);
+    StoreBuilderBase& findScheme(const std::string& scheme);
 
     std::map<std::string, StoreBuilderBase*> builders_;
     eckit::Mutex mutex_;
+
+    std::map<std::string, std::string> fieldLocationStoreMapping_;
 };
 
 }  // namespace fdb5

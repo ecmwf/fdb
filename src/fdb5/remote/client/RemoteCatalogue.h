@@ -53,7 +53,7 @@ public:  // methods
     const Schema& schema() const override;
     const Rule& rule() const override;
 
-    std::vector<eckit::PathName> metadataPaths() const override;
+    // std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void dump(std::ostream& out, bool simple = false,
               const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
@@ -81,9 +81,9 @@ public:  // methods
 
     // we only forward the high-level wipe request to the server
     bool wipeInit() const override { NOTIMP; }
-    bool wipe(const Index&, bool) const override { NOTIMP; }
-    bool wipeFinish() const override { NOTIMP; }
-    bool doWipe() override { NOTIMP; }
+    bool wipeIndex(const Index&, bool) const override { NOTIMP; }
+    std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
+    bool doWipe() const override { NOTIMP; }
 
 protected:
 

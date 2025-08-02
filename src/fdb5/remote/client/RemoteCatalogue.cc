@@ -206,9 +206,9 @@ void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset
 void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
-std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-    NOTIMP;
-}
+// std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
+//     NOTIMP;
+// }
 void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     NOTIMP;
 }

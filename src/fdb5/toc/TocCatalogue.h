@@ -59,7 +59,7 @@ protected:  // methods
     void checkUID() const override;
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
-    std::vector<eckit::PathName> metadataPaths() const override;
+    // std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
     const Rule& rule() const override;
 
@@ -81,16 +81,15 @@ protected:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     bool wipeInit() const override;
-    bool wipe(const Index& index, bool include) const override;
-    bool wipeFinish() const override;
-    bool doWipe() override;
+    bool wipeIndex(const Index& index, bool include) const override;
+    std::set<eckit::URI> wipeFinish() const override;
+    bool doWipe() const override;
 
 private: // methods
 
-    std::set<eckit::URI> addMaskedPaths();
-    void addMetadataPaths();
-    void ensureSafePaths();
-    void calculateResidualPaths();
+    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath) const;
+    // void ensureSafePaths() const;
+    // void calculateResidualPaths() const;
 
 protected:  // members
 
@@ -106,12 +105,12 @@ private:  // members
     const RuleDatabase* rule_;
 
     // wipe
-    mutable std::set<eckit::PathName> subtocPaths_;
-    mutable std::set<eckit::PathName> lockfilePaths_;
-    mutable std::set<eckit::PathName> indexPaths_;
-    mutable std::set<eckit::PathName> safePaths_;
-    mutable std::set<eckit::PathName> residualPaths_;
-    mutable std::vector<Index> indexesToMask_;
+    mutable std::set<eckit::URI> subtocPaths_ = {};
+    mutable std::set<eckit::PathName> lockfilePaths_ = {};
+    mutable std::set<eckit::URI> indexPaths_ = {};
+    mutable std::set<eckit::URI> safePaths_ = {};
+    mutable std::set<eckit::PathName> residualPaths_ = {};
+    mutable std::vector<Index> indexesToMask_ = {};
 
 
 };
@@ -121,3 +120,4 @@ private:  // members
 }  // namespace fdb5
 
 #endif
+                                                                                                 

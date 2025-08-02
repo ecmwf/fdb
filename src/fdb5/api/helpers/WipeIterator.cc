@@ -19,8 +19,8 @@ namespace fdb5 {
 WipeElement::WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri) :
     type_(type), msg_(msg), uris_({uri}) {}
 
-WipeElement::WipeElement(WipeElementType type, const std::string& msg, const std::vector<eckit::URI>& uris) :
-    type_(type), msg_(msg), uris_(uris) {}
+WipeElement::WipeElement(WipeElementType type, const std::string& msg, std::vector<eckit::URI>&& uris) :
+    type_(type), msg_(msg), uris_(std::move(uris)) {}
 
 WipeElement::WipeElement(eckit::Stream& s) {
     unsigned char t;

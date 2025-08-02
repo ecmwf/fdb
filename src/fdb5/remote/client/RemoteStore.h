@@ -108,8 +108,6 @@ public:  // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
-    static const char* typeName() { return "fdb"; }
-
 public:  // methods
 
     RemoteStore(const Key& key, const Config& config);
@@ -119,6 +117,7 @@ public:  // methods
 
     static RemoteStore& get(const eckit::URI& uri);
 
+    static const char* typeName() { return "remote"; }
     eckit::URI uri() const override;
     static eckit::URI uri(const eckit::URI& dataURI);
 
@@ -145,8 +144,8 @@ public:  // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     // bool auxiliaryURIExists(const eckit::URI&) const override;
 
-    bool canWipe(const std::vector<eckit::URI>& uris, bool all) override;
-    void doWipe() override;
+    bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) override;
+    void doWipe() const override;
 
 protected:  // methods
 
@@ -159,6 +158,7 @@ protected:  // methods
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
+    const WipeElements& wipeElements() const override;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;

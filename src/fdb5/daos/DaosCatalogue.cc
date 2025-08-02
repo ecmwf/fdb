@@ -181,9 +181,9 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 
 
 bool DaosCatalogue::wipeInit() const { return true; }
-bool DaosCatalogue::wipe(const Index& index, bool include) const { return true; }
-bool DaosCatalogue::wipeFinish() const { return true; }
-bool DaosCatalogue::doWipe() { return true; }
+bool DaosCatalogue::wipeIndex(const Index& index, bool include) const { return true; }
+std::set<eckit::URI> DaosCatalogue::wipeFinish() const { return {}; }
+bool DaosCatalogue::doWipe() const { return true; }
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -608,9 +608,9 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         if (wipeAll && !residualURIs_.empty()) {
 
 
-            std::cout << "TO CHANGE " << "Unexpected files present in directory: " << std::endl;
-            for (const auto& u : residualURIs_) std::cout << "TO CHANGE " << "    " << u << std::endl;
-            std::cout << "TO CHANGE " << std::endl;
+            // std::cout << "TO CHANGE " << "Unexpected files present in directory: " << std::endl;
+            // for (const auto& u : residualURIs_) std::cout << "TO CHANGE " << "    " << u << std::endl;
+            // std::cout << "TO CHANGE " << std::endl;
 
 
         //     std::cout << "TO CHANGE "  << "Unexpected store units present in store: " << std::endl;

@@ -15,6 +15,11 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
+
+#include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/types/Types.h"
 
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -49,6 +54,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Wipe:  // request to do the actual wipe
                 wipe(clientID, requestID);
                 return Handled::Yes;
+
+            case Message::WipeElement:  // request to do the actual wipe
+                wipeElements(clientID, requestID);
+                return Handled::Replied;
 
             default: {
                 std::stringstream ss;
@@ -88,7 +97,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
             case Message::Wipe:  // notification that the client is starting to send data location for read
                 wipe(clientID, requestID, payload);
-                return Handled::Yes;
+                return Handled::Replied;
 
             default: {
                 std::stringstream ss;
@@ -270,6 +279,10 @@ Store& StoreHandler::store(uint32_t clientID) {
     if (it == stores_.end()) {
         std::string what("Requested Store has not been loaded id: " + std::to_string(clientID));
         Log::error() << what << std::endl;
+        Log::error() << stores_.size() << " existing stores:" << std::endl;
+        for (const auto& kv : stores_) {
+            Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
+        }
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw;
     }
@@ -290,6 +303,21 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
         numDataConnection_++;
     }
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
+}
+
+Store& StoreHandler::store(uint32_t clientID, const eckit::URI& uri) {
+
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = stores_.find(clientID);
+    if (it != stores_.end()) {
+        return *(it->second.store);
+    }
+
+    numControlConnection_++;
+    if (!single_) {
+        numDataConnection_++;
+    }
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
 }
 
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
@@ -314,6 +342,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
 void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
 
     auto& ss = store(clientID);
+
     auto out = ss.wipeElements();
     if (out.empty()) {
         std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
@@ -322,7 +351,21 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
         return;
     }
 
-    write(Message::Received, true, clientID, requestID);
+    ss.doWipe();
+}
+
+void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
+    auto& ss = store(clientID);
+    const auto& elements = ss.wipeElements();
+    
+    eckit::Buffer wipeBuf(50_KiB * elements.size());
+    eckit::MemoryStream outStream(wipeBuf);    
+    outStream << elements.size();
+    for (const auto& el : elements) {
+        outStream << *el;
+    }
+
+    write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
 }
 
 void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
@@ -330,24 +373,42 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     ASSERT(payload.size() > 0);
 
     std::vector<eckit::URI> uris;
+    std::vector<eckit::URI> urisafe;
     bool all = false;
     bool canWipe = false;
 
-    eckit::MemoryStream inStream(payload);
+    eckit::MemoryStream inStream(payload); 
     inStream >> uris;
+    inStream >> urisafe;
     inStream >> all;
-    auto& ss = store(clientID);
-    canWipe = ss.canWipe(uris, all);
+
+    std::vector<eckit::URI> dataURIs;
+    dataURIs.reserve(uris.size());
+    std::vector<eckit::URI> safeURIs;
+    safeURIs.reserve(urisafe.size());
+    
+    for (const auto& uri : uris) {
+        dataURIs.push_back(RemoteFieldLocation::internalURI(uri));
+    }
+    for (const auto& uri : urisafe) {
+        safeURIs.push_back(RemoteFieldLocation::internalURI(uri));
+    }
+
+    if (dataURIs.empty()) {
+        error("Wipe request has no data URIs", clientID, requestID);
+        return;
+    }
+
+    auto& ss = store(clientID, dataURIs[0]);
+    canWipe = ss.canWipe(dataURIs, safeURIs, all);
     const auto& elements = ss.wipeElements();
     
     eckit::Buffer wipeBuf(50_KiB * elements.size());
     eckit::MemoryStream outStream(wipeBuf);    
     outStream << canWipe;
     outStream << elements.size();
-    for (const auto& [type, el] : elements) {
-        outStream << type;
-        outStream << el.first;
-        outStream << el.second;
+    for (const auto& el : elements) {
+        outStream << *el;
     }
 
     write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());

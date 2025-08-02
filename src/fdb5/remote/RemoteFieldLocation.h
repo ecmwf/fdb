@@ -38,10 +38,13 @@ public:
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
+    static const char* typeName() { return "fdb"; }
+
     eckit::DataHandle* dataHandle() const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
     void visit(FieldLocationVisitor& visitor) const override;
+    static eckit::URI internalURI(const eckit::URI& uri);
 
 public:  // For Streamable
 
