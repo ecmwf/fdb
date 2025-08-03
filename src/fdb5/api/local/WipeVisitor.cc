@@ -41,12 +41,12 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::M
 
 bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
+    EntryVisitor::visitDatabase(catalogue);
+
     // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
-
-    EntryVisitor::visitDatabase(catalogue);
 
     // // Check that we are in a clean state (i.e. we only visit one DB).
     ASSERT(stores_.empty());
@@ -104,6 +104,8 @@ void WipeVisitor::storeURI(const eckit::URI& dataURI, bool include) {
 }
 
 bool WipeVisitor::visitIndex(const Index& index) {
+
+    EntryVisitor::visitIndex(index);
 
     // Is this index matched by the supplied request?
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
@@ -181,19 +183,11 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         }
     }
 
-    // auto& dataURI = currentCatalogue_->wipeFinish();
-    // for (const auto& uri : dataURI) {
-    //     storeURI(uri);
-    // }
+    stores_.clear();
 
     EntryVisitor::catalogueComplete(catalogue);
-    queue_.close();
 }
 
-// bool WipeVisitor::visitIndexes() {
-//     ASSERT(internalVisitor_);
-//     return internalVisitor_->visitIndexes();
-// }
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::api::local

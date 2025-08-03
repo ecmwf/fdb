@@ -43,7 +43,6 @@ public:  // methods
                 bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
-    // bool visitIndexes() override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
@@ -67,8 +66,6 @@ private:  // members
     metkit::mars::MarsRequest indexRequest_;
 
     std::map<eckit::URI, StoreURIs> stores_;
-    // WipeElements catalogueWipeElements_;
-    // WipeElements storeWipeElements_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

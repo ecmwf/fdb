@@ -41,6 +41,8 @@ struct RequestInfo {
 class ReadLimiter : eckit::NonCopyable {
 public:
 
+    static bool isInitialised();
+
     static ReadLimiter& instance();
 
     static void init(size_t memoryLimit);

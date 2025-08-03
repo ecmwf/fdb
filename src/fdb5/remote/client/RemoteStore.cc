@@ -237,7 +237,9 @@ RemoteStore::~RemoteStore() {
         eckit::Main::instance().terminate();
     }
 
-    ReadLimiter::instance().evictClient(id());
+    if (ReadLimiter::isInitialised()) {
+        ReadLimiter::instance().evictClient(id());
+    }
 }
 
 eckit::URI RemoteStore::uri() const {
