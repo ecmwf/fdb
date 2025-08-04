@@ -51,12 +51,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 archiver();
                 return Handled::YesAddArchiveListener;
 
-            case Message::Wipe:  // request to do the actual wipe
-                wipe(clientID, requestID);
-                return Handled::Yes;
-
-            case Message::WipeFinal:  // request to do the actual wipe
-                wipeFinal(clientID, requestID);
+            case Message::DoWipe:  // request to do the actual wipe
+                doWipe(clientID, requestID);
                 return Handled::Yes;
 
             case Message::WipeElement:  // request to do the actual wipe
@@ -102,6 +98,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Wipe:  // notification that the client is starting to send data location for read
                 wipe(clientID, requestID, payload);
                 return Handled::Replied;
+
+            case Message::DoWipe:  // notification that the client is starting to send data location for read
+                doWipe(clientID, requestID, payload);
+                return Handled::Yes;
 
             default: {
                 std::stringstream ss;
@@ -343,7 +343,16 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
 }
 
-void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
+void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    ASSERT(payload.size() > 0);
+
+    eckit::MemoryStream stream(payload);
+    size_t numURIs;
+    std::vector<eckit::URI> uris;
+    stream >> numURIs;
+    stream >> uris;
+    ASSERT(numURIs == uris.size());
 
     auto& ss = store(clientID);
 
@@ -355,13 +364,13 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID) {
         return;
     }
 
-    ss.doWipe(false);
+    ss.doWipe(uris);
 }
 
-void StoreHandler::wipeFinal(const uint32_t clientID, const uint32_t requestID) {
+void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
 
     auto& ss = store(clientID);
-    ss.doWipe(true);
+    ss.doWipe();
 }
 
 void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
@@ -385,23 +394,23 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     std::vector<eckit::URI> uris;
     std::vector<eckit::URI> urisafe;
     bool all     = false;
+    bool unsafeAll = false;
     bool canWipe = false;
 
     eckit::MemoryStream inStream(payload);
     inStream >> uris;
     inStream >> urisafe;
     inStream >> all;
+    inStream >> unsafeAll;
 
-    std::vector<eckit::URI> dataURIs;
-    dataURIs.reserve(uris.size());
-    std::vector<eckit::URI> safeURIs;
-    safeURIs.reserve(urisafe.size());
+    std::set<eckit::URI> dataURIs;
+    std::set<eckit::URI> safeURIs;
 
     for (const auto& uri : uris) {
-        dataURIs.push_back(RemoteFieldLocation::internalURI(uri));
+        dataURIs.insert(RemoteFieldLocation::internalURI(uri));
     }
     for (const auto& uri : urisafe) {
-        safeURIs.push_back(RemoteFieldLocation::internalURI(uri));
+        safeURIs.insert(RemoteFieldLocation::internalURI(uri));
     }
 
     if (dataURIs.empty()) {
@@ -409,8 +418,8 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
         return;
     }
 
-    auto& ss             = store(clientID, dataURIs[0]);
-    canWipe              = ss.canWipe(dataURIs, safeURIs, all);
+    auto& ss             = store(clientID, *(dataURIs.begin()));
+    canWipe              = ss.canWipe(dataURIs, safeURIs, all, unsafeAll);
     const auto& elements = ss.wipeElements();
 
     eckit::Buffer wipeBuf(50_KiB * elements.size());

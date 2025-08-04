@@ -500,10 +500,10 @@ bool RemoteStore::uriBelongs(const eckit::URI&) const {
 bool RemoteStore::uriExists(const eckit::URI&) const {
     NOTIMP;
 }
-std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+std::set<eckit::URI> RemoteStore::collocatedDataURIs() const {
     NOTIMP;
 }
-std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::set<eckit::URI>&) const {
     NOTIMP;
 }
 std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
@@ -511,7 +511,7 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 }
 
 // high-level API for wipe/purge
-bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
+bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all, bool unsafeAll) {
 
     bool result = false;
 
@@ -520,6 +520,7 @@ bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector
     sms << uris;
     sms << safeURIs;
     sms << all;
+    sms << unsafeAll;
 
     auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
 
@@ -529,8 +530,18 @@ bool RemoteStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector
     return result;
 }
 
-void RemoteStore::doWipe(bool final) const {
-    controlWriteCheckResponse(final ? Message::WipeFinal : Message::Wipe, generateRequestID(), true);
+bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
+    eckit::MemoryStream sms(sendBuf);
+    sms << unknownURIs.size();
+    sms << unknownURIs;
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true, sendBuf, sms.position());
+    return true;
+}
+
+bool RemoteStore::doWipe() const {
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
+    return true;
 }
 
 const WipeElements& RemoteStore::wipeElements() const {

@@ -68,14 +68,15 @@ public:
     virtual eckit::URI uri() const                                                          = 0;
     virtual bool uriBelongs(const eckit::URI&) const                                        = 0;
     virtual bool uriExists(const eckit::URI& uri) const                                     = 0;
-    virtual std::vector<eckit::URI> collocatedDataURIs() const                              = 0;
-    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
+    virtual std::set<eckit::URI> collocatedDataURIs() const                              = 0;
+    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const = 0;
 
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
     // executed for each index
-    virtual bool canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) = 0;
-    virtual void doWipe(bool final) const                                                                        = 0;
+    virtual bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all, bool unsafeAll) = 0;
+    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe() const = 0;
 
     virtual const WipeElements& wipeElements() const { return wipeElements_; }
 

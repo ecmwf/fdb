@@ -210,32 +210,26 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
     std::stringstream ss;
     ss << "FDB owner: " << owner();
     wipeElements_.push_back(
-        std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::vector<eckit::URI>{}));
+        std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::set<eckit::URI>{}));
+
+    std::set<eckit::URI> catalogueURIs;
+    std::set<eckit::URI> auxURIs;
+    std::set<eckit::URI> indexURIs;
 
     if (wipeAll) {
         addMaskedPaths(maskedDataPaths_);
 
-
         // toc, subtocs
-        std::vector<eckit::URI> catalogueURIs;
-
-        catalogueURIs.emplace_back(tocPath().path());
+        catalogueURIs.emplace("file", tocPath().path());
         for (const auto& sub : subTocPaths()) {
-            catalogueURIs.emplace_back(sub);
+            catalogueURIs.emplace("file", sub);
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
-                                                              "Toc files to delete:", std::move(catalogueURIs)));
-
 
         // schema, lockfiles
-        std::vector<eckit::URI> auxURIs;
-
-        auxURIs.emplace_back(schemaPath().path());
+        auxURIs.emplace("file", schemaPath().path());
         for (const auto& lck : lockfilePaths()) {
-            auxURIs.emplace_back(lck);
+            auxURIs.emplace("file", lck);
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
-                                                              "Control files to delete:", std::move(auxURIs)));
     }
     else {
         // Ensure we _really_ don't delete these if not wiping everything
@@ -246,18 +240,36 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
             indexPaths_.erase(p);
         }
 
-        std::vector<eckit::URI> safeURIs;
+        std::set<eckit::URI> safeURIs;
         for (const auto& p : safePaths_) {
-            safeURIs.push_back(p);
+            safeURIs.insert(p);
         }
         wipeElements_.push_back(std::make_shared<WipeElement>(
             WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
     }
 
     // Add index paths to be removed
-    std::vector<eckit::URI> indexURIs;
     for (const auto& i : indexPaths_) {
-        indexURIs.push_back(i);
+        indexURIs.insert(i);
+    }
+
+    if (wipeAll) {
+        std::set<eckit::URI> unknownURIs;
+        std::vector<eckit::PathName> allPathsVector;
+        StdDir(basePath()).children(allPathsVector);
+        for (const eckit::PathName& uri : allPathsVector) {
+            eckit::URI u("file", uri);
+            if (catalogueURIs.find(u) == catalogueURIs.end() &&
+                auxURIs.find(u) == auxURIs.end() &&
+                indexURIs.find(u) == indexURIs.end()) {
+                unknownURIs.insert(u);
+            }
+        }
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Toc files to delete:", std::move(catalogueURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX, "Control files to delete:", std::move(auxURIs)));
+        if (!unknownURIs.empty()) {
+            wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_UNKNOWN, "Unexpected files present in the catalogue:", std::move(unknownURIs)));
+        }
     }
     wipeElements_.push_back(
         std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
@@ -265,34 +277,40 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
     return maskedDataPaths_;
 }
 
-bool TocCatalogue::doWipe(bool final) const {
-    if (final) {
-        bool wipeAll = true;
-        for (const auto& el : wipeElements_) {
-            if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
-                wipeAll = false;
-            }
-        }
-
-        for (const auto& el : wipeElements_) {
-            auto type = el->type();
-            if (type == WipeElementType::WIPE_CATALOGUE || type == WipeElementType::WIPE_CATALOGUE_AUX) {
-                for (const auto& uri : el->uris()) {
-                    if (wipeAll) {
-                        cataloguePaths_.insert(uri.path().dirName());
-                    }
-                    remove(uri.path(), std::cout, std::cout, true);
-                }
-            }
+bool TocCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    for (const auto& path : cataloguePaths_) {
+        if (path.exists()) {
+            remove(path, std::cout, std::cout, true);
         }
     }
-    else {
-        for (const auto& path : cataloguePaths_) {
-            if (path.exists()) {
-                remove(path, std::cout, std::cout, true);
+    for (const auto& uri : unknownURIs) {
+        if (uri.path().exists()) {
+            remove(uri.path(), std::cout, std::cout, true);
+        }
+    }
+    
+    cataloguePaths_.clear();
+    return true;
+}
+
+bool TocCatalogue::doWipe() const {
+    bool wipeAll = true;
+    for (const auto& el : wipeElements_) {
+        if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
+            wipeAll = false;
+        }
+    }
+
+    for (const auto& el : wipeElements_) {
+        auto type = el->type();
+        if (type == WipeElementType::WIPE_CATALOGUE || type == WipeElementType::WIPE_CATALOGUE_AUX) {
+            for (const auto& uri : el->uris()) {
+                if (wipeAll) {
+                    cataloguePaths_.insert(uri.path().dirName());
+                }
+                remove(uri.path(), std::cout, std::cout, true);
             }
         }
-        cataloguePaths_.clear();
     }
     return true;
 }

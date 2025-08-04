@@ -68,7 +68,7 @@ enum class Message : uint16_t {
     Axes,
     Exists,
     WipeElement,
-    WipeFinal,
+    DoWipe,
 
     // Responses
     Received = 200,

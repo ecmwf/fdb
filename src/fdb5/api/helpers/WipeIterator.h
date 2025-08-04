@@ -23,6 +23,7 @@
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
 
+#include <set>
 #include <string>
 
 namespace eckit {
@@ -39,7 +40,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 enum WipeElementType {
-    WIPE_CATALOGUE_ERROR,
+    WIPE_ERROR,
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
     WIPE_CATALOGUE_SAFE,
@@ -49,14 +50,16 @@ enum WipeElementType {
     WIPE_STORE,
     WIPE_STORE_SAFE,
     WIPE_STORE_AUX,
+    WIPE_UNKNOWN
 };
 
 class WipeElement {
 public:  // methods
 
     WipeElement() = default;
+    WipeElement(WipeElementType type, const std::string& msg);
     WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri);
-    WipeElement(WipeElementType type, const std::string& msg, std::vector<eckit::URI>&& uris);
+    WipeElement(WipeElementType type, const std::string& msg, std::set<eckit::URI>&& uris);
     explicit WipeElement(eckit::Stream& s);
 
     void print(std::ostream& out) const;
@@ -64,9 +67,9 @@ public:  // methods
 
     WipeElementType type() const { return type_; }
     const std::string& msg() const { return msg_; }
-    const std::vector<eckit::URI>& uris() const { return uris_; }
+    const std::set<eckit::URI>& uris() const { return uris_; }
 
-    void add(const eckit::URI& uri) { uris_.push_back(uri); }
+    void add(const eckit::URI& uri) { uris_.insert(uri); }
 
 private:  // methods
 
@@ -86,7 +89,7 @@ private:  // members
 
     WipeElementType type_;
     std::string msg_;
-    std::vector<eckit::URI> uris_;
+    std::set<eckit::URI> uris_;
 };
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;

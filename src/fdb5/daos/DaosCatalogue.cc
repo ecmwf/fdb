@@ -184,7 +184,10 @@ bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
 std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
     return {};
 }
-bool DaosCatalogue::doWipe(bool final) const {
+bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    return true;
+}
+bool DaosCatalogue::doWipe() const {
     return true;
 }
 

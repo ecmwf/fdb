@@ -30,8 +30,8 @@ namespace fdb5::api::local {
 
 struct StoreURIs {
     std::unique_ptr<Store> store;
-    std::vector<eckit::URI> dataURIs;
-    std::vector<eckit::URI> safeURIs;
+    std::set<eckit::URI> dataURIs;
+    std::set<eckit::URI> safeURIs;
 };
 //----------------------------------------------------------------------------------------------------------------------
 

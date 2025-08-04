@@ -60,9 +60,9 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
     return n.exists();
 }
 
-std::vector<eckit::URI> DaosStore::collocatedDataURIs() const {
+std::set<eckit::URI> DaosStore::collocatedDataURIs() const {
 
-    std::vector<eckit::URI> collocated_data_uris;
+    std::set<eckit::URI> collocated_data_uris;
 
     fdb5::DaosName db_cont{pool_, db_str_};
 
@@ -77,13 +77,13 @@ std::vector<eckit::URI> DaosStore::collocatedDataURIs() const {
         if (oid.otype() == DAOS_OT_KV_HASHED)
             continue;
 
-        collocated_data_uris.push_back(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
+        collocated_data_uris.insert(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
     }
 
     return collocated_data_uris;
 }
 
-std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
@@ -169,10 +169,11 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
         n.destroy();
 }
 
-bool DaosStore::canWipe(const std::vector<eckit::URI>& uris, const std::vector<eckit::URI>& safeURIs, bool all) {
+bool DaosStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all, bool unsafeAll) {
     return true;
 }
-void DaosStore::doWipe(bool final) const {}
+bool DaosStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const { return true; }
+bool DaosStore::doWipe() const { return true; }
 
 void DaosStore::print(std::ostream& out) const {
 

@@ -81,7 +81,8 @@ protected:  // methods
     bool wipeInit() const override;
     bool wipeIndex(const Index& index, bool include) const override;
     std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe(bool final) const override;
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe() const override;
 
 private:  // methods
 
