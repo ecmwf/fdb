@@ -233,21 +233,18 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         error = true;
     }
 
-    std::cout << "WipeVisitor::catalogueComplete: STEP1 " << std::endl;
     /// gather all the wipe elements from the catalogue and the stores
     for (const auto& el : catalogueElements) {
         if (el->type() != WipeElementType::WIPE_UNKNOWN) {
             queue_.push(*el);
         }
     }
-    std::cout << "WipeVisitor::catalogueComplete: STEP2 " << std::endl;
 
     for (const auto& [type, el] : storeElements) {
         if (type != WipeElementType::WIPE_UNKNOWN) {
             queue_.push(*el);
         }
     }
-    std::cout << "WipeVisitor::catalogueComplete: STEP3 " << std::endl;
 
     std::set<eckit::URI> unknownURIsSet;
     std::vector<eckit::URI> unknownURIsCatalogue;
@@ -268,32 +265,24 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         }
     }
     queue_.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
-    std::cout << "WipeVisitor::catalogueComplete: STEP4 " << std::endl;
 
     if (doit_ && !error) {
         currentCatalogue_->doWipe(unknownURIsCatalogue);
-    std::cout << "WipeVisitor::catalogueComplete: STEP4.1 " << std::endl;
         for (const auto& [uri, ss] : stores_) {
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
-                std::cout << "STEP store " << uri << " - no Unknown" << std::endl;
                 ss.store->doWipe(std::vector<eckit::URI>{});
             } else {
-                std::cout << "STEP store " << uri << " - Unknowns: " << it->second.size() << std::endl;
                 ss.store->doWipe(it->second);
             }
         }
-    std::cout << "WipeVisitor::catalogueComplete: STEP4.2 " << std::endl;
         currentCatalogue_->doWipe();
-    std::cout << "WipeVisitor::catalogueComplete: STEP4.3 " << std::endl;
         for (const auto& [uri, ss] : stores_) {
             ss.store->doWipe();
         }
     }
-    std::cout << "WipeVisitor::catalogueComplete: STEP5 " << std::endl;
 
     stores_.clear();
-    std::cout << "WipeVisitor::catalogueComplete: STEP6 " << std::endl;
 
     EntryVisitor::catalogueComplete(catalogue);
 }
