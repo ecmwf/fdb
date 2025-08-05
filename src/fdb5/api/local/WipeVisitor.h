@@ -19,8 +19,19 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
+
+
+template <>
+struct std::hash<eckit::URI> {
+    std::size_t operator()(const eckit::URI& uri) const noexcept {
+        const std::string& e = uri.asRawString();
+        return std::hash<std::string>{}(e);
+    }
+};
 
 namespace fdb5::api::local {
 
@@ -33,6 +44,7 @@ struct StoreURIs {
     std::set<eckit::URI> dataURIs;
     std::set<eckit::URI> safeURIs;
 };
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class WipeVisitor : public QueryVisitor<WipeElement> {
@@ -65,7 +77,7 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    std::map<eckit::URI, StoreURIs> stores_;
+    std::unordered_map<eckit::URI, StoreURIs> stores_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
