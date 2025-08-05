@@ -511,7 +511,8 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 }
 
 // high-level API for wipe/purge
-bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all, bool unsafeAll) {
+bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+                          bool unsafeAll) {
 
     bool result = false;
 

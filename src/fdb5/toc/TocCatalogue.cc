@@ -259,16 +259,18 @@ std::set<eckit::URI> TocCatalogue::wipeFinish() const {
         StdDir(basePath()).children(allPathsVector);
         for (const eckit::PathName& uri : allPathsVector) {
             eckit::URI u("file", uri);
-            if (catalogueURIs.find(u) == catalogueURIs.end() &&
-                auxURIs.find(u) == auxURIs.end() &&
+            if (catalogueURIs.find(u) == catalogueURIs.end() && auxURIs.find(u) == auxURIs.end() &&
                 indexURIs.find(u) == indexURIs.end()) {
                 unknownURIs.insert(u);
             }
         }
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Toc files to delete:", std::move(catalogueURIs)));
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX, "Control files to delete:", std::move(auxURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
+                                                              "Toc files to delete:", std::move(catalogueURIs)));
+        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
+                                                              "Control files to delete:", std::move(auxURIs)));
         if (!unknownURIs.empty()) {
-            wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_UNKNOWN, "Unexpected files present in the catalogue:", std::move(unknownURIs)));
+            wipeElements_.push_back(std::make_shared<WipeElement>(
+                WipeElementType::WIPE_UNKNOWN, "Unexpected files present in the catalogue:", std::move(unknownURIs)));
         }
     }
     wipeElements_.push_back(
@@ -288,7 +290,7 @@ bool TocCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
             remove(uri.path(), std::cout, std::cout, true);
         }
     }
-    
+
     cataloguePaths_.clear();
     return true;
 }

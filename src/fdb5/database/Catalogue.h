@@ -106,12 +106,12 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual bool wipeInit() const                                  = 0;
-    virtual bool wipeIndex(const Index& index, bool include) const = 0;
-    virtual std::set<eckit::URI> wipeFinish() const                = 0;
+    virtual bool wipeInit() const                                         = 0;
+    virtual bool wipeIndex(const Index& index, bool include) const        = 0;
+    virtual std::set<eckit::URI> wipeFinish() const                       = 0;
     virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const = 0;
-    virtual const WipeElements& wipeElements() const               = 0;
+    virtual bool doWipe() const                                           = 0;
+    virtual const WipeElements& wipeElements() const                      = 0;
 
 protected:  // methods
 

@@ -145,7 +145,7 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             }
         }
     }
-    
+
     // send all the data and safe URIs to the stores
     bool canWipe = true;
     for (const auto& [uri, ss] : stores_) {
@@ -165,7 +165,7 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
     for (const auto& [storeURI, ss] : stores_) {
         for (const auto& el : ss.store->wipeElements()) {
-            auto t  = el->type();
+            auto t = el->type();
             // if wipeAll, collect all the unknown URIs
             if (wipeAll && t == WipeElementType::WIPE_UNKNOWN) {
                 // collect the unknown URIs from the store
@@ -199,22 +199,24 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             // check if the URI is in the catalogue wipe elements
             // if it is, then remove it from the unknownURIs
             bool found = false;
-            for (const auto& el: catalogueElements) {
-                if ((el->type() == WipeElementType::WIPE_CATALOGUE || el->type() == WipeElementType::WIPE_CATALOGUE_AUX) && !el->uris().empty()) {
+            for (const auto& el : catalogueElements) {
+                if ((el->type() == WipeElementType::WIPE_CATALOGUE ||
+                     el->type() == WipeElementType::WIPE_CATALOGUE_AUX) &&
+                    !el->uris().empty()) {
                     if (el->uris().find(it->first) != el->uris().end()) {
-                        it = unknownURIs.erase(it);
+                        it    = unknownURIs.erase(it);
                         found = true;
                         break;
                     }
                 }
             }
             if (!found) {
-                for (const auto& [type, el]: storeElements) {
+                for (const auto& [type, el] : storeElements) {
                     if (!found && (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX)) {
                         // check if the URI is in the store wipe elements
                         // if it is, then remove it from the unknownURIs
                         if (el->uris().find(it->first) != el->uris().end()) {
-                            it = unknownURIs.erase(it);
+                            it    = unknownURIs.erase(it);
                             found = true;
                             break;
                         }
@@ -256,7 +258,8 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             auto it = unknownURIsStore.find(*storeURI);
             if (it == unknownURIsStore.end()) {
                 unknownURIsStore.emplace(*storeURI, std::vector<eckit::URI>{uri});
-            } else {
+            }
+            else {
                 it->second.push_back(uri);
             }
         }
@@ -272,7 +275,8 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
                 ss.store->doWipe(std::vector<eckit::URI>{});
-            } else {
+            }
+            else {
                 ss.store->doWipe(it->second);
             }
         }

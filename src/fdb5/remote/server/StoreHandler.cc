@@ -393,9 +393,9 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
 
     std::vector<eckit::URI> uris;
     std::vector<eckit::URI> urisafe;
-    bool all     = false;
+    bool all       = false;
     bool unsafeAll = false;
-    bool canWipe = false;
+    bool canWipe   = false;
 
     eckit::MemoryStream inStream(payload);
     inStream >> uris;
