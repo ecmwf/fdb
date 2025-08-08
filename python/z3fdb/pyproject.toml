@@ -1,0 +1,12 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "cmake>=3.15",
+    # For gribjump
+    "cffi",
+    "numpy",
+    "pytest",
+]
+build-backend = "setuptools.build_meta"
+

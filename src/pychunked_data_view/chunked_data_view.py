@@ -9,7 +9,7 @@
 import enum
 import pathlib
 
-import chunked_data_view_bindings as pdv
+import pychunked_data_view.chunked_data_view_bindings as pdv
 
 
 class AxisDefinition:

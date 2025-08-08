@@ -14,7 +14,6 @@ from collections.abc import Buffer
 from typing import AsyncIterator, Iterable
 
 import numpy as np
-import pyfdb
 
 from zarr.abc import store
 from zarr.core.buffer import default_buffer_prototype
