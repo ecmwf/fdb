@@ -68,8 +68,8 @@ Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configur
     return LibFdb5::instance().defaultConfig(userConfig);
 }
 
-std::vector<Key> FDBTool::parse(const std::string& request, const fdb5::Config& config, bool addDomain) {
-    auto dbrequests = FDBToolRequest::requestsFromString((addDomain ? "domain=g," : "") + request, {}, false, "read");
+std::vector<Key> FDBTool::parse(const std::string& request, const fdb5::Config& config) {
+    auto dbrequests = FDBToolRequest::requestsFromString(request, {}, false, "read");
     ASSERT(dbrequests.size() == 1);
 
     const auto& dbrequest = dbrequests.front();

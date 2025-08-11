@@ -65,7 +65,7 @@ protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
-    std::vector<Key> parse(const std::string& request, const Config& config, bool addDomain = false);
+    std::vector<Key> parse(const std::string& request, const Config& config);
 
 private:  // methods
 

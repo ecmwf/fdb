@@ -79,10 +79,6 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     bool injectDomain = false;
     std::vector<Key> sources = parse(args(0), conf);
-    if (sources.empty()) {
-        injectDomain = true;
-        sources = parse(args(0), conf, injectDomain);
-    }
     ASSERT(!sources.empty());
 
     const auto targets = parse(args(1), conf);
