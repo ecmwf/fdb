@@ -67,7 +67,7 @@ void FdbHide::execute(const CmdArgs& args) {
     }
 
     std::vector<Key> keys = parse(args(0), conf);
-    
+
     if (keys.empty()) {
         throw eckit::UserError("Invalid request", Here());
     }
