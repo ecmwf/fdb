@@ -25,4 +25,4 @@ done
 
 export FDB5_CONFIG_FILE=config.yaml
 
-FDB_DEBUG=1 $fdbwrite x.grib
+FDB_INDEX_TYPE=BTreeIndexLargeKey $fdbwrite x.grib

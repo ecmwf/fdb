@@ -144,6 +144,7 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::preload() {
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
 BTREE(32, 4194304, FieldRefReduced);
+BTREE(64, 65536, FieldRefReduced); 
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -159,6 +160,7 @@ const std::string& BTreeIndex::defaulType() {
 static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
 static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefFull> PointDBIndex("PointDBIndex");
 static BTreeIndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> BTreeIndex4MB("BTreeIndex4MB");
+static BTreeIndexBuilder<BTreeIndex_64_65536_FieldRefReduced> BTreeIndexLargeKey("BTreeIndexLargeKey");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -27,18 +27,8 @@ iteration:  Integer;
 system:     Integer;
 method:     Integer;
 
-# We need some fake types to bump the length of the 3rd level key to exceed the allotted size in BTree index
-type1:      Integer;
-type2:      Integer;
-type3:      Integer;
-type4:      Integer;
-type5:      Integer;
-type6:      Integer;
-type7:      Integer;
-type8:      Integer;
-type9:      Integer;
-
-[ class=rd, expver=xxxx, stream=oper, date, time, domain?
-       [ type, levtype
-               [ step, levelist?, param, type1?, type2?, type3?, type4?, type5?, type6?, type7?, type8? ]]
+# this schema looks odd because we need to ensure the 3rd level key is too large to fit in 32bits
+[ class, domain?
+       [ type
+               [ step, levelist, param, stream, expver, date, time, levtype ]]
 ]
