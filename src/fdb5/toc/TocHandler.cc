@@ -118,7 +118,7 @@ public:  // methods
         else {
             off_t ret;
             SYSCALL(ret = ::lseek(fd_, pos, SEEK_SET));
-            ASSERT(ret == pos);
+            ASSERT(ret == static_cast<off_t>(pos));
             return pos;
         }
     }

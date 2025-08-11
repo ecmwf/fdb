@@ -12,6 +12,8 @@ file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CM
 ###############################################################################
 # fdb unit tests
 
+set( _test_environment ${test_environment})
+
 list( APPEND _test_environment
     FDB_HOME=${PROJECT_BINARY_DIR} )
 

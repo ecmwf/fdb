@@ -122,7 +122,7 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
 
     long len = dh.write(data, length);
 
-    ASSERT(len == length);
+    ASSERT(len == static_cast<long>(length));
 
     return std::make_unique<TocFieldLocation>(dataPath, position, length, Key());
 }
