@@ -268,7 +268,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
 
         uid_t uid = ::getuid();
         eckit::Translator<uid_t, std::string> uid_to_str;
-        std::string default_run_path = "/var/run/user";
+        eckit::PathName default_run_path{"/var/run/user"};
         default_run_path /= uid_to_str(uid);
 
         eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", default_run_path));
