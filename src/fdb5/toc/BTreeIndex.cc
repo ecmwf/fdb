@@ -144,7 +144,7 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::preload() {
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
 BTREE(32, 4194304, FieldRefReduced);
-BTREE(64, 65536, FieldRefReduced); 
+BTREE(64, 65536, FieldRefReduced);
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -152,15 +152,23 @@ BTREE(64, 65536, FieldRefReduced);
 BTreeIndex::~BTreeIndex() {}
 
 
-const std::string& BTreeIndex::defaulType() {
-    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex");
-    return fdbIndexType;
+const std::string& BTreeIndex::defaultType(int version) {
+    static const std::string overrideType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "");
+    if (!overrideType.empty()) {
+        return overrideType;
+    }
+
+    static const std::string defaultType   = "BTreeIndex";
+    static const std::string defaultTypeV4 = "BTreeIndexV4";
+
+    return (version == 4) ? defaultTypeV4 : defaultType;
 }
 
-static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
+static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");      // v1-3
+static BTreeIndexBuilder<BTreeIndex_64_65536_FieldRefReduced> defaultIndexV4("BTreeIndexV4");  // 64 char-limit for key
+
 static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefFull> PointDBIndex("PointDBIndex");
 static BTreeIndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> BTreeIndex4MB("BTreeIndex4MB");
-static BTreeIndexBuilder<BTreeIndex_64_65536_FieldRefReduced> BTreeIndexLargeKey("BTreeIndexLargeKey");
 
 //----------------------------------------------------------------------------------------------------------------------
 

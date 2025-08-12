@@ -18,11 +18,17 @@ wdir=$bindir/FDB-535
 rm -rf $bindir/localroot
 mkdir localroot
 
-for f in config.yaml schema x.grib
+for f in config.yaml schema x.grib req.mars
 do
     cp $srcdir/$f $bindir
 done
 
 export FDB5_CONFIG_FILE=config.yaml
 
-FDB_INDEX_TYPE=BTreeIndexLargeKey $fdbwrite x.grib
+FDB5_SERIALISATION_VERSION=4 $fdbwrite x.grib
+
+FDB5_SERIALISATION_VERSION=4 $fdbread req.mars out.grib
+
+cat out.grib
+cat x.grib
+cmp out.grib x.grib
