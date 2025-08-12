@@ -27,7 +27,7 @@ iteration:  Integer;
 system:     Integer;
 method:     Integer;
 
-# this schema looks odd because we need to ensure the 3rd level key is too large to fit in 32bits
+# this schema looks odd because we need to ensure the 3rd level key is too large to fit in 32 bytes
 [ class, domain?
        [ type
                [ step, levelist, param, stream, expver, date, time, levtype ]]
