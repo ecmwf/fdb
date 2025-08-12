@@ -29,7 +29,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/DB.h"
+//#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
@@ -1062,7 +1062,7 @@ void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string
         ListElement elem;    
         while (listObject.next(elem)) {
             std::map<std::string,std::string> tmp;
-            for(const auto & bit : elem.key()) {
+            for(const auto & bit : elem.keys()) {
                 //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
                // std::cout<<bit<<std::endl;
                 auto keydict = bit.keyDict();
