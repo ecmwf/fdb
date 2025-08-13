@@ -271,7 +271,7 @@ void RemoteStore::archive(
 
     ASSERT(!key.empty());
     ASSERT(data);
-    ASSERT(length != 0);
+    ASSERT(static_cast<long long>(length) != 0ll);
 
     uint32_t id = generateRequestID();
     {  // send the archival request
