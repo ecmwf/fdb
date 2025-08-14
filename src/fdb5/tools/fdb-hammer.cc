@@ -53,9 +53,8 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/HandleStream.h"
 
-// This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
-const std::unordered_set<size_t> AWKWARD_PARAMS{11,  12,  13,  14,  15,  16,  49,  51,  52,  61,  121,
-                                                122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
+// Valid type=pf,levtype=pl parameters. This allows for up to 174 parameters.
+const std::vector<size_t> VALID_PARAMS{1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 46, 53, 54, 60, 62, 63, 64, 65, 66, 67, 70, 71, 74, 75, 76, 77, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 123, 125, 126, 127, 128, 129, 130, 131, 132, 133, 135, 138, 139, 140, 141, 145, 148, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 170, 171, 174, 183, 184, 185, 186, 187, 188, 190, 191, 192, 193, 194, 197, 198, 199, 200, 203, 204, 205, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 233, 236, 237, 238, 241, 242, 243, 246, 247, 248, 249, 250, 251, 252, 253, 254};
 
 using namespace eckit;
 using namespace eckit::literals;
@@ -462,6 +461,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t nparams     = args.getLong("nparams");
     bool delay         = args.getBool("delay", false);
 
+    ASSERT(nparams <= VALID_PARAMS.size());
+
     if (itt_) {
         ASSERT(args.has("nodes"));
         ASSERT(args.has("ppn"));
@@ -566,18 +567,14 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             }
             for (const auto& ilevel : levelist) {
                 CODES_CHECK(codes_set_long(handle, "level", ilevel), 0);
-                for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-                    // GRIB API only allows us to use certain parameters
-                    while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-                        real_param++;
-                    }
+                for (size_t param = 0; param < nparams; ++param) {
 
                     if (verbose_) {
                         Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                   << ", param: " << real_param << std::endl;
+                                   << ", param: " << VALID_PARAMS[param] << std::endl;
                     }
 
-                    CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
+                    CODES_CHECK(codes_set_long(handle, "paramId", VALID_PARAMS[param]), 0);
 
                     if (!full_check_) {
 
@@ -734,6 +731,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t nparams     = args.getLong("nparams");
     size_t poll_period = args.getLong("poll-period", 1);
 
+    ASSERT(nparams <= VALID_PARAMS.size());
+
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
     request.setValue("optimised", "on");
@@ -761,12 +760,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     }
 
     std::vector<std::string> paramlist;
-    for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-        // GRIB API only allows us to use certain parameters
-        while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-            real_param++;
-        }
-        paramlist.push_back(str(real_param));
+    for (size_t param = 0; param < nparams; ++param) {
+        paramlist.push_back(str(VALID_PARAMS[param]));
     }
     if (itt_) {
         auto rng = std::default_random_engine {};
@@ -1014,6 +1009,8 @@ void FDBHammer::executeList(const eckit::option::CmdArgs& args) {
     size_t number     = args.getLong("number", 1);
     size_t level      = args.getLong("level", 1);
 
+    ASSERT(nparams <= VALID_PARAMS.size());
+
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
 
@@ -1040,12 +1037,8 @@ void FDBHammer::executeList(const eckit::option::CmdArgs& args) {
     request.values("levelist", levelist_values);
 
     std::vector<std::string> param_values;
-    for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-        // GRIB API only allows us to use certain parameters
-        while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
-            real_param++;
-        }
-        param_values.push_back(std::to_string(real_param));
+    for (size_t param = 0; param < nparams; ++param) {
+        param_values.push_back(std::to_string(VALID_PARAMS[param]));
     }
     request.values("param", param_values);
 
