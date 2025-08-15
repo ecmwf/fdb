@@ -290,6 +290,15 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
 
             /// if succeeded, this process is the leader
 
+            /// a pair of FIFOs are created. One for clients to communicate the leader they are
+            ///   waiting, and another to open in blocking mode until leader opens it for write
+            ///   once it has synchronised with peer nodes
+            if (wait_fifo.exists()) wait_fifo.unlink();
+            SYSCALL(::mkfifo(wait_fifo.localPath(), 0666));
+
+            if (barrier_fifo.exists()) barrier_fifo.unlink();
+            SYSCALL(::mkfifo(barrier_fifo.localPath(), 0666));
+
             /// the leader PID is written into the file
             SYSCALL(::close(fd));
             std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
@@ -299,15 +308,6 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
                 eckit::AutoClose closer(*fh);
                 hs << (long) ::getpid();
             }
-
-            /// a pair of FIFOs are created. One for clients to communicate the leader they are
-            ///   waiting, and another to open in blocking mode until leader opens it for write
-            ///   once it has synchronised with peer nodes
-            if (wait_fifo.exists()) wait_fifo.unlink();
-            SYSCALL(::mkfifo(wait_fifo.localPath(), 0666));
-
-            if (barrier_fifo.exists()) barrier_fifo.unlink();
-            SYSCALL(::mkfifo(barrier_fifo.localPath(), 0666));
 
             /// a signal from each peer process in the node is received
             std::vector<char> message = {'S', 'I', 'G'};
