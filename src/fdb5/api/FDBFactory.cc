@@ -14,15 +14,13 @@
  */
 
 
-#include "eckit/config/YAMLConfiguration.h"
+#include "fdb5/api/FDBFactory.h"
+
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
 
 
 namespace fdb5 {
@@ -49,9 +47,6 @@ FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), c
 
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
-
-
-FDBBase::~FDBBase() {}
 
 std::string FDBBase::id() const {
     std::stringstream ss;

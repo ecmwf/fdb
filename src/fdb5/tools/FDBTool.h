@@ -24,6 +24,7 @@
 #include "eckit/runtime/Tool.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
 namespace option {
@@ -56,7 +57,7 @@ public:  // methods
 
 protected:  // members
 
-    std::vector<eckit::option::Option*> options_;
+    std::vector<eckit::option::Option*> options_ = {};
     /// Set this to false in tool subclass if your tool does not require access to 'config.yaml'
     bool needsConfig_{true};
 
@@ -64,6 +65,7 @@ protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
+    std::vector<Key> parse(const std::string& request, const Config& config);
 
 private:  // methods
 

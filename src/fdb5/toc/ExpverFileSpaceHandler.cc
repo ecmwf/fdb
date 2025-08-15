@@ -34,9 +34,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(LibResource<PathName, LibFdb5>("fdbExpverFileSystems;$FDB_EXPVER_FILE",
-                                                         "~fdb/etc/fdb/expver_to_fdb_root.map")) {}
+ExpverFileSpaceHandler::ExpverFileSpaceHandler(const Config& config) :
+    FileSpaceHandler(config),
+    fdbExpverFileSystems_(config.expandPath(eckit::Resource<std::string>("fdbExpverFileSystems;$FDB_EXPVER_FILE",
+                                                                         "~fdb/etc/fdb/expver_to_fdb_root.map"))) {}
 
 ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {}
 
@@ -167,7 +168,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 }
 
 PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const {
-    return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
+    return FileSpaceHandler::lookup("WeightedRandom", config_).selectFileSystem(key, fs);
 }
 
 static bool expver_is_valid(const std::string& str) {

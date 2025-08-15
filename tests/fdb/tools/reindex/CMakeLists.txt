@@ -4,5 +4,6 @@ if (HAVE_FDB_BUILD_TOOLS)
     ecbuild_add_test(
         TYPE SCRIPT
         CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
-        COMMAND fdb_reindex.sh)
+        COMMAND fdb_reindex.sh
+        ENVIRONMENT "${test_environment}")
 endif()

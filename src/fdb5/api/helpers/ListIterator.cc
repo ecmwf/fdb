@@ -24,8 +24,8 @@ bool ListIterator::next(ListElement& elem) {
     ListElement tmp;
     while (APIIterator<ListElement>::next(tmp)) {
         if (deduplicate_) {
-            if (const auto [iter, success] = seenKeys_.emplace(tmp.combinedKey()); !success) {
-                continue;
+            if (!seenKeys_.tryInsert(tmp.keys())) {
+                continue;  // already seen this key
             }
         }
         std::swap(elem, tmp);
@@ -101,5 +101,21 @@ std::pair<size_t, eckit::Length> ListIterator::dumpCompact(std::ostream& out) {
     }
     return std::make_pair(fields, length);
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+bool KeyStore::tryInsert(const std::array<Key, 3>& keyParts) {
+    // Level 1 and 2, may or may not exist. But it doesn't matter for the insert
+    auto& level1 = fingerprints_[keyParts[0].valuesToString()];
+    auto& level2 = level1[keyParts[1].valuesToString()];
+
+    // And then for the third level, we try and insert. And if it does not
+    // already exist, that is great!
+
+    auto [_, ins] = level2.insert(keyParts[2].valuesToString());
+    return ins;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

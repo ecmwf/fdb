@@ -38,14 +38,13 @@ public:  // methods
     void clean() override {}
     void close() override {}
 
-    bool axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const override;
-
     bool retrieve(const Key& key, Field& field) const override;
 
     void print(std::ostream& out) const override { NOTIMP; }
 
 private:  // types
 
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
     typedef std::map<Key, Index> IndexStore;
 
 private:  // members
