@@ -169,6 +169,7 @@ class FdbSource(ZarrChunkedDataView):
                 shape=self._shape,
                 chunk_grid=ChunkGridMetadata(chunks=self._chunks),
                 data_type="float32",
+                fill_value=-1.0
             )
         )
 

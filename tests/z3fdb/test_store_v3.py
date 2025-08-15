@@ -28,6 +28,42 @@ from z3fdb.mapping import (
 def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3
 
+def test_zarr_zarr_json(read_only_fdb_setup) -> None:
+    builder = ChunkedDataViewBuilder(read_only_fdb_setup)
+    builder.add_part(
+        "type=an,"
+        "class=ea,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "step=0,"
+        "param=167/131/132,"
+        "time=0/to/21/by/3",
+        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        ExtractorType.GRIB,
+    )
+    view = builder.build()
+
+    mapping = FdbZarrStore(
+        FdbZarrGroup(
+            children=[
+                FdbZarrArray(
+                    name="data",
+                    datasource=FdbSource(view),
+                )
+            ]
+        )
+    )
+    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
+    root: zarr.Group = store["/"]
+
+    data_grp = root.get("/data")
+
+    print(data_grp[:].shape)
+
+
 #
 def test_access(read_only_fdb_setup) -> None:
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)

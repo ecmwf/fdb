@@ -222,6 +222,8 @@ class FdbZarrGroup:
         if len(key) == 1:
             if key[0] == "zarr.json":
                 return self._metadata
+        elif "c" in key and "zarr.json" in key:
+            return None
         else:
             return self._children[key[0]][*key[1:]]
         raise KeyError(f"Unknown key {key}")

@@ -11,7 +11,7 @@ import logging
 import re
 import pathlib
 from collections.abc import Buffer
-from typing import AsyncIterator, Iterable
+from typing import Any, AsyncGenerator, AsyncIterator, Iterable
 
 import numpy as np
 import pyfdb
@@ -58,11 +58,24 @@ class FdbZarrStore(store.Store):
         path = f"{parent_path}/{item.name}" if parent_path else item.name
         files = [f"{path}/{f}" if path != "" else f for f in item.paths()]
 
+        files = list(filter(lambda x: ".json" not in x, files))
+
         if isinstance(item, FdbZarrGroup):
             for child in item.children:
-                files += self._build_paths(child, path)
+                # files += self._build_paths(child, path)
+                files.append(child._name)
 
         return files
+
+    def _async_generator_paths(self, item, parent_path=None) -> AsyncGenerator[str, Any]:
+        files = self._build_paths(item, parent_path)
+
+        async def async_gen():
+                for item in files:
+                    yield item
+
+        return async_gen()
+
 
     def _consolidate(self):
         consolidated_metatdata = {"metadata": {}}
@@ -90,7 +103,7 @@ class FdbZarrStore(store.Store):
         # Create Buffer
         return CpuBuffer.from_bytes(json.dumps(consolidated_metatdata).encode("utf-8"))
 
-    async def __getitem__(self, key) -> AbstractBuffer | None:
+    async def __getitem__(self, key) -> AbstractBuffer:
         if key == ".zmetadata":
             return self._zmetadata
         if key == "zarr.json":
@@ -178,7 +191,7 @@ class FdbZarrStore(store.Store):
         return self._child.list_prefix(prefix)
 
     def list_dir(self, prefix: str) -> AsyncIterator[str]:
-        return self._build_paths(self._child, parent_path=prefix)
+        return self._async_generator_paths(self._child, parent_path=prefix)
 
 
 def extract_mars_requests_from_recipe(recipe: dict):
