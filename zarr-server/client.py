@@ -12,13 +12,15 @@
 import asyncio
 import json
 import logging
+import ssl
 import sys
 import argparse
 
 import numpy
 import zarr
 
-import requests
+import httpx
+
 from zarr.core.buffer import default_buffer_prototype
 from zarr.storage import FsspecStore
 
@@ -54,27 +56,36 @@ view = {
 
 
 async def main():
-    url = "http://localhost:5000/create"
+    url = "https://localhost:5000/create"
     headers = {"Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, data=json.dumps(view))
 
-    logging.debug(response.content)
-    hash = response.json()["hash"]
-    z_grp = FsspecStore.from_url(
-        f"http://localhost:5000/get/zarr/{hash}",
-        read_only=True
-    )
+    ctx = ssl.create_default_context()
+    ctx.load_cert_chain(certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")  # Optionally also keyfile or password.
 
-    data_grp = zarr.open_array(z_grp, mode="r", path="/data", zarr_version=3)
+    async with httpx.AsyncClient(http2=True, verify="server_data/certs/ca.pem") as client:
+        response = await client.post(url, headers=headers, content=json.dumps(view).encode("utf-8"))
 
-    logging.debug(data_grp.shape)
-    logging.debug(data_grp.chunks)
+        logging.debug(response.content)
+        hash = response.json()["hash"]
+        z_grp = FsspecStore.from_url(
+            f"https://localhost:5000/get/zarr/{hash}",
+            storage_options={"client_kwargs":{"ssl": ctx}},
+            #### This may fails due to the aiohttp client not being aware of the ssl certificates
+            read_only=True
+        )
 
-    for (x, y, z) in numpy.ndindex(data_grp.shape):
-        if z > 0:
-            continue
-        print(f"={(x, y, z)}")
-        print(data_grp[x, y, :])
+        data_grp = zarr.open_array(z_grp, mode="r", path="/data", zarr_version=3)
+
+        logging.debug(data_grp.shape)
+        logging.debug(data_grp.chunks)
+
+        for (x, y, z) in numpy.ndindex(data_grp.shape):
+            if z > 0:
+                continue
+            print(f"={(x, y, z)}")
+            print(data_grp[x, y, :])
+
+        print(response.http_version)  # "HTTP/1.0", "HTTP/1.1", or "HTTP/2".
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -83,7 +94,7 @@ def parse_args():
         "--verbose",
         help="Enables verbose output, use -vv or -vvv for even more verbose output",
         action="count",
-        default=2,
+        default=0,
     )
 
     return parser.parse_args()

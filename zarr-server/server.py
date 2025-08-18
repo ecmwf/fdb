@@ -16,26 +16,22 @@ import os
 import pathlib
 import sys
 
-import zarr
-
 import pyfdb
 import pygribjump
-from flask import Flask, Response, jsonify, request
-
-from z3fdb.request import Request, ChunkAxisType
+from quart import Quart, Response, jsonify, request
 
 from pychunked_data_view.chunked_data_view import (
     AxisDefinition,
     ChunkedDataViewBuilder,
     ExtractorType,
 )
+from z3fdb.mapping import FdbSource, FdbZarrStore
+from z3fdb.request import ChunkAxisType, Request
+from z3fdb.zarr import FdbZarrArray, FdbZarrGroup
 
-from z3fdb.mapping import FdbSource, FdbZarrStore, default_buffer_prototype
+import create_certs
 
-from z3fdb.zarr import Buffer, FdbZarrArray, FdbZarrGroup
-from zarr.abc.store import Store
-
-app = Flask(__name__)
+app = Quart(__name__)
 
 view_hashes = {}
 
@@ -96,7 +92,7 @@ def open_view(fdb_config_path: pathlib.Path):
 
 @app.route("/create", methods=["POST"])
 async def process_json():
-    data = request.get_json()
+    data = await request.get_json()
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
     hashed_request = hash(json.dumps(data))
@@ -115,6 +111,8 @@ async def process_json():
         )
     else:
         logger.debug("Using create request")
+
+    logger.debug(json.dumps({"hash": hashed_request}))
 
     return Response(
         response=json.dumps({"hash": hashed_request}),
@@ -189,9 +187,9 @@ def parse_args():
         "--verbose",
         help="Enables verbose output, use -vv or -vvv for even more verbose output",
         action="count",
-        default=2,
+        default=0,
     )
-    parser.add_argument("--debug", help="Enables flask debug", action="store_true")
+    parser.add_argument("--debug", help="Enables Quart debug", action="store_true")
     parser.add_argument(
         "--fdb-config",
         help="path to fdb config file, if not specified fdb searchs as usual",
@@ -222,6 +220,11 @@ if __name__ == "__main__":
     )
     global logger
     logger = logging.getLogger(__name__)
+
+    logger.info("Creating certs for localhost")
+    create_certs.create_certs()
+
     logger.info("Statring ZFDB Server")
     connect_to_fdb(args)
-    app.run(debug=args.debug)
+
+    app.run(debug=args.debug, certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")
