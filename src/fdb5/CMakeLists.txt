@@ -399,9 +399,7 @@ else()
     set( UUID_INCLUDE_DIRS "" )
 endif()
 
-if( HAVE_FAMFDB )
-    add_subdirectory( fam )
-endif()
+add_subdirectory( fam )
 
 ecbuild_add_library(
 

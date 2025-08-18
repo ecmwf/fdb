@@ -15,10 +15,10 @@
 
 #include "fdb5/fam/FamFieldLocation.h"
 
-#include "eckit/io/fam/FamObjectName.h"
+#include "eckit/io/fam/FamPath.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/fam/FamCommon.h"
+#include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
 
@@ -26,7 +26,7 @@ namespace fdb5 {
 
 ::eckit::Reanimator<FamFieldLocation> FamFieldLocation::reanimator_;
 
-static const FieldLocationBuilder<FamFieldLocation> builder(FamCommon::type);
+static const FieldLocationBuilder<FamFieldLocation> builder(eckit::FamPath::scheme);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ std::shared_ptr<const FieldLocation> FamFieldLocation::make_shared() const {
 }
 
 eckit::DataHandle* FamFieldLocation::dataHandle() const {
-    return eckit::FamObjectName(uri_).dataHandle(offset(), length());
+    return uri_.newReadHandle({offset()}, {length()});
 }
 
 void FamFieldLocation::print(std::ostream& out) const {
