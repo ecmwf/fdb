@@ -145,14 +145,14 @@ class FDBCompare : public FDBVisitTool {
     FDBCompare(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver") {
 
-        options_.push_back(new SimpleOption<std::string>("testConfig", "Path to a FDB config"));
-        options_.push_back(new SimpleOption<std::string>("referenceConfig", "Path to a second FDB config"));
-        options_.push_back(new SimpleOption<std::size_t>("level", "The difference can be evaluated at different levels, 1) Mars Metadata , 2) Mars and Grib Metadata and data up to a defined tolerance (default) "));
-        options_.push_back(new SimpleOption<std::string>("gribcomparison", " [eccodes|eccodes_detail|direct] Comparing two Grib messages can be done via eccode (gribcomparison=eccodes (default)) in a bitexact(hashkeys for sections) way, via eccodes keys in the reference FDB (gribcomparison=eccodes_detail)  or directly by directly by comparing for bitexact memory (gribcomparison=direct)" ));
-        options_.push_back(new SimpleOption<double>("tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
-        options_.push_back(new SimpleOption<std::string>("mars_keys_ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
-        options_.push_back(new SimpleOption<std::string>("eccodes_keys_select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified eccodes/grib keys will be compared (Only effective with gribcompare=eccodes_detail)" ));
-        options_.push_back(new SimpleOption<std::string>("eccodes_keys_ignore", "Format: \" \" The specified key words will be ignored (only effective with gribcomparison=eccodes_detail)"));
+        options_.push_back(new SimpleOption<std::string>("test-config", "Path to a FDB config"));
+        options_.push_back(new SimpleOption<std::string>("reference-config", "Path to a second FDB config"));
+        options_.push_back(new SimpleOption<std::string>("scope", "[mars (default)|header-only|all] The FDBs can be compared in different scopes, 1) [mars] Mars Metadata only (default), 2) [header-only] includes Mars Key comparison and the comparison of the data headers (e.g. grib headers) 3) [all] includes Mars key and data header comparison but also the data sections up to a defined floating point tolerance "));
+        options_.push_back(new SimpleOption<std::string>("grib-comparison-type", " [hashkeys|grib-keys(default)|bitexact] Comparing two Grib messages can be done via either (grib-comparison-type=hashkeys) in a bitexact way with hashkeys for each sections, via grib keys in the reference FDB (grib-comparison-type=grib-keys (default))  or by directly comparing bitexact memory segments(grib-comparison-type=bitexact)" ));
+        options_.push_back(new SimpleOption<double>("fp-tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
+        options_.push_back(new SimpleOption<std::string>("mars-keys-ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
+        options_.push_back(new SimpleOption<std::string>("grib-keys-select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified grib keys will be compared (Only effective with grib-comparison-type=grib-keys)" ));
+        options_.push_back(new SimpleOption<std::string>("grib-keys-ignore", "Format: \" \" The specified key words will be ignored (only effective with grib-comparison-type=grib-keys)"));
     }
 
   private: // methods
@@ -165,12 +165,12 @@ class FDBCompare : public FDBVisitTool {
     std::string testConfig_;
     std::string referenceConfig_;
     std::string gribcomparison_;
-    int level_;
+    std::string scope_;
     double tolerance_;
     bool detail_; // this parameter should be used to determine if an additional information is required why a two FDBs don't match. 
     std::map<std::string,std::string> mars_keys_ignore_;
-    std::unordered_set<std::string> eccodes_keys_select_;
-    std::unordered_set<std::string> eccodes_keys_ignore_;
+    std::unordered_set<std::string> grib_keys_select_;
+    std::unordered_set<std::string> grib_keys_ignore_;
 };
 
 
@@ -179,51 +179,51 @@ void FDBCompare::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
 
-    ASSERT(args.has("testConfig"));
-    ASSERT(args.has("referenceConfig"));
+    ASSERT(args.has("test-config"));
+    ASSERT(args.has("reference-config"));
     
-    testConfig_ = args.getString("testConfig");
+    testConfig_ = args.getString("test-config");
     if(testConfig_.empty()){
         throw UserError("No path for FDB 1 specified",Here());
     }
-    referenceConfig_ = args.getString("referenceConfig");
+    referenceConfig_ = args.getString("reference-config");
     if(referenceConfig_.empty()){
         throw UserError("No path for FDB 2 specified",Here());
     }
 
-    level_ = args.getInt("level",2);
-    if(level_<=0 || level_ >3){
-        throw UserError("Unknown comparison level "+level_,Here());
+    scope_ = args.getString("scope","mars");
+    if((scope_ != "mars") && (scope_ != "header-only") && (scope_ != "all")){
+        throw UserError("Unknown comparison scope "+scope_,Here());
     }
 
-    gribcomparison_ = args.getString("gribcomparison","eccodes");
-    if(gribcomparison_ != "eccodes" && gribcomparison_ != "direct" && gribcomparison_ != "eccodes_detail"){
+    gribcomparison_ = args.getString("grib-comparison-type","grib-keys");
+    if(gribcomparison_ != "hashkeys" && gribcomparison_ != "bitexact" && gribcomparison_ != "grib-keys"){
         throw UserError("Unknown Grib comparison method "+gribcomparison_, Here());
     }
 
-    tolerance_ = args.getDouble("tolerance", std::numeric_limits<double>::epsilon());
+    tolerance_ = args.getDouble("fp-tolerance", std::numeric_limits<double>::epsilon());
     if(tolerance_<std::numeric_limits<double>::epsilon()){
         throw UserError("The tolerance should be at least machine epsilon to compare floating point values.",Here());
     }
-    std::string tmp = args.getString("mars_keys_ignore","");
+    std::string tmp = args.getString("mars-keys-ignore","");
     if(!tmp.empty()){
         appendKeys(mars_keys_ignore_, tmp);
     }
-    tmp = args.getString("eccodes_keys_select","");
+    tmp = args.getString("grib-keys-select","");
     if(!tmp.empty()){
-        if(gribcomparison_ != "eccodes_detail"){
-            std::cout<<"The specified eccode select keys will have no effect because gribcomparison = "<<gribcomparison_<<" and would need to be eccodes_detail"<<std::endl;
+        if(gribcomparison_ != "grib-keys"){
+            std::cout<<"The specified eccode select keys will have no effect because grib-comparison-type = "<<gribcomparison_<<" and would need to be grib-keys"<<std::endl;
         }
         else{
-            appendKeys(eccodes_keys_select_,tmp);
+            appendKeys(grib_keys_select_,tmp);
         }    }
-    tmp = args.getString("eccodes_keys_ignore","");
+    tmp = args.getString("grib-keys-ignore","");
     if(!tmp.empty()){
-        if(gribcomparison_ != "eccodes_detail"){
-            std::cout<<"The specified eccode ignore keys will have no effect because gribcomparison = "<<gribcomparison_<<" and would need to be eccodes_detail"<<std::endl;
+        if(gribcomparison_ != "grib-keys"){
+            std::cout<<"The specified eccode ignore keys will have no effect because grib-comparison-type = "<<gribcomparison_<<" and would need to be grib-keys"<<std::endl;
         }
         else{
-            appendKeys(eccodes_keys_ignore_,tmp);
+            appendKeys(grib_keys_ignore_,tmp);
         }
     }
     
@@ -234,30 +234,30 @@ constexpr bool compare_keys(Map const &ref, Map const &test){
     //return std::equal(ref.begin(),ref.end(),test.begin(),[] (auto a, auto b) {return a.first == b.first;});
     if(test.size() != ref.size())
     {
-        std::cout<<"The number of messages within the FDBs doesn't match. "<<std::endl;
+        std::cout<<"[MARS KEYS COMPARE] WARNING FDB number of entries don't match. This can be on purpose if no fdb tool filter is used. "<<std::endl;
     }
     int count = 0;
-    std::cout<<"******* Checking that all Mars key entries from Test match entries in the reference FDB ****"<<std::endl;
+
+    std::cout<<"[LOG] Checking MARS Keys"<<std::endl;
     for(const auto& pair: test){
         if(ref.find(pair.first) == ref.end()){
             ++count;
-            std::cout<<"TEST FDB message key not found in ref map: " <<pair.first<<std::endl;
+                std::cout<<"[MARS KEYS COMPARE] MISMATCH MARS KEY: " <<pair.first << " present in Test FDB but not in Reference FDB."<<std::endl;
         }
     }
-    if(count==0 && (test.size()==ref.size()))//remove second comp size--size
+    if(count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
     {   
-        std::cout<<"Mars Keys match"<<std::endl;
+        std::cout<<"[MARS KEYS COMPARE] SUCCESS"<<std::endl;
         return true; //works because it is assumed that both 
     }
     else{
-        std::cout<<"******* There was a mismatch in keys in the forward search: We are now searching the reference FDB to list all Keys that don't match entries in the test FDB ****"<<std::endl;
         for(const auto& pair: ref){
             if(test.find(pair.first) == test.end()){
                 ++count;
-                std::cout<<"REF FDB message key not found in test map: " <<pair.first<<std::endl;
+                std::cout<<"[MARS KEYS COMPARE] MISMATCH MARS KEY: " <<pair.first << " present in Reference FDB but not in Test FDB."<<std::endl;
             }
         }
-        std::cout<<"******* End of Mars Key Message comparison ********"<<std::endl;
+        std::cout<<"[LOG] Mars key compared finished"<<std::endl;
     }
     return false;
 }
@@ -496,13 +496,13 @@ bool compare_header(codes_handle * hRef, codes_handle * hTest)
     if(size1==size2 && (0==memcmp(msg1,msg2,size1))){
         return true;
     }
-    std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
-    int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
-    std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
-    dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
-    std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+    // std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+    // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+    // std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+    // dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    // codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+    // std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
     return false;
 
 }
@@ -526,13 +526,13 @@ bool compare_header_keys(codes_handle * hRef, codes_handle * hTest)
     if(size1==size2 && (0==memcmp(msg1,msg2,size1))){
         return true;
     }
-    std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
-    int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
-    std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
-    dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-    codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
-    std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+    // std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+    // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+    // std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+    // dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+    // codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+    // std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
     return false;
 
 }
@@ -600,14 +600,14 @@ int compare_md5sums(codes_handle* hRef, codes_handle *hTest)
 
         if(std::strcmp(md5HashValueRef,md5HashValueTest) != 0)
         {
-            std::cout<<"Hash keys don't match for section "<<value<<std::endl;
-            std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
-            int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-            codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
-            std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
-            dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
-            codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
-            std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
+            // std::cout<<"Hash keys don't match for section "<<value<<std::endl;
+            // std::cout<<"********************* Reference Grib Message Header **********************************"<<std::endl;
+            // int dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+            // codes_dump_content(hRef, stdout, "wmo", dump_flags, NULL);
+            // std::cout<<"********************* Test Grib Message Header **********************************"<<std::endl;
+            // dump_flags = CODES_DUMP_FLAG_CODED| CODES_DUMP_FLAG_OCTET | CODES_DUMP_FLAG_VALUES | CODES_DUMP_FLAG_READ_ONLY;
+            // codes_dump_content(hTest, stdout, "wmo", dump_flags, NULL);
+            // std::cout<<"********************** END DEBUG SUMMARY *****************************************"<<std::endl;
             //Check if it's a data section that doesn't match
             if((gribEditionRef==1 && value=="md5Section4") || (gribEditionRef==2 && value=="md5Section7")) return 2;
             return 0;
@@ -911,8 +911,8 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         {
             throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
         }
-        if(gribcomparison_ == "direct"){
-            std::cout<<"direct comparison"<<std::endl;
+        if(gribcomparison_ == "bitexact"){
+            std::cout<<"[LOG] Memory comparison (Bytestream)"<<std::endl;
             //Bitexact comparison directly on the Bytestream begin
             int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
             if(i==10){
@@ -921,7 +921,8 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
                 return true;
             }
             if(i<9 && i>=0){
-                std::cout<<"The Header Grib Header comparison failed  {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " + std::to_string(std::get<2>(gribLocTest)) <<std::endl;
+                std::string msg = "[GRIB COMPARISON: BITEXACT: HEADER ] FAILED {Location,offset,length} = "  + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
+                std::cout<<msg<<std::endl;
                 free(bufferRef);
                 free(bufferTest);
                 return false;
@@ -944,19 +945,19 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         {
             throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = "  + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)),Here());   
         }
-        if(gribcomparison_ == "eccodes"){
-            // BitExactComparison with ECCODES begin
-            //std::cout<<"eccodes comparison"<<std::endl;
+        if(gribcomparison_ == "hashkeys"){
+            // BitExactComparison with hashkeys begin
+            //std::cout<<"hashkeys comparison"<<std::endl;
             auto match = compare_header(hRef,hTest);
             if(!match){
                 //just called to give a more specific output if the comparison failed
-                compare_eccodes(hRef,hTest,eccodes_keys_ignore_,eccodes_keys_select_);
+                compare_eccodes(hRef,hTest,grib_keys_ignore_,grib_keys_select_);
                 free(bufferRef);
                 free(bufferTest);
             
                 codes_handle_delete(hRef);
                 codes_handle_delete(hTest);
-                std::string msg = "Headers don't match Location reference = " + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
+                std::string msg = "[ GRIB COMPARISON HEADER SECTION MD5SUMS ] FAILED Headers don't match Location reference = " + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
                 std::cout<<msg<<std::endl;
                 
                 return false;
@@ -989,12 +990,12 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             }
             ASSERT(match_md5sums == 2);
         }
-        if(gribcomparison_ == "eccodes_detail"){
-            auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,eccodes_keys_ignore_,eccodes_keys_select_);
+        if(gribcomparison_ == "grib-keys"){
+            auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,grib_keys_ignore_,grib_keys_select_);
             if(!match){
-                std::cout<<"Grib Message REF at {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<std::endl;
+                std::cout<<"[ GRIB COMPARISON KEY-BY-KEY ] FAILED Grib Message REF: {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<" TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
 
-                std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
+                // std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
                 free(bufferRef);
                 free(bufferTest);
             
@@ -1019,8 +1020,9 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             ASSERT((datasectionMatch==false) && (match==true));
             //else continue as we have a Mismatch in the data section but all other sections had a match compare the data section numerically 
         }
-   
-        compare_DataSection(hRef,hTest,relativeError,absoluteError,tolerance_);
+        if(scope_ == "all") {
+            compare_DataSection(hRef,hTest,relativeError,absoluteError,tolerance_);
+        }
 
         if( relativeError>tolerance_ || absoluteError>tolerance_)
         {
@@ -1163,7 +1165,7 @@ void FDBCompare::execute(const CmdArgs& args) {
             return;
         }
         // Return if only a comparison of Mars metadata messages was specified as Command Line option
-        if(level_ != 2){
+        if(scope_ == "mars"){
             return;
         }
         std::cout<<"Compare Grib messages"<<std::endl;
@@ -1227,19 +1229,21 @@ void FDBCompare::execute(const CmdArgs& args) {
             }
                         
         }
-        //codes_context_delete(0); // continue to monitor memory usage. Potentially it might make sense to condes_context_delete(0); at some point to flush all the cached eccodes pages
-        double relativeErrorAvg = (countValidErrorRelative > 0) ? (relativeErrorSum/countValidErrorRelative) : 0.0;
-        double absoluteErrorAvg = (countValidErrorAbs > 0) ? (absoluteErrorSum/countValidErrorAbs) : 0.0;
+        if(scope_ == "all") {
+            //codes_context_delete(0); // continue to monitor memory usage. Potentially it might make sense to condes_context_delete(0); at some point to flush all the cached eccodes pages
+            double relativeErrorAvg = (countValidErrorRelative > 0) ? (relativeErrorSum/countValidErrorRelative) : 0.0;
+            double absoluteErrorAvg = (countValidErrorAbs > 0) ? (absoluteErrorSum/countValidErrorAbs) : 0.0;
 
-        std::cout<<"****************** SUMMARY **********************"<<std::endl;
-        std::cout<< "Relative Error: abs((refvalue-testvalue)/refvalue)" <<std::endl;
-        std::cout<< "    Minimum Error: "<<relativeErrorMin<<std::endl;
-        std::cout<<"     Maximum Error: "<<relativeErrorMax<<std::endl;
-        std::cout<<"     Average Error: "<<relativeErrorAvg<<std::endl;
-        std::cout<< "Absolute Error: abs(refvalue-testvalue)" <<std::endl;
-        std::cout<<"     Maximum Error: "<<absoluteErrorMax<<std::endl;
-        std::cout<<"     Average Error: "<<absoluteErrorAvg<<std::endl;
-        std::cout<< "    Minimum Error: "<<absoluteErrorMin<<std::endl;
+            std::cout<<"****************** SUMMARY **********************"<<std::endl;
+            std::cout<< "Relative Error: abs((refvalue-testvalue)/refvalue)" <<std::endl;
+            std::cout<< "    Minimum Error: "<<relativeErrorMin<<std::endl;
+            std::cout<<"     Maximum Error: "<<relativeErrorMax<<std::endl;
+            std::cout<<"     Average Error: "<<relativeErrorAvg<<std::endl;
+            std::cout<< "Absolute Error: abs(refvalue-testvalue)" <<std::endl;
+            std::cout<<"     Maximum Error: "<<absoluteErrorMax<<std::endl;
+            std::cout<<"     Average Error: "<<absoluteErrorAvg<<std::endl;
+            std::cout<< "    Minimum Error: "<<absoluteErrorMin<<std::endl;
+        }
 
 
            
@@ -1256,7 +1260,7 @@ void FDBCompare::usage(const std::string &tool) const {
 
     Log::info() << "Examples:" << std::endl
                 << "=========" << std::endl << std::endl
-                << tool << " --referenceConfig=<path/to/reference/config.yaml> --testConfig=<path/to/test/config.yaml --minimum-keys=\"\" --all"
+                << tool << " --reference-config=<path/to/reference/config.yaml> --test-config=<path/to/test/config.yaml --minimum-keys=\"\" --all"
                 << std::endl
                 << std::endl;
 
