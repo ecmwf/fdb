@@ -27,6 +27,7 @@
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/StdFile.h"
+#include "eckit/io/FileDescHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/utils/Literals.h"
@@ -240,6 +241,7 @@ void barrier_internode(std::vector<std::string>& nodes, int& port, int& max_wait
                 timeout -= 1;
             }
         }
+        if (timeout == 0) throw eckit::TimeOut("Exceeded time limit waiting for connection to barrier leader socket.", max_wait);
 
         /// wait for barrier end
         long size = 3;
@@ -256,6 +258,8 @@ void barrier_internode(std::vector<std::string>& nodes, int& port, int& max_wait
 }
 
 void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_wait) {
+
+    //return;
 
     if (ppn == 1) {
         barrier_internode(nodes, port, max_wait);
@@ -328,7 +332,12 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
             wait_fifo.unlink(false);
 
             /// once all processes in the node are ready, barrier with peer nodes
-            barrier_internode(nodes, port, max_wait);
+            std::exception_ptr eptr;
+            try {
+                barrier_internode(nodes, port, max_wait);
+            } catch (...) {
+                eptr = std::current_exception();
+            }
 
             /// once all nodes are ready, open the barrier fifo for write which will
             ///   release all waiting peer processes in the node
@@ -337,13 +346,24 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
             fh_barrier->openForWrite(eckit::Length(0));
             {
                 eckit::AutoClose closer(*fh_barrier);
+                /// if the inter-node barrier failed, notify the clients via the barrier fifo
+                if (eptr) {
+                    message = {'S', 'I', 'G'};
+                    size_t pending = ppn - 1;
+                    while (pending > 0) {
+                        ASSERT(fh_barrier->write(&message[0], message.size()) == message.size());
+                        --pending;
+                    }
+                }
             }
+
             /// remove the barrier fifo
-            /// TODO: ensure immediately unlinking after open for write will give
-            ///   enough time for all clients to be notified the FIFO was opened
             barrier_fifo.unlink(false);
 
             pid_file.unlink(false);
+
+            /// throw if the inter-node barrier failed
+            if (eptr) std::rethrow_exception(eptr);
 
         } else {
 
@@ -388,7 +408,18 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
                     ///   an estimate() on the fifo which may have been removed by leader.
                     int fd;
                     SYSCALL(fd = ::open(barrier_fifo.localPath(), O_RDONLY));
-                    ::close(fd);
+                    eckit::FileDescHandle fh_barrier(fd, true);
+
+                    /// check for any errors reported by leader
+                    std::vector<char> message = {'0', '0', '0'};
+                    long bytes = fh_barrier.read(&message[0], message.size());
+                    if (bytes > 0) {
+                        ASSERT(bytes == message.size());
+                        ASSERT(std::string(message.begin(), message.end()) == "SIG");
+                        return false;
+                    }
+
+                    /// fd is autoclosed
                     return true;
                 } catch (std::exception& e) {
                     return false;
@@ -403,7 +434,7 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
             eckit::AutoClose closer(*fh_wait);
             ASSERT(fh_wait->write(&message[0], message.size()) == message.size());
 
-            ASSERT(future.get());
+            if (!future.get()) throw eckit::Exception("Error receiving response from barrier leader process.");
 
         }
 
