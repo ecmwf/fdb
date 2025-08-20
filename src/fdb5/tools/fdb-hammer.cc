@@ -334,7 +334,11 @@ void barrier(size_t& ppn, std::vector<std::string>& nodes, int& port, int& max_w
             /// once all processes in the node are ready, barrier with peer nodes
             std::exception_ptr eptr;
             try {
+                eckit::Timer barrier_timer;
+                barrier_timer.start();
                 barrier_internode(nodes, port, max_wait);
+                barrier_timer.stop();
+                //barrier_timer.reset("Inter-node barrier");
             } catch (...) {
                 eptr = std::current_exception();
             }
@@ -586,7 +590,13 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
-    if (itt_) barrier(ppn, nodelist, port, max_wait);
+    if (itt_) {
+        eckit::Timer barrier_timer;
+        barrier_timer.start();
+        barrier(ppn, nodelist, port, max_wait);
+        barrier_timer.stop();
+        //barrier_timer.reset("Barrier pre-step 0");
+    }
 
     timer.start();
 
@@ -718,7 +728,13 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             gribTimer.start();
         }
 
-        if (itt_) barrier(ppn, nodelist, port, max_wait);
+        if (itt_) {
+            eckit::Timer barrier_timer;
+            barrier_timer.start();
+            barrier(ppn, nodelist, port, max_wait);
+            barrier_timer.stop();
+            //barrier_timer.reset(std::string("Barrier post-step ") + str(istep));
+        }
 
     }
 
