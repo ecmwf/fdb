@@ -130,6 +130,7 @@ private:
     bool itt_;
     bool md_check_;
     bool full_check_;
+    bool step_barrier_;
 };
 
 void FDBHammer::usage(const std::string& tool) const {
@@ -167,6 +168,8 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
         throw eckit::Exception("Cannot enable full consistency checks in ITT mode as it randomises data.");
 
     if (!itt_) ASSERT(args.has("nlevels"));
+
+    step_barrier_ = false;
 
 }
 
@@ -598,9 +601,20 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         //barrier_timer.reset("Barrier pre-step 0");
     }
 
+    int step_time = 15;
+    int per_step_compute_time = 5;
+    ::timeval start_timestamp;
+    ::gettimeofday(&start_timestamp, 0);
+    ::timeval step_end_due_timestamp = start_timestamp;
+
     timer.start();
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
+
+        /// sleep for as long as the I/O server processes are expected to spend
+        /// on field receival and aggregation
+        if (itt_) ::sleep(per_step_compute_time);
+
         CODES_CHECK(codes_set_long(handle, "step", istep), 0);
         for (size_t member = number; member <= nensembles + number - 1; ++member) {
             if (args.has("nensembles")) {
@@ -729,12 +743,28 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         }
 
         if (itt_) {
-            eckit::Timer barrier_timer;
-            barrier_timer.start();
-            barrier(ppn, nodelist, port, max_wait);
-            barrier_timer.stop();
-            //barrier_timer.reset(std::string("Barrier post-step ") + str(istep));
-        }
+
+            if (step_barrier_) {
+                eckit::Timer barrier_timer;
+                barrier_timer.start();
+                barrier(ppn, nodelist, port, max_wait);
+                barrier_timer.stop();
+                //barrier_timer.reset(std::string("Barrier post-step ") + str(istep));
+            }
+
+            /// sleep until the data for the next step is 'received' from the model, i.e.
+            /// for as long as the target per-step wall-clock-time, minus the expected
+            /// receival + aggregation time, minus the time spent on I/O
+            step_end_due_timestamp.tv_sec += step_time;
+            ::timeval current_timestamp;
+            ::gettimeofday(&current_timestamp, 0);
+            int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
+            if (remaining > 0) {
+                ::sleep(remaining);
+                std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
+            }
+
+	}
 
     }
 
@@ -873,7 +903,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                     if (verbose_) {
                         eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
                     }
-                    sleep(poll_period);
+                    ::sleep(poll_period);
                     fdb.emplace(config(args, userConfig));
                 }
             }
