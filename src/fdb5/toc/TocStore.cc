@@ -39,7 +39,8 @@ TocStore::TocStore(const Key& key, const Config& config) :
     Store(),
     TocCommon(StoreRootManager(config).directory(key).directory_),
     archivedFields_(0),
-    auxFileExtensions_{auxFileExtensions()} {}
+    auxFileExtensions_{auxFileExtensions()},
+    flush_count_(0) {}
 
 eckit::URI TocStore::uri() const {
 
@@ -136,6 +137,9 @@ size_t TocStore::flush() {
 
     size_t out      = archivedFields_;
     archivedFields_ = 0;
+    ++flush_count_;
+    dataPaths_.clear();
+    closeDataHandles();
 
     return out;
 }
@@ -242,6 +246,8 @@ eckit::DataHandle& TocStore::getDataHandle(const eckit::PathName& path) {
 eckit::PathName TocStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath(directory_);
+    dpath /= std::string("flush" + eckit::Translator<int, std::string>()(flush_count_));
+    dpath.mkdir();
     dpath /= key.valuesToString();
     dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;

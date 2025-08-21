@@ -102,6 +102,8 @@ private:  // members
     mutable PathStore dataPaths_;
     size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
+
+    int flush_count_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
