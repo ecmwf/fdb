@@ -593,16 +593,22 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
+    int step_time = 45;
+    int per_step_compute_time = 5;
     if (itt_) {
         eckit::Timer barrier_timer;
         barrier_timer.start();
         barrier(ppn, nodelist, port, max_wait);
         barrier_timer.stop();
         //barrier_timer.reset("Barrier pre-step 0");
+
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(0, step_time);
+        int delayDuration = dist(mt);
+        ::sleep(delayDuration);
     }
 
-    int step_time = 15;
-    int per_step_compute_time = 5;
     ::timeval start_timestamp;
     ::gettimeofday(&start_timestamp, 0);
     ::timeval step_end_due_timestamp = start_timestamp;
