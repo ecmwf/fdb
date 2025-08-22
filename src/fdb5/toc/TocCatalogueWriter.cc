@@ -350,8 +350,8 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
 
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
     eckit::PathName tocPath(directory_);
-    dpath /= std::string("flush" + eckit::Translator<int, std::string>()(flush_count_));
-    dpath.mkdir();
+    tocPath /= std::string("flush" + eckit::Translator<int, std::string>()(flush_count_));
+    tocPath.mkdir();
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";
     return tocPath;
