@@ -1119,7 +1119,9 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
-            s << location.uri().path().baseName();
+            eckit::PathName dir = location.uri().path().dirName().baseName();
+            dir /= location.uri().path().baseName();
+            s << dir;
             s << location.offset();
             s << index_.type();
 
@@ -1389,7 +1391,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
                     s >> type;
                     LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
                     tocindexes[entry.seqNo] =
-                        new TocIndex(s, entry.datap->header_.serialisationVersion_, entry.tocDirectoryName,
+                        new TocIndex(s, entry.datap->header_.serialisationVersion_, entry.tocDirectoryName / path.dirName(),
                                      entry.tocDirectoryName / path, offset, preloadBTree_);
                 }
             }));
@@ -1759,7 +1761,9 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index& index) {
 
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
 
-    s << tocLoc.uri().path().baseName();
+    eckit::PathName dir = tocLoc.uri().path().dirName().baseName();
+    dir /= tocLoc.uri().path().baseName();
+    s << dir;
     s << tocLoc.offset();
     s << index.type();
     index.encode(s, r.header_.serialisationVersion_);
