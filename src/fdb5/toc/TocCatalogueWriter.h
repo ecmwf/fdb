@@ -109,6 +109,8 @@ private:  // members
 
     eckit::AutoUmask umask_;
     size_t archivedLocations_;
+
+    int flush_count_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
