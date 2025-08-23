@@ -32,14 +32,14 @@ namespace fdb5 {
 
 
 TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
-    TocCatalogue(dbKey, config), umask_(config.umask()), archivedLocations_(0) {
+    TocCatalogue(dbKey, config), umask_(config.umask()), archivedLocations_(0), flush_count_(0) {
     writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()), archivedLocations_(0) {
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()), archivedLocations_(0), flush_count_(0) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
