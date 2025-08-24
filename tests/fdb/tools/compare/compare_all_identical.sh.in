@@ -7,22 +7,13 @@ yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
 
-# export PATH=/ec/res4/hpcperm/ecm4053/fdb5-myfork/build/bin:$PATH
-# export FDB_HOME=/ec/res4/hpcperm/ecm4053/fdb5-myfork/build
-
-# srcdir=/ec/res4/hpcperm/ecm4053/fdb5-myfork/tests/fdb/tools
-# bindir=/ec/res4/hpcperm/ecm4053/fdb5-myfork/build/tests/fdb/tools
-# cd $bindir
 
 ########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
-
-
 testname=all
-srcdata="od.oper.grib"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
@@ -31,111 +22,33 @@ echo $bindir
 
 rm -rf $bindir/test-root
 mkdir -p $bindir/test-root
-rm -rf $bindir/test_mars-root
-mkdir -p $bindir/test_mars-root
-rm -rf $bindir/ref-root
-mkdir -p $bindir/ref-root 
-rm -rf $bindir/grib
-mkdir -p $bindir/grib
 
-
-
-for f in ref.yaml test.yaml test_mars.yaml test_header.yaml test_data.yaml schema x.grib
+for f in test.yaml
 do
     cp $srcdir/$f $bindir
 done
 
-
-
 # ########################################################################################################################
+# DEPENDS ON SETUP REFERENCE FDB
 
 #Different comparisons: 
-# compare the reference fdb with itself
-# compare reference to modified mars key words
-# compare reference to modified Grib headers
-# compare reference to modified data
-grib_set -s edition=2 x.grib x2.grib
-grib_set -s step=6 x2.grib grib/6.grib
-grib_set -s step=9 x2.grib grib/9.grib
-grib_set -s type=an grib/6.grib grib/an6.grib
-grib_set -s type=an grib/9.grib grib/an9.grib
-
-
-
-fdb write --config=ref.yaml grib/6.grib
-fdb write --config=ref.yaml grib/9.grib
-fdb write --config=ref.yaml grib/an6.grib
-fdb write --config=ref.yaml grib/an9.grib
-
-
+# compare the reference fdb with itself => bitidentical
 fdb write --config=test.yaml grib/6.grib
 fdb write --config=test.yaml grib/9.grib
 fdb write --config=test.yaml grib/an6.grib
 fdb write --config=test.yaml grib/an9.grib
 
-# mkdir -p comparison_test
-# cd comparison_test
 
-# rm -rf localroot || true
-# mkdir localroot
-
-# rm -rf localroot_mars || true
-# mkdir localroot_mars
-
-# rm -rf localroot_header || true
-# mkdir localroot_header
-
-# rm -rf localroot_data || true
-# mkdir localroot_data
-
-# rm -rf grib || true
-# mkdir grib
-
-# for f in local.yaml x.grib
-# do
-#   cp $srcdir/$f ./
-# done
-
-
-grib_set -s step=3 grib/an6.grib grib/wrongmars6.grib
-
-fdb write --config=test_mars.yaml grib/6.grib
-fdb write --config=test_mars.yaml grib/9.grib
-fdb write --config=test_mars.yaml grib/wrongmars6.grib
-fdb write --config=test_mars.yaml grib/an9.grib
-
-# awk '/path:/{gsub(/localroot/, "localroot_header")}1' local.yaml > local_header.yaml
-
-# grib_set -s latitudeOfFirstGridPoint=5 grib/an6.grib grib/wrongheader6.grib
-
-# fdb write --config=local_header.yaml grib/6.grib
-# fdb write --config=local_header.yaml grib/9.grib
-# fdb write --config=local_header.yaml grib/wrongheader6.grib
-# fdb write --config=local_header.yaml grib/an9.grib
-
-# awk '/path:/{gsub(/localroot/, "localroot_data")}1' local.yaml > local_data.yaml
-
-# grib_set -s changeDecimalPrecision=1 grib/an6.grib grib/wrongdata6.grib
-
-# fdb write --config=local_data.yaml grib/6.grib
-# fdb write --config=local_data.yaml grib/9.grib
-# fdb write --config=local_data.yaml grib/wrongdata6.grib
-# fdb write --config=local_data.yaml grib/an9.grib
-
-# ####### Check lots of contentß
-fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all | tee out
+# ####### Check lots of content compare mars keys only
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all| tee out
 grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
 
-### Test with diverging MARS entries. 
-fdb-compare --reference-config=ref.yaml --test-config=test_mars.yaml --minimum-keys="" --all | tee out
-grep -Fq "[MARS KEYS COMPARE] MISMATCH" out || die "Mars Key mismatch and this should have been detected"
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only| tee out
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all| tee out
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
 
 
 
-# #fdb-compare --referenceConfig=local.yaml --testConfig=local_mars.yaml --minimum-keys="" --all
-# #fdb-compare --referenceConfig=local.yaml --testConfig=local_header.yaml --minimum-keys="" --all 
-# #fdb-compare --referenceConfig=local.yaml --testConfig=local_data.yaml --minimum-keys="" --all
-
-# echo "fdb-compare datacomparison needs to be checked and compared with grib_compare"
-# exit
 

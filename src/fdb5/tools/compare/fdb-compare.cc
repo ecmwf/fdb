@@ -36,6 +36,8 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
+#include "fdb5/tools/compare/datautil/grib/mars-to-grib.h"
+
 
 #include "eccodes.h"
 //#include "grib_api_internal.h"
@@ -79,6 +81,17 @@ void appendKeys(std::unordered_set<std::string>& container, const std::string& k
         container.insert(entry);  // Insert the whole entry as a single string
     }
 }
+
+
+void request_diff(std::string ref_req, std::map<std::string,std::string> overwrite_test, std::map<std::string,std::pair<std::string,std::string>>& mars_req_diff){
+    std::map<std::string,std::string> ref_req_map;
+    appendKeys(ref_req_map,ref_req);
+    for (auto& [key, value]:overwrite_test){
+        mars_req_diff[key] = {ref_req_map[key], value};
+    }
+}
+
+
 // Custom hash function for std::map<std::string, std::string>
 struct MapHash {
     std::size_t operator()(const std::map<std::string, std::string>& m) const {
@@ -103,6 +116,37 @@ struct MapEqual {
         return lhs == rhs;
     }
 };
+
+bool maps_equal_with_diff(
+    const std::map<std::string,std::string>& a,
+    const std::map<std::string,std::string>& b,
+    const std::map<std::string,std::pair<std::string,std::string>>& diffs)
+{
+    // First, check that both have the same number of keys
+    if (a.size() != b.size()) return false;
+
+    for (const auto& [k, v_a] : a) {
+        auto it_b = b.find(k);
+        if (it_b == b.end()) return false;  // key missing
+        const std::string& v_b = it_b->second;
+
+        auto it_diff = diffs.find(k);
+        if (it_diff != diffs.end()) {
+            // This key is allowed to diverge
+            const auto& [expected_ref, expected_test] = it_diff->second;
+            if (v_a == expected_ref && v_b == expected_test) {
+                continue; // okay, matches allowed divergence
+            } else {
+                return false; // diverges in an unexpected way
+            }
+        } else {
+            // This key must match exactly
+            if (v_a != v_b) return false;
+        }
+    }
+    return true;
+}
+
 std::ostream& operator<<(std::ostream& os, const std::unordered_map<
     std::map<std::string, std::string>,
     GribLocation,
@@ -121,6 +165,16 @@ std::ostream& operator<<(std::ostream& os, const std::unordered_map<
            << std::get<1>(valueTuple) << ", "
            << std::get<2>(valueTuple) << ")\n";
     }
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, GribLocation gloc) {
+
+    os << "("
+        << std::get<0>(gloc) << ", "
+        << std::get<1>(gloc) << ", "
+        << std::get<2>(gloc) << ")\n";
+
     return os;
 }
 
@@ -147,12 +201,16 @@ class FDBCompare : public FDBVisitTool {
 
         options_.push_back(new SimpleOption<std::string>("test-config", "Path to a FDB config"));
         options_.push_back(new SimpleOption<std::string>("reference-config", "Path to a second FDB config"));
+        options_.push_back(new SimpleOption<std::string>("reference-request", "Mars key request for reference FDB entry (e.g reference experiment)"));
+        options_.push_back(new SimpleOption<std::string>("test-request","Mars key request for test FDB entry (e.g. test experiment)"));
+        options_.push_back(new SimpleOption<std::string>("test-request-overwrite","Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\", these values will be changed in the test request")); // TODO potentially remove again
         options_.push_back(new SimpleOption<std::string>("scope", "[mars (default)|header-only|all] The FDBs can be compared in different scopes, 1) [mars] Mars Metadata only (default), 2) [header-only] includes Mars Key comparison and the comparison of the data headers (e.g. grib headers) 3) [all] includes Mars key and data header comparison but also the data sections up to a defined floating point tolerance "));
         options_.push_back(new SimpleOption<std::string>("grib-comparison-type", " [hashkeys|grib-keys(default)|bitexact] Comparing two Grib messages can be done via either (grib-comparison-type=hashkeys) in a bitexact way with hashkeys for each sections, via grib keys in the reference FDB (grib-comparison-type=grib-keys (default))  or by directly comparing bitexact memory segments(grib-comparison-type=bitexact)" ));
         options_.push_back(new SimpleOption<double>("fp-tolerance", "Floatinng point tolerance for comparison default=machine tolerance epsilon. Tolerance will only be used if level=2 is set otherwise tolerance will have no effect"));
         options_.push_back(new SimpleOption<std::string>("mars-keys-ignore", "Format: \"Key1=Value1,Key2=Value2,...KeyN=ValueN\" All Messages that contain any of the defined key value pairs will be omitted"));
         options_.push_back(new SimpleOption<std::string>("grib-keys-select", "Format: \"Key1,Key2,Key3...KeyN\" Only the specified grib keys will be compared (Only effective with grib-comparison-type=grib-keys)" ));
         options_.push_back(new SimpleOption<std::string>("grib-keys-ignore", "Format: \" \" The specified key words will be ignored (only effective with grib-comparison-type=grib-keys)"));
+        options_.push_back(new SimpleOption<bool>("verbose","Print additional output, including `|' for every compared grib message to see status"));
     }
 
   private: // methods
@@ -171,6 +229,12 @@ class FDBCompare : public FDBVisitTool {
     std::map<std::string,std::string> mars_keys_ignore_;
     std::unordered_set<std::string> grib_keys_select_;
     std::unordered_set<std::string> grib_keys_ignore_;
+    std::map<std::string,std::string> mars_req_test_overwrite_;
+    std::map<std::string,std::pair<std::string,std::string>> req_diff_;
+    std::string testRequest_;
+    std::string referenceRequest_;
+    bool verbose_;
+    bool singleFDB_=false;
 };
 
 
@@ -179,16 +243,19 @@ void FDBCompare::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
 
-    ASSERT(args.has("test-config"));
-    ASSERT(args.has("reference-config"));
+    // ASSERT(args.has("test-config"));
+    // ASSERT(args.has("reference-config"));
     
-    testConfig_ = args.getString("test-config");
-    if(testConfig_.empty()){
-        throw UserError("No path for FDB 1 specified",Here());
-    }
-    referenceConfig_ = args.getString("reference-config");
-    if(referenceConfig_.empty()){
-        throw UserError("No path for FDB 2 specified",Here());
+    testConfig_ = args.getString("test-config","");
+    // if(testConfig_.empty()){
+    //     throw UserError("No path for FDB 1 specified",Here());
+    // }
+    referenceConfig_ = args.getString("reference-config","");
+    // if(referenceConfig_.empty()){
+    //     throw UserError("No path for FDB 2 specified",Here());
+    // }
+    if(testConfig_.empty() && referenceConfig_.empty()){
+        singleFDB_=true;
     }
 
     scope_ = args.getString("scope","mars");
@@ -209,6 +276,10 @@ void FDBCompare::init(const CmdArgs& args) {
     if(!tmp.empty()){
         appendKeys(mars_keys_ignore_, tmp);
     }
+
+    referenceRequest_ = args.getString("reference-request","");
+    testRequest_ = args.getString("test-request","");
+    //TODO assert that if one is set the other one is set as well. 
     tmp = args.getString("grib-keys-select","");
     if(!tmp.empty()){
         if(gribcomparison_ != "grib-keys"){
@@ -226,41 +297,75 @@ void FDBCompare::init(const CmdArgs& args) {
             appendKeys(grib_keys_ignore_,tmp);
         }
     }
+    tmp = args.getString("test-request-overwrite","");
+    if(!tmp.empty()) appendKeys(mars_req_test_overwrite_,tmp);
+    request_diff(referenceRequest_, mars_req_test_overwrite_, req_diff_);
+    std::cout<<"req diff" << req_diff_<<std::endl;
+    for (auto const& [key, _] : req_diff_) {
+        appendKeys(grib_keys_ignore_, marsToGrib(key));
+    }
+    
+    //TODO CHECK WHY TEST AND REF MATRIX CONTAIN TOO MANY ELEMENTS
+    verbose_ = args.getBool("verbose",false);
     
 }
-// only compare the key of each map. the tupel is expected to diverge.
-template <typename Map>
-constexpr bool compare_keys(Map const &ref, Map const &test){
-    //return std::equal(ref.begin(),ref.end(),test.begin(),[] (auto a, auto b) {return a.first == b.first;});
-    if(test.size() != ref.size())
-    {
-        std::cout<<"[MARS KEYS COMPARE] WARNING FDB number of entries don't match. This can be on purpose if no fdb tool filter is used. "<<std::endl;
-    }
-    int count = 0;
 
-    std::cout<<"[LOG] Checking MARS Keys"<<std::endl;
-    for(const auto& pair: test){
-        if(ref.find(pair.first) == ref.end()){
-            ++count;
-                std::cout<<"[MARS KEYS COMPARE] MISMATCH MARS KEY: " <<pair.first << " present in Test FDB but not in Reference FDB."<<std::endl;
-        }
+template <typename Map>
+bool compare_keys(
+    Map const &ref,
+    Map const &test,
+    std::map<std::string,std::pair<std::string,std::string>> const &mars_req_diff)
+{
+    if (test.size() != ref.size()) {
+        std::cout << "[MARS KEYS COMPARE] WARNING: FDB number of entries don't match. "
+                  << "This can be on purpose if no FDB tool filter is used.\n";
     }
-    if(count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
+
+    std::cout << "[LOG] Checking MARS Keys\n";
+    int mismatch_count = 0;
+
+    auto check_missing = [&](auto const &src, auto const &dst, const char* direction, bool count_mismatches) {
+        for (const auto& [key_map, _] : src) {
+            bool found_match = false;
+
+            if (mars_req_diff.empty()) {
+                found_match = (dst.find(key_map) != dst.end());
+            } else {
+                for (const auto& [dst_key, _] : dst) {
+                    if (maps_equal_with_diff(dst_key, key_map, mars_req_diff)) {
+                        found_match = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found_match) {
+                if (count_mismatches) ++mismatch_count;
+                std::cout << "[MARS KEYS COMPARE] MISMATCH (" << direction << "): ";
+                for (const auto& [k,v] : key_map) {
+                    std::cout << k << "=" << v << " ";
+                }
+                std::cout << "\n";
+            }
+        }
+    };
+
+
+    // Check test → ref (keys in test missing in ref)
+    check_missing(test, ref, "Test->Reference",true);
+
+    if(mismatch_count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
     {   
         std::cout<<"[MARS KEYS COMPARE] SUCCESS"<<std::endl;
         return true; //works because it is assumed that both 
     }
-    else{
-        for(const auto& pair: ref){
-            if(test.find(pair.first) == test.end()){
-                ++count;
-                std::cout<<"[MARS KEYS COMPARE] MISMATCH MARS KEY: " <<pair.first << " present in Reference FDB but not in Test FDB."<<std::endl;
-            }
-        }
-        std::cout<<"[LOG] Mars key compared finished"<<std::endl;
-    }
+
+    // Check ref → test (keys in ref missing in test) just to report the differences. 
+    check_missing(ref, test, "Reference->Test",false);
+
     return false;
 }
+
 
 void printInfo(codes_handle* h)
 {
@@ -309,6 +414,7 @@ void printBits(T value) {
     }
     std::cout << std::endl;
 }
+
 
 template <typename T>
 T endianTest(const T& value) {
@@ -369,7 +475,7 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
         (static_cast<char>(bufferRef[2]) != 'I')||(static_cast<char>(bufferTest[2]) != 'I') ||
         (static_cast<char>(bufferRef[3]) != 'B')||(static_cast<char>(bufferTest[3]) != 'B') )
     {
-        std::cout<<"Message is not a Grib message: Comparing data formats other than Grib messages is currently not implemented"<<std::endl;
+        std::cerr<<"[GRIB COMPARE] ERROR Message is not a Grib message: Comparing data formats other than Grib messages is currently not implemented"<<std::endl;
         return 0;
     }
 
@@ -378,14 +484,14 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
     int editionnumberTest = (int)bufferRef[7];
 
     if(editionnumberRef != editionnumberTest){
-        std::cout<<"Editionnumbers don't match -> cannot compare Grib message"<<std::endl;
+        std::cerr<<"[GRIB COMPARE] ERROR Editionnumbers don't match -> cannot compare Grib message"<<std::endl;
         return 0;
     }
     if(editionnumberRef == 2){
         //Total Length Value starts at position 8 in the Grid2 header
         uint64_t totalLength = readValue<uint64_t>(bufferRef,8);
         if(length != totalLength){
-            std::cout<<" Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
+            std::cerr<<"[GRIB COMPARE] ERROR Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
             return 0;
         }
         //GRIB2 Section 0 is always 16 Bytes long:
@@ -394,13 +500,13 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
     else if(editionnumberRef == 1){
         uint32_t totalLength = readValue3Byte(bufferRef,4);
         if(length != totalLength){
-            std::cout<<" Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
+            std::cerr<<"[GRIB COMPARE] ERROR Message length in Mars Key location and total message length specified in Grib message don't match"<<std::endl;
             return 0;
         }
         //Grib1 Section 0 is always 8 Bytes long:
         offset += 8;
     }else{
-        std::cout<<"Unknown Grib edition number "<< editionnumberRef<<std::endl;
+        std::cerr<<"[GRIB COMPARE] ERROR Unknown Grib edition number "<< editionnumberRef<<std::endl;
         return 0;
     }
     // Determine number of sections based on the edition number 1 or 2
@@ -415,7 +521,7 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
         if (editionnumberRef == 1){
             // Grib 1 Read 3 byte section length at the beginning of each section
             if (offset + 3 > length){
-                std::cerr <<"Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
+                std::cerr <<"[GRIB COMPARE] ERROR Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
                 return ((i+1)==numSections) ? 9:i+1;
             }
             sectionLengthRef = readValue3Byte(bufferRef,offset);
@@ -424,19 +530,19 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
         else {
             //Grib 2 stores a 4 byte section length value at the beginning of each section
             if (offset + 4 > length){
-                std::cerr <<"Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
+                std::cerr <<"[GRIB COMPARE] ERROR Unexpected end of buffer while reading section length for section "<< i+1<<std::endl;
                 return ((i+1)==numSections) ? 9:i+1;
             }
             sectionLengthRef = readValue<uint32_t>(bufferRef,offset);
             sectionLengthTest = readValue<uint32_t>(bufferTest,offset);
         }
         if(sectionLengthRef != sectionLengthTest){
-            std::cout<<"The section "<<i+1<<" length parameter differs between the grib messages "<<std::endl;
+            std::cout<<"[GRIB COMPARE] MISMATCH The section "<<i+1<<" length parameter differs between the grib messages "<<std::endl;
             return ((i+1)==numSections) ? 9:i+1;
         }
         //Memory comparison for each section 
         if(! memComparison(bufferRef, bufferTest,offset,sectionLengthRef)){
-            std::cout<<"Memorycomparison failed in section "<<i+1<<std::endl;
+            std::cout<<"[GRIB COMPARE] MISMATCH Memorycomparison failed in section "<<i+1<<std::endl;
             return ((i+1)==numSections) ? 9:i+1;
         }
         offset += sectionLengthRef;
@@ -444,11 +550,10 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
     //Test that the final bit of the message 7777 is present in both
     while(offset<length){
         if((static_cast<char>(bufferRef[offset]) != '7')||(static_cast<char>(bufferTest[offset]) != '7')){
-            std::cout<<"Message does not contain the correct section"<<std::endl;
+            std::cerr<<"[GRIB COMPARE] ERROR Message does not contain the correct section"<<std::endl;
         }
         ++offset;      
     }
-
 
     return 10;
 }
@@ -654,7 +759,6 @@ void compare_DataSection(codes_handle* hRef, codes_handle* hTest,double relative
     double denominator;
     for(size_t i = 0; i<valuesLenRef;++i){
         error = std::fabs(valuesRef[i]-valuesTest[i]);
-        std::cout<<error<<std::endl;
         if(error<=tolerance) continue;
         absoluteError += error;
         denominator = std::fabs(valuesRef[i]) > tolerance ? std::fabs(valuesRef[i]) : tolerance;
@@ -700,6 +804,9 @@ std::string value_to_string(codes_handle* h, const char* name, int codes_data_ty
     }
     return oss.str();
 }
+
+
+
 // only compare the key of each map. the tupel is expected to diverge. first as bytestreams and only if they don't match get more details
 //swapped means that the codes handles were swapped so that 
 std::tuple<bool,bool> compare_values(codes_handle* hRef, codes_handle* hTest, const char* name){
@@ -912,7 +1019,7 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
         }
         if(gribcomparison_ == "bitexact"){
-            std::cout<<"[LOG] Memory comparison (Bytestream)"<<std::endl;
+            if( verbose_ ) std::cout<<"[LOG] Memory comparison (Bytestream)"<<std::endl;
             //Bitexact comparison directly on the Bytestream begin
             int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
             if(i==10){
@@ -933,7 +1040,7 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
                 free(bufferTest);
                 throw BadValue(errorMsg,Here());
             }
-            ASSERT(i==9); // Numerical check of the values stored in the data section
+            ASSERT(i==9); // Numerical check of data section
         }
         hRef = codes_handle_new_from_message(NULL,bufferRef,std::get<2>(gribLocRef));
         if (!hRef)
@@ -993,7 +1100,7 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         if(gribcomparison_ == "grib-keys"){
             auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,grib_keys_ignore_,grib_keys_select_);
             if(!match){
-                std::cout<<"[ GRIB COMPARISON KEY-BY-KEY ] FAILED Grib Message REF: {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<" TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
+                std::cout<<"[ GRIB COMPARISON KEY-BY-KEY ] MISMATCH Grib Message REF: {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<" TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
 
                 // std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
                 free(bufferRef);
@@ -1060,13 +1167,15 @@ bool isSubset(const Map& map1, const Map& map2) {
 }
 
 void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual>& umap,const FDBToolRequest& request,const std::map<std::string,std::string>& ignore_keys){
+
         auto listObject = localFDB.list(request);
+
         ListElement elem;    
         while (listObject.next(elem)) {
             std::map<std::string,std::string> tmp;
             for(const auto & bit : elem.keys()) {
                 //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
-               // std::cout<<bit<<std::endl;
+                std::cout<<request<<" "<<bit<<std::endl;
                 auto keydict = bit.keyDict();
                 tmp.insert(keydict.begin(),keydict.end());
             }
@@ -1075,93 +1184,85 @@ void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string
             {
                 umap.insert({tmp,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
             }
+
             //else{
             //    std::cout<<"Entry: "<<tmp<<std::endl;
             //    std::cout<<"Was ignored because it matched "<<ignore_keys<<std::endl;
            // }
         }
+        std::cout<<"in assemble compare map matrix size at end" << umap.size() << std::endl;
 }
 
 void FDBCompare::execute(const CmdArgs& args) {
+    FDB fdbref;
+    FDB fdbtest;
 
-    PathName configPathref(referenceConfig_);
-    if (!configPathref.exists()) {
-        std::ostringstream ss;
-        ss << "Path " << referenceConfig_ << " does not exist";
-        throw UserError(ss.str(), Here());
-    }
-    if (configPathref.isDir()) {
-        std::ostringstream ss;
-        ss << "Path " << referenceConfig_ << " is a directory. Expecting a file";
-        throw UserError(ss.str(), Here());
-    }
+
+    if(!singleFDB_) {
+        PathName configPathref(referenceConfig_);
+        if (!configPathref.exists()) {
+            std::ostringstream ss;
+            ss << "Path " << referenceConfig_ << " does not exist";
+            throw UserError(ss.str(), Here());
+        }
+        if (configPathref.isDir()) {
+            std::ostringstream ss;
+            ss << "Path " << referenceConfig_ << " is a directory. Expecting a file";
+            throw UserError(ss.str(), Here());
+        }
+        
+        fdbref = FDB( Config::make(configPathref));
+
+        PathName configPathtest(testConfig_);
+        if (!configPathtest.exists()) {
+            std::ostringstream ss;
+            ss << "Path " << testConfig_ << " does not exist";
+            throw UserError(ss.str(), Here());
+        }
+        if (configPathtest.isDir()) {
+            std::ostringstream ss;
+            ss << "Path " << testConfig_ << " is a directory. Expecting a file";
+            throw UserError(ss.str(), Here());
+        }
     
-    FDB fdbref( Config::make(configPathref));
+        fdbtest = FDB( Config::make(configPathtest));
+    }else{
+        fdbtest = FDB(config(args));
+        fdbref = FDB(config(args));
+    }
 
-    PathName configPathtest(testConfig_);
-    if (!configPathtest.exists()) {
-        std::ostringstream ss;
-        ss << "Path " << testConfig_ << " does not exist";
-        throw UserError(ss.str(), Here());
-    }
-    if (configPathtest.isDir()) {
-        std::ostringstream ss;
-        ss << "Path " << testConfig_ << " is a directory. Expecting a file";
-        throw UserError(ss.str(), Here());
-    }
-   
-    FDB fdbtest( Config::make(configPathtest));
 
 
     //FDBToolRequest is possible by using the known syntax on the command line and restrict the amount of data that is 
     //retrieved by fdb.list. But in develop we might also want to request individual param ID. that currently results in a
     //Serious bug exception. So even tough the filter is possible we will be able to reduce it further.  
-    for (const FDBToolRequest& request : requests()) {
-        //Probalby a little bit faster but more error prone with the string assembling
-        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
-        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
-
-        // auto listObject = fdbref.list(request);
-        // ListElement elem;    
-        // while (listObject.next(elem)) {
-        //     std::string str;
-        //     for(const auto & bit : elem.key()) {
-        //         //std::cout<<bit<<" "<<std::endl;
-        //         str.append(bit);
-        //         str.append(",");
-        //     }
-        //     //ßstd::cout<<"-----------------"<<std::endl;
-        //     ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-
-        // }
-        // listObject = fdbtest.list(request);
-        // while (listObject.next(elem)) {
-        //     std::string str;
-        //     for(const auto & bit : elem.key()) {
-        //         str.append(bit);
-        //         str.append(",");
-        //     }
-        //     test_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-        
-        // }
-
-
+    // for (const FDBToolRequest& request : requests()) {
+ 
         std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> ref_map;
         std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> test_map;
+        // If user describes individual retrieval requests, this takes precedence over the standard way to define retrieval requests from the CLI
+        
+        if(!referenceRequest_.empty() && !testRequest_.empty()){
 
-        assemble_compare_map(fdbref,ref_map,request,mars_keys_ignore_);
-        assemble_compare_map(fdbtest,test_map,request,mars_keys_ignore_);
-        // std::cout<<"ref map"<<std::endl;
-        // std::cout<<ref_map<<std::endl;
-        // std::cout<<ref_map.size()<<std::endl;
-        // std::cout<<"TEst map"<<std::endl;
-        // std::cout<<test_map<<std::endl;
-        // std::cout<<test_map.size()<<std::endl;
+            assemble_compare_map(fdbref,ref_map,FDBToolRequest::requestsFromString(referenceRequest_)[0],mars_keys_ignore_);
+            assemble_compare_map(fdbtest,test_map,FDBToolRequest::requestsFromString(testRequest_)[0],mars_keys_ignore_);
+        }
+        else{
 
+            assemble_compare_map(fdbref,ref_map,requests()[0],mars_keys_ignore_);
+            assemble_compare_map(fdbtest,test_map,requests()[0],mars_keys_ignore_);
+        }
+        std::cout<<"referenceRequest_"<<referenceRequest_<<std::endl;
+        std::cout<<"testRequest_"<<testRequest_<<std::endl;
+        std::cout<<"ref map"<<ref_map.size()<<std::endl;
+        std::cout<<ref_map<<std::endl;
+        std::cout<<"TEst map"<<test_map.size()<<std::endl;
+        std::cout<<test_map<<std::endl;
+        std::cout<<"req_diff = "<< req_diff_ <<std::endl;
 
         //Check that the keys match only continue with next comparison is this is the case
-        if(!(compare_keys(ref_map,test_map))){
-            std::cerr<<"Mars Metadata Keys don't match"<<std::endl;
+        if(!(compare_keys(ref_map,test_map,req_diff_))){
+            std::cerr<<"[MARS KEYS COMPARE] MISMATCH"<<std::endl;
             return;
         }
         // Return if only a comparison of Mars metadata messages was specified as Command Line option
@@ -1182,6 +1283,22 @@ void FDBCompare::execute(const CmdArgs& args) {
         double absoluteError=0.0;
         double relativeError=0.0;
         bool datamatch=false;
+
+        // Lambda: modifies key inline and returns reference to it
+        auto applyDiffAndReturn = [](std::map<std::string,std::string> k,
+                                    const std::map<std::string,std::pair<std::string,std::string>>& diff) -> std::map<std::string,std::string> {
+            for (const auto& [field, val_pair] : diff) {
+                auto it = k.find(field);
+                if (it != k.end()) {
+                    it->second = val_pair.second; // replace value
+                }
+            }
+            return k; // return modified copy
+        };
+
+        std::cout<<"REF "<<ref_map<<std::endl;
+        std::cout<<"TEST "<<test_map<<std::endl;
+     
         for (auto& [key, value]:ref_map)
         {
             std::cerr<<"|";
@@ -1189,7 +1306,10 @@ void FDBCompare::execute(const CmdArgs& args) {
             absoluteError=0.0;
             relativeError=0.0;
             try{
-                datamatch = gribCompare(value,test_map[key],relativeError,absoluteError);
+                std::cout<<"key = "<<key<<"changed key = "<<applyDiffAndReturn(key,req_diff_)<<std::endl;
+                std::cout<<"test_map[key]"<<test_map[applyDiffAndReturn(key,req_diff_)]<<std::endl;
+
+                datamatch = gribCompare(value,test_map[applyDiffAndReturn(key,req_diff_)],relativeError,absoluteError);
             }
             catch(...){
                 std::cout<<"Grib Comparison failed Mars Key"<<key<<std::endl;
@@ -1243,11 +1363,8 @@ void FDBCompare::execute(const CmdArgs& args) {
             std::cout<<"     Maximum Error: "<<absoluteErrorMax<<std::endl;
             std::cout<<"     Average Error: "<<absoluteErrorAvg<<std::endl;
             std::cout<< "    Minimum Error: "<<absoluteErrorMin<<std::endl;
-        }
-
-
-           
-    }
+        }    
+    // }
  
 }
 
@@ -1276,3 +1393,33 @@ int main(int argc, char **argv) {
     return app.start();
 }
 
+
+
+
+       //Probalby a little bit faster but more error prone with the string assembling
+        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
+        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
+
+        // auto listObject = fdbref.list(request);
+        // ListElement elem;    
+        // while (listObject.next(elem)) {
+        //     std::string str;
+        //     for(const auto & bit : elem.key()) {
+        //         //std::cout<<bit<<" "<<std::endl;
+        //         str.append(bit);
+        //         str.append(",");
+        //     }
+        //     //ßstd::cout<<"-----------------"<<std::endl;
+        //     ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+
+        // }
+        // listObject = fdbtest.list(request);
+        // while (listObject.next(elem)) {
+        //     std::string str;
+        //     for(const auto & bit : elem.key()) {
+        //         str.append(bit);
+        //         str.append(",");
+        //     }
+        //     test_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+        
+        // }

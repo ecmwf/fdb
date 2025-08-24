@@ -459,7 +459,6 @@ list( APPEND fdb5_tools
     fdb-copy
     fdb-dump
     fdb-list
-    fdb-compare
     fdb-read
     fdb-schema
     fdb-where
@@ -519,6 +518,17 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
+ecbuild_add_executable( TARGET    fdb-compare
+                        CONDITION HAVE_FDB_BUILD_TOOLS
+                        SOURCES   tools/compare/fdb-compare.cc
+                                #   tools/compare/datautils/comparator.cc
+                                #   tools/compare/datautils/grib/compare.cc
+                        INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                                    tools/compare/datautils/grib/mars-to-grib.h
+                                #   tools/compare/datautils
+                                #   tools/compare/datautils/grib
+                        LIBS      fdb5 )
+                        
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
