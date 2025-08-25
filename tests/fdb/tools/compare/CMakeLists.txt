@@ -6,6 +6,7 @@ list( APPEND fdb_tools_compare_tests
     all_identical
     diff_exp
     mismatch_mars
+    mismatch_grib
 
 )
 configure_file( setup_ref_fdb.sh.in setup_ref_fdb.sh @ONLY )

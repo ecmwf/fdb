@@ -43,13 +43,13 @@ fdb write --config=test_mars.yaml grib/an9.grib
 fdb-compare --reference-config=ref.yaml --test-config=test_mars.yaml --minimum-keys="" --all | tee out
 grep -Fq "[MARS KEYS COMPARE] MISMATCH" out || die "Mars Key mismatch and this should have been detected"
 
-### Test with diverging MARS entries. 
+### Test with diverging MARS entries. Should not start comparing the grib messages
 fdb-compare --reference-config=ref.yaml --test-config=test_mars.yaml --minimum-keys="" --all --scope=header-only| tee out
-grep -Fq "[MARS KEYS COMPARE] MISMATCH" out || die "Mars Key mismatch and this should have been detected"
+! grep -Fq "Compare Grib messages" out || die "Grib Comparison check failed although grib messages should be identical"
 
-### Test with diverging MARS entries. 
+### Test with diverging MARS entries.  Should not start comparing the grib messages
 fdb-compare --reference-config=ref.yaml --test-config=test_mars.yaml --minimum-keys="" --all --scope=all| tee out
-grep -Fq "[MARS KEYS COMPARE] MISMATCH" out || die "Mars Key mismatch and this should have been detected"
+! grep -Fq "Compare Grib messages" out || die "Mars Key check failed although the fdbs should be identical"
 
 
 

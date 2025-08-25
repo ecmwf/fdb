@@ -524,7 +524,7 @@ ecbuild_add_executable( TARGET    fdb-compare
                                 #   tools/compare/datautils/comparator.cc
                                 #   tools/compare/datautils/grib/compare.cc
                         INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
-                                    tools/compare/datautils/grib/mars-to-grib.h
+                                    tools/compare/datautils/grib/*.h
                                 #   tools/compare/datautils
                                 #   tools/compare/datautils/grib
                         LIBS      fdb5 )

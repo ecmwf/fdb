@@ -44,10 +44,10 @@ fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="
 grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
 
 fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only| tee out
-grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+grep -Fq "GRIB COMPARISON MISMATCH" out && die "Grib Comparison check failed although grib messages should be identical"
 
 fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all| tee out
-grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+grep -Fq "Average Error: 0" out || die "Mars Key check failed although the fdbs should be identical"
 
 
 

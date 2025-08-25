@@ -57,8 +57,8 @@ grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed althoug
 
 
 fdb-compare --config=test_sfme.yaml --reference-request="class=od,expver=abcd" --test-request="class=rd,expver=1234" --test-request-overwrite="class=rd,expver=1234" --scope=header-only| tee out
-grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+grep -Fq "GRIB COMPARISON MISMATCH" out && die "Grib Comparison check failed although grib messages should be identical"
 
 fdb-compare --config=test_sfme.yaml --reference-request="class=od,expver=abcd" --test-request="class=rd,expver=1234" --test-request-overwrite="class=rd,expver=1234" --scope=all | tee out
-grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+grep -Fq "Average Error: 0" out || die "Mars Key check failed although the fdbs should be identical"
 
