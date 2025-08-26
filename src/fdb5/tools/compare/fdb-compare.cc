@@ -36,6 +36,22 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
+////// new
+#include "datautil/comparator.h"
+#include "datautil/common/scope.h"
+#include "datautil/common/comparison_map.h"
+
+// FDB includes
+// #include "fdb5/api/FDB.h"
+// #include "eckit/config/Resource.h"
+#include "eckit/filesystem/PathName.h"
+
+#include <memory>
+#include <vector>
+
+////
+
+
 #include "fdb5/tools/compare/datautil/grib/mars-to-grib.h"
 #include "fdb5/tools/compare/datautil/grib/data-section-util.h"
 
@@ -46,6 +62,8 @@
 
 using namespace eckit;
 using namespace eckit::option;
+using compare::Options;
+using compare::Scope;
 
 namespace fdb5 {
 namespace tools {
@@ -318,61 +336,61 @@ void FDBCompare::init(const CmdArgs& args) {
     
 }
 
-template <typename Map>
-bool compare_keys(
-    Map const &ref,
-    Map const &test,
-    std::map<std::string,std::pair<std::string,std::string>> const &mars_req_diff)
-{
-    if (test.size() != ref.size()) {
-        std::cout << "[MARS KEYS COMPARE] WARNING: FDB number of entries don't match. "
-                  << "This can be on purpose if no FDB tool filter is used.\n";
-    }
+// template <typename Map>
+// bool compare_keys(
+//     Map const &ref,
+//     Map const &test,
+//     std::map<std::string,std::pair<std::string,std::string>> const &mars_req_diff)
+// {
+//     if (test.size() != ref.size()) {
+//         std::cout << "[MARS KEYS COMPARE] WARNING: FDB number of entries don't match. "
+//                   << "This can be on purpose if no FDB tool filter is used.\n";
+//     }
 
-    std::cout << "[LOG] Checking MARS Keys\n";
-    int mismatch_count = 0;
+//     std::cout << "[LOG] Checking MARS Keys\n";
+//     int mismatch_count = 0;
 
-    auto check_missing = [&](auto const &src, auto const &dst, const char* direction, bool count_mismatches) {
-        for (const auto& [key_map, _] : src) {
-            bool found_match = false;
+//     auto check_missing = [&](auto const &src, auto const &dst, const char* direction, bool count_mismatches) {
+//         for (const auto& [key_map, _] : src) {
+//             bool found_match = false;
 
-            if (mars_req_diff.empty()) {
-                found_match = (dst.find(key_map) != dst.end());
-            } else {
-                for (const auto& [dst_key, _] : dst) {
-                    if (maps_equal_with_diff(dst_key, key_map, mars_req_diff)) {
-                        found_match = true;
-                        break;
-                    }
-                }
-            }
+//             if (mars_req_diff.empty()) {
+//                 found_match = (dst.find(key_map) != dst.end());
+//             } else {
+//                 for (const auto& [dst_key, _] : dst) {
+//                     if (maps_equal_with_diff(dst_key, key_map, mars_req_diff)) {
+//                         found_match = true;
+//                         break;
+//                     }
+//                 }
+//             }
 
-            if (!found_match) {
-                if (count_mismatches) ++mismatch_count;
-                std::cout << "[MARS KEYS COMPARE] MISMATCH (" << direction << "): ";
-                for (const auto& [k,v] : key_map) {
-                    std::cout << k << "=" << v << " ";
-                }
-                std::cout << "\n";
-            }
-        }
-    };
+//             if (!found_match) {
+//                 if (count_mismatches) ++mismatch_count;
+//                 std::cout << "[MARS KEYS COMPARE] MISMATCH (" << direction << "): ";
+//                 for (const auto& [k,v] : key_map) {
+//                     std::cout << k << "=" << v << " ";
+//                 }
+//                 std::cout << "\n";
+//             }
+//         }
+//     };
 
 
-    // Check test → ref (keys in test missing in ref)
-    check_missing(test, ref, "Test->Reference",true);
+//     // Check test → ref (keys in test missing in ref)
+//     check_missing(test, ref, "Test->Reference",true);
 
-    if(mismatch_count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
-    {   
-        std::cout<<"[MARS KEYS COMPARE] SUCCESS"<<std::endl;
-        return true; //works because it is assumed that both 
-    }
+//     if(mismatch_count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
+//     {   
+//         std::cout<<"[MARS KEYS COMPARE] SUCCESS"<<std::endl;
+//         return true; //works because it is assumed that both 
+//     }
 
-    // Check ref → test (keys in ref missing in test) just to report the differences. 
-    check_missing(ref, test, "Reference->Test",false);
+//     // Check ref → test (keys in ref missing in test) just to report the differences. 
+//     check_missing(ref, test, "Reference->Test",false);
 
-    return false;
-}
+//     return false;
+// }
 
 
 void printInfo(codes_handle* h)
@@ -1346,41 +1364,41 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
 
 
 
-// Function to check if map1 is a subset of map2
-template <typename Map>
-bool isSubset(const Map& map1, const Map& map2) {
-    return std::any_of(map1.begin(), map1.end(), [&map2](const auto& pair) {
-        auto it = map2.find(pair.first);
-        return it != map2.end() && it->second == pair.second;
-    });
-}
+// // Function to check if map1 is a subset of map2
+// template <typename Map>
+// bool isSubset(const Map& map1, const Map& map2) {
+//     return std::any_of(map1.begin(), map1.end(), [&map2](const auto& pair) {
+//         auto it = map2.find(pair.first);
+//         return it != map2.end() && it->second == pair.second;
+//     });
+// }
 
-void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual>& umap,const FDBToolRequest& request,const std::map<std::string,std::string>& ignore_keys){
+// void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual>& umap,const FDBToolRequest& request,const std::map<std::string,std::string>& ignore_keys){
 
-        auto listObject = localFDB.list(request);
+//         auto listObject = localFDB.list(request);
 
-        ListElement elem;    
-        while (listObject.next(elem)) {
-            std::map<std::string,std::string> tmp;
-            for(const auto & bit : elem.keys()) {
-                //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
-                // std::cout<<request<<" "<<bit<<std::endl;
-                auto keydict = bit.keyDict();
-                tmp.insert(keydict.begin(),keydict.end());
-            }
-            // if the ignore_keys are a subset of the Mars keys then the entry is ignored and not furhter tested.
-            if(ignore_keys.size()==0|| !isSubset(ignore_keys,tmp))
-            {
-                umap.insert({tmp,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-            }
+//         ListElement elem;    
+//         while (listObject.next(elem)) {
+//             std::map<std::string,std::string> tmp;
+//             for(const auto & bit : elem.keys()) {
+//                 //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
+//                 // std::cout<<request<<" "<<bit<<std::endl;
+//                 auto keydict = bit.keyDict();
+//                 tmp.insert(keydict.begin(),keydict.end());
+//             }
+//             // if the ignore_keys are a subset of the Mars keys then the entry is ignored and not furhter tested.
+//             if(ignore_keys.size()==0|| !isSubset(ignore_keys,tmp))
+//             {
+//                 umap.insert({tmp,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
+//             }
 
-            //else{
-            //    std::cout<<"Entry: "<<tmp<<std::endl;
-            //    std::cout<<"Was ignored because it matched "<<ignore_keys<<std::endl;
-           // }
-        }
-        std::cout<<"[LOG]"<<"FDB request: "<< request<< " resulted in " << umap.size() <<" entries." <<std::endl;
-}
+//             //else{
+//             //    std::cout<<"Entry: "<<tmp<<std::endl;
+//             //    std::cout<<"Was ignored because it matched "<<ignore_keys<<std::endl;
+//            // }
+//         }
+//         std::cout<<"[LOG]"<<"FDB request: "<< request<< " resulted in " << umap.size() <<" entries." <<std::endl;
+// }
 
 void FDBCompare::execute(const CmdArgs& args) {
     FDB fdbref;
@@ -1420,45 +1438,47 @@ void FDBCompare::execute(const CmdArgs& args) {
         fdbref = FDB(config(args));
     }
 
+    compare::Options opts;
+    opts.scope = compare::parseScope(scope_);
+    opts.referenceRequest = referenceRequest_;
+    opts.testRequest = testRequest_;
+    opts.marsReqDiff = req_diff_;
+
+    compare::common::DataIndex refIdx, testIdx;
+
+    const auto pickReq = [&](const std::string& s) -> fdb5::FDBToolRequest {
+        if (!s.empty()) return FDBToolRequest::requestsFromString(s)[0];
+        return requests()[0];
+    };
+
+    auto reqRef  = pickReq(opts.referenceRequest);
+    auto reqTest = pickReq(opts.testRequest);
+
+    compare::common::assemble_compare_map(fdbref, refIdx, reqRef,  mars_keys_ignore_);
+    compare::common::assemble_compare_map(fdbtest, testIdx, reqTest, mars_keys_ignore_);
 
 
+
+    
     //FDBToolRequest is possible by using the known syntax on the command line and restrict the amount of data that is 
     //retrieved by fdb.list. But in develop we might also want to request individual param ID. that currently results in a
     //Serious bug exception. So even tough the filter is possible we will be able to reduce it further.  
     // for (const FDBToolRequest& request : requests()) {
- 
-        std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> ref_map;
-        std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual> test_map;
-        // If user describes individual retrieval requests, this takes precedence over the standard way to define retrieval requests from the CLI
-        
-        if(!referenceRequest_.empty() && !testRequest_.empty()){
+    auto marsCmp = compare::ComparatorFactory::create("mars", refIdx, testIdx);
+    auto marsRes = marsCmp->compare(opts);
+    if (!marsRes.ok) {
+        std::cerr << "[MARS KEYS COMPARE] MISMATCH\n";
+        return; 
+    }
+    
 
-            assemble_compare_map(fdbref,ref_map,FDBToolRequest::requestsFromString(referenceRequest_)[0],mars_keys_ignore_);
-            assemble_compare_map(fdbtest,test_map,FDBToolRequest::requestsFromString(testRequest_)[0],mars_keys_ignore_);
-        }
-        else{
 
-            assemble_compare_map(fdbref,ref_map,requests()[0],mars_keys_ignore_);
-            assemble_compare_map(fdbtest,test_map,requests()[0],mars_keys_ignore_);
-        }
-        // std::cout<<"referenceRequest_"<<referenceRequest_<<std::endl;
-        // std::cout<<"testRequest_"<<testRequest_<<std::endl;
-        // std::cout<<"ref map"<<ref_map.size()<<std::endl;
-        // std::cout<<ref_map<<std::endl;
-        // std::cout<<"TEst map"<<test_map.size()<<std::endl;
-        // std::cout<<test_map<<std::endl;
-        // std::cout<<"req_diff = "<< req_diff_ <<std::endl;
+    // Return if only a comparison of Mars metadata messages was specified as Command Line option
+    if(scope_ == "mars"){
+        return;
+    }
+    std::cout<<"[GRIB COMPARISON LOG]"<<"Compare Grib messages"<<std::endl;
 
-        //Check that the keys match only continue with next comparison is this is the case
-        if(!(compare_keys(ref_map,test_map,req_diff_))){
-            std::cerr<<"[MARS KEYS COMPARE] MISMATCH"<<std::endl;
-            return;
-        }
-        // Return if only a comparison of Mars metadata messages was specified as Command Line option
-        if(scope_ == "mars"){
-            return;
-        }
-        std::cout<<"[GRIB COMPARISON LOG]"<<"Compare Grib messages"<<std::endl;
         //Compare the individual Grib messages
         double absoluteErrorSum = 0.0;
         double absoluteErrorMin = 0.0;
@@ -1488,7 +1508,7 @@ void FDBCompare::execute(const CmdArgs& args) {
         // std::cout<<"REF "<<ref_map<<std::endl;
         // std::cout<<"TEST "<<test_map<<std::endl;
      
-        for (auto& [key, value]:ref_map)
+        for (auto& [key, value]:refIdx)
         {
             std::cerr<<"|";
 
@@ -1498,7 +1518,7 @@ void FDBCompare::execute(const CmdArgs& args) {
                 // std::cout<<"key = "<<key<<"changed key = "<<applyDiffAndReturn(key,req_diff_)<<std::endl;
                 // std::cout<<"test_map[key]"<<test_map[applyDiffAndReturn(key,req_diff_)]<<std::endl;
 
-                datamatch = gribCompare(value,test_map[applyDiffAndReturn(key,req_diff_)],relativeError,absoluteError);
+                datamatch = gribCompare(value,testIdx[applyDiffAndReturn(key,req_diff_)],relativeError,absoluteError);
             }
             catch(...){
                 std::cout<<"[GRIB COMPARE MISMATCH] Grib Comparison failed Mars Key"<<key<<std::endl;
@@ -1582,33 +1602,3 @@ int main(int argc, char **argv) {
     return app.start();
 }
 
-
-
-
-       //Probalby a little bit faster but more error prone with the string assembling
-        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> ref_map;
-        // std::unordered_map<std::string, std::tuple<std::string,long long int,long long int>> test_map;
-
-        // auto listObject = fdbref.list(request);
-        // ListElement elem;    
-        // while (listObject.next(elem)) {
-        //     std::string str;
-        //     for(const auto & bit : elem.key()) {
-        //         //std::cout<<bit<<" "<<std::endl;
-        //         str.append(bit);
-        //         str.append(",");
-        //     }
-        //     //ßstd::cout<<"-----------------"<<std::endl;
-        //     ref_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-
-        // }
-        // listObject = fdbtest.list(request);
-        // while (listObject.next(elem)) {
-        //     std::string str;
-        //     for(const auto & bit : elem.key()) {
-        //         str.append(bit);
-        //         str.append(",");
-        //     }
-        //     test_map.insert({str,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-        
-        // }
