@@ -30,7 +30,7 @@ foreach( _test ${fdb_tools_compare_tests} )
         TYPE SCRIPT
         LABELS compare
         CONDITION HAVE_FDB_BUILD_TOOLS
-        TEST_DEPENDS setup_ref_fdb
+        TEST_DEPENDS fdb_tools_compare_setup_ref_fdb
         COMMAND compare_${_test}.sh
         ENVIRONMENT "${test_environment}" )
 

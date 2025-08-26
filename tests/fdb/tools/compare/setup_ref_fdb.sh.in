@@ -31,8 +31,6 @@ done
 
 # ########################################################################################################################
 
-#Different comparisons: 
-# compare the reference fdb with itself => bitidentical
 grib_set -s edition=2 x.grib x2.grib
 grib_set -s step=6 x2.grib grib/6.grib
 grib_set -s step=9 x2.grib grib/9.grib

@@ -54,6 +54,7 @@
 
 #include "fdb5/tools/compare/datautil/grib/mars-to-grib.h"
 #include "fdb5/tools/compare/datautil/grib/data-section-util.h"
+#include "fdb5/tools/compare/datautil/common/data_map.h"
 
 
 #include "eccodes.h"
@@ -64,6 +65,7 @@ using namespace eckit;
 using namespace eckit::option;
 using compare::Options;
 using compare::Scope;
+using namespace compare::common;
 
 namespace fdb5 {
 namespace tools {
@@ -74,7 +76,7 @@ extern "C"
 }
 //----------------------------------------------------------------------------------------------------------------------
 //Reorganise. Ideally this should be encapsulated in a class or somewhere and not just here
-typedef std::tuple<std::string,long long int, long long int> GribLocation; //{Location,Offset,Length}
+// typedef std::tuple<std::string,long long int, long long int> GribLocation; //{Location,Offset,Length}
 // Utility function to append key-value pairs to std::map
 void appendKeys(std::map<std::string, std::string>& container, const std::string& keyValueStr) {
     std::istringstream stream(keyValueStr);
@@ -117,92 +119,6 @@ void request_diff(std::string ref_req, std::map<std::string,std::string> overwri
 }
 
 
-// Custom hash function for std::map<std::string, std::string>
-struct MapHash {
-    std::size_t operator()(const std::map<std::string, std::string>& m) const {
-        std::size_t seed = 0; // Initial seed value
-        for (const auto& pair : m) {
-            // Combine the hash of each element pair into the seed using a simple hash combine algorithm
-            seed ^= std::hash<std::string>()(pair.first) // Hash the key
-                   + 0x9e3779b9                          // Add the golden ratio prime constant
-                   + (seed << 6)                         // Mix the bits of the seed (left shift)
-                   + (seed >> 2);                        // Mix the bits of the seed (right shift)
-            seed ^= std::hash<std::string>()(pair.second) // Hash the value
-                   + 0x9e3779b9                           // Add the golden ratio prime constant
-                   + (seed << 6)                          // Mix the bits of the seed (left shift)
-                   + (seed >> 2);                         // Mix the bits of the seed (right shift)
-        }
-        return seed;
-    }
-};
-// Custom equality operator for std::map<std::string, std::string>
-struct MapEqual {
-    bool operator()(const std::map<std::string, std::string>& lhs, const std::map<std::string, std::string>& rhs) const {
-        return lhs == rhs;
-    }
-};
-
-bool maps_equal_with_diff(
-    const std::map<std::string,std::string>& a,
-    const std::map<std::string,std::string>& b,
-    const std::map<std::string,std::pair<std::string,std::string>>& diffs)
-{
-    // First, check that both have the same number of keys
-    if (a.size() != b.size()) return false;
-
-    for (const auto& [k, v_a] : a) {
-        auto it_b = b.find(k);
-        if (it_b == b.end()) return false;  // key missing
-        const std::string& v_b = it_b->second;
-
-        auto it_diff = diffs.find(k);
-        if (it_diff != diffs.end()) {
-            // This key is allowed to diverge
-            const auto& [expected_ref, expected_test] = it_diff->second;
-            if (v_a == expected_ref && v_b == expected_test) {
-                continue; // okay, matches allowed divergence
-            } else {
-                return false; // diverges in an unexpected way
-            }
-        } else {
-            // This key must match exactly
-            if (v_a != v_b) return false;
-        }
-    }
-    return true;
-}
-
-std::ostream& operator<<(std::ostream& os, const std::unordered_map<
-    std::map<std::string, std::string>,
-    GribLocation,
-    MapHash,
-    MapEqual>& umap) {
-    for (const auto& entry : umap) {
-        const auto& keyMap = entry.first;
-        const auto& valueTuple = entry.second;
-
-        os << "Key: {";
-        for (const auto& pair : keyMap) {
-            os << pair.first << "=" << pair.second << ", ";
-        }
-        os << "} -> Value: ("
-           << std::get<0>(valueTuple) << ", "
-           << std::get<1>(valueTuple) << ", "
-           << std::get<2>(valueTuple) << ")\n";
-    }
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, GribLocation gloc) {
-
-    os << "("
-        << std::get<0>(gloc) << ", "
-        << std::get<1>(gloc) << ", "
-        << std::get<2>(gloc) << ")\n";
-
-    return os;
-}
-
 template <typename T>
 std::string createStringFromArray(const std::vector<T>& array, size_t length) {
     std::ostringstream oss;
@@ -242,7 +158,7 @@ class FDBCompare : public FDBVisitTool {
 
     virtual void execute(const CmdArgs& args);
     virtual void init(const CmdArgs &args);
-    virtual bool gribCompare(const GribLocation& gribLocRef,const GribLocation& gribLocTest, double relativeError, double absoluteError);
+    virtual bool gribCompare(const DataLocation& gribLocRef,const DataLocation& gribLocTest, double relativeError, double absoluteError);
     virtual void usage(const std::string& tool) const override;
 
     std::string testConfig_;
@@ -335,62 +251,6 @@ void FDBCompare::init(const CmdArgs& args) {
     verbose_ = args.getBool("verbose",false);
     
 }
-
-// template <typename Map>
-// bool compare_keys(
-//     Map const &ref,
-//     Map const &test,
-//     std::map<std::string,std::pair<std::string,std::string>> const &mars_req_diff)
-// {
-//     if (test.size() != ref.size()) {
-//         std::cout << "[MARS KEYS COMPARE] WARNING: FDB number of entries don't match. "
-//                   << "This can be on purpose if no FDB tool filter is used.\n";
-//     }
-
-//     std::cout << "[LOG] Checking MARS Keys\n";
-//     int mismatch_count = 0;
-
-//     auto check_missing = [&](auto const &src, auto const &dst, const char* direction, bool count_mismatches) {
-//         for (const auto& [key_map, _] : src) {
-//             bool found_match = false;
-
-//             if (mars_req_diff.empty()) {
-//                 found_match = (dst.find(key_map) != dst.end());
-//             } else {
-//                 for (const auto& [dst_key, _] : dst) {
-//                     if (maps_equal_with_diff(dst_key, key_map, mars_req_diff)) {
-//                         found_match = true;
-//                         break;
-//                     }
-//                 }
-//             }
-
-//             if (!found_match) {
-//                 if (count_mismatches) ++mismatch_count;
-//                 std::cout << "[MARS KEYS COMPARE] MISMATCH (" << direction << "): ";
-//                 for (const auto& [k,v] : key_map) {
-//                     std::cout << k << "=" << v << " ";
-//                 }
-//                 std::cout << "\n";
-//             }
-//         }
-//     };
-
-
-//     // Check test → ref (keys in test missing in ref)
-//     check_missing(test, ref, "Test->Reference",true);
-
-//     if(mismatch_count==0 && (test.size()==ref.size())) // additional size check needed because it can be that the complete test FDB is contained in the reference but that the reference expects more entires: 
-//     {   
-//         std::cout<<"[MARS KEYS COMPARE] SUCCESS"<<std::endl;
-//         return true; //works because it is assumed that both 
-//     }
-
-//     // Check ref → test (keys in ref missing in test) just to report the differences. 
-//     check_missing(ref, test, "Reference->Test",false);
-
-//     return false;
-// }
 
 
 void printInfo(codes_handle* h)
@@ -584,7 +444,7 @@ int bit_comparison(const char* bufferRef, const char * bufferTest,size_t length)
     return 10;
 }
 //void extractGribMessage(GribLocation GribLocTuple ,std::unique_ptr<codes_handle,decltype(&codes_handle_delete)>& h, std::unique_ptr<char[]>& buffer,std::unique_ptr<codes_context,decltype(&codes_context_delete)>& context){
-void extractGribMessage(GribLocation GribLocTuple ,char* buffer){
+void extractGribMessage(DataLocation GribLocTuple ,char* buffer){
 
     const auto [location,offset,length] = GribLocTuple;
     std::ifstream refFile(location,std::ios::binary);
@@ -1016,181 +876,8 @@ std::tuple<bool,bool> compare_eccodes(codes_handle* hRef, codes_handle* hTest,T&
 }
 
 
-// bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& gribLocTest, double relativeError, double absoluteError)
-// {
-//     time_t start,stop;
-//     codes_handle* hRef;
-//     codes_handle* hTest;
-//     ASSERT(relativeError==0.0);
-//     ASSERT(absoluteError==0.0);
 
-//     bool datamatch = true;
-//     char* bufferRef = (char*)malloc(std::get<2>(gribLocRef)*sizeof(char));
-//     if(!bufferRef)
-//     {
-//         std::cerr<<"Here()"<<std::endl;
-//         throw std::bad_alloc();
-//     }
-//     char* bufferTest = (char*)malloc(std::get<2>(gribLocTest)*sizeof(char));
-//     if(!bufferTest)
-//     {
-//         std::cerr<<Here()<<std::endl;
-//         throw std::bad_alloc();
-//     }
-//     try{
-//         extractGribMessage(gribLocRef,bufferRef);
-//         if(bufferRef==NULL)
-//         {
-//             throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
-//         }
-//         extractGribMessage(gribLocTest,bufferTest);
-//         if(bufferTest==NULL)
-//         {
-//             throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
-//         }
-//         if(gribcomparison_ == "bitexact"){
-//             if( verbose_ ) std::cout<<"[LOG] Memory comparison (Bytestream)"<<std::endl;
-//             //Bitexact comparison directly on the Bytestream begin
-//             int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
-//             if(i==10){
-//                 free(bufferRef);
-//                 free(bufferTest);
-//                 return true;
-//             }
-//             if(i<9 && i>=0){
-//                 std::string msg = "[GRIB COMPARISON: BITEXACT: HEADER ] FAILED {Location,offset,length} = "  + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
-//                 std::cout<<msg<<std::endl;
-//                 free(bufferRef);
-//                 free(bufferTest);
-//                 return false;
-//             }
-//             if(i<0 && i>9){
-//                 std::string errorMsg = std::string(" Unknown return value");
-//                 free(bufferRef);
-//                 free(bufferTest);
-//                 throw BadValue(errorMsg,Here());
-//             }
-//             ASSERT(i==9); // Numerical check of data section
-//         }
-//         hRef = codes_handle_new_from_message(NULL,bufferRef,std::get<2>(gribLocRef));
-//         if (!hRef)
-//         {
-//             throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)),Here());   
-//         }
-//         hTest = codes_handle_new_from_message(NULL,bufferTest,std::get<2>(gribLocTest));
-//         if (!hTest)
-//         {
-//             throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = "  + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)),Here());   
-//         }
-//         if(gribcomparison_ == "hashkeys"){
-//             // BitExactComparison with hashkeys begin
-//             //std::cout<<"hashkeys comparison"<<std::endl;
-//             auto match = compare_header(hRef,hTest);
-//             if(!match){
-//                 //just called to give a more specific output if the comparison failed
-//                 compare_eccodes(hRef,hTest,grib_keys_ignore_,grib_keys_select_);
-//                 free(bufferRef);
-//                 free(bufferTest);
-            
-//                 codes_handle_delete(hRef);
-//                 codes_handle_delete(hTest);
-//                 std::string msg = "[ GRIB COMPARISON HEADER SECTION MD5SUMS ] FAILED Headers don't match Location reference = " + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
-//                 std::cout<<msg<<std::endl;
-                
-//                 return false;
-//             }
-        
-//             //Return 2 if Data section fails, Return 1 if all sections match, return 0 if any other section does not match
-//             int match_md5sums = compare_md5sums(hRef,hTest);
-//             if(match_md5sums == 1){
-//                 free(bufferRef);
-//                 free(bufferTest);
-            
-//                 codes_handle_delete(hRef);
-//                 codes_handle_delete(hTest);
-
-//                 absoluteError = 0.0;
-//                 relativeError = 0.0;
-//                 return true;
-//             }
-//             if(match_md5sums != 2) // stop if it's not the data section that didn't match
-//             {
-//                 free(bufferRef);
-//                 free(bufferTest);
-            
-//                 codes_handle_delete(hRef);
-//                 codes_handle_delete(hTest);
-
-//                 absoluteError = 0.0;
-//                 relativeError = 0.0;
-//                 return false;
-//             }
-//             ASSERT(match_md5sums == 2);
-//         }
-//         if(gribcomparison_ == "grib-keys"){
-//             auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,grib_keys_ignore_,grib_keys_select_);
-//             if(!match){
-//                 std::cout<<"[ GRIB COMPARISON KEY-BY-KEY ] MISMATCH Grib Message REF: {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<" TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
-
-//                 // std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
-//                 free(bufferRef);
-//                 free(bufferTest);
-            
-//                 codes_handle_delete(hRef);
-//                 codes_handle_delete(hTest);
-
-//                 absoluteError = 0.0;
-//                 relativeError = 0.0;
-//                 return false;
-//             }
-//             else if(datasectionMatch && match){
-//                 free(bufferRef);
-//                 free(bufferTest);
-            
-//                 codes_handle_delete(hRef);
-//                 codes_handle_delete(hTest);
-
-//                 absoluteError = 0.0;
-//                 relativeError = 0.0;
-//                 return true;
-//             };
-//             ASSERT((datasectionMatch==false) && (match==true));
-//             //else continue as we have a Mismatch in the data section but all other sections had a match compare the data section numerically 
-//         }
-//         if(scope_ == "all") {
-//             compare_DataSection(hRef,hTest,relativeError,absoluteError,tolerance_);
-//         }
-
-//         if( relativeError>tolerance_ || absoluteError>tolerance_)
-//         {
-//             std::cerr<<"Differenene in Grib message Grib Message failed {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " << std::to_string(std::get<2>(gribLocTest))<<std::endl;
-//             std::cerr<<"Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<std::endl;
-//             datamatch=false;
-//         }
-
-//     }
-//     catch(...){
-//         free(bufferRef);
-//         free(bufferTest);
-    
-//         codes_handle_delete(hRef);
-//         codes_handle_delete(hTest);
-
-//         throw;
-//     }
-//     free(bufferRef);
-//     free(bufferTest);
-
-//     codes_handle_delete(hRef);
-//     codes_handle_delete(hTest);
-
-//     return datamatch;
-
-// }
-
-
-
-bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& gribLocTest, double relativeError, double absoluteError)
+bool FDBCompare::gribCompare(const DataLocation& gribLocRef,const DataLocation& gribLocTest, double relativeError, double absoluteError)
 {
     time_t start,stop;
     codes_handle* hRef;
@@ -1199,13 +886,13 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
     ASSERT(absoluteError==0.0);
 
     bool datamatch = true;
-    char* bufferRef = (char*)malloc(std::get<2>(gribLocRef)*sizeof(char));
+    char* bufferRef = (char*)malloc((gribLocRef.length)*sizeof(char));
     if(!bufferRef)
     {
         std::cerr<<"Here()"<<std::endl;
         throw std::bad_alloc();
     }
-    char* bufferTest = (char*)malloc(std::get<2>(gribLocTest)*sizeof(char));
+    char* bufferTest = (char*)malloc((gribLocTest.length)*sizeof(char));
     if(!bufferTest)
     {
         std::cerr<<Here()<<std::endl;
@@ -1215,25 +902,30 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         extractGribMessage(gribLocRef,bufferRef);
         if(bufferRef==NULL)
         {
-            throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)));
+            std::ostringstream oss;
+            oss << "Extraction of Grib Message failed {Location,offset,length} = " << gribLocRef;
+            throw Abort(oss.str());
         }
         extractGribMessage(gribLocTest,bufferTest);
         if(bufferTest==NULL)
         {
-            throw Abort("Extraction of Grib Message failed {Location,offset,length} = " + std::get<0>(gribLocTest) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)));
+            std::ostringstream oss;
+            oss << "Extraction of Grib Message failed {Location,offset,length} = " << gribLocTest;
+            throw Abort(oss.str());
         }
         if(gribcomparison_ == "bitexact"){
             if( verbose_ ) std::cout<<"[LOG] Memory comparison (Bytestream)"<<std::endl;
             //Bitexact comparison directly on the Bytestream begin
-            int i =  bit_comparison(bufferRef, bufferTest,std::get<2>(gribLocTest));
+            int i =  bit_comparison(bufferRef, bufferTest,(gribLocTest.length));
             if(i==10){
                 free(bufferRef);
                 free(bufferTest);
                 return true;
             } //Message is bitexact
             if(i<9 && i>=0){
-                std::string msg = "[GRIB COMPARISON MISMATCH: BITEXACT: HEADER ] {Location,offset,length} = "  + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
-                std::cout<<msg<<std::endl;
+                std::ostringstream oss;
+                oss << "[GRIB COMPARISON MISMATCH: BITEXACT: HEADER ] {Location,offset,length} = " << gribLocRef;
+                std::cout<<oss.str()<<std::endl;
                 free(bufferRef);
                 free(bufferTest);
                 return false;
@@ -1246,15 +938,20 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             }
             ASSERT(i==9); // Numerical check of data section IF only the data section failed it is possible to do a floating point check if data check is specified
         }
-        hRef = codes_handle_new_from_message(NULL,bufferRef,std::get<2>(gribLocRef));
+        hRef = codes_handle_new_from_message(NULL,bufferRef,(gribLocRef.length));
         if (!hRef)
         {
-            throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = " + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocRef)) + " , " + std::to_string(std::get<2>(gribLocRef)),Here());   
+            std::ostringstream oss;
+            oss << "ECCODES Handle could not be created {Location,offset,length} = " << gribLocRef;
+            throw FailedLibraryCall("eccodes","codes_handle_new_from_message",oss.str(),Here());   
         }
-        hTest = codes_handle_new_from_message(NULL,bufferTest,std::get<2>(gribLocTest));
+        hTest = codes_handle_new_from_message(NULL,bufferTest,(gribLocTest.length));
         if (!hTest)
         {
-            throw FailedLibraryCall("eccodes","codes_handle_new_from_message","ECCODES Handle could not be created. Location, offset, length = "  + std::get<0>(gribLocRef) + " , " + std::to_string(std::get<1>(gribLocTest)) + " , " + std::to_string(std::get<2>(gribLocTest)),Here());   
+
+            std::ostringstream oss;
+            oss << "ECCODES Handle could not be created {Location,offset,length} = " << gribLocTest;
+            throw FailedLibraryCall("eccodes","codes_handle_new_from_message",oss.str(),Here());  
         }
         if(gribcomparison_ == "hashkeys"){
             // BitExactComparison with hashkeys begin
@@ -1268,8 +965,10 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
             
                 codes_handle_delete(hRef);
                 codes_handle_delete(hTest);
-                std::string msg = "[GRIB COMPARISON MISMATCH] HEADER SECTION MD5SUMS ] Headers don't match Location reference = " + std::get<0>(gribLocRef) + " offset reference = " + std::to_string(std::get<1>(gribLocRef)) + " length reference = " +std::to_string(std::get<2>(gribLocRef))+" \nLocation test = " + std::get<0>(gribLocTest) + " offset test = " + std::to_string(std::get<1>(gribLocTest)) + " length test = " +std::to_string(std::get<2>(gribLocTest));
-                std::cout<<msg<<std::endl;
+
+                std::ostringstream oss;
+                oss << "[GRIB COMPARISON MISMATCH] HEADER SECTION MD5SUMS ] Headers don't match Reference = " << gribLocRef << " Test = " << gribLocTest <<"\n";
+                std::cout<<oss.str()<<std::endl;
                 
                 return false;
             }
@@ -1304,9 +1003,10 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
         if(gribcomparison_ == "grib-keys"){
             auto [match,datasectionMatch] = compare_eccodes(hRef, hTest,grib_keys_ignore_,grib_keys_select_, scope_);
             if(!match){
-                std::cout<<"[ GRIB COMPARISON MISMATCH KEY-BY-KEY ] Grib Message REF: {Location,offset,length} = " << std::get<0>(gribLocRef) << " , " << std::to_string(std::get<1>(gribLocRef))<<" , "<<std::to_string(std::get<2>(gribLocRef))<<" TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
+                std::ostringstream oss;
+                oss << "[ GRIB COMPARISON MISMATCH KEY-BY-KEY ] Grib Message REF: " << gribLocRef << "  TEST at {Location,offset,length} = "<< gribLocTest<<"\n";
+                std::cout<<oss.str()<<std::endl;
 
-                // std::cout<<"does not match Grib message TEST at {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest))<<" , "<<std::to_string(std::get<2>(gribLocTest))<<std::endl;
                 free(bufferRef);
                 free(bufferTest);
             
@@ -1337,8 +1037,10 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
 
         if( relativeError>tolerance_ || absoluteError>tolerance_)
         {
-            std::cerr<<"[GRIB COMPARISON FAILED FP-DATA CHECK] Differenene in Grib message Grib Message failed {Location,offset,length} = " << std::get<0>(gribLocTest) << " , " << std::to_string(std::get<1>(gribLocTest)) << " , " << std::to_string(std::get<2>(gribLocTest))<<std::endl;
-            std::cerr<<"Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<std::endl;
+            std::ostringstream oss;
+            oss << "[GRIB COMPARISON FAILED FP-DATA CHECK] Differenene in Grib message Grib Message failed  Ref {Location,offset,length} = " << gribLocRef << "  TEST at {Location,offset,length} = " <<gribLocTest <<"\n";
+            oss << "Difference in Grib message: Absolute Error = "<<absoluteError<<" relative Error = "<<relativeError<<"\n";
+            std::cout<<oss.str()<<std::endl;
             datamatch=false;
         }
 
@@ -1363,42 +1065,6 @@ bool FDBCompare::gribCompare(const GribLocation& gribLocRef,const GribLocation& 
 }
 
 
-
-// // Function to check if map1 is a subset of map2
-// template <typename Map>
-// bool isSubset(const Map& map1, const Map& map2) {
-//     return std::any_of(map1.begin(), map1.end(), [&map2](const auto& pair) {
-//         auto it = map2.find(pair.first);
-//         return it != map2.end() && it->second == pair.second;
-//     });
-// }
-
-// void assemble_compare_map(FDB& localFDB, std::unordered_map<std::map<std::string,std::string>, GribLocation,MapHash,MapEqual>& umap,const FDBToolRequest& request,const std::map<std::string,std::string>& ignore_keys){
-
-//         auto listObject = localFDB.list(request);
-
-//         ListElement elem;    
-//         while (listObject.next(elem)) {
-//             std::map<std::string,std::string> tmp;
-//             for(const auto & bit : elem.keys()) {
-//                 //bit comes in format "{key1=value1,key2=value2,....,keyN=valueN}
-//                 // std::cout<<request<<" "<<bit<<std::endl;
-//                 auto keydict = bit.keyDict();
-//                 tmp.insert(keydict.begin(),keydict.end());
-//             }
-//             // if the ignore_keys are a subset of the Mars keys then the entry is ignored and not furhter tested.
-//             if(ignore_keys.size()==0|| !isSubset(ignore_keys,tmp))
-//             {
-//                 umap.insert({tmp,{elem.location().uri().path(),static_cast<long long int>(elem.location().offset()),static_cast<long long int>(elem.location().length())}});
-//             }
-
-//             //else{
-//             //    std::cout<<"Entry: "<<tmp<<std::endl;
-//             //    std::cout<<"Was ignored because it matched "<<ignore_keys<<std::endl;
-//            // }
-//         }
-//         std::cout<<"[LOG]"<<"FDB request: "<< request<< " resulted in " << umap.size() <<" entries." <<std::endl;
-// }
 
 void FDBCompare::execute(const CmdArgs& args) {
     FDB fdbref;
@@ -1444,7 +1110,7 @@ void FDBCompare::execute(const CmdArgs& args) {
     opts.testRequest = testRequest_;
     opts.marsReqDiff = req_diff_;
 
-    compare::common::DataIndex refIdx, testIdx;
+    DataIndex refIdx, testIdx;
 
     const auto pickReq = [&](const std::string& s) -> fdb5::FDBToolRequest {
         if (!s.empty()) return FDBToolRequest::requestsFromString(s)[0];
@@ -1454,8 +1120,8 @@ void FDBCompare::execute(const CmdArgs& args) {
     auto reqRef  = pickReq(opts.referenceRequest);
     auto reqTest = pickReq(opts.testRequest);
 
-    compare::common::assemble_compare_map(fdbref, refIdx, reqRef,  mars_keys_ignore_);
-    compare::common::assemble_compare_map(fdbtest, testIdx, reqTest, mars_keys_ignore_);
+    assemble_compare_map(fdbref, refIdx, reqRef,  mars_keys_ignore_);
+    assemble_compare_map(fdbtest, testIdx, reqTest, mars_keys_ignore_);
 
 
 
