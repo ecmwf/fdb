@@ -593,7 +593,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
-    int step_time = 45;
+    int step_time = 25;
     int per_step_compute_time = 5;
     if (itt_) {
         eckit::Timer barrier_timer;
