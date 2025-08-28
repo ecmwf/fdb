@@ -106,8 +106,8 @@ void MessageArchiver::setModifiers(const eckit::StringDict& modify) {
     modifiers_ = modify;
 }
 
-eckit::message::Message MessageArchiver::transform(eckit::message::Message& msg) {
-    return msg.transform(modifiers_);
+void MessageArchiver::transform(eckit::message::Message& msg) {
+    msg.transform(modifiers_);
 }
 
 static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
@@ -182,7 +182,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
                 continue;
 
             if (modifiers_.size()) {
-                msg = transform(msg);
+                transform(msg);
                 key.clear();
                 messageToKey(msg, key);  // re-build the key, as it may have changed
             }
