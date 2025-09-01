@@ -37,15 +37,64 @@ export FDB5_CONFIG_FILE=$bindir/$config
 
 $fdbwrite xxxx.grib xxxy.grib
 
+# Ensure both are written
 nlist=$($fdblist $request_base --porcelain --minimum-keys="" | wc -l)
 [[ $nlist -ne 2 ]] && { echo "Error: expected 2 items in list, got $nlist"; exit 1; }
 
-# then change the permissions on the folder to make it unreadable
+
+# --- XXXX unreadable ---
 chmod 000 ${bindir}/root_xxxx
 
-# nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
-$fdblist $request_base --minimum-keys=""
+# list, expect 1
+nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
 [[ $nlist -ne 1 ]] && { echo "Error: expected 1 items in list, got $nlist"; exit 1; }
 
-# bring back the permissions
+# read, should find xxxy, but not xxxx
+$fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib # expect 0 byte file
+$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # should work
+
+size_xxxx=$(wc -c out_xxxx.grib)
+[[ $size_xxxx -ne 0 ]] && { echo "Error: expected out_xxxx.grib to have 0 bytes, got $size_xxxx"; exit 1; }
+diff out_xxxy.grib xxxy.grib
+
+
+# --- XXXX and XXXY unreadable ---
+chmod 000 ${bindir}/root_xxxy
+
+# list, expect 0
+nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
+[[ $nlist -ne 0 ]] && { echo "Error: expected 0 items in list, got $nlist"; exit 1; }
+
+# read, should not find xxxx nor xxxy
+$fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib # expect 0 byte file
+$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file
+
+size_xxxx=$(wc -c out_xxxx.grib)
+[[ $size_xxxx -ne 0 ]] && { echo "Error: expected out_xxxx.grib to have 0 bytes, got $size_xxxx"; exit 1; }
+size_xxxy=$(wc -c out_xxxy.grib)
+[[ $size_xxxy -ne 0 ]] && { echo "Error: expected out_xxxy.grib to have 0 bytes, got $size_xxxy"; exit 1; }
+
+
+# --- XXXY unreadable ---
 chmod 755 ${bindir}/root_xxxx
+
+# list, expect 1
+nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
+[[ $nlist -ne 1 ]] && { echo "Error: expected 1 items in list, got $nlist"; exit 1; }
+
+# read, should find xxxx, but not xxxy
+$fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib  # should work
+$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file
+
+diff out_xxxx.grib xxxx.grib
+size_xxxy=$(wc -c out_xxxy.grib)
+[[ $size_xxxy -ne 0 ]] && { echo "Error: expected out_xxxy.grib to have 0 bytes, got $size_xxxy"; exit 1; }
+
+echo "done"
+
+# --- cleanup ---
+chmod 755 ${bindir}/root_xxxy
+
+rm -rf ${bindir}/root_xxxx
+rm -rf ${bindir}/root_xxxy
+rm out_*.grib

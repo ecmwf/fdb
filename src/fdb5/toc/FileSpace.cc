@@ -85,24 +85,25 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
+eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db, bool& canOpen) {
 
     static bool searchCaseSensitiveDB =
         eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
+    eckit::StdDir d(path.path().c_str());
+    // Once readdir_r finally gets deprecated and removed, we may need to
+    // protecting readdir() as not yet guarranteed thread-safe by POSIX
+    // technically it should only be needed on a per-directory basis
+    // this should be a resursive mutex
+    // AutoLock<Mutex> lock(mutex_);
+
+    canOpen = (d != 0);
+    if (!canOpen) {
+        return "";
+    }
+
     if (searchCaseSensitiveDB) {
 
-        eckit::StdDir d(path.path().c_str());
-        if (d == nullptr) {
-            Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
-            throw eckit::FailedSystemCall("opendir");
-        }
-
-        // Once readdir_r finally gets deprecated and removed, we may need to
-        // protecting readdir() as not yet guarranteed thread-safe by POSIX
-        // technically it should only be needed on a per-directory basis
-        // this should be a resursive mutex
-        // AutoLock<Mutex> lock(mutex_);
         std::string ldb = eckit::StringTools::lower(db);
 
         for (;;) {
@@ -128,8 +129,15 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& exi
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->enabled(ControlIdentifier::List) && i->exists()) {
-            eckit::PathName fullDB = getFullDB(i->path(), db);
-            eckit::PathName dbToc  = fullDB / "toc";
+
+            bool canOpen;
+            eckit::PathName fullDB = getFullDB(i->path(), db, canOpen);
+
+            if (!canOpen) {
+                continue;
+            }
+
+            eckit::PathName dbToc = fullDB / "toc";
             if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
