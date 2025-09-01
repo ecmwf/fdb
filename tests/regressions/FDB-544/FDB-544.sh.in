@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+gribcount="$<TARGET_FILE:grib_count>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+# export FDB_DEBUG=0
+# export ECKIT_DEBUG=0
+
+for f in config.yaml schema *.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+request_base="class=od,date=20230508,domain=g,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc"
+request_xxxx="$request_base,expver=xxxx"
+request_xxxy="$request_base,expver=xxxy"
+config="config.yaml"
+
+# cleanup
+for root in root_xxxx root_xxxy 
+do
+  chmod 755 ${bindir}/$root || true
+  rm -rf ${bindir}/$root
+  mkdir -p ${bindir}/$root
+done
+
+export FDB5_CONFIG_FILE=$bindir/$config
+
+$fdbwrite xxxx.grib xxxy.grib
+
+nlist=$($fdblist $request_base --porcelain --minimum-keys="" | wc -l)
+[[ $nlist -ne 2 ]] && { echo "Error: expected 2 items in list, got $nlist"; exit 1; }
+
+# then change the permissions on the folder to make it unreadable
+chmod 000 ${bindir}/root_xxxx
+
+# nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
+$fdblist $request_base --minimum-keys=""
+[[ $nlist -ne 1 ]] && { echo "Error: expected 1 items in list, got $nlist"; exit 1; }
+
+# bring back the permissions
+chmod 755 ${bindir}/root_xxxx

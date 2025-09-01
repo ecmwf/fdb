@@ -1,0 +1,17 @@
+---
+type: select
+fdbs:
+- select: expver=xxxx
+  type: local
+  engine: toc
+  schema: ./schema
+  spaces:
+  - roots:
+    - path: root_xxxx
+- select: expver=xxxy
+  type: local
+  engine: toc
+  schema: ./schema
+  spaces:
+  - roots:
+    - path: root_xxxy
