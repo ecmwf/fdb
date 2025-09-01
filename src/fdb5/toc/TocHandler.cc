@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <utility>
 
+#include <lustre/lustreapi.h>
+
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileDescHandle.h"
@@ -264,6 +266,11 @@ void TocHandler::openForAppend() {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
+
+    if (isSubToc_) {
+        int rc = llapi_group_lock(fd_, 7777);
+        ASSERT(rc == 0);
+    }
 }
 
 void TocHandler::openForRead() const {
@@ -291,6 +298,12 @@ void TocHandler::openForRead() const {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
+
+    if (isSubToc_) {
+        int rc = llapi_group_lock(fd_, 7777);
+        ASSERT(rc == 0);
+    }
+
     eckit::Length tocSize = tocPath_.size();
 
     // The masked subtocs and indexes could be updated each time, so reset this.
@@ -302,7 +315,6 @@ void TocHandler::openForRead() const {
 
         FileDescHandle toc(fd_, true);  // closes the file descriptor
         AutoClose closer1(toc);
-        fd_ = -1;
 
 
         bool grow = true;
@@ -311,6 +323,12 @@ void TocHandler::openForRead() const {
         long buffersize = 4_MiB;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
+
+        if (isSubToc_) {
+            int rc = llapi_group_unlock(fd_, 7777);
+            ASSERT(rc == 0);
+        }
+        fd_ = -1;
     }
 }
 
@@ -627,6 +645,10 @@ void TocHandler::close() const {
         if (dirty_) {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
+        }
+        if (isSubToc_) {
+            int rc = llapi_group_unlock(fd_, 7777);
+            ASSERT(rc == 0);
         }
         SYSCALL2(::close(fd_), tocPath_);
         fd_        = -1;

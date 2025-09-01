@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <cstdio>
 
+#include <lustre/lustreapi.h>
+
 #include "eckit/config/Resource.h"
 #include "eckit/eckit.h"
 #include "eckit/io/FDataSync.h"
@@ -48,6 +50,9 @@ void FDBFileHandle::openForAppend(const Length&) {
     if (!file_) {
         throw eckit::CantOpenFile(path_);
     }
+    int fd = ::fileno(file_);
+    int rc = llapi_group_lock(fd, 7777);
+    ASSERT(rc == 0);
     SYSCALL(pos_ = ::ftello(file_));
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
@@ -99,6 +104,9 @@ void FDBFileHandle::flush() {
 
 void FDBFileHandle::close() {
     if (file_) {
+        int fd = ::fileno(file_);
+        int rc = llapi_group_unlock(fd, 7777);
+        ASSERT(rc == 0);
         if (::fclose(file_)) {
             file_ = nullptr;
             pos_  = 0;
