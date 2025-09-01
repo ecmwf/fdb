@@ -46,6 +46,11 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 
     eckit::StdDir d(path.c_str());
 
+    if (d == 0) {
+        // Could not open directory
+        return;
+    }
+
     // Once readdir_r finally gets deprecated and removed, we may need to
     // protecting readdir() as not yet guarranteed thread-safe by POSIX
     // technically it should only be needed on a per-directory basis
