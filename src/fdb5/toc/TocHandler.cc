@@ -42,6 +42,11 @@
 #include <aio.h>
 #endif
 
+extern "C" {
+int eckit_lustreapi_group_lock(const char* path, int fd, int gid);
+int eckit_lustreapi_group_unlock(const char* path, int fd, int gid);
+}
+
 using namespace eckit;
 using namespace eckit::literals;
 
@@ -268,7 +273,7 @@ void TocHandler::openForAppend() {
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
 
     if (isSubToc_) {
-        int rc = llapi_group_lock(fd_, 7777);
+        int rc = eckit_lustreapi_group_lock(fd_, 7777);
         ASSERT(rc == 0);
     }
 }
@@ -300,7 +305,7 @@ void TocHandler::openForRead() const {
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
 
     if (isSubToc_) {
-        int rc = llapi_group_lock(fd_, 7777);
+        int rc = eckit_lustreapi_group_lock(fd_, 7777);
         ASSERT(rc == 0);
     }
 
@@ -325,7 +330,7 @@ void TocHandler::openForRead() const {
         cachedToc_->openForRead();
 
         if (isSubToc_) {
-            int rc = llapi_group_unlock(fd_, 7777);
+            int rc = eckit_lustreapi_group_unlock(fd_, 7777);
             ASSERT(rc == 0);
         }
         fd_ = -1;
@@ -647,7 +652,7 @@ void TocHandler::close() const {
             dirty_ = false;
         }
         if (isSubToc_) {
-            int rc = llapi_group_unlock(fd_, 7777);
+            int rc = eckit_lustreapi_group_unlock(fd_, 7777);
             ASSERT(rc == 0);
         }
         SYSCALL2(::close(fd_), tocPath_);

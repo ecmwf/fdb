@@ -21,6 +21,11 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/FDBFileHandle.h"
 
+extern "C" {
+int eckit_lustreapi_group_lock(const char* path, int fd, int gid);
+int eckit_lustreapi_group_unlock(const char* path, int fd, int gid);
+}
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -51,7 +56,7 @@ void FDBFileHandle::openForAppend(const Length&) {
         throw eckit::CantOpenFile(path_);
     }
     int fd = ::fileno(file_);
-    int rc = llapi_group_lock(fd, 7777);
+    int rc = eckit_lustreapi_group_lock(fd, 7777);
     ASSERT(rc == 0);
     SYSCALL(pos_ = ::ftello(file_));
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
@@ -105,7 +110,7 @@ void FDBFileHandle::flush() {
 void FDBFileHandle::close() {
     if (file_) {
         int fd = ::fileno(file_);
-        int rc = llapi_group_unlock(fd, 7777);
+        int rc = eckit_lustreapi_group_unlock(fd, 7777);
         ASSERT(rc == 0);
         if (::fclose(file_)) {
             file_ = nullptr;
