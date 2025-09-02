@@ -50,7 +50,6 @@ TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit:
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
-    LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
     return TocPath{FileSpaceHandler::lookup(handler_, config).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
 }
@@ -58,7 +57,7 @@ TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit:
 std::vector<eckit::PathName> FileSpace::enabled(const ControlIdentifier& controlIdentifier) const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->enabled(controlIdentifier) && i->exists()) {
+        if (i->enabled(controlIdentifier) && i->exists() && eckit::StdDir(i->path().path().c_str()) != 0) {
             result.push_back(i->path());
         }
     }

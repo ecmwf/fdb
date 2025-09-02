@@ -8,10 +8,13 @@ fdbs:
   spaces:
   - roots:
     - path: root_xxxx
+    - path: root_unreadable
+    - path: root_readable
 - select: expver=xxxy
   type: local
   engine: toc
   schema: ./schema
   spaces:
   - roots:
+    - path: root_unreadable
     - path: root_xxxy

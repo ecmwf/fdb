@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# I think the following:
+# - if there are no readable roots, it should error
+# - - But the error should not be "no writable roots", because that is confusing on read.
+# - if there are some unreadable roots, it should ignore them and find the next readable one
+
 
 set -eux
 
@@ -25,13 +30,28 @@ request_xxxx="$request_base,expver=xxxx"
 request_xxxy="$request_base,expver=xxxy"
 config="config.yaml"
 
-# cleanup
-for root in root_xxxx root_xxxy 
-do
-  chmod 755 ${bindir}/$root || true
-  rm -rf ${bindir}/$root
-  mkdir -p ${bindir}/$root
-done
+cleanup() {
+  # --- cleanup ---
+
+  # nasty to leave 000 permissions behind
+  chmod 755 ${bindir}/root_xxxy || true
+  chmod 755 ${bindir}/root_xxxx || true
+  chmod 755 ${bindir}/root_unreadable || true
+
+  rm -rf ${bindir}/root_xxxx
+  rm -rf ${bindir}/root_xxxy
+  rm -rf ${bindir}/root_unreadable
+  rm -f ${bindir}/out_*.grib
+}
+trap cleanup EXIT # Ensure cleanup is called when the script exits
+
+cleanup
+mkdir -p ${bindir}/root_xxxx
+mkdir -p ${bindir}/root_xxxy
+mkdir -p ${bindir}/root_unreadable
+mkdir -p ${bindir}/root_readable
+
+chmod 000 ${bindir}/root_unreadable # explicitly always unreadable
 
 export FDB5_CONFIG_FILE=$bindir/$config
 
@@ -53,7 +73,7 @@ nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
 $fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib # expect 0 byte file
 $fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # should work
 
-size_xxxx=$(wc -c out_xxxx.grib)
+size_xxxx=$(wc -c < out_xxxx.grib)
 [[ $size_xxxx -ne 0 ]] && { echo "Error: expected out_xxxx.grib to have 0 bytes, got $size_xxxx"; exit 1; }
 diff out_xxxy.grib xxxy.grib
 
@@ -67,11 +87,11 @@ nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
 
 # read, should not find xxxx nor xxxy
 $fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib # expect 0 byte file
-$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file
+$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file. maybe should error?
 
-size_xxxx=$(wc -c out_xxxx.grib)
+size_xxxx=$(wc -c < out_xxxx.grib)
 [[ $size_xxxx -ne 0 ]] && { echo "Error: expected out_xxxx.grib to have 0 bytes, got $size_xxxx"; exit 1; }
-size_xxxy=$(wc -c out_xxxy.grib)
+size_xxxy=$(wc -c < out_xxxy.grib)
 [[ $size_xxxy -ne 0 ]] && { echo "Error: expected out_xxxy.grib to have 0 bytes, got $size_xxxy"; exit 1; }
 
 
@@ -84,17 +104,10 @@ nlist=$($fdblist $request_base --porcelain --minimum-keys=""  | wc -l)
 
 # read, should find xxxx, but not xxxy
 $fdbread <(echo "retrieve,$request_base,expver=xxxx") out_xxxx.grib  # should work
-$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file
+$fdbread <(echo "retrieve,$request_base,expver=xxxy") out_xxxy.grib # expect 0 byte file. maybe should error?
 
 diff out_xxxx.grib xxxx.grib
-size_xxxy=$(wc -c out_xxxy.grib)
+size_xxxy=$(wc -c < out_xxxy.grib)
 [[ $size_xxxy -ne 0 ]] && { echo "Error: expected out_xxxy.grib to have 0 bytes, got $size_xxxy"; exit 1; }
 
 echo "done"
-
-# --- cleanup ---
-chmod 755 ${bindir}/root_xxxy
-
-rm -rf ${bindir}/root_xxxx
-rm -rf ${bindir}/root_xxxy
-rm out_*.grib
