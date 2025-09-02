@@ -14,8 +14,6 @@
 #include <cstddef>
 #include <utility>
 
-#include <lustre/lustreapi.h>
-
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileDescHandle.h"
@@ -43,8 +41,8 @@
 #endif
 
 extern "C" {
-int eckit_lustreapi_group_lock(const char* path, int fd, int gid);
-int eckit_lustreapi_group_unlock(const char* path, int fd, int gid);
+int eckit_lustreapi_group_lock(int fd, int gid);
+int eckit_lustreapi_group_unlock(int fd, int gid);
 }
 
 using namespace eckit;

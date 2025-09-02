@@ -11,8 +11,6 @@
 #include <unistd.h>
 #include <cstdio>
 
-#include <lustre/lustreapi.h>
-
 #include "eckit/config/Resource.h"
 #include "eckit/eckit.h"
 #include "eckit/io/FDataSync.h"
@@ -22,8 +20,8 @@
 #include "fdb5/io/FDBFileHandle.h"
 
 extern "C" {
-int eckit_lustreapi_group_lock(const char* path, int fd, int gid);
-int eckit_lustreapi_group_unlock(const char* path, int fd, int gid);
+int eckit_lustreapi_group_lock(int fd, int gid);
+int eckit_lustreapi_group_unlock(int fd, int gid);
 }
 
 using namespace eckit;
