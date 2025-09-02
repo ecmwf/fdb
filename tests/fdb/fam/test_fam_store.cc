@@ -20,6 +20,7 @@
 #include "test_fam_common.h"
 
 #include <ctime>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -48,12 +49,15 @@ namespace fdb::test {
 
 namespace {
 
-const std::string testSchema =
+constexpr eckit::fam::size_t test_region_size = 1024 * 10;  // 10 KB
+constexpr eckit::fam::perm_t test_region_perm = 0640;
+
+const std::string test_schema =
     "[ fam1a, fam1b, fam1c\n"
     "    [ fam2a, fam2b, fam2c\n"
     "       [ fam3a, fam3b, fam3c ]]]\n";
 
-const std::string testConfig =
+const std::string test_config =
     "---\n"
     "type: local\n"
     "schema: ./schema\n"
@@ -63,14 +67,9 @@ const std::string testConfig =
     "- handler: Default\n"
     "  roots:\n"
     "  - path: ./root\n"
-    "  - path: fam://endpoint/region\n"
-    "  - path: ./backup\n"
-    "    wipe: true\n"
-    "    list: true\n"
-    "    retrieve: false\n"
     "fam_roots:\n"
     "- uri: " +
-    TEST_FDB_FAM_URI +
+    test_fdb_fam_uri +
     "\n"
     "  writable: true\n"
     "  visit: true\n";
@@ -80,9 +79,9 @@ const std::string testConfig =
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamStore: create test region") {
-    auto name = eckit::FamRegionName(TEST_FDB_FAM_ENDPOINT, TEST_FDB_FAM_REGION);
+    auto name = eckit::FamRegionName(test_fdb_fam_endpoint, test_fdb_fam_region);
     try {
-        name.create(1024 * 4, 0640);
+        name.create(test_region_size, test_region_perm);
     }
     catch (const eckit::AlreadyExists& e) {
         eckit::Log::debug() << "FamCommon: " << name << " already exists.\n";
@@ -92,7 +91,7 @@ CASE("FamStore: create test region") {
 CASE("FamStore: Archive, Retrieve, Remove") {
     TEST_LOG_DEBUG("SETUP FAM STORE");
 
-    const fam::FamSetup setup(testSchema, testConfig);
+    const fam::FamSetup setup(test_schema, test_config);
 
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
@@ -109,23 +108,47 @@ CASE("FamStore: Archive, Retrieve, Remove") {
     const char* value = "Testing fam: ARCHIVE DATA!";
     const auto length = std::char_traits<char>::length(value);
 
-    const auto key = fdb5::Key({{"fam1a", "val1a"},
-                                {"fam1b", "val1b"},
-                                {"fam1c", "val1c"},
-                                {"fam2a", "val2a"},
-                                {"fam2b", "val2b"},
-                                {"fam2c", "val2c"},
-                                {"fam3a", "val3a"},
-                                {"fam3b", "val3b"},
-                                {"fam3c", "val3c"}});
+    auto key = fdb5::Key({{"fam1a", "val1a"},
+                          {"fam1b", "val1b"},
+                          {"fam1c", "val1c"},
+                          {"fam2a", "val2a"},
+                          {"fam2b", "val2b"},
+                          {"fam2c", "val2c"},
+                          {"fam3a", "val3a"},
+                          {"fam3b", "val3b"},
+                          {"fam3c", "val3c"}});
 
     //------------------------------------------------------------------------------------------------------------------
 
-    TEST_LOG_INFO("ARCHIVE");
+    TEST_LOG_INFO("ARCHIVE #1");
 
     auto floc = store.archive(key, value, length);
 
-    EXPECT(floc && floc->length() == eckit::Length(length));
+    EXPECT(floc);
+    EXPECT_EQUAL(floc->length(), eckit::Length(length));
+
+    // std::cerr << "Field location: " << *floc << std::endl;
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    key = fdb5::Key({{"fam1a", "val11a"},
+                     {"fam1b", "val11b"},
+                     {"fam1c", "val11c"},
+                     {"fam2a", "val22a"},
+                     {"fam2b", "val22b"},
+                     {"fam2c", "val22c"},
+                     {"fam3a", "val33a"},
+                     {"fam3b", "val33b"},
+                     {"fam3c", "val33c"}});
+
+    TEST_LOG_INFO("ARCHIVE #2");
+
+    floc = store.archive(key, value, length);
+
+    EXPECT(floc);
+    EXPECT_EQUAL(floc->length(), eckit::Length(length));
+
+    // std::cerr << "Field location: " << *floc << std::endl;
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -138,7 +161,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     // handle->seek(-length);  // seek back (because of field loc)
 
-    fam::readAndValidate(handle.get(), value, length);
+    fam::read_and_validate(handle.get(), value, length);
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -146,7 +169,7 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     store.remove(key);
 
-    EXPECT_THROWS(fam::readAndValidate(handle.get(), value, length));
+    EXPECT_THROWS(fam::read_and_validate(handle.get(), value, length));
 
     TEST_LOG_INFO("FINISHED!");
 }

@@ -19,6 +19,7 @@
 #include <memory>
 #include <ostream>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
@@ -69,7 +70,9 @@ auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
-    return stats_.archived;
+    auto archived   = stats_.archived;
+    stats_.archived = 0;
+    return archived;
 }
 
 void FamStore::close() {
@@ -85,8 +88,8 @@ auto FamStore::collocatedDataURIs() const -> std::vector<eckit::URI> {
 }
 
 auto FamStore::makeObject(const Key& key) const -> eckit::FamObjectName {
-    const auto objectName = toString(key);
-    return root_.object(objectName).withUUID();
+    const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived);
+    return root_.object(object_name).withUUID();
 }
 
 auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
@@ -105,7 +108,8 @@ auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -
         handle->openForWrite(length);
         const eckit::AutoClose closer(*handle);
 
-        handle->write(data, length);
+        const auto written = handle->write(data, length);
+        ASSERT(written == static_cast<long>(length));
     }
 
     stats_.archived++;
