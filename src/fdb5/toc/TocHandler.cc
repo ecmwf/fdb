@@ -763,8 +763,11 @@ class SubtocPreloader {
         }
         AutoFDCloser& operator=(const AutoFDCloser&) = delete;
         ~AutoFDCloser() {
-            if (fd_ > 0)
+            if (fd_ > 0) {
+                int rc = eckit_lustreapi_group_unlock(fd_, 7777);
+                ASSERT(rc == 0);
                 ::close(fd_);  // n.b. ignore return value
+            }
         }
     };
 
@@ -805,6 +808,8 @@ public:
                 int fd;
                 SYSCALL2((fd = ::open(path.localPath(), iomode)), path);
                 closers.emplace_back(AutoFDCloser{fd});
+                int rc = eckit_lustreapi_group_lock(fd, 7777);
+                ASSERT(rc == 0);
                 eckit::Length tocSize = path.size();
 
                 aiocb& aio(aiocbs[i]);
@@ -1030,6 +1035,11 @@ void TocHandler::writeInitRecord(const Key& key) {
     SYSCALL2(fd_ = ::open(tocPath_.localPath(), iomode, mode_t(0777)), tocPath_);
 
     TocHandlerCloser closer(*this);
+
+    if (isSubToc_) {
+        int rc = eckit_lustreapi_group_lock(fd_, 7777);
+        ASSERT(rc == 0);
+    }
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
