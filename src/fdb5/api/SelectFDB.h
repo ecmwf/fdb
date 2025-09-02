@@ -46,9 +46,17 @@ private:  // types
     public:
 
         FDBLane(const eckit::LocalConfiguration& config);
+
         const SelectMap& select() { return select_; }
+
         FDB& get();
+
         void flush();
+
+        bool matches(const Key& key, bool requireMissing) const;
+
+        bool matches(const metkit::mars::MarsRequest& request, bool requireMissing) const;
+
     };
 
 public:  // methods
@@ -85,9 +93,6 @@ public:  // methods
 private:  // methods
 
     void print(std::ostream& s) const override;
-
-    bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
-    bool matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));

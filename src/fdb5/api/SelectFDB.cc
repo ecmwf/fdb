@@ -79,6 +79,52 @@ void SelectFDB::FDBLane::flush() {
     }
 }
 
+bool SelectFDB::FDBLane::matches(const Key& key, bool requireMissing) const {
+
+    for (const auto& [keyword, regex] : select_) {
+        const auto [iter, found] = key.find(keyword);
+
+        if (!found) {
+            if (requireMissing) {
+                return false;
+            }
+        }
+        else {
+            if (!regex.match(iter->second)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool requireMissing) const {
+
+    for (const auto& [keyword, regex] : select_) {
+
+        const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
+
+        if (request_values.size() == 0) {
+            if (requireMissing)
+                return false;
+        }
+        else {
+            bool re_match = false;
+            for (const std::string& v : request_values) {
+                if (regex.match(v)) {
+                    re_match = true;
+                    break;
+                }
+            }
+            if (!re_match)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+
 SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "select");
@@ -105,7 +151,7 @@ SelectFDB::~SelectFDB() {}
 void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
     for (auto& lane : subFdbs_) {
-        if (matches(key, lane.select(), true)) {
+        if (lane.matches(key, true)) {
             lane.get().archive(key, data, length);
             return;
         }
@@ -122,7 +168,7 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 
     for (auto& lane : subFdbs_) {
         // If we want to allow non-fully-specified retrieves, make false here.
-        if (matches(request, lane.select(), true)) {
+        if (lane.matches(request, true)) {
             lists.push(lane.get().inspect(request));
         }
     }
@@ -140,7 +186,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     std::queue<APIIterator<ValueType>> iterQueue;
 
     for (auto& lane : subFdbs_) {
-        if (request.all() || matches(request.request(), lane.select(), false)) {
+        if (request.all() || lane.matches(request.request(), false)) {
             iterQueue.push(fn(lane.get(), request));
         }
     }
@@ -207,51 +253,6 @@ void SelectFDB::flush() {
 
 void SelectFDB::print(std::ostream& s) const {
     s << "SelectFDB()";
-}
-
-bool SelectFDB::matches(const Key& key, const SelectMap& select, bool requireMissing) const {
-
-    for (const auto& [keyword, regex] : select) {
-        const auto [iter, found] = key.find(keyword);
-
-        if (!found) {
-            if (requireMissing) {
-                return false;
-            }
-        }
-        else {
-            if (!regex.match(iter->second)) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const {
-
-    for (const auto& [keyword, regex] : select) {
-
-        const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
-
-        if (request_values.size() == 0) {
-            if (requireMissing)
-                return false;
-        }
-        else {
-            bool re_match = false;
-            for (const std::string& v : request_values) {
-                if (regex.match(v)) {
-                    re_match = true;
-                    break;
-                }
-            }
-            if (!re_match)
-                return false;
-        }
-    }
-
-    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
