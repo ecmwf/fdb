@@ -270,10 +270,10 @@ void TocHandler::openForAppend() {
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
 
-    if (isSubToc_) {
-        int rc = eckit_lustreapi_group_lock(fd_, 7777);
-        ASSERT(rc == 0);
-    }
+    //if (isSubToc_) {
+    //    int rc = eckit_lustreapi_group_lock(fd_, 7777);
+    //    ASSERT(rc == 0);
+    //}
 }
 
 void TocHandler::openForRead() const {
@@ -302,10 +302,10 @@ void TocHandler::openForRead() const {
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
 
-    if (isSubToc_) {
-        int rc = eckit_lustreapi_group_lock(fd_, 7777);
-        ASSERT(rc == 0);
-    }
+    //if (isSubToc_) {
+    //    int rc = eckit_lustreapi_group_lock(fd_, 7777);
+    //    ASSERT(rc == 0);
+    //}
 
     eckit::Length tocSize = tocPath_.size();
 
@@ -327,10 +327,10 @@ void TocHandler::openForRead() const {
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
 
-        if (isSubToc_) {
-            int rc = eckit_lustreapi_group_unlock(fd_, 7777);
-            ASSERT(rc == 0);
-        }
+        //if (isSubToc_) {
+        //    int rc = eckit_lustreapi_group_unlock(fd_, 7777);
+        //    ASSERT(rc == 0);
+        //}
         fd_ = -1;
     }
 }
@@ -649,10 +649,10 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
-        if (isSubToc_) {
-            int rc = eckit_lustreapi_group_unlock(fd_, 7777);
-            ASSERT(rc == 0);
-        }
+        //if (isSubToc_) {
+        //    int rc = eckit_lustreapi_group_unlock(fd_, 7777);
+        //    ASSERT(rc == 0);
+        //}
         SYSCALL2(::close(fd_), tocPath_);
         fd_        = -1;
         writeMode_ = false;
@@ -764,8 +764,8 @@ class SubtocPreloader {
         AutoFDCloser& operator=(const AutoFDCloser&) = delete;
         ~AutoFDCloser() {
             if (fd_ > 0) {
-                int rc = eckit_lustreapi_group_unlock(fd_, 7777);
-                ASSERT(rc == 0);
+            //    int rc = eckit_lustreapi_group_unlock(fd_, 7777);
+            //    ASSERT(rc == 0);
                 ::close(fd_);  // n.b. ignore return value
             }
         }
@@ -808,8 +808,8 @@ public:
                 int fd;
                 SYSCALL2((fd = ::open(path.localPath(), iomode)), path);
                 closers.emplace_back(AutoFDCloser{fd});
-                int rc = eckit_lustreapi_group_lock(fd, 7777);
-                ASSERT(rc == 0);
+                //int rc = eckit_lustreapi_group_lock(fd, 7777);
+                //ASSERT(rc == 0);
                 eckit::Length tocSize = path.size();
 
                 aiocb& aio(aiocbs[i]);
@@ -1036,10 +1036,10 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    if (isSubToc_) {
-        int rc = eckit_lustreapi_group_lock(fd_, 7777);
-        ASSERT(rc == 0);
-    }
+    //if (isSubToc_) {
+    //    int rc = eckit_lustreapi_group_lock(fd_, 7777);
+    //    ASSERT(rc == 0);
+    //}
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
