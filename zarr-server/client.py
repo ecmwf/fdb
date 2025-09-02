@@ -8,84 +8,93 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-
-import asyncio
-import json
-import logging
-import ssl
-import sys
 import argparse
-
-import numpy
-import zarr
+import asyncio
+import logging
+import sys
 
 import httpx
-
-from zarr.core.buffer import default_buffer_prototype
+import numpy
+import zarr
+from dto_types import RequestDTO, RequestsDTO
 from zarr.storage import FsspecStore
 
-view = {
-    "requests": [
-        {
-            "class": "od",
-            "stream": "oper",
-            "expver": 1,
-            "type": "fc",
-            "levtype": "sfc",
-            "date": "2024-01-01",
-            "time": "0000",
-            "step": [0, 1, 2, 3, 4],
-            "param": ["165", "166"],
-            "domain": "g",
-        },
-        {
-            "class": "od",
-            "stream": "oper",
-            "expver": 1,
-            "type": "fc",
-            "levtype": "pl",
-            "levelist": ["50", "100"],
-            "date": "2024-01-01",
-            "time": "0000",
-            "step": [0, 1, 2, 3, 4],
-            "param": ["133", "130"],
-            "domain": "g",
-        },
-    ]
+from z3fdb.mapping import ExtractorType
+
+request_1 = {
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
+    "date": "2024-01-01/to/2024-01-31",
+    "levtype": "sfc",
+    "step": "0",
+    "param": [
+        "10u",
+        "10v",
+        "2d",
+        "2t",
+        "lsm",
+        "msl",
+        "sdor",
+        "skt",
+        "slor",
+        "sp",
+        "tcw",
+        "z",
+    ],
+    "time": "0/to/21/by/6",
 }
 
+request_2 = {
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
+    "date": "2024-01-01/to/2024-01-31",
+    "levtype": "sfc",
+    "step": 0,
+    "param": ["q", "t", "u", "v", "w", "vo", "d"],
+    "levelist": [48, 60, 68, 74, 79, 83, 90, 96, 101, 105, 114, 120, 133],
+    "time": "0/to/21/by/6",
+}
+
+r_dto_1 = RequestDTO(request_1, [(["date", "time"], True), (["param"], True)], ExtractorType.GRIB)
+# r_dto_2 = RequestDTO(request_2, [(["date", "time"], True), (["param", "levelist"], True)], ExtractorType.GRIB)
 
 async def main():
-    url = "https://localhost:5000/create"
-    headers = {"Content-Type": "application/json"}
+    url = "https://localhost:4430/create"
+    headers = {"Content-Type": "application/json", "Content-Encoding": "gzip"}
 
-    ctx = ssl.create_default_context()
-    ctx.load_cert_chain(certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")  # Optionally also keyfile or password.
+    async with httpx.AsyncClient(verify=False) as client:
+        response = await client.post(
+            url, headers=headers, content=RequestsDTO([r_dto_1]).toJSON().encode("utf-8")
+        )
 
-    async with httpx.AsyncClient(http2=True, verify="server_data/certs/ca.pem") as client:
-        response = await client.post(url, headers=headers, content=json.dumps(view).encode("utf-8"))
+        if response.is_client_error:
+            raise RuntimeError(f"Encountered the following error on the server side: {response.content}")
 
-        logging.debug(response.content)
         hash = response.json()["hash"]
+
+        headers = {"Content-Type": "application/octet-stream", "Content-Encoding": "gzip"}
         z_grp = FsspecStore.from_url(
-            f"https://localhost:5000/get/zarr/{hash}",
-            storage_options={"client_kwargs":{"ssl": ctx}},
-            #### This may fails due to the aiohttp client not being aware of the ssl certificates
-            read_only=True
+            f"https://localhost:4430/get/zarr/{hash}",
+            read_only=True,
+            storage_options={"ssl": False, "headers": headers}
         )
 
         data_grp = zarr.open_array(z_grp, mode="r", path="/data", zarr_version=3)
 
-        logging.debug(data_grp.shape)
-        logging.debug(data_grp.chunks)
-
-        for (x, y, z) in numpy.ndindex(data_grp.shape):
+        for x, y, z in numpy.ndindex(data_grp.shape):
             if z > 0:
                 continue
-            print(f"={(x, y, z)}")
+            print(f"Index={(x, y, z)}")
             print(data_grp[x, y, :])
 
         print(response.http_version)  # "HTTP/1.0", "HTTP/1.1", or "HTTP/2".
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -99,8 +108,8 @@ def parse_args():
 
     return parser.parse_args()
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     args = parse_args()
     if args.verbose == 0:
         log_level = logging.WARNING
@@ -110,9 +119,10 @@ if __name__ == "__main__":
         log_level = logging.DEBUG
 
     logging.basicConfig(
-    format="[CLIENT] - %(asctime)s %(message)s", stream=sys.stdout, level=log_level, 
+        format="[CLIENT] - %(asctime)s %(message)s",
+        stream=sys.stdout,
+        level=log_level,
     )
-    # loop = asyncio.get_event_loop()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 

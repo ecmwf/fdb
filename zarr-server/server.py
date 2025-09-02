@@ -14,50 +14,32 @@ import json
 import logging
 import os
 import pathlib
-import sys
+from typing import Collection
 
 import pyfdb
 import pygribjump
+from dto_types import Request, RequestDTOMapper
 from quart import Quart, Response, jsonify, request
 
 from pychunked_data_view.chunked_data_view import (
-    AxisDefinition,
     ChunkedDataViewBuilder,
-    ExtractorType,
 )
 from z3fdb.mapping import FdbSource, FdbZarrStore
-from z3fdb.request import ChunkAxisType, Request
 from z3fdb.zarr import FdbZarrArray, FdbZarrGroup
 
-import create_certs
-
+# import create_certs
 app = Quart(__name__)
-
 view_hashes = {}
 
-
-def map_requests_from_json(json) -> list[Request]:
-    return [
-        Request(request=r, chunk_axis=ChunkAxisType.Step)
-        for r in json["requests"]
-    ]
-
-def open_view(fdb_config_path: pathlib.Path):
+def open_view(fdb_config_path: pathlib.Path, requests: Collection[Request]):
     builder = ChunkedDataViewBuilder(fdb_config_path)
-    builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2024-01-01/to/2024-01-31,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=10u/10v/2d/2t/lsm/msl/sdor/skt/slor/sp/tcw/z,"
-        "time=0/to/21/by/6",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
-        ExtractorType.GRIB,
-    )
+
+    for r in requests:
+        builder.add_part(
+                r.request,
+                r.axes,
+                r.extractor
+                )
     # builder.add_part(
     #     "type=an,"
     #     "class=ea,"
@@ -86,9 +68,6 @@ def open_view(fdb_config_path: pathlib.Path):
         )
     )
     return mapping
-    # store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    # return store
-
 
 @app.route("/create", methods=["POST"])
 async def process_json():
@@ -99,20 +78,20 @@ async def process_json():
 
     if hashed_request not in view_hashes:
         try:
-            requests = map_requests_from_json(data)
-            mapping = open_view(args.fdb_config)
+            requests = RequestDTOMapper.map_json(data)
+            mapping = open_view(args.fdb_config, requests)
         except Exception as e:
-            logger.info(f"Create view failed with exception: {e}")
+            app.logger.info(f"Create view failed with exception: {e}")
             return jsonify({"error": f"Invalid Request - {e}"}), 400
 
         view_hashes[hashed_request] = mapping
-        logger.debug(
+        app.logger.debug(
             f"Created new zfdb view {hashed_request}, {len(view_hashes)} views are now opened"
         )
     else:
-        logger.debug("Using create request")
+        app.logger.debug("Using create request")
 
-    logger.debug(json.dumps({"hash": hashed_request}))
+    app.logger.debug(json.dumps({"hash": hashed_request}))
 
     return Response(
         response=json.dumps({"hash": hashed_request}),
@@ -129,16 +108,16 @@ async def retrieve_zarr(hash, zarr_path):
         return Response(response=f"Couldn't find hash in {hash}", status=500)
 
     try:
-        logging.info(f"Accessing /{zarr_path}")
+        app.logger.info("Before await")
         content = await mapping[zarr_path]
+        app.logger.info("After await")
     except KeyError:
         return Response(
             response=f"Didn't find {zarr_path} for mapping of hash {int(hash)}",
             status=404,
         )
 
-    logging.info(content)
-    return Response(response=content.to_bytes(), status=200)
+    return Response(response=content.to_bytes(), content_type="application/octet-stream", status=200)
 
 
 def log_environment():
@@ -155,7 +134,7 @@ def log_environment():
             val = os.environ[var]
         except KeyError:
             val = "<NOT-SET>"
-        logger.info(f"{var}={val}")
+        app.logger.info(f"{var}={val}")
 
 
 def connect_to_fdb(args):
@@ -215,16 +194,9 @@ if __name__ == "__main__":
     else:
         log_level = logging.DEBUG
 
-    logging.basicConfig(
-        format="[SERVER] - %(asctime)s %(message)s", stream=sys.stdout, level=log_level
-    )
-    global logger
-    logger = logging.getLogger(__name__)
-
-    logger.info("Creating certs for localhost")
-    create_certs.create_certs()
-
-    logger.info("Statring ZFDB Server")
+    # logger.info("Creating certs for localhost")
+    # create_certs.create_certs()
     connect_to_fdb(args)
 
-    app.run(debug=args.debug, certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")
+    # app.run(debug=args.debug, certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")
+    app.run(debug=args.debug, host="0.0.0.0")

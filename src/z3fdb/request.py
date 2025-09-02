@@ -10,6 +10,7 @@ import copy
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from enum import Enum, auto
+from typing import Any, Dict
 
 import numpy as np
 
@@ -92,7 +93,7 @@ def into_mars_representation(value) -> str:
 
 
 class Request:
-    def __init__(self, *, request, chunk_axis: ChunkAxisType):
+    def __init__(self, *, request: Dict[str, Any], chunk_axis: ChunkAxisType):
         self._request = request
         self._template = request.copy()
         if chunk_axis == ChunkAxisType.DateTime:
@@ -116,6 +117,21 @@ class Request:
         for key in self._chunk_axis.keys():
             self._template.pop(key, None)
         self._template = into_mars_request_dict(self._template)
+
+    def to_MARS_selection_str(self) -> str:
+        result = ""
+        for k, v in self._request.items():
+            v_str = ""
+            if isinstance(v, list):
+                v_str = "/".join(str(v))
+            elif not isinstance(v, str):
+                v_str = str(v)
+            else:
+                v_str = v
+
+            result += f"{k}={v_str}"
+
+        return result
 
     def __getitem__(self, idx) -> dict:
         return self._template | into_mars_request_dict(self._chunk_axis[idx])
