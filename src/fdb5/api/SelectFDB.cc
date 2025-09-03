@@ -32,10 +32,8 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfiguration& config) {
-
-    std::map<std::string, eckit::Regex> selectDict;
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
+    config_(config), fdb_(std::nullopt) {
 
     // Select operates as constraints of the form: class=regex,key=regex,...
     // By default, there is no select.
@@ -50,20 +48,52 @@ std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfigurati
         std::vector<std::string> kv;
         equalsTokenizer(key_value, kv);
 
-        if (kv.size() != 2 || selectDict.find(kv[0]) != selectDict.end()) {
+        if (kv.size() != 2 || select_.find(kv[0]) != select_.end()) {
             std::stringstream ss;
             ss << "Invalid select condition for pool: " << select << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
 
-        selectDict[kv[0]] = eckit::Regex(kv[1]);
+        select_[kv[0]] = eckit::Regex(kv[1]);
     }
 
-    return selectDict;
-}
+    // parse additional filters
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    select_(parseFDBSelect(config)), config_(config), fdb_(std::nullopt) {}
+    if (config.has("filter")) {
+        // list of excludes
+        for (const auto& f : config.getSubConfigurations("filter")) {
+            if (!f.has("exclude")) {
+                continue;
+            }
+
+            // todo: this code is more or less the same as for select -- refactor
+            std::string exclude = f.getString("exclude", "");
+
+            std::map<std::string, eckit::Regex> excludeDict;
+
+            std::vector<std::string> exclude_key_values;
+            eckit::Tokenizer(',')(exclude, exclude_key_values);
+
+            for (const std::string& key_value : exclude_key_values) {
+                std::vector<std::string> kv;
+                equalsTokenizer(key_value, kv);
+
+                if (kv.size() != 2 || excludeDict.find(kv[0]) != excludeDict.end()) {
+                    std::stringstream ss;
+                    ss << "Invalid exclude condition for lane: " << exclude << std::endl;
+                    throw eckit::UserError(ss.str(), Here());
+                }
+
+                excludeDict[kv[0]] = eckit::Regex(kv[1]);
+            }
+
+            // add to excludes
+            excludes_.push_back(excludeDict);
+        }
+    }
+
+    // config_.set("type", "local");  // TODO: if lane has no type, set to lcoal by default. Probably should do this for all default vars. And this might not be the place to do it.
+}
 
 
 FDB& SelectFDB::FDBLane::get() {
@@ -95,10 +125,35 @@ bool SelectFDB::FDBLane::matches(const Key& key, bool requireMissing) const {
             }
         }
     }
+
+    // All conditions matched for select. Now filter on excludes
+
+    for (const auto& exclude : excludes_) {
+
+        // key must match all regex in an exclude map to be excluded
+        bool matched_all = false;
+        for (const auto& [keyword, regex] : exclude) {
+            const auto [iter, found] = key.find(keyword);
+
+            if (!found || !regex.match(iter->second)) {
+                matched_all = false;
+                break;
+            }
+
+            matched_all = true;
+        }
+
+        if (matched_all) {
+            return false;
+        }
+    }
+
     return true;
 }
 
 bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool requireMissing) const {
+
+    ASSERT(false); // <--- TODO: add exclude logic here too
 
     for (const auto& [keyword, regex] : select_) {
 

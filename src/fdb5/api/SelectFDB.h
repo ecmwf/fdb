@@ -40,6 +40,7 @@ private:  // types
 
     class FDBLane {
         SelectMap select_;
+        std::vector<SelectMap> excludes_;
         Config config_;
         std::optional<FDB> fdb_;
 
