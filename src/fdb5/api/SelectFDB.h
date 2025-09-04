@@ -37,6 +37,7 @@ class SelectFDB : public FDBBase {
 private:  // types
 
     using SelectMap = std::map<std::string, eckit::Regex>;
+    using ValuesMap = std::map<std::string, std::vector<std::string>>;  // keyword -> list of values
 
     class FDBLane {
         SelectMap select_;
@@ -58,7 +59,20 @@ private:  // types
 
         bool matches(const metkit::mars::MarsRequest& request, bool requireMissing) const;
 
+    private:
+
+        template <typename T>
+        ValuesMap collectValues(const T&) const;
+
+        bool matchesValues(const ValuesMap& vals, bool requireMissing) const;
+
+        // returns true if all select conditions are satisfied
+        bool satisfySelect(const ValuesMap& vals, bool requireMissing) const;
+
+        // returns true if none of the exclude conditions are satisfied
+        bool satisfyExcludes(const ValuesMap& vals) const;
     };
+
 
 public:  // methods
 

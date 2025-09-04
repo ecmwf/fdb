@@ -16,16 +16,16 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "eckit/testing/Test.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
+#include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/api/FDB.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -37,7 +37,7 @@ namespace test {
 //----------------------------------------------------------------------------------------------------------------------
 
 int count_in_list(FDB& fdb, const std::string& request_str) {
-    int count = 0;
+    int count       = 0;
     auto listObject = fdb.list(FDBToolRequest::requestsFromString(request_str, {})[0]);
     ListElement elem;
     while (listObject.next(elem)) {
@@ -50,9 +50,10 @@ int count_in_inspect(FDB& fdb, const std::string& request_str) {
     int count = 0;
 
     // prepend base request:
-    std::string base = "retrieve,class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1";
-    
-    auto request = metkit::mars::MarsRequest::parse(base + "," + request_str);
+    std::string base =
+        "retrieve,class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1";
+
+    auto request       = metkit::mars::MarsRequest::parse(base + "," + request_str);
     auto inspectObject = fdb.inspect(request);
     ListElement elem;
     while (inspectObject.next(elem)) {
@@ -83,19 +84,22 @@ CASE("write") {
           type: local
           spaces:
           - roots:
-            - path: )XX" << roots[0] << R"XX(
+            - path: )XX"
+        << roots[0] << R"XX(
         - select: time=1200
           filter:
           - exclude: number=2
           type: local
           spaces:
           - roots:
-            - path: )XX" << roots[1] << R"XX(
+            - path: )XX"
+        << roots[1] << R"XX(
         - select: number=(1|2)
           type: local
           spaces:
           - roots:
-            - path: )XX" << roots[2] << R"XX(
+            - path: )XX"
+        << roots[2] << R"XX(
         )XX";
 
     const std::string config_str = oss.str();
@@ -132,7 +136,7 @@ CASE("write") {
     // enfo,yyyy -> lane 3
     // enfo,zzzz -> lane 2
 
-    auto times = {"0000", "1200"};
+    auto times   = {"0000", "1200"};
     auto numbers = {"1", "2", "3"};
 
     for (const auto& t : times) {
@@ -152,7 +156,7 @@ CASE("write") {
         {roots[1], 2},
         {roots[2], 3},
     };
-    
+
     std::map<std::string, int> counts = {
         {roots[0], 0},
         {roots[1], 0},
@@ -175,7 +179,7 @@ CASE("write") {
 
     // ------------------------------------------------------------------------------------------------------
     // test listing with various partial requests
-    
+
     EXPECT_EQUAL(count_in_list(fdb, "time=0000"), 3);
     EXPECT_EQUAL(count_in_list(fdb, "time=1200"), 3);
     EXPECT_EQUAL(count_in_list(fdb, "time=0000/1200"), 6);
@@ -188,23 +192,23 @@ CASE("write") {
     EXPECT_EQUAL(count_in_list(fdb, "number=2/3"), 4);
     EXPECT_EQUAL(count_in_list(fdb, "number=1/3"), 4);
     EXPECT_EQUAL(count_in_list(fdb, "number=1/2/3"), 6);
-    EXPECT_EQUAL(count_in_list(fdb, "class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1"), 6);
+    auto s = "class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1";
+    EXPECT_EQUAL(count_in_list(fdb, s), 6);
 
     // ------------------------------------------------------------------------------------------------------
-    EXPECT_EQUAL(count_in_inspect(fdb, "time=1200"), 0); // inspect does not take partial requests
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=1200"), 0);  // inspect does not take partial requests
     EXPECT_EQUAL(count_in_inspect(fdb, "time=1200,number=1"), 1);
     EXPECT_EQUAL(count_in_inspect(fdb, "time=0000,number=1/2"), 2);
     EXPECT_EQUAL(count_in_inspect(fdb, "time=0000,number=2/3"), 2);
     EXPECT_EQUAL(count_in_inspect(fdb, "time=1200,number=1/2/3"), 3);
     EXPECT_EQUAL(count_in_inspect(fdb, "time=0000/1200,number=1/2/3"), 6);
-
 }
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace test
-}  // namespace fdb
+}  // namespace fdb5
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

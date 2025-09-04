@@ -32,69 +32,161 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    config_(config), fdb_(std::nullopt) {
+namespace {  // helpers
 
-    // Select operates as constraints of the form: class=regex,key=regex,...
-    // By default, there is no select.
+using RegexMap  = std::map<std::string, eckit::Regex>;
+using ValuesMap = std::map<std::string, std::vector<std::string>>;
 
-    std::string select = config.getString("select", "");
-
-    std::vector<std::string> select_key_values;
-    eckit::Tokenizer(',')(select, select_key_values);
-
-    eckit::Tokenizer equalsTokenizer('=');
-    for (const std::string& key_value : select_key_values) {
-        std::vector<std::string> kv;
-        equalsTokenizer(key_value, kv);
-
-        if (kv.size() != 2 || select_.find(kv[0]) != select_.end()) {
-            std::stringstream ss;
-            ss << "Invalid select condition for pool: " << select << std::endl;
-            throw eckit::UserError(ss.str(), Here());
-        }
-
-        select_[kv[0]] = eckit::Regex(kv[1]);
+RegexMap parseKeyRegexList(const std::string& expr) {
+    RegexMap out;
+    if (expr.empty()) {
+        return out;
     }
 
-    // parse additional filters
+    std::vector<std::string> key_vals;
+    eckit::Tokenizer(',')(expr, key_vals);
+
+    eckit::Tokenizer equals('=');
+    for (const std::string& item : key_vals) {
+        std::vector<std::string> kv;
+        equals(item, kv);
+        if (kv.size() != 2) {
+            throw eckit::UserError("Invalid condition for lane: " + expr + ": " + item, Here());
+        }
+
+        const std::string& key = kv[0];
+        const std::string& val = kv[1];
+
+        if (out.find(key) != out.end()) {
+            throw eckit::UserError("Duplicate key " + key + " in: " + expr, Here());
+        }
+
+        out[key] = eckit::Regex(val);
+    }
+    return out;
+}
+
+void insertIfMissing(ValuesMap& out, const std::string& k, const Key& key) {
+    if (out.find(k) != out.end()) {
+        return;
+    }
+    const auto [it, found] = key.find(k);
+    out[k]                 = found ? std::vector<std::string>{it->second} : std::vector<std::string>{};
+}
+
+void insertIfMissing(ValuesMap& out, const std::string& k, const metkit::mars::MarsRequest& req) {
+    if (out.find(k) != out.end()) {
+        return;
+    }
+    out[k] = req.values(k, /*emptyOK*/ true);
+}
+
+}  // namespace
+
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(std::nullopt) {
+
+    select_ = parseKeyRegexList(config.getString("select", ""));
 
     if (config.has("filter")) {
-        // list of excludes
         for (const auto& f : config.getSubConfigurations("filter")) {
             if (!f.has("exclude")) {
                 continue;
             }
-
-            // todo: this code is more or less the same as for select -- refactor
-            std::string exclude = f.getString("exclude", "");
-
-            std::map<std::string, eckit::Regex> excludeDict;
-
-            std::vector<std::string> exclude_key_values;
-            eckit::Tokenizer(',')(exclude, exclude_key_values);
-
-            for (const std::string& key_value : exclude_key_values) {
-                std::vector<std::string> kv;
-                equalsTokenizer(key_value, kv);
-
-                if (kv.size() != 2 || excludeDict.find(kv[0]) != excludeDict.end()) {
-                    std::stringstream ss;
-                    ss << "Invalid exclude condition for lane: " << exclude << std::endl;
-                    throw eckit::UserError(ss.str(), Here());
-                }
-
-                excludeDict[kv[0]] = eckit::Regex(kv[1]);
-            }
-
-            // add to excludes
-            excludes_.push_back(excludeDict);
+            excludes_.push_back(parseKeyRegexList(f.getString("exclude", "")));
         }
     }
-
-    // config_.set("type", "local");  // TODO: if lane has no type, set to lcoal by default. Probably should do this for all default vars. And this might not be the place to do it.
 }
 
+bool SelectFDB::FDBLane::matches(const Key& key, bool requireMissing) const {
+    const auto vals = collectValues(key);
+    return matchesValues(vals, requireMissing);
+}
+
+bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool requireMissing) const {
+    const auto vals = collectValues(request);
+    return matchesValues(vals, requireMissing);
+}
+
+// collect (keys, values) in request to be checked against select and exclude conditions
+template <typename T>  // T is either fdb::Key or metkit::mars::MarsRequest
+ValuesMap SelectFDB::FDBLane::collectValues(const T& key) const {
+    ValuesMap out;
+    for (const auto& kv : select_) {
+        insertIfMissing(out, kv.first, key);
+    }
+    for (const auto& em : excludes_) {
+        for (const auto& kv : em) {
+            insertIfMissing(out, kv.first, key);
+        }
+    }
+    return out;
+}
+
+bool SelectFDB::FDBLane::satisfySelect(const ValuesMap& vals, bool requireMissing) const {
+    for (const auto& [keyword, re] : select_) {
+        auto it = vals.find(keyword);
+        ASSERT(it != vals.end());  // we should have collected all exclude keywords in collectValues
+        const std::vector<std::string>& v = it->second;
+
+        if (v.empty()) {
+            if (requireMissing) {
+                return false;
+            }
+            continue;
+        }
+
+        bool anyMatch = false;
+        for (const std::string& s : v) {
+            if (re.match(s)) {
+                anyMatch = true;
+                break;
+            }
+        }
+        if (!anyMatch)
+            return false;
+    }
+    return true;
+}
+
+bool SelectFDB::FDBLane::satisfyExcludes(const ValuesMap& vals) const {
+    for (const auto& em : excludes_) {
+        bool matchedAllPairs = true;
+
+        for (const auto& [keyword, re] : em) {
+            auto it = vals.find(keyword);
+            ASSERT(it != vals.end());  // we should have collected all exclude keywords in collectValues
+            const std::vector<std::string>& v = it->second;
+            if (v.empty()) {
+                matchedAllPairs = false;
+                break;
+            }
+
+            bool allMatch = true;
+            for (const std::string& s : v) {
+                if (!re.match(s)) {
+                    allMatch = false;
+                    break;
+                }
+            }
+            if (!allMatch) {
+                matchedAllPairs = false;
+                break;
+            }
+        }
+
+        if (matchedAllPairs)
+            return false;  // excluded
+    }
+
+    return true;
+}
+
+bool SelectFDB::FDBLane::matchesValues(const ValuesMap& vals, bool requireMissing) const {
+    if (!satisfySelect(vals, requireMissing))
+        return false;
+
+    return satisfyExcludes(vals);
+}
 
 FDB& SelectFDB::FDBLane::get() {
     if (!fdb_) {
@@ -108,114 +200,6 @@ void SelectFDB::FDBLane::flush() {
         fdb_->flush();
     }
 }
-
-bool SelectFDB::FDBLane::matches(const Key& key, bool requireMissing) const {
-
-    for (const auto& [keyword, regex] : select_) {
-        const auto [iter, found] = key.find(keyword);
-
-        if (!found) {
-            if (requireMissing) {
-                return false;
-            }
-        }
-        else {
-            if (!regex.match(iter->second)) {
-                return false;
-            }
-        }
-    }
-
-    // All conditions matched for select. Now filter on excludes
-
-    for (const auto& exclude : excludes_) {
-
-        // key must match all regex in an exclude map to be excluded
-        bool matched_all = false;
-        for (const auto& [keyword, regex] : exclude) {
-            const auto [iter, found] = key.find(keyword);
-
-            if (!found || !regex.match(iter->second)) {
-                matched_all = false;
-                break;
-            }
-
-            matched_all = true;
-        }
-
-        if (matched_all) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool requireMissing) const {
-
-    for (const auto& [keyword, regex] : select_) {
-
-        const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
-
-        if (request_values.size() == 0) {
-            if (requireMissing)
-                return false;
-        }
-        else {
-            bool re_match = false;
-            for (const std::string& v : request_values) {
-                if (regex.match(v)) {
-                    re_match = true;
-                    break;
-                }
-            }
-            if (!re_match)
-                return false;
-        }
-    }
-
-    // exclusion logic
-    for (const auto& exclude : excludes_) {
-
-        // key must match all regex in an exclude map to be excluded
-        bool matched_all = false;
-        for (const auto& [keyword, regex] : exclude) {
-
-            const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
-
-            if (request_values.size() == 0) {
-                matched_all = false;
-                break;
-            }
-
-            bool re_match = false;
-            for (const std::string& v : request_values) {
-
-                // when using multiple values, you have to match everything to be excluded.
-                // (otherwise we have a partial match, so the lane must still be selected)
-                if (!regex.match(v)) {
-                    re_match = false;
-                    break;
-                }
-                re_match = true;
-            }
-
-            if (!re_match) {
-                matched_all = false;
-                break;
-            }
-
-            matched_all = true;
-        }
-
-        if (matched_all) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 
 SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
