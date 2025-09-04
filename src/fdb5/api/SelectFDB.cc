@@ -153,8 +153,6 @@ bool SelectFDB::FDBLane::matches(const Key& key, bool requireMissing) const {
 
 bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool requireMissing) const {
 
-    ASSERT(false); // <--- TODO: add exclude logic here too
-
     for (const auto& [keyword, regex] : select_) {
 
         const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
@@ -173,6 +171,45 @@ bool SelectFDB::FDBLane::matches(const metkit::mars::MarsRequest& request, bool 
             }
             if (!re_match)
                 return false;
+        }
+    }
+
+    // exclusion logic
+    for (const auto& exclude : excludes_) {
+
+        // key must match all regex in an exclude map to be excluded
+        bool matched_all = false;
+        for (const auto& [keyword, regex] : exclude) {
+
+            const std::vector<std::string>& request_values = request.values(keyword, /* emptyOK */ true);
+
+            if (request_values.size() == 0) {
+                matched_all = false;
+                break;
+            }
+
+            bool re_match = false;
+            for (const std::string& v : request_values) {
+
+                // when using multiple values, you have to match everything to be excluded.
+                // (otherwise we have a partial match, so the lane must still be selected)
+                if (!regex.match(v)) {
+                    re_match = false;
+                    break;
+                }
+                re_match = true;
+            }
+
+            if (!re_match) {
+                matched_all = false;
+                break;
+            }
+
+            matched_all = true;
+        }
+
+        if (matched_all) {
+            return false;
         }
     }
 

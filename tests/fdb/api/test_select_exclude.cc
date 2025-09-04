@@ -36,6 +36,31 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+int count_in_list(FDB& fdb, const std::string& request_str) {
+    int count = 0;
+    auto listObject = fdb.list(FDBToolRequest::requestsFromString(request_str, {})[0]);
+    ListElement elem;
+    while (listObject.next(elem)) {
+        count++;
+    }
+    return count;
+}
+
+int count_in_inspect(FDB& fdb, const std::string& request_str) {
+    int count = 0;
+
+    // prepend base request:
+    std::string base = "retrieve,class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1";
+    
+    auto request = metkit::mars::MarsRequest::parse(base + "," + request_str);
+    auto inspectObject = fdb.inspect(request);
+    ListElement elem;
+    while (inspectObject.next(elem)) {
+        count++;
+    }
+    return count;
+}
+
 CASE("write") {
 
     TmpDir root1(LocalPathName::cwd().c_str());
@@ -51,22 +76,22 @@ CASE("write") {
         ---
         type: select
         fdbs:
-        - select: stream=oper
+        - select: time=0000
           filter:
-          - exclude: expver=(xxxx|yyyy)
-          - exclude: stream=enfo,expver=zzzz
+          - exclude: number=(1|2)
+          - exclude: time=1200,number=3
           type: local
           spaces:
           - roots:
             - path: )XX" << roots[0] << R"XX(
-        - select: stream=enfo
+        - select: time=1200
           filter:
-          - exclude: expver=(yyyy)
+          - exclude: number=2
           type: local
           spaces:
           - roots:
             - path: )XX" << roots[1] << R"XX(
-        - select: expver=(xxxx|yyyy)
+        - select: number=(1|2)
           type: local
           spaces:
           - roots:
@@ -90,29 +115,43 @@ CASE("write") {
     Key k;
     k.set("class", "od");
     k.set("expver", "xxxx");
-    k.set("type", "fc");
-    k.set("stream", "oper");
+    k.set("type", "pf");
     k.set("date", "20000101");
     k.set("time", "0000");
     k.set("domain", "g");
     k.set("levtype", "sfc");
     k.set("param", "167");
     k.set("step", "1");
+    k.set("stream", "enfo");
 
-    auto streams = {"oper", "enfo"};
-    auto expvers = {"xxxx", "yyyy", "zzzz"};
+    // expect:
+    // oper,xxxx -> lane 3
+    // oper,yyyy -> lane 3
+    // oper,zzzz -> lane 1
+    // enfo,xxxx -> lane 2
+    // enfo,yyyy -> lane 3
+    // enfo,zzzz -> lane 2
 
-    for (const auto& s : streams) {
-        for (const auto& e : expvers) {
-            k.set("stream", s);
-            k.set("expver", e);
-            std::cout << "Archiving for stream=" << s << ", expver=" << e << std::endl;
+    auto times = {"0000", "1200"};
+    auto numbers = {"1", "2", "3"};
+
+    for (const auto& t : times) {
+        for (const auto& n : numbers) {
+            k.set("time", t);
+            k.set("number", n);
+            std::cout << "Archiving for time " << t << " number " << n << std::endl;
             fdb.archive(k, data, length);
         }
     }
     fdb.flush();
 
     auto listObject = fdb.list(FDBToolRequest(metkit::mars::MarsRequest{}, true, {}));
+
+    std::map<std::string, int> expected_counts = {
+        {roots[0], 1},
+        {roots[1], 2},
+        {roots[2], 3},
+    };
     
     std::map<std::string, int> counts = {
         {roots[0], 0},
@@ -123,44 +162,41 @@ CASE("write") {
     ListElement elem;
     while (listObject.next(elem)) {
         Log::info() << elem << ", " << elem.uri().path().dirName().dirName() << std::endl;
-        auto root = elem.uri().path().dirName().dirName().asString();
+        std::string root = elem.uri().path().dirName().dirName().asString();
         EXPECT(counts.find(root) != counts.end());
         counts[root]++;
     }
 
-
-    std::map<std::string, int> expected_counts = {
-        {roots[0], 1},
-        {roots[1], 2},
-        {roots[2], 3},
-    };
 
     for (const auto& root : roots) {
         EXPECT_EQUAL(counts[root], expected_counts[root]);
     }
 
 
+    // ------------------------------------------------------------------------------------------------------
+    // test listing with various partial requests
+    
+    EXPECT_EQUAL(count_in_list(fdb, "time=0000"), 3);
+    EXPECT_EQUAL(count_in_list(fdb, "time=1200"), 3);
+    EXPECT_EQUAL(count_in_list(fdb, "time=0000/1200"), 6);
+    EXPECT_EQUAL(count_in_list(fdb, "number=1"), 2);
+    EXPECT_EQUAL(count_in_list(fdb, "number=2"), 2);
+    EXPECT_EQUAL(count_in_list(fdb, "number=3"), 2);
+    EXPECT_EQUAL(count_in_list(fdb, "time=0000,number=1/2"), 2);
+    EXPECT_EQUAL(count_in_list(fdb, "time=0000,number=2/3"), 2);
+    EXPECT_EQUAL(count_in_list(fdb, "time=1200,number=1/2/3"), 3);
+    EXPECT_EQUAL(count_in_list(fdb, "number=2/3"), 4);
+    EXPECT_EQUAL(count_in_list(fdb, "number=1/3"), 4);
+    EXPECT_EQUAL(count_in_list(fdb, "number=1/2/3"), 6);
+    EXPECT_EQUAL(count_in_list(fdb, "class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1"), 6);
 
-
-/* TODO: make sure read and list work as expected
-select: class=od
-  excludes:
-    - expver=(xxxx|yyyy)
-
-select: class=rd
-  excludes:
-    - expver=yyyy
-
-select: expver=xxxx
-  .. # with no excludes
-
-fdb-list class=od/rd               # < lists all 3 lanes.
-fdb-list class=od/rd,expver=xxxx   # < lists lanes 2 and 3. 1 is selected but then excluded by expver=xxxx
-fdb-list class=od,expver=xxxx      # < lists lane 3. 1 is selected but then excluded.
-fdb-list expver=xxxx               # < lists lanes 2 and 3.
-fdb-list expver=yyyy               # < lists no lane.
-fdb-list expver=xxxx/yyyy          # < should list lanes 2 and 3.
-*/
+    // ------------------------------------------------------------------------------------------------------
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=1200"), 0); // inspect does not take partial requests
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=1200,number=1"), 1);
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=0000,number=1/2"), 2);
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=0000,number=2/3"), 2);
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=1200,number=1/2/3"), 3);
+    EXPECT_EQUAL(count_in_inspect(fdb, "time=0000/1200,number=1/2/3"), 6);
 
 }
 
