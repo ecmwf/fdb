@@ -20,27 +20,13 @@ on:
     types: [labeled]
 
 jobs:
-  pre-clean-runner:
-    name: Pre-clean runner
-    runs-on: [self-hosted, linux]
-    steps:
-      - name: Find if bad dir is present and delete it
-        if: always()
-        run: |
-          BAD="/opt/actions-runner/work/_work/fdb/fdb/build/tests/regressions/FDB-544/root_xxxx"
-          if sudo test -e "$BAD"; then
-            echo "Found $BAD — we should delete it! (todo)"
-          else
-            echo "No $BAD present."
-          fi
-
   # Run CI including downstream packages on self-hosted runners
-  # downstream-ci:
-  #   name: downstream-ci
-  #   if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-  #   uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
-  #   with:
-  #     fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
-  #     codecov_upload: true
-  #     clang_format: true
-  #   secrets: inherit
+  downstream-ci:
+    name: downstream-ci
+    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
+    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@debug-fdb-ci
+    with:
+      fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
+      codecov_upload: false
+      clang_format: false
+    secrets: inherit
