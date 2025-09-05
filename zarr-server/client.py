@@ -54,23 +54,25 @@ request_2 = {
     "expver": "0001",
     "stream": "oper",
     "date": "2024-01-01/to/2024-01-31",
-    "levtype": "sfc",
+    "levtype": "pl",
     "step": 0,
-    "param": ["q", "t", "u", "v", "w", "vo", "d"],
-    "levelist": [48, 60, 68, 74, 79, 83, 90, 96, 101, 105, 114, 120, 133],
+    "param": ["q", "t", "u", "v", "w"],
+    "levelist": [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000],
     "time": "0/to/21/by/6",
 }
 
 r_dto_1 = RequestDTO(request_1, [(["date", "time"], True), (["param"], True)], ExtractorType.GRIB)
-# r_dto_2 = RequestDTO(request_2, [(["date", "time"], True), (["param", "levelist"], True)], ExtractorType.GRIB)
+r_dto_2 = RequestDTO(request_2, [(["date", "time"], True), (["param", "levelist"], True)], ExtractorType.GRIB)
+
+r_dtos = [r_dto_1, r_dto_2]
 
 async def main():
     url = "https://localhost:4430/create"
-    headers = {"Content-Type": "application/json", "Content-Encoding": "gzip"}
+    headers = {"Content-Type": "application/json", "Content-Encoding": "zstd"}
 
     async with httpx.AsyncClient(verify=False) as client:
         response = await client.post(
-            url, headers=headers, content=RequestsDTO([r_dto_1]).toJSON().encode("utf-8")
+            url, headers=headers, content=RequestsDTO(r_dtos).toJSON().encode("utf-8")
         )
 
         if response.is_client_error:
@@ -78,11 +80,11 @@ async def main():
 
         hash = response.json()["hash"]
 
-        headers = {"Content-Type": "application/octet-stream", "Content-Encoding": "gzip"}
+        headers = {"Content-Type": "application/octet-stream", "Content-Encoding": "zstd"}
         z_grp = FsspecStore.from_url(
             f"https://localhost:4430/get/zarr/{hash}",
             read_only=True,
-            storage_options={"ssl": False, "headers": headers}
+            storage_options={"ssl": False, "headers": headers} # This is verification of ssl
         )
 
         data_grp = zarr.open_array(z_grp, mode="r", path="/data", zarr_version=3)
@@ -92,6 +94,9 @@ async def main():
                 continue
             print(f"Index={(x, y, z)}")
             print(data_grp[x, y, :])
+
+        print(data_grp.shape)
+        print(data_grp.size)
 
         print(response.http_version)  # "HTTP/1.0", "HTTP/1.1", or "HTTP/2".
 

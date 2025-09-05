@@ -40,21 +40,6 @@ def open_view(fdb_config_path: pathlib.Path, requests: Collection[Request]):
                 r.axes,
                 r.extractor
                 )
-    # builder.add_part(
-    #     "type=an,"
-    #     "class=ea,"
-    #     "domain=g,"
-    #     "expver=0001,"
-    #     "stream=oper,"
-    #     "date=2024-01-01/to/2024-01-31,"
-    #     "levtype=ml,"
-    #     "step=0,"
-    #     "param=q/t/u/v/w/vo/d,"
-    #     "levelist=48/60/68/74/79/83/90/96/101/105/114/120/133,"
-    #     "time=0/to/21/by/6",
-    #     [AxisDefinition(["date", "time"], True), AxisDefinition(["param","levelist"], True)],
-    #     ExtractorType.GRIB,
-    # )
     builder.extendOnAxis(1)
     view = builder.build()
     mapping = FdbZarrStore(
@@ -89,7 +74,7 @@ async def process_json():
             f"Created new zfdb view {hashed_request}, {len(view_hashes)} views are now opened"
         )
     else:
-        app.logger.debug("Using create request")
+        app.logger.debug("Using created request")
 
     app.logger.debug(json.dumps({"hash": hashed_request}))
 
@@ -108,9 +93,7 @@ async def retrieve_zarr(hash, zarr_path):
         return Response(response=f"Couldn't find hash in {hash}", status=500)
 
     try:
-        app.logger.info("Before await")
         content = await mapping[zarr_path]
-        app.logger.info("After await")
     except KeyError:
         return Response(
             response=f"Didn't find {zarr_path} for mapping of hash {int(hash)}",
@@ -194,9 +177,6 @@ if __name__ == "__main__":
     else:
         log_level = logging.DEBUG
 
-    # logger.info("Creating certs for localhost")
-    # create_certs.create_certs()
     connect_to_fdb(args)
 
-    # app.run(debug=args.debug, certfile="server_data/certs/server.pem", keyfile="server_data/certs/server.pem")
     app.run(debug=args.debug, host="0.0.0.0")
