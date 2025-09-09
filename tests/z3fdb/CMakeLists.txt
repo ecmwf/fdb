@@ -18,6 +18,11 @@ function(add_py_test test)
             "ECCODES_PYTHON_USE_FINDLIBS=1"
             "ECCODES_DIR=${CMAKE_BINARY_DIR}"
     ) 
+    set_property(
+        TEST pychunked_data_view_${stem} 
+        PROPERTY 
+        LABELS z3fdb
+    ) 
 endfunction()
 
 

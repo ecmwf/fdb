@@ -7,5 +7,11 @@
 # nor does it submit to any jurisdiction.
 
 
-class ZfdbError(Exception):
+class Z3fdbError(Exception):
+    """
+    Base Exception of all Z3fdb related errors.
+
+    Raised when an operation fails.
+    """
+
     pass
