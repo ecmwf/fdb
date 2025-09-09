@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "eckit/utils/Regex.h"
+#include "metkit/mars/Matcher.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -36,12 +37,10 @@ class SelectFDB : public FDBBase {
 
 private:  // types
 
-    using SelectMap = std::map<std::string, eckit::Regex>;
-    using ValuesMap = std::map<std::string, std::vector<std::string>>;  // keyword -> list of values
 
     class FDBLane {
-        SelectMap select_;
-        std::vector<SelectMap> excludes_;
+        metkit::mars::Matcher select_;
+        std::vector<metkit::mars::Matcher> excludes_;
         Config config_;
         std::optional<FDB> fdb_;
 
@@ -49,28 +48,21 @@ private:  // types
 
         FDBLane(const eckit::LocalConfiguration& config);
 
-        const SelectMap& select() { return select_; }
-
         FDB& get();
 
         void flush();
 
-        bool matches(const Key& key, bool requireMissing) const;
+        bool matches(const Key& key, bool matchOnMissing) const;
 
-        bool matches(const metkit::mars::MarsRequest& request, bool requireMissing) const;
+        bool matches(const metkit::mars::MarsRequest& request, bool matchOnMissing) const;
 
     private:
 
-        template <typename T>
-        ValuesMap collectValues(const T&) const;
+        using ValuesMap = std::map<std::string, std::vector<std::string>>;  // keyword -> list of values
+        ValuesMap collectValues(const Key& key) const;
 
-        bool matchesValues(const ValuesMap& vals, bool requireMissing) const;
-
-        // returns true if all select conditions are satisfied
-        bool satisfySelect(const ValuesMap& vals, bool requireMissing) const;
-
-        // returns true if none of the exclude conditions are satisfied
-        bool satisfyExcludes(const ValuesMap& vals) const;
+        template <typename T> // T is either a mars request or a ValuesMap
+        bool matchesValues(const T& vals, bool matchOnMissing) const;
     };
 
 
