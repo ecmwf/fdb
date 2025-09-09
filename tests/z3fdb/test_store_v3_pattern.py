@@ -4,12 +4,10 @@ from itertools import permutations, product
 import pytest
 import zarr
 
-from pychunked_data_view.chunked_data_view import (
+from z3fdb import (
     AxisDefinition,
     ChunkedDataViewBuilder,
     ExtractorType,
-)
-from z3fdb.mapping import (
     FdbSource,
     FdbZarrArray,
     FdbZarrGroup,
@@ -149,7 +147,8 @@ def test_access_pattern_shuffled_chunked(
 
 test_data = product(permutations([0, 1, 2]), product([True, False], repeat=3))
 
-@pytest.mark.parametrize("index_permutation, chunked_permutations", test_data) 
+
+@pytest.mark.parametrize("index_permutation, chunked_permutations", test_data)
 def test_access_pattern_shuffled_partially_chunked(
     read_only_fdb_pattern_setup, index_permutation, chunked_permutations
 ) -> None:
@@ -212,7 +211,6 @@ def test_access_pattern_shuffled_partially_chunked(
         for time in range(0, 4):
             for param in range(0, 3):
                 for step in range(0, 1):
-
                     datetime = date * 4 + time
                     # Find the index the date gets mapped to, was index 0 in the non-permuted array
                     # Same for all other elements
@@ -230,6 +228,7 @@ def test_access_pattern_shuffled_partially_chunked(
                     logging.debug(f"Data: {data[*cur_index]}")
 
                     assert all(data[*cur_index] == value)
+
 
 def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
     builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)

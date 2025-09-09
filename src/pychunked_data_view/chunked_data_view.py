@@ -48,7 +48,7 @@ class ChunkedDataView:
 
     def chunks(self):
         return self._obj.chunks()
-    
+
     def shape(self):
         return self._obj.shape()
 

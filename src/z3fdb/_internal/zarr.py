@@ -14,7 +14,7 @@ be part of a zarr store: '.zarray', '.zgroup' and '.zattrs'
 import dataclasses
 import itertools
 import json
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import KW_ONLY, asdict, dataclass, field
 from functools import cache
 from typing import Any, AsyncIterator, Optional, Self, Sequence, override
@@ -25,7 +25,7 @@ from zarr.core.buffer.cpu import Buffer as CpuBuffer
 
 from pychunked_data_view import ChunkedDataView
 
-from .error import ZfdbError
+from z3fdb.z3fdb_error import Z3fdbError
 
 
 def to_cpu_buffer(obj: Any) -> CpuBuffer:
@@ -140,17 +140,16 @@ class DotZarrGroupJson:
 
 
 class ZarrChunkedDataView:
-
     def __init__(self, chunked_data_view: ChunkedDataView) -> None:
         self.chunked_data_view = chunked_data_view
 
     @abstractmethod
     def create_dot_zarr_json(self) -> CpuBuffer: ...
 
-    def chunks(self) -> tuple[int, ...]: 
+    def chunks(self) -> tuple[int, ...]:
         self.chunked_data_view.chunkShape()
 
-    def __getitem__(self, key: tuple[int, ...]) -> Buffer: 
+    def __getitem__(self, key: tuple[int, ...]) -> Buffer:
         self.chunked_data_view.at(key)
 
     @abstractmethod
@@ -213,7 +212,7 @@ class FdbZarrGroup:
         self._attributes = to_cpu_buffer(DotZarrAttributes())
         for c in children:
             if c.name == "":
-                raise ZfdbError(
+                raise Z3fdbError(
                     "A group with the empty name can only be the root group."
                 )
         self._children = {c.name: c for c in children}
@@ -257,4 +256,3 @@ class FdbZarrGroup:
         else:
             async for i in self._children[new_prefix_token[0]].list_prefix(new_prefix):
                 yield i
-
