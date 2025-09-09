@@ -9,15 +9,12 @@
 
 import pytest
 import zarr
-import zarr.storage
 import numpy as np
 
-from pychunked_data_view.chunked_data_view import (
+from z3fdb import (
     AxisDefinition,
     ChunkedDataViewBuilder,
     ExtractorType,
-)
-from z3fdb.mapping import (
     FdbSource,
     FdbZarrArray,
     FdbZarrGroup,
@@ -27,6 +24,7 @@ from z3fdb.mapping import (
 
 def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3
+
 
 #
 def test_access(read_only_fdb_setup) -> None:
@@ -105,5 +103,5 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
         assert np.all(data[i, 0] == 2 * i)
         assert np.all(data[i, 1] == (2 * i) + 1)
 
-    with pytest.raises(Exception) as re:
+    with pytest.raises(Exception):
         data[0, 2]

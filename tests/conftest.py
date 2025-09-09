@@ -136,9 +136,10 @@ def build_example_sfc_pl_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     messages = tmp / "test_data.grib"
     with open(messages, "wb") as out:
-
         ec.codes_set_string(gid, "levtype", "sfc")
-        for value, (date, time, parameter) in enumerate(itertools.product(dates, times, parameters_sfc)):
+        for value, (date, time, parameter) in enumerate(
+            itertools.product(dates, times, parameters_sfc)
+        ):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
@@ -149,9 +150,9 @@ def build_example_sfc_pl_grib_messages(data_path, session_tmp) -> pathlib.Path:
         offset = value
 
         ec.codes_set_string(gid, "levtype", "pl")
-        for value, (date, time, level, parameter) in enumerate(itertools.product(
-            dates, times, levels, parameters_pl
-        )):
+        for value, (date, time, level, parameter) in enumerate(
+            itertools.product(dates, times, levels, parameters_pl)
+        ):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
@@ -256,8 +257,11 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     fdb.flush()
     return fdb_config_path
 
+
 @pytest.fixture(scope="session", autouse=False)
-def read_only_fdb_pattern_setup(data_path, session_tmp, build_pattern_grib_messages) -> pathlib.Path:
+def read_only_fdb_pattern_setup(
+    data_path, session_tmp, build_pattern_grib_messages
+) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
@@ -292,10 +296,11 @@ def read_only_fdb_pattern_setup(data_path, session_tmp, build_pattern_grib_messa
     fdb.flush()
     return fdb_config_path
 
+
 @pytest.fixture(scope="session")
 def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
     """
-    Build messages which have a certain pattern to control the correct assembly of 
+    Build messages which have a certain pattern to control the correct assembly of
     zarr files
     """
     tmp = session_tmp / "build_pattern_grib_messages"
@@ -322,7 +327,7 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
     ec.codes_set_string(gid, "stream", "oper")
 
     dates = [20200101, 20200102, 20200103]
-    times = [0000, 600, 1200, 1800] 
+    times = [0000, 600, 1200, 1800]
 
     # 10u/10v
     parameters_sfc = [165, 166, 167]
@@ -334,10 +339,12 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
     messages = tmp / "test_data_pattern.grib"
     with open(messages, "wb") as out:
         ec.codes_set_string(gid, "levtype", "sfc")
-        
+
         total_values = 0
 
-        for value, (date, time, parameter) in enumerate(itertools.product(dates, times, parameters_sfc)):
+        for value, (date, time, parameter) in enumerate(
+            itertools.product(dates, times, parameters_sfc)
+        ):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
@@ -346,16 +353,17 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
             total_values += 1
 
-
         ec.codes_set_string(gid, "levtype", "pl")
-        for value, (date, time, parameter, level) in enumerate(itertools.product(
-            dates, times, parameters_pl, levels
-        )):
+        for value, (date, time, parameter, level) in enumerate(
+            itertools.product(dates, times, parameters_pl, levels)
+        ):
             ec.codes_set(gid, "date", date)
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
             ec.codes_set(gid, "level", level)
-            ec.codes_set_values(gid, list(itertools.repeat(total_values + value, count_values)))
+            ec.codes_set_values(
+                gid, list(itertools.repeat(total_values + value, count_values))
+            )
             ec.codes_write(gid, out)
 
     ec.codes_release(gid)
