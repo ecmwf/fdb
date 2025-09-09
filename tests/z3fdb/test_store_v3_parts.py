@@ -1,14 +1,15 @@
 import zarr
 import numpy as np
 
-from pychunked_data_view.chunked_data_view import (
+from z3fdb import (
+    FdbSource,
+    FdbZarrStore,
+    FdbZarrArray,
+    FdbZarrGroup,
     AxisDefinition,
     ChunkedDataViewBuilder,
     ExtractorType,
 )
-from z3fdb.datasource import FdbSource
-from z3fdb.mapping import FdbZarrStore
-from z3fdb.zarr import FdbZarrArray, FdbZarrGroup
 
 
 def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
@@ -43,7 +44,10 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         "param=131/132,"
         "levelist=50/100,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param", "levelist"], True)],
+        [
+            AxisDefinition(["date", "time"], True),
+            AxisDefinition(["param", "levelist"], True),
+        ],
         ExtractorType.GRIB,
     )
     builder.extendOnAxis(1)
@@ -64,11 +68,9 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
 
     assert data
 
-    assert( np.all(data[0, 0] == 0))
-    assert( np.all(data[0, 1] == 1))
-    assert( np.all(data[0, 2] == 31))
-    assert( np.all(data[0, 3] == 33))
-    assert( np.all(data[0, 4] == 32))
-    assert( np.all(data[0, 5] == 34))
-
-
+    assert np.all(data[0, 0] == 0)
+    assert np.all(data[0, 1] == 1)
+    assert np.all(data[0, 2] == 31)
+    assert np.all(data[0, 3] == 33)
+    assert np.all(data[0, 4] == 32)
+    assert np.all(data[0, 5] == 34)
