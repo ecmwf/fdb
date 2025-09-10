@@ -93,10 +93,6 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
 }
 
 bool RemoteCatalogue::selectOrCreateIndex(const Key& idxKey, size_t /* datumKeySize */) {
-    return RemoteCatalogue::selectIndex(idxKey);
-}
-
-bool RemoteCatalogue::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
     return true;  // xxx whats the return used for? TOC always returns true
 }

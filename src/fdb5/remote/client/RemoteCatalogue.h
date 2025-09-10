@@ -48,7 +48,6 @@ public:  // methods
     bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
 
     // From Catalogue
-    bool selectIndex(const Key& idxKey) override;
     const Key currentIndexKey() override;
     void deselectIndex() override;
     const Schema& schema() const override;

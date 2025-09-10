@@ -174,7 +174,7 @@ public:
 
     ~CatalogueWriter() override {}
 
-    bool selectIndex(const Key& idxKey) override { NOTIMP; }
+    bool selectIndex(const Key& idxKey) override;
     virtual bool selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) = 0;
     virtual const Index& currentIndex()                                      = 0;
     virtual const Key currentIndexKey();
