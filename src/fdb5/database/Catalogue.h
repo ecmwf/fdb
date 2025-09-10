@@ -176,7 +176,7 @@ public:
 
     bool selectIndex(const Key& idxKey) override { NOTIMP; }
     virtual bool selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) = 0;
-    virtual const Index& currentIndex() = 0;
+    virtual const Index& currentIndex()                                      = 0;
     virtual const Key currentIndexKey();
     virtual void archive(const Key& idxKey, const Key& datumKey,
                          std::shared_ptr<const FieldLocation> fieldLocation)                              = 0;

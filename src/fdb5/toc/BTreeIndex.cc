@@ -153,8 +153,8 @@ BTreeIndex::~BTreeIndex() {}
 
 const std::string& BTreeIndex::defaulType(size_t keySize) {
     ASSERT(keySize > 0);
-    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE",
-        keySize >= 7 ? "BTreeIndex64" : "BTreeIndex");
+    static std::string fdbIndexType =
+        eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", keySize >= 7 ? "BTreeIndex64" : "BTreeIndex");
     return fdbIndexType;
 }
 
