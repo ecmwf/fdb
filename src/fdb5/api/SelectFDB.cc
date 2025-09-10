@@ -14,15 +14,11 @@
  */
 
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
-#include "eckit/types/Types.h"
-#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/io/HandleGatherer.h"
 
 using namespace eckit;
 using namespace metkit::mars;
@@ -82,14 +78,14 @@ ValuesMap SelectFDB::FDBLane::collectValues(const Key& key) const {
     return out;
 }
 
-template <typename T> // T is either a mars request or a map <string, vector<string>>
+template <typename T>  // T is either a mars request or a map <string, vector<string>>
 bool SelectFDB::FDBLane::matchesValues(const T& vals, bool matchOnMissing) const {
 
-    if (!select_.match(vals, matchOnMissing, Matcher::ValuePolicy::Any))
+    if (!select_.match(vals, Matcher::Policy::Any, matchOnMissing))
         return false;
 
     bool excluded = std::any_of(excludes_.begin(), excludes_.end(),
-                                [&](const auto& ex) { return ex.match(vals, false, Matcher::ValuePolicy::All); });
+                                [&](const auto& ex) { return ex.match(vals, Matcher::Policy::All, false); });
 
     return !excluded;
 }

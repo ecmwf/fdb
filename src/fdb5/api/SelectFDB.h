@@ -61,7 +61,7 @@ private:  // types
         using ValuesMap = std::map<std::string, std::vector<std::string>>;  // keyword -> list of values
         ValuesMap collectValues(const Key& key) const;
 
-        template <typename T> // T is either a mars request or a ValuesMap
+        template <typename T>  // T is either a mars request or a ValuesMap
         bool matchesValues(const T& vals, bool matchOnMissing) const;
     };
 
