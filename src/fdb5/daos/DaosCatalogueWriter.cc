@@ -113,7 +113,7 @@ DaosCatalogueWriter::~DaosCatalogueWriter() {
     close();
 }
 
-bool DaosCatalogueWriter::selectIndex(const Key& idxKey) {
+bool DaosCatalogueWriter::selectOrCreateIndex(const Key& idxKey, size_t /* datumKeySize */) {
 
     currentIndexKey_ = idxKey;
 

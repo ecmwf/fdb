@@ -51,7 +51,7 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 }
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
-bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+bool TocCatalogueWriter::selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) {
     currentIndexKey_ = idxKey;
 
     if (indexes_.find(idxKey) == indexes_.end()) {
@@ -62,7 +62,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
             fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
         }
 
-        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, serialisationVersion().used()));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize));
     }
 
     current_ = indexes_[idxKey];
@@ -84,8 +84,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
                 fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
             }
 
-            fullIndexes_[idxKey] =
-                Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, serialisationVersion().used()));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize));
         }
 
         currentFull_ = fullIndexes_[idxKey];

@@ -31,8 +31,8 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key&) {
-    return catalogue()->selectIndex(idxKey);
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key& fullKey) {
+    return catalogue()->selectOrCreateIndex(idxKey, (initialFieldKey_.size() - fullKey.size()));
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {

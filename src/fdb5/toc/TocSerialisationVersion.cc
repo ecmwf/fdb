@@ -56,12 +56,12 @@ TocSerialisationVersion::TocSerialisationVersion(const fdb5::Config& config) {
 TocSerialisationVersion::~TocSerialisationVersion() {}
 
 std::vector<unsigned int> TocSerialisationVersion::supported() {
-    std::vector<unsigned int> versions = {4, 3, 2, 1};
+    std::vector<unsigned int> versions = {3, 2, 1};
     return versions;
 }
 
 unsigned int TocSerialisationVersion::latest() {
-    return 4;
+    return 3;
 }
 
 unsigned int TocSerialisationVersion::defaulted() {
