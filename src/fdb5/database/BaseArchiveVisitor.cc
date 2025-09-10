@@ -31,8 +31,12 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key& fullKey) {
-    return catalogue()->selectOrCreateIndex(idxKey, (initialFieldKey_.size() - fullKey.size()));
+bool BaseArchiveVisitor::selectOrCreateIndex(const Key& idxKey, const std::vector<std::unique_ptr<RuleDatum>>& rules) {
+    size_t datumKeySize = 0;
+    for (const auto& r : rules) {
+        datumKeySize = std::max(r->size(), datumKeySize);
+    }
+    return catalogue()->selectOrCreateIndex(idxKey, datumKeySize);
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {

@@ -30,6 +30,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Rule;
+class RuleDatum;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -42,9 +43,9 @@ public:  // methods
 
     virtual ~WriteVisitor() = default;
 
-    virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
-    virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
-    virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
+    virtual bool selectDatabase(const Key& dbKey, const Key& fullKey)                                         = 0;
+    virtual bool selectOrCreateIndex(const Key& idxKey, const std::vector<std::unique_ptr<RuleDatum>>& rules) = 0;
+    virtual bool selectDatum(const Key& datumKey, const Key& fullKey)                                         = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;

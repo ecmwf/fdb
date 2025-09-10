@@ -172,6 +172,10 @@ void Rule::encode(eckit::Stream& out) const {
     }
 }
 
+size_t Rule::size() const {
+    return predicates_.size();
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // MATCHING KEYS
 
@@ -610,7 +614,7 @@ void RuleIndex::updateParent(const Rule* parent) {
 void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
     for (const auto& key : findMatchingKeys(request, visitor)) {
         full.pushFrom(key);
-        if (visitor.selectIndex(key, full)) {
+        if (visitor.selectIndex(key)) {
             for (const auto& rule : rules_) {
                 rule->expand(request, visitor, full);
             }
@@ -625,7 +629,7 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 
         full.pushFrom(*key);
 
-        if (visitor.selectIndex(*key, full)) {
+        if (visitor.selectOrCreateIndex(*key, rules_)) {
             for (const auto& rule : rules_) {
                 if (rule->expand(field, visitor, full)) {
                     return true;

@@ -71,6 +71,8 @@ public:  // methods
     const Rule& topRule() const;
     bool isTopRule() const;
 
+    size_t size() const;
+
     const TypesRegistry& registry() const;
 
     void encode(eckit::Stream& out) const override;
