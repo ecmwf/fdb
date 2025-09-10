@@ -62,7 +62,6 @@ bool TocCatalogueWriter::selectOrCreateIndex(const Key& idxKey, size_t datumKeyS
             fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
         }
 
-        ASSERT(datumKeySize);
         indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize));
     }
 
@@ -85,7 +84,6 @@ bool TocCatalogueWriter::selectOrCreateIndex(const Key& idxKey, size_t datumKeyS
                 fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
             }
 
-            ASSERT(datumKeySize);
             fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize));
         }
 
