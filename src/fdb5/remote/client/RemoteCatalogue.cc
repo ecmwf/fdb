@@ -92,9 +92,13 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
     eckit::Log::status() << "FieldLocation " << numLocations_ << "enqueued for catalogue archival" << std::endl;
 }
 
-bool RemoteCatalogue::selectOrCreateIndex(const Key& idxKey, size_t /* datumKeySize */) {
+bool RemoteCatalogue::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
-    return true;  // xxx whats the return used for? TOC always returns true
+    return true;
+}
+
+bool RemoteCatalogue::createIndex(const Key& idxKey, size_t datumKeySize) {
+    return true;
 }
 
 const Index& RemoteCatalogue::currentIndex() {

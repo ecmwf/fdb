@@ -47,7 +47,7 @@ public:
 ///       the members of TocIndex
 
 TocIndex::TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, size_t datumKeySize) :
-    TocIndex(key, path, offset, mode, defaulType(datumKeySize)) {}
+    TocIndex(key, path, offset, mode, defaultType(datumKeySize)) {}
 
 TocIndex::TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, const std::string& type) :
     UriStoreWrapper(path.dirName()),
@@ -196,8 +196,8 @@ void TocIndex::print(std::ostream& out) const {
     out << "TocIndex(path=" << location_.path_ << ",offset=" << location_.offset_ << ")";
 }
 
-std::string TocIndex::defaulType(size_t keySize) {
-    return BTreeIndex::defaulType(keySize);
+std::string TocIndex::defaultType(size_t keySize) {
+    return BTreeIndex::defaultType(keySize);
 }
 
 std::vector<eckit::URI> TocIndex::dataURIs() const {

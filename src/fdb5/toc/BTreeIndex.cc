@@ -151,10 +151,10 @@ BTREE(64, 65536, FieldRefReduced);
 
 BTreeIndex::~BTreeIndex() {}
 
-const std::string& BTreeIndex::defaulType(size_t keySize) {
-    static std::string fdbIndexType =
-        eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", keySize >= 7 ? "BTreeIndex64" : "BTreeIndex");
-    return fdbIndexType;
+std::string BTreeIndex::defaultType(size_t keySize) {
+    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "");
+
+    return fdbIndexType.empty() ? (keySize >= 7 ? "BTreeIndex64" : "BTreeIndex") : fdbIndexType;
 }
 
 static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
