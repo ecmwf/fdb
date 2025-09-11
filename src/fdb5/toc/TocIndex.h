@@ -70,7 +70,7 @@ public:  // methods
 
     ~TocIndex() override;
 
-    static std::string defaultType(size_t datumKeySize);
+    static const std::string& defaultType(size_t datumKeySize);
 
     eckit::PathName path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }

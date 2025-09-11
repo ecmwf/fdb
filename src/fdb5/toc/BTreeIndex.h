@@ -54,7 +54,7 @@ public:
     virtual void preload()                                         = 0;
 
 
-    static std::string defaultType(size_t keySize);
+    static const std::string& defaultType(size_t keySize);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

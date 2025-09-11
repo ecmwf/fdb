@@ -165,11 +165,11 @@ private:  // members
 class RuleIndex : public Rule {
 public:  // types
 
-    using Children = std::vector<std::unique_ptr<RuleDatum>>;
+    using Child = std::unique_ptr<RuleDatum>;
 
 public:  // methods
 
-    RuleIndex(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules);
+    RuleIndex(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child& rule);
 
     explicit RuleIndex(eckit::Stream& stream);
 
@@ -179,7 +179,7 @@ public:  // methods
 
     void updateParent(const Rule* parent) override;
 
-    const Children& rules() const { return rules_; }
+    const RuleDatum& rule() const { return *rule_; }
 
     const char* type() const override { return "RuleIndex"; }
 
@@ -194,14 +194,14 @@ public:  // methods
 private:  // methods
 
     void dumpChildren(std::ostream& out) const override {
-        for (const auto& rule : rules_) {
-            rule->dump(out);
+        if (rule_) {
+            rule_->dump(out);
         }
     }
 
 private:  // members
 
-    Children rules_;
+    Child rule_;
 
     // streamable
 

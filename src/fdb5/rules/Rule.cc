@@ -581,43 +581,36 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE INDEX
 
-RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Children& rules) :
-    Rule(line, predicates, types), rules_{std::move(rules)} {}
+RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child& rule) :
+    Rule(line, predicates, types), rule_{std::move(rule)} {}
 
 RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
     decode(stream);
 
     size_t numRules;
     stream >> numRules;
-    rules_.reserve(numRules);
+    ASSERT(numRules == 1);
 
-    for (size_t i = 0; i < numRules; i++) {
-        rules_.emplace_back(new RuleDatum(stream));
-    }
+    rule_.reset(new RuleDatum(stream));
 }
 
 void RuleIndex::encode(eckit::Stream& out) const {
     Rule::encode(out);
-    out << rules_.size();
-    for (const auto& rule : rules_) {
-        rule->encode(out);
-    }
+    ASSERT(rule_);
+    out << (size_t) 1;
+    rule_->encode(out);
 }
 
 void RuleIndex::updateParent(const Rule* parent) {
     Rule::updateParent(parent);
-    for (auto& rule : rules_) {
-        rule->updateParent(this);
-    }
+    rule_->updateParent(this);
 }
 
 void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const {
     for (const auto& key : findMatchingKeys(request, visitor)) {
         full.pushFrom(key);
         if (visitor.selectIndex(key)) {
-            for (const auto& rule : rules_) {
-                rule->expand(request, visitor, full);
-            }
+            rule_->expand(request, visitor, full);
         }
         full.popFrom(key);
     }
@@ -629,11 +622,9 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 
         full.pushFrom(*key);
 
-        if (visitor.selectOrCreateIndex(*key, rules_)) {
-            for (const auto& rule : rules_) {
-                if (rule->expand(field, visitor, full)) {
-                    return true;
-                }
+        if (visitor.selectOrCreateIndex(*key, rule_->size())) {
+            if (rule_->expand(field, visitor, full)) {
+                return true;
             }
         }
 

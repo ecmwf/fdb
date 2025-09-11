@@ -31,11 +31,7 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectOrCreateIndex(const Key& idxKey, const std::vector<std::unique_ptr<RuleDatum>>& rules) {
-    size_t datumKeySize = 0;
-    for (const auto& r : rules) {
-        datumKeySize = std::max(r->size(), datumKeySize);
-    }
+bool BaseArchiveVisitor::selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) {
     return catalogue()->selectOrCreateIndex(idxKey, datumKeySize);
 }
 

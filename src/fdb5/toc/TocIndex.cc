@@ -196,7 +196,7 @@ void TocIndex::print(std::ostream& out) const {
     out << "TocIndex(path=" << location_.path_ << ",offset=" << location_.offset_ << ")";
 }
 
-std::string TocIndex::defaultType(size_t keySize) {
+const std::string& TocIndex::defaultType(size_t keySize) {
     return BTreeIndex::defaultType(keySize);
 }
 

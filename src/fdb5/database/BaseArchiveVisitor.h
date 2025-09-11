@@ -41,7 +41,7 @@ protected:  // methods
 
     bool selectDatabase(const Key& dbKey, const Key&) override;
 
-    bool selectOrCreateIndex(const Key& idxKey, const std::vector<std::unique_ptr<RuleDatum>>& rules) override;
+    bool selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) override;
 
     virtual void checkMissingKeys(const Key& fullKey) const;
 
