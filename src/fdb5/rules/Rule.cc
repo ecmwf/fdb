@@ -597,7 +597,7 @@ RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {
 void RuleIndex::encode(eckit::Stream& out) const {
     Rule::encode(out);
     ASSERT(rule_);
-    out << (size_t) 1;
+    out << (size_t)1;
     rule_->encode(out);
 }
 
