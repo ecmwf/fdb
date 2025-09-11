@@ -89,16 +89,14 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
         fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
     }
 
-    current_ =
-        indexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize)).first->second;
+    current_ = indexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize)).first->second;
     current_.open();
     current_.flock();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
     if (useSubToc()) {
-        currentFull_ = fullIndexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize))
-                           .first->second;
+        currentFull_ = fullIndexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize)).first->second;
         currentFull_.open();
         currentFull_.flock();
     }
