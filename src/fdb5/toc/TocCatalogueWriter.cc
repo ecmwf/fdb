@@ -321,13 +321,15 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectOrCreateIndex(currentIndexKey_, datumKey.size());
+        if (!selectIndex(currentIndexKey_))
+            createIndex(currentIndexKey_, datumKey.size());
     }
     else {
         // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
         // indexKey used for store archival. Reset it
         if (currentIndexKey_ != idxKey) {
-            selectOrCreateIndex(idxKey, datumKey.size());
+            if (!selectIndex(idxKey))
+                createIndex(idxKey, datumKey.size());
         }
     }
 

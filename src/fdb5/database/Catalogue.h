@@ -174,8 +174,8 @@ public:
 
     ~CatalogueWriter() override {}
 
-    bool selectOrCreateIndex(const Key& idxKey, size_t datumKeySize);
-    virtual const Index& currentIndex() = 0;
+    virtual bool createIndex(const Key& idxKey, size_t datumKeySize) = 0;
+    virtual const Index& currentIndex()                              = 0;
     virtual const Key currentIndexKey();
     virtual void archive(const Key& idxKey, const Key& datumKey,
                          std::shared_ptr<const FieldLocation> fieldLocation)                              = 0;
@@ -184,10 +184,6 @@ public:
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate()                                                                          = 0;
     virtual size_t archivedLocations() const { NOTIMP; }
-
-protected:  // methods
-
-    virtual bool createIndex(const Key& idxKey, size_t datumKeySize) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

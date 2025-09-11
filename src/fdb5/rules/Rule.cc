@@ -622,7 +622,7 @@ bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 
         full.pushFrom(*key);
 
-        if (visitor.selectOrCreateIndex(*key, rule_->size())) {
+        if (visitor.selectIndex(*key) || visitor.createIndex(*key, rule_->size())) {
             if (rule_->expand(field, visitor, full)) {
                 return true;
             }

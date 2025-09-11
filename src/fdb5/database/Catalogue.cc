@@ -66,13 +66,6 @@ const Key CatalogueWriter::currentIndexKey() {
     return currentIndex().key();
 }
 
-bool CatalogueWriter::selectOrCreateIndex(const Key& idxKey, size_t datumKeySize) {
-    if (selectIndex(idxKey)) {
-        return true;
-    }
-    return createIndex(idxKey, datumKeySize);
-}
-
 bool CatalogueImpl::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
