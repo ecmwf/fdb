@@ -53,7 +53,7 @@ public:
     virtual void preload()                                         = 0;
 
 
-    static const std::string& defaultType(int version);
+    static const std::string& defaultType();
 };
 
 //----------------------------------------------------------------------------------------------------------------------

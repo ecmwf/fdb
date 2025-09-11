@@ -62,14 +62,14 @@ public:  // types
 
 public:  // methods
 
-    TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, const int version);
+    TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode);
 
     TocIndex(eckit::Stream&, const int version, const eckit::PathName& directory, const eckit::PathName& path,
              off_t offset, bool preloadBTree = false);
 
     ~TocIndex() override;
 
-    static std::string defaultType(int version);
+    static std::string defaultType();
 
     eckit::PathName path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }

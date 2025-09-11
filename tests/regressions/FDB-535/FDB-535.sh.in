@@ -5,6 +5,7 @@ set -eux
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
+fdbdumptoc="$<TARGET_FILE:fdb-dump-toc>"
 
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
@@ -25,9 +26,16 @@ done
 
 export FDB5_CONFIG_FILE=config.yaml
 
-FDB5_SERIALISATION_VERSION=4 $fdbwrite x.grib
+FDB_INDEX_TYPE=BTreeIndex64 $fdbwrite x.grib
 
-FDB5_SERIALISATION_VERSION=4 $fdbread req.mars out.grib
+$fdbdumptoc localroot/od:g/toc | tee out
+if grep -q BTreeIndex64 out; then
+    echo BTreeIndex64 found
+else
+    exit 1
+fi
+
+$fdbread req.mars out.grib
 
 cat out.grib
 cat x.grib
