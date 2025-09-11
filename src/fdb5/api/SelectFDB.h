@@ -32,7 +32,6 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
 class SelectFDB : public FDBBase {
 
 private:  // types
@@ -54,15 +53,8 @@ private:  // types
 
         bool matches(const Key& key, bool matchOnMissing) const;
 
-        bool matches(const metkit::mars::MarsRequest& request, bool matchOnMissing) const;
-
-    private:
-
-        using ValuesMap = std::map<std::string, std::vector<std::string>>;  // keyword -> list of values
-        ValuesMap collectValues(const Key& key) const;
-
-        template <typename T>  // T is either a mars request or a ValuesMap
-        bool matchesValues(const T& vals, bool matchOnMissing) const;
+        template <typename T>  // T is either a mars request or a KeyAccessor
+        bool matches(const T& vals, bool matchOnMissing) const;
     };
 
 

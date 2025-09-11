@@ -19,6 +19,7 @@
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/Key.h"
 
 using namespace eckit;
 using namespace metkit::mars;
@@ -28,65 +29,50 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {  // helpers
+class KeyAccessor : public RequestAccessor {
+public:
 
-using ValuesMap = std::map<std::string, std::vector<std::string>>;
+    explicit KeyAccessor(const Key& key) : key_(key) {}
 
-void insertIfMissing(ValuesMap& out, const std::string& keyword, const Key& key) {
-    if (out.find(keyword) != out.end()) {
-        return;
+    bool has(const std::string& keyword) const override {
+        const auto [iter, found] = key_.find(keyword);
+        return found;
     }
-    const auto [it, found] = key.find(keyword);
-    out[keyword]           = found ? std::vector<std::string>{it->second} : std::vector<std::string>{};
-}
 
-}  // namespace
+    values_t get(const std::string& keyword) const override { return std::cref(key_.get(keyword)); }
+
+private:
+
+    const Key& key_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
 
 SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    select_{Matcher(config.getString("select", ""))}, config_(config), fdb_(std::nullopt) {
+    select_{Matcher(config.getString("select", ""), Matcher::Policy::Any)}, config_(config), fdb_(std::nullopt) {
 
-    if (config.has("filter")) {
+    if (config.has("filter")) {  /// @todo: maybe we should switch this to 'excludes' instead.
         for (const auto& f : config.getSubConfigurations("filter")) {
             if (!f.has("exclude")) {
                 continue;
             }
-            excludes_.push_back(Matcher(f.getString("exclude", "")));
+            excludes_.push_back(Matcher(f.getString("exclude", ""), Matcher::Policy::All));
         }
     }
 }
 
 bool SelectFDB::FDBLane::matches(const Key& key, bool matchOnMissing) const {
-    const auto vals = collectValues(key);
-    return matchesValues(vals, matchOnMissing);
+    return matches(KeyAccessor(key), matchOnMissing);
 }
 
-bool SelectFDB::FDBLane::matches(const MarsRequest& request, bool matchOnMissing) const {
-    return matchesValues(request, matchOnMissing);
-}
+template <typename T>  // T is either a MarsRequest or KeyAccessor
+bool SelectFDB::FDBLane::matches(const T& vals, bool matchOnMissing) const {
 
-// collect (keys, values) in request to be checked against select and exclude conditions
-ValuesMap SelectFDB::FDBLane::collectValues(const Key& key) const {
-    ValuesMap out;
-    for (const auto& [k, _] : select_.regexMap()) {
-        insertIfMissing(out, k, key);
-    }
-    for (const auto& em : excludes_) {
-        for (const auto& [k, _] : em.regexMap()) {
-            insertIfMissing(out, k, key);
-        }
-    }
-    return out;
-}
-
-template <typename T>  // T is either a mars request or a map <string, vector<string>>
-bool SelectFDB::FDBLane::matchesValues(const T& vals, bool matchOnMissing) const {
-
-    if (!select_.match(vals, Matcher::Policy::Any, matchOnMissing))
+    if (!select_.match(vals, matchOnMissing))
         return false;
 
-    bool excluded = std::any_of(excludes_.begin(), excludes_.end(),
-                                [&](const auto& ex) { return ex.match(vals, Matcher::Policy::All, false); });
-
+    bool excluded =
+        std::any_of(excludes_.begin(), excludes_.end(), [&](const auto& ex) { return ex.match(vals, false); });
     return !excluded;
 }
 
@@ -102,6 +88,8 @@ void SelectFDB::FDBLane::flush() {
         fdb_->flush();
     }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(config, name) {
 
