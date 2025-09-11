@@ -153,8 +153,8 @@ BTreeIndex::~BTreeIndex() {}
 
 
 const std::string& BTreeIndex::defaultType() {
-    static const std::string defaultType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex");
-    return defaultType;
+    static const std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex");
+    return fdbIndexType;
 }
 
 static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
