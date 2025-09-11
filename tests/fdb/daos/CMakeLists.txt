@@ -10,6 +10,7 @@ if (HAVE_DUMMY_DAOS)
                       SOURCES test_dummy_daos_${_test}.cc
                       LIBS "${DAOS_LIBRARIES}" ${DAOS_TESTS_LIBRARIES} fdb5
                       INCLUDES "${DAOS_INCLUDE_DIRS}" "${DAOS_TESTS_INCLUDE_DIRS}" 
+                      RUN_SERIAL
                       ENVIRONMENT "{test_environment}" )
   
   endforeach()

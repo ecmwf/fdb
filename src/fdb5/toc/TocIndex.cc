@@ -194,8 +194,8 @@ void TocIndex::print(std::ostream& out) const {
 }
 
 
-std::string TocIndex::defaulType() {
-    return BTreeIndex::defaulType();
+std::string TocIndex::defaultType() {
+    return BTreeIndex::defaultType();
 }
 
 std::vector<eckit::URI> TocIndex::dataURIs() const {
