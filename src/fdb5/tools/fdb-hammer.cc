@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <algorithm>
 #include <random>
-#include <random>
 #include <thread>
 #include <unordered_set>
 
@@ -110,6 +109,10 @@ public:
            "recalculated from the message data payload (excluding the key checksum but including the operation identifier), "
            "and both checksums are checked to match."));
         options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
+        options_.push_back(new eckit::option::SimpleOption<long>("step-window",
+             "Number of seconds allocated to perform I/O for a step, and slept if not consumed, for writers in ITT mode. Defaults to 10."));
+        options_.push_back(new eckit::option::SimpleOption<long>("random-delay",
+             "Writers in ITT mode sleep for a random amount of time between 0 and step-window * random-delay / 100. Defaults to 100."));
         options_.push_back(new eckit::option::SimpleOption<long>("poll-period",
              "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
         options_.push_back(new eckit::option::SimpleOption<long>("ppn",
@@ -137,7 +140,7 @@ void FDBHammer::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool
                        << " [--read] [--list] [--md-check|--full-check] [--statistics] "
-                          "[--itt] [--poll-period=<period>] [--ppn=<ppn>] "
+                          "[--itt] [--step-window] [--random-delay] [--poll-period=<period>] [--ppn=<ppn>] "
                           "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
                           "--expver=<expver> --nparams=<nparams> "
                           "[--nlevels=<nlevels> [--level=<level>]]|[--levels=<level1,level2,...>] "
@@ -508,6 +511,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     }
     std::string nodes    = args.getString("nodes", "");
     size_t ppn           = args.getLong("ppn", 1);
+    int step_window      = args.getInt("step-window", 10);
+    int random_delay     = args.getInt("random-delay", 100);
     int port             = args.getInt("barrier-port", 7777);
     int max_wait         = args.getInt("barrier-max-wait", 10);
 
@@ -593,8 +598,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
-    int step_time = 25;
-    int per_step_compute_time = 5;
+    int per_step_compute_time = 0;
     if (itt_) {
         eckit::Timer barrier_timer;
         barrier_timer.start();
@@ -602,11 +606,14 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         barrier_timer.stop();
         //barrier_timer.reset("Barrier pre-step 0");
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(0, step_time);
-        int delayDuration = dist(mt);
-        ::sleep(delayDuration);
+        float delay_range = step_window * (random_delay / 100);
+        if (delay_range > 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_int_distribution<int> dist(0, delay_range);
+            int delayDuration = dist(mt);
+            ::sleep(delayDuration);
+        }
     }
 
     ::timeval start_timestamp;
@@ -761,13 +768,16 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             /// sleep until the data for the next step is 'received' from the model, i.e.
             /// for as long as the target per-step wall-clock-time, minus the expected
             /// receival + aggregation time, minus the time spent on I/O
-            step_end_due_timestamp.tv_sec += step_time;
+            step_end_due_timestamp.tv_sec += step_window;
             ::timeval current_timestamp;
             ::gettimeofday(&current_timestamp, 0);
             int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
             if (remaining > 0) {
                 ::sleep(remaining);
                 std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
+            }
+            if (remaining < 0) {
+                throw eckit::Exception("Step window exceeded.");
             }
 
 	}
