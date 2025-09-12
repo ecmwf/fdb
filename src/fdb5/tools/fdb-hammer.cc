@@ -584,6 +584,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     double elapsed_grib = 0;
     size_t writeCount   = 0;
     size_t bytesWritten = 0;
+    int total_slept = 0;
 
     uint32_t random_seed = generateRandomUint32();
     long offsetBeforeData = 0, offsetAfterData = 0, numberOfValues = 0;
@@ -598,7 +599,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
-    int per_step_compute_time = 0;
     if (itt_) {
         eckit::Timer barrier_timer;
         barrier_timer.start();
@@ -623,10 +623,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     timer.start();
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
-
-        /// sleep for as long as the I/O server processes are expected to spend
-        /// on field receival and aggregation
-        if (itt_) ::sleep(per_step_compute_time);
 
         CODES_CHECK(codes_set_long(handle, "step", istep), 0);
         for (size_t member = number; member <= nensembles + number - 1; ++member) {
@@ -768,16 +764,19 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             /// sleep until the data for the next step is 'received' from the model, i.e.
             /// for as long as the target per-step wall-clock-time, minus the expected
             /// receival + aggregation time, minus the time spent on I/O
-            step_end_due_timestamp.tv_sec += step_window;
-            ::timeval current_timestamp;
-            ::gettimeofday(&current_timestamp, 0);
-            int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
-            if (remaining > 0) {
-                ::sleep(remaining);
-                std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
-            }
-            if (remaining < 0) {
-                throw eckit::Exception("Step window exceeded.");
+            if (step_window > 0) {
+                step_end_due_timestamp.tv_sec += step_window;
+                ::timeval current_timestamp;
+                ::gettimeofday(&current_timestamp, 0);
+                int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
+                if (remaining > 0) {
+                    ::sleep(remaining);
+                    //std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
+                    total_slept += remaining;
+                }
+                if (remaining < 0) {
+                    throw eckit::Exception("Step window exceeded.");
+                }
             }
 
 	}
@@ -803,6 +802,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                 << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
     Log::info() << "Timestamp after last IO: " << (long int)tval_after_io.tv_sec << "." << std::setw(6)
                 << std::setfill('0') << (long int)tval_after_io.tv_usec << std::endl;
+    if (itt_)
+        Log::info() << "Average time slept per step: " << total_slept / nsteps << std::endl;
+
 }
 
 
