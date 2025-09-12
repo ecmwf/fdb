@@ -24,6 +24,7 @@
 #include "fdb5/rules/Rule.h"
 
 #include <memory>
+#include <utility>
 
 namespace fdb5 {
 
@@ -182,7 +183,7 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return std::make_unique<RuleIndex>(line, predicates, types, rule);
+        return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
     }
 
     for (;;) {
@@ -203,7 +204,7 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
         c = peek();
         if (c == ']') {
             consume(c);
-            return std::make_unique<RuleIndex>(line, predicates, types, rule);
+            return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
         }
     }
 }

@@ -581,7 +581,7 @@ bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const
 //----------------------------------------------------------------------------------------------------------------------
 // RULE INDEX
 
-RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child& rule) :
+RuleIndex::RuleIndex(const std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child rule) :
     Rule(line, predicates, types), rule_{std::move(rule)} {}
 
 RuleIndex::RuleIndex(eckit::Stream& stream) : Rule() {

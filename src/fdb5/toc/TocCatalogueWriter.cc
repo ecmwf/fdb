@@ -81,6 +81,7 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
 
 bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
 
+    ASSERT(datumKeySize > 0);
     currentIndexKey_ = idxKey;
 
     PathName indexPath(generateIndexPath(idxKey));

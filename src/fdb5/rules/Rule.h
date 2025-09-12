@@ -169,7 +169,7 @@ public:  // types
 
 public:  // methods
 
-    RuleIndex(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child& rule);
+    RuleIndex(std::size_t line, Predicates& predicates, const eckit::StringDict& types, Child rule);
 
     explicit RuleIndex(eckit::Stream& stream);
 
