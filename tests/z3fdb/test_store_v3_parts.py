@@ -2,13 +2,9 @@ import zarr
 import numpy as np
 
 from z3fdb import (
-    FdbSource,
-    FdbZarrStore,
-    FdbZarrArray,
-    FdbZarrGroup,
     AxisDefinition,
-    ChunkedDataViewBuilder,
     ExtractorType,
+    SimpleStoreBuilder,
 )
 
 
@@ -17,7 +13,7 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
     The request below has param 167 which is not given in the data of the setup fdb. Therefore this
     needs to fail. Accessing the first two params is fine.
     """
-    builder = ChunkedDataViewBuilder(read_only_fdb_setup_for_sfc_pl_example)
+    builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -51,20 +47,9 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         ExtractorType.GRIB,
     )
     builder.extendOnAxis(1)
-    view = builder.build()
+    store = builder.build()
 
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 
     assert data
 

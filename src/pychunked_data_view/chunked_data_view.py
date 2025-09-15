@@ -13,6 +13,15 @@ import chunked_data_view_bindings as pdv
 
 
 class AxisDefinition:
+    """
+    Defines which axis from a MARS Request form an axis in the Zarr array.
+
+    Also defines if the data is to be chunked.
+
+    Args:
+        keys(list of str): mars keys that for this axis.
+        chunked: Shall this axis be chunked into individual values or retrieved as one.
+    """
     def __init__(self, keys: list[str], chunked: bool):
         self._obj = pdv.AxisDefinition(keys=keys, chunked=chunked)
 
@@ -37,11 +46,8 @@ class ChunkedDataView:
     def __init__(self, obj: pdv.ChunkedDataView):
         self._obj = obj
 
-    def at(self, index: list[int] | tuple[int]):
+    def at(self, index: list[int] | tuple[int, ...]):
         return self._obj.at(index)
-
-    # def size(self):
-    #     return self._obj.size()
 
     def chunkShape(self):
         return self._obj.chunk_shape()
@@ -54,7 +60,13 @@ class ChunkedDataView:
 
 
 class ExtractorType(enum.Enum):
+    """Suported data extractors.
+
+    Defines what storage format the caller expects to be stored in FDB.
+    """
+
     GRIB = pdv.ExtractorType.GRIB
+    """Extract data from GRIB"""
 
 
 class ChunkedDataViewBuilder:
