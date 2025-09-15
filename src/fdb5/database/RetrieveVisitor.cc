@@ -57,7 +57,7 @@ bool RetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /*fullKey*/) {
     return true;
 }
 
-bool RetrieveVisitor::selectIndex(const Key& idxKey, const Key& /*fullKey*/) {
+bool RetrieveVisitor::selectIndex(const Key& idxKey) {
     ASSERT(catalogue_);
     return catalogue_->selectIndex(idxKey);
 }

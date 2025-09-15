@@ -37,6 +37,8 @@ public:  // methods
 
     // From CatalogueWriter
     const Index& currentIndex() override;
+    bool selectIndex(const Key& idxKey) override;
+    bool createIndex(const Key& idxKey, size_t datumKeySize) override;
     void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
@@ -47,7 +49,6 @@ public:  // methods
     bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
 
     // From Catalogue
-    bool selectIndex(const Key& idxKey) override;
     const Key currentIndexKey() override;
     void deselectIndex() override;
     const Schema& schema() const override;

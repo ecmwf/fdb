@@ -83,7 +83,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
     }
 }
 
-bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const Key& /* fullKey */) {
+bool MultiRetrieveVisitor::selectIndex(const Key& idxKey) {
     ASSERT(catalogue_);
     LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
     return catalogue_->selectIndex(idxKey);
