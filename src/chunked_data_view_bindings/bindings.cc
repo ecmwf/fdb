@@ -44,7 +44,6 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
 
                  return arr;
              })
-        // .def("size", [](const cdv::ChunkedDataView* view) { return view->size(); })
         .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
         .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
         .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); });

@@ -13,12 +13,8 @@ import numpy as np
 
 from z3fdb import (
     AxisDefinition,
-    ChunkedDataViewBuilder,
+    SimpleStoreBuilder,
     ExtractorType,
-    FdbSource,
-    FdbZarrArray,
-    FdbZarrGroup,
-    FdbZarrStore,
 )
 
 
@@ -26,9 +22,8 @@ def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3
 
 
-#
 def test_access(read_only_fdb_setup) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -43,20 +38,8 @@ def test_access(read_only_fdb_setup) -> None:
         [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
     print(data[:, :])
     print(data.shape)
@@ -67,7 +50,7 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
     The request below has param 167 which is not given in the data of the setup fdb. Therefore this
     needs to fail. Accessing the first two params is fine.
     """
-    builder = ChunkedDataViewBuilder(read_only_fdb_setup_for_sfc_pl_example)
+    builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -82,20 +65,8 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
         [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 
     assert data
 
