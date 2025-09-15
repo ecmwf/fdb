@@ -6,19 +6,15 @@ import zarr
 
 from z3fdb import (
     AxisDefinition,
-    ChunkedDataViewBuilder,
+    SimpleStoreBuilder,
     ExtractorType,
-    FdbSource,
-    FdbZarrArray,
-    FdbZarrGroup,
-    FdbZarrStore,
 )
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 def test_access_pattern(read_only_fdb_pattern_setup) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -38,20 +34,9 @@ def test_access_pattern(read_only_fdb_pattern_setup) -> None:
         ],
         ExtractorType.GRIB,
     )
-    view = builder.build()
+    store = builder.build()
 
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    data =zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     # This is coming from the read_only_fdb_pattern_setup fixtures, the data is filled in there
@@ -80,7 +65,7 @@ def test_access_pattern_shuffled_chunked(
     axis_names = ["date", "time", "param", "step"]
     axis_permutation = [axis[i] for i in index_permutation]
 
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -95,20 +80,9 @@ def test_access_pattern_shuffled_chunked(
         axis_permutation,
         ExtractorType.GRIB,
     )
-    view = builder.build()
+    store = builder.build()
 
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     logging.debug(f"Permutation: ({[axis_names[i] for i in index_permutation]})")
@@ -164,7 +138,7 @@ def test_access_pattern_shuffled_partially_chunked(
     axis_names = ["datetime", "param", "step"]
     axis_permutation = [axis[i] for i in index_permutation]
 
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -179,20 +153,8 @@ def test_access_pattern_shuffled_partially_chunked(
         axis_permutation,
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     logging.debug(f"Permutation: ({[axis_names[i] for i in index_permutation]})")
@@ -231,7 +193,7 @@ def test_access_pattern_shuffled_partially_chunked(
 
 
 def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -251,20 +213,8 @@ def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
         ],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     for date in range(0, 3):
@@ -276,7 +226,7 @@ def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
 
 
 def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -296,20 +246,8 @@ def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
         ],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     for date in range(0, 3):
@@ -321,7 +259,7 @@ def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
 
 
 def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -340,20 +278,8 @@ def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> 
         ],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     for date in range(0, 3):
@@ -368,7 +294,7 @@ def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> 
 def test_access_pattern_merged_axis_non_chunked_switched_date_time(
     read_only_fdb_pattern_setup,
 ) -> None:
-    builder = ChunkedDataViewBuilder(read_only_fdb_pattern_setup)
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
         "type=an,"
         "class=ea,"
@@ -387,20 +313,8 @@ def test_access_pattern_merged_axis_non_chunked_switched_date_time(
         ],
         ExtractorType.GRIB,
     )
-    view = builder.build()
-
-    mapping = FdbZarrStore(
-        FdbZarrGroup(
-            children=[
-                FdbZarrArray(
-                    name="data",
-                    datasource=FdbSource(view),
-                )
-            ]
-        )
-    )
-    store = zarr.open_group(mapping, mode="r", zarr_format=3, use_consolidated=False)
-    data = store.get("data")
+    store = builder.build()
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     for date in range(0, 3):
