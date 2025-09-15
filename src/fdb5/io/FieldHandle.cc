@@ -138,7 +138,7 @@ void FieldHandle::openCurrent() {
                 read += len;
             }
 
-            if (read != currentSize) {
+            if (read != static_cast<long>(currentSize)) {
                 std::stringstream ss;
                 ss << "Error reading from " << *current_ << " - read " << read << ", expected " << currentSize;
                 throw eckit::ReadError(ss.str());
