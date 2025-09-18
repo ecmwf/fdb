@@ -158,7 +158,7 @@ void FDBCopy::execute(const CmdArgs& args) {
     fdb5::FDB fdbRead(readConfig);
 
     // parse modifiers if any
-    eckit::StringDict modifiers = fdb5::Key::parse(modifiers_).keyDict();
+    fdb5::Key modifiers = fdb5::Key::parse(modifiers_);
 
     if (fromList_) {
         for (const FDBToolRequest& request : requests("list")) {
