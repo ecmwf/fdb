@@ -14,8 +14,8 @@
 #pragma once
 
 #include "eckit/config/LocalConfiguration.h"
-#include "metkit/mars/Matcher.h"
 #include "fdb5/database/Key.h"
+#include "metkit/mars/Matcher.h"
 
 namespace fdb5 {
 
@@ -48,4 +48,4 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

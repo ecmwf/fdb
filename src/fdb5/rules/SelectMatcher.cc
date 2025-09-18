@@ -18,26 +18,26 @@ namespace fdb5 {
 
 // ------------------------------------------------------------------------------------------------------
 
-namespace  {
-    
-    class KeyAccessor : public metkit::mars::RequestLike {
-        public:
-        
-        explicit KeyAccessor(const Key& key) : key_(key) {}
-        
-        std::optional<values_t> get(const std::string& keyword) const override { 
-            const auto [it, found] = key_.find(keyword);
-            if (!found)
+namespace {
+
+class KeyAccessor : public metkit::mars::RequestLike {
+public:
+
+    explicit KeyAccessor(const Key& key) : key_(key) {}
+
+    std::optional<values_t> get(const std::string& keyword) const override {
+        const auto [it, found] = key_.find(keyword);
+        if (!found)
             return std::nullopt;
         return std::cref(it->second);
     }
-    
-    private:
-    
+
+private:
+
     const Key& key_;
 };
 
-} // namespace
+}  // namespace
 
 // ------------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,6 @@ SelectMatcher::SelectMatcher(const eckit::LocalConfiguration& config) :
             excludes_.push_back(Matcher(ex, Matcher::Policy::All));
         }
     }
-
 }
 
 SelectMatcher::SelectMatcher(Matcher select, std::vector<Matcher> excludes) : select_(select), excludes_(excludes) {}
@@ -68,8 +67,8 @@ bool SelectMatcher::matchInner(const T& vals, Matcher::MatchMissingPolicy matchO
     if (!select_.match(vals, matchOnMissing))
         return false;
 
-    bool excluded =
-        std::any_of(excludes_.begin(), excludes_.end(), [&](const auto& ex) { return ex.match(vals, Matcher::DontMatchOnMissing); });
+    bool excluded = std::any_of(excludes_.begin(), excludes_.end(),
+                                [&](const auto& ex) { return ex.match(vals, Matcher::DontMatchOnMissing); });
     return !excluded;
 }
 
