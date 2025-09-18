@@ -1,16 +1,11 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2025- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
  * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
- */
-
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
  */
 
 #include <cstdlib>
@@ -21,18 +16,14 @@
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
 
-
-namespace fdb5 {
-namespace test {
+namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -70,25 +61,23 @@ CASE("write") {
 
     std::vector<std::string> roots = {root1.asString(), root2.asString(), root3.asString()};
 
-
-    // todo: make one of these lanes have two excludes
     std::ostringstream oss;
     oss << R"XX(
         ---
         type: select
         fdbs:
         - select: time=0000
-          filter:
-          - exclude: number=(1|2)
-          - exclude: time=1200,number=3
+          excludes: [
+            "number=(1|2)",
+            "time=1200,number=3"
+            ]
           type: local
           spaces:
           - roots:
             - path: )XX"
         << roots[0] << R"XX(
         - select: time=1200
-          filter:
-          - exclude: number=2
+          excludes: ["number=2"]
           type: local
           spaces:
           - roots:
@@ -105,7 +94,6 @@ CASE("write") {
     const std::string config_str = oss.str();
     std::cout << "Using config:\n" << config_str << std::endl;
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
-    std::cout << "Set FDB5_CONFIG." << std::endl;
 
     // ------------------------------------------------------------------------------------------------------
     FDB fdb;
@@ -171,11 +159,9 @@ CASE("write") {
         counts[root]++;
     }
 
-
     for (const auto& root : roots) {
         EXPECT_EQUAL(counts[root], expected_counts[root]);
     }
-
 
     // ------------------------------------------------------------------------------------------------------
     // test listing with various partial requests
@@ -207,8 +193,7 @@ CASE("write") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb5
+}  // namespace fdb5::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

@@ -13,67 +13,29 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "eckit/log/Log.h"
-
-#include "fdb5/LibFdb5.h"
 #include "fdb5/api/SelectFDB.h"
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/rules/SelectMatcher.h"
 
 using namespace eckit;
 using namespace metkit::mars;
+
 namespace fdb5 {
 
 static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class KeyAccessor : public RequestAccessor {
-public:
-
-    explicit KeyAccessor(const Key& key) : key_(key) {}
-
-    bool has(const std::string& keyword) const override {
-        const auto [iter, found] = key_.find(keyword);
-        return found;
-    }
-
-    values_t get(const std::string& keyword) const override { return std::cref(key_.get(keyword)); }
-
-private:
-
-    const Key& key_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    select_{Matcher(config.getString("select", ""), Matcher::Policy::Any)}, config_(config), fdb_(std::nullopt) {
+    matcher_{config}, config_(config), fdb_(std::nullopt) {}
 
-    if (config.has("filter")) {  /// @todo: maybe we should switch this to 'excludes' instead.
-        for (const auto& f : config.getSubConfigurations("filter")) {
-            if (!f.has("exclude")) {
-                continue;
-            }
-            excludes_.push_back(Matcher(f.getString("exclude", ""), Matcher::Policy::All));
-        }
-    }
-}
-
-bool SelectFDB::FDBLane::matches(const Key& key, bool matchOnMissing) const {
-    return matches(KeyAccessor(key), matchOnMissing);
-}
-
-template <typename T>  // T is either a MarsRequest or KeyAccessor
-bool SelectFDB::FDBLane::matches(const T& vals, bool matchOnMissing) const {
-
-    if (!select_.match(vals, matchOnMissing))
-        return false;
-
-    bool excluded =
-        std::any_of(excludes_.begin(), excludes_.end(), [&](const auto& ex) { return ex.match(vals, false); });
-    return !excluded;
+template <typename T>  // T is either a MarsRequest or Key
+bool SelectFDB::FDBLane::matches(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
+    return matcher_.match(vals, matchOnMissing);
 }
 
 FDB& SelectFDB::FDBLane::get() {
@@ -117,7 +79,7 @@ SelectFDB::~SelectFDB() {}
 void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
     for (auto& lane : subFdbs_) {
-        if (lane.matches(key, false)) {
+        if (lane.matches(key, Matcher::DontMatchOnMissing)) {
             lane.get().archive(key, data, length);
             return;
         }
@@ -133,8 +95,7 @@ ListIterator SelectFDB::inspect(const MarsRequest& request) {
     std::queue<APIIterator<ListElement>> lists;
 
     for (auto& lane : subFdbs_) {
-        // If we want to allow non-fully-specified retrieves, make false here.
-        if (lane.matches(request, false)) {
+        if (lane.matches(request, Matcher::DontMatchOnMissing)) {
             lists.push(lane.get().inspect(request));
         }
     }
@@ -152,7 +113,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     std::queue<APIIterator<ValueType>> iterQueue;
 
     for (auto& lane : subFdbs_) {
-        if (request.all() || lane.matches(request.request(), true)) {
+        if (request.all() || lane.matches(request.request(), Matcher::MatchOnMissing)) {
             iterQueue.push(fn(lane.get(), request));
         }
     }

@@ -183,6 +183,8 @@ list( APPEND fdb5_srcs
     rules/Schema.h
     rules/SchemaParser.cc
     rules/SchemaParser.h
+    rules/SelectMatcher.cc
+    rules/SelectMatcher.h
     tools/FDBTool.cc
     tools/FDBTool.h
     tools/FDBVisitTool.cc

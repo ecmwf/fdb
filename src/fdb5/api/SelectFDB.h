@@ -18,16 +18,15 @@
 
 #pragma once
 
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "eckit/utils/Regex.h"
 #include "metkit/mars/Matcher.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/rules/SelectMatcher.h"
 
 namespace fdb5 {
 
@@ -38,8 +37,7 @@ private:  // types
 
 
     class FDBLane {
-        metkit::mars::Matcher select_;
-        std::vector<metkit::mars::Matcher> excludes_;
+        SelectMatcher matcher_;
         Config config_;
         std::optional<FDB> fdb_;
 
@@ -51,10 +49,8 @@ private:  // types
 
         void flush();
 
-        bool matches(const Key& key, bool matchOnMissing) const;
-
-        template <typename T>  // T is either a mars request or a KeyAccessor
-        bool matches(const T& vals, bool matchOnMissing) const;
+        template <typename T>  // T is either a mars request or a Key
+        bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
     };
 
 
