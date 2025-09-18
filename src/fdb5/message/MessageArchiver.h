@@ -53,7 +53,7 @@ private:  // protected
 
     bool filterOut(const Key& k) const;
 
-    eckit::message::Message transform(eckit::message::Message&);
+    void transform(eckit::message::Message&);
 
 private:  // members
 
