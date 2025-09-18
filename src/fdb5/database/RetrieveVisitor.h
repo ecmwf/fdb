@@ -39,7 +39,7 @@ protected:  // methods
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
 
-    bool selectIndex(const Key& idxKey, const Key& fullKey) override;
+    bool selectIndex(const Key& idxKey) override;
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 

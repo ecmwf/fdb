@@ -24,6 +24,7 @@
 #include "fdb5/rules/Rule.h"
 
 #include <memory>
+#include <utility>
 
 namespace fdb5 {
 
@@ -173,7 +174,7 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
 std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
     Rule::Predicates predicates;
     eckit::StringDict types;
-    RuleIndex::Children rules;
+    RuleIndex::Child rule;
 
     consume('[');
 
@@ -182,7 +183,7 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return std::make_unique<RuleIndex>(line, predicates, types, rules);
+        return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
     }
 
     for (;;) {
@@ -190,7 +191,7 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
         c = peek();
 
         if (c == '[') {
-            rules.emplace_back(parseDatum());
+            rule = parseDatum();
         }
         else {
             predicates.emplace_back(parsePredicate(types));
@@ -203,7 +204,7 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
         c = peek();
         if (c == ']') {
             consume(c);
-            return std::make_unique<RuleIndex>(line, predicates, types, rules);
+            return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
         }
     }
 }

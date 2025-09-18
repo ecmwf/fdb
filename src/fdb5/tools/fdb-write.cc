@@ -85,7 +85,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args) {
 void FDBWrite::execute(const eckit::option::CmdArgs& args) {
 
     // parse modifiers if any
-    eckit::StringDict modifiers = fdb5::Key::parse(modifiers_).keyDict();
+    fdb5::Key modifiers = fdb5::Key::parse(modifiers_);
 
     std::vector<std::unique_ptr<fdb5::MessageArchiver>> archivers;
     for (int i = 0; i < archivers_; i++) {
