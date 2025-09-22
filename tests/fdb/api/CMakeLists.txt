@@ -21,6 +21,7 @@ list( APPEND api_tests
     fdb_c
     callback
     auxiliary
+    select_exclude
 )
 
 foreach( _test ${api_tests} )
