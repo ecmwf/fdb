@@ -775,7 +775,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                     total_slept += remaining;
                 }
                 if (remaining < 0) {
-                    throw eckit::Exception("Step window exceeded.");
+                    //throw eckit::Exception("Step window exceeded.");
+                    eckit::Log::info() << "Step window exceeded by " << -remaining << " seconds" << std::endl;
                 }
             }
 
