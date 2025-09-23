@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <algorithm>
 #include <random>
-#include <random>
 #include <thread>
 #include <unordered_set>
 
@@ -110,6 +109,10 @@ public:
            "recalculated from the message data payload (excluding the key checksum but including the operation identifier), "
            "and both checksums are checked to match."));
         options_.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
+        options_.push_back(new eckit::option::SimpleOption<long>("step-window",
+             "Number of seconds allocated to perform I/O for a step, and slept if not consumed, for writers in ITT mode. Defaults to 10."));
+        options_.push_back(new eckit::option::SimpleOption<long>("random-delay",
+             "Writers in ITT mode sleep for a random amount of time between 0 and step-window * random-delay / 100. Defaults to 100."));
         options_.push_back(new eckit::option::SimpleOption<long>("poll-period",
              "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
         options_.push_back(new eckit::option::SimpleOption<long>("ppn",
@@ -137,7 +140,7 @@ void FDBHammer::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool
                        << " [--read] [--list] [--md-check|--full-check] [--statistics] "
-                          "[--itt] [--poll-period=<period>] [--ppn=<ppn>] "
+                          "[--itt] [--step-window] [--random-delay] [--poll-period=<period>] [--ppn=<ppn>] "
                           "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
                           "--expver=<expver> --nparams=<nparams> "
                           "[--nlevels=<nlevels> [--level=<level>]]|[--levels=<level1,level2,...>] "
@@ -508,6 +511,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     }
     std::string nodes    = args.getString("nodes", "");
     size_t ppn           = args.getLong("ppn", 1);
+    int step_window      = args.getInt("step-window", 10);
+    int random_delay     = args.getInt("random-delay", 100);
     int port             = args.getInt("barrier-port", 7777);
     int max_wait         = args.getInt("barrier-max-wait", 10);
 
@@ -579,6 +584,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     double elapsed_grib = 0;
     size_t writeCount   = 0;
     size_t bytesWritten = 0;
+    int total_slept = 0;
 
     uint32_t random_seed = generateRandomUint32();
     long offsetBeforeData = 0, offsetAfterData = 0, numberOfValues = 0;
@@ -593,8 +599,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         random_values.resize(numberOfValues);
     }
 
-    int step_time = 25;
-    int per_step_compute_time = 5;
     if (itt_) {
         eckit::Timer barrier_timer;
         barrier_timer.start();
@@ -602,11 +606,14 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         barrier_timer.stop();
         //barrier_timer.reset("Barrier pre-step 0");
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(0, step_time);
-        int delayDuration = dist(mt);
-        ::sleep(delayDuration);
+        float delay_range = step_window * (random_delay / 100);
+        if (delay_range > 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_int_distribution<int> dist(0, delay_range);
+            int delayDuration = dist(mt);
+            ::sleep(delayDuration);
+        }
     }
 
     ::timeval start_timestamp;
@@ -616,10 +623,6 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     timer.start();
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
-
-        /// sleep for as long as the I/O server processes are expected to spend
-        /// on field receival and aggregation
-        if (itt_) ::sleep(per_step_compute_time);
 
         CODES_CHECK(codes_set_long(handle, "step", istep), 0);
         for (size_t member = number; member <= nensembles + number - 1; ++member) {
@@ -761,13 +764,20 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             /// sleep until the data for the next step is 'received' from the model, i.e.
             /// for as long as the target per-step wall-clock-time, minus the expected
             /// receival + aggregation time, minus the time spent on I/O
-            step_end_due_timestamp.tv_sec += step_time;
-            ::timeval current_timestamp;
-            ::gettimeofday(&current_timestamp, 0);
-            int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
-            if (remaining > 0) {
-                ::sleep(remaining);
-                std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
+            if (step_window > 0) {
+                step_end_due_timestamp.tv_sec += step_window;
+                ::timeval current_timestamp;
+                ::gettimeofday(&current_timestamp, 0);
+                int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
+                if (remaining > 0) {
+                    ::sleep(remaining);
+                    //std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
+                    total_slept += remaining;
+                }
+                if (remaining < 0) {
+                    //throw eckit::Exception("Step window exceeded.");
+                    eckit::Log::info() << "Step window exceeded by " << -remaining << " seconds" << std::endl;
+                }
             }
 
 	}
@@ -793,6 +803,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                 << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
     Log::info() << "Timestamp after last IO: " << (long int)tval_after_io.tv_sec << "." << std::setw(6)
                 << std::setfill('0') << (long int)tval_after_io.tv_usec << std::endl;
+    if (itt_)
+        Log::info() << "Average time slept per step: " << total_slept / nsteps << std::endl;
+
 }
 
 
@@ -882,6 +895,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     mars_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
     mars_list_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
 
+    eckit::Timer list_timer;
+    size_t list_attempts = 0;
+
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
     fdb.emplace(config(args, userConfig));
@@ -899,10 +915,13 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             fdb5::FDBToolRequest list_request{mars_list_request, false};
             bool dataReady = false;
             while (!dataReady) {
+                list_timer.start();
                 auto listObject = fdb->list(list_request, true);
                 size_t count = 0;
                 fdb5::ListElement info;
                 while (listObject.next(info)) ++count;
+                list_timer.stop();
+                ++list_attempts;
                 if (count == mars_list_request.count()) {
                     dataReady = true;
                 } else {
@@ -946,6 +965,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     size_t total = 0;
 
+    eckit::Timer read_timer;
+    read_timer.start();
     if (full_check_ || md_check_) {
         // if storing all read data in memory for later checksum calculation and verification
         // is not an option, it could be stored and processed by parts as follows:
@@ -968,6 +989,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         EmptyHandle nullOutputHandle;
         total = dh->saveInto(nullOutputHandle);
     }
+    read_timer.stop();
 
     gettimeofday(&tval_after_io, NULL);
 
@@ -1060,6 +1082,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     }
 
+    if (itt_)
+        Log::info() << "Time spent on " << list_attempts << " list attempts: " << list_timer.elapsed() << " s" << std::endl;
+    Log::info() << "Data read duration: " << read_timer.elapsed() << std::endl;
     Log::info() << "Fields read: " << fieldsRead << std::endl;
     Log::info() << "Bytes read: " << total << std::endl;
     Log::info() << "Total duration: " << timer.elapsed() << std::endl;
