@@ -895,6 +895,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     mars_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
     mars_list_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
 
+    eckit::Timer list_timer;
+    size_t list_attempts = 0;
+
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
     fdb.emplace(config(args, userConfig));
@@ -912,10 +915,13 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             fdb5::FDBToolRequest list_request{mars_list_request, false};
             bool dataReady = false;
             while (!dataReady) {
+                list_timer.start();
                 auto listObject = fdb->list(list_request, true);
                 size_t count = 0;
                 fdb5::ListElement info;
                 while (listObject.next(info)) ++count;
+                list_timer.stop();
+                ++list_attempts;
                 if (count == mars_list_request.count()) {
                     dataReady = true;
                 } else {
@@ -959,6 +965,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     size_t total = 0;
 
+    eckit::Timer read_timer;
+    read_timer.start();
     if (full_check_ || md_check_) {
         // if storing all read data in memory for later checksum calculation and verification
         // is not an option, it could be stored and processed by parts as follows:
@@ -981,6 +989,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         EmptyHandle nullOutputHandle;
         total = dh->saveInto(nullOutputHandle);
     }
+    read_timer.stop();
 
     gettimeofday(&tval_after_io, NULL);
 
@@ -1073,6 +1082,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     }
 
+    if (itt_)
+        Log::info() << "Time spent on " << list_attempts << " list attempts: " << list_timer.elapsed() << " s" << std::endl;
+    Log::info() << "Data read duration: " << read_timer.elapsed() << std::endl;
     Log::info() << "Fields read: " << fieldsRead << std::endl;
     Log::info() << "Bytes read: " << total << std::endl;
     Log::info() << "Total duration: " << timer.elapsed() << std::endl;
