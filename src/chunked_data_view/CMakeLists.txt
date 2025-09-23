@@ -21,7 +21,9 @@ set(chunked_data_view_sources
     LibChunkedDataView.cc
     ListIterator.cc
     RequestManipulation.cc
+    RequestManipulation.h
     IndexMapper.cc
+    IndexMapper.h
     ViewPart.cc
     ViewPart.h
 )
@@ -36,11 +38,8 @@ ecbuild_add_library(
         include/chunked_data_view/ChunkedDataViewBuilder.h
         include/chunked_data_view/DataLayout.h
         include/chunked_data_view/Extractor.h
-        include/chunked_data_view/IndexMapper.h
-        include/chunked_data_view/IndexMapper.h
         include/chunked_data_view/LibChunkedDataView.h
         include/chunked_data_view/ListIterator.h
-        include/chunked_data_view/RequestManipulation.h
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/chunked_data_view
     SOURCES
