@@ -437,10 +437,10 @@ ecbuild_add_library(
         "${DAOS_TESTS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
-        ${grib_handling_pkg}
         ${LUSTREAPI_LIBRARIES}
         "${DAOS_LIBRARIES}"
         "${DAOS_TESTS_LIBRARIES}"
+        $<$<BOOL:${HAVE_GRIB}>:eccodes>
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
