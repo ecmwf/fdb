@@ -12,6 +12,12 @@
 /// @date   Sep 2025
 
 #include "fdb5/rules/SelectMatcher.h"
+
+#include <algorithm>
+#include <functional>
+#include <optional>
+#include <string>
+
 #include "metkit/mars/Parameter.h"
 
 namespace fdb5 {

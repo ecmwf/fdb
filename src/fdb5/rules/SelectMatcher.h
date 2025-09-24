@@ -13,9 +13,13 @@
 
 #pragma once
 
+#include <vector>
+
 #include "eckit/config/LocalConfiguration.h"
-#include "fdb5/database/Key.h"
+
 #include "metkit/mars/Matcher.h"
+
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
