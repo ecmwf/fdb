@@ -115,6 +115,8 @@ public:
              "Writers in ITT mode sleep for a random amount of time between 0 and step-window * random-delay / 100. Defaults to 100."));
         options_.push_back(new eckit::option::SimpleOption<long>("poll-period",
              "Number of seconds to use as polling period for readers in ITT mode. Defaults to 1"));
+        options_.push_back(new eckit::option::SimpleOption<long>("poll-max-attempts",
+             "Number of list/polling attempts before failing for readers in ITT mode. Defaults to 200"));
         options_.push_back(new eckit::option::SimpleOption<long>("ppn",
              "Number of processes per node the benchmark is being run on. Required for the ITT write mode to barrier after flush"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("nodes",
@@ -123,6 +125,8 @@ public:
              "Port number to use for TCP communications for the barrier in ITT write mode. Defaults to 7777"));
         options_.push_back(new eckit::option::SimpleOption<long>("barrier-max-wait",
              "Maximum amount of time to wait for the barrier in ITT write mode. Defaults to 10"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("uri-file", "If the benchmark is invoked in ITT reader mode, "
+             "the path to a file containing field URIs for the benchmark to read can be supplied via this argument. FDB listing is skipped."));
         options_.push_back(new eckit::option::SimpleOption<bool>("delay", "Add random delay"));
     }
     ~FDBHammer() override {}
@@ -140,7 +144,8 @@ void FDBHammer::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool
                        << " [--read] [--list] [--md-check|--full-check] [--statistics] "
-                          "[--itt] [--step-window] [--random-delay] [--poll-period=<period>] [--ppn=<ppn>] "
+                          "[--itt] [--step-window] [--random-delay] [--poll-period=<period>] [--uri-file=<path>] "
+                          "[--poll-max-attempts=<attempts>] [--ppn=<ppn>] "
                           "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
                           "--expver=<expver> --nparams=<nparams> "
                           "[--nlevels=<nlevels> [--level=<level>]]|[--levels=<level1,level2,...>] "
@@ -827,6 +832,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t nparams     = args.getLong("nparams");
     size_t poll_period = args.getLong("poll-period", 1);
 
+    std::string uri_file     = args.getString("uri-file", "");
+    size_t poll_max_attempts = args.getLong("poll-max-attempts", 200);
+
     ASSERT(nparams <= VALID_PARAMS.size());
 
     request.setValue("expver", args.getString("expver"));
@@ -905,65 +913,80 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     list_timer.stop();
     size_t fieldsRead = 0;
 
-    for (size_t istep = step; istep < nsteps + step; ++istep) {
-        request.setValue("step", step);
-        if (itt_) {
-            /// @note: ensure the step to retrieve data for has been fully
-            ///   archived+flushed by listing all of its fields
-            mars_list_request.setValue("step", step);
-            if (verbose_) {
-                eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
-            }
-            fdb5::FDBToolRequest list_request{mars_list_request, false};
-            std::vector<eckit::URI> uris;
-            bool dataReady = false;
-            while (!dataReady) {
-                list_timer.start();
-                auto listObject = fdb->list(list_request, true);
-                size_t count = 0;
-                fdb5::ListElement info;
-                while (listObject.next(info)) {
-                    if (verbose_)
-                        Log::info() << info.keys()[2] << std::endl;
-                    uris.push_back(info.location().uri());
-                    ++count;
+    if (itt_ && !uri_file.empty()) {
+        std::vector<eckit::URI> uris;
+        std::ifstream in(uri_file);
+        for (std::string line; getline(in, line); ) {
+            uris.push_back(eckit::URI{"file", line});
+        }
+        ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
+        handles.add(fdb->read(uris));
+        fieldsRead += uris.size();
+    } else {
+        for (size_t istep = step; istep < nsteps + step; ++istep) {
+            request.setValue("step", step);
+            if (itt_) {
+                /// @note: ensure the step to retrieve data for has been fully
+                ///   archived+flushed by listing all of its fields
+                mars_list_request.setValue("step", step);
+                if (verbose_) {
+                    eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
                 }
-                list_timer.stop();
-                ++list_attempts;
-                if (count == mars_list_request.count()) {
-                    dataReady = true;
-                } else {
-                    if (verbose_) {
-                        eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
-                    }
-                    ::sleep(poll_period);
+                fdb5::FDBToolRequest list_request{mars_list_request, false};
+                std::vector<eckit::URI> uris;
+                bool dataReady = false;
+                size_t attempts = 0;
+                while (!dataReady) {
                     list_timer.start();
-                    fdb.emplace(config(args, userConfig));
+                    auto listObject = fdb->list(list_request, true);
+                    size_t count = 0;
+                    fdb5::ListElement info;
+                    while (listObject.next(info)) {
+                        if (verbose_)
+                            Log::info() << info.keys()[2] << std::endl;
+                        uris.push_back(info.location().uri());
+                        ++count;
+                    }
                     list_timer.stop();
-                }
-            }
-            handles.add(fdb->read(uris));
-            fieldsRead += uris.size();
-        } else {
-            for (size_t member = number; member <= nensembles + number - 1; ++member) {
-                if (args.has("nensembles")) {
-                    request.setValue("number", member);
-                }
-                for (const auto& ilevel : levelist) {
-                    request.setValue("levelist", ilevel);
-                    for (const auto& param : paramlist) {
-                        request.setValue("param", param);
-
+                    ++list_attempts;
+                    ++attempts;
+                    if (count == mars_list_request.count()) {
+                        dataReady = true;
+                    } else {
                         if (verbose_) {
-                            Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                        << ", param: " << param << std::endl;
+                            eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
                         }
+                        if (attempts >= poll_max_attempts)
+                            throw eckit::Exception("List maximum attempts (" << poll_max_attempts << ") exceeded" << std::endl;
+                        ::sleep(poll_period);
+                        list_timer.start();
+                        fdb.emplace(config(args, userConfig));
+                        list_timer.stop();
+                    }
+                }
+                handles.add(fdb->read(uris));
+                fieldsRead += uris.size();
+            } else {
+                for (size_t member = number; member <= nensembles + number - 1; ++member) {
+                    if (args.has("nensembles")) {
+                        request.setValue("number", member);
+                    }
+                    for (const auto& ilevel : levelist) {
+                        request.setValue("levelist", ilevel);
+                        for (const auto& param : paramlist) {
+                            request.setValue("param", param);
 
-                        if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
-                            gettimeofday(&tval_before_io, NULL);
+                            if (verbose_) {
+                                Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
+                                            << ", param: " << param << std::endl;
+                            }
+
+                            if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
+                                gettimeofday(&tval_before_io, NULL);
+                            }
+                            handles.add(fdb->retrieve(request));
+                            fieldsRead++;
                         }
-                        handles.add(fdb->retrieve(request));
-                        fieldsRead++;
                     }
                 }
             }
