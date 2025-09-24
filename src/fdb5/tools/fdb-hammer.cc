@@ -900,7 +900,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     fdb5::HandleGatherer handles(false);
     std::optional<fdb5::FDB> fdb;
+    list_timer.start();
     fdb.emplace(config(args, userConfig));
+    list_timer.stop();
     size_t fieldsRead = 0;
 
     for (size_t istep = step; istep < nsteps + step; ++istep) {
@@ -913,13 +915,19 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
             }
             fdb5::FDBToolRequest list_request{mars_list_request, false};
+            std::vector<eckit::URI> uris;
             bool dataReady = false;
             while (!dataReady) {
                 list_timer.start();
                 auto listObject = fdb->list(list_request, true);
                 size_t count = 0;
                 fdb5::ListElement info;
-                while (listObject.next(info)) ++count;
+                while (listObject.next(info)) {
+                    if (verbose_)
+                        Log::info() << info.keys()[2] << std::endl;
+                    uris.push_back(info.location().uri());
+                    ++count;
+                }
                 list_timer.stop();
                 ++list_attempts;
                 if (count == mars_list_request.count()) {
@@ -929,29 +937,34 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                         eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
                     }
                     ::sleep(poll_period);
+                    list_timer.start();
                     fdb.emplace(config(args, userConfig));
+                    list_timer.stop();
                 }
             }
-        }
-        for (size_t member = number; member <= nensembles + number - 1; ++member) {
-            if (args.has("nensembles")) {
-                request.setValue("number", member);
-            }
-            for (const auto& ilevel : levelist) {
-                request.setValue("levelist", ilevel);
-                for (const auto& param : paramlist) {
-                    request.setValue("param", param);
+            handles.add(fdb->read(uris));
+            fieldsRead += uris.size();
+        } else {
+            for (size_t member = number; member <= nensembles + number - 1; ++member) {
+                if (args.has("nensembles")) {
+                    request.setValue("number", member);
+                }
+                for (const auto& ilevel : levelist) {
+                    request.setValue("levelist", ilevel);
+                    for (const auto& param : paramlist) {
+                        request.setValue("param", param);
 
-                    if (verbose_) {
-                        Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
-                                    << ", param: " << param << std::endl;
-                    }
+                        if (verbose_) {
+                            Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
+                                        << ", param: " << param << std::endl;
+                        }
 
-                    if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
-                        gettimeofday(&tval_before_io, NULL);
+                        if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
+                            gettimeofday(&tval_before_io, NULL);
+                        }
+                        handles.add(fdb->retrieve(request));
+                        fieldsRead++;
                     }
-                    handles.add(fdb->retrieve(request));
-                    fieldsRead++;
                 }
             }
         }
