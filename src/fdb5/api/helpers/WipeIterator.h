@@ -87,7 +87,7 @@ private:  // methods
 
 private:  // members
 
-    WipeElementType type_;
+    WipeElementType type_{WIPE_UNKNOWN};
     std::string msg_;
     std::set<eckit::URI> uris_;
 };
