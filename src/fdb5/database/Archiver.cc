@@ -36,8 +36,8 @@ Archiver::~Archiver() {
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
-    ArchiveVisitor visitor(*this, key, data, len, callback_);
-    archive(key, visitor);
+    auto visitor = std::make_shared<ArchiveVisitor>(*this, key, data, len, callback_);
+    archive(key, *visitor);
 }
 
 void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
