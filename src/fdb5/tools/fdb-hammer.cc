@@ -17,6 +17,7 @@
 #include <random>
 #include <thread>
 #include <unordered_set>
+#include <fstream>
 
 #include "eccodes.h"
 
@@ -915,7 +916,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     if (itt_ && !uri_file.empty()) {
         std::vector<eckit::URI> uris;
-        std::ifstream in(uri_file);
+        std::ifstream in{uri_file};
         for (std::string line; getline(in, line); ) {
             uris.push_back(eckit::URI{"file", line});
         }
@@ -937,6 +938,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 bool dataReady = false;
                 size_t attempts = 0;
                 while (!dataReady) {
+                    uris.clear();
                     list_timer.start();
                     auto listObject = fdb->list(list_request, true);
                     size_t count = 0;
@@ -944,7 +946,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                     while (listObject.next(info)) {
                         if (verbose_)
                             Log::info() << info.keys()[2] << std::endl;
-                        uris.push_back(info.location().uri());
+                        uris.push_back(info.location().fullUri());
                         ++count;
                     }
                     list_timer.stop();
@@ -957,7 +959,10 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                             eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
                         }
                         if (attempts >= poll_max_attempts)
-                            throw eckit::Exception("List maximum attempts (" << poll_max_attempts << ") exceeded" << std::endl;
+                            throw eckit::Exception(
+                                std::string("List maximum attempts (") +
+                                eckit::Translator<size_t, std::string>()(poll_max_attempts) +
+                                ") exceeded");
                         ::sleep(poll_period);
                         list_timer.start();
                         fdb.emplace(config(args, userConfig));
