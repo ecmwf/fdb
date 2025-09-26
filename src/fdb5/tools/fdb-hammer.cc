@@ -918,9 +918,10 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         std::vector<eckit::URI> uris;
         std::ifstream in{uri_file};
         for (std::string line; getline(in, line); ) {
-            uris.push_back(eckit::URI{"file", line});
+            uris.push_back(eckit::URI{line});
         }
         ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
+        gettimeofday(&tval_before_io, NULL);
         handles.add(fdb->read(uris));
         fieldsRead += uris.size();
     } else {
@@ -937,6 +938,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 std::vector<eckit::URI> uris;
                 bool dataReady = false;
                 size_t attempts = 0;
+                if (istep == step)
+                    gettimeofday(&tval_before_io, NULL);
                 while (!dataReady) {
                     uris.clear();
                     list_timer.start();
