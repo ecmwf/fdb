@@ -29,10 +29,10 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
     add_subdirectory(FDB-241)
 
     if (HAVE_FDB_REMOTE)
-        add_subdirectory(FDB-258)
         add_subdirectory(FDB-419)
         
         if (HAVE_GRIB)
+            add_subdirectory(FDB-258)
             add_subdirectory(FDB-491)
         endif()
 

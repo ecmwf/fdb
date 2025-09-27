@@ -46,6 +46,9 @@ public:
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
+TocIndex::TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, size_t datumKeySize) :
+    TocIndex(key, path, offset, mode, defaultType(datumKeySize)) {}
+
 TocIndex::TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, const std::string& type) :
     UriStoreWrapper(path.dirName()),
     IndexBase(key, type),
@@ -193,9 +196,8 @@ void TocIndex::print(std::ostream& out) const {
     out << "TocIndex(path=" << location_.path_ << ",offset=" << location_.offset_ << ")";
 }
 
-
-std::string TocIndex::defaultType() {
-    return BTreeIndex::defaultType();
+const std::string& TocIndex::defaultType(size_t keySize) {
+    return BTreeIndex::defaultType(keySize);
 }
 
 std::vector<eckit::URI> TocIndex::dataURIs() const {

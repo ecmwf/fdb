@@ -26,7 +26,8 @@ done
 
 export FDB5_CONFIG_FILE=config.yaml
 
-FDB_INDEX_TYPE=BTreeIndex64 $fdbwrite x.grib
+#FDB_INDEX_TYPE=BTreeIndex64 $fdbwrite x.grib
+$fdbwrite x.grib
 
 $fdbdumptoc localroot/od:g/toc | tee out
 if grep -q BTreeIndex64 out; then

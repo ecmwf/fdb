@@ -43,7 +43,7 @@ public:  // methods
                     const Config& config = Config().expandConfig());
 
     void setFilters(const std::string& include, const std::string& exclude);
-    void setModifiers(const eckit::StringDict& modify);
+    void setModifiers(const fdb5::Key& modify);
 
     eckit::Length archive(eckit::DataHandle& source);
 
@@ -53,7 +53,7 @@ private:  // protected
 
     bool filterOut(const Key& k) const;
 
-    eckit::message::Message transform(eckit::message::Message&);
+    void transform(eckit::message::Message&);
 
 private:  // members
 
@@ -64,7 +64,7 @@ private:  // members
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;
 
-    eckit::StringDict modifiers_;
+    eckit::OrderedStringDict modifiers_;
 
     bool completeTransfers_;
 
