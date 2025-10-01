@@ -65,6 +65,7 @@ public:  // methods
 protected:  // methods
 
     bool selectIndex(const Key& idxKey) override;
+    bool createIndex(const Key& idxKey, size_t datumKeySize) override;
     void deselectIndex() override;
 
     bool open() override;

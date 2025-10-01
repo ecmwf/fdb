@@ -33,8 +33,12 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key&) {
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey) {
     return catalogue()->selectIndex(idxKey);
+}
+
+bool BaseArchiveVisitor::createIndex(const Key& idxKey, size_t datumKeySize) {
+    return catalogue()->createIndex(idxKey, datumKeySize);
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {

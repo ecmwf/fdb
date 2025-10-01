@@ -23,6 +23,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -51,7 +52,7 @@ public:
     virtual void preload()                                         = 0;
 
 
-    static const std::string& defaulType();
+    static const std::string& defaultType(size_t keySize);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

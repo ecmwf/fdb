@@ -104,12 +104,15 @@ void MessageArchiver::setFilters(const std::string& include, const std::string& 
     exclude_ = make_filter_requests(exclude);
 }
 
-void MessageArchiver::setModifiers(const eckit::StringDict& modify) {
-    modifiers_ = modify;
+void MessageArchiver::setModifiers(const fdb5::Key& key) {
+    modifiers_.reserve(key.size());
+    for (const auto& n : key.names()) {
+        modifiers_.emplace_back(n, key.get(n));
+    }
 }
 
-eckit::message::Message MessageArchiver::transform(eckit::message::Message& msg) {
-    return msg.transform(modifiers_);
+void MessageArchiver::transform(eckit::message::Message& msg) {
+    msg.transform(modifiers_);
 }
 
 static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
@@ -184,7 +187,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
                 continue;
 
             if (modifiers_.size()) {
-                msg = transform(msg);
+                transform(msg);
                 key.clear();
                 messageToKey(msg, key);  // re-build the key, as it may have changed
             }
