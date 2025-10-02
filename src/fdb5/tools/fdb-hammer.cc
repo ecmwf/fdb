@@ -93,6 +93,8 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("level", "The first level number to use"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("levels", "Comma-separated list of level numbers to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
+        options_.push_back(new eckit::option::SimpleOption<long>("start-at", "Index from 0 to nlevels x nparams - 1 where to start iterating"));
+        options_.push_back(new eckit::option::SimpleOption<long>("stop-at", "Index from 0 to nlevels x nparams - 1 where to stop iterating"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
         options_.push_back(new eckit::option::SimpleOption<bool>("md-check",
@@ -506,6 +508,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t level       = args.getLong("level", 1);
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
+    size_t start_at    = args.getLong("start-at", 0);
+    size_t stop_at     = args.getLong("stop-at", nlevels * nparams - 1);
+
     bool delay         = args.getBool("delay", false);
 
     ASSERT(nparams <= VALID_PARAMS.size());
@@ -545,6 +550,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         }
         nlevels = levelist.size();
         level = levelist[0];
+        start_at = 0;
+        stop_at = nlevels * nparams - 1;
     } else {
         for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
@@ -635,9 +642,16 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
             if (args.has("nensembles")) {
                 CODES_CHECK(codes_set_long(handle, "number", member), 0);
             }
+            size_t iter_count = 0;
             for (const auto& ilevel : levelist) {
                 CODES_CHECK(codes_set_long(handle, "level", ilevel), 0);
-                for (size_t param = 0; param < nparams; ++param) {
+
+		if (iter_count > stop_at) break;
+
+		for (size_t param = 0; param < nparams; ++param) {
+
+                    if (iter_count > stop_at) break;
+                    if (iter_count++ < start_at) continue;
 
                     if (verbose_) {
                         Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
