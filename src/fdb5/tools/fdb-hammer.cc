@@ -508,8 +508,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t level       = args.getLong("level", 1);
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
-    size_t start_at    = args.getLong("start-at", 0);
-    size_t stop_at     = args.getLong("stop-at", nlevels * nparams - 1);
+    size_t start_at    = args.getLong("start-at", -1);
+    size_t stop_at     = args.getLong("stop-at", -1);
 
     bool delay         = args.getBool("delay", false);
 
@@ -550,12 +550,23 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         }
         nlevels = levelist.size();
         level = levelist[0];
-        start_at = 0;
-        stop_at = nlevels * nparams - 1;
     } else {
         for (size_t ilevel = level; ilevel <= nlevels + level - 1; ++ilevel) {
             levelist.push_back(ilevel);
         }
+    }
+
+    if (start_at < 0) {
+        start_at = 0;
+    } else {
+        ASSERT(start_at < nlevels * nparams);
+    }
+
+    if (stop_at < 0) {
+        stop_at = nlevels * nparams - 1;
+    } else {
+        ASSERT(stop_at < nlevels * nparams);
+        ASSERT(stop_at >= start_at);
     }
 
     std::vector<std::string> nodelist;
@@ -845,9 +856,11 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t level;
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
-    size_t poll_period = args.getLong("poll-period", 1);
-
+    size_t start_at    = args.getLong("start-at", -1);
+    size_t stop_at     = args.getLong("stop-at", -1);
     std::string uri_file     = args.getString("uri-file", "");
+
+    size_t poll_period = args.getLong("poll-period", 1);
     size_t poll_max_attempts = args.getLong("poll-max-attempts", 200);
 
     ASSERT(nparams <= VALID_PARAMS.size());
@@ -878,14 +891,27 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         }
     }
 
+    if (start_at < 0) {
+        start_at = 0;
+    } else {
+        ASSERT(start_at < nlevels * nparams);
+    }
+
+    if (stop_at < 0) {
+        stop_at = nlevels * nparams - 1;
+    } else {
+        ASSERT(stop_at < nlevels * nparams);
+        ASSERT(stop_at >= start_at);
+    }
+
     std::vector<std::string> paramlist;
     for (size_t param = 0; param < nparams; ++param) {
         paramlist.push_back(str(VALID_PARAMS[param]));
     }
-    if (itt_) {
-        auto rng = std::default_random_engine {};
-        std::shuffle(std::begin(paramlist), std::end(paramlist), rng);
-    }
+    //if (itt_) {
+    //    auto rng = std::default_random_engine {};
+    //    std::shuffle(std::begin(paramlist), std::end(paramlist), rng);
+    //}
 
     if (itt_ && nsteps > 1) {
         /// @note: Usually, fdb-hammer in ITT mode is run on multiple nodes and concurrent
@@ -904,19 +930,58 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     eckit::Timer timer;
     timer.start();
 
-    metkit::mars::MarsRequest mars_list_request = requests[0];
-
-    mars_list_request.setValue("expver", args.getString("expver"));
-    mars_list_request.setValue("class", args.getString("class"));
-
     std::vector<std::string> numberlist;
     for (size_t n = number; n <= number + nensembles - 1; ++n) {
         numberlist.push_back(str(n));
     }
 
-    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
-    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
-    mars_list_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
+    std::vector<metkit::mars::MarsRequest> mars_list_requests;
+
+    metkit::mars::MarsRequest template_request = requests[0];
+    template_request.setValue("expver", args.getString("expver"));
+    template_request.setValue("class", args.getString("class"));
+    template_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
+
+    if (stop_at < nlevels * nparams - 1) {
+        metkit::mars::MarsRequest tail_list_request = template_request;
+
+        std::vector<std::string> paramlist_tail(paramlist.begin(), paramlist.begin() + (stop_at % nparams));
+        tail_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_tail);
+
+        size_t last_level = stop_at / nparams;
+	std::vecotr<std::string> levelist_tail(levelist.begin() + last_level, levelist.begin() + last_level);
+        tail_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_tail);
+
+	mars_list_requests.push_back(tail_list_request);
+
+        if (last_level == start_at / nparams) {
+            if (last_level < nlevels - 1) levelist.erase(levelist.begin() + last_level + 1, levelist.end());
+        } else {
+            levelist.erase(levelist.begin() + last_level, levelist.end());
+        }
+    }
+
+    if (start_at > 0) {
+        metkit::mars::MarsRequest head_list_request = template_request;
+
+        std::vector<std::string> paramlist_head(paramlist.begin() + (start_at % nparams), paramlist.end());
+        head_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_head);
+
+        size_t first_level = start_at / nparams;
+        std::vecotr<std::string> levelist_head(levelist.begin() + first_level, levelist.begin() + first_level);
+        head_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_head);
+
+        mars_list_requests.push_back(head_list_request);
+
+        levelist.erase(levelist.begin(), levelist.begin() + first_level);
+    }
+
+    if (levelist.size() > 0) {
+        metkit::mars::MarsRequest body_list_request = template_request;
+        body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
+        body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
+        mars_list_requests.push_back(body_list_request);
+    }
 
     eckit::Timer list_timer;
     size_t list_attempts = 0;
@@ -944,11 +1009,18 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
             if (itt_) {
                 /// @note: ensure the step to retrieve data for has been fully
                 ///   archived+flushed by listing all of its fields
-                mars_list_request.setValue("step", step);
+                for (auto& mars_list_request : mars_list_requests)
+                    mars_list_request.setValue("step", step);
                 if (verbose_) {
-                    eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
+                    for (auto& mars_list_request : mars_list_requests)
+                        eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
                 }
-                fdb5::FDBToolRequest list_request{mars_list_request, false};
+                size_t expected = 0;
+                std::vector<fdb5::FDBToolRequest> list_requests;
+                for (auto& mars_list_request : mars_list_requests) {
+                    list_requests.push_back(fdb5::FDBToolRequest{mars_list_request, false});
+                    expected += mars_list_request.count();
+                }
                 std::vector<eckit::URI> uris;
                 bool dataReady = false;
                 size_t attempts = 0;
@@ -957,23 +1029,25 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 while (!dataReady) {
                     uris.clear();
                     list_timer.start();
-                    auto listObject = fdb->list(list_request, true);
-                    size_t count = 0;
-                    fdb5::ListElement info;
-                    while (listObject.next(info)) {
-                        if (verbose_)
-                            Log::info() << info.keys()[2] << std::endl;
-                        uris.push_back(info.location().fullUri());
-                        ++count;
+                    for (auto& list_request : list_requests) {
+                        auto listObject = fdb->list(list_request, true);
+                        size_t count = 0;
+                        fdb5::ListElement info;
+                        while (listObject.next(info)) {
+                            if (verbose_)
+                                Log::info() << info.keys()[2] << std::endl;
+                            uris.push_back(info.location().fullUri());
+                            ++count;
+                        }
                     }
                     list_timer.stop();
                     ++list_attempts;
                     ++attempts;
-                    if (count == mars_list_request.count()) {
+                    if (count == expected) {
                         dataReady = true;
                     } else {
                         if (verbose_) {
-                            eckit::Log::info() << "Expected " << mars_list_request.count() << ", found " << count << std::endl;
+                            eckit::Log::info() << "Expected " << expected << ", found " << count << std::endl;
                         }
                         if (attempts >= poll_max_attempts)
                             throw eckit::Exception(
@@ -993,10 +1067,19 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                     if (args.has("nensembles")) {
                         request.setValue("number", member);
                     }
+
+                    size_t iter_count = 0;
+
                     for (const auto& ilevel : levelist) {
                         request.setValue("levelist", ilevel);
+
+                        if (iter_count > stop_at) break;
+
                         for (const auto& param : paramlist) {
                             request.setValue("param", param);
+
+                            if (iter_count > stop_at) break;
+                            if (iter_count++ < start_at) continue;
 
                             if (verbose_) {
                                 Log::info() << "Member: " << member << ", step: " << istep << ", level: " << ilevel
