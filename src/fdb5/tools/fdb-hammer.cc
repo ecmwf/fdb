@@ -508,8 +508,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t level       = args.getLong("level", 1);
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
-    size_t start_at    = args.getLong("start-at", -1);
-    size_t stop_at     = args.getLong("stop-at", -1);
+    size_t start_at    = args.getLong("start-at", 0);
+    size_t stop_at     = args.getLong("stop-at", 0);
 
     bool delay         = args.getBool("delay", false);
 
@@ -556,13 +556,13 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
         }
     }
 
-    if (start_at < 0) {
+    if (!args.has("start-at")) {
         start_at = 0;
     } else {
         ASSERT(start_at < nlevels * nparams);
     }
 
-    if (stop_at < 0) {
+    if (!args.has("stop-at")) {
         stop_at = nlevels * nparams - 1;
     } else {
         ASSERT(stop_at < nlevels * nparams);
@@ -856,8 +856,8 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     size_t level;
     std::string levels = args.getString("levels", "");
     size_t nparams     = args.getLong("nparams");
-    size_t start_at    = args.getLong("start-at", -1);
-    size_t stop_at     = args.getLong("stop-at", -1);
+    size_t start_at          = args.getLong("start-at", 0);
+    size_t stop_at           = args.getLong("stop-at", 0);
     std::string uri_file     = args.getString("uri-file", "");
 
     size_t poll_period = args.getLong("poll-period", 1);
@@ -891,13 +891,13 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         }
     }
 
-    if (start_at < 0) {
+    if (!args.has("start-at")) {
         start_at = 0;
     } else {
         ASSERT(start_at < nlevels * nparams);
     }
 
-    if (stop_at < 0) {
+    if (!args.has("stop-at")) {
         stop_at = nlevels * nparams - 1;
     } else {
         ASSERT(stop_at < nlevels * nparams);
@@ -937,50 +937,69 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     std::vector<metkit::mars::MarsRequest> mars_list_requests;
 
-    metkit::mars::MarsRequest template_request = requests[0];
-    template_request.setValue("expver", args.getString("expver"));
-    template_request.setValue("class", args.getString("class"));
-    template_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
+    // If ITT mode and no URI file is specified, build the list request(s) matching the whole domain,
+    // optionally cropped via start_at and stop_at, to be used to fetch the field locations.
+    // This manipulates the 'levelist' variable.
+    if (itt_ && uri_file.empty()) {
 
-    if (stop_at < nlevels * nparams - 1) {
-        metkit::mars::MarsRequest tail_list_request = template_request;
-
-        std::vector<std::string> paramlist_tail(paramlist.begin(), paramlist.begin() + (stop_at % nparams));
-        tail_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_tail);
-
-        size_t last_level = stop_at / nparams;
-	std::vecotr<std::string> levelist_tail(levelist.begin() + last_level, levelist.begin() + last_level);
-        tail_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_tail);
-
-	mars_list_requests.push_back(tail_list_request);
-
-        if (last_level == start_at / nparams) {
-            if (last_level < nlevels - 1) levelist.erase(levelist.begin() + last_level + 1, levelist.end());
-        } else {
-            levelist.erase(levelist.begin() + last_level, levelist.end());
-        }
-    }
-
-    if (start_at > 0) {
-        metkit::mars::MarsRequest head_list_request = template_request;
-
-        std::vector<std::string> paramlist_head(paramlist.begin() + (start_at % nparams), paramlist.end());
-        head_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_head);
+        metkit::mars::MarsRequest template_request = requests[0];
+        template_request.setValue("expver", args.getString("expver"));
+        template_request.setValue("class", args.getString("class"));
+        template_request.setValuesTyped(new metkit::mars::TypeAny("number"), numberlist);
 
         size_t first_level = start_at / nparams;
-        std::vecotr<std::string> levelist_head(levelist.begin() + first_level, levelist.begin() + first_level);
-        head_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_head);
+        size_t last_level = stop_at / nparams;
 
-        mars_list_requests.push_back(head_list_request);
+        if (start_at > 0 && stop_at < nlevels * nparams - 1 && first_level == last_level) {
+            metkit::mars::MarsRequest body_list_request = template_request;
 
-        levelist.erase(levelist.begin(), levelist.begin() + first_level);
-    }
+            std::vector<std::string> paramlist_body(paramlist.begin() + (start_at % nparams), paramlist.begin() + (stop_at % nparams) + 1);
+            body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_body);
 
-    if (levelist.size() > 0) {
-        metkit::mars::MarsRequest body_list_request = template_request;
-        body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
-        body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
-        mars_list_requests.push_back(body_list_request);
+            std::vector<std::string> levelist_body(levelist.begin() + last_level, levelist.begin() + last_level + 1);
+            body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_body);
+
+            mars_list_requests.push_back(body_list_request);
+
+            levelist.erase(levelist.begin(), levelist.end());
+        }
+
+        if (stop_at < nlevels * nparams - 1 && levelist.size() > 0) {
+            metkit::mars::MarsRequest tail_list_request = template_request;
+
+            std::vector<std::string> paramlist_tail(paramlist.begin(), paramlist.begin() + (stop_at % nparams) + 1);
+            tail_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_tail);
+
+            std::vector<std::string> levelist_tail(levelist.begin() + last_level, levelist.begin() + last_level + 1);
+            tail_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_tail);
+
+            mars_list_requests.push_back(tail_list_request);
+
+            levelist.erase(levelist.begin() + last_level, levelist.end());
+        }
+
+        if (start_at > 0 && levelist.size() > 0) {
+            metkit::mars::MarsRequest head_list_request = template_request;
+
+            std::vector<std::string> paramlist_head(paramlist.begin() + (start_at % nparams), paramlist.end());
+            head_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_head);
+
+            std::vector<std::string> levelist_head(levelist.begin() + first_level, levelist.begin() + first_level + 1);
+            head_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_head);
+
+            mars_list_requests.push_back(head_list_request);
+
+            levelist.erase(levelist.begin(), levelist.begin() + first_level + 1);
+        }
+
+        if (levelist.size() > 0) {
+            metkit::mars::MarsRequest body_list_request = template_request;
+            body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
+            body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
+            mars_list_requests.push_back(body_list_request);
+            levelist.erase(levelist.begin(), levelist.end());
+        }
+
     }
 
     eckit::Timer list_timer;
@@ -1029,9 +1048,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                 while (!dataReady) {
                     uris.clear();
                     list_timer.start();
+                    size_t count = 0;
                     for (auto& list_request : list_requests) {
                         auto listObject = fdb->list(list_request, true);
-                        size_t count = 0;
                         fdb5::ListElement info;
                         while (listObject.next(info)) {
                             if (verbose_)
