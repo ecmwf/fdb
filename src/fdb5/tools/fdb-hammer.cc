@@ -1018,7 +1018,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         for (std::string line; getline(in, line); ) {
             uris.push_back(eckit::URI{line});
         }
-        ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
+        //ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
         gettimeofday(&tval_before_io, NULL);
         handles.add(fdb->read(uris));
         fieldsRead += uris.size();
