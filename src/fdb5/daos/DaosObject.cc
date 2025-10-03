@@ -405,7 +405,9 @@ std::vector<std::string> DaosKeyValue::keys() {
 
     /// @todo: proper memory management
     int max_keys_per_rpc = 1024;  /// @todo: take from config
-    daos_key_desc_t key_sizes[max_keys_per_rpc];
+    std::vector<daos_key_desc_t> key_sizes;
+    key_sizes.resize(max_keys_per_rpc);
+
     d_sg_list_t sgl;
     d_iov_t sg_iov;
     const size_t bufsize = 1_KiB;
@@ -422,7 +424,7 @@ std::vector<std::string> DaosKeyValue::keys() {
         int rc;
         list_buf.zero();
 
-        DAOS_CALL(daos_kv_list(oh_, DAOS_TX_NONE, &nkeys_found, key_sizes, &sgl, &listing_status, NULL));
+        DAOS_CALL(daos_kv_list(oh_, DAOS_TX_NONE, &nkeys_found, key_sizes.data(), &sgl, &listing_status, NULL));
 
         size_t key_start = 0;
         for (int i = 0; i < nkeys_found; i++) {
