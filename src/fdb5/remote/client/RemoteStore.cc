@@ -511,7 +511,7 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 }
 
 // high-level API for wipe/purge
-bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+bool RemoteStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
                           bool unsafeAll) {
 
     bool result = false;
@@ -545,22 +545,22 @@ bool RemoteStore::doWipe() const {
     return true;
 }
 
-const WipeElements& RemoteStore::wipeElements() const {
-    wipeElements_.clear();
+// const WipeElements& RemoteStore::wipeElements() const {
+//     wipeElements_.clear();
 
-    auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
+//     auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
 
-    size_t size;
-    eckit::MemoryStream ms(recvBuf);
-    ms >> size;
+//     size_t size;
+//     eckit::MemoryStream ms(recvBuf);
+//     ms >> size;
 
-    wipeElements_.reserve(size);
-    for (size_t i = 0; i < size; ++i) {
-        wipeElements_.push_back(std::make_shared<WipeElement>(ms));
-    }
+//     wipeElements_.reserve(size);
+//     for (size_t i = 0; i < size; ++i) {
+//         wipeElements_.push_back(std::make_shared<WipeElement>(ms));
+//     }
 
-    return wipeElements_;
-}
+//     return wipeElements_;
+// }
 
 
 //----------------------------------------------------------------------------------------------------------------------

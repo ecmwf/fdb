@@ -61,7 +61,7 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+    WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
                  bool unsafeAll) override;
     bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
     bool doWipe() const override;

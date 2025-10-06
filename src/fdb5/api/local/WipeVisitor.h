@@ -67,7 +67,7 @@ public:  // methods
 
 private:  // methods
 
-    void storeURI(const eckit::URI& dataURI, bool include);
+    void aggregateURIs(const eckit::URI& dataURI, bool include);
 
 private:  // members
 
@@ -77,7 +77,9 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    std::unordered_map<eckit::URI, StoreURIs> stores_;
+    // std::unordered_map<eckit::URI, StoreURIs> stores_;
+    std::set<eckit::URI> includeURIs_;
+    std::set<eckit::URI> excludeURIs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

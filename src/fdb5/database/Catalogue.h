@@ -31,7 +31,7 @@
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/WipeState.h
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
@@ -106,7 +106,7 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual bool wipeInit() const                                         = 0;
+    virtual std::unique_ptr<WipeState> wipeInit() const                                         = 0;
     virtual bool wipeIndex(const Index& index, bool include) const        = 0;
     virtual std::set<eckit::URI> wipeFinish() const                       = 0;
     virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
@@ -136,7 +136,7 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    const WipeElements& wipeElements() const override { return wipeElements_; }
+    // const WipeElements& wipeElements() const override { return wipeElements_; }
 
 protected:  // methods
 
@@ -147,7 +147,7 @@ protected:  // members
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
-    mutable WipeElements wipeElements_;
+    // mutable WipeElements wipeElements_;
 };
 
 typedef eckit::DenseSet<std::string> Axis;

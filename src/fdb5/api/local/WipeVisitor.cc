@@ -27,6 +27,7 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 
 using namespace eckit;
 
@@ -86,20 +87,13 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-void WipeVisitor::storeURI(const eckit::URI& dataURI, bool include) {
+void WipeVisitor::aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState) {
 
-    auto storeURI = StoreFactory::instance().uri(dataURI);
-    auto storeIt  = stores_.find(storeURI);
-    if (storeIt == stores_.end()) {
-        auto store = StoreFactory::instance().build(storeURI, currentCatalogue_->config());
-        ASSERT(store);
-        storeIt = stores_.emplace(storeURI, StoreURIs{std::move(store), {}, {}}).first;
-    }
     if (include) {
-        storeIt->second.dataURIs.insert(dataURI);
+        wipeState.include(dataURI);
     }
     else {
-        storeIt->second.safeURIs.insert(dataURI);
+        wipeState.exclude(dataURI);
     }
 }
 
@@ -115,7 +109,7 @@ bool WipeVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
-        storeURI(dataURI, include);
+        aggregateURIs(dataURI, include, wipeState_);
     }
     return true;
 }
@@ -127,7 +121,7 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     auto maskedDataPaths = catalogue.wipeFinish();
     for (const auto& uri : maskedDataPaths) {
-        storeURI(uri, true);
+        aggregateURIs(uri, true, wipeState_);
     }
 
     std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;
@@ -145,26 +139,26 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
             }
         }
     }
+    
+    //  ----- begin store comms
 
     // send all the data and safe URIs to the stores
     bool canWipe = true;
-    for (const auto& [uri, ss] : stores_) {
+    std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
+
+    for (const auto& [storeURI, ss] : stores_) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeVisitor::catalogueComplete: contacting store " << *(ss.store) << std::endl
                                << "  dataURIs: " << ss.dataURIs.size() << ", safeURIs: " << ss.safeURIs.size()
                                << std::endl;
-        for (const auto& dataURI : ss.dataURIs) {
+        for (const auto& dataURI : ss.dataURIs) { /// @todo wrap in debug?
             LOG_DEBUG_LIB(LibFdb5) << "  dataURI: " << dataURI << std::endl;
         }
-        canWipe = canWipe && ss.store->canWipe(ss.dataURIs, ss.safeURIs, wipeAll, unsafeWipeAll_);
 
         if (ss.safeURIs.size() > 0) {
             wipeAll = false;
         }
-    }
 
-    std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
-    for (const auto& [storeURI, ss] : stores_) {
-        for (const auto& el : ss.store->wipeElements()) {
+        for (const auto& el :  ss.store->prepareWipe(ss.dataURIs, ss.safeURIs, wipeAll)) {
             auto t = el->type();
             // if wipeAll, collect all the unknown URIs
             if (wipeAll && t == WipeElementType::WIPE_UNKNOWN) {

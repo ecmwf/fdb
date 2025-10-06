@@ -249,8 +249,51 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
 
+
+namespace {
+
+struct StoreURIs {
+std::unique_ptr<Store> store;
+std::set<eckit::URI> dataURIs;
+std::set<eckit::URI> safeURIs;
+};
+
+std::unordered_map<eckit::URI, StoreURIs> stores(const eckit::URI& dataURI, bool include) { 
+
+    auto storeURI = StoreFactory::instance().uri(dataURI);
+    auto storeIt  = stores_.find(storeURI);
+    if (storeIt == stores_.end()) {
+        auto store = StoreFactory::instance().build(storeURI, currentCatalogue_->config());
+        ASSERT(store);
+        storeIt = stores_.emplace(storeURI, StoreURIs{std::move(store), {}, {}}).first;
+    }
+    if (include) {
+        storeIt->second.dataURIs.insert(dataURI);
+    }
+    else {
+        storeIt->second.safeURIs.insert(dataURI);
+    }
+}
+
+
+}
+
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+    WipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+
+    std::unordered_map<eckit::URI, StoreURIs> stores;
+
+
+    /*
+
+
+    catalogue->wipe(request, porcelain)
+    
+    
+    
+    
+    */
+
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

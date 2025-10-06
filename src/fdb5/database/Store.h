@@ -74,16 +74,16 @@ public:
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
     // executed for each index
-    virtual bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+    virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
                          bool unsafeAll)                                  = 0;
     virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
     virtual bool doWipe() const                                           = 0;
 
-    virtual const WipeElements& wipeElements() const { return wipeElements_; }
+    // virtual const WipeElements& wipeElements() const { return wipeElements_; }
 
 protected:
 
-    mutable WipeElements wipeElements_;
+    // mutable WipeElements wipeElements_;
 };
 
 

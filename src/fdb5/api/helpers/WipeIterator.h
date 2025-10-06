@@ -41,15 +41,22 @@ namespace fdb5 {
 
 enum WipeElementType {
     WIPE_ERROR,
+
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
     WIPE_CATALOGUE_SAFE,
     WIPE_CATALOGUE_AUX,
+
+    // Data URIs from catalogue to be sent to the stores.
+    WIPE_INCLUDE,
+    WIPE_EXCLUDE,
+
     WIPE_STORE_INFO,
     WIPE_STORE_URI,
     WIPE_STORE,
     WIPE_STORE_SAFE,
     WIPE_STORE_AUX,
+
     WIPE_UNKNOWN
 };
 

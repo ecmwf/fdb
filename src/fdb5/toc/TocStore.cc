@@ -384,8 +384,13 @@ void TocStore::remove(const Key& key) const {
     closedir(dirp);
 }
 
-bool TocStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                       bool unsafeAll) {
+/// @todo: rename 
+
+// all == remove all contents of this store and also the corresponding toc. At the end of the wipe im expecting the store to be empty, and wish to remove the directory
+//  this happens when your wipe request is essentially the entire first level key.
+WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) {
+    
+    WipeElements wipeElements;
 
     std::set<eckit::URI> dataURIs;
     std::set<eckit::URI> auxURIs;
@@ -399,7 +404,7 @@ bool TocStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::U
             Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
             Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields."
                          << std::endl;
-            return false;
+            return wipeElements;
         }
         dataURIs.insert(uri);
 
@@ -437,30 +442,25 @@ bool TocStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::U
             }
         }
         if (!unknownURIs.empty()) {
-            wipeElements_.push_back(std::make_shared<WipeElement>(
+            wipeElements.push_back(std::make_shared<WipeElement>(
                 WipeElementType::WIPE_UNKNOWN, "Unexpected files present in store:", std::move(unknownURIs)));
         }
     }
 
     if (!dataURIs.empty()) {
-        wipeElements_.push_back(
+        wipeElements.push_back(
             std::make_shared<WipeElement>(WipeElementType::WIPE_STORE, "Data files to delete:", std::move(dataURIs)));
     }
     if (!safeDataURIs.empty()) {
-        wipeElements_.push_back(std::make_shared<WipeElement>(
+        wipeElements.push_back(std::make_shared<WipeElement>(
             WipeElementType::WIPE_STORE_SAFE, "Protected data files (explicitly untouched):", std::move(safeDataURIs)));
     }
     if (!auxURIs.empty()) {
-        wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
+        wipeElements.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
                                                               "Auxiliary files to delete:", std::move(auxURIs)));
     }
 
-    // std::vector<eckit::PathName> allPathsVector;
-
-
-    // std::set<eckit::PathName> allPaths(allPathsVector.begin(), allPathsVector.end());
-
-    return true;
+    return wipeElements;
 }
 
 bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {

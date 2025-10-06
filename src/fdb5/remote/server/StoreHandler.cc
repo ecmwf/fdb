@@ -419,7 +419,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     }
 
     auto& ss             = store(clientID, *(dataURIs.begin()));
-    canWipe              = ss.canWipe(dataURIs, safeURIs, all, unsafeAll);
+    canWipe              = ss.prepareWipe(dataURIs, safeURIs, all, unsafeAll);
     const auto& elements = ss.wipeElements();
 
     eckit::Buffer wipeBuf(50_KiB * elements.size());
