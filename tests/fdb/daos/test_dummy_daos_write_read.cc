@@ -335,7 +335,7 @@ CASE("dummy_daos_write_then_read") {
     rc = daos_oit_open(coh, e, &oith, NULL);
     EXPECT(rc == 0);
 
-    daos_anchor_t anchor = DAOS_ANCHOR_INIT;
+    daos_anchor_t anchor              = DAOS_ANCHOR_INIT;
     constexpr size_t max_oids_per_rpc = 10;
     std::array<daos_obj_id_t, max_oids_per_rpc> oid_batch;
     std::vector<daos_obj_id_t> oids;
