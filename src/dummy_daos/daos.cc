@@ -118,7 +118,7 @@ int daos_pool_connect(const char* pool, const char* sys, unsigned int flags, dao
     if (!realpath.exists())
         return -1;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
     poh->impl  = impl.release();
 
@@ -456,7 +456,7 @@ int daos_cont_open(daos_handle_t poh, const char* cont, unsigned int flags, daos
     if (!realpath.exists())
         return -DER_NONEXIST;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
 
     coh->impl = impl.release();
@@ -551,7 +551,7 @@ int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode, daos_h
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     impl->path.mkdir();
@@ -816,7 +816,7 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, da
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     impl->path.touch();
@@ -866,7 +866,7 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, unsi
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     if (!impl->path.exists()) {
@@ -1088,7 +1088,7 @@ int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch, daos_handle_t* oh, daos
 
     std::string ts = os.str();
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / ts + ".snap";
 
     if (!impl->path.exists()) {

@@ -202,10 +202,10 @@ public:
 template <class T>
 class CatalogueReaderBuilder : public CatalogueReaderBuilderBase {
     virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     virtual std::unique_ptr<CatalogueReader> make(const eckit::URI& uri, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(uri, config));
+        return std::make_unique<T>(uri, config);
     }
 
 public:
@@ -254,10 +254,10 @@ public:
 template <class T>
 class CatalogueWriterBuilder : public CatalogueWriterBuilderBase {
     virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     virtual std::unique_ptr<CatalogueWriter> make(const eckit::URI& uri, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(uri, config));
+        return std::make_unique<T>(uri, config);
     }
 
 public:
