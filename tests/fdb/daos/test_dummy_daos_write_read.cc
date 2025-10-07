@@ -10,9 +10,12 @@
 
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
@@ -118,8 +121,7 @@ CASE("dummy_daos_write_then_read") {
     EXPECT(rc == 0);
 
     daos_size_t ncont = 1;
-    std::vector<struct daos_pool_cont_info> cbuf;
-    cbuf.resize(ncont);
+    std::array<struct daos_pool_cont_info, 1> cbuf;
     rc = daos_pool_list_cont(poh, &ncont, cbuf.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
@@ -143,8 +145,7 @@ CASE("dummy_daos_write_then_read") {
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
 
     daos_size_t ncont2 = 1;
-    std::vector<struct daos_pool_cont_info> cbuf2;
-    cbuf2.resize(ncont2);
+    std::array<struct daos_pool_cont_info, 1> cbuf2;
     rc = daos_pool_list_cont(poh, &ncont2, cbuf2.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
@@ -204,9 +205,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key2).exists());
 
     /// @todo: proper memory management
-    int max_keys_per_rpc = 10;
-    std::vector<daos_key_desc_t> key_sizes;
-    key_sizes.resize(max_keys_per_rpc);
+    constexpr size_t max_keys_per_rpc = 10;
+    std::array<daos_key_desc_t, max_keys_per_rpc> key_sizes;
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
     const auto bufsize = 1_KiB;
@@ -336,9 +336,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT(rc == 0);
 
     daos_anchor_t anchor = DAOS_ANCHOR_INIT;
-    int max_oids_per_rpc = 10;
-    std::vector<daos_obj_id_t> oid_batch;
-    oid_batch.resize(max_oids_per_rpc);
+    constexpr size_t max_oids_per_rpc = 10;
+    std::array<daos_obj_id_t, max_oids_per_rpc> oid_batch;
     std::vector<daos_obj_id_t> oids;
     while (!daos_anchor_is_eof(&anchor)) {
         uint32_t oids_nr = max_oids_per_rpc;
