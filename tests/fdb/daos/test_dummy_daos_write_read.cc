@@ -16,6 +16,8 @@
 #include <iomanip>
 
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Buffer.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Literals.h"
 
@@ -205,9 +207,8 @@ CASE("dummy_daos_write_then_read") {
     key_sizes.resize(max_keys_per_rpc);
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
-    char* list_buf;
     const auto bufsize = 1_KiB;
-    list_buf           = (char*)malloc(bufsize);
+    eckit::Buffer list_buf(bufsize);
     d_iov_set(&iov_kv_list, list_buf, bufsize);
     sgl_kv_list.sg_nr            = 1;
     sgl_kv_list.sg_nr_out        = 0;
