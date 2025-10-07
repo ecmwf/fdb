@@ -511,24 +511,23 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 }
 
 // high-level API for wipe/purge
-bool RemoteStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                          bool unsafeAll) {
+WipeElements RemoteStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) {
+    NOTIMP;
+    // bool result = false;
 
-    bool result = false;
+    // eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
+    // eckit::MemoryStream sms(sendBuf);
+    // sms << uris;
+    // sms << safeURIs;
+    // sms << all;
+    // sms << unsafeAll;
 
-    eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
-    eckit::MemoryStream sms(sendBuf);
-    sms << uris;
-    sms << safeURIs;
-    sms << all;
-    sms << unsafeAll;
+    // auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
 
-    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
+    // eckit::MemoryStream rms(recvBuf);
+    // rms >> result;
 
-    eckit::MemoryStream rms(recvBuf);
-    rms >> result;
-
-    return result;
+    // return result;
 }
 
 bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {

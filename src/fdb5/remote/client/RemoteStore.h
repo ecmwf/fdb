@@ -144,8 +144,7 @@ public:  // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     // bool auxiliaryURIExists(const eckit::URI&) const override;
 
-    bool prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                 bool unsafeAll) override;
+    WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) override;
     bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
     bool doWipe() const override;
 
@@ -160,7 +159,7 @@ protected:  // methods
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
-    const WipeElements& wipeElements() const override;
+    // const WipeElements& wipeElements() const override;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;

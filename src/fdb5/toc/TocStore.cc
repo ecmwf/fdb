@@ -460,6 +460,8 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
                                                               "Auxiliary files to delete:", std::move(auxURIs)));
     }
 
+
+    
     return wipeElements;
 }
 
@@ -479,15 +481,15 @@ bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
     return true;
 }
 
-bool TocStore::doWipe() const {
+bool TocStore::doWipe(WipeState& wipeState) const {
     bool wipeAll = true;
-    for (const auto& el : wipeElements_) {
+    for (const auto& el : wipeState.wipeElements()) {
         if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
             wipeAll = false;
         }
     }
 
-    for (const auto& el : wipeElements_) {
+    for (const auto& el : wipeState.wipeElements()) {
         auto type = el->type();
         if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
             for (const auto& uri : el->uris()) {

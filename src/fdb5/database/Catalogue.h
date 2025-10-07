@@ -31,7 +31,6 @@
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/WipeState.h
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
@@ -43,8 +42,9 @@
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
-
+    
 class Store;
+class WipeState;
 
 typedef std::map<Key, Index> IndexStore;
 
@@ -107,11 +107,16 @@ public:
     virtual eckit::URI uri() const = 0;
 
     virtual std::unique_ptr<WipeState> wipeInit() const                                         = 0;
-    virtual bool wipeIndex(const Index& index, bool include) const        = 0;
-    virtual std::set<eckit::URI> wipeFinish() const                       = 0;
-    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const                                           = 0;
-    virtual const WipeElements& wipeElements() const                      = 0;
+    // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
+    virtual bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const = 0;
+
+    virtual std::set<eckit::URI> wipeFinish(WipeState& wipeState) const = 0;
+    // virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const = 0; // do we really need to pass unknowns separately?
+    virtual bool doWipe(WipeState& wipeState) const = 0;
+
+    // virtual bool doWipe() const                                           = 0;
+    virtual const WipeElements& wipeElements() const { NOTIMP; } /// XXX todo
 
 protected:  // methods
 

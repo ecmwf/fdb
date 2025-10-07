@@ -18,6 +18,7 @@
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/TocEngine.h"
@@ -28,7 +29,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// DB that implements the FDB on POSIX filesystems
-
+class TocWipeState;
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public:  // methods
@@ -80,14 +81,15 @@ protected:  // methods
 
     // wipe
     std::unique_ptr<WipeState>  wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include) const override;
-    std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe() const override;
+    bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const override;
+    std::set<eckit::URI> wipeFinish(WipeState& wipeState) const override;
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override;
+    bool doWipe(WipeState& wipeState) const override;
+    // bool doWipe() const override;
 
 private:  // methods
 
-    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath) const;
+    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
     // void ensureSafePaths() const;
     // void calculateResidualPaths() const;
 

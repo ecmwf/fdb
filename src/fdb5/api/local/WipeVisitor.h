@@ -23,6 +23,7 @@
 
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/WipeState.h"
 
 
 template <>
@@ -32,6 +33,12 @@ struct std::hash<eckit::URI> {
         return std::hash<std::string>{}(e);
     }
 };
+
+namespace fdb5 {
+
+class WipeState;
+
+}
 
 namespace fdb5::api::local {
 
@@ -67,7 +74,7 @@ public:  // methods
 
 private:  // methods
 
-    void aggregateURIs(const eckit::URI& dataURI, bool include);
+    void aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState);
 
 private:  // members
 
@@ -78,6 +85,7 @@ private:  // members
     metkit::mars::MarsRequest indexRequest_;
 
     // std::unordered_map<eckit::URI, StoreURIs> stores_;
+    WipeState wipeState_;
     std::set<eckit::URI> includeURIs_;
     std::set<eckit::URI> excludeURIs_;
 };

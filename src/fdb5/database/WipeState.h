@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
- #pragma once
+#pragma once
 
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -22,12 +22,12 @@ namespace fdb5 {
 class WipeState {
 
 public:
-    WipeState();
+    WipeState()          = default;
 
-    WipeElements& wipeElements() { return wipeElements_; }
+    WipeElements& wipeElements() { return wipeElements_; } // Todo, make this const
     const std::set<eckit::URI>& includeURIs() const { return includeURIs_; }
     const std::set<eckit::URI>& excludeURIs() const { return excludeURIs_; }
-    const Catalogue& catalogue() const { return catalogue_; }
+    // const Catalogue& catalogue() const { return catalogue_; }
 
     void include(const eckit::URI& uri) {
         includeURIs_.insert(uri);
@@ -40,7 +40,7 @@ public:
 protected:
 
     // We need to tell the catalogue to doit().
-    const Catalogue& catalogue_;
+    // const Catalogue& catalogue_;
 
     WipeElements wipeElements_;
     std::set<eckit::URI> includeURIs_;

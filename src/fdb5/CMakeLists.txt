@@ -119,8 +119,8 @@ list( APPEND fdb5_srcs
     database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
-    # database/WipeVisitor.cc
-    # database/WipeVisitor.h
+    database/WipeState.cc
+    database/WipeState.h
     database/MoveVisitor.cc
     database/MoveVisitor.h
     database/IndexAxis.cc

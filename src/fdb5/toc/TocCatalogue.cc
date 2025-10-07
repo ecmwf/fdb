@@ -152,7 +152,8 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include, WipeState& wipeSt
 
     eckit::URI locationURI{index.location().uri()};
 
-    TocWipeState& tocWipeState = dynamic_cast<TocWipeState&>(wipeState);
+    // TocWipeState& tocWipeState = dynamic_cast<TocWipeState&>(wipeState);
+    TocWipeState& tocWipeState = static_cast<TocWipeState&>(wipeState);
 
     if (!locationURI.path().dirName().sameAs(basePath())) {
         include = false;
@@ -212,7 +213,7 @@ std::set<eckit::URI> TocCatalogue::wipeFinish(WipeState& wipeState) const {
     std::set<eckit::URI> indexURIs;
 
     if (wipeAll) {
-        addMaskedPaths(maskedDataPaths_);
+        addMaskedPaths(maskedDataPaths_, tocWipeState);
 
         // toc, subtocs
         catalogueURIs.emplace("file", tocPath().path());

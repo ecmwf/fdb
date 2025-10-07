@@ -79,11 +79,13 @@ public:  // methods
     eckit::URI uri() const override;
 
     // we only forward the high-level wipe request to the server
-    bool wipeInit() const override { NOTIMP; }
-    bool wipeIndex(const Index&, bool) const override { NOTIMP; }
-    std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
-    bool doWipe(const std::vector<eckit::URI>& /* unknownURIs */) const override { NOTIMP; }
-    bool doWipe() const override { NOTIMP; }
+    std::unique_ptr<WipeState> wipeInit() const override { NOTIMP; }
+    bool wipeIndex(const Index&, bool, WipeState&) const override { NOTIMP; }
+    // std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
+    bool doWipe(WipeState& wipeState) const override { NOTIMP; }
+    std::set<eckit::URI> wipeFinish(WipeState& wipeState) const override { NOTIMP; } // why returning uris
+
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override { NOTIMP; }
 
 protected:
 
