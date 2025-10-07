@@ -10,13 +10,13 @@
 
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <vector>
 
-#include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Literals.h"
@@ -118,7 +118,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT(rc == 0);
 
     daos_size_t ncont = 1;
-    std::array<struct daos_pool_cont_info, 1> cbuf;
+    std::vector<struct daos_pool_cont_info> cbuf;
+    cbuf.resize(ncont);
     rc = daos_pool_list_cont(poh, &ncont, cbuf.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
@@ -142,7 +143,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
 
     daos_size_t ncont2 = 1;
-    std::array<struct daos_pool_cont_info, 1> cbuf2;
+    std::vector<struct daos_pool_cont_info> cbuf2;
+    cbuf2.resize(ncont2);
     rc = daos_pool_list_cont(poh, &ncont2, cbuf2.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);

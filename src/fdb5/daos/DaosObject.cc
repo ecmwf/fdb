@@ -404,7 +404,7 @@ void DaosKeyValue::remove(const std::string& key) {
 std::vector<std::string> DaosKeyValue::keys() {
 
     /// @todo: proper memory management
-    int max_keys_per_rpc = 1024;  /// @todo: take from config
+    size_t max_keys_per_rpc = 1024;  /// @todo: take from config
     std::vector<daos_key_desc_t> key_sizes;
     key_sizes.resize(max_keys_per_rpc);
 
