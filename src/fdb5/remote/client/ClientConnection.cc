@@ -38,6 +38,16 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+const Value& RemoteConfiguration::get() const {
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    val["RemoteFieldLocation"] = eckit::Value(remoteFieldLocationVersions);
+    val["NumberOfConnections"] = eckit::Value(numberOfConnections);
+    val["PreferSingleConnection"] = eckit::Value(false);
+    return val;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class DataWriteRequest {
 
 public:

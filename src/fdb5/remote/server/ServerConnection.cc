@@ -513,6 +513,7 @@ void ServerConnection::handle() {
                             listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
                         }
                     }
+                    [[fallthrough]]
                     case Handled::Yes:
                         write(Message::Received, true, hdr.clientID(), hdr.requestID);
                         break;

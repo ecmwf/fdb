@@ -30,6 +30,26 @@ class Client;
 class ClientConnectionRouter;
 class DataWriteRequest;
 
+class RemoteConfiguration {
+
+public:
+    const Value& get() const;
+private:
+    std::vector<int> remoteFieldLocationVersions = {1};
+    std::vector<int> numberOfConnections = {1, 2};
+
+
+
+};
+
+const Value& RemoteConfiguration::get() const {
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    val["RemoteFieldLocation"] = eckit::Value(remoteFieldLocationVersions);
+    val["NumberOfConnections"] = eckit::Value(numberOfConnections);
+    val["PreferSingleConnection"] = eckit::Value(false);
+    return val;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class ClientConnection : protected Connection {
