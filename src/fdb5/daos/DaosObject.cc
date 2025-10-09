@@ -405,8 +405,7 @@ std::vector<std::string> DaosKeyValue::keys() {
 
     /// @todo: proper memory management
     size_t max_keys_per_rpc = 1024;  /// @todo: take from config
-    std::vector<daos_key_desc_t> key_sizes;
-    key_sizes.resize(max_keys_per_rpc);
+    std::vector<daos_key_desc_t> key_sizes(max_keys_per_rpc);
 
     d_sg_list_t sgl;
     d_iov_t sg_iov;

@@ -185,8 +185,7 @@ std::vector<fdb5::DaosOID> DaosContainer::listOIDs() {
     daos_anchor_t anchor = DAOS_ANCHOR_INIT;
 
     uint32_t max_oids_per_rpc = 10;  /// @todo: take from config
-    std::vector<daos_obj_id_t> oid_batch;
-    oid_batch.resize(max_oids_per_rpc);
+    std::vector<daos_obj_id_t> oid_batch(max_oids_per_rpc);
 
     while (!daos_anchor_is_eof(&anchor)) {
         uint32_t oids_nr = max_oids_per_rpc;
