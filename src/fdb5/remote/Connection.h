@@ -28,10 +28,35 @@
 namespace eckit {
 
 class Buffer;
+class Value;
 
 }
 
+namespace fdb5 {
+
+class Config;
+
+}
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class RemoteConfiguration {
+
+public:
+
+    RemoteConfiguration(const Config& config);
+    RemoteConfiguration(eckit::Stream& s);
+    
+    const Value& get() const;
+
+private:
+
+    std::vector<int> remoteFieldLocationVersions;
+    std::vector<int> numberOfConnections;
+
+    bool preferSingleConnection;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

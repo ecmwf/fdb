@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
+#include <future>
+#include <thread>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
@@ -21,34 +21,15 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include <future>
-#include <thread>
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+
 
 namespace fdb5::remote {
 
 class Client;
 class ClientConnectionRouter;
 class DataWriteRequest;
-
-class RemoteConfiguration {
-
-public:
-    const Value& get() const;
-private:
-    std::vector<int> remoteFieldLocationVersions = {1};
-    std::vector<int> numberOfConnections = {1, 2};
-
-
-
-};
-
-const Value& RemoteConfiguration::get() const {
-    eckit::Value val = eckit::Value::makeOrderedMap();
-    val["RemoteFieldLocation"] = eckit::Value(remoteFieldLocationVersions);
-    val["NumberOfConnections"] = eckit::Value(numberOfConnections);
-    val["PreferSingleConnection"] = eckit::Value(false);
-    return val;
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -83,7 +64,7 @@ private:  // methods
     void dataWrite(DataWriteRequest& request) const;
 
     // construct dictionary for protocol negotiation - to be defined in the client class
-    eckit::LocalConfiguration availableFunctionality() const;
+    RemoteConfiguration availableFunctionality() const;
 
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);

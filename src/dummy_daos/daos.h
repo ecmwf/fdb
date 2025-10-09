@@ -173,7 +173,7 @@ typedef struct {
 
 struct daos_pool_cont_info {
     uuid_t pci_uuid;
-    char pci_label[DAOS_PROP_LABEL_MAX_LEN + 2];
+    char pci_label[DAOS_PROP_LABEL_MAX_LEN + 1];
 };
 
 /* kv list */

@@ -96,7 +96,7 @@ public:  // methods
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
-    const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
+    const RemoteConfiguration& agreedConf() const { return agreedConf_; }
 
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -143,7 +143,7 @@ protected:
     eckit::Queue<readLocationElem> readLocationQueue_;
 
     eckit::SessionID sessionID_;
-    eckit::LocalConfiguration agreedConf_;
+    RemoteConfiguration agreedConf_;
     std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
 
