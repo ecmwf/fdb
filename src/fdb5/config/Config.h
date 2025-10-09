@@ -15,7 +15,7 @@
 #ifndef fdb5_config_Config_H
 #define fdb5_config_Config_H
 
-#include <sys/stat.h>   // for mode_t
+#include <sys/stat.h>  // for mode_t
 
 #include <string>
 
@@ -31,9 +31,13 @@ class Schema;
 
 class Config : public eckit::LocalConfiguration {
 public:  // static methods
-    static Config make(const eckit::PathName& path, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+
+    static Config make(const eckit::PathName& path,
+                       const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
+                       const std::string& fdb_home            = "");
 
 public:  // methods
+
     Config();
     Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
@@ -47,6 +51,8 @@ public:  // methods
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
+
+    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
     const eckit::PathName& schemaPath() const;
     eckit::PathName configPath() const;
 
@@ -60,10 +66,13 @@ public:  // methods
     std::vector<Config> getSubConfigs() const;
 
 private:  // methods
+
     void initializeSchemaPath() const;
 
 private:  // members
+
     mutable eckit::PathName schemaPath_;
+    mutable bool schemaPathInitialised_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 

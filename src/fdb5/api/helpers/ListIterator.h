@@ -19,71 +19,25 @@
 #ifndef fdb5_ListIterator_H
 #define fdb5_ListIterator_H
 
-#include <vector>
 #include <unordered_set>
-#include <memory>
-#include <iosfwd>
-#include <chrono>
+#include <utility>
 
-#include "fdb5/database/Key.h"
-#include "fdb5/database/FieldLocation.h"
+#include "metkit/hypercube/HyperCubePayloaded.h"
+
 #include "fdb5/api/helpers/APIIterator.h"
-
-namespace eckit {
-    class Stream;
-    class JSON;
-}
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Define a standard object which can be used to iterate the results of a
-/// list() call on an arbitrary FDB object
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
 
-class ListElement {
-public: // methods
-
-    ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
-    ListElement(eckit::Stream& s);
-
-    const std::vector<Key>& key() const { return keyParts_; }
-    const FieldLocation& location() const { return *location_; }
-    const time_t& timestamp() const { return timestamp_; }
-
-    Key combinedKey() const;
-
-    void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false, const char* sep = " ") const;
-    void json(eckit::JSON& json) const;
-
-private: // methods
-
-    void encode(eckit::Stream& s) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ListElement& e) {
-        e.print(os);
-        return os;
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
     }
-
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ListElement& r) {
-        r.encode(s);
-        return s;
-    }
-
-    friend eckit::JSON& operator<<(eckit::JSON& j, const ListElement& e) {
-        e.json(j);
-        return j;
-    }
-
-public: // members
-
-    std::vector<Key> keyParts_;
-
-private: // members
-
-    std::shared_ptr<const FieldLocation> location_;
-    time_t timestamp_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -94,46 +48,54 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// KeyStore is a specialised helper class used for deduplication of return ListElements.
+///
+/// Previously a std::unordered_map<Key> was used, but this significantly duplicates the components of the first/second
+/// level of the key, and uses an enormous amount of memory allocated as the components of the relevant Key objects
+/// (std::vector, std::pair and std::string objects). Significant computational resources was used stringising and
+/// hashing these objects.
+///
+/// We now store a hierarchy of key components, such that the (rarely changing) first two levels of the key are only
+/// stored once for each set of values. The actual values stored are the fingerprints in the format
+/// <value>:<value>:... as constructed in conjunction with the schema - which are significantly smaller than the
+/// Key objects, and have the advantage of being a single allocation.
+///
+/// The introduction of this class eliminates a class of out-of-memory kill events, and improves the performance of
+/// listing the contents of the FDB
+
+class KeyStore {
+
+    std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_set<std::string>>> fingerprints_;
+
+public:
+
+    bool tryInsert(const std::array<Key, 3>& keyParts);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class ListIterator : public APIIterator<ListElement> {
 public:
-    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
+
+    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
-    ListIterator(ListIterator&& iter) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
+    ListIterator(ListIterator&& iter) = default;
 
-    ListIterator& operator=(ListIterator&& iter) {
-        seenKeys_ = std::move(iter.seenKeys_);
-        deduplicate_ = iter.deduplicate_;
-        APIIterator<ListElement>::operator=(std::move(iter));
-        return *this;
-    }
+    ListIterator& operator=(ListIterator&& iter) = default;
 
-    bool next(ListElement& elem) {
-        ListElement tmp;
-        while (APIIterator<ListElement>::next(tmp)) {
-            if(deduplicate_) {
-                Key combinedKey = tmp.combinedKey();
-                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
-                    seenKeys_.emplace(std::move(combinedKey));
-                    std::swap(elem, tmp);
-                    return true;
-                }
-            } else {
-                std::swap(elem, tmp);
-                return true;
-            }
-        }
-        return false;
-    }
+    bool next(ListElement& elem);
+
+    std::pair<size_t, eckit::Length> dumpCompact(std::ostream& out);
 
 private:
-    std::unordered_set<Key> seenKeys_;
+
+    KeyStore seenKeys_;
     bool deduplicate_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

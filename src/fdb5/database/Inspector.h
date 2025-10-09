@@ -16,31 +16,30 @@
 #ifndef fdb5_Inspector_H
 #define fdb5_Inspector_H
 
-#include <iosfwd>
 #include <cstdlib>
-#include <map>
+#include <iosfwd>
+#include <vector>
 
-#include "fdb5/config/Config.h"
-#include "fdb5/api/helpers/ListIterator.h"
-
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/container/CacheLRU.h"
-#include "eckit/config/LocalConfiguration.h"
+#include "eckit/memory/NonCopyable.h"
+
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
 class DataHandle;
 }
 
-namespace metkit {
-namespace mars {
-    class MarsRequest;
-}}
+namespace metkit::mars {
+class MarsRequest;
+}
+
 
 namespace fdb5 {
 
 class Key;
 class Op;
-class DB;
+class CatalogueReader;
 class Schema;
 class Notifier;
 class FDBToolRequest;
@@ -50,12 +49,15 @@ class EntryVisitor;
 
 class InspectIterator : public APIIteratorBase<ListElement> {
 public:
+
     InspectIterator();
     ~InspectIterator();
 
     void emplace(ListElement&& elem);
     bool next(ListElement& elem) override;
+
 private:
+
     std::vector<ListElement> queue_;
     size_t index_;
 };
@@ -64,11 +66,9 @@ private:
 
 class Inspector : public eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
-    Inspector(const Config& dbConfig);
-
-    ~Inspector();
+    explicit Inspector(const Config& dbConfig);
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
@@ -85,26 +85,27 @@ public: // methods
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const Inspector &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Inspector& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+private:  // methods
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema &schema, const Notifier& notifyee) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
+                         const Notifier& notifyee) const;
 
-private: // data
+private:  // data
 
-    mutable eckit::CacheLRU<Key,DB*> databases_;
+    mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
     Config dbConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

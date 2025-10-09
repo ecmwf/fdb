@@ -8,28 +8,35 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/thread/AutoLock.h"
+#include "fdb5/database/IndexFactory.h"
+
+#include <map>
+#include <ostream>
+#include <string>
+
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Log.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/IndexFactory.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::Mutex *local_mutex = 0;
-static std::map<std::string, BTreeIndexFactory *> *m = 0;
-static pthread_once_t once = PTHREAD_ONCE_INIT;
+static eckit::Mutex* local_mutex                    = 0;
+static std::map<std::string, BTreeIndexFactory*>* m = 0;
+static pthread_once_t once                          = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, BTreeIndexFactory *>();
+    m           = new std::map<std::string, BTreeIndexFactory*>();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-BTreeIndexFactory::BTreeIndexFactory(const std::string &name) :
-    name_(name) {
+BTreeIndexFactory::BTreeIndexFactory(const std::string& name) : name_(name) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
@@ -38,21 +45,23 @@ BTreeIndexFactory::BTreeIndexFactory(const std::string &name) :
 }
 
 BTreeIndexFactory::~BTreeIndexFactory() {
-    if(LibFdb5::instance().dontDeregisterFactories()) return;
+    if (LibFdb5::instance().dontDeregisterFactories())
+        return;
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
 
-BTreeIndex* BTreeIndexFactory::build(const std::string &name, const eckit::PathName &path, bool readOnly, off_t offset) {
+BTreeIndex* BTreeIndexFactory::build(const std::string& name, const eckit::PathName& path, bool readOnly,
+                                     off_t offset) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::map<std::string, BTreeIndexFactory *>::const_iterator j = m->find(name);
+    std::map<std::string, BTreeIndexFactory*>::const_iterator j = m->find(name);
 
     if (j == m->end()) {
         eckit::Log::error() << "No IndexFactory for [" << name << "]" << std::endl;
         eckit::Log::error() << "Values are:" << std::endl;
-        for (j = m->begin() ; j != m->end() ; ++j)
+        for (j = m->begin(); j != m->end(); ++j)
             eckit::Log::error() << "   " << (*j).first << std::endl;
         throw eckit::SeriousBug(std::string("No IndexFactory called ") + name);
     }
@@ -62,4 +71,4 @@ BTreeIndex* BTreeIndexFactory::build(const std::string &name, const eckit::PathN
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

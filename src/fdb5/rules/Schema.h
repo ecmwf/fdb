@@ -20,14 +20,17 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/Streamable.h"
 
-#include "fdb5/types/TypesRegistry.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/rules/Rule.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -36,67 +39,94 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Rule;
 class ReadVisitor;
 class WriteVisitor;
-class Schema;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Schema : private eckit::NonCopyable {
+class Schema : public eckit::Streamable {
 
-public: // methods
+public:  // methods
 
     Schema();
-    Schema(const eckit::PathName &path);
-    Schema(std::istream& s);
+    Schema(const eckit::PathName& path);
+    Schema(std::istream& stream);
+    Schema(eckit::Stream& stream);
 
-    ~Schema();
+    ~Schema() override;
 
-    void expand(const Key& field, WriteVisitor &visitor) const;
-    void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
+    // expand
 
-    // Each database has its own internal schema. So expand() above results in
-    // expandFurther being called on the relevant schema from the DB, to start
-    // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+    void expand(const Key& field, WriteVisitor& visitor) const;
 
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  TypedKey& result) const ;
-    void matchFirstLevel(const Key& dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
-    const Rule* ruleFor(const Key& dbKey, const Key& idxKey) const;
+    std::vector<Key> expandDatabase(const metkit::mars::MarsRequest& request) const;
 
-    void load(const eckit::PathName &path, bool replace = false);
+    // match
+
+    void matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result,
+                       const char* missing) const;
+
+    void matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result, const char* missing) const;
+
+    std::optional<Key> matchDatabase(const std::string& fingerprint) const;
+
+    /// @throws eckit::SeriousBug if no rule is found
+    const RuleDatabase& matchingRule(const Key& dbKey) const;
+
+    /// @throws eckit::SeriousBug if no rule is found
+    const RuleDatum& matchingRule(const Key& dbKey, const Key& idxKey) const;
+
+    void load(const eckit::PathName& path, bool replace = false);
+
     void load(std::istream& s, bool replace = false);
 
-    void dump(std::ostream &s) const;
+    // accessors
+
+    void dump(std::ostream& s) const;
 
     bool empty() const;
 
-    const Type &lookupType(const std::string &keyword) const;
+    const Type& lookupType(const std::string& keyword) const;
 
-    const std::string &path() const;
+    const std::string& path() const;
 
     const TypesRegistry& registry() const;
 
-private: // methods
+    // streamable
 
-    void clear();
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+private:  // methods
+
     void check();
 
-    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
+    void clear();
 
-    void print( std::ostream &out ) const;
+    void encode(eckit::Stream& stream) const override;
 
-private: // members
+    void print(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& out, const Schema& schema);
+
+    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+
+private:  // members
 
     TypesRegistry registry_;
-    
-    std::vector<Rule *>  rules_;
+
+    RuleList rules_;
+
     std::string path_;
 
+    // streamable
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Schema> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -105,16 +135,20 @@ private: // members
 ///
 class SchemaRegistry {
 public:
+
     static SchemaRegistry& instance();
+
+    const Schema& add(const eckit::PathName& path, Schema* schema);
     const Schema& get(const eckit::PathName& path);
 
 private:
+
     std::mutex m_;
     std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

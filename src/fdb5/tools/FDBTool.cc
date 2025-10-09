@@ -12,6 +12,7 @@
 #include "eckit/option/SimpleOption.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
 
 namespace fdb5 {
@@ -31,12 +32,11 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
-    if(needsConfig_) {
+    if (needsConfig_) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
     }
 
-    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
-                                minimumPositionalArguments());
+    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
 
     init(args);
@@ -68,6 +68,16 @@ Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configur
     return LibFdb5::instance().defaultConfig(userConfig);
 }
 
+std::vector<Key> FDBTool::parse(const std::string& request, const fdb5::Config& config) {
+    auto dbrequests = FDBToolRequest::requestsFromString(request, {}, false, "read");
+    ASSERT(dbrequests.size() == 1);
+
+    const auto& dbrequest = dbrequests.front();
+    ASSERT(!dbrequest.all());
+
+    return config.schema().expandDatabase(dbrequest.request());
+}
+
 void FDBTool::usage(const std::string&) const {}
 
 void FDBTool::init(const eckit::option::CmdArgs&) {}
@@ -78,8 +88,7 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
 FDBToolException::FDBToolException(const std::string& w) : Exception(w) {}
 
-FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 
 //----------------------------------------------------------------------------------------------------------------------

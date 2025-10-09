@@ -16,10 +16,11 @@
 #ifndef fdb5_FileSpaceHandler_H
 #define fdb5_FileSpaceHandler_H
 
-#include "eckit/utils/Regex.h"
-#include "eckit/types/Types.h"
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/types/Types.h"
+#include "eckit/utils/Regex.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/toc/Root.h"
 
 namespace fdb5 {
@@ -33,9 +34,9 @@ class FileSpaceHandlerInstance;
 
 class FileSpaceHandler : private eckit::NonCopyable {
 
-public: // methods
+public:  // methods
 
-    static const FileSpaceHandler& lookup(const std::string& name);
+    static const FileSpaceHandler& lookup(const std::string& name, const Config& config);
     static void regist(const std::string& name, FileSpaceHandlerInstance* h);
     static void unregist(const std::string& name);
 
@@ -43,10 +44,11 @@ public: // methods
 
     virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const = 0;
 
-protected: // methods
+protected:  // methods
 
-    FileSpaceHandler();
+    FileSpaceHandler(const Config& config);
 
+    const Config& config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,7 +56,7 @@ protected: // methods
 class FileSpaceHandlerInstance {
 public:
 
-    const FileSpaceHandler& get();
+    const FileSpaceHandler& get(const Config& config);
 
 protected:
 
@@ -64,25 +66,25 @@ protected:
 
 private:
 
-    virtual FileSpaceHandler* make() const = 0;
+    virtual FileSpaceHandler* make(const Config& config) const = 0;
 
     std::string name_;
     mutable FileSpaceHandler* instance_;
-
 };
 
-template<class T>
+template <class T>
 class FileSpaceHandlerRegister : public FileSpaceHandlerInstance {
 public:
-    FileSpaceHandlerRegister(const std::string& name) : FileSpaceHandlerInstance(name) {
-    }
+
+    FileSpaceHandlerRegister(const std::string& name) : FileSpaceHandlerInstance(name) {}
 
 private:
-    FileSpaceHandler* make() const override { return new T(); }
+
+    FileSpaceHandler* make(const Config& config) const override { return new T(config); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

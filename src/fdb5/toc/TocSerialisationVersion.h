@@ -23,6 +23,7 @@ namespace fdb5 {
 class TocSerialisationVersion {
 
 public:
+
     TocSerialisationVersion(const fdb5::Config& config);
     virtual ~TocSerialisationVersion();
 
@@ -31,7 +32,7 @@ public:
     static std::vector<unsigned int> supported();
 
     /// Latest version of serialisation the software is capable to create
-    /// To be used as default
+    /// This may not be the default
     static unsigned int latest();
 
     /// Default version of serialisation the software will use
@@ -49,10 +50,9 @@ public:
     /// Checks the serialisation version is supported by the software
     bool check(unsigned int version, bool throwOnFail = true) const;
 
-private: // members
+private:  // members
 
-    unsigned int used_; //< version to be used for serialisation on write
-
+    unsigned int used_;  //< version to be used for serialisation on write
 };
 
-} // namespace fdb5
+}  // namespace fdb5

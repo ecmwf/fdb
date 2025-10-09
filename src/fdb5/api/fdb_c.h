@@ -50,7 +50,7 @@ int fdb_version(const char** version);
  * \param version Return variable for version control checksum. Returned pointer valid throughout program lifetime.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_vcs_version(const char** version);
+int fdb_vcs_version(const char** sha1);
 
 ///@}
 
@@ -60,10 +60,10 @@ int fdb_vcs_version(const char** version);
 
 /** Return codes */
 enum FdbErrorValues {
-    FDB_SUCCESS                  = 0,
-    FDB_ERROR_GENERAL_EXCEPTION  = 1,
-    FDB_ERROR_UNKNOWN_EXCEPTION  = 2,
-    FDB_ITERATION_COMPLETE       = 3
+    FDB_SUCCESS                 = 0,
+    FDB_ERROR_GENERAL_EXCEPTION = 1,
+    FDB_ERROR_UNKNOWN_EXCEPTION = 2,
+    FDB_ITERATION_COMPLETE      = 3
 };
 
 /** Returns a human-readable error message for the last error given an error code
@@ -176,8 +176,8 @@ typedef struct fdb_split_key_t fdb_split_key_t;
  */
 int fdb_new_splitkey(fdb_split_key_t** key);
 
-/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
- * Supports multiple fdb_split_key_t iterating over the same key.
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys
+ * associated with each level of the FDB index. Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
  * \param key Key metadata name
  * \param value Key metadata value
@@ -293,7 +293,7 @@ int fdb_datareader_size(fdb_datareader_t* dr, long* size);
  * \param read Actual size of the data read from the DataReader into the memory buffer
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
+int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read);
 
 /** Deallocates DataReader object and associated resources.
  * \param key DataReader instance
@@ -337,7 +337,8 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
 
 /** Archives multiple messages to a FDB instance.
  * \param fdb FDB instance.
- * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided request 
+ * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided
+ * request
  * \param data Pointer to the binary data to archive. Metadata are extracted from data headers
  * \param length Size of the data to archive
  * \returns Return code (#FdbErrorValues)
@@ -347,11 +348,12 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
 /** List all available data whose metadata matches a given user request.
  * \param fdb FDB instance.
  * \param req User Request
- * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user Request #req
+ * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user
+ * Request #req
  * \param duplicates Boolean flag used to specify if duplicated ListElements are to be reported or not.
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates, int depth);
 
 /** Return all available data whose metadata matches a given user request.
  * \param fdb FDB instance.
@@ -375,6 +377,104 @@ int fdb_delete_handle(fdb_handle_t* fdb);
 
 /** @} */
 
+
+/** \defgroup Wipe */
+/** @{ */
+
+struct fdb_wipe_element_t;
+typedef struct fdb_wipe_element_t fdb_wipe_element_t;
+
+struct fdb_wipe_iterator_t;
+typedef struct fdb_wipe_iterator_t fdb_wipe_iterator_t;
+
+/** Initiates a wipe operation on the FDB. This identifies data matching the given request and, optionally, deletes it.
+ * \param fdb FDB instance.
+ * \param req Request specifying which data should be considered for wiping.
+ * \param doit If true, matching data will be deleted. If false, only a dry-run is performed.
+ * \param porcelain If true, output is formatted for machine parsing.
+ * \param unsafeWipeAll If true, unrecognised data will also be deleted.
+ * \param[out] it Iterator instance used to step through affected elements. Must be deleted using
+ * #fdb_delete_wipe_iterator.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, bool unsafeWipeAll,
+             fdb_wipe_iterator_t** it);
+
+/** Moves to the next element in a wipe iterator.
+ * \param it WipeIterator instance.
+ * \param[out] element Pointer to the next #fdb_wipe_element_t. Must be deleted using #fdb_delete_wipe_element.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe_iterator_next(fdb_wipe_iterator_t* it, fdb_wipe_element_t** element);
+
+/** Deallocates WipeIterator object.
+ * \param it WipeIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_wipe_iterator(fdb_wipe_iterator_t* it);
+
+/** Deallocates WipeElement object.
+ * \param element WipeElement instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_wipe_element(fdb_wipe_element_t* element);
+
+/** Returns a string representation of a WipeElement.
+ * \param element WipeElement instance
+ * \param str String describing the element. Pointer valid until next() call or object deletion.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_wipe_element_string(fdb_wipe_element_t* element, const char** str);
+
+
+/** \defgroup Purge */
+/** @{ */
+
+struct fdb_purge_element_t;
+typedef struct fdb_purge_element_t fdb_purge_element_t;
+
+struct fdb_purge_iterator_t;
+typedef struct fdb_purge_iterator_t fdb_purge_iterator_t;
+
+/** Initiates a purge operation on the FDB. This identifies duplicate data matching the given request and, optionally,
+ * deletes it.
+ * \param fdb FDB instance.
+ * \param req Request specifying which data should be considered for purging.
+ * \param doit If true, matching data will be deleted. If false, only a dry-run is performed.
+ * \param porcelain If true, output is formatted for machine parsing.
+ * \param[out] it Iterator instance used to step through affected elements. Must be deleted using
+ * #fdb_delete_purge_iterator.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, fdb_purge_iterator_t** it);
+
+/** Moves to the next element in a purge iterator.
+ * \param it PurgeIterator instance.
+ * \param[out] element Pointer to the next #fdb_purge_element_t. Must be deleted using #fdb_delete_purge_element.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge_iterator_next(fdb_purge_iterator_t* it, fdb_purge_element_t** element);
+
+/** Deallocates PurgeIterator object.
+ * \param it PurgeIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_purge_iterator(fdb_purge_iterator_t* it);
+
+/** Deallocates PurgeElement object.
+ * \param element PurgeElement instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_purge_element(fdb_purge_element_t* element);
+
+/** Returns a string representation of a PurgeElement.
+ * \param element PurgeElement instance
+ * \param str String describing the element. Pointer valid until next() call or object deletion.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_purge_element_string(fdb_purge_element_t* element, const char** str);
+
+/** @} */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 #ifdef __cplusplus

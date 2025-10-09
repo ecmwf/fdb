@@ -45,7 +45,7 @@ unset FDB5_CONFIG_FILE
 
 ### copy to write fdb
 
-$fdbcopy --from=read.yaml --to=write.yaml 12.req 9.req 6.req
+$fdbcopy --source=read.yaml --target=write.yaml 12.req 9.req 6.req
 
 ### read and check it
 
@@ -64,4 +64,4 @@ cat > list <<EOF
 EOF
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
-cmp out list
+cmp out list 
