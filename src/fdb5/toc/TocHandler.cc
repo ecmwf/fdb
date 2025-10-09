@@ -1355,13 +1355,11 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
 
             case TocRecord::TOC_SUB_TOC:
                 throw eckit::SeriousBug("TOC_SUB_TOC entry should be handled inside readNext");
-                break;
 
             default:
                 std::ostringstream oss;
                 oss << "Unknown tag in TocRecord " << *r;
                 throw eckit::SeriousBug(oss.str(), Here());
-                break;
         }
     }
 

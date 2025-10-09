@@ -341,8 +341,6 @@ int wrapApiFunction(FN f) {
         }
         return FDB_ERROR_UNKNOWN_EXCEPTION;
     }
-
-    ASSERT(false);
 }
 
 }  // namespace
