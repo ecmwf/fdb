@@ -13,8 +13,9 @@
 
 #pragma once
 
+#include <optional>
+
 #include "eckit/config/LocalConfiguration.h"
-#include "eckit/utils/Optional.h"
 
 #include "fdb5/database/Engine.h"
 
@@ -54,7 +55,7 @@ private:  // methods
 
 private:  // members
 
-    mutable eckit::Optional<eckit::LocalConfiguration> daos_config_;
+    mutable std::optional<eckit::LocalConfiguration> daos_config_;
     fdb5::DaosOID catalogue_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  // take oclass from config
 };
 
