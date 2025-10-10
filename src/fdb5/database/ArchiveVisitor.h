@@ -29,7 +29,7 @@ class Archiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ArchiveVisitor : public BaseArchiveVisitor {
+class ArchiveVisitor : public BaseArchiveVisitor, public std::enable_shared_from_this<ArchiveVisitor> {
 
 public:  // methods
 

@@ -24,6 +24,7 @@ void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxK
                                std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
                                std::shared_ptr<const FieldLocation> fieldLocation) {
     p->set_value(fieldLocation);
+    ASSERT(catalogue);
     catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
 }
 
@@ -32,13 +33,17 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     checkMissingKeys(fullKey);
     const Key idxKey = catalogue()->currentIndexKey();
 
-    std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p =
-        std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(
-            std::promise<std::shared_ptr<const FieldLocation>>());
+    auto p = std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>();
 
-    store()->archive(
-        idxKey, data_, size_,
-        std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
+    std::shared_ptr<ArchiveVisitor> self = shared_from_this();
+    auto writer = self->catalogue();  // XXX: raw pointer. Are we certain that it will still be valid when the callback
+                                      // is invoked? I don't think so...
+
+    store()->archive(idxKey, data_, size_,
+                     [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {
+                         self->callbacks(writer, idxKey, datumKey, p, std::move(loc));
+                     });
+
     callback_(initialFieldKey(), data_, size_, p->get_future());
 
     return true;
