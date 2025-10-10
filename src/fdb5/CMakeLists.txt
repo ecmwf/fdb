@@ -234,8 +234,6 @@ list( APPEND fdb5_srcs
     remote/RemoteFieldLocation.cc
     toc/TocFieldLocation.cc
     toc/TocFieldLocation.h
-    rados/RadosFieldLocation.cc
-    rados/RadosFieldLocation.h
     daos/DaosFieldLocation.h
     daos/DaosFieldLocation.cc
     daos/DaosLazyFieldLocation.h
@@ -355,6 +353,8 @@ endif()
 
 if( HAVE_RADOSFDB )
     list( APPEND fdb5_srcs
+        rados/RadosFieldLocation.cc
+        rados/RadosFieldLocation.h
         rados/RadosStore.cc
         rados/RadosStore.h
     )

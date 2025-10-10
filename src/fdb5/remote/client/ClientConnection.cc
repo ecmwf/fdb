@@ -30,6 +30,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
@@ -108,7 +109,7 @@ uint32_t ClientConnection::generateRequestID() {
     return ++id_;
 }
 
-bool ClientConnection::connect(bool singleAttempt) {
+bool ClientConnection::connect(const eckit::Configuration& config, bool singleAttempt) {
 
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
@@ -123,7 +124,7 @@ bool ClientConnection::connect(bool singleAttempt) {
         LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
-        writeControlStartupMessage();
+        writeControlStartupMessage(config);
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
         if (!single_) {
@@ -176,7 +177,7 @@ const eckit::net::Endpoint& ClientConnection::controlEndpoint() const {
     return controlEndpoint_;
 }
 
-RemoteConfiguration ClientConnection::availableFunctionality(const Config& config) const {
+RemoteConfiguration ClientConnection::availableFunctionality(const eckit::Configuration& config) const {
     return RemoteConfiguration{config};
 }
 
@@ -262,14 +263,14 @@ void ClientConnection::dataWriteThreadLoop() {
     // They will be released when flush() is called.
 }
 
-void ClientConnection::writeControlStartupMessage() {
+void ClientConnection::writeControlStartupMessage(const eckit::Configuration& config) {
 
     eckit::Buffer payload(4096);
     eckit::MemoryStream s(payload);
     s << sessionID_;
     s << eckit::net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
-    s << availableFunctionality().get();
+    s << availableFunctionality(config).get();
 
     LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control "
                            << controlEndpoint_ << std::endl;

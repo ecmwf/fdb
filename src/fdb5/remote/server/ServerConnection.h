@@ -30,6 +30,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 
 namespace fdb5::remote {
 
@@ -105,7 +106,7 @@ protected:
 
     // socket methods
     int selectDataPort();
-    eckit::LocalConfiguration availableFunctionality() const;
+    RemoteConfiguration availableFunctionality() const;
 
     // Worker functionality
     void tidyWorkers();

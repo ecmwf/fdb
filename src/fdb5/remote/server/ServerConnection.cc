@@ -177,49 +177,13 @@ void ServerConnection::initialiseConnections() {
     }
 
     RemoteConfiguration clientConf{s1};
-    RemoteConfiguration serverConf = availableFunctionality(config_);
+    RemoteConfiguration serverConf = availableFunctionality();
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
+        single_     = agreedConf_.singleConnection();
     }
     catch (const eckit::Exception& e) {
         error(e.what(), hdr.clientID(), hdr.requestID);
-        return;
-    }
-
-
-    if (!clientConf.has("NumberOfConnections")) {  // set the default
-        std::vector<int> conn = {2};
-        clientConf.set("NumberOfConnections", conn);
-    }
-    // agree on a common functionality by intersecting server and client version numbers
-    std::vector<int> ncCommon = intersection(clientConf, serverConf, "NumberOfConnections");
-    if (ncCommon.size() > 0) {
-        int ncSelected = 2;
-
-        if (ncCommon.size() == 1) {
-            ncSelected = ncCommon.at(0);
-        }
-        else {
-            ncSelected = ncCommon.back();
-            if (clientConf.has("PreferSingleConnection")) {
-                int preferredMode = clientConf.getBool("PreferSingleConnection") ? 1 : 2;
-                if (std::find(ncCommon.begin(), ncCommon.end(), preferredMode) != ncCommon.end()) {
-                    ncSelected = preferredMode;
-                }
-            }
-        }
-
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
-        agreedConf_.set("NumberOfConnections", ncSelected);
-        single_ = (ncSelected == 1);
-    }
-    else {
-        std::stringstream ss;
-        ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
-           << std::endl;
-        ss << "    server functionality: " << serverConf << std::endl;
-        ss << "    client functionality: " << clientConf << std::endl;
-        error(ss.str(), hdr.clientID(), hdr.requestID);
         return;
     }
 
@@ -255,7 +219,7 @@ void ServerConnection::initialiseConnections() {
     s << dataEndpoint;
     s << agreedConf_.get();
 
-    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
 
     write(Message::Startup, true, 0, 0, startupBuffer.data(), s.position());
 

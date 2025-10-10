@@ -12,40 +12,6 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteConfiguration::RemoteConfiguration(const Config& config) {
-
-    remoteFieldLocationVersions = {1};
-    
-    numberOfConnections = config.getIntVector("supportedConnections", {1, 2});
-    ASSERT(0 < numberOfConnections.size());
-    ASSERT(numberOfConnections[0] == 1 || numberOfConnections[0] == 2);
-
-    ASSERT(numberOfConnections.size() <= 2);
-    if (numberOfConnections.size() > 1) {
-        ASSERT(numberOfConnections[0] == 1);
-        ASSERT(numberOfConnections[1] == 2);
-    }
-
-    preferSingleConnection = config.getBool("preferSingleConnection", false);
-}
-
-RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
-    eckit::MemoryStream str(s);
-    str >> remoteFieldLocationVersions;
-    str >> numberOfConnections;
-    str >> preferSingleConnection;
-}
-
-const Value& RemoteConfiguration::get() const {
-    eckit::Value val = eckit::Value::makeOrderedMap();
-    val["RemoteFieldLocation"] = eckit::Value(remoteFieldLocationVersions);
-    val["NumberOfConnections"] = eckit::Value(numberOfConnections);
-    val["PreferSingleConnection"] = eckit::Value(preferSingleConnection);
-    return val;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {

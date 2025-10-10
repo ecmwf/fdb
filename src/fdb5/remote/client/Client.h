@@ -49,9 +49,10 @@ public:  // types
 
 public:  // methods
 
-    Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
+    Client(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
+           const std::string& defaultEndpoint);
 
-    Client(const EndpointList& endpoints);
+    Client(const eckit::Configuration& config, const EndpointList& endpoints);
 
     virtual ~Client();
 
@@ -74,6 +75,8 @@ public:  // methods
 
     void dataWrite(Message msg, uint32_t requestID, PayloadList payloads = {});
 
+    virtual const eckit::Configuration& clientConfig() const = 0;
+
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID)                          = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
@@ -93,7 +96,6 @@ private:
 private:
 
     uint32_t id_;
-
     mutable std::mutex blockingRequestMutex_;
 };
 

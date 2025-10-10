@@ -39,15 +39,17 @@ void Client::setClientID() {
 }
 
 ///@todo: is default endpoint used anywhere? can it be removed?
-Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
-    connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
+Client::Client(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
+               const std::string& defaultEndpoint) :
+    connection_(ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint)) {
 
     setClientID();
     connection_->add(*this);
 }
 
-Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
-    connection_(ClientConnectionRouter::instance().connection(endpoints)) {
+Client::Client(const eckit::Configuration& config,
+               const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
+    connection_(ClientConnectionRouter::instance().connection(config, endpoints)) {
 
     setClientID();
     connection_->add(*this);
@@ -60,7 +62,7 @@ void Client::refreshConnection() {
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
                           << " is invalid, attempting to reconnect" << std::endl;
     connection_->remove(id_);
-    connection_ = ClientConnectionRouter::instance().refresh(connection_);
+    connection_ = ClientConnectionRouter::instance().refresh(clientConfig(), connection_);
     connection_->add(*this);
 }
 
