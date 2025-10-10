@@ -21,7 +21,7 @@
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosWipeVisitor.h"
+// #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
 
@@ -102,11 +102,6 @@ void DaosCatalogue::loadSchema() {
     rule_ = &schema_.matchingRule(dbKey_);
 }
 
-WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
-                                        bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new DaosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
-}
-
 std::vector<Index> DaosCatalogue::indexes(bool) const {
 
     /// @note: sorted is not implemented as is not necessary in this backend.
@@ -177,6 +172,23 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
     logAlways << n.URI() << std::endl;
     if (doit)
         n.destroy();
+}
+
+
+bool DaosCatalogue::wipeInit() const {
+    return true;
+}
+bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
+    return true;
+}
+std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
+    return {};
+}
+bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    return true;
+}
+bool DaosCatalogue::doWipe() const {
+    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

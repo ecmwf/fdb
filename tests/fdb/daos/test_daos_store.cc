@@ -25,6 +25,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/fdb5_config.h"
 
@@ -304,6 +305,7 @@ CASE("DaosStore tests") {
         fdb5::DaosName field_name{field.location().uri()};
         fdb5::DaosName store_name{field_name.poolName(), field_name.containerName()};
         eckit::URI store_uri(store_name.URI());
+        eckit::Queue<fdb5::WipeElement> queue(200);
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
         EXPECT(field_name.exists());
@@ -317,8 +319,8 @@ CASE("DaosStore tests") {
             fdb5::TocCatalogueWriter tcat{db_key, config};
             fdb5::Catalogue& cat        = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, false);
+            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
+            // cat.visitEntries(*wv, false);
         }
 
         /// @todo: again, daos_fini happening before

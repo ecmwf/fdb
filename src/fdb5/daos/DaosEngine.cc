@@ -142,7 +142,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
             if (db_key.match(key)) {
 
-                Log::debug<LibFdb5>() << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
                 res.push_back(uri);
             }
         }
@@ -234,7 +234,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
 
             if (db_key.partialMatch(request)) {
 
-                Log::debug<LibFdb5>() << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << " found match with " << main_kv_name.URI() << " at key " << k << std::endl;
                 res.push_back(uri);
             }
         }

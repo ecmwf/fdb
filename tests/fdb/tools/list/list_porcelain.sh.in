@@ -25,7 +25,7 @@ export FDB5_CONFIG_FILE="local.yaml"
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
 test_name=porcelain
-src_data="od.oper.grib"
+src_data="../../../od.oper.grib"
 src_dir=@CMAKE_CURRENT_SOURCE_DIR@
 bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 

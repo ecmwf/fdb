@@ -20,6 +20,10 @@ namespace {
 ReadLimiter* instance_ = nullptr;
 }  // namespace
 
+bool ReadLimiter::isInitialised() {
+    return instance_ != nullptr;
+}
+
 ReadLimiter& ReadLimiter::instance() {
     ASSERT(instance_);
     return *instance_;

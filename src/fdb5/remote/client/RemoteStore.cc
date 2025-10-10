@@ -219,12 +219,11 @@ Client::EndpointList storeEndpoints(const Config& config) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+RemoteStore::RemoteStore(const Key& dbKey, const Config& config) : Client(storeEndpoints(config)), dbKey_(dbKey) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
-RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
+RemoteStore::RemoteStore(const eckit::URI& uri, const Config&) :
+    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -238,11 +237,19 @@ RemoteStore::~RemoteStore() {
         eckit::Main::instance().terminate();
     }
 
-    ReadLimiter::instance().evictClient(id());
+    if (ReadLimiter::isInitialised()) {
+        ReadLimiter::instance().evictClient(id());
+    }
 }
 
 eckit::URI RemoteStore::uri() const {
-    return URI("fdb", "");
+    return URI("fdb", controlEndpoint().host(), controlEndpoint().port());
+}
+
+eckit::URI RemoteStore::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == "fdb");
+    auto path = URI{"file", dataURI.path().dirName()};
+    return URI("fdb", path, dataURI.host(), dataURI.port());
 }
 
 bool RemoteStore::exists() const {
@@ -486,25 +493,80 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));
 }
 
+// low-level methods for wipe/purge
 bool RemoteStore::uriBelongs(const eckit::URI&) const {
     NOTIMP;
 }
-
 bool RemoteStore::uriExists(const eckit::URI&) const {
     NOTIMP;
 }
-
-std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+std::set<eckit::URI> RemoteStore::collocatedDataURIs() const {
+    NOTIMP;
+}
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::set<eckit::URI>&) const {
+    NOTIMP;
+}
+std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
     NOTIMP;
 }
 
-std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
-    NOTIMP;
+// high-level API for wipe/purge
+bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+                          bool unsafeAll) {
+
+    bool result = false;
+
+    eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
+    eckit::MemoryStream sms(sendBuf);
+    sms << uris;
+    sms << safeURIs;
+    sms << all;
+    sms << unsafeAll;
+
+    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
+
+bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
+    eckit::MemoryStream sms(sendBuf);
+    sms << unknownURIs.size();
+    sms << unknownURIs;
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true, sendBuf, sms.position());
+    return true;
+}
+
+bool RemoteStore::doWipe() const {
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
+    return true;
+}
+
+const WipeElements& RemoteStore::wipeElements() const {
+    wipeElements_.clear();
+
+    auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
+
+    size_t size;
+    eckit::MemoryStream ms(recvBuf);
+    ms >> size;
+
+    wipeElements_.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+        wipeElements_.push_back(std::make_shared<WipeElement>(ms));
+    }
+
+    return wipeElements_;
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static StoreBuilder<RemoteStore> builder(RemoteStore::typeName());
+static StoreBuilder<RemoteStore> builder(RemoteStore::typeName(),
+                                         {RemoteStore::typeName(), RemoteFieldLocation::typeName()});
 
 //----------------------------------------------------------------------------------------------------------------------
 

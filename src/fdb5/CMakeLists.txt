@@ -46,6 +46,7 @@ list( APPEND fdb5_srcs
     api/helpers/LockIterator.h
     api/helpers/MoveIterator.h
     api/helpers/StatusIterator.h
+    api/helpers/WipeIterator.cc
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
@@ -118,8 +119,8 @@ list( APPEND fdb5_srcs
     database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
-    database/WipeVisitor.cc
-    database/WipeVisitor.h
+    # database/WipeVisitor.cc
+    # database/WipeVisitor.h
     database/MoveVisitor.cc
     database/MoveVisitor.h
     database/IndexAxis.cc
@@ -320,8 +321,6 @@ if( HAVE_TOCFDB )
         toc/TocPurgeVisitor.h
         toc/TocSerialisationVersion.cc
         toc/TocSerialisationVersion.h
-        toc/TocWipeVisitor.cc
-        toc/TocWipeVisitor.h
         toc/TocMoveVisitor.cc
         toc/TocMoveVisitor.h
         toc/TocRecord.cc
@@ -391,8 +390,8 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        daos/DaosWipeVisitor.h
-        daos/DaosWipeVisitor.cc
+        # daos/DaosWipeVisitor.h
+        # daos/DaosWipeVisitor.cc
         daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
         daos/DaosLazyFieldLocation.h

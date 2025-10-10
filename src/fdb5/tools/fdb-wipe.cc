@@ -96,7 +96,7 @@ void FDBWipe::execute(const CmdArgs& args) {
         size_t count = 0;
         WipeElement elem;
         while (listObject.next(elem)) {
-            Log::info() << elem << std::endl;
+            Log::info() << elem;
             count++;
         }
 

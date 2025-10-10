@@ -21,6 +21,7 @@
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
@@ -64,14 +65,25 @@ public:
     }
     virtual void remove(const Key& key) const { NOTIMP; }
 
-    virtual eckit::URI uri() const                                                          = 0;
-    virtual bool uriBelongs(const eckit::URI&) const                                        = 0;
-    virtual bool uriExists(const eckit::URI& uri) const                                     = 0;
-    virtual std::vector<eckit::URI> collocatedDataURIs() const                              = 0;
-    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
+    virtual eckit::URI uri() const                                                       = 0;
+    virtual bool uriBelongs(const eckit::URI&) const                                     = 0;
+    virtual bool uriExists(const eckit::URI& uri) const                                  = 0;
+    virtual std::set<eckit::URI> collocatedDataURIs() const                              = 0;
+    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const = 0;
 
-    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const { NOTIMP; }
-    virtual bool auxiliaryURIExists(const eckit::URI&) const { NOTIMP; }
+    virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
+
+    // executed for each index
+    virtual bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+                         bool unsafeAll)                                  = 0;
+    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe() const                                           = 0;
+
+    virtual const WipeElements& wipeElements() const { return wipeElements_; }
+
+protected:
+
+    mutable WipeElements wipeElements_;
 };
 
 
@@ -82,9 +94,11 @@ class StoreBuilderBase {
 
 public:
 
-    StoreBuilderBase(const std::string&);
+    StoreBuilderBase(const std::string&, const std::vector<std::string>&);
     virtual ~StoreBuilderBase();
-    virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const Key& key, const Config& config)        = 0;
+    virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
+    virtual eckit::URI uri(const eckit::URI& dataURI)                                = 0;
 };
 
 template <class T>
@@ -92,10 +106,15 @@ class StoreBuilder : public StoreBuilderBase {
     std::unique_ptr<Store> make(const Key& key, const Config& config) override {
         return std::make_unique<T>(key, config);
     }
+    std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override {
+        return std::unique_ptr<T>(new T(uri, config));
+    }
+    eckit::URI uri(const eckit::URI& dataURI) override { return T::uri(dataURI); }
 
 public:
 
-    StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
+    StoreBuilder(const std::string& name) : StoreBuilderBase(name, {name}) {}
+    StoreBuilder(const std::string& name, const std::vector<std::string>& scheme) : StoreBuilderBase(name, scheme) {}
     virtual ~StoreBuilder() = default;
 };
 
@@ -104,7 +123,7 @@ public:
 
     static StoreFactory& instance();
 
-    void add(const std::string& name, StoreBuilderBase* builder);
+    void add(const std::string& name, const std::vector<std::string>& scheme, StoreBuilderBase* builder);
     void remove(const std::string& name);
 
     bool has(const std::string& name);
@@ -115,12 +134,24 @@ public:
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Key& key, const Config& config);
 
+    /// @param uri       the user-specified data location URI
+    /// @param config    the fdb config
+    /// @returns         store built by specified builder
+    std::unique_ptr<Store> build(const eckit::URI& uri, const Config& config);
+
+    eckit::URI uri(const eckit::URI& dataURI);
+
 private:
 
     StoreFactory();
 
+    StoreBuilderBase& find(const std::string& name);
+    StoreBuilderBase& findScheme(const std::string& scheme);
+
     std::map<std::string, StoreBuilderBase*> builders_;
     eckit::Mutex mutex_;
+
+    std::map<std::string, std::string> fieldLocationStoreMapping_;
 };
 
 }  // namespace fdb5

@@ -14,23 +14,36 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
 /// @date   November 2018
 
-#ifndef fdb5_api_local_WipeVisitor_H
-#define fdb5_api_local_WipeVisitor_H
+#pragma once
+
+#include <unordered_map>
 
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/database/WipeVisitor.h"
-
-#include "eckit/filesystem/PathName.h"
 
 
-namespace fdb5 {
-namespace api {
-namespace local {
+template <>
+struct std::hash<eckit::URI> {
+    std::size_t operator()(const eckit::URI& uri) const noexcept {
+        const std::string& e = uri.asRawString();
+        return std::hash<std::string>{}(e);
+    }
+};
+
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct StoreURIs {
+    std::unique_ptr<Store> store;
+    std::set<eckit::URI> dataURIs;
+    std::set<eckit::URI> safeURIs;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,32 +55,31 @@ public:  // methods
                 bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
-    bool visitIndexes() override;
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
+    // These methods are not used in the wipe visitor
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
+private:  // methods
+
+    void storeURI(const eckit::URI& dataURI, bool include);
+
 private:  // members
 
-    eckit::Channel out_;
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;
 
-    std::unique_ptr<fdb5::WipeVisitor> internalVisitor_;
-};
+    metkit::mars::MarsRequest indexRequest_;
 
+    std::unordered_map<eckit::URI, StoreURIs> stores_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

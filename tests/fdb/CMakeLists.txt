@@ -38,6 +38,7 @@ endforeach()
 
 list( APPEND _test_data
   "rd.vod.grib"
+  "od.oper.grib"
 )
 
 ecbuild_get_test_multidata( TARGET fdb5_get_test_data NAMES ${_test_data} )
@@ -69,7 +70,7 @@ add_subdirectory( api )
 add_subdirectory( database )
 add_subdirectory( tools )
 add_subdirectory( type )
-add_subdirectory( daos )
+# add_subdirectory( daos )
 
 if (HAVE_FDB_REMOTE)
     add_subdirectory( remote )

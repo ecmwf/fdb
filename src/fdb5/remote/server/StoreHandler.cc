@@ -14,7 +14,12 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
+
+#include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/types/Types.h"
 
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -45,6 +50,14 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Store:  // notification that the client is starting to send data for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
+
+            case Message::DoWipe:  // request to do the actual wipe
+                doWipe(clientID, requestID);
+                return Handled::Yes;
+
+            case Message::WipeElement:  // request to do the actual wipe
+                wipeElements(clientID, requestID);
+                return Handled::Replied;
 
             default: {
                 std::stringstream ss;
@@ -81,6 +94,14 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Exists:  // given key (payload), check if store exists
                 exists(clientID, requestID, payload);
                 return Handled::Replied;
+
+            case Message::Wipe:  // notification that the client is starting to send data location for read
+                wipe(clientID, requestID, payload);
+                return Handled::Replied;
+
+            case Message::DoWipe:  // notification that the client is starting to send data location for read
+                doWipe(clientID, requestID, payload);
+                return Handled::Yes;
 
             default: {
                 std::stringstream ss;
@@ -262,6 +283,10 @@ Store& StoreHandler::store(uint32_t clientID) {
     if (it == stores_.end()) {
         std::string what("Requested Store has not been loaded id: " + std::to_string(clientID));
         Log::error() << what << std::endl;
+        Log::error() << stores_.size() << " existing stores:" << std::endl;
+        for (const auto& kv : stores_) {
+            Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
+        }
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw;
     }
@@ -284,6 +309,21 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
 
+Store& StoreHandler::store(uint32_t clientID, const eckit::URI& uri) {
+
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = stores_.find(clientID);
+    if (it != stores_.end()) {
+        return *(it->second.store);
+    }
+
+    numControlConnection_++;
+    if (!single_) {
+        numDataConnection_++;
+    }
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
+}
+
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
 
     ASSERT(payload.size() > 0);
@@ -301,6 +341,96 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     stream << exists;
 
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
+
+void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    ASSERT(payload.size() > 0);
+
+    eckit::MemoryStream stream(payload);
+    size_t numURIs;
+    std::vector<eckit::URI> uris;
+    stream >> numURIs;
+    stream >> uris;
+    ASSERT(numURIs == uris.size());
+
+    auto& ss = store(clientID);
+
+    auto out = ss.wipeElements();
+    if (out.empty()) {
+        std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
+        Log::error() << what << std::endl;
+        error(what, clientID, requestID);
+        return;
+    }
+
+    ss.doWipe(uris);
+}
+
+void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
+
+    auto& ss = store(clientID);
+    ss.doWipe();
+}
+
+void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
+    auto& ss             = store(clientID);
+    const auto& elements = ss.wipeElements();
+
+    eckit::Buffer wipeBuf(50_KiB * elements.size());
+    eckit::MemoryStream outStream(wipeBuf);
+    outStream << elements.size();
+    for (const auto& el : elements) {
+        outStream << *el;
+    }
+
+    write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
+}
+
+void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    ASSERT(payload.size() > 0);
+
+    std::vector<eckit::URI> uris;
+    std::vector<eckit::URI> urisafe;
+    bool all       = false;
+    bool unsafeAll = false;
+    bool canWipe   = false;
+
+    eckit::MemoryStream inStream(payload);
+    inStream >> uris;
+    inStream >> urisafe;
+    inStream >> all;
+    inStream >> unsafeAll;
+
+    std::set<eckit::URI> dataURIs;
+    std::set<eckit::URI> safeURIs;
+
+    for (const auto& uri : uris) {
+        dataURIs.insert(RemoteFieldLocation::internalURI(uri));
+    }
+    for (const auto& uri : urisafe) {
+        safeURIs.insert(RemoteFieldLocation::internalURI(uri));
+    }
+
+    if (dataURIs.empty()) {
+        error("Wipe request has no data URIs", clientID, requestID);
+        return;
+    }
+
+    auto& ss             = store(clientID, *(dataURIs.begin()));
+    canWipe              = ss.canWipe(dataURIs, safeURIs, all, unsafeAll);
+    const auto& elements = ss.wipeElements();
+
+    eckit::Buffer wipeBuf(50_KiB * elements.size());
+    eckit::MemoryStream outStream(wipeBuf);
+    outStream << canWipe;
+    outStream << elements.size();
+    for (const auto& el : elements) {
+        outStream << *el;
+    }
+
+    write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

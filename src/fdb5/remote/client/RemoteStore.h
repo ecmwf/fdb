@@ -108,8 +108,6 @@ public:  // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
-    static const char* typeName() { return "remote"; }
-
 public:  // methods
 
     RemoteStore(const Key& key, const Config& config);
@@ -119,7 +117,9 @@ public:  // methods
 
     static RemoteStore& get(const eckit::URI& uri);
 
+    static const char* typeName() { return "remote"; }
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
 
     bool open() override;
     size_t flush() override;
@@ -138,10 +138,16 @@ public:  // methods
     void remove(const Key& key) const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
-    const Config& config() const { return config_; }
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
+    // bool auxiliaryURIExists(const eckit::URI&) const override;
+
+    bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+                 bool unsafeAll) override;
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe() const override;
 
 protected:  // methods
 
@@ -154,6 +160,7 @@ protected:  // methods
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
+    const WipeElements& wipeElements() const override;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
@@ -168,8 +175,6 @@ private:  // methods
 private:  // members
 
     Key dbKey_;
-
-    const Config& config_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.

@@ -59,14 +59,12 @@ protected:  // methods
     void checkUID() const override;
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
-    std::vector<eckit::PathName> metadataPaths() const override;
+    // std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
     const Rule& rule() const override;
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void maskIndexEntry(const Index& index) const override;
@@ -80,18 +78,38 @@ protected:  // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
+    bool wipeInit() const override;
+    bool wipeIndex(const Index& index, bool include) const override;
+    std::set<eckit::URI> wipeFinish() const override;
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe() const override;
+
+private:  // methods
+
+    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath) const;
+    // void ensureSafePaths() const;
+    // void calculateResidualPaths() const;
+
 protected:  // members
 
     Key currentIndexKey_;
 
 private:  // members
 
-    friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
     // non-owning
     const Schema* schema_;
     const RuleDatabase* rule_;
+
+    // wipe
+    mutable std::set<eckit::URI> subtocPaths_         = {};
+    mutable std::set<eckit::PathName> lockfilePaths_  = {};
+    mutable std::set<eckit::URI> indexPaths_          = {};
+    mutable std::set<eckit::URI> safePaths_           = {};
+    mutable std::set<eckit::PathName> residualPaths_  = {};
+    mutable std::vector<Index> indexesToMask_         = {};
+    mutable std::set<eckit::PathName> cataloguePaths_ = {};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

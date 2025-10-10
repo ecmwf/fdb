@@ -34,10 +34,11 @@ namespace remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI("fdb", remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-                  remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {
+    FieldLocation(
+        eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {
 
-    ASSERT(remoteLocation.uri().scheme() != "fdb");
+    ASSERT(remoteLocation.uri().scheme() != RemoteFieldLocation::typeName());
     if (!remoteLocation.uri().scheme().empty()) {
         uri_.query("internalScheme", remoteLocation.uri().scheme());
     }
@@ -48,19 +49,20 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, c
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint,
                                          const RemoteFieldLocation& remoteLocation) :
-    FieldLocation(eckit::URI("fdb", remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-                  remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
+    FieldLocation(
+        eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {
 
-    ASSERT(uri.scheme() == "fdb");
+    ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset,
                                          const eckit::Length& length, const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {
 
-    ASSERT(uri.scheme() == "fdb");
+    ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
@@ -73,28 +75,40 @@ std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
     return std::make_shared<RemoteFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+eckit::URI RemoteFieldLocation::internalURI(const eckit::URI& uri) {
 
-    eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
-    dump(eckit::Log::debug<fdb5::LibFdb5>());
-    eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+    ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
+    // We need to remove the internalScheme and internalHost from the URI
 
-    RemoteStore& store = RemoteStore::get(uri_);
+    const std::string scheme   = uri.query("internalScheme");
+    const std::string hostport = uri.query("internalHost");
 
-    const std::string scheme   = uri_.query("internalScheme");
-    const std::string hostport = uri_.query("internalHost");
     eckit::URI remote;
     if (hostport.empty()) {
-        remote = eckit::URI(scheme, uri_, "", -1);
+        remote = eckit::URI(scheme, uri, "", -1);
     }
     else {
         eckit::net::Endpoint endpoint{hostport};
-        remote = eckit::URI(scheme, uri_, endpoint.host(), endpoint.port());
+        remote = eckit::URI(scheme, uri, endpoint.host(), endpoint.port());
         remote.query("internalHost", "");
     }
     remote.query("internalScheme", "");
+    return remote;
+}
+
+eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+
+    if (fdb5::LibFdb5::instance().debug()) {
+        eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
+        dump(eckit::Log::debug<fdb5::LibFdb5>());
+        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+    }
+
+    RemoteStore& store = RemoteStore::get(uri_);
+
+    eckit::URI remote = RemoteFieldLocation::internalURI(uri_);
     std::unique_ptr<FieldLocation> loc(
-        FieldLocationFactory::instance().build(scheme, remote, offset_, length_, remapKey_));
+        FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_));
 
     return store.dataHandle(*loc);
 }
@@ -111,7 +125,7 @@ void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
 }
 
-static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
+static FieldLocationBuilder<RemoteFieldLocation> builder(RemoteFieldLocation::typeName());
 
 //----------------------------------------------------------------------------------------------------------------------
 

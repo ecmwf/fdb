@@ -54,14 +54,12 @@ public:  // methods
     const Schema& schema() const override;
     const Rule& rule() const override;
 
-    std::vector<eckit::PathName> metadataPaths() const override;
+    // std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void dump(std::ostream& out, bool simple = false,
               const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
@@ -79,6 +77,13 @@ public:  // methods
     bool exists() const override;
     void checkUID() const override;
     eckit::URI uri() const override;
+
+    // we only forward the high-level wipe request to the server
+    bool wipeInit() const override { NOTIMP; }
+    bool wipeIndex(const Index&, bool) const override { NOTIMP; }
+    std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
+    bool doWipe(const std::vector<eckit::URI>& /* unknownURIs */) const override { NOTIMP; }
+    bool doWipe() const override { NOTIMP; }
 
 protected:
 

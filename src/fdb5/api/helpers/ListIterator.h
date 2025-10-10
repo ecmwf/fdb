@@ -19,6 +19,7 @@
 #ifndef fdb5_ListIterator_H
 #define fdb5_ListIterator_H
 
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 

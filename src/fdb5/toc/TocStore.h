@@ -38,14 +38,17 @@ class TocStore : public Store, public TocCommon {
 public:  // methods
 
     TocStore(const Key& key, const Config& config);
+    TocStore(const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
+
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
     size_t flush() override;
@@ -58,14 +61,19 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override;
-    bool auxiliaryURIExists(const eckit::URI&) const override;
+    bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
+                 bool unsafeAll) override;
+    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe() const override;
+
+    // const std::vector<eckit::URI>& deleteURIs() override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     std::set<std::string> auxFileExtensions() const;
 
 protected:  // methods
 
     std::string type() const override { return "file"; }
-
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
@@ -87,6 +95,7 @@ protected:  // methods
 
 private:  // methods
 
+    bool auxiliaryURIExists(const eckit::URI&) const;
     eckit::URI getAuxiliaryURI(const eckit::URI&, const std::string& ext) const;
 
 private:  // types
@@ -102,6 +111,8 @@ private:  // members
     mutable PathStore dataPaths_;
     size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
+
+    mutable std::set<eckit::URI> storeURIs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

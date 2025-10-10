@@ -49,9 +49,11 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 
         if (elem.hasLocation()) {
 
-            eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
-            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+            if (fdb5::LibFdb5::instance().debug()) {
+                eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
+                elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+                eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+            }
 
             // TODO move the endpoint replacement to the server side ()
             if (elem.location().uri().scheme() == "fdb") {
@@ -92,9 +94,11 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
-        eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
-        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        if (fdb5::LibFdb5::instance().debug()) {
+            eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
+            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        }
 
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
@@ -109,6 +113,29 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
             fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
+};
+
+struct WipeHelper : BaseAPIHelper<fdb5::WipeElement, fdb5::remote::Message::Wipe> {
+
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
+        doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+
+    void encodeExtra(eckit::Stream& s) const {
+        s << doit_;
+        s << porcelain_;
+        s << unsafeWipeAll_;
+    }
+
+    static fdb5::WipeElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        fdb5::WipeElement elem{s};
+        return elem;
+    }
+
+private:
+
+    bool doit_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
 }  // namespace
@@ -279,6 +306,10 @@ ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
+}
+
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

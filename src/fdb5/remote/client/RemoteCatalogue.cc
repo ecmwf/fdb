@@ -210,9 +210,9 @@ void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset
 void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
-std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-    NOTIMP;
-}
+// std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
+//     NOTIMP;
+// }
 void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     NOTIMP;
 }
@@ -223,10 +223,6 @@ StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {
     NOTIMP;
 }
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {
-    NOTIMP;
-}
-WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
-                                          std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     NOTIMP;
 }
 MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,

@@ -14,14 +14,21 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
 /// @date   November 2018
 
 #ifndef fdb5_api_WipeIterator_H
 #define fdb5_api_WipeIterator_H
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
 
+#include <set>
 #include <string>
+
+namespace eckit {
+class Stream;
+}
 
 /*
  * Define a standard object which can be used to iterate the results of a
@@ -32,13 +39,64 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using WipeElement = std::string;
+enum WipeElementType {
+    WIPE_ERROR,
+    WIPE_CATALOGUE_INFO,
+    WIPE_CATALOGUE,
+    WIPE_CATALOGUE_SAFE,
+    WIPE_CATALOGUE_AUX,
+    WIPE_STORE_INFO,
+    WIPE_STORE_URI,
+    WIPE_STORE,
+    WIPE_STORE_SAFE,
+    WIPE_STORE_AUX,
+    WIPE_UNKNOWN
+};
 
-using WipeIterator = APIIterator<WipeElement>;
+class WipeElement {
+public:  // methods
 
+    WipeElement() = default;
+    WipeElement(WipeElementType type, const std::string& msg);
+    WipeElement(WipeElementType type, const std::string& msg, eckit::URI uri);
+    WipeElement(WipeElementType type, const std::string& msg, std::set<eckit::URI>&& uris);
+    explicit WipeElement(eckit::Stream& s);
+
+    void print(std::ostream& out) const;
+    size_t encodeSize() const;
+
+    WipeElementType type() const { return type_; }
+    const std::string& msg() const { return msg_; }
+    const std::set<eckit::URI>& uris() const { return uris_; }
+
+    void add(const eckit::URI& uri) { uris_.insert(uri); }
+
+private:  // methods
+
+    void encode(eckit::Stream& s) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const WipeElement& e) {
+        e.print(os);
+        return os;
+    }
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const WipeElement& r) {
+        r.encode(s);
+        return s;
+    }
+
+private:  // members
+
+    WipeElementType type_{WIPE_UNKNOWN};
+    std::string msg_;
+    std::set<eckit::URI> uris_;
+};
+
+using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
+
+using WipeIterator          = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
-
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
+using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
