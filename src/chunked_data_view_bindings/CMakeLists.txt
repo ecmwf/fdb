@@ -7,6 +7,8 @@ target_link_libraries(chunked_data_view_bindings
             eckit
             metkit
             fdb5
+            # We need to explicity link to stdc++fs on gcc 8.x
+            $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,8.0>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:stdc++fs>
 )
 
 # pybind11_extension(pychunked_data_view)
@@ -17,15 +19,5 @@ endif()
 
 set_target_properties(chunked_data_view_bindings
   PROPERTIES 
-  #CXX_VISIBILITY_PRESET "hidden" 
-  # CUDA_VISIBILITY_PRESET "hidden"
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-  )
-
-install(
-  TARGETS chunked_data_view_bindings
-  COMPONENT python
-  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  LIBRARY_OUTPUT_DIRECTORY ${Z3FDB_STAGING}/chunked_data_view_bindings
 )

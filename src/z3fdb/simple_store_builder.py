@@ -28,7 +28,7 @@ class SimpleStoreBuilder:
             FDB config file resolution is applied.
     """
 
-    def __init__(self, fdb_config_file: Path | None):
+    def __init__(self, fdb_config_file: Path | None = None):
         self._builder = ChunkedDataViewBuilder(fdb_config_file)
 
     def add_part(

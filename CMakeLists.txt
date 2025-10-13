@@ -78,7 +78,6 @@ find_package(LibUUID QUIET)
 
 find_package(DAOS QUIET)
 
-find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 
 set(_default_dummy_daos ON)
 if(DAOS_FOUND)
@@ -122,6 +121,15 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
+
+ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
+                    DESCRIPTION "Build python Zarr interface layer"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
+if(HAVE_PYTHON_ZARR_INTERFACE)
+    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+endif()
+
 
 ### build the tools
 
@@ -167,7 +175,6 @@ get_directory_property( fdb5_DEFINITIONS COMPILE_DEFINITIONS )
 
 ### source files
 
-add_subdirectory( third_party )
 add_subdirectory( src )
 add_subdirectory( tests )
 

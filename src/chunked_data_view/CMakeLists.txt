@@ -30,7 +30,7 @@ set(chunked_data_view_sources
 
 ecbuild_add_library(
     TARGET chunked_data_view
-    TYPE SHARED
+    TYPE STATIC
     INSTALL_HEADERS_LIST
         include/chunked_data_view/AxisDefinition.h
         include/chunked_data_view/Buffer.h

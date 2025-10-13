@@ -1,3 +1,0 @@
-find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
-
-add_subdirectory( pybind11-3.0.1 )

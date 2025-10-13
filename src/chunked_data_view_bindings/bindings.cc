@@ -7,15 +7,17 @@
  * granted to it by virtue of its status as an intergovernmental organisation
  * nor does it submit to any jurisdiction.
  */
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl/filesystem.h>
 
 #include <chunked_data_view/AxisDefinition.h>
 #include <chunked_data_view/ChunkedDataView.h>
 #include <chunked_data_view/ChunkedDataViewBuilder.h>
 #include <chunked_data_view/Extractor.h>
+#include <chunked_data_view/LibChunkedDataView.h>
+
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 
 #include <string>
 #include <vector>
@@ -24,6 +26,7 @@ namespace py  = pybind11;
 namespace cdv = chunked_data_view;
 
 PYBIND11_MODULE(chunked_data_view_bindings, m) {
+    m.def("init_bindings", []() { cdv::init_eckit_main(); });
     // Wrapping struct AxisDefinition
     py::class_<cdv::AxisDefinition>(m, "AxisDefinition")
         .def(py::init([](std::vector<std::string> keys, bool chunked) {
@@ -52,9 +55,13 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
 
     // Wrapper class ChunkedDataViewBuilder
     py::class_<cdv::ChunkedDataViewBuilder>(m, "ChunkedDataViewBuilder")
-        .def(py::init([]() { return cdv::ChunkedDataViewBuilder(cdv::makeFdb()); }))
-        .def(py::init([](const std::filesystem::path& fdbConfigPath) {
-            return cdv::ChunkedDataViewBuilder(cdv::makeFdb(fdbConfigPath));
+        .def(py::init([](std::optional<std::filesystem::path> fdbConfigPath) {
+            if (fdbConfigPath) {
+                return cdv::ChunkedDataViewBuilder(cdv::makeFdb(*fdbConfigPath));
+            }
+            else {
+                return cdv::ChunkedDataViewBuilder(cdv::makeFdb());
+            }
         }))
         .def("add_part",
              [](cdv::ChunkedDataViewBuilder& builder, std::string marsRequestKeyValues,

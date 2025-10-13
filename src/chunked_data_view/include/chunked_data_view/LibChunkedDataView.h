@@ -12,6 +12,9 @@
 #include <eckit/system/Library.h>
 
 namespace chunked_data_view {
+
+void init_eckit_main();
+
 class LibChunkedDataView : public eckit::system::Library {
 public:
 
