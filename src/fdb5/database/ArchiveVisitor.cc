@@ -36,7 +36,7 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
         std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>(
             std::promise<std::shared_ptr<const FieldLocation>>());
 
-    store()->archive(
+    store()->archiveCb(
         idxKey, data_, size_,
         std::bind(&ArchiveVisitor::callbacks, this, catalogue(), idxKey, datumKey, p, std::placeholders::_1));
     callback_(initialFieldKey(), data_, size_, p->get_future());
