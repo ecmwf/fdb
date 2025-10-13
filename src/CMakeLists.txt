@@ -5,14 +5,17 @@ ecbuild_find_project_files()
 
 add_subdirectory(fdb5)
 add_subdirectory(chunked_data_view)
-add_subdirectory(chunked_data_view_bindings)
+
+if (HAVE_PYTHON_ZARR_INTERFACE)
+    add_subdirectory(chunked_data_view_bindings)
+endif()
 
 if (HAVE_DUMMY_DAOS)
 	add_subdirectory(dummy_daos)
 endif()
 
 ############################################################################################
-# following directories are not packaged
+# Following directories are not packaged
 # currently this is developer only, hence not distributed
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/CMakeLists.txt)

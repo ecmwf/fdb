@@ -1,14 +1,20 @@
 build:
   modules:
     - ninja
+    - python3/3.12
+    - cmake/4.0.2
   dependencies:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop
     - ecmwf/eckit@develop
     - ecmwf/metkit@develop
+    - tbkr/pybind11@refs/tags/v3.0.1
+  dependency_cmake_options:
+    - 'pybind/pybind11: "-DPYTHON11_TEST=OFF -DNOPYTHON=ON"'
   cmake_options:
     - -DENABLE_LUSTRE=OFF
     - -DENABLE_DUMMY_DAOS=ON
+    - -DENABLE_PYTHON_ZARR_INTERFACE=ON
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples

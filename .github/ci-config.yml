@@ -4,6 +4,9 @@ dependencies: |
   ecmwf/eccodes
   ecmwf/eckit
   ecmwf/metkit
+  tbkr/pybind11@refs/tags/v3.0.1
+dependency_cmake_options: |
+  pybind/pybind11: "-DPYTHON11_TEST=OFF -DNOPYTHON=ON"
 dependency_branch: develop
 cmake_options: -DENABLE_DUMMY_DAOS=ON
 parallelism_factor: 8
