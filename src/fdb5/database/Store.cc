@@ -25,7 +25,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 void Store::archiveCb(const Key& key, const void* data, eckit::Length length,
-                    std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+                      std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
     catalogue_archive(archive(key, data, length));
 }
 
