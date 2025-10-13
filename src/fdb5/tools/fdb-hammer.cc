@@ -1182,9 +1182,9 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    eckit::Optional<eckit::Buffer> buff;
-    eckit::Optional<eckit::MemoryHandle> mh;
-    eckit::Optional<eckit::Length> original_size;
+    std::optional<eckit::Buffer> buff;
+    std::optional<eckit::MemoryHandle> mh;
+    std::optional<eckit::Length> original_size;
 
     size_t total = 0;
 
