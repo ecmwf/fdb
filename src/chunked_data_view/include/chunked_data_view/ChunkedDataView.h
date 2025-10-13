@@ -13,14 +13,16 @@
 
 namespace chunked_data_view {
 
+using std::size_t;
+
 class ChunkedDataView {
 public:
 
     using Index = std::vector<size_t>;
 
     virtual ~ChunkedDataView()                                       = default;
+    /// Values in a field
     virtual void at(const Index& index, float* data_ptr, size_t len) = 0;
-    /// values in a field
     /// Shape of a chunk
     virtual const std::vector<size_t>& chunkShape() const = 0;
     /// Number of chunks in each dimension

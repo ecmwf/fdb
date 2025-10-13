@@ -15,6 +15,8 @@
 #include <cstddef>
 #include <vector>
 
+using std::size_t;
+
 namespace chunked_data_view {
 
 class ChunkedDataViewImpl : public ChunkedDataView {
