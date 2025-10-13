@@ -77,22 +77,11 @@ void FdbOverlay::execute(const CmdArgs& args) {
         return;
     }
 
-    auto parsedSource = FDBToolRequest::requestsFromString("domain=g," + args(0), {}, false, "read");
-    ASSERT(parsedSource.size() == 1);
-
-    auto parsedTarget = FDBToolRequest::requestsFromString("domain=g," + args(1), {}, false, "read");
-    ASSERT(parsedTarget.size() == 1);
-
-    const auto& sourceRequest = parsedSource.front();
-    ASSERT(!sourceRequest.all());
-
-    const auto& targetRequest = parsedTarget.front();
-    ASSERT(!targetRequest.all());
-
-    const auto sources = conf.schema().expandDatabase(sourceRequest.request());
+    bool injectDomain        = false;
+    std::vector<Key> sources = parse(args(0), conf);
     ASSERT(!sources.empty());
 
-    const auto targets = conf.schema().expandDatabase(targetRequest.request());
+    const auto targets = parse(args(1), conf);
     ASSERT(!targets.empty());
 
     const auto& source = sources.front();
@@ -156,7 +145,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
+    auto newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
     if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName()) {
         newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }

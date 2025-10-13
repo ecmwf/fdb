@@ -59,7 +59,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
 
     /* DB not yet open */
 
-    std::unique_ptr<CatalogueReader> newCatalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
+    auto newCatalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
 
     // If this database is locked for retrieval then it "does not exist"
     if (!newCatalogue->enabled(ControlIdentifier::Retrieve)) {
@@ -83,7 +83,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
     }
 }
 
-bool MultiRetrieveVisitor::selectIndex(const Key& idxKey, const Key& /* fullKey */) {
+bool MultiRetrieveVisitor::selectIndex(const Key& idxKey) {
     ASSERT(catalogue_);
     LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
     return catalogue_->selectIndex(idxKey);

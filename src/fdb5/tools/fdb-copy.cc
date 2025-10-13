@@ -15,7 +15,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -131,7 +131,7 @@ static std::vector<metkit::mars::MarsRequest> readRequestsFromFile(const CmdArgs
         }
         else {
             const bool inherit = false;
-            metkit::mars::MarsExpension expand(inherit);
+            metkit::mars::MarsExpansion expand(inherit);
             auto expanded = expand.expand(parsedRequests);
             requests.insert(requests.end(), expanded.begin(), expanded.end());
         }
@@ -158,7 +158,7 @@ void FDBCopy::execute(const CmdArgs& args) {
     fdb5::FDB fdbRead(readConfig);
 
     // parse modifiers if any
-    eckit::StringDict modifiers = fdb5::Key::parse(modifiers_).keyDict();
+    fdb5::Key modifiers = fdb5::Key::parse(modifiers_);
 
     if (fromList_) {
         for (const FDBToolRequest& request : requests("list")) {
