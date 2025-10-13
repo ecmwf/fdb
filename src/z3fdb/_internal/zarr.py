@@ -13,7 +13,15 @@ This is not part of the supported interface.
 """
 
 import json
-from collections.abc import Buffer
+
+try:
+    from collections.abc import Buffer
+except ImportError:
+    # Python < 3.12
+    from typing import Union
+
+    Buffer = Union[bytes, bytearray, memoryview]
+
 from typing import AsyncIterator, Iterable
 
 import numpy as np
@@ -27,12 +35,11 @@ from zarr.core.buffer.cpu import Buffer as CpuBuffer
 from zarr.core.common import BytesLike
 
 from functools import cache
-from typing import override, Self
+from typing import Self
 
 from pychunked_data_view import (
     ChunkedDataView,
 )
-from abc import abstractmethod
 
 from z3fdb.z3fdb_error import Z3fdbError
 from dataclasses import KW_ONLY, asdict, dataclass, field
@@ -84,6 +91,7 @@ class DotZarrArrayJson:
 
     Most of what happens here has been reverse-engineered from the zarr-python code.
     """
+
     _: KW_ONLY
     zarr_format: int = 3
     node_type: str = "array"
@@ -118,6 +126,7 @@ class DotZarrGroupJson:
 
     Most of what happens here has been reverse-engineered from the zarr-python code.
     """
+
     _: KW_ONLY
     zarr_format: int = 3
     node_type: str = "group"
@@ -144,12 +153,14 @@ class FdbSource:
 
     def create_dot_zarr_json(self) -> CpuBuffer:
         return to_cpu_buffer(
-            asdict(DotZarrArrayJson(
-                shape=self._shape,
-                chunk_grid=ChunkGridMetadata(chunks=self._chunks),
-                data_type="float32",
-                fill_value=-1.0,
-            ))
+            asdict(
+                DotZarrArrayJson(
+                    shape=self._shape,
+                    chunk_grid=ChunkGridMetadata(chunks=self._chunks),
+                    data_type="float32",
+                    fill_value=-1.0,
+                )
+            )
         )
 
     def __contains__(self, key: tuple[int, ...]) -> bool:
