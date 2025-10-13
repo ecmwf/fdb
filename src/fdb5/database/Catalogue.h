@@ -174,7 +174,8 @@ public:
 
     ~CatalogueWriter() override {}
 
-    virtual const Index& currentIndex() = 0;
+    virtual bool createIndex(const Key& idxKey, size_t datumKeySize) = 0;
+    virtual const Index& currentIndex()                              = 0;
     virtual const Key currentIndexKey();
     virtual void archive(const Key& idxKey, const Key& datumKey,
                          std::shared_ptr<const FieldLocation> fieldLocation)                              = 0;
@@ -201,10 +202,10 @@ public:
 template <class T>
 class CatalogueReaderBuilder : public CatalogueReaderBuilderBase {
     virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     virtual std::unique_ptr<CatalogueReader> make(const eckit::URI& uri, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(uri, config));
+        return std::make_unique<T>(uri, config);
     }
 
 public:
@@ -253,10 +254,10 @@ public:
 template <class T>
 class CatalogueWriterBuilder : public CatalogueWriterBuilderBase {
     virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     virtual std::unique_ptr<CatalogueWriter> make(const eckit::URI& uri, const fdb5::Config& config) override {
-        return std::unique_ptr<T>(new T(uri, config));
+        return std::make_unique<T>(uri, config);
     }
 
 public:
@@ -301,7 +302,6 @@ public:
     const Schema& schema() const override { NOTIMP; }
     const Rule& rule() const override { NOTIMP; }
 
-    bool selectIndex(const Key& idxKey) override { NOTIMP; }
     void deselectIndex() override { NOTIMP; }
 
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }

@@ -52,46 +52,57 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+
     currentIndexKey_ = idxKey;
 
-    if (indexes_.find(idxKey) == indexes_.end()) {
-        PathName indexPath(generateIndexPath(idxKey));
-
-        // Enforce lustre striping if requested
-        if (stripeLustre()) {
-            fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
-        }
-
-        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
+    auto it = indexes_.find(idxKey);
+    if (it == indexes_.end()) {
+        return false;
     }
 
-    current_ = indexes_[idxKey];
+    current_ = it->second;
     current_.open();
     current_.flock();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
-
     if (useSubToc()) {
 
-        if (fullIndexes_.find(idxKey) == fullIndexes_.end()) {
+        auto it = fullIndexes_.find(idxKey);
+        ASSERT(it != fullIndexes_.end());
 
-            // TODO TODO TODO .master.index
-            PathName indexPath(generateIndexPath(idxKey));
-
-            // Enforce lustre striping if requested
-            if (stripeLustre()) {
-                fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
-            }
-
-            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
-        }
-
-        currentFull_ = fullIndexes_[idxKey];
+        currentFull_ = it->second;
         currentFull_.open();
         currentFull_.flock();
     }
 
+    return true;
+}
+
+bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
+
+    ASSERT(datumKeySize > 0);
+    currentIndexKey_ = idxKey;
+
+    PathName indexPath(generateIndexPath(idxKey));
+    // Enforce lustre striping if requested
+    if (stripeLustre()) {
+        fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
+    }
+
+    current_ =
+        indexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize)).first->second;
+    current_.open();
+    current_.flock();
+
+    // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
+    // each step.
+    if (useSubToc()) {
+        currentFull_ = fullIndexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize))
+                           .first->second;
+        currentFull_.open();
+        currentFull_.flock();
+    }
     return true;
 }
 
@@ -306,17 +317,20 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
+
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        if (!selectIndex(currentIndexKey_))
+            createIndex(currentIndexKey_, datumKey.size());
     }
     else {
         // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
         // indexKey used for store archival. Reset it
         if (currentIndexKey_ != idxKey) {
-            selectIndex(idxKey);
+            if (!selectIndex(idxKey))
+                createIndex(idxKey, datumKey.size());
         }
     }
 

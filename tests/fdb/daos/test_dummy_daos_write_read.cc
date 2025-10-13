@@ -10,11 +10,17 @@
 
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <memory>
+#include <string>
+#include <vector>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/io/Buffer.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Literals.h"
 
@@ -116,8 +122,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT(rc == 0);
 
     daos_size_t ncont = 1;
-    struct daos_pool_cont_info cbuf[ncont];
-    rc = daos_pool_list_cont(poh, &ncont, cbuf, NULL);
+    std::array<struct daos_pool_cont_info, 1> cbuf;
+    rc = daos_pool_list_cont(poh, &ncont, cbuf.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
     EXPECT(uuid_compare(cbuf[0].pci_uuid, cont_uuid) == 0);
@@ -140,8 +146,8 @@ CASE("dummy_daos_write_then_read") {
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
 
     daos_size_t ncont2 = 1;
-    struct daos_pool_cont_info cbuf2[ncont2];
-    rc = daos_pool_list_cont(poh, &ncont2, cbuf2, NULL);
+    std::array<struct daos_pool_cont_info, 1> cbuf2;
+    rc = daos_pool_list_cont(poh, &ncont2, cbuf2.data(), NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
     EXPECT(strcmp(cbuf2[0].pci_label, cont.c_str()) == 0);
@@ -200,13 +206,12 @@ CASE("dummy_daos_write_then_read") {
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key2).exists());
 
     /// @todo: proper memory management
-    int max_keys_per_rpc = 10;
-    daos_key_desc_t key_sizes[max_keys_per_rpc];
+    constexpr size_t max_keys_per_rpc = 10;
+    std::array<daos_key_desc_t, max_keys_per_rpc> key_sizes;
     d_sg_list_t sgl_kv_list;
     d_iov_t iov_kv_list;
-    char* list_buf;
     const auto bufsize = 1_KiB;
-    list_buf           = (char*)malloc(bufsize);
+    eckit::Buffer list_buf(bufsize);
     d_iov_set(&iov_kv_list, list_buf, bufsize);
     sgl_kv_list.sg_nr            = 1;
     sgl_kv_list.sg_nr_out        = 0;
@@ -217,7 +222,7 @@ CASE("dummy_daos_write_then_read") {
         uint32_t nkeys_found = max_keys_per_rpc;
         int rc;
         memset(list_buf, 0, bufsize);
-        rc = daos_kv_list(oh_kv, DAOS_TX_NONE, &nkeys_found, key_sizes, &sgl_kv_list, &listing_status, NULL);
+        rc = daos_kv_list(oh_kv, DAOS_TX_NONE, &nkeys_found, key_sizes.data(), &sgl_kv_list, &listing_status, NULL);
         EXPECT(rc == 0);
         size_t key_start = 0;
         for (int i = 0; i < nkeys_found; i++) {
@@ -331,13 +336,13 @@ CASE("dummy_daos_write_then_read") {
     rc = daos_oit_open(coh, e, &oith, NULL);
     EXPECT(rc == 0);
 
-    daos_anchor_t anchor = DAOS_ANCHOR_INIT;
-    int max_oids_per_rpc = 10;
-    daos_obj_id_t oid_batch[max_oids_per_rpc];
+    daos_anchor_t anchor              = DAOS_ANCHOR_INIT;
+    constexpr size_t max_oids_per_rpc = 10;
+    std::array<daos_obj_id_t, max_oids_per_rpc> oid_batch;
     std::vector<daos_obj_id_t> oids;
     while (!daos_anchor_is_eof(&anchor)) {
         uint32_t oids_nr = max_oids_per_rpc;
-        rc               = daos_oit_list(oith, oid_batch, &oids_nr, &anchor, NULL);
+        rc               = daos_oit_list(oith, oid_batch.data(), &oids_nr, &anchor, NULL);
         EXPECT(rc == 0);
         for (int i = 0; i < oids_nr; i++)
             oids.push_back(oid_batch[i]);
