@@ -229,15 +229,6 @@ list( APPEND fdb5_srcs
     types/TypeStep.h
     types/TypeTime.cc
     types/TypeTime.h
-
-    remote/RemoteFieldLocation.h
-    remote/RemoteFieldLocation.cc
-    toc/TocFieldLocation.cc
-    toc/TocFieldLocation.h
-    daos/DaosFieldLocation.h
-    daos/DaosFieldLocation.cc
-    daos/DaosLazyFieldLocation.h
-    daos/DaosLazyFieldLocation.cc
 )
 
 if(HAVE_FDB_REMOTE)
@@ -247,6 +238,8 @@ if(HAVE_FDB_REMOTE)
 
         remote/Connection.h
         remote/Connection.cc
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
         remote/Messages.h
         remote/Messages.cc
         remote/FdbServer.h
@@ -317,6 +310,8 @@ if( HAVE_TOCFDB )
         toc/TocCatalogueReader.h
         toc/TocCatalogueWriter.cc
         toc/TocCatalogueWriter.h
+        toc/TocFieldLocation.cc
+        toc/TocFieldLocation.h
         toc/TocHandler.cc
         toc/TocHandler.h
         toc/TocIndex.cc
@@ -380,6 +375,8 @@ if( HAVE_DAOSFDB )
         daos/DaosKeyValueHandle.h
         daos/DaosStore.h
         daos/DaosStore.cc
+        daos/DaosFieldLocation.h
+        daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
         daos/DaosEngine.h
@@ -400,6 +397,8 @@ if( HAVE_DAOSFDB )
         daos/DaosWipeVisitor.cc
         daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
+        daos/DaosLazyFieldLocation.h
+        daos/DaosLazyFieldLocation.cc
         daos/UUID.h
         daos/UUID.cc
     )
