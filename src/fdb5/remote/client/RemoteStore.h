@@ -150,7 +150,7 @@ protected:  // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    void archive(
+    void archiveCb(
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
