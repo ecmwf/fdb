@@ -3,6 +3,7 @@ name: ci
 on:
   # Trigger the workflow manually
   workflow_dispatch: ~
+  push: ~
 
 jobs:
   hello-hpc:
@@ -13,7 +14,7 @@ jobs:
       - hpc
     steps:
       - name: Checkout build-package-hpc@master
-        uses: actions/checkout@5
+        uses: actions/checkout@v5
         with:
           repository: ecmwf/build-package-hpc
           ref: master
