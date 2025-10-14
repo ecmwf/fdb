@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ecmwf/build-package-hpc
-          ref: master
+          ref: main
           path: build-package-hpc
           token: ${{ secrets.GH_REPO_READ_TOKEN }}
       - name: "LS"
