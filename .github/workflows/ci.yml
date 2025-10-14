@@ -12,7 +12,13 @@ jobs:
       - linux
       - hpc
     steps:
+      - name: Checkout build-package-hpc@master
+        uses: actions/checkout@5
+        repository: ecmwf/build-package-hpc
+        ref: master
+        path: build-package-hpc
       - name: "LS"
         run: |
           echo $(pwd)
           ls -lah
+          poetry --version
