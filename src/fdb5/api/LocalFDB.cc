@@ -106,22 +106,26 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
 
 namespace  {
 
-std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(
-    WipeState& wipeState
-    // const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include
-) {
+// Use WipeState from the Catalogue to assign safe and data URIs to the corresponding stores
+std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(WipeState& wipeState) {
     std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates;
 
-    const std::set<eckit::URI>& dataURIs = wipeState.includeURIs();
-
-    for (const auto& dataURI : dataURIs) {
-        auto storeURI = StoreFactory::instance().uri(dataURI);
-    
-        auto [it, inserted] = storeWipeStates.try_emplace(storeURI, std::unique_ptr<StoreWipeState>{});
-        if (inserted) {
-            it->second = std::make_unique<StoreWipeState>(it->first, wipeState.config()); // it->first is the key
+    auto storeState = [&](const eckit::URI& storeURI) -> StoreWipeState& {
+        auto [it, inserted] = storeWipeStates.try_emplace(storeURI, nullptr);
+        if (inserted || !it->second) {
+            it->second = std::make_unique<StoreWipeState>(it->first, wipeState.config());
         }
-        it->second->addDataURI(dataURI);
+        return *it->second;
+    };
+
+    for (const auto& dataURI : wipeState.includeURIs()) {
+        eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+        storeState(storeURI).addDataURI(dataURI);
+    }
+
+    for (const auto& dataURI : wipeState.excludeURIs()) {
+        eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+        storeState(storeURI).addSafeURI(dataURI);
     }
 
     return storeWipeStates;
@@ -139,8 +143,8 @@ WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porce
 
     // insert into another iterator to drain it here...
 
-    auto out_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<WipeElement>& queue) {
-
+    auto out_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<WipeElement>& out_queue) {
+        
         auto async_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<ValueType>& queue) {
             EntryVisitMechanism mechanism(config_);
             WipeCatalogueVisitor visitor(queue, request.request(), doit, porcelain, unsafeWipeAll);
@@ -148,22 +152,194 @@ WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porce
         };
 
         auto it = QueryIterator(new AsyncIterator(async_worker));
-        std::unique_ptr<WipeState> catogueWipeState;
-        while (it.next(catogueWipeState)) {
-            if (!catogueWipeState) {
+        std::unique_ptr<WipeState> catalogueWipeState;
+        while (it.next(catalogueWipeState)) {
+            if (!catalogueWipeState) {
                 continue;
             }
 
-            // auto storeWipeStates = get_stores(*catogueWipeState);
+            /// Per catalogue....
+                    
+            bool error   = false;  /// ?
+            bool canWipe = true;   /// !!! unused.
+            bool wipeAll = true;   /// ?
+            std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;
+            std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
+
+            // Gather unknowns from the catalogue
+            for (const auto& el : catalogueWipeState->wipeElements()) {
+                if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
+                    wipeAll = false;
+                }
+                // if wipeAll, collect all the unknown URIs
+                if (wipeAll && el->type() == WipeElementType::WIPE_UNKNOWN && !el->uris().empty()) {
+                    for (const auto& uri : el->uris()) {
+                        unknownURIs.emplace(uri, std::nullopt);
+                    }
+                }
+            }
+
+            auto storeWipeStates = get_stores(*catalogueWipeState);
+
+            for (const auto& [storeURI, storeStatePtr] : storeWipeStates) {
+                auto& storeState = *storeStatePtr;
+
+                if (!storeState.safeURIs().empty()) {
+                    wipeAll = false;
+                }
+
+                std::unique_ptr<Store> store = storeState.getStore();
+
+                // This could act on the storeWipeState directly.
+                auto elements = store->prepareWipe(storeState.dataURIs(), storeState.safeURIs(), wipeAll);
+
+                for (const auto& el : elements) {
+                    storeState.wipeElements().push_back(el); // could be done in prepare wipe.
+
+                    const auto type = el->type();
+
+                    // If wipeAll, collect all the unknown URIs
+                    if (wipeAll && type == WipeElementType::WIPE_UNKNOWN) {
+                        for (const auto& uri : el->uris()) {
+                            unknownURIs.try_emplace(uri, storeURI);
+                        }
+                        continue;
+                    }
+
+                    // Group elements by type, merging URIs if the type already exists
+                    auto [it, inserted] = storeElements.emplace(type, el);
+                    if (!inserted) {
+                        auto& target = *it->second;
+                        for (const auto& uri : el->uris()) {
+                            target.add(uri);
+                        }
+                    }
+                }
+            }
+
+            auto isCatalogueElement = [](const auto& el) {
+            const auto t = el->type();
+            return (t == WipeElementType::WIPE_CATALOGUE || t == WipeElementType::WIPE_CATALOGUE_AUX) && !el->uris().empty();
+            };
+
+            auto isStoreElement = [](WipeElementType t) {
+                return t == WipeElementType::WIPE_STORE || t == WipeElementType::WIPE_STORE_AUX;
+            };
+
+
+            ASSERT(storeElements.size() != 0);
+            if (wipeAll && unknownURIs.size() > 0) {
+                
+                auto it = unknownURIs.begin();
+                while (it != unknownURIs.end()) {
+
+                    const auto& uri = it->first;
+
+                    // Remove uri from the unknowns if it is among the catalogue wipe elements
+                    bool found = false;
+                    for (const auto& el : catalogueWipeState->wipeElements()) {
+                        if (isCatalogueElement(el) && el->uris().count(uri)) {
+                            it = unknownURIs.erase(it);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (found) {
+                        continue;
+                    }
+                    
+                    // NB: Up to the store to do this now
+                    for (const auto& [type, el] : storeElements) {
+                        if (isStoreElement(type) && el->uris().count(uri)) {
+                            it    = unknownURIs.erase(it);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        ++it;  // Move to the next URI
+                    }
+                }
+            }
+            
+
+            // PUSHING TO THE REPORT QUEUE
+
+            if (wipeAll && doit && !unknownURIs.empty() && !unsafeWipeAll) {
+                WipeElement el(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:");
+                out_queue.push(el);
+                error = true;
+            }
+
+                // gather all non-unknown elements from the catalogue and the stores
+            for (const auto& el : catalogueWipeState->wipeElements()) {
+                if (el->type() != WipeElementType::WIPE_UNKNOWN) {
+                    out_queue.push(*el);
+                }
+            }
+
+            for (const auto& [type, el] : storeElements) {
+                if (type != WipeElementType::WIPE_UNKNOWN) {
+                    out_queue.push(*el);
+                }
+            }
+
+            // gather the unknowns.
+            // This can surely be done better...
+
+            std::set<eckit::URI> unknownURIsSet;
+            std::vector<eckit::URI> unknownURIsCatalogue;
+            std::map<eckit::URI, std::vector<eckit::URI>> unknownURIsStore;
+            for (const auto& [uri, storeURI] : unknownURIs) {
+                unknownURIsSet.insert(uri);
+
+                if (storeURI) {
+                    auto it = unknownURIsStore.find(*storeURI);
+                    if (it == unknownURIsStore.end()) {
+                        unknownURIsStore.emplace(*storeURI, std::vector<eckit::URI>{uri});
+                    } else {
+                        it->second.push_back(uri);
+                    }
+                } else {
+                    unknownURIsCatalogue.push_back(uri);
+                }
+            }
+
+            out_queue.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
+
+            if (doit && !error) {
+                std::unique_ptr<Catalogue> catalogue = catalogueWipeState->getCatalogue();
+                catalogue->doWipe(unknownURIsCatalogue, *catalogueWipeState);
+                for (const auto& [uri, storeState] : storeWipeStates) {
+                    std::unique_ptr<Store> store = storeState->getStore();
+
+                    auto it = unknownURIsStore.find(uri);
+                    if (it == unknownURIsStore.end()) {
+                        store->doWipe(std::vector<eckit::URI>{});
+                    }
+                    else {
+                        store->doWipe(it->second);
+                    }
+                }
+                catalogue->doWipe(*catalogueWipeState);
+                for (const auto& [uri, storeState] : storeWipeStates) { // so much repetition...
+                    std::unique_ptr<Store> store = storeState->getStore();
+                    store->doWipe(*storeState);
+                }
+
+            }
+
 
             // wip wip wip wip
 
             // temp...
-            for (const auto& we : catogueWipeState->wipeElements()) {
-                queue.push(*we);
-            }
+            // for (const auto& we : catalogueWipeState->wipeElements()) {
+            //     out_queue.push(*we);
+            // }
         }
-        queue.close();
+        out_queue.close();
     };
 
     return APIIterator<WipeElement>(new APIAsyncIterator<WipeElement>(out_worker));

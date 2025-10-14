@@ -98,6 +98,10 @@ public:
     std::set<eckit::URI>& includeURIs() { return includeDataURIs_; }
     std::set<eckit::URI>& excludeURIs() { return excludeDataURIs_; }
 
+    std::unique_ptr<Catalogue> getCatalogue() const {
+        return CatalogueReaderFactory::instance().build(cat_dbKey_, cat_config_);
+    }
+
 
     const Config& config() { return cat_config_; }
 
