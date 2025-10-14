@@ -1,0 +1,19 @@
+name: Build & Test Z3FDB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "This is a test"
+    runs-on:
+      - self-hosted
+      - linux
+      - hpc
+    steps:
+      - name: "LS"
+        run: |
+          echo $(pwd)
+          ls -lah
+
+
