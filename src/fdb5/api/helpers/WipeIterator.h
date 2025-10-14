@@ -37,6 +37,7 @@ class Stream;
 
 namespace fdb5 {
 
+class WipeState;
 //----------------------------------------------------------------------------------------------------------------------
 
 enum WipeElementType {
@@ -101,6 +102,7 @@ private:  // members
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
+using InnerWipeIterator     = APIIterator<std::unique_ptr<WipeState>>;
 using WipeIterator          = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
 using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;

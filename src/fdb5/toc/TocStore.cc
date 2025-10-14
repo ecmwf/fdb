@@ -28,6 +28,7 @@
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/toc/TocStore.h"
 
 using namespace eckit;

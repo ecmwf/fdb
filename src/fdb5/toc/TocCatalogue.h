@@ -18,7 +18,6 @@
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/TocEngine.h"

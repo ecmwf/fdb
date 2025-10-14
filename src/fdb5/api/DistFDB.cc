@@ -207,11 +207,12 @@ StatusIterator DistFDB::status(const FDBToolRequest& request) {
     return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
-WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
-    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    });
+InnerWipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    NOTIMP; // xxx TODO
+    // LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
+    // return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+    //     return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    // });
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

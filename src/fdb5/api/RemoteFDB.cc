@@ -308,8 +308,10 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
 
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
+// Need to update this to return an iterator over wipe states, not wipe elements.
+InnerWipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    // return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
+    NOTIMP; // xxx TODO
 }
 
 void RemoteFDB::print(std::ostream& s) const {
