@@ -31,6 +31,7 @@
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Key.h"
@@ -103,9 +104,69 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
     return queryInternal<StatusVisitor>(request);
 }
 
+namespace  {
+
+std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(
+    WipeState& wipeState
+    // const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include
+) {
+    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates;
+
+    const std::set<eckit::URI>& dataURIs = wipeState.includeURIs();
+
+    for (const auto& dataURI : dataURIs) {
+        auto storeURI = StoreFactory::instance().uri(dataURI);
+    
+        auto [it, inserted] = storeWipeStates.try_emplace(storeURI, std::unique_ptr<StoreWipeState>{});
+        if (inserted) {
+            it->second = std::make_unique<StoreWipeState>(it->first, wipeState.config()); // it->first is the key
+        }
+        it->second->addDataURI(dataURI);
+    }
+
+    return storeWipeStates;
+}
+
+} // namespace
+
 WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    // return queryInternal<WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    using ValueType     = std::unique_ptr<WipeState>;
+    using QueryIterator = APIIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
+
+
+    // insert into another iterator to drain it here...
+
+    auto out_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<WipeElement>& queue) {
+
+        auto async_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<ValueType>& queue) {
+            EntryVisitMechanism mechanism(config_);
+            WipeCatalogueVisitor visitor(queue, request.request(), doit, porcelain, unsafeWipeAll);
+            mechanism.visit(request, visitor);
+        };
+
+        auto it = QueryIterator(new AsyncIterator(async_worker));
+        std::unique_ptr<WipeState> catogueWipeState;
+        while (it.next(catogueWipeState)) {
+            if (!catogueWipeState) {
+                continue;
+            }
+
+            // auto storeWipeStates = get_stores(*catogueWipeState);
+
+            // wip wip wip wip
+
+            // temp...
+            for (const auto& we : catogueWipeState->wipeElements()) {
+                queue.push(*we);
+            }
+        }
+        queue.close();
+    };
+
+    return APIIterator<WipeElement>(new APIAsyncIterator<WipeElement>(out_worker));
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {

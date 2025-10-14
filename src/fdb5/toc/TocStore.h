@@ -65,6 +65,8 @@ public:  // methods
 
     bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
     bool doWipe(WipeState& wipeState) const override;
+    bool doWipe(StoreWipeState& wipeState) const override;
+
 
     // const std::vector<eckit::URI>& deleteURIs() override;
 

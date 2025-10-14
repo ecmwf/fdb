@@ -82,7 +82,7 @@ protected:  // methods
     // wipe
     std::unique_ptr<WipeState>  wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const override;
-    std::set<eckit::URI> wipeFinish(WipeState& wipeState) const override;
+    std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override;
     bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override;
     bool doWipe(WipeState& wipeState) const override;
     // bool doWipe() const override;

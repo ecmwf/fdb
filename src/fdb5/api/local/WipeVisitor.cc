@@ -14,10 +14,13 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/api/local/WipeVisitor.h"
 
 #include <dirent.h>
+#include <iostream>
+#include <memory>
 #include <sys/stat.h>
 
 #include "eckit/os/Stat.h"
@@ -36,12 +39,12 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
+WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue, const metkit::mars::MarsRequest& request, bool doit,
                          bool porcelain, bool unsafeWipeAll) :
-    QueryVisitor<WipeElement>(queue, request), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+    QueryVisitor<std::unique_ptr<WipeState>>(queue, request), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
 
 
-bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
+bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
 
     EntryVisitor::visitDatabase(catalogue);
 
@@ -52,15 +55,19 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // // Check that we are in a clean state (i.e. we only visit one DB).
     // ASSERT(stores_.empty());
-    ASSERT(catalogue.wipeElements().empty());
+    // ASSERT(catalogue.wipeElements().empty());
     // ASSERT(catalogueWipeElements_.empty());
     // ASSERT(storeWipeElements_.empty());
 
     // @todo: Catalogue specific checks
-    if (!catalogue.wipeInit()) {
-        for (const auto& el : catalogue.wipeElements()) {
-            queue_.push(*el);
-        }
+    // wipeElements = catalogue.wipeInit();
+
+    ASSERT(!catalogueWipeState_);
+    catalogueWipeState_ = catalogue.wipeInit();
+    if (!catalogueWipeState_) {
+    //     for (const auto& el : catalogueWipeState_->wipeElements()) {
+    //         queue_.push(*el); // but isnt this empty atm?
+    //     }
 
         // Log::error() << "Catalogue " << catalogue.key() << " cannot be wiped." << std::endl;
         // auto errorIt = catalogueWipeElements_.find(WipeElementType::WIPE_ERROR);
@@ -88,7 +95,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-void WipeVisitor::aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState) {
+void WipeCatalogueVisitor::aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState) {
 
     if (include) {
         wipeState.include(dataURI);
@@ -98,7 +105,7 @@ void WipeVisitor::aggregateURIs(const eckit::URI& dataURI, bool include, WipeSta
     }
 }
 
-bool WipeVisitor::visitIndex(const Index& index) {
+bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 
     EntryVisitor::visitIndex(index);
 
@@ -106,28 +113,54 @@ bool WipeVisitor::visitIndex(const Index& index) {
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
     bool include = index.key().match(indexRequest_);
 
-    include = currentCatalogue_->wipeIndex(index, include, wipeState_);
+    include = currentCatalogue_->wipeIndex(index, include, *catalogueWipeState_);
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
-        aggregateURIs(dataURI, include, wipeState_);
+        aggregateURIs(dataURI, include, *catalogueWipeState_);
     }
     return true;
 }
 
-void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
-    bool error = false;
-    ASSERT(currentCatalogue_ == &catalogue);
+// this will go elsewhere eventually...
+void WipeCatalogueVisitor::get_stores(const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include) {
 
-    auto maskedDataPaths = catalogue.wipeFinish(wipeState_);
-    for (const auto& uri : maskedDataPaths) {
-        aggregateURIs(uri, true, wipeState_);
+    for (const auto& dataURI : dataURIs) {
+        auto storeURI = StoreFactory::instance().uri(dataURI);
+        auto storeIt  = storeWipeStates_.find(storeURI);
+        if (storeIt == storeWipeStates_.end()) {
+            auto state = std::make_unique<StoreWipeState>(storeURI, catalogue.config());
+            storeIt = storeWipeStates_.emplace(storeURI, std::move(state)).first;
+        }
+        if (include) {
+            storeIt->second->addDataURI(dataURI);
+        } else {
+            storeIt->second->addSafeURI(dataURI);
+        }
     }
 
+}
+
+void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
+
+    // We will be aggregating the following:
     std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;
-    const auto& catalogueElements = catalogue.wipeElements();
-    bool wipeAll                  = true;
+    std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
+
+    bool error   = false;  /// ?
+    bool canWipe = true;   /// !!! unused.
+    bool wipeAll = true;   /// ?
+
+    ASSERT(currentCatalogue_ == &catalogue);
+
+    auto maskedDataPaths = catalogue.wipeFinialise(*catalogueWipeState_); // why returning uris
+    for (const auto& uri : maskedDataPaths) {
+        /// XXX : Why are these always included?
+        aggregateURIs(uri, true, *catalogueWipeState_);
+    }
+
+    const auto& catalogueElements = catalogueWipeState_->wipeElements();
 
     for (const auto& el : catalogueElements) {
         if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
@@ -142,84 +175,89 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     }
     
     //  ----- begin store comms
-    // This logic now belongs outside the visitor.
+    // Most of this logic now belongs outside the visitor.
 
     // send all the data and safe URIs to the stores
-    // bool canWipe = true;
-    // std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
+    get_stores(catalogue, catalogueWipeState_->includeURIs(), true);
 
-    // for (const auto& [storeURI, ss] : stores_) {
-    //     LOG_DEBUG_LIB(LibFdb5) << "WipeVisitor::catalogueComplete: contacting store " << *(ss.store) << std::endl
-    //                            << "  dataURIs: " << ss.dataURIs.size() << ", safeURIs: " << ss.safeURIs.size()
-    //                            << std::endl;
-    //     for (const auto& dataURI : ss.dataURIs) { /// @todo wrap in debug?
-    //         LOG_DEBUG_LIB(LibFdb5) << "  dataURI: " << dataURI << std::endl;
-    //     }
+    for (const auto& [storeURI, storeStatePtr] : storeWipeStates_) {
+         
+        auto& storeState = *storeStatePtr;
 
-    //     if (ss.safeURIs.size() > 0) {
-    //         wipeAll = false;
-    //     }
+        if (!storeState.safeURIs().empty()) {
+            wipeAll = false;
+        }
 
-    //     for (const auto& el :  ss.store->prepareWipe(ss.dataURIs, ss.safeURIs, wipeAll)) {
-    //         auto t = el->type();
-    //         // if wipeAll, collect all the unknown URIs
-    //         if (wipeAll && t == WipeElementType::WIPE_UNKNOWN) {
-    //             // collect the unknown URIs from the store
-    //             // these are the URIs that are not in the catalogue
-    //             for (const auto& uri : el->uris()) {
-    //                 if (unknownURIs.find(uri) == unknownURIs.end()) {
-    //                     // if the URI is not in the unknownURIs, then add it
-    //                     // this is to ensure that we don't delete URIs that are not in the catalogue
-    //                     unknownURIs.emplace(uri, storeURI);
-    //                 }
-    //             }
-    //         }
-    //         else {
-    //             auto it = storeElements.find(t);
-    //             if (it == storeElements.end()) {
-    //                 it = storeElements.emplace(t, el).first;
-    //             }
-    //             else {
-    //                 // if the element is already in the map, we need to merge the URIs
-    //                 for (const auto& uri : el->uris()) {
-    //                     it->second->add(uri);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+        std::unique_ptr<Store> store = storeState.getStore();
 
-    if (wipeAll && unknownURIs.size() > 0) {
-        auto it = unknownURIs.begin();
-        while (it != unknownURIs.end()) {
-            // check if the URI is in the catalogue wipe elements
-            // if it is, then remove it from the unknownURIs
-            bool found = false;
-            for (const auto& el : catalogueElements) {
-                if ((el->type() == WipeElementType::WIPE_CATALOGUE ||
-                     el->type() == WipeElementType::WIPE_CATALOGUE_AUX) &&
-                    !el->uris().empty()) {
-                    if (el->uris().find(it->first) != el->uris().end()) {
-                        it    = unknownURIs.erase(it);
-                        found = true;
-                        break;
-                    }
+        auto elements = store->prepareWipe(storeState.dataURIs(), storeState.safeURIs(), wipeAll);
+
+        for (const auto& el : elements) {
+            // !!! but this won't work when we're dividing into multiple stores
+            storeState.wipeElements().push_back(el);
+
+            const auto type = el->type();
+
+            // If wipeAll, collect all the unknown URIs
+            if (wipeAll && type == WipeElementType::WIPE_UNKNOWN) {
+                for (const auto& uri : el->uris()) {
+                    unknownURIs.try_emplace(uri, storeURI);
+                }
+                continue;
+            }
+
+            // Group elements by type, merging URIs if the type already exists
+            auto [it, inserted] = storeElements.emplace(type, el);
+            if (!inserted) {
+                auto& target = *it->second;
+                for (const auto& uri : el->uris()) {
+                    target.add(uri);
                 }
             }
-            // Up to the store to do this now
-            // if (!found) {
-            //     for (const auto& [type, el] : storeElements) {
-            //         if (!found && (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX)) {
-            //             // check if the URI is in the store wipe elements
-            //             // if it is, then remove it from the unknownURIs
-            //             if (el->uris().find(it->first) != el->uris().end()) {
-            //                 it    = unknownURIs.erase(it);
-            //                 found = true;
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
+        }
+    }
+
+    auto isCatalogueElement = [](const auto& el) {
+        const auto t = el->type();
+        return (t == WipeElementType::WIPE_CATALOGUE || t == WipeElementType::WIPE_CATALOGUE_AUX) && !el->uris().empty();
+    };
+
+    auto isStoreElement = [](WipeElementType t) {
+        return t == WipeElementType::WIPE_STORE || t == WipeElementType::WIPE_STORE_AUX;
+    };
+
+
+    ASSERT(storeElements.size() != 0);
+    if (wipeAll && unknownURIs.size() > 0) {
+        
+        auto it = unknownURIs.begin();
+        while (it != unknownURIs.end()) {
+
+            const auto& uri = it->first;
+
+            // Remove uri from the unknowns if it is among the catalogue wipe elements
+            bool found = false;
+            for (const auto& el : catalogueElements) {
+                if (isCatalogueElement(el) && el->uris().count(uri)) {
+                    it = unknownURIs.erase(it);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                continue;
+            }
+            
+            // NB: Up to the store to do this now
+            for (const auto& [type, el] : storeElements) {
+                if (isStoreElement(type) && el->uris().count(uri)) {
+                    it    = unknownURIs.erase(it);
+                    found = true;
+                    break;
+                }
+            }
+
             if (!found) {
                 ++it;  // Move to the next URI
             }
@@ -228,68 +266,101 @@ void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     if (wipeAll && doit_ && !unknownURIs.empty() && !unsafeWipeAll_) {
         WipeElement el(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:");
-        queue_.push(el);
+        // queue_.push(el);
+        catalogueWipeState_->outElements().push_back(std::make_shared<WipeElement>(el));
         error = true;
     }
 
-    // /// gather all the wipe elements from the catalogue and the stores
+    // gather all non-unknown elements from the catalogue and the stores
     for (const auto& el : catalogueElements) {
         if (el->type() != WipeElementType::WIPE_UNKNOWN) {
-            queue_.push(*el);
+            // queue_.push(*el);
+            catalogueWipeState_->outElements().push_back(el);
         }
     }
 
-    // for (const auto& [type, el] : storeElements) {
-    //     if (type != WipeElementType::WIPE_UNKNOWN) {
-    //         queue_.push(*el);
-    //     }
-    // }
+    for (const auto& [type, el] : storeElements) {
+        if (type != WipeElementType::WIPE_UNKNOWN) {
+            // queue_.push(*el);
+            catalogueWipeState_->outElements().push_back(el);
+        }
+    }
 
     std::set<eckit::URI> unknownURIsSet;
-    // std::vector<eckit::URI> unknownURIsCatalogue;
-    // std::map<eckit::URI, std::vector<eckit::URI>> unknownURIsStore;
+    std::vector<eckit::URI> unknownURIsCatalogue;
+    std::map<eckit::URI, std::vector<eckit::URI>> unknownURIsStore;
     for (const auto& [uri, storeURI] : unknownURIs) {
         unknownURIsSet.insert(uri);
 
-    //     if (storeURI) {
-    //         auto it = unknownURIsStore.find(*storeURI);
-    //         if (it == unknownURIsStore.end()) {
-    //             unknownURIsStore.emplace(*storeURI, std::vector<eckit::URI>{uri});
-    //         }
-    //         else {
-    //             it->second.push_back(uri);
-    //         }
-    //     }
-    //     else {
-    //         unknownURIsCatalogue.push_back(uri);
-    //     }
+        if (storeURI) {
+            auto it = unknownURIsStore.find(*storeURI);
+            if (it == unknownURIsStore.end()) {
+                unknownURIsStore.emplace(*storeURI, std::vector<eckit::URI>{uri});
+            } else {
+                it->second.push_back(uri);
+            }
+        } else {
+            unknownURIsCatalogue.push_back(uri);
+        }
     }
-    queue_.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
-
+    // queue_.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
+    catalogueWipeState_->outElements().push_back(
+        std::make_shared<WipeElement>(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
+    
     // -- This is no longer the right place to be checking do it, as we need to coordinate with the stores first.
 
 
-    // if (doit_ && !error) {
-    //     currentCatalogue_->doWipe(unknownURIsCatalogue);
-    //     for (const auto& [uri, ss] : stores_) {
-    //         auto it = unknownURIsStore.find(uri);
-    //         if (it == unknownURIsStore.end()) {
-    //             ss.store->doWipe(std::vector<eckit::URI>{});
-    //         }
-    //         else {
-    //             ss.store->doWipe(it->second);
-    //         }
-    //     }
-    //     currentCatalogue_->doWipe();
-    //     for (const auto& [uri, ss] : stores_) {
-    //         ss.store->doWipe();
-    //     }
-    // }
+    // todo, get rid of doit here...
+    if (doit_ && !error) {
+        catalogue.doWipe(unknownURIsCatalogue, *catalogueWipeState_);
+        for (const auto& [uri, storeState] : storeWipeStates_) {
+            std::unique_ptr<Store> store = storeState->getStore();
 
-    // stores_.clear();
-
+            auto it = unknownURIsStore.find(uri);
+            if (it == unknownURIsStore.end()) {
+                store->doWipe(std::vector<eckit::URI>{});
+            }
+            else {
+                store->doWipe(it->second);
+            }
+        }
+        catalogue.doWipe(*catalogueWipeState_);
+        for (const auto& [uri, storeState] : storeWipeStates_) { // so much repetition...
+            std::unique_ptr<Store> store = storeState->getStore();
+            store->doWipe(*storeState);
+        }
+        storeWipeStates_.clear();
+    }
+    
+    queue_.emplace(std::move(catalogueWipeState_));
+    catalogueWipeState_.reset();
     EntryVisitor::catalogueComplete(catalogue);
 }
+
+// void WipeVisitor::doit(){
+//     ASSERT(doit_);
+//     std::cout << "WipeVisitor::catalogueComplete: DOIT wipe" << std::endl;
+//     catalogue.doWipe(unknownURIsCatalogue, *wipeState_);
+//     for (const auto& [uri, storeState] : stores) {
+//         std::unique_ptr<Store> store = storeState.getStore();
+
+//         auto it = unknownURIsStore.find(uri);
+//         if (it == unknownURIsStore.end()) {
+//             std::cout << "WipeVisitor::catalogueComplete: wipe store with no unknown URIs: " << *(store) << std::endl;
+//             store->doWipe(std::vector<eckit::URI>{});
+//         }
+//         else {
+//             std::cout << "WipeVisitor::catalogueComplete: wipe store with unknown URIs: " << *(store) << std::endl;
+//             store->doWipe(it->second);
+//         }
+//     }
+//     catalogue.doWipe(*wipeState_);
+//     for (const auto& [uri, storeState] : stores) { // so much repetition...
+//         std::unique_ptr<Store> store = storeState.getStore();
+//         std::cout << "WipeVisitor::catalogueComplete: final wipe store: " << *(store) << std::endl;
+//         store->doWipe(*wipeState_);
+//     }
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -34,12 +34,6 @@ struct std::hash<eckit::URI> {
     }
 };
 
-namespace fdb5 {
-
-class WipeState;
-
-}
-
 namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
@@ -54,11 +48,11 @@ struct StoreURIs {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WipeVisitor : public QueryVisitor<WipeElement> {
+class WipeCatalogueVisitor : public QueryVisitor<std::unique_ptr<WipeState>> {
 
 public:  // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
+    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
                 bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
@@ -71,9 +65,10 @@ public:  // methods
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
-
+    
 private:  // methods
-
+    
+    void get_stores(const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include);
     void aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState);
 
 private:  // members
@@ -85,9 +80,10 @@ private:  // members
     metkit::mars::MarsRequest indexRequest_;
 
     // std::unordered_map<eckit::URI, StoreURIs> stores_;
-    WipeState wipeState_;
-    std::set<eckit::URI> includeURIs_;
-    std::set<eckit::URI> excludeURIs_;
+    std::unique_ptr<WipeState> catalogueWipeState_;
+
+    // are these pointers for any reason?
+    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

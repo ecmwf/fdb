@@ -110,13 +110,14 @@ public:
     // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
     virtual bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const = 0;
 
-    virtual std::set<eckit::URI> wipeFinish(WipeState& wipeState) const = 0;
+    virtual std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const = 0;
     // virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
     virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const = 0; // do we really need to pass unknowns separately?
     virtual bool doWipe(WipeState& wipeState) const = 0;
 
     // virtual bool doWipe() const                                           = 0;
-    virtual const WipeElements& wipeElements() const { NOTIMP; } /// XXX todo
+    // virtual const WipeElements& wipeElements() const { NOTIMP; } /// XXX todo
+    // virtual const WipeElements& wipeElements() const = 0;
 
 protected:  // methods
 

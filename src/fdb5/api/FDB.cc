@@ -260,26 +260,26 @@ std::set<eckit::URI> safeURIs;
 };
 
 std::unordered_map<eckit::URI, StoreURIs> stores(const std::vector<eckit::URI>& dataURIs, bool include) {
+    NOTIMP;
+    // std::unordered_map<eckit::URI, StoreURIs> result;
 
-    std::unordered_map<eckit::URI, StoreURIs> result;
+    // for (const auto& dataURI : dataURIs) {
+    //     auto storeURI = StoreFactory::instance().uri(dataURI);
+    //     auto storeIt  = result.find(storeURI);
+    //     if (storeIt == result.end()) {
+    //         auto store = StoreFactory::instance().build(storeURI, currentCatalogue_->config());
+    //     ASSERT(store);
+    //     storeIt = result.emplace(storeURI, StoreURIs{std::move(store), {}, {}}).first;
+    //     }
+    //     if (include) {
+    //         storeIt->second.dataURIs.insert(dataURI);
+    //     }
+    //     else {
+    //         storeIt->second.safeURIs.insert(dataURI);
+    //     }
+    // }
 
-    for (const auto& dataURI : dataURIs) {
-        auto storeURI = StoreFactory::instance().uri(dataURI);
-        auto storeIt  = result.find(storeURI);
-        if (storeIt == result.end()) {
-            auto store = StoreFactory::instance().build(storeURI, currentCatalogue_->config());
-        ASSERT(store);
-        storeIt = result.emplace(storeURI, StoreURIs{std::move(store), {}, {}}).first;
-        }
-        if (include) {
-            storeIt->second.dataURIs.insert(dataURI);
-        }
-        else {
-            storeIt->second.safeURIs.insert(dataURI);
-        }
-    }
-
-    return result;
+    // return result;
 }
 
 } // namespace
@@ -293,7 +293,7 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
     // talk to stores to do the wipe
 
     WipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll); // 
-
+    return it;
     // NOTIMP;
 
 
