@@ -19,6 +19,7 @@ jobs:
           repository: ecmwf/build-package-hpc
           ref: master
           path: build-package-hpc
+          token: ${{ secrets.GH_REPO_READ_TOKEN }}
       - name: "LS"
         run: |
           echo $(pwd)
