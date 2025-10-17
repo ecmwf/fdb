@@ -11,7 +11,7 @@
 
 #include "Axis.h"
 
-#include <eckit/exception/Exceptions.h>
+#include "eckit/exception/Exceptions.h"
 
 #include <cstddef>
 #include <vector>

@@ -1,6 +1,11 @@
 #include <algorithm>
+#include <cstddef>
+#include <ostream>
+#include <string>
+#include <vector>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/RequestManipulation.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "metkit/mars/MarsRequest.h"
@@ -39,7 +44,7 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
 
     // When
 
-    for (std::size_t i = 0; i < axis.parameters().size(); ++i) {
+    for (size_t i = 0; i < axis.parameters().size(); ++i) {
         auto request_copy = request;
 
 
@@ -73,9 +78,9 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
 
     // When
 
-    for (std::size_t i = 0; i < dates.size(); ++i) {
+    for (size_t i = 0; i < dates.size(); ++i) {
 
-        for (std::size_t j = 0; j < times.size(); ++j) {
+        for (size_t j = 0; j < times.size(); ++j) {
             auto request_copy = request;
 
             chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i * times.size() + j);
@@ -117,13 +122,13 @@ bool assert_arrays(
     const std::vector<std::string> fourth_values = axis.parameters()[3].values();
 
 
-    for (std::size_t i = 0; i < first_values.size(); ++i) {
+    for (size_t i = 0; i < first_values.size(); ++i) {
 
-        for (std::size_t j = 0; j < second_values.size(); ++j) {
+        for (size_t j = 0; j < second_values.size(); ++j) {
 
-            for (std::size_t k = 0; k < third_values.size(); ++k) {
+            for (size_t k = 0; k < third_values.size(); ++k) {
 
-                for (std::size_t l = 0; l < fourth_values.size(); ++l) {
+                for (size_t l = 0; l < fourth_values.size(); ++l) {
 
                     auto request_copy = request;
                     auto chunk_index = l + k * fourth_values.size() + j * (fourth_values.size() * third_values.size()) +
@@ -222,7 +227,7 @@ CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
     auto request_copy = request;
     EXPECT_NO_THROW(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, 0));
 
-    for (std::size_t i = 1; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
+    for (size_t i = 1; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
         auto request_copy = request;
         EXPECT_THROWS(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i));
     }
@@ -256,7 +261,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
     const std::vector<chunked_data_view::Parameter> param_vector = {date_parameter, time_parameter, step_parameter,
                                                                     param_parameter};
 
-    std::vector<std::size_t> perm = {0, 1, 2, 3};
+    std::vector<size_t> perm = {0, 1, 2, 3};
 
     do {
 

@@ -9,7 +9,9 @@
 import enum
 import pathlib
 
-import chunked_data_view_bindings as pdv
+import chunked_data_view_bindings.chunked_data_view_bindings as pdv
+
+pdv.init_bindings()
 
 
 class AxisDefinition:
@@ -22,6 +24,7 @@ class AxisDefinition:
         keys(list of str): mars keys that for this axis.
         chunked: Shall this axis be chunked into individual values or retrieved as one.
     """
+
     def __init__(self, keys: list[str], chunked: bool):
         self._obj = pdv.AxisDefinition(keys=keys, chunked=chunked)
 

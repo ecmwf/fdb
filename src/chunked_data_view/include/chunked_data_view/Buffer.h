@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace chunked_data_view {

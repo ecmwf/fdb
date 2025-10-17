@@ -9,8 +9,8 @@
  */
 #include "Axis.h"
 
-#include <eckit/exception/Exceptions.h>
-#include <fdb5/database/Key.h>
+#include "eckit/exception/Exceptions.h"
+#include "fdb5/database/Key.h"
 
 #include <algorithm>
 #include <cstddef>
