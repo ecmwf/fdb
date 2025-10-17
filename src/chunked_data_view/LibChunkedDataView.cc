@@ -11,8 +11,8 @@
 
 #include "chunked_data_view_version.h"
 
-#include <eckit/runtime/Main.h>
-#include <eckit/system/Library.h>
+#include "eckit/runtime/Main.h"
+#include "eckit/system/Library.h"
 
 #include <algorithm>
 #include <string>

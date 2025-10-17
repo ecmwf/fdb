@@ -33,8 +33,8 @@ public:
      *
      * @return number of entries
      */
-    std::size_t countChunkValues() const override {
-        std::size_t result = 1;
+    size_t countChunkValues() const override {
+        size_t result = 1;
         for (auto i : chunkShape_) {
             result *= i;
         }
@@ -42,8 +42,8 @@ public:
     }
 
 
-    std::size_t countFields() const {
-        std::size_t result = 1;
+    size_t countFields() const {
+        size_t result = 1;
         for (size_t i = 0; i < chunkShape_.size() - 1; ++i) {
             result *= chunkShape_[i];
         }

@@ -11,7 +11,7 @@
 
 #include "Axis.h"
 
-#include <metkit/mars/MarsRequest.h>
+#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 
@@ -20,6 +20,6 @@ namespace chunked_data_view {
 class RequestManipulation {
 public:
 
-    static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, std::size_t chunkIndex);
+    static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex);
 };
 }  // namespace chunked_data_view

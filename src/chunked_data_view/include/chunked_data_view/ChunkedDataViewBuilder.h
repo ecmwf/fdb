@@ -14,7 +14,10 @@
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <tuple>
 #include <vector>
 
 namespace chunked_data_view {

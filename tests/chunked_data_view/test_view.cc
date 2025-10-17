@@ -18,16 +18,19 @@
 #include <fdb5/api/helpers/FDBToolRequest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 #include "chunked_data_view/Axis.h"
-#include "chunked_data_view/Buffer.h"
+#include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ListIterator.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
-#include "fdb5/api/helpers/APIIterator.h"
-#include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Inspector.h"
 #include "metkit/mars/MarsRequest.h"
