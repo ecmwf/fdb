@@ -11,13 +11,14 @@
 
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
 
-#include <eckit/io/DataHandle.h>
+#include "eckit/io/DataHandle.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace eckit {
 class DataHandle;

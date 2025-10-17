@@ -9,7 +9,9 @@
  */
 #pragma once
 
-#include <eckit/system/Library.h>
+#include "eckit/system/Library.h"
+
+#include <string>
 
 namespace chunked_data_view {
 
