@@ -22,16 +22,23 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         ${Z3FDB_STAGING}/setup.py
     )
     add_subdirectory(chunked_data_view_bindings)
+    file(GLOB_RECURSE
+        _z3fdb_package_files
+        "z3fdb/*.py"
+        "pychunked_data_view/*.py"
+    )
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
+        COMMAND ${Python_INTERPRETER} -m build --wheel ${Z3FDB_STAGING} -o .
+        COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS ${_z3fdb_package_files}
+        :wqa
+        COMMENT "Building Python wheel for z3fdb..."
+    )
+    add_custom_target(z3fdb-wheel DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
 endif()
 
 if (HAVE_DUMMY_DAOS)
 	add_subdirectory(dummy_daos)
-endif()
-
-############################################################################################
-# Following directories are not packaged
-# currently this is developer only, hence not distributed
-
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/CMakeLists.txt)
-	add_subdirectory(sandbox)
 endif()

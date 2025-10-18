@@ -131,11 +131,9 @@ jobs:
           cmake --build fdb-build -j
           cd fdb-build
           ctest -j $(nproc) --output-on-failure
-      - name: Create Wheel
-        run: python -m build --wheel fdb-build/z3fdb-python-package-staging -o .
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
           name: z3fdb-wheel-py${{ matrix.python-version }}
-          path: "*.whl"
+          path: "build/z3fdb*.whl"
           retention-days: 10
