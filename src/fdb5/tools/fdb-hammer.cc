@@ -107,6 +107,10 @@ public:
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
         options_.push_back(new eckit::option::SimpleOption<bool>(
+            "no-randomise-data",
+            "Flag to disable randomisation of field data written. Written field data is randomised by default except "
+            " if --full-check is supplied."));
+        options_.push_back(new eckit::option::SimpleOption<bool>(
             "md-check",
             "Calculate a metadata checksum (checksum of the field key + unique operation identifier) on every field "
             "write and "
@@ -178,7 +182,7 @@ private:
 void FDBHammer::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool
-                       << " [--read] [--list] [--md-check|--full-check] [--statistics] "
+                       << " [--read] [--list] [--no-randomise-data] [--md-check|--full-check] [--statistics] "
                           "[--itt] [--step-window] [--random-delay] [--poll-period=<period>] [--uri-file=<path>] "
                           "[--poll-max-attempts=<attempts>] [--ppn=<ppn>] "
                           "[--nodes=<hostname1,hostname2,...>] [--barrier-port=<port>] [--barrier-max-wait=<seconds>] "
@@ -207,9 +211,6 @@ void FDBHammer::init(const eckit::option::CmdArgs& args) {
     full_check_ = args.getBool("full-check", false);
     if (full_check_)
         md_check_ = false;
-
-    if (itt_ && full_check_)
-        throw eckit::Exception("Cannot enable full consistency checks in ITT mode as it randomises data.");
 
     if (!itt_)
         ASSERT(args.has("nlevels"));
@@ -553,6 +554,8 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     size_t start_at    = args.getLong("start-at", 0);
     size_t stop_at     = args.getLong("stop-at", 0);
 
+    bool randomise_data = !args.getBool("no-randomise-data", false);
+
     bool delay = args.getBool("delay", false);
 
     ASSERT(nparams <= VALID_PARAMS.size());
@@ -568,6 +571,9 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
     int random_delay  = args.getInt("random-delay", 100);
     int port          = args.getInt("barrier-port", 7777);
     int max_wait      = args.getInt("barrier-max-wait", 10);
+
+    if (randomise_data && full_check_)
+        throw eckit::Exception("Cannot enable full consistency checks unless disabling data randomisation (--no-randomise-data).");
 
     const char* buffer = nullptr;
     size_t size        = 0;
@@ -719,7 +725,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
                     CODES_CHECK(codes_set_long(handle, "paramId", VALID_PARAMS[param]), 0);
 
-                    if (!full_check_) {
+                    if (randomise_data && !full_check_) {
 
                         // randomise field data
                         for (int i = 0; i < numberOfValues; ++i) {
@@ -738,7 +744,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                             {"number", str(member)},
                             {"step", str(istep)},
                             {"level", str(ilevel)},
-                            {"param", str(param)},
+                            {"param", str(VALID_PARAMS[param])},
                         });
                         std::string key_string(key);
                         eckit::MD5 md5(key_string);
@@ -800,6 +806,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                                      sizeof(uid_lo));
 
                             // calculate cheksum of data excluding the key and data checksum ranges
+
                             md5.reset();
                             md5.add(buffer + uidChecksumOffset, offsetAfterData - uidChecksumOffset);
                             digest           = md5.digest();
@@ -822,7 +829,7 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
 
                     MemoryHandle dh(buffer, size);
 
-                    if (member == number && istep == step && ilevel == level && param == 1)
+                    if (member == number && istep == step && (iter_count - 1 == start_at))
                         gettimeofday(&tval_before_io, NULL);
                     archiver.archive(dh);
                     writeCount++;
@@ -1069,6 +1076,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     fdb.emplace(config(args, userConfig));
     list_timer.stop();
     size_t fieldsRead = 0;
+    std::vector<fdb5::Key> listed_keys;
 
     if (itt_ && !uri_file.empty()) {
         std::vector<eckit::URI> uris;
@@ -1083,12 +1091,12 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
     }
     else {
         for (size_t istep = step; istep < nsteps + step; ++istep) {
-            request.setValue("step", step);
+            request.setValue("step", istep);
             if (itt_) {
                 /// @note: ensure the step to retrieve data for has been fully
                 ///   archived+flushed by listing all of its fields
                 for (auto& mars_list_request : mars_list_requests)
-                    mars_list_request.setValue("step", step);
+                    mars_list_request.setValue("step", istep);
                 if (verbose_) {
                     for (auto& mars_list_request : mars_list_requests)
                         eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
@@ -1106,6 +1114,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                     gettimeofday(&tval_before_io, NULL);
                 while (!dataReady) {
                     uris.clear();
+                    listed_keys.clear();
                     list_timer.start();
                     size_t count = 0;
                     for (auto& list_request : list_requests) {
@@ -1115,6 +1124,13 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                             if (verbose_)
                                 Log::info() << info.keys()[2] << std::endl;
                             uris.push_back(info.location().fullUri());
+                            fdb5::Key key = info.combinedKey();
+                            fdb5::Key short_key;
+                            short_key.set("number", key.get("number"));
+                            short_key.set("step", key.get("step"));
+                            short_key.set("level", key.get("levelist"));
+                            short_key.set("param", key.get("param"));
+                            listed_keys.push_back(short_key);
                             ++count;
                         }
                     }
@@ -1168,7 +1184,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
                                             << ", param: " << param << std::endl;
                             }
 
-                            if (member == number && istep == step && ilevel == str(level) && param == str(1)) {
+                            if (member == number && istep == step && (iter_count - 1 == start_at)) {
                                 gettimeofday(&tval_before_io, NULL);
                             }
                             handles.add(fdb->retrieve(request));
@@ -1204,7 +1220,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
 
         eckit::FileHandle fin(args(0));
         original_size.emplace(fin.size());
-        size_t expected = nensembles * nsteps * nlevels * nparams * (size_t)original_size.value();
+        size_t expected = fieldsRead * (size_t)original_size.value();
         buff.emplace(expected);
         mh.emplace(buff.value(), expected);
         total = dh->saveInto(mh.value());
@@ -1226,88 +1242,121 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs& args) {
         eckit::message::Reader reader(mh.value());
         eckit::message::Message msg;
 
-        for (size_t istep = step; istep < nsteps + step; ++istep) {
-            for (size_t member = number; member <= nensembles + number - 1; ++member) {
-                for (const auto& ilevel : levelist) {
-                    for (const auto& param : paramlist) {
+        auto checkMessage = [](eckit::message::Message& msg, const fdb5::Key& key, bool md_check_, bool full_check_) {
+            // TODO: get full grib key to ensure grib header is not corrupted
+            // fdb5::Key keycheck;
+            // fdb5::KeySetter setter(keycheck);
+            // msg.getMetadata(setter);
 
-                        if (!(msg = reader.next()))
-                            throw eckit::Exception("Found less fields than expected.");
+            // generate a checksum of the FDB key
+            std::string key_string(key);
+            eckit::MD5 md5(key_string);
+            std::string digest = md5.digest();
+            uint64_t key_hi    = std::stoull(digest.substr(0, 8), nullptr, 16);
+            uint64_t key_lo    = std::stoull(digest.substr(8, 16), nullptr, 16);
 
-                        if (eckit::Length(msg.length()) != original_size.value())
-                            throw eckit::Exception("Found a field of different size than the seed.");
+            // get message data offset
+            long offsetBeforeData = msg.getLong("offsetBeforeData");
+            long offsetAfterData  = msg.getLong("offsetAfterData");
 
-                        // TODO: get full grib key to ensure grib header is not corrupted
-                        // fdb5::Key keycheck;
-                        // fdb5::KeySetter setter(keycheck);
-                        // msg.getMetadata(setter);
+            if (md_check_) {
 
-                        // get message data offset
-                        long offsetBeforeData = msg.getLong("offsetBeforeData");
-                        long offsetAfterData  = msg.getLong("offsetAfterData");
+                long key_hi1 = 0, key_lo1 = 0, key_hi2 = 0, key_lo2 = 0;
+                long uid_hi1 = 0, uid_lo1 = 0, uid_hi2 = 0, uid_lo2 = 0;
+                ::memcpy(&key_hi1, &((char*)(msg.data()))[offsetBeforeData], sizeof(key_hi));
+                ::memcpy(&key_lo1, &((char*)(msg.data()))[offsetBeforeData + sizeof(key_hi)],
+                         sizeof(key_hi));
+                ::memcpy(&uid_hi1, &((char*)(msg.data()))[offsetBeforeData + 2 * sizeof(key_hi)],
+                         sizeof(key_hi));
+                ::memcpy(&uid_lo1, &((char*)(msg.data()))[offsetBeforeData + 3 * sizeof(key_hi)],
+                         sizeof(key_hi));
+                ::memcpy(&key_hi2, &((char*)(msg.data()))[offsetAfterData - 4 * sizeof(key_lo)],
+                         sizeof(key_hi));
+                ::memcpy(&key_lo2, &((char*)(msg.data()))[offsetAfterData - 3 * sizeof(key_lo)],
+                         sizeof(key_hi));
+                ::memcpy(&uid_hi2, &((char*)(msg.data()))[offsetAfterData - 2 * sizeof(key_lo)],
+                         sizeof(key_hi));
+                ::memcpy(&uid_lo2, &((char*)(msg.data()))[offsetAfterData - 1 * sizeof(key_lo)],
+                         sizeof(key_hi));
 
-                        // generate a checksum of the FDB key
-                        fdb5::Key key({
-                            {"number", str(member)},
-                            {"step", str(istep)},
-                            {"level", ilevel},
-                            {"param", param},
-                        });
-                        std::string key_string(key);
-                        eckit::MD5 md5(key_string);
-                        std::string digest = md5.digest();
-                        uint64_t key_hi    = std::stoull(digest.substr(0, 8), nullptr, 16);
-                        uint64_t key_lo    = std::stoull(digest.substr(8, 16), nullptr, 16);
+                ASSERT(key_hi == key_hi1 && key_hi == key_hi2);
+                ASSERT(key_lo == key_lo1 && key_lo == key_lo2);
+                ASSERT(uid_hi1 == uid_hi2);
+                ASSERT(uid_lo1 == uid_lo2);
+            }
 
-                        if (md_check_) {
+            if (full_check_) {
 
-                            long key_hi1 = 0, key_lo1 = 0, key_hi2 = 0, key_lo2 = 0;
-                            long uid_hi1 = 0, uid_lo1 = 0, uid_hi2 = 0, uid_lo2 = 0;
-                            ::memcpy(&key_hi1, &((char*)(msg.data()))[offsetBeforeData], sizeof(key_hi));
-                            ::memcpy(&key_lo1, &((char*)(msg.data()))[offsetBeforeData + sizeof(key_hi)],
-                                     sizeof(key_hi));
-                            ::memcpy(&uid_hi1, &((char*)(msg.data()))[offsetBeforeData + 2 * sizeof(key_hi)],
-                                     sizeof(key_hi));
-                            ::memcpy(&uid_lo1, &((char*)(msg.data()))[offsetBeforeData + 3 * sizeof(key_hi)],
-                                     sizeof(key_hi));
-                            ::memcpy(&key_hi2, &((char*)(msg.data()))[offsetAfterData - 4 * sizeof(key_lo)],
-                                     sizeof(key_hi));
-                            ::memcpy(&key_lo2, &((char*)(msg.data()))[offsetAfterData - 3 * sizeof(key_lo)],
-                                     sizeof(key_hi));
-                            ::memcpy(&uid_hi2, &((char*)(msg.data()))[offsetAfterData - 2 * sizeof(key_lo)],
-                                     sizeof(key_hi));
-                            ::memcpy(&uid_lo2, &((char*)(msg.data()))[offsetAfterData - 1 * sizeof(key_lo)],
-                                     sizeof(key_hi));
+                // calculate cheksum of data excluding the key and data checksum ranges
+                long uidChecksumOffset = offsetBeforeData + 4 * sizeof(key_lo);
+                eckit::MD5 md5(&((char*)(msg.data()))[uidChecksumOffset],
+                               offsetAfterData - uidChecksumOffset);
+                digest           = md5.digest();
+                uint64_t data_hi = std::stoull(digest.substr(0, 8), nullptr, 16);
+                uint64_t data_lo = std::stoull(digest.substr(8, 16), nullptr, 16);
 
-                            ASSERT(key_hi == key_hi1 && key_hi == key_hi2);
-                            ASSERT(key_lo == key_lo1 && key_lo == key_lo2);
-                            ASSERT(uid_hi1 == uid_hi2);
-                            ASSERT(uid_lo1 == uid_lo2);
-                        }
+                long key_hi1 = 0, key_lo1 = 0, data_hi1 = 0, data_lo1 = 0;
+                ::memcpy(&key_hi1, &((char*)(msg.data()))[offsetBeforeData], sizeof(key_hi));
+                ::memcpy(&key_lo1, &((char*)(msg.data()))[offsetBeforeData + sizeof(key_hi)],
+                         sizeof(key_hi));
+                ::memcpy(&data_hi1, &((char*)(msg.data()))[offsetBeforeData + 2 * sizeof(key_hi)],
+                         sizeof(key_hi));
+                ::memcpy(&data_lo1, &((char*)(msg.data()))[offsetBeforeData + 3 * sizeof(key_hi)],
+                         sizeof(key_hi));
 
-                        if (full_check_) {
+                ASSERT(key_hi == key_hi1);
+                ASSERT(key_lo == key_lo1);
+                ASSERT(data_hi == data_hi1);
+                ASSERT(data_lo == data_lo1);
+            }
+        };
 
-                            // calculate cheksum of data excluding the key and data checksum ranges
-                            long uidChecksumOffset = offsetBeforeData + 4 * sizeof(key_lo);
-                            eckit::MD5 md5(&((char*)(msg.data()))[uidChecksumOffset],
-                                           offsetAfterData - uidChecksumOffset);
-                            digest           = md5.digest();
-                            uint64_t data_hi = std::stoull(digest.substr(0, 8), nullptr, 16);
-                            uint64_t data_lo = std::stoull(digest.substr(8, 16), nullptr, 16);
+        if (itt_ && uri_file.empty()) {
 
-                            long key_hi1 = 0, key_lo1 = 0, data_hi1 = 0, data_lo1 = 0;
-                            ::memcpy(&key_hi1, &((char*)(msg.data()))[offsetBeforeData], sizeof(key_hi));
-                            ::memcpy(&key_lo1, &((char*)(msg.data()))[offsetBeforeData + sizeof(key_hi)],
-                                     sizeof(key_hi));
-                            ::memcpy(&data_hi1, &((char*)(msg.data()))[offsetBeforeData + 2 * sizeof(key_hi)],
-                                     sizeof(key_hi));
-                            ::memcpy(&data_lo1, &((char*)(msg.data()))[offsetBeforeData + 3 * sizeof(key_hi)],
-                                     sizeof(key_hi));
+            for (const auto& key : listed_keys) {
+                if (!(msg = reader.next()))
+                    throw eckit::Exception("Found less fields than expected.");
 
-                            ASSERT(key_hi == key_hi1);
-                            ASSERT(key_lo == key_lo1);
-                            ASSERT(data_hi == data_hi1);
-                            ASSERT(data_lo == data_lo1);
+                if (eckit::Length(msg.length()) != original_size.value())
+                    throw eckit::Exception("Found a field of different size than the seed.");
+
+                checkMessage(msg, key, md_check_, full_check_);
+            }
+
+        } else {
+
+            for (size_t istep = step; istep < nsteps + step; ++istep) {
+                for (size_t member = number; member <= nensembles + number - 1; ++member) {
+
+                    size_t iter_count = 0;
+
+                    for (const auto& ilevel : levelist) {
+
+                        if (iter_count > stop_at)
+                            break;
+
+                        for (const auto& param : paramlist) {
+
+                            if (iter_count > stop_at)
+                                break;
+                            if (iter_count++ < start_at)
+                                continue;
+
+                            if (!(msg = reader.next()))
+                                throw eckit::Exception("Found less fields than expected.");
+
+                            if (eckit::Length(msg.length()) != original_size.value())
+                                throw eckit::Exception("Found a field of different size than the seed.");
+
+                            fdb5::Key key({
+                                {"number", str(member)},
+                                {"step", str(istep)},
+                                {"level", ilevel},
+                                {"param", param},
+                            });
+
+                            checkMessage(msg, key, md_check_, full_check_);
+
                         }
                     }
                 }
