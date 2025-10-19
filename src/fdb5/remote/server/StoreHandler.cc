@@ -27,6 +27,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <mutex>
@@ -55,11 +56,6 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipe(clientID, requestID);
                 return Handled::Yes;
             
-            // PRESUMABLY HAVE TO DO SOMETHING HERE.
-            // case Message::WipeElement:  // request to do the actual wipe
-            //     wipeElements(clientID, requestID);
-            //     return Handled::Replied;
-
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -357,6 +353,7 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
 
     auto& ss = store(clientID);
 
+    // This check doesn't work with stateless stores. If we still want this, use some state in the handler.
     // auto out = ss.wipeElements();
     // if (out.empty()) {
     //     std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
@@ -364,7 +361,6 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
     //     error(what, clientID, requestID);
     //     return;
     // }
-    NOTIMP; // what was ss.wipeElements()  doing before?
 
     ss.doWipe(uris);
 }
@@ -375,21 +371,6 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
     ss.doWipe();
 }
 
-void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
-    NOTIMP;
-    // auto& ss             = store(clientID);
-    // const auto& elements = ss.wipeElements();
-
-    // eckit::Buffer wipeBuf(50_KiB * elements.size());
-    // eckit::MemoryStream outStream(wipeBuf);
-    // outStream << elements.size();
-    // for (const auto& el : elements) {
-    //     outStream << *el;
-    // }
-
-    // write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
-}
-
 void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
     ASSERT(payload.size() > 0);
@@ -398,13 +379,12 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     std::vector<eckit::URI> urisafe;
     bool all       = false;
     bool unsafeAll = false;
-    bool canWipe   = false;
-
+    bool canWipe   = false; // This is always false!
     eckit::MemoryStream inStream(payload);
     inStream >> uris;
     inStream >> urisafe;
     inStream >> all;
-    inStream >> unsafeAll;
+    // inStream >> unsafeAll;  // why did we drop this?
 
     std::set<eckit::URI> dataURIs;
     std::set<eckit::URI> safeURIs;

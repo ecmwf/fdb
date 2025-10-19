@@ -67,7 +67,6 @@ enum class Message : uint16_t {
     Store,
     Axes,
     Exists,
-    // WipeElement,
     DoWipe,
 
     // Responses

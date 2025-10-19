@@ -512,22 +512,31 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 // high-level API for wipe/purge
 WipeElements RemoteStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) {
-    NOTIMP;
-    // bool result = false;
+    bool canWipe = false;
 
-    // eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
-    // eckit::MemoryStream sms(sendBuf);
-    // sms << uris;
-    // sms << safeURIs;
-    // sms << all;
-    // sms << unsafeAll;
+    eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
+    eckit::MemoryStream sms(sendBuf);
+    sms << uris;
+    sms << safeURIs;
+    sms << all;
+    // sms << unsafeAll; // why did we drop this?
 
-    // auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
+    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
 
-    // eckit::MemoryStream rms(recvBuf);
-    // rms >> result;
+    eckit::MemoryStream rms(recvBuf);
+    rms >> canWipe; // bool. XXX Never checked... do we error if false, or is it no longer meaningful?
 
-    // return result;
+    size_t size;
+    rms >> size;
+
+    WipeElements wipeElements;
+    wipeElements.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+        wipeElements.push_back(std::make_shared<WipeElement>(rms));
+    }
+
+    return wipeElements;
+
 }
 
 bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
@@ -543,24 +552,6 @@ bool RemoteStore::doWipe() const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
     return true;
 }
-
-// const WipeElements& RemoteStore::wipeElements() const {
-//     wipeElements_.clear();
-
-//     auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
-
-//     size_t size;
-//     eckit::MemoryStream ms(recvBuf);
-//     ms >> size;
-
-//     wipeElements_.reserve(size);
-//     for (size_t i = 0; i < size; ++i) {
-//         wipeElements_.push_back(std::make_shared<WipeElement>(ms));
-//     }
-
-//     return wipeElements_;
-// }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

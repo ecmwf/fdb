@@ -385,10 +385,11 @@ void TocStore::remove(const Key& key) const {
     closedir(dirp);
 }
 
-/// @todo: rename 
-
+/// XXX: Document.
 // all == remove all contents of this store and also the corresponding toc. At the end of the wipe im expecting the store to be empty, and wish to remove the directory
 //  this happens when your wipe request is essentially the entire first level key.
+
+// this could operate on a wipestate object instead
 WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) {
     WipeElements wipeElements;
 

@@ -30,6 +30,24 @@ public:
 
     WipeState(const Key& dbKey, const Config& config) : dbKey_(dbKey), config_(config) {}
 
+    WipeState(eckit::Stream& s) : dbKey_(s), config_() { // XXX: Empty config(!!!). We may need it...
+        size_t n;
+        s >> n;
+        for (size_t i = 0; i < n; ++i) {
+            wipeElements_.emplace_back(std::make_shared<WipeElement>(s));
+        }
+        s >> n;
+        for (size_t i = 0; i < n; ++i) {
+            eckit::URI uri(s);
+            includeDataURIs_.insert(uri);
+        }
+        s >> n;
+        for (size_t i = 0; i < n; ++i) {
+            eckit::URI uri(s);
+            excludeDataURIs_.insert(uri);
+        }
+    }
+
     WipeElements& wipeElements() { return wipeElements_; } // Todo, make this const?
     const std::set<eckit::URI>& includeURIs() const { return includeDataURIs_; }
     const std::set<eckit::URI>& excludeURIs() const { return excludeDataURIs_; }
@@ -50,14 +68,30 @@ public:
         return CatalogueReaderFactory::instance().build(dbKey_, config_);
     }
 
+    const Config& config() const { return config_; }
 
-    const Config& config() { return config_; }
+    // encode / decode
+    void encode(eckit::Stream& s) const {
+        s << dbKey_;
+        // s << config_;
+        s << static_cast<size_t>(wipeElements_.size());
+        for (const auto& el : wipeElements_) {
+            s << *el;
+        }
+        s << static_cast<size_t>(includeDataURIs_.size());
+        for (const auto& uri : includeDataURIs_) {
+            s << uri;
+        }
+        s << static_cast<size_t>(excludeDataURIs_.size());
+        for (const auto& uri : excludeDataURIs_) {
+            s << uri;
+        }
+    }
 
 protected:
 
     // I kinda don't like wipeElements at all.
     WipeElements wipeElements_;
-
 
     // Are these always just .data, or can they be other things?
     std::set<eckit::URI> includeDataURIs_;

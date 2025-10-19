@@ -13,6 +13,7 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Inspector.h"
+#include "fdb5/database/WipeState.h"
 
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
@@ -115,7 +116,7 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     }
 };
 
-struct WipeHelper : BaseAPIHelper<fdb5::WipeElement, fdb5::remote::Message::Wipe> {
+struct WipeHelper : BaseAPIHelper<std::unique_ptr<fdb5::WipeState>, fdb5::remote::Message::Wipe> {
 
     WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
         doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
@@ -126,9 +127,10 @@ struct WipeHelper : BaseAPIHelper<fdb5::WipeElement, fdb5::remote::Message::Wipe
         s << unsafeWipeAll_;
     }
 
-    static fdb5::WipeElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
-        fdb5::WipeElement elem{s};
-        return elem;
+
+    static std::unique_ptr<fdb5::WipeState> valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        auto state = std::make_unique<fdb5::WipeState>(s);
+        return state;
     }
 
 private:
@@ -308,10 +310,8 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
 
-// Need to update this to return an iterator over wipe states, not wipe elements.
 InnerWipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    // return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
-    NOTIMP; // xxx TODO
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {
