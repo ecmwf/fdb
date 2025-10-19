@@ -29,6 +29,7 @@ class WipeState {
 public:
 
     WipeState(const Key& dbKey, const Config& config) : dbKey_(dbKey), config_(config) {}
+    WipeState() {}
 
     WipeState(eckit::Stream& s) : dbKey_(s), config_() { // XXX: Empty config(!!!). We may need it...
         size_t n;

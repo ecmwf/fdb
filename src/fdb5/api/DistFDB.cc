@@ -31,6 +31,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/database/WipeState.h"
 
 using eckit::Log;
 
@@ -208,11 +209,29 @@ StatusIterator DistFDB::status(const FDBToolRequest& request) {
 }
 
 InnerWipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    NOTIMP; // xxx TODO
-    // LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
-    // return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-    //     return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    // });
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
+    
+    // XXX: Awkward api coercion
+    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+        WipeIterator it = fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+        std::vector<std::shared_ptr<WipeElement>> elements;
+        WipeElement e;
+        while (it.next(e)) {
+            elements.push_back(std::make_shared<WipeElement>(std::move(e)));
+        }
+
+        using ValueType     = std::unique_ptr<WipeState>;
+        using QueryIterator = APIIterator<ValueType>;
+        using AsyncIterator = APIAsyncIterator<ValueType>;
+
+        auto async_worker = [elements = std::move(elements)](eckit::Queue<ValueType>& queue) {
+            std::unique_ptr<WipeState> state = std::make_unique<WipeState>();
+            state->wipeElements() = elements;
+        };
+
+        return QueryIterator(new AsyncIterator(async_worker));
+    });
+
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
