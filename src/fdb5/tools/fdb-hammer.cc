@@ -740,12 +740,11 @@ void FDBHammer::executeWrite(const eckit::option::CmdArgs& args) {
                     if (full_check_ or md_check_) {
 
                         // generate a checksum of the FDB key
-                        fdb5::Key key({
-                            {"number", str(member)},
-                            {"step", str(istep)},
-                            {"level", str(ilevel)},
-                            {"param", str(VALID_PARAMS[param])},
-                        });
+                        fdb5::Key key;
+                        key.set("number", str(member));
+                        key.set("step", str(istep));
+                        key.set("level", str(ilevel));
+                        key.set("param", str(VALID_PARAMS[param]));
                         std::string key_string(key);
                         eckit::MD5 md5(key_string);
                         std::string digest = md5.digest();
