@@ -16,8 +16,10 @@
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ViewPart.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -35,8 +37,6 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestK
     return *this;
 }
 
-// TODO(kkratz): extensionAxisIndex has to become an optional that _NEEDS_ to be set if more than one part has been
-// added because haveing multiple parts only makes sense if the extend on one axis.
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     extensionAxisIndex_ = index;
     return *this;
@@ -45,16 +45,20 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
 std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     std::vector<ViewPart> viewParts{};
     viewParts.reserve(parts_.size());
+
+    if (parts_.size() > 1 && extensionAxisIndex_.has_value() == false) {
+        throw eckit::UserError("Must specify an extension axis if multiple parts are specified.");
+    }
+
     std::shared_ptr<Fdb> fdb = std::move(fdb_);
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
         viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);
     }
-    // TODO(kkratz): Verfiy configuration:
+    // TODO(kkratz): Verify configuration:
     // - Ensure all requests define same Axis
-    // - Exatly one axis must be an extension
 
-    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), extensionAxisIndex_);
+    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), extensionAxisIndex_.value_or(0));
 }
 
 };  // namespace chunked_data_view
