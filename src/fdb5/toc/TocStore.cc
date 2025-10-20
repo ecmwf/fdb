@@ -467,7 +467,9 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
 }
 
 bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+    std::cout << "TocStore::doWipe: starting wipe over storeURIs_" << std::endl;
     for (const auto& uri : storeURIs_) {
+        std::cout << "TocStore::doWipe: removing uri " << uri << std::endl;
         if (uri.path().exists()) {
             remove(uri, std::cout, std::cout, true);
         }
@@ -483,42 +485,45 @@ bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
 }
 
 bool TocStore::doWipe(WipeState& wipeState) const {
+    NOTIMP; // use the other one?
+    // bool wipeAll                 = true;
+    // const WipeElements& elements = wipeState.wipeElements();
 
-    bool wipeAll                 = true;
-    const WipeElements& elements = wipeState.wipeElements();
+    // for (const auto& el : elements) {
+    //     if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
+    //         std::cout << "TocStore::doWipe Not wiping all: found safe URI: " << *el << std::endl;
+    //         wipeAll = false;
+    //     }
+    // }
 
-    for (const auto& el : elements) {
-        if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
-            wipeAll = false;
-        }
-    }
+    // for (const auto& el : elements) {
+    //     auto type = el->type();
+    //     if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
+    //         for (const auto& uri : el->uris()) {
+    //             if (wipeAll) {
+    //                 storeURIs_.emplace(uri.scheme(), uri.path().dirName());
+    //             }
+    //             remove(uri, std::cout, std::cout, true);
+    //         }
+    //     }
+    // }
 
-    for (const auto& el : elements) {
-        auto type = el->type();
-        if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-            for (const auto& uri : el->uris()) {
-                if (wipeAll) {
-                    storeURIs_.emplace(uri.scheme(), uri.path().dirName());
-                }
-                remove(uri, std::cout, std::cout, true);
-            }
-        }
-    }
-
-    return true;
+    // return true;
 }
 
 
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
-    // WE SHOULD MOVE AWAY FROM THIS
     std::cout << "TocStore::doWipe: starting wipe" << std::endl;
     bool wipeAll                 = true;
     const WipeElements& elements = wipeState.wipeElements();
     for (const auto& el : elements) {
         if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
+            std::cout << "TocStore::doWipe Not wiping all: found safe URI: " << *el << std::endl;
             wipeAll = false;
         }
     }
+
+    std::cout << "TocStore::doWipe: wiping elements. Wipeall=" << wipeAll << std::endl;
 
     for (const auto& el : elements) {
         auto type = el->type();
@@ -526,6 +531,7 @@ bool TocStore::doWipe(StoreWipeState& wipeState) const {
             std::cout << "TocStore::doWipe: store/aux: " << *el << std::endl;
             for (const auto& uri : el->uris()) {
                 if (wipeAll) {
+                    std::cout << "TocStore::doWipe: adding to storeURIs_: " << uri.path().dirName() << std::endl;
                     storeURIs_.emplace(uri.scheme(), uri.path().dirName());
                 }
                 remove(uri, std::cout, std::cout, true);

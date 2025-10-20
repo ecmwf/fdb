@@ -188,7 +188,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
     if (doit && !error) {
         std::unique_ptr<Catalogue> catalogue = catalogueWipeState.getCatalogue();
         catalogue->doWipe(unknownURIsCatalogue, catalogueWipeState);
-        for (const auto& [uri, storeState] : storeWipeStates) {
+        for (const auto& [uri, storeState] : storeWipeStates) { // I think this should be after the catalogue wipe? Otherwise the store will never wipe the dir.
             const Store& store = storeState->store();
 
             auto it = unknownURIsStore.find(uri);

@@ -303,6 +303,7 @@ bool TocCatalogue::doWipe(WipeState& wipeState) const {
 
     for (const auto& el : tocWipeState.wipeElements()) {
         if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
+            std::cout << "TocCatalogue::doWipe Not wiping all: found safe URI: " << *el << std::endl;
             wipeAll = false;
         }
     }
