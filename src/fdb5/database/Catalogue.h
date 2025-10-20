@@ -110,15 +110,19 @@ public:
     // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
     virtual bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const = 0;
 
-    virtual std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const = 0;
+    virtual void wipeFinalise(WipeState& wipeState) const = 0;
 
-    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs,
-                        WipeState& wipeState) const = 0;  // do we really need to pass unknowns separately?
-    virtual bool doWipe(WipeState& wipeState) const = 0;
+    virtual bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe(const WipeState& wipeState) const = 0;
+
+    virtual void doWipeEmptyDatabases() const = 0;
 
 protected:  // methods
 
     virtual void loadSchema() = 0;
+
+protected:  // members
+    mutable std::set<eckit::URI> emptyDatabases_;
 };
 
 class CatalogueImpl : virtual public Catalogue {

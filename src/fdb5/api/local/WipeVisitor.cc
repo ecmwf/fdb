@@ -57,37 +57,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         return false;
     }
 
-    // // Check that we are in a clean state (i.e. we only visit one DB).
-    // ASSERT(stores_.empty());
-    // ASSERT(catalogue.wipeElements().empty());
-    // ASSERT(catalogueWipeElements_.empty());
-    // ASSERT(storeWipeElements_.empty());
-
-    // @todo: Catalogue specific checks
-    // wipeElements = catalogue.wipeInit();
-
     ASSERT(!catalogueWipeState_);
+    
     catalogueWipeState_ = catalogue.wipeInit();
-    if (!catalogueWipeState_) {
-        //     for (const auto& el : catalogueWipeState_->wipeElements()) {
-        //         queue_.push(*el); // but isnt this empty atm?
-        //     }
-
-        // Log::error() << "Catalogue " << catalogue.key() << " cannot be wiped." << std::endl;
-        // auto errorIt = catalogueWipeElements_.find(WipeElementType::WIPE_ERROR);
-        // if (errorIt != catalogueWipeElements_.end() && !errorIt->second.empty()) {
-        //     for (const auto& el : errorIt->second) {
-        //         Log::error() << "Error: " << el.msg() << std::endl;
-        //         for (const auto& uri : el.uris()) {
-        //             Log::error() << "    " << uri << std::endl;
-        //         }
-        //     }
-        // }
-
-        // If the catalogue cannot be wiped, then we don't proceed.
-        // This is a safeguard against wiping a catalogue that is not in a state to be wiped.
-        return false;
-    }
 
     // Having selected a DB, construct the residual request. This is the request that is used for
     // matching Index(es) -- which is relevant if there is subselection of the database.
@@ -97,16 +69,6 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     }
 
     return true;  // Explore contained indexes
-}
-
-void WipeCatalogueVisitor::aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState) {
-
-    if (include) {
-        wipeState.include(dataURI);
-    }
-    else {
-        wipeState.exclude(dataURI);
-    }
 }
 
 bool WipeCatalogueVisitor::visitIndex(const Index& index) {
@@ -121,24 +83,22 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
-        aggregateURIs(dataURI, include, *catalogueWipeState_);
+        // aggregateURIs(dataURI, include, *catalogueWipeState_);
+        if (include) {
+            catalogueWipeState_->include(dataURI);
+        }
+        else {
+            catalogueWipeState_->exclude(dataURI);
+        }
     }
     return true;
 }
 
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
-    // We will be aggregating the following:
-    std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;
-    std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
-
     ASSERT(currentCatalogue_ == &catalogue);
 
-    auto maskedDataPaths = catalogue.wipeFinialise(*catalogueWipeState_);  // why returning uris
-    for (const auto& uri : maskedDataPaths) {
-        /// XXX : Why are these always included?
-        aggregateURIs(uri, true, *catalogueWipeState_);
-    }
+    catalogue.wipeFinalise(*catalogueWipeState_);
 
     queue_.emplace(std::move(catalogueWipeState_));
     EntryVisitor::catalogueComplete(catalogue);

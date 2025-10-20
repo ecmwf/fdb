@@ -60,6 +60,7 @@ public:
 
     void exclude(const eckit::URI& uri) { excludeDataURIs_.insert(uri); }
 
+    /// XXX: Move to CatalogueWipeState?
     std::unique_ptr<Catalogue> getCatalogue() const {
         return CatalogueReaderFactory::instance().build(dbKey_, config_);
     }
@@ -116,21 +117,34 @@ private:
     std::unique_ptr<Store> store_;
 };
 
-class TocWipeState : public WipeState {
+
+class CatalogueWipeState : public WipeState {
+public:
+    // consider not storing config in these classes. Just pass it by ref when needed.
+    CatalogueWipeState(const Key& dbKey, const Config& cfg) : WipeState(dbKey, cfg) {}
+
+    const std::vector<Index>& indexesToMask() const { return indexesToMask_; }
+
+protected:
+    std::vector<Index> indexesToMask_ = {};
+
+};
+
+class TocWipeState : public CatalogueWipeState {
 public:
 
-    TocWipeState(const Key& dbKey, const Config& cfg) : WipeState(dbKey, cfg) {}
+    TocWipeState(const Key& dbKey, const Config& cfg) : CatalogueWipeState(dbKey, cfg) {}
 
 private:
 
     friend class TocCatalogue;
 
+    // XXX ENSURE WE USE THESE!!!
     std::set<eckit::URI> subtocPaths_         = {};
     std::set<eckit::PathName> lockfilePaths_  = {};
     std::set<eckit::URI> indexPaths_          = {};
     std::set<eckit::URI> safePaths_           = {};
     std::set<eckit::PathName> residualPaths_  = {};
-    std::vector<Index> indexesToMask_         = {};
     std::set<eckit::PathName> cataloguePaths_ = {};
 };
 
@@ -143,7 +157,7 @@ public:
     WipeCoordinator() = default;
 
     // just a place for the wipe logic to live
-    void wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogueState, bool doit, bool unsafeWipeAll) const;
+    void wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipeState& catalogueState, bool doit, bool unsafeWipeAll) const;
 };
 
 

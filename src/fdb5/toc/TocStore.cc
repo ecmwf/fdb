@@ -466,73 +466,36 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
     return wipeElements;
 }
 
-bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
-    std::cout << "TocStore::doWipe: starting wipe over storeURIs_" << std::endl;
-    for (const auto& uri : storeURIs_) {
-        std::cout << "TocStore::doWipe: removing uri " << uri << std::endl;
-        if (uri.path().exists()) {
-            remove(uri, std::cout, std::cout, true);
-        }
-    }
+bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
             remove(uri, std::cout, std::cout, true);
         }
     }
 
-    storeURIs_.clear();
     return true;
 }
 
 bool TocStore::doWipe(WipeState& wipeState) const {
     NOTIMP; // use the other one?
-    // bool wipeAll                 = true;
-    // const WipeElements& elements = wipeState.wipeElements();
-
-    // for (const auto& el : elements) {
-    //     if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
-    //         std::cout << "TocStore::doWipe Not wiping all: found safe URI: " << *el << std::endl;
-    //         wipeAll = false;
-    //     }
-    // }
-
-    // for (const auto& el : elements) {
-    //     auto type = el->type();
-    //     if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-    //         for (const auto& uri : el->uris()) {
-    //             if (wipeAll) {
-    //                 storeURIs_.emplace(uri.scheme(), uri.path().dirName());
-    //             }
-    //             remove(uri, std::cout, std::cout, true);
-    //         }
-    //     }
-    // }
-
-    // return true;
 }
 
-
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
-    std::cout << "TocStore::doWipe: starting wipe" << std::endl;
-    bool wipeAll                 = true;
+    bool wipeAll              = true;
+
     const WipeElements& elements = wipeState.wipeElements();
     for (const auto& el : elements) {
         if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
-            std::cout << "TocStore::doWipe Not wiping all: found safe URI: " << *el << std::endl;
             wipeAll = false;
         }
     }
 
-    std::cout << "TocStore::doWipe: wiping elements. Wipeall=" << wipeAll << std::endl;
-
     for (const auto& el : elements) {
         auto type = el->type();
         if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-            std::cout << "TocStore::doWipe: store/aux: " << *el << std::endl;
             for (const auto& uri : el->uris()) {
                 if (wipeAll) {
-                    std::cout << "TocStore::doWipe: adding to storeURIs_: " << uri.path().dirName() << std::endl;
-                    storeURIs_.emplace(uri.scheme(), uri.path().dirName());
+                    emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
                 }
                 remove(uri, std::cout, std::cout, true);
             }
@@ -541,32 +504,20 @@ bool TocStore::doWipe(StoreWipeState& wipeState) const {
             std::cout << "TocStore::doWipe: skipping non-store/aux wipe element: " << *el << std::endl;
         }
     }
-    std::cout << "TocStore::doWipe: completed wipe" << std::endl;
+    
     return true;
 }
 
+void TocStore::doWipeEmptyDatabases() const {
+    for (const auto& uri : emptyDatabases_) {
+        eckit::PathName path = uri.path();
+        if (path.exists()) {
+            remove(uri, std::cout, std::cout, true);
+        }
+    }
 
-// bool TocStore::wipe(const std::vector<WipeElement>& elements) {
-//     //     auto it = storeWipeElements_.find(WipeElementType::WIPE_STORE_SAFE);
-//     // if (it != storeWipeElements_.end()) {
-//     for (const auto& p : safeStorePaths_) {
-//         for (std::set<PathName>* s :
-//             {&dataPaths_, &auxiliaryDataPaths_}) {
-//             s->erase(p.path());
-//         }
-//     }
-
-//     return true;
-// }
-
-// const std::vector<eckit::URI>& deleteURIs() {
-
-// }
-
-
-// WipeIterator TocStore::wipe(const std::vector<eckit::URI>& uris, bool all) const {
-
-// }
+    emptyDatabases_.clear();
+}
 
 void TocStore::print(std::ostream& out) const {
     out << "TocStore(" << directory_ << ")";

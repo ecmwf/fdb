@@ -145,8 +145,9 @@ public:  // methods
     // bool auxiliaryURIExists(const eckit::URI&) const override;
 
     WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const override;
     bool doWipe() const override;
+    void doWipeEmptyDatabases() const override;
 
 protected:  // methods
 

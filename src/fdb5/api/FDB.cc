@@ -254,10 +254,10 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
 
     auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
-        InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+        InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll); // WipeStateIterator
 
         // Coordinate the wipe across catalogues and stores
-        WipeCoordinator helper;
+        WipeCoordinator coordinator; //{internal_->config()};
         std::unique_ptr<WipeState> catalogueWipeState;
         while (it.next(catalogueWipeState)) {
 
@@ -265,7 +265,10 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
                 continue;
             }
 
-            helper.wipe(queue, *catalogueWipeState, doit, unsafeWipeAll);
+            // need to cast to CatalogueWipeState // TODO: make visitor return CatalogueWipeState directly
+            CatalogueWipeState& catalogueWipeStateRef = static_cast<CatalogueWipeState&>(*catalogueWipeState);
+
+            coordinator.wipe(queue, catalogueWipeStateRef, doit, unsafeWipeAll);
         }
 
         queue.close();

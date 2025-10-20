@@ -63,10 +63,11 @@ public:  // methods
 
     WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) override;
 
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const override;
     bool doWipe(WipeState& wipeState) const override;
     bool doWipe(StoreWipeState& wipeState) const override;
 
+    void doWipeEmptyDatabases() const override;
 
     // const std::vector<eckit::URI>& deleteURIs() override;
 
@@ -114,7 +115,6 @@ private:  // members
     size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
 
-    mutable std::set<eckit::URI> storeURIs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

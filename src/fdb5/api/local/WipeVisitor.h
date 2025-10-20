@@ -66,11 +66,6 @@ public:  // methods
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
-private:  // methods
-
-    void get_stores(const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include);
-    void aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState);
-
 private:  // members
 
     bool doit_;

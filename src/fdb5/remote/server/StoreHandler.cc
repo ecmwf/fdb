@@ -362,7 +362,9 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
     //     return;
     // }
 
-    ss.doWipe(uris);
+    // !!! we should rename this function too...
+
+    ss.doWipeUnknownContents(uris);
 }
 
 void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {

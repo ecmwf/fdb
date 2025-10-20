@@ -81,14 +81,17 @@ protected:  // methods
     // wipe
     std::unique_ptr<WipeState> wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const override;
-    std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override;
-    bool doWipe(WipeState& wipeState) const override;
-    // bool doWipe() const override;
+    void wipeFinalise(WipeState& wipeState) const override;
+    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe(const WipeState& wipeState) const override;
+
+    void doWipeEmptyDatabases() const override;
 
 private:  // methods
 
-    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
+    // void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
+    void addMaskedPaths(TocWipeState& tocWipeState) const;
+
     // void ensureSafePaths() const;
     // void calculateResidualPaths() const;
 

@@ -82,10 +82,12 @@ public:  // methods
     std::unique_ptr<WipeState> wipeInit() const override { NOTIMP; }
     bool wipeIndex(const Index&, bool, WipeState&) const override { NOTIMP; }
     // std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
-    bool doWipe(WipeState& wipeState) const override { NOTIMP; }
-    std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override { NOTIMP; }  // why returning uris
 
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override { NOTIMP; }
+    // how are these possibly notimp?!?!?!
+    bool doWipe(const WipeState& wipeState) const override { NOTIMP; }
+    void wipeFinalise(WipeState& wipeState) const override { NOTIMP; }
+    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override { NOTIMP; }
+    void doWipeEmptyDatabases() const override {NOTIMP; }
 
 protected:
 

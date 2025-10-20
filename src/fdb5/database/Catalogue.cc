@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include <_stdio.h>
 #include <cstring>
 #include <map>
 

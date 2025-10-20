@@ -6,7 +6,7 @@ namespace fdb5 {
 namespace {
 
 // Use WipeState from the Catalogue to assign safe and data URIs to the corresponding stores
-std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(WipeState& wipeState) {
+std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(const WipeState& wipeState) {
     std::map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates;
 
     auto storeState = [&](const eckit::URI& storeURI) -> StoreWipeState& {
@@ -34,7 +34,7 @@ std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(WipeState& wipe
 
 
 // todo: break this logic up a bit more, for readability.
-void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogueWipeState, bool doit,
+void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipeState& catalogueWipeState, bool doit,
                            bool unsafeWipeAll) const {
 
     bool error   = false;  ///
@@ -185,25 +185,65 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
 
     queue.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
 
+    // todo: this should probably be reported via wipe element
+
+    eckit::Log::info() << "Masking indexes: " << std::endl;
+    for (const auto& index : catalogueWipeState.indexesToMask()) {
+        eckit::Log::info() << index << std::endl;
+    }
+    
+    if (error && doit) {
+        ASSERT(false); /// xxx:: actual error
+        return;
+    }
+
     if (doit && !error) {
+
+        // We shall do the following, in order:
+        // - 1. mask any indexes that need masking.
+        // - 2. wipe the unknown files in catalogue and stores.
+        // - 3. wipe the files known by the stores.
+        // - 4. wipe the files known by the catalogue.
+        // - 5. wipe empty databases.
+        
+
         std::unique_ptr<Catalogue> catalogue = catalogueWipeState.getCatalogue();
-        catalogue->doWipe(unknownURIsCatalogue, catalogueWipeState);
-        for (const auto& [uri, storeState] : storeWipeStates) { // I think this should be after the catalogue wipe? Otherwise the store will never wipe the dir.
+
+        // 1. Mask indexes
+        for (const auto& index : catalogueWipeState.indexesToMask()) {
+            catalogue->maskIndexEntry(index);
+        }
+
+        // 2. Wipe unknown files
+        catalogue->wipeUnknown(unknownURIsCatalogue);
+        for (const auto& [uri, storeState] : storeWipeStates) {
             const Store& store = storeState->store();
 
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
-                store.doWipe(std::vector<eckit::URI>{});
+                store.doWipeUnknownContents(std::vector<eckit::URI>{});
             }
             else {
-                store.doWipe(it->second);
+                store.doWipeUnknownContents(it->second);
             }
         }
-        catalogue->doWipe(catalogueWipeState);
-        for (const auto& [uri, storeState] : storeWipeStates) {  // so much repetition...
+
+        // 3. Wipe files known by the stores
+        for (const auto& [uri, storeState] : storeWipeStates) {
             const Store& store = storeState->store();
             store.doWipe(*storeState);
         }
+
+        // 4. Wipe files known by the catalogue
+        catalogue->doWipe(catalogueWipeState);
+
+        // 5. wipe empty databases
+        catalogue->doWipeEmptyDatabases();
+        for (const auto& [uri, storeState] : storeWipeStates) {
+            const Store& store = storeState->store();
+            store.doWipeEmptyDatabases();
+        }
+
     }
 }
 

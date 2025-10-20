@@ -539,7 +539,7 @@ WipeElements RemoteStore::prepareWipe(const std::set<eckit::URI>& uris, const st
     return wipeElements;
 }
 
-bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+bool RemoteStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::MemoryStream sms(sendBuf);
     sms << unknownURIs.size();
@@ -551,6 +551,11 @@ bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
 bool RemoteStore::doWipe() const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
     return true;
+}
+void RemoteStore::doWipeEmptyDatabases() const {
+    // emptyDatabases_ will be accumulated on the server side.
+    // controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), true);
+    NOTIMP;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
