@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -31,10 +32,14 @@ public:
     /// Multiple keywords can map to one axis.
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
                                     std::unique_ptr<Extractor> extractor);
+
     /// On which axis the multiple parts extend each other.
-    /// For example the 3rd axis maps the
-    /// TODO(kkratz): This is currently limiting and probably needs extension
+    /// For multiple part builds this all other axis must have the same extension. For a single
+    /// part build this index is simply ignored.
+    ///
+    /// @throws eckit::UserException in case the index is not a valid axis
     ChunkedDataViewBuilder& extendOnAxis(size_t index);
+
     std::unique_ptr<ChunkedDataView> build();
 
 private:
@@ -42,6 +47,6 @@ private:
     std::unique_ptr<Fdb> fdb_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::unique_ptr<Extractor>>> parts_{};
     // TODO(kkratz): Should probably be an optional to facilitate the 1 request case
-    size_t extensionAxisIndex_{};
+    std::optional<size_t> extensionAxisIndex_ = std::nullopt;
 };
 }  // namespace chunked_data_view
