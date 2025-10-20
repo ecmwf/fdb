@@ -29,12 +29,14 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
                 shape_[idx] += part.shape()[idx];
             }
             else if (shape_[idx] != part.shape()[idx]) {
-                throw eckit::UserError("ChunkedDataViewImpl: Axis size mismatch. All axis besides the extension axis have to match in their extent.");
+                throw eckit::UserError(
+                    "ChunkedDataViewImpl: Axis size mismatch. All axis besides the extension axis have to match in "
+                    "their extent.");
             }
         }
     }
 
-    if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) { // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) {  // The implicit dimension must be subtracted
         std::stringstream buf{};
         buf << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
         buf << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;

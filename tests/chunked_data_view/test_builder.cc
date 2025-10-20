@@ -225,7 +225,9 @@ CASE("ChunkedDataView | One part - extension axis set | Invalid extension axis i
         .build();
 }
 
-CASE("ChunkedDataView | Two parts - extension axis set | Invalid extension axis index for multiple part | Expected FAILURE") {
+CASE(
+    "ChunkedDataView | Two parts - extension axis set | Invalid extension axis index for multiple part | Expected "
+    "FAILURE") {
     const std::string keys{
         "type=an,"
         "domain=g,"
