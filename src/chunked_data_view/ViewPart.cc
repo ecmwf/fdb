@@ -25,7 +25,6 @@
 #include <memory>
 #include <set>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -47,7 +46,7 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
         parameters.reserve(axis.keys.size());
         for (const auto& key : axis.keys) {
             if (processedKeywords.count(key) != 0) {
-                throw std::runtime_error("ViewPart::ViewPart:Keyword already mapped by another axis");
+                throw eckit::UserError("ViewPart::ViewPart:Keyword already mapped by another axis");
             }
             processedKeywords.insert(key);
             parameters.emplace_back(std::make_tuple(key, request_.values(key)));
@@ -57,11 +56,10 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 
     for (const auto& p : request_.parameters()) {
         if (p.count() > 1 && processedKeywords.count(p.name()) != 1) {
-            // TODO(kkratz): Use appropiate exception
             std::stringstream buf{};
             buf << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
                 << " values but is not mapped by an axis.";
-            throw std::runtime_error(buf.str());
+            throw eckit::UserError(buf.str());
         }
     }
 
