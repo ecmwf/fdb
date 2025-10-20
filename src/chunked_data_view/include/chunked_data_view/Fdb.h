@@ -13,8 +13,6 @@
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
-// TODO(kkratz): Key is not part of the public API of FDB
-#include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <filesystem>
@@ -22,12 +20,6 @@
 #include <optional>
 
 namespace chunked_data_view {
-
-struct KeyDatahandlePair {
-    fdb5::Key key;
-    eckit::URI uri;
-    std::unique_ptr<eckit::DataHandle> data_handle;
-};
 
 class Fdb {
 public:
