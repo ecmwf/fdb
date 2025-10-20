@@ -7,6 +7,10 @@ add_subdirectory(fdb5)
 add_subdirectory(chunked_data_view)
 
 if (HAVE_PYTHON_ZARR_INTERFACE)
+    # We create the complete python package layout at this location.
+    # This allows us to run python wheel creation at this path and 
+    # to put this path on the PYTHONPATH to allow direct use of
+    # z3fdb, e.g. for testing or local exploration.
     set(Z3FDB_STAGING "${CMAKE_BINARY_DIR}/z3fdb-python-package-staging")
     file(MAKE_DIRECTORY "${Z3FDB_STAGING}")
     file(CREATE_LINK
@@ -20,6 +24,7 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/z3fdb_setup.py.in
         ${Z3FDB_STAGING}/setup.py
+        @ONLY
     )
     add_subdirectory(chunked_data_view_bindings)
     file(GLOB_RECURSE
@@ -33,7 +38,6 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS ${_z3fdb_package_files}
-        :wqa
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
