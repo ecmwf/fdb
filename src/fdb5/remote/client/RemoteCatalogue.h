@@ -83,11 +83,10 @@ public:  // methods
     bool wipeIndex(const Index&, bool, WipeState&) const override { NOTIMP; }
     // std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
 
-    // how are these possibly notimp?!?!?!
-    bool doWipe(const WipeState& wipeState) const override { NOTIMP; }
     void wipeFinalise(WipeState& wipeState) const override { NOTIMP; }
-    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override { NOTIMP; }
-    void doWipeEmptyDatabases() const override {NOTIMP; }
+    bool doWipe(const WipeState& wipeState) const override;
+    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override;
+    void doWipeEmptyDatabases() const override;
 
 protected:
 

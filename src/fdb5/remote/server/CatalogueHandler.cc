@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/remote/server/CatalogueHandler.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Catalogue.h"
@@ -16,6 +17,8 @@
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/api/FDBFactory.h"
 
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
@@ -131,6 +134,22 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::DoWipe:
+                // doit! We expect DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
+                std::cout << "CatalogueHandler::handleControl: got DoWipe message" << std::endl;
+                doWipe(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::DoWipeUnknowns:
+                std::cout << "CatalogueHandler::handleControl: got DoWipeUnknowns message" << std::endl;
+                doWipeUnknowns(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::DoWipeEmptyDatabases:
+                std::cout << "CatalogueHandler::handleControl: got DoWipeEmptyDatabases message" << std::endl;
+                doWipeEmptyDatabases(clientID, requestID);
+                return Handled::Yes;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -200,20 +219,45 @@ private:
     int level_;
 };
 
-struct WipeHelper : public BaseHelper<WipeElement> {
-    virtual size_t encodeBufferSize(const WipeElement& el) const { return el.encodeSize(); }
+struct WipeHelper : public BaseHelper<std::unique_ptr<WipeState>> {
+    virtual size_t encodeBufferSize(const std::unique_ptr<WipeState>& el) const { return el->encodeSize(); } // can possibly avoid entirely
+
+    Encoded encode(const std::unique_ptr<WipeState>& state, const CatalogueHandler&) const {
+        eckit::Buffer encodeBuffer(encodeBufferSize(state));
+        ResizableMemoryStream s(encodeBuffer);
+        s << *state;
+        return {s.position(), std::move(encodeBuffer)};
+}
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
         s >> porcelain_;
         s >> unsafeWipeAll_;
     }
-    WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
+
+    InnerWipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        using ValueType     = std::unique_ptr<WipeState>;
+        using QueryIterator = APIIterator<ValueType>;
+        using AsyncIterator = APIAsyncIterator<ValueType>;
+
+        auto async_worker = [request, &fdb, this](Queue<ValueType>& queue) {
+
+            // XXX: Maybe a  bit of a hack, but I can't call fdb.wipe() directly (otherwise catalogue will try to talk to stores remotely)
+            auto internal = FDBFactory::instance().build(fdb.config());
+            auto it = internal->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
+
+            std::vector<std::unique_ptr<WipeState>> states;
+            std::unique_ptr<WipeState> state;
+            while (it.next(state)) {
+                queue.emplace(std::move(state));
+            }
+        };
+
+        return QueryIterator(new AsyncIterator((async_worker)));
+
     }
 
 private:
-
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;
@@ -258,8 +302,9 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
                                        ASSERT(fdb);
                                    }
                                    auto iterator = helper.apiCall(*fdb, request);
+
                                    typename decltype(iterator)::value_type elem;
-                                   while (iterator.next(elem)) {
+                                   while (iterator.next(elem)) { // std::exception!!!
                                        auto encoded(helper.encode(elem, *this));
                                        write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
                                    }
@@ -521,5 +566,64 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     }
     return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
 }
+
+void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    
+    ASSERT(!currentWipe_.catalogue); /// < shouldn't already be wiping something
+
+    // Get the WipeState from the payload. Don't need to reanimate the whole thing
+    // NB: this should be CatalogueWipeState
+    std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
+    MemoryStream s(payload);
+    auto wipeState = std::make_unique<WipeState>(s);
+    const Key& dbKey = wipeState->dbKey();
+
+    currentWipe_.catalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
+    currentWipe_.clientID  = clientID;
+    currentWipe_.requestID = requestID;
+
+    // Do the wipe
+    currentWipe_.catalogue->doWipe(*wipeState);
+}
+
+void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
+
+    ASSERT(currentWipe_.catalogue); /// < set in doWipe
+    ASSERT(currentWipe_.clientID == clientID);
+    ASSERT(currentWipe_.requestID == requestID);
+
+    // Get the list of URIs from the payload
+    MemoryStream s(payload);
+    size_t n;
+    s >> n;
+
+    if (n == 0) {
+        return;
+    }
+
+    std::vector<eckit::URI> unknownURIs;
+    unknownURIs.reserve(n);
+    for (size_t i = 0; i < n; ++i) {
+        eckit::URI uri;
+        s >> uri;
+        unknownURIs.push_back(uri);
+    }
+
+    // Do the wipe of unknowns
+    currentWipe_.catalogue->wipeUnknown(unknownURIs);
+}
+
+void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID) {
+
+    ASSERT(currentWipe_.catalogue); /// < set in doWipe
+    ASSERT(currentWipe_.clientID == clientID);
+    ASSERT(currentWipe_.requestID == requestID);
+
+    currentWipe_.catalogue->doWipeEmptyDatabases();
+
+    // We're finished with the wipe!
+    currentWipe_.catalogue.reset();
+}
+
 
 }  // namespace fdb5::remote

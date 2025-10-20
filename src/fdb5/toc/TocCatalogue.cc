@@ -148,7 +148,7 @@ bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
 
 
 std::unique_ptr<WipeState> TocCatalogue::wipeInit() const {
-    return std::make_unique<TocWipeState>(dbKey_, config_);
+    return std::make_unique<TocWipeState>(dbKey_);
 }
 
 bool TocCatalogue::wipeIndex(const Index& index, bool include, WipeState& wipeState) const {

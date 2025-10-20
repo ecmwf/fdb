@@ -2,17 +2,14 @@
 
 namespace fdb5 {
 
-
-namespace {
-
 // Use WipeState from the Catalogue to assign safe and data URIs to the corresponding stores
-std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(const WipeState& wipeState) {
+std::map<eckit::URI, std::unique_ptr<StoreWipeState>> WipeCoordinator::getStoreStates(const WipeState& wipeState) const {
     std::map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates;
 
     auto storeState = [&](const eckit::URI& storeURI) -> StoreWipeState& {
         auto [it, inserted] = storeWipeStates.try_emplace(storeURI, nullptr);
         if (inserted || !it->second) {
-            it->second = std::make_unique<StoreWipeState>(it->first, wipeState.config());
+            it->second = std::make_unique<StoreWipeState>(it->first);
         }
         return *it->second;
     };
@@ -30,8 +27,6 @@ std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(const WipeState
     return storeWipeStates;
 }
 
-}  // namespace
-
 
 // todo: break this logic up a bit more, for readability.
 void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipeState& catalogueWipeState, bool doit,
@@ -44,6 +39,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
     std::map<WipeElementType, std::shared_ptr<WipeElement>> storeElements;
 
     // Gather unknowns from the catalogue
+    eckit::Log::info() << "WipeCoordinator::wipe - gathering unknownURIs from catalogueWipeState" << std::endl;
     for (const auto& el : catalogueWipeState.wipeElements()) {
         if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
             wipeAll = false;
@@ -56,8 +52,11 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         }
     }
 
-    auto storeWipeStates = get_stores(catalogueWipeState);
+    eckit::Log::info() << "WipeCoordinator::wipe - gathering store wipe states" << std::endl;
+    auto storeWipeStates = getStoreStates(catalogueWipeState);
+    ASSERT(!storeWipeStates.empty());
 
+    eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
     for (const auto& [storeURI, storeStatePtr] : storeWipeStates) {
         auto& storeState = *storeStatePtr;
 
@@ -66,7 +65,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         }
 
         // This could act on the storeWipeState directly.
-        auto elements = storeState.store().prepareWipe(storeState.includeURIs(), storeState.excludeURIs(), wipeAll);
+        auto elements = storeState.store(config_).prepareWipe(storeState.includeURIs(), storeState.excludeURIs(), wipeAll);
 
         for (const auto& el : elements) {
             storeState.insertWipeElement(el);  // could be done in prepare wipe.
@@ -140,7 +139,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
     }
 
     // PUSHING TO THE REPORT QUEUE
-
+    eckit::Log::info() << "WipeCoordinator::wipe - pushing wipe elements to report queue" << std::endl;
     if (wipeAll && doit && !unknownURIs.empty() && !unsafeWipeAll) {
         WipeElement el(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:");
         queue.push(el);
@@ -162,7 +161,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
 
     // gather the unknowns.
     // This can surely be done better...
-
+    eckit::Log::info() << "WipeCoordinator::wipe - gathering unknown URIs" << std::endl;
     std::set<eckit::URI> unknownURIsSet;
     std::vector<eckit::URI> unknownURIsCatalogue;
     std::map<eckit::URI, std::vector<eckit::URI>> unknownURIsStore;
@@ -185,11 +184,14 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
 
     queue.emplace(WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet));
 
+    
     // todo: this should probably be reported via wipe element
-
-    eckit::Log::info() << "Masking indexes: " << std::endl;
-    for (const auto& index : catalogueWipeState.indexesToMask()) {
-        eckit::Log::info() << index << std::endl;
+    const auto& indexesToMask = catalogueWipeState.indexesToMask();
+    if (!indexesToMask.empty()) {
+        eckit::Log::info() << "Masking indexes: " << std::endl;
+        for (const auto& index : indexesToMask) {
+            eckit::Log::info() << index << std::endl; // !! issues on remote fdb?
+        }
     }
     
     if (error && doit) {
@@ -198,7 +200,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
     }
 
     if (doit && !error) {
-
+        eckit::Log::info() << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
         // We shall do the following, in order:
         // - 1. mask any indexes that need masking.
         // - 2. wipe the unknown files in catalogue and stores.
@@ -207,17 +209,19 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         // - 5. wipe empty databases.
         
 
-        std::unique_ptr<Catalogue> catalogue = catalogueWipeState.getCatalogue();
+        std::unique_ptr<Catalogue> catalogue = CatalogueReaderFactory::instance().build(catalogueWipeState.dbkey(), config_);
 
         // 1. Mask indexes
+        eckit::Log::info() << "WipeCoordinator::wipe - masking indexes" << std::endl;
         for (const auto& index : catalogueWipeState.indexesToMask()) {
             catalogue->maskIndexEntry(index);
         }
 
         // 2. Wipe unknown files
+        eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
         catalogue->wipeUnknown(unknownURIsCatalogue);
         for (const auto& [uri, storeState] : storeWipeStates) {
-            const Store& store = storeState->store();
+            const Store& store = storeState->store(config_);
 
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
@@ -229,22 +233,27 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         }
 
         // 3. Wipe files known by the stores
+        eckit::Log::info() << "WipeCoordinator::wipe - wiping store known URIs" << std::endl;
         for (const auto& [uri, storeState] : storeWipeStates) {
-            const Store& store = storeState->store();
+            const Store& store = storeState->store(config_);
             store.doWipe(*storeState);
         }
 
         // 4. Wipe files known by the catalogue
+        eckit::Log::info() << "WipeCoordinator::wipe - wiping catalogue known URIs" << std::endl;
         catalogue->doWipe(catalogueWipeState);
 
         // 5. wipe empty databases
+        eckit::Log::info() << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
         catalogue->doWipeEmptyDatabases();
         for (const auto& [uri, storeState] : storeWipeStates) {
-            const Store& store = storeState->store();
+            const Store& store = storeState->store(config_);
             store.doWipeEmptyDatabases();
         }
 
     }
+
+    eckit::Log::info() << "WipeCoordinator::wipe - completed" << std::endl;
 }
 
 

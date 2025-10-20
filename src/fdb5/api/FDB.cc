@@ -257,7 +257,7 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
         InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll); // WipeStateIterator
 
         // Coordinate the wipe across catalogues and stores
-        WipeCoordinator coordinator; //{internal_->config()};
+        WipeCoordinator coordinator{internal_->config()};
         std::unique_ptr<WipeState> catalogueWipeState;
         while (it.next(catalogueWipeState)) {
 

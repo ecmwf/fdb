@@ -96,7 +96,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 wipe(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::DoWipe:  // notification that the client is starting to send data location for read
+            case Message::DoWipe:
                 doWipe(clientID, requestID, payload);
                 return Handled::Yes;
 

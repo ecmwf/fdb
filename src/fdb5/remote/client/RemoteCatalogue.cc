@@ -10,6 +10,7 @@
 
 #include "fdb5/remote/client/RemoteCatalogue.h"
 
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
@@ -18,6 +19,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/WipeState.h"
 
 #include <cstddef>
 #include <memory>
@@ -236,12 +238,46 @@ std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {
     NOTIMP;
 }
 void RemoteCatalogue::maskIndexEntry(const Index& index) const {
-    NOTIMP;
+    // NOTIMP; 
+    // TODO: implement remote masking of index entries
+    std::cout << "XXX RemoteCatalogue::maskIndexEntry NOOP" << std::endl;
 }
 void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                                 std::set<eckit::URI>& data) const {
     NOTIMP;
 }
+
+bool RemoteCatalogue::doWipe(const WipeState& wipeState) const {
+    // send wipestate to server w/ Message::DoWipe
+    eckit::Buffer sendBuf(defaultBufferSizeKey);
+    eckit::ResizableMemoryStream s(sendBuf); // does resizable memory stream actually work?
+    wipeState.encode(s);
+    std::cout << "RemoteCatalogue::doWipe called, wipestate encoded size = " << s.position() << std::endl;
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false,  sendBuf, s.position());
+    return true;
+
+}
+bool RemoteCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const {
+    // send unknown uris to server w/ Message::DoWipeUnknowns
+    eckit::Buffer sendBuf(unknownURIs.size() * 256); 
+    eckit::MemoryStream s(sendBuf); // Write error on MemoryStream (No such file or directory)  !?
+    s << unknownURIs;
+
+    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), false, sendBuf, s.position());
+
+    return true;
+}
+void RemoteCatalogue::doWipeEmptyDatabases() const {
+    // notify server to wipe any empty DBs w/ Message::DoWipeEmptyDatabases
+    
+    eckit::Buffer sendBuf(0);
+    eckit::MemoryStream s(sendBuf);
+
+    controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), false, sendBuf, s.position());
+    
+    return;
+}
+
 void RemoteCatalogue::print(std::ostream& out) const {
     out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
 }

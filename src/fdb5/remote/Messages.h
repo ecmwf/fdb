@@ -67,7 +67,11 @@ enum class Message : uint16_t {
     Store,
     Axes,
     Exists,
+    
+    // Wipe related messages
     DoWipe,
+    DoWipeUnknowns,
+    DoWipeEmptyDatabases,
 
     // Responses
     Received = 200,

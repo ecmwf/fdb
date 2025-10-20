@@ -159,6 +159,7 @@ InnerWipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
 
         auto async_worker = [elements = std::move(elements)](Queue<ValueType>& queue) {
             std::unique_ptr<WipeState> state = std::make_unique<WipeState>(elements);
+            queue.emplace(std::move(state));
         };
 
         return QueryIterator(new AsyncIterator(async_worker));

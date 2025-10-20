@@ -71,6 +71,11 @@ private:  // methods
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
+    void doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
+    void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID);
+
+
 private:  // member
 
     // clientID --> <catalogue, locationsExpected, locationsArchived>
@@ -82,6 +87,15 @@ private:  // member
 
     bool fdbControlConnection_;
     bool fdbDataConnection_;
+
+    // catalogue currently being wiped
+    struct WipeInProgress {
+        uint32_t clientID;
+        uint32_t requestID;
+        std::unique_ptr<CatalogueReader> catalogue;
+    };
+
+    WipeInProgress currentWipe_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
