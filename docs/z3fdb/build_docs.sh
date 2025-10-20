@@ -3,7 +3,7 @@ set -ex
 
 script_dir="$(dirname "$(readlink -f "$0")")"
 sphinx_executable="${SPHINX_EXECUTABLE:-sphinx-build}"
-version_str=$(cat "${script_dir}/../../src/z3fdb/VERSION")
+version_str=$(cat "${script_dir}/../../VERSION")
 output_dir=${DOCBUILD_OUTPUT:-doc-build}
 
 echo "PWD=$(pwd)"

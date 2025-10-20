@@ -1,5 +1,5 @@
 include(parse_semver)
-parse_semver(${CMAKE_CURRENT_SOURCE_DIR}/VERSION chunked_data_view)
+parse_semver(${CMAKE_CURRENT_SOURCE_DIR}/../../VERSION chunked_data_view)
 message(STATUS "With 'chunked_data_view' [${chunked_data_view_VERSION_STRING}]")
 configure_file(
     chunked_data_view_version.h.in
