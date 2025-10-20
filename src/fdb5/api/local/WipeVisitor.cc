@@ -14,14 +14,14 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/api/local/WipeVisitor.h"
 #include "eckit/filesystem/URI.h"
 #include "fdb5/database/WipeState.h"
-#include "fdb5/api/local/WipeVisitor.h"
 
 #include <dirent.h>
+#include <sys/stat.h>
 #include <iostream>
 #include <memory>
-#include <sys/stat.h>
 
 #include "eckit/os/Stat.h"
 
@@ -39,9 +39,13 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue, const metkit::mars::MarsRequest& request, bool doit,
-                         bool porcelain, bool unsafeWipeAll) :
-    QueryVisitor<std::unique_ptr<WipeState>>(queue, request), doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue,
+                                           const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
+                                           bool unsafeWipeAll) :
+    QueryVisitor<std::unique_ptr<WipeState>>(queue, request),
+    doit_(doit),
+    porcelain_(porcelain),
+    unsafeWipeAll_(unsafeWipeAll) {}
 
 
 bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
@@ -65,9 +69,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(!catalogueWipeState_);
     catalogueWipeState_ = catalogue.wipeInit();
     if (!catalogueWipeState_) {
-    //     for (const auto& el : catalogueWipeState_->wipeElements()) {
-    //         queue_.push(*el); // but isnt this empty atm?
-    //     }
+        //     for (const auto& el : catalogueWipeState_->wipeElements()) {
+        //         queue_.push(*el); // but isnt this empty atm?
+        //     }
 
         // Log::error() << "Catalogue " << catalogue.key() << " cannot be wiped." << std::endl;
         // auto errorIt = catalogueWipeElements_.find(WipeElementType::WIPE_ERROR);
@@ -130,12 +134,12 @@ void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     ASSERT(currentCatalogue_ == &catalogue);
 
-    auto maskedDataPaths = catalogue.wipeFinialise(*catalogueWipeState_); // why returning uris
+    auto maskedDataPaths = catalogue.wipeFinialise(*catalogueWipeState_);  // why returning uris
     for (const auto& uri : maskedDataPaths) {
         /// XXX : Why are these always included?
         aggregateURIs(uri, true, *catalogueWipeState_);
     }
-    
+
     queue_.emplace(std::move(catalogueWipeState_));
     EntryVisitor::catalogueComplete(catalogue);
 }

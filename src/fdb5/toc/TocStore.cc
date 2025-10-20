@@ -21,6 +21,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/rules/Rule.h"
@@ -28,7 +29,6 @@
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/database/WipeState.h"
 #include "fdb5/toc/TocStore.h"
 
 using namespace eckit;
@@ -386,7 +386,8 @@ void TocStore::remove(const Key& key) const {
 }
 
 /// XXX: Document.
-// all == remove all contents of this store and also the corresponding toc. At the end of the wipe im expecting the store to be empty, and wish to remove the directory
+// all == remove all contents of this store and also the corresponding toc. At the end of the wipe im expecting the
+// store to be empty, and wish to remove the directory
 //  this happens when your wipe request is essentially the entire first level key.
 
 // this could operate on a wipestate object instead
@@ -458,11 +459,10 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
     }
     if (!auxURIs.empty()) {
         wipeElements.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
-                                                              "Auxiliary files to delete:", std::move(auxURIs)));
+                                                             "Auxiliary files to delete:", std::move(auxURIs)));
     }
 
 
-    
     return wipeElements;
 }
 
@@ -483,19 +483,19 @@ bool TocStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
 }
 
 bool TocStore::doWipe(WipeState& wipeState) const {
-    // WE SHOULD MOVE AWAY FROM THIS
-    std::cout << "TocStore::doWipe: starting wipe" << std::endl;
-    bool wipeAll = true;
-    for (const auto& el : wipeState.wipeElements()) {
+
+    bool wipeAll                 = true;
+    const WipeElements& elements = wipeState.wipeElements();
+
+    for (const auto& el : elements) {
         if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
             wipeAll = false;
         }
     }
 
-    for (const auto& el : wipeState.wipeElements()) {
+    for (const auto& el : elements) {
         auto type = el->type();
         if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-            std::cout << "TocStore::doWipe: store/aux: " << *el << std::endl;
             for (const auto& uri : el->uris()) {
                 if (wipeAll) {
                     storeURIs_.emplace(uri.scheme(), uri.path().dirName());
@@ -503,11 +503,8 @@ bool TocStore::doWipe(WipeState& wipeState) const {
                 remove(uri, std::cout, std::cout, true);
             }
         }
-        else {
-            std::cout << "TocStore::doWipe: skipping non-store/aux wipe element: " << *el << std::endl;
-        }
     }
-    std::cout << "TocStore::doWipe: completed wipe" << std::endl;
+
     return true;
 }
 
@@ -515,14 +512,15 @@ bool TocStore::doWipe(WipeState& wipeState) const {
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
     // WE SHOULD MOVE AWAY FROM THIS
     std::cout << "TocStore::doWipe: starting wipe" << std::endl;
-    bool wipeAll = true;
-    for (const auto& el : wipeState.wipeElements()) {
+    bool wipeAll                 = true;
+    const WipeElements& elements = wipeState.wipeElements();
+    for (const auto& el : elements) {
         if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
             wipeAll = false;
         }
     }
 
-    for (const auto& el : wipeState.wipeElements()) {
+    for (const auto& el : elements) {
         auto type = el->type();
         if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
             std::cout << "TocStore::doWipe: store/aux: " << *el << std::endl;

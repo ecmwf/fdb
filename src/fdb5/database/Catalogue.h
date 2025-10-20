@@ -42,7 +42,7 @@
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
-    
+
 class Store;
 class WipeState;
 
@@ -106,18 +106,15 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual std::unique_ptr<WipeState> wipeInit() const                                         = 0;
+    virtual std::unique_ptr<WipeState> wipeInit() const = 0;
     // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
     virtual bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const = 0;
 
     virtual std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const = 0;
-    // virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const = 0; // do we really need to pass unknowns separately?
-    virtual bool doWipe(WipeState& wipeState) const = 0;
 
-    // virtual bool doWipe() const                                           = 0;
-    // virtual const WipeElements& wipeElements() const { NOTIMP; } /// XXX todo
-    // virtual const WipeElements& wipeElements() const = 0;
+    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs,
+                        WipeState& wipeState) const = 0;  // do we really need to pass unknowns separately?
+    virtual bool doWipe(WipeState& wipeState) const = 0;
 
 protected:  // methods
 
@@ -142,8 +139,6 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    // const WipeElements& wipeElements() const override { return wipeElements_; }
-
 protected:  // methods
 
     CatalogueImpl() : dbKey_(Key()), config_(Config()), controlIdentifiers_(ControlIdentifiers()) {}
@@ -153,7 +148,6 @@ protected:  // members
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
-    // mutable WipeElements wipeElements_;
 };
 
 typedef eckit::DenseSet<std::string> Axis;

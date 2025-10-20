@@ -52,8 +52,8 @@ class WipeCatalogueVisitor : public QueryVisitor<std::unique_ptr<WipeState>> {
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
-                bool unsafeWipeAll);
+    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<WipeState>>& queue, const metkit::mars::MarsRequest& request,
+                         bool doit, bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;
@@ -65,9 +65,9 @@ public:  // methods
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
-    
+
 private:  // methods
-    
+
     void get_stores(const Catalogue& catalogue, const std::set<eckit::URI>& dataURIs, bool include);
     void aggregateURIs(const eckit::URI& dataURI, bool include, WipeState& wipeState);
 

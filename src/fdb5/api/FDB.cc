@@ -37,30 +37,11 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
-#include "fdb5/database/Store.h"
-#include "fdb5/database/WipeState.h"
-
-
-#include "fdb5/api/LocalFDB.h"
-
-#include "eckit/container/Queue.h"
-#include "eckit/log/Log.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/local/AxesVisitor.h"
-#include "fdb5/database/Archiver.h"
-#include "fdb5/database/Catalogue.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Inspector.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/rules/Schema.h"
-
 
 namespace fdb5 {
 
@@ -270,9 +251,8 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    
-    auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
 
+    auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
         InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);
 

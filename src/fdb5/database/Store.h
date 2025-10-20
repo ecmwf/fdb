@@ -30,7 +30,7 @@
 
 namespace fdb5 {
 
-    class StoreWipeState;
+class StoreWipeState;
 
 class Store {
 public:
@@ -76,18 +76,12 @@ public:
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
     // executed for each index
-    virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) = 0;
+    virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs,
+                                     bool all)                            = 0;
     virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const                                           { NOTIMP; } // @todo: remove this function entirely.
-    virtual bool doWipe(WipeState& wipeState) const { NOTIMP; } // @TODO
-    virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; } // @TODO
-
-
-    // virtual const WipeElements& wipeElements() const { return wipeElements_; }
-    // virtual const WipeElements& wipeElements() const { NOTIMP; };
-protected:
-
-    // mutable WipeElements wipeElements_;
+    virtual bool doWipe() const { NOTIMP; }                           // @todo: remove this function entirely.
+    virtual bool doWipe(WipeState& wipeState) const { NOTIMP; }       // @TODO
+    virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; }  // @TODO
 };
 
 

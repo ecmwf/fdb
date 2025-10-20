@@ -55,7 +55,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::DoWipe:  // request to do the actual wipe
                 doWipe(clientID, requestID);
                 return Handled::Yes;
-            
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -379,7 +379,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     std::vector<eckit::URI> urisafe;
     bool all       = false;
     bool unsafeAll = false;
-    bool canWipe   = false; // This is always false!
+    bool canWipe   = false;  // This is always false!
     eckit::MemoryStream inStream(payload);
     inStream >> uris;
     inStream >> urisafe;

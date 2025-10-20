@@ -83,7 +83,7 @@ public:  // methods
     bool wipeIndex(const Index&, bool, WipeState&) const override { NOTIMP; }
     // std::set<eckit::URI> wipeFinish() const override { NOTIMP; }
     bool doWipe(WipeState& wipeState) const override { NOTIMP; }
-    std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override { NOTIMP; } // why returning uris
+    std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override { NOTIMP; }  // why returning uris
 
     bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override { NOTIMP; }
 

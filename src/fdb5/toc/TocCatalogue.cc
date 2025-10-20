@@ -10,6 +10,7 @@
 
 #include "eckit/log/Timer.h"
 
+#include <memory>
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Catalogue.h"
@@ -20,7 +21,6 @@
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
-#include <memory>
 
 using namespace eckit;
 
@@ -197,7 +197,6 @@ std::set<eckit::URI> TocCatalogue::wipeFinialise(WipeState& wipeState) const {
     // We wipe everything if there is nothing within safePaths - i.e. there is
     // no data that wasn't matched by the request
 
-    WipeElements& wipeElements  = wipeState.wipeElements();
     TocWipeState& tocWipeState = static_cast<TocWipeState&>(wipeState);
 
     bool wipeAll = tocWipeState.safePaths_.empty();
@@ -206,7 +205,8 @@ std::set<eckit::URI> TocCatalogue::wipeFinialise(WipeState& wipeState) const {
 
     std::stringstream ss;
     ss << "FDB owner: " << owner();
-    wipeElements.push_back(
+
+    tocWipeState.insertWipeElement(
         std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::set<eckit::URI>{}));
 
     std::set<eckit::URI> catalogueURIs;
@@ -241,7 +241,7 @@ std::set<eckit::URI> TocCatalogue::wipeFinialise(WipeState& wipeState) const {
         for (const auto& p : tocWipeState.safePaths_) {
             safeURIs.insert(p);
         }
-        wipeElements.push_back(std::make_shared<WipeElement>(
+        tocWipeState.insertWipeElement(std::make_shared<WipeElement>(
             WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
     }
 
@@ -261,19 +261,19 @@ std::set<eckit::URI> TocCatalogue::wipeFinialise(WipeState& wipeState) const {
                 unknownURIs.insert(u);
             }
         }
-        wipeElements.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
-                                                              "Toc files to delete:", std::move(catalogueURIs)));
-        wipeElements.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
-                                                              "Control files to delete:", std::move(auxURIs)));
+        tocWipeState.insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
+                                                                     "Toc files to delete:", std::move(catalogueURIs)));
+        tocWipeState.insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
+                                                                     "Control files to delete:", std::move(auxURIs)));
         if (!unknownURIs.empty()) {
-            wipeElements.push_back(std::make_shared<WipeElement>(
+            tocWipeState.insertWipeElement(std::make_shared<WipeElement>(
                 WipeElementType::WIPE_UNKNOWN, "Unexpected files present in the catalogue:", std::move(unknownURIs)));
         }
     }
-    wipeElements.push_back(
+    tocWipeState.insertWipeElement(
         std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
 
-    return maskedDataPaths; // In what sense are these "masked"?
+    return maskedDataPaths;  // In what sense are these "masked"?
 }
 
 // wipe stage 2 | only for wipe all.
@@ -307,12 +307,13 @@ bool TocCatalogue::doWipe(WipeState& wipeState) const {
         }
     }
 
-    for (const auto& el :  tocWipeState.wipeElements()) {
+    for (const auto& el : tocWipeState.wipeElements()) {
         auto type = el->type();
         if (type == WipeElementType::WIPE_CATALOGUE || type == WipeElementType::WIPE_CATALOGUE_AUX) {
             for (const auto& uri : el->uris()) {
                 if (wipeAll) {
-                    tocWipeState.cataloguePaths_.insert(uri.path().dirName()); /// @todo: Would be nice if we didn't aggregate here...
+                    tocWipeState.cataloguePaths_.insert(
+                        uri.path().dirName());  /// @todo: Would be nice if we didn't aggregate here...
                 }
                 remove(uri.path(), std::cout, std::cout, true);
             }

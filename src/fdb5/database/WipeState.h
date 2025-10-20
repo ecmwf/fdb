@@ -10,14 +10,14 @@
 
 #pragma once
 
+#include <memory>
+#include <unordered_map>
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
-#include <memory>
-#include <unordered_map>
 
 class Catalogue;
 class Index;
@@ -29,9 +29,9 @@ class WipeState {
 public:
 
     WipeState(const Key& dbKey, const Config& config) : dbKey_(dbKey), config_(config) {}
-    WipeState() {}
+    WipeState(WipeElements elements) : wipeElements_(std::move(elements)) {}
 
-    WipeState(eckit::Stream& s) : dbKey_(s), config_() { // XXX: Empty config(!!!). We may need it...
+    WipeState(eckit::Stream& s) : dbKey_(s), config_() {  // XXX: Empty config(!!!). We may need it...
         size_t n;
         s >> n;
         for (size_t i = 0; i < n; ++i) {
@@ -49,21 +49,16 @@ public:
         }
     }
 
-    WipeElements& wipeElements() { return wipeElements_; } // Todo, make this const?
+    const WipeElements& wipeElements() const { return wipeElements_; }
+
+    void insertWipeElement(const std::shared_ptr<WipeElement>& element) { wipeElements_.emplace_back(element); }
+
     const std::set<eckit::URI>& includeURIs() const { return includeDataURIs_; }
     const std::set<eckit::URI>& excludeURIs() const { return excludeDataURIs_; }
-    // const Catalogue& catalogue() const { return catalogue_; }
 
-    void include(const eckit::URI& uri) {
-        includeDataURIs_.insert(uri);
-    }
+    void include(const eckit::URI& uri) { includeDataURIs_.insert(uri); }
 
-    void exclude(const eckit::URI& uri) {
-        excludeDataURIs_.insert(uri);
-    }
-
-    std::set<eckit::URI>& includeURIs() { return includeDataURIs_; }
-    std::set<eckit::URI>& excludeURIs() { return excludeDataURIs_; }
+    void exclude(const eckit::URI& uri) { excludeDataURIs_.insert(uri); }
 
     std::unique_ptr<Catalogue> getCatalogue() const {
         return CatalogueReaderFactory::instance().build(dbKey_, config_);
@@ -101,7 +96,6 @@ protected:
     // For finding the catalogue again later.
     Key dbKey_;
     Config config_;
-
 };
 
 
@@ -109,26 +103,23 @@ class StoreWipeState : public WipeState {
 
 public:
 
-    StoreWipeState(eckit::URI uri, const Config& config) : WipeState(Key(), config), storeURI_(uri),
-        store_{StoreFactory::instance().build(storeURI_, config_)} {
-    }
-     
-    Store & store() const {
-        return *store_;
-    }
+    StoreWipeState(eckit::URI uri, const Config& config) :
+        WipeState(Key(), config), storeURI_(uri), store_{StoreFactory::instance().build(storeURI_, config_)} {}
+
+    Store& store() const { return *store_; }
 
     const eckit::URI& storeURI() const { return storeURI_; }
 
 private:
+
     eckit::URI storeURI_;
     std::unique_ptr<Store> store_;
 };
 
-class TocWipeState: public WipeState {
+class TocWipeState : public WipeState {
 public:
 
-    TocWipeState(const Key& dbKey, const Config& cfg)
-        : WipeState(dbKey, cfg) {}
+    TocWipeState(const Key& dbKey, const Config& cfg) : WipeState(dbKey, cfg) {}
 
 private:
 
@@ -141,7 +132,6 @@ private:
     std::set<eckit::PathName> residualPaths_  = {};
     std::vector<Index> indexesToMask_         = {};
     std::set<eckit::PathName> cataloguePaths_ = {};
-
 };
 
 
@@ -149,12 +139,12 @@ private:
 
 class WipeCoordinator {
 public:
+
     WipeCoordinator() = default;
 
     // just a place for the wipe logic to live
     void wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogueState, bool doit, bool unsafeWipeAll) const;
-
 };
 
 
-} // namespace fdb5
+}  // namespace fdb5

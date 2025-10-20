@@ -3,7 +3,7 @@
 namespace fdb5 {
 
 
-namespace  {
+namespace {
 
 // Use WipeState from the Catalogue to assign safe and data URIs to the corresponding stores
 std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(WipeState& wipeState) {
@@ -30,12 +30,13 @@ std::map<eckit::URI, std::unique_ptr<StoreWipeState>> get_stores(WipeState& wipe
     return storeWipeStates;
 }
 
-} // namespace
+}  // namespace
 
 
 // todo: break this logic up a bit more, for readability.
-void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
-    
+void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogueWipeState, bool doit,
+                           bool unsafeWipeAll) const {
+
     bool error   = false;  ///
     bool canWipe = true;   /// !!! unused.
     bool wipeAll = true;   /// ?
@@ -68,7 +69,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
         auto elements = storeState.store().prepareWipe(storeState.includeURIs(), storeState.excludeURIs(), wipeAll);
 
         for (const auto& el : elements) {
-            storeState.wipeElements().push_back(el); // could be done in prepare wipe.
+            storeState.insertWipeElement(el);  // could be done in prepare wipe.
 
             const auto type = el->type();
 
@@ -93,7 +94,8 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
 
     auto isCatalogueElement = [](const auto& el) {
         const auto t = el->type();
-        return (t == WipeElementType::WIPE_CATALOGUE || t == WipeElementType::WIPE_CATALOGUE_AUX) && !el->uris().empty();
+        return (t == WipeElementType::WIPE_CATALOGUE || t == WipeElementType::WIPE_CATALOGUE_AUX) &&
+               !el->uris().empty();
     };
 
     auto isStoreElement = [](WipeElementType t) {
@@ -103,7 +105,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
 
     ASSERT(storeElements.size() != 0);
     if (wipeAll && unknownURIs.size() > 0) {
-        
+
         auto it = unknownURIs.begin();
         while (it != unknownURIs.end()) {
 
@@ -113,7 +115,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
             bool found = false;
             for (const auto& el : catalogueWipeState.wipeElements()) {
                 if (isCatalogueElement(el) && el->uris().count(uri)) {
-                    it = unknownURIs.erase(it);
+                    it    = unknownURIs.erase(it);
                     found = true;
                     break;
                 }
@@ -122,8 +124,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
             if (found) {
                 continue;
             }
-            
-            // NB: Up to the store to do this now
+
             for (const auto& [type, el] : storeElements) {
                 if (isStoreElement(type) && el->uris().count(uri)) {
                     it    = unknownURIs.erase(it);
@@ -137,7 +138,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
             }
         }
     }
-    
+
     // PUSHING TO THE REPORT QUEUE
 
     if (wipeAll && doit && !unknownURIs.empty() && !unsafeWipeAll) {
@@ -172,10 +173,12 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
             auto it = unknownURIsStore.find(*storeURI);
             if (it == unknownURIsStore.end()) {
                 unknownURIsStore.emplace(*storeURI, std::vector<eckit::URI>{uri});
-            } else {
+            }
+            else {
                 it->second.push_back(uri);
             }
-        } else {
+        }
+        else {
             unknownURIsCatalogue.push_back(uri);
         }
     }
@@ -197,14 +200,12 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, WipeState& catalogu
             }
         }
         catalogue->doWipe(catalogueWipeState);
-        for (const auto& [uri, storeState] : storeWipeStates) { // so much repetition...
+        for (const auto& [uri, storeState] : storeWipeStates) {  // so much repetition...
             const Store& store = storeState->store();
             store.doWipe(*storeState);
         }
-
     }
-
 }
 
 
-} // namespace fdb5
+}  // namespace fdb5

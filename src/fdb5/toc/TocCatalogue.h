@@ -79,7 +79,7 @@ protected:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     // wipe
-    std::unique_ptr<WipeState>  wipeInit() const override;
+    std::unique_ptr<WipeState> wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const override;
     std::set<eckit::URI> wipeFinialise(WipeState& wipeState) const override;
     bool doWipe(const std::vector<eckit::URI>& unknownURIs, WipeState& wipeState) const override;
@@ -103,16 +103,6 @@ private:  // members
     // non-owning
     const Schema* schema_;
     const RuleDatabase* rule_;
-
-    // wipe
-    // Maybe we can group this into some backend specific WipeState struct?
-    // mutable std::set<eckit::URI> subtocPaths_         = {};
-    // mutable std::set<eckit::PathName> lockfilePaths_  = {};
-    // mutable std::set<eckit::URI> indexPaths_          = {};
-    // mutable std::set<eckit::URI> safePaths_           = {};
-    // mutable std::set<eckit::PathName> residualPaths_  = {};
-    // mutable std::vector<Index> indexesToMask_         = {};
-    // mutable std::set<eckit::PathName> cataloguePaths_ = {};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

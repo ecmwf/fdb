@@ -14,15 +14,15 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
+#include <vector>
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/database/WipeState.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/SelectMatcher.h"
-#include <vector>
 
 using namespace eckit;
 using namespace metkit::mars;
@@ -158,8 +158,7 @@ InnerWipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
         using AsyncIterator = APIAsyncIterator<ValueType>;
 
         auto async_worker = [elements = std::move(elements)](Queue<ValueType>& queue) {
-            std::unique_ptr<WipeState> state = std::make_unique<WipeState>();
-            state->wipeElements() = elements;
+            std::unique_ptr<WipeState> state = std::make_unique<WipeState>(elements);
         };
 
         return QueryIterator(new AsyncIterator(async_worker));
