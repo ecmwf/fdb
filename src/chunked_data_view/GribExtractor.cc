@@ -109,12 +109,13 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
     }
 
     if (iterator_empty) {
-        throw eckit::Exception("Empty iterator for request. Is the request correctly specified?");
+        throw eckit::Exception("GribExtractor: Empty iterator for request. Is the request correctly specified?");
     }
 
     if (!std::all_of(bitset.begin(), bitset.end(), [](bool v) { return v; })) {
         throw eckit::Exception(
-            "Buffer not completely filled. Either request is spanning data which is not in the FDB or data of the FDB "
+            "GribExtractor: Buffer not completely filled. Either request is spanning data which is not in the FDB or "
+            "data of the FDB "
             "is missing.");
     }
 }
