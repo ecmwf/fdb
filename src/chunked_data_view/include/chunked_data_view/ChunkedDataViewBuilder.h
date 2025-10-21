@@ -21,7 +21,11 @@
 #include <tuple>
 #include <vector>
 
+
 namespace chunked_data_view {
+
+class ViewPart;
+
 class ChunkedDataViewBuilder {
 public:
 
@@ -46,7 +50,8 @@ private:
 
     std::unique_ptr<Fdb> fdb_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::unique_ptr<Extractor>>> parts_{};
-    // TODO(kkratz): Should probably be an optional to facilitate the 1 request case
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
+
+    bool doPartsAlign(const std::vector<ViewPart>& viewParts);
 };
 }  // namespace chunked_data_view

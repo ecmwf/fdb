@@ -19,7 +19,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace chunked_data_view {
@@ -34,20 +33,20 @@ public:
     const DataLayout& layout() const { return layout_; }
     bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };
 
+    bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
 
 private:
 
     metkit::mars::MarsRequest requestAt(const std::vector<size_t>& chunkIndex) const;
 
     // Each keyword defines a potential axis in the resulting view.
-    // No axis needs to be created if the cardinality is 1
-    // Each keyword with a cardinality greater than 1 needs to be covered by exactly one
+    // No axis needs to be created if the cardinality is one.
+    // Each keyword with cardinality greater than 1 needs to be covered by exactly one
     // axis definition
     metkit::mars::MarsRequest request_{};
     std::vector<Axis> axes_{};
     std::unique_ptr<Extractor> extractor_{};
     std::shared_ptr<Fdb> fdb_{};
-    std::string requestStem_{};
     DataLayout layout_{};
     std::vector<size_t> shape_{};
 };

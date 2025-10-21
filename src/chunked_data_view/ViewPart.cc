@@ -92,4 +92,25 @@ metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIn
     return request;
 }
 
+bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
+
+    if (other.shape().size() != this->shape().size()) {
+        return false;
+    }
+
+    for (size_t index = 0; index < other.shape().size(); ++index) {
+        if (index == extension_axis) {
+            continue;
+        }
+        // Checking the size of the combined axis
+        // @info This is not checking whether the parameters are matching, in theory we could
+        // stitch mismatching parameters.
+        if (other.shape()[index] != shape()[index]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace chunked_data_view

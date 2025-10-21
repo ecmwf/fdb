@@ -42,6 +42,23 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     return *this;
 }
 
+bool ChunkedDataViewBuilder::doPartsAlign(const std::vector<ViewPart>& viewParts) {
+
+    if (viewParts.empty()) {
+        throw eckit::UserError("ChunkedDataViewBuilder: No view parts are given.");
+    }
+
+    const ViewPart& first = viewParts[0];
+
+    bool extensible = true;
+
+    for (const ViewPart& viewPart : viewParts) {
+        extensible &= first.extensibleWith(viewPart, extensionAxisIndex_.value_or(0));
+    }
+
+    return extensible;
+}
+
 std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     std::vector<ViewPart> viewParts{};
     viewParts.reserve(parts_.size());
@@ -55,8 +72,12 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
         viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);
     }
-    // TODO(kkratz): Verify configuration:
-    // - Ensure all requests define same Axis
+
+    if (!doPartsAlign(viewParts)) {
+        throw eckit::UserError(
+            "ChunkedDataViewBuilder: Individual given parts do not align. Is there a mismatch in the specified "
+            "dimensions?");
+    }
 
     return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), extensionAxisIndex_.value_or(0));
 }
