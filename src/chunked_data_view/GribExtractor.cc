@@ -33,7 +33,6 @@ DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
     eckit::message::Reader reader(handle);
     eckit::message::Message msg = reader.next();
     if (!msg) {
-        // TODO(kkratz) Use proper exception, use helpful message
         throw eckit::Exception("GribExtractor::layout: Couldn't read GRIB message.");
     }
     size_t countValues = msg.getSize("values");
