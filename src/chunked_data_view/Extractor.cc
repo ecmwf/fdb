@@ -12,7 +12,6 @@
 #include "GribExtractor.h"
 
 #include <memory>
-#include <stdexcept>
 
 namespace chunked_data_view {
 std::unique_ptr<Extractor> makeExtractor(ExtractorType type) {
@@ -20,8 +19,7 @@ std::unique_ptr<Extractor> makeExtractor(ExtractorType type) {
         case ExtractorType::GRIB:
             return std::make_unique<GribExtractor>();
         default:
-            // TODO(kkratz): Use proper exception type
-            throw std::runtime_error("makeExtractor: Unknown extractor type specified");
+            throw eckit::UserError("makeExtractor: Unknown extractor type specified");
     }
 }
 }  // namespace chunked_data_view
