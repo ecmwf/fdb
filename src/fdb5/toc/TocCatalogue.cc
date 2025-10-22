@@ -147,11 +147,11 @@ bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
 }
 
 
-std::unique_ptr<WipeState> TocCatalogue::wipeInit() const {
+std::unique_ptr<CatalogueWipeState> TocCatalogue::wipeInit() const {
     return std::make_unique<TocWipeState>(dbKey_);
 }
 
-bool TocCatalogue::wipeIndex(const Index& index, bool include, WipeState& wipeState) const {
+bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const {
 
     eckit::URI locationURI{index.location().uri()};
 
@@ -198,7 +198,7 @@ void TocCatalogue::addMaskedPaths(TocWipeState& tocWipeState) const {
     }
 }
 
-void TocCatalogue::wipeFinalise(WipeState& wipeState) const {
+void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
 
     // We wipe everything if there is nothing within safePaths - i.e. there is
     // no data that wasn't matched by the request
@@ -278,7 +278,8 @@ void TocCatalogue::wipeFinalise(WipeState& wipeState) const {
     }
     tocWipeState.insertWipeElement(
         std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
-    
+
+    tocWipeState.buildStoreStates();
     return;
 }
 
@@ -293,7 +294,7 @@ bool TocCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const
     return true;
 }
 
-bool TocCatalogue::doWipe(const WipeState& wipeState) const { // Todo, change to CatalogueWipeState
+bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
     const TocWipeState& tocWipeState = static_cast<const TocWipeState&>(wipeState);
 

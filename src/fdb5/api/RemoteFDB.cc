@@ -116,7 +116,7 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     }
 };
 
-struct WipeHelper : BaseAPIHelper<std::unique_ptr<fdb5::WipeState>, fdb5::remote::Message::Wipe> {
+struct WipeHelper : BaseAPIHelper<std::unique_ptr<fdb5::CatalogueWipeState>, fdb5::remote::Message::Wipe> {
 
     WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
         doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
@@ -128,8 +128,8 @@ struct WipeHelper : BaseAPIHelper<std::unique_ptr<fdb5::WipeState>, fdb5::remote
     }
 
 
-    static std::unique_ptr<fdb5::WipeState> valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
-        auto state = std::make_unique<fdb5::WipeState>(s);
+    static std::unique_ptr<fdb5::CatalogueWipeState> valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        auto state = std::make_unique<fdb5::CatalogueWipeState>(s);
         return state;
     }
 

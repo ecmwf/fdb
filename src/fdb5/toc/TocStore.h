@@ -61,10 +61,10 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) override;
+    void prepareWipe(StoreWipeState& storeState, bool all) override;
+
 
     bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe(WipeState& wipeState) const override;
     bool doWipe(StoreWipeState& wipeState) const override;
 
     void doWipeEmptyDatabases() const override;

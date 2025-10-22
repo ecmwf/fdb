@@ -53,8 +53,9 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
     }
 
     eckit::Log::info() << "WipeCoordinator::wipe - gathering store wipe states" << std::endl;
-    auto storeWipeStates = getStoreStates(catalogueWipeState);
-    ASSERT(!storeWipeStates.empty());
+    auto storeWipeStates = catalogueWipeState.takeStoreStates();
+
+    ASSERT(!storeWipeStates.empty()); // XXX: We should handle case where there is no work for the stores...
 
     eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
     for (const auto& [storeURI, storeStatePtr] : storeWipeStates) {
@@ -65,10 +66,10 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         }
 
         // This could act on the storeWipeState directly.
-        auto elements = storeState.store(config_).prepareWipe(storeState.includeURIs(), storeState.excludeURIs(), wipeAll);
+        storeState.store(config_).prepareWipe(storeState, wipeAll);
 
-        for (const auto& el : elements) {
-            storeState.insertWipeElement(el);  // could be done in prepare wipe.
+        for (const auto& el : storeState.wipeElements()) {
+            // storeState.insertWipeElement(el);  // could be done in prepare wipe.
 
             const auto type = el->type();
 
@@ -81,7 +82,7 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
             }
 
             // Group elements by type, merging URIs if the type already exists
-            auto [it, inserted] = storeElements.emplace(type, el);
+            auto [it, inserted] = storeElements.emplace(type, el); // I don't think I want this anymore
             if (!inserted) {
                 auto& target = *it->second;
                 for (const auto& uri : el->uris()) {
@@ -207,22 +208,24 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
         // - 3. wipe the files known by the stores.
         // - 4. wipe the files known by the catalogue.
         // - 5. wipe empty databases.
-        
 
         std::unique_ptr<Catalogue> catalogue = CatalogueReaderFactory::instance().build(catalogueWipeState.dbkey(), config_);
 
-        // 1. Mask indexes
-        eckit::Log::info() << "WipeCoordinator::wipe - masking indexes" << std::endl;
-        for (const auto& index : catalogueWipeState.indexesToMask()) {
-            catalogue->maskIndexEntry(index);
-        }
-
+        
+        // 1. Mask indexes TODO
+        // eckit::Log::info() << "WipeCoordinator::wipe - masking indexes" << std::endl;
+        // for (const auto& index : catalogueWipeState.indexesToMask()) {
+            //     catalogue->maskIndexEntry(index); // This is way too chatty for remote fdb. This should be one function call. (Also, handler knows what indexes to match, probably, unless there's been an update.)
+            // }
+            
         // 2. Wipe unknown files
         eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
         catalogue->wipeUnknown(unknownURIsCatalogue);
+        
         for (const auto& [uri, storeState] : storeWipeStates) {
             const Store& store = storeState->store(config_);
 
+            // should this only be for wipe all? I think maybe...
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
                 store.doWipeUnknownContents(std::vector<eckit::URI>{});
@@ -250,7 +253,6 @@ void WipeCoordinator::wipe(eckit::Queue<WipeElement>& queue, const CatalogueWipe
             const Store& store = storeState->store(config_);
             store.doWipeEmptyDatabases();
         }
-
     }
 
     eckit::Log::info() << "WipeCoordinator::wipe - completed" << std::endl;

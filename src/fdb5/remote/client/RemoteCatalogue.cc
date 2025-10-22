@@ -247,20 +247,22 @@ void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& 
     NOTIMP;
 }
 
-bool RemoteCatalogue::doWipe(const WipeState& wipeState) const {
+bool RemoteCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
     // send wipestate to server w/ Message::DoWipe
-    eckit::Buffer sendBuf(defaultBufferSizeKey);
-    eckit::ResizableMemoryStream s(sendBuf); // does resizable memory stream actually work?
-    wipeState.encode(s);
-    std::cout << "RemoteCatalogue::doWipe called, wipestate encoded size = " << s.position() << std::endl;
+    eckit::Buffer sendBuf(32);
+    eckit::MemoryStream s(sendBuf); // does resizable memory stream actually work?
+    uint32_t x = 123;
+    s << x; //dummy value
+    // wipeState.encode(s);
+    // std::cout << "RemoteCatalogue::doWipe called, wipestate encoded size = " << s.position() << std::endl;
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false,  sendBuf, s.position());
     return true;
 
 }
 bool RemoteCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const {
     // send unknown uris to server w/ Message::DoWipeUnknowns
-    eckit::Buffer sendBuf(unknownURIs.size() * 256); 
-    eckit::MemoryStream s(sendBuf); // Write error on MemoryStream (No such file or directory)  !?
+    eckit::Buffer sendBuf(1 + unknownURIs.size() * 256);
+    eckit::ResizableMemoryStream s(sendBuf); // Write error on MemoryStream when not resizable? Presumably buffer too small...
     s << unknownURIs;
 
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), false, sendBuf, s.position());
@@ -270,11 +272,13 @@ bool RemoteCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) co
 void RemoteCatalogue::doWipeEmptyDatabases() const {
     // notify server to wipe any empty DBs w/ Message::DoWipeEmptyDatabases
     
-    eckit::Buffer sendBuf(0);
+    eckit::Buffer sendBuf(32);
     eckit::MemoryStream s(sendBuf);
-
+    uint32_t x = 123;
+    s << x; //dummy value. code doesnt like empty payloads ;/
+    std::cout << "About to send Message::DoWipeEmptyDatabases" << std::endl;
     controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), false, sendBuf, s.position());
-    
+    std::cout << "Message::DoWipeEmptyDatabases sent" << std::endl;
     return;
 }
 

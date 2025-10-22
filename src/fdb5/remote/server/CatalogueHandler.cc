@@ -190,7 +190,7 @@ struct BaseHelper {
         eckit::Buffer buf;
     };
 
-    Encoded encode(const ValueType& elem, const CatalogueHandler&) const {
+    Encoded encode(const ValueType& elem, CatalogueHandler&) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(elem));
         MemoryStream s(encodeBuffer);
         s << elem;
@@ -219,13 +219,31 @@ private:
     int level_;
 };
 
-struct WipeHelper : public BaseHelper<std::unique_ptr<WipeState>> {
-    virtual size_t encodeBufferSize(const std::unique_ptr<WipeState>& el) const { return el->encodeSize(); } // can possibly avoid entirely
+struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
+    virtual size_t encodeBufferSize(const std::unique_ptr<CatalogueWipeState>& el) const { return el->encodeSize(); } // can possibly avoid entirely
 
-    Encoded encode(const std::unique_ptr<WipeState>& state, const CatalogueHandler&) const {
+    Encoded encode(const std::unique_ptr<CatalogueWipeState>& state, CatalogueHandler& handler) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
         ResizableMemoryStream s(encodeBuffer);
+
+        const std::string dummy_secret = "These URIs have been approved by the catalogue";
+        state->signStoreStates(dummy_secret);
+
         s << *state;
+
+
+        if (doit_) {
+            // Keep a copy of part of the state locally, for later.
+            ASSERT(handler.currentWipe_.state == nullptr); // Another wipe is still in progress...?
+            handler.currentWipe_.state     = std::make_unique<CatalogueWipeState>(state->dbKey(), state->wipeElements()); // XXX move to not using wipe elements...
+            handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state->dbKey(), handler.config_);
+        } else {
+
+            handler.currentWipe_.clientID  = 0;
+            handler.currentWipe_.requestID = 0;
+            handler.currentWipe_.state.reset();
+            handler.currentWipe_.catalogue.reset();
+        }
         return {s.position(), std::move(encodeBuffer)};
 }
 
@@ -236,7 +254,7 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<WipeState>> {
     }
 
     InnerWipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        using ValueType     = std::unique_ptr<WipeState>;
+        using ValueType     = std::unique_ptr<CatalogueWipeState>;
         using QueryIterator = APIIterator<ValueType>;
         using AsyncIterator = APIAsyncIterator<ValueType>;
 
@@ -246,8 +264,9 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<WipeState>> {
             auto internal = FDBFactory::instance().build(fdb.config());
             auto it = internal->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
 
-            std::vector<std::unique_ptr<WipeState>> states;
-            std::unique_ptr<WipeState> state;
+            std::vector<std::unique_ptr<CatalogueWipeState>> states;
+            std::unique_ptr<CatalogueWipeState> state;
+
             while (it.next(state)) {
                 queue.emplace(std::move(state));
             }
@@ -330,6 +349,9 @@ void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    ASSERT(currentWipe_.clientID == 0 && currentWipe_.requestID == 0);
+    currentWipe_.clientID  = clientID;
+    currentWipe_.requestID = requestID;
     forwardApiCall<WipeHelper>(clientID, requestID, std::move(payload));
 }
 
@@ -567,31 +589,35 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
 }
 
-void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    
-    ASSERT(!currentWipe_.catalogue); /// < shouldn't already be wiping something
+bool CatalogueHandler::wipeInProgress(uint32_t clientID, uint32_t requestID) const {
+    std::cout << "CatalogueHandler::wipeInProgress called. Client match? " << (currentWipe_.clientID == clientID ? "yes" : "no")
+              << ", request match? " << (currentWipe_.requestID == requestID ? "yes" : "no") << std::endl;
+    std::cout << "catalogue set? " << (currentWipe_.catalogue ? "yes" : "no") << ", state set? " << (currentWipe_.state ? "yes" : "no") << std::endl;
+    // return (currentWipe_.catalogue && currentWipe_.state && currentWipe_.clientID == clientID && currentWipe_.requestID == requestID);
+    return (currentWipe_.catalogue && currentWipe_.state); // XXX: TODO: understand why clientID/requestID always changes.
+}
 
-    // Get the WipeState from the payload. Don't need to reanimate the whole thing
-    // NB: this should be CatalogueWipeState
+void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
     MemoryStream s(payload);
-    auto wipeState = std::make_unique<WipeState>(s);
-    const Key& dbKey = wipeState->dbKey();
+    uint32_t x; // dummy
+    s >> x;      // dummy
+    // auto wipeState = std::make_unique<CatalogueWipeState>(s); // THERE IS NO REASON TO BE RECEIVING THE WIPESTATE AGAIN. ONLY RECEIVE CORRECTIONS.
+    // const Key& dbKey = wipeState->dbKey();
 
-    currentWipe_.catalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
-    currentWipe_.clientID  = clientID;
-    currentWipe_.requestID = requestID;
+    // currentWipe_.catalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
+    // currentWipe_.clientID  = clientID;
+    // currentWipe_.requestID = requestID;
 
+    // std::cout << "CatalogueHandler::doWipe, set currentWipe_ for dbKey, clientID, requestID: " << dbKey << ", " << clientID << ", " << requestID << std::endl;
     // Do the wipe
-    currentWipe_.catalogue->doWipe(*wipeState);
+    currentWipe_.catalogue->doWipe(*currentWipe_.state);
 }
 
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
-    ASSERT(currentWipe_.catalogue); /// < set in doWipe
-    ASSERT(currentWipe_.clientID == clientID);
-    ASSERT(currentWipe_.requestID == requestID);
-
+    ASSERT(wipeInProgress(clientID, requestID));
+    
     // Get the list of URIs from the payload
     MemoryStream s(payload);
     size_t n;
@@ -614,15 +640,13 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
 }
 
 void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID) {
-
-    ASSERT(currentWipe_.catalogue); /// < set in doWipe
-    ASSERT(currentWipe_.clientID == clientID);
-    ASSERT(currentWipe_.requestID == requestID);
+    ASSERT(wipeInProgress(clientID, requestID));
 
     currentWipe_.catalogue->doWipeEmptyDatabases();
 
     // We're finished with the wipe!
     currentWipe_.catalogue.reset();
+    currentWipe_.state.reset();
 }
 
 

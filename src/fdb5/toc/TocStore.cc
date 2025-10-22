@@ -391,7 +391,12 @@ void TocStore::remove(const Key& key) const {
 //  this happens when your wipe request is essentially the entire first level key.
 
 // this could operate on a wipestate object instead
-WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all) {
+
+void TocStore::prepareWipe(StoreWipeState& storeState, bool all) {
+
+    const std::set<eckit::URI>& uris = storeState.includeURIs();
+     const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
+
     WipeElements wipeElements;
 
     std::set<eckit::URI> dataURIs;
@@ -406,7 +411,7 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
             Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
             Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields."
                          << std::endl;
-            return wipeElements;
+            return;
         }
         dataURIs.insert(uri);
 
@@ -462,8 +467,11 @@ WipeElements TocStore::prepareWipe(const std::set<eckit::URI>& uris, const std::
                                                              "Auxiliary files to delete:", std::move(auxURIs)));
     }
 
+    for (const auto& el : wipeElements) {
+        storeState.insertWipeElement(el);
+    }
 
-    return wipeElements;
+    return;
 }
 
 bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
@@ -474,10 +482,6 @@ bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs)
     }
 
     return true;
-}
-
-bool TocStore::doWipe(WipeState& wipeState) const {
-    NOTIMP; // use the other one?
 }
 
 bool TocStore::doWipe(StoreWipeState& wipeState) const {

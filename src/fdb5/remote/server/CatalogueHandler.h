@@ -11,6 +11,7 @@
 #pragma once
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
@@ -40,7 +41,12 @@ struct CatalogueArchiver {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+struct WipeHelper;
 class CatalogueHandler : public ServerConnection {
+    
+    friend struct WipeHelper;
+    
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -75,6 +81,8 @@ private:  // methods
     void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
     void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID);
 
+    const Config& config() const { return config_; }
+    bool wipeInProgress(uint32_t clientID, uint32_t requestID) const;
 
 private:  // member
 
@@ -88,14 +96,17 @@ private:  // member
     bool fdbControlConnection_;
     bool fdbDataConnection_;
 
+
     // catalogue currently being wiped
     struct WipeInProgress {
-        uint32_t clientID;
-        uint32_t requestID;
-        std::unique_ptr<CatalogueReader> catalogue;
+        uint32_t clientID = 0;
+        uint32_t requestID = 0;
+        std::unique_ptr<CatalogueReader> catalogue; // Maybe not needed
+        std::unique_ptr<CatalogueWipeState> state;
     };
 
     WipeInProgress currentWipe_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

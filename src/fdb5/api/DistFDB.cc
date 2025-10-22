@@ -210,27 +210,27 @@ StatusIterator DistFDB::status(const FDBToolRequest& request) {
 
 InnerWipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
+    NOTIMP; // WE SHOULD JUST ALWAYS RETURN WIPESTATES
+    // // XXX: Awkward api coercion
+    // return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+    //     WipeIterator it = fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    //     std::vector<std::shared_ptr<WipeElement>> elements;
+    //     WipeElement e;
+    //     while (it.next(e)) {
+    //         elements.push_back(std::make_shared<WipeElement>(std::move(e)));
+    //     }
 
-    // XXX: Awkward api coercion
-    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-        WipeIterator it = fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-        std::vector<std::shared_ptr<WipeElement>> elements;
-        WipeElement e;
-        while (it.next(e)) {
-            elements.push_back(std::make_shared<WipeElement>(std::move(e)));
-        }
+    //     using ValueType     = std::unique_ptr<CatalogueWipeState>;
+    //     using QueryIterator = APIIterator<ValueType>;
+    //     using AsyncIterator = APIAsyncIterator<ValueType>;
 
-        using ValueType     = std::unique_ptr<WipeState>;
-        using QueryIterator = APIIterator<ValueType>;
-        using AsyncIterator = APIAsyncIterator<ValueType>;
+    //     auto async_worker = [elements = std::move(elements)](eckit::Queue<ValueType>& queue) {
+    //         std::unique_ptr<CatalogueWipeState> state = std::make_unique<CatalogueWipeState>(elements);
+    //         queue.emplace(std::move(state));
+    //     };
 
-        auto async_worker = [elements = std::move(elements)](eckit::Queue<ValueType>& queue) {
-            std::unique_ptr<WipeState> state = std::make_unique<WipeState>(elements);
-            queue.emplace(std::move(state));
-        };
-
-        return QueryIterator(new AsyncIterator(async_worker));
-    });
+    //     return QueryIterator(new AsyncIterator(async_worker));
+    // });
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

@@ -44,7 +44,7 @@
 namespace fdb5 {
 
 class Store;
-class WipeState;
+class CatalogueWipeState;
 
 typedef std::map<Key, Index> IndexStore;
 
@@ -106,14 +106,14 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual std::unique_ptr<WipeState> wipeInit() const = 0;
+    virtual std::unique_ptr<CatalogueWipeState> wipeInit() const = 0;
     // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
-    virtual bool wipeIndex(const Index& index, bool include, WipeState& wipeState) const = 0;
+    virtual bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
 
-    virtual void wipeFinalise(WipeState& wipeState) const = 0;
+    virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
 
     virtual bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe(const WipeState& wipeState) const = 0;
+    virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;
 
     virtual void doWipeEmptyDatabases() const = 0;
 
