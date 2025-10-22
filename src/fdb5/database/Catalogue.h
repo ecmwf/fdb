@@ -31,7 +31,6 @@
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
@@ -45,6 +44,7 @@
 namespace fdb5 {
 
 class Store;
+class CatalogueWipeState;
 
 typedef std::map<Key, Index> IndexStore;
 
@@ -106,16 +106,23 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual bool wipeInit() const                                         = 0;
-    virtual bool wipeIndex(const Index& index, bool include) const        = 0;
-    virtual std::set<eckit::URI> wipeFinish() const                       = 0;
-    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const                                           = 0;
-    virtual const WipeElements& wipeElements() const                      = 0;
+    virtual std::unique_ptr<CatalogueWipeState> wipeInit() const = 0;
+    // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
+    virtual bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
+
+    virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
+
+    virtual bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;
+
+    virtual void doWipeEmptyDatabases() const = 0;
 
 protected:  // methods
 
     virtual void loadSchema() = 0;
+
+protected:  // members
+    mutable std::set<eckit::URI> emptyDatabases_;
 };
 
 class CatalogueImpl : virtual public Catalogue {
@@ -136,8 +143,6 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    const WipeElements& wipeElements() const override { return wipeElements_; }
-
 protected:  // methods
 
     CatalogueImpl() : dbKey_(Key()), config_(Config()), controlIdentifiers_(ControlIdentifiers()) {}
@@ -147,7 +152,6 @@ protected:  // members
     Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
-    mutable WipeElements wipeElements_;
 };
 
 typedef eckit::DenseSet<std::string> Axis;

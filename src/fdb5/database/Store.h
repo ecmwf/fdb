@@ -30,6 +30,8 @@
 
 namespace fdb5 {
 
+class StoreWipeState;
+
 class Store {
 public:
 
@@ -74,16 +76,19 @@ public:
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
     // executed for each index
-    virtual bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                         bool unsafeAll)                                  = 0;
-    virtual bool doWipe(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const                                           = 0;
+    // virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs,
+    //                                  bool all)                            = 0;
 
-    virtual const WipeElements& wipeElements() const { return wipeElements_; }
+    virtual void prepareWipe(StoreWipeState& storeState, bool all) = 0;
+
+    virtual bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipe() const { NOTIMP; }                           // @todo: remove this function entirely.
+    virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; }  // @TODO
+    virtual void doWipeEmptyDatabases() const = 0;
 
 protected:
+    mutable std::set<eckit::URI> emptyDatabases_; // Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
 
-    mutable WipeElements wipeElements_;
 };
 
 

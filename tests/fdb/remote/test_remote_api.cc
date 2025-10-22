@@ -9,10 +9,12 @@
  */
 
 #include <string>
+#include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
 #include "eckit/types/Date.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 
 using namespace eckit::testing;
 
@@ -132,7 +134,15 @@ CASE("Remote protocol: the basics") {
     }
 
     auto k1 = keys_level_1("20000101", 1);
-    fdb.wipe(make_request(k1));
+    auto wipeit = fdb.wipe(make_request(k1));
+    WipeElement we;
+    count = 0;
+    while (wipeit.next(we)) {
+        eckit::Log::info() << we << std::endl;
+        count++;
+    }
+    // just in case...
+    ASSERT(count > 0);
 
     // -- list all fields
     it = fdb.list(FDBToolRequest{{}, true, {}});
@@ -144,7 +154,13 @@ CASE("Remote protocol: the basics") {
     }
     EXPECT_EQUAL(count, Nfields);
 
-    fdb.wipe(make_request(k1), true);
+    wipeit = fdb.wipe(make_request(k1), true);
+    count = 0;
+    while (wipeit.next(we)) {
+        eckit::Log::info() << we << std::endl;
+        count++;
+    }
+    ASSERT(count > 0);
 
     // -- list all remaining fields
     it = fdb.list(FDBToolRequest{{}, true, {}});

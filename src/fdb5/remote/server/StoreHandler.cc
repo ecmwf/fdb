@@ -10,12 +10,14 @@
 
 #include "fdb5/remote/server/StoreHandler.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/database/WipeState.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -27,6 +29,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <mutex>
@@ -55,9 +58,11 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::WipeElement:  // request to do the actual wipe
-                wipeElements(clientID, requestID);
-                return Handled::Replied;
+            case Message::DoWipeEmptyDatabases:
+                // todo....
+                std::cout << "StoreHandler::handleControl received DoWipeEmptyDatabases message" << std::endl;
+                return Handled::Yes;
+
 
             default: {
                 std::stringstream ss;
@@ -99,7 +104,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 wipe(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::DoWipe:  // notification that the client is starting to send data location for read
+            case Message::DoWipe:
                 doWipe(clientID, requestID, payload);
                 return Handled::Yes;
 
@@ -356,38 +361,32 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
 
     auto& ss = store(clientID);
 
-    auto out = ss.wipeElements();
-    if (out.empty()) {
-        std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
-        Log::error() << what << std::endl;
-        error(what, clientID, requestID);
-        return;
-    }
+    // This check doesn't work with stateless stores. If we still want this, use some state in the handler.
+    // auto out = ss.wipeElements();
+    // if (out.empty()) {
+    //     std::string what("Wipe check has not been performed on requested store: " + std::to_string(clientID));
+    //     Log::error() << what << std::endl;
+    //     error(what, clientID, requestID);
+    //     return;
+    // }
 
-    ss.doWipe(uris);
+    // !!! we should rename this function too...
+
+    ss.doWipeUnknownContents(uris);
 }
 
 void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
+    ASSERT(currentWipe_.state != nullptr);
+    // todo validate clientID/requestID match
 
     auto& ss = store(clientID);
-    ss.doWipe();
-}
-
-void StoreHandler::wipeElements(const uint32_t clientID, const uint32_t requestID) {
-    auto& ss             = store(clientID);
-    const auto& elements = ss.wipeElements();
-
-    eckit::Buffer wipeBuf(50_KiB * elements.size());
-    eckit::MemoryStream outStream(wipeBuf);
-    outStream << elements.size();
-    for (const auto& el : elements) {
-        outStream << *el;
-    }
-
-    write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
+    ss.doWipe(*currentWipe_.state);
 }
 
 void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    // ensure no wipe in progress
+    // ASSERT(!currentWipe_.state); // Strictly speaking, only an issue if doit.
 
     ASSERT(payload.size() > 0);
 
@@ -395,33 +394,38 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     std::vector<eckit::URI> urisafe;
     bool all       = false;
     bool unsafeAll = false;
-    bool canWipe   = false;
-
+    bool canWipe   = false;  // This is always false!
     eckit::MemoryStream inStream(payload);
-    inStream >> uris;
-    inStream >> urisafe;
+    
+    StoreWipeState inState(inStream);
     inStream >> all;
-    inStream >> unsafeAll;
+    // inStream >> unsafeAll;  // why did we drop this?
 
-    std::set<eckit::URI> dataURIs;
-    std::set<eckit::URI> safeURIs;
+    // XXX Validate signature.
+    std::string dummy_secret = "These URIs have been approved by the catalogue";
+    uint64_t expected_hash = inState.hash(dummy_secret);
+    ASSERT(inState.signature().validSignature(expected_hash));
 
-    for (const auto& uri : uris) {
-        dataURIs.insert(RemoteFieldLocation::internalURI(uri));
+    // -- We trust the in state came from the catalogue. --
+    // StoreWipeState storeState{inStoreState.storeURI()}; // << possibly correct?
+    auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI())); // << possibly correct?
+
+    for (const auto& uri : inState.includeURIs()) {
+        storeState->include(RemoteFieldLocation::internalURI(uri));
     }
-    for (const auto& uri : urisafe) {
-        safeURIs.insert(RemoteFieldLocation::internalURI(uri));
+    for (const auto& uri : inState.excludeURIs()) {
+        storeState->exclude(RemoteFieldLocation::internalURI(uri));
     }
 
-    if (dataURIs.empty()) {
+    if (storeState->includeURIs().empty()) {
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
-    auto& ss             = store(clientID, *(dataURIs.begin()));
-    canWipe              = ss.canWipe(dataURIs, safeURIs, all, unsafeAll);
-    const auto& elements = ss.wipeElements();
+    auto& ss = store(clientID, *(storeState->includeURIs().begin()));
+    ss.prepareWipe(*storeState, all);
 
+    const auto& elements = storeState->wipeElements();
     eckit::Buffer wipeBuf(50_KiB * elements.size());
     eckit::MemoryStream outStream(wipeBuf);
     outStream << canWipe;
@@ -430,6 +434,11 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
         outStream << *el;
     }
 
+    // keep state for doWipe
+    currentWipe_.clientID  = clientID;
+    currentWipe_.requestID = requestID;
+    currentWipe_.state     = std::move(storeState);
+ 
     write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
 }
 

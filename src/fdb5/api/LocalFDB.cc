@@ -31,6 +31,7 @@
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Key.h"
@@ -103,9 +104,20 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
     return queryInternal<StatusVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+InnerWipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    // return queryInternal<WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    using ValueType     = std::unique_ptr<CatalogueWipeState>;
+    using QueryIterator = APIIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
+
+    auto async_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<ValueType>& queue) {
+        EntryVisitMechanism mechanism(config_);
+        WipeCatalogueVisitor visitor(queue, request.request(), doit, porcelain, unsafeWipeAll);
+        mechanism.visit(request, visitor);
+    };
+
+    return QueryIterator(new AsyncIterator(async_worker));
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {

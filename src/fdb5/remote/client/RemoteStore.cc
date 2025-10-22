@@ -10,6 +10,7 @@
 
 #include "fdb5/remote/client/RemoteStore.h"
 
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
@@ -20,6 +21,7 @@
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/database/WipeState.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
@@ -511,27 +513,39 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 }
 
 // high-level API for wipe/purge
-bool RemoteStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                          bool unsafeAll) {
 
-    bool result = false;
+static uint64_t count = 0;
+void RemoteStore::prepareWipe(StoreWipeState& storeState, bool all) {
+    count ++;
+    std::cout << "YYY RemoteStore::prepareWipe called " << count << " times" << std::endl;
+    const std::set<eckit::URI>& uris = storeState.includeURIs();
+    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
 
-    eckit::Buffer sendBuf(1_KiB * (uris.size() + safeURIs.size()));
-    eckit::MemoryStream sms(sendBuf);
-    sms << uris;
-    sms << safeURIs;
+    bool canWipe = false;
+
+    eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
+    eckit::ResizableMemoryStream sms(sendBuf);
+    // sms << uris;
+    // sms << safeURIs;
+    sms << storeState;
     sms << all;
-    sms << unsafeAll;
+    // sms << unsafeAll; // why did we drop this?
 
     auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
 
     eckit::MemoryStream rms(recvBuf);
-    rms >> result;
+    rms >> canWipe;  // bool. XXX Never checked... do we error if false, or is it no longer meaningful?
 
-    return result;
+    size_t size;
+    rms >> size;
+
+    for (size_t i = 0; i < size; ++i) {
+        storeState.insertWipeElement(std::make_shared<WipeElement>(rms));
+    }
+
 }
 
-bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+bool RemoteStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::MemoryStream sms(sendBuf);
     sms << unknownURIs.size();
@@ -540,28 +554,14 @@ bool RemoteStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
     return true;
 }
 
-bool RemoteStore::doWipe() const {
+bool RemoteStore::doWipe(StoreWipeState& wipeState) const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
     return true;
 }
-
-const WipeElements& RemoteStore::wipeElements() const {
-    wipeElements_.clear();
-
-    auto recvBuf = controlWriteReadResponse(Message::WipeElement, generateRequestID());
-
-    size_t size;
-    eckit::MemoryStream ms(recvBuf);
-    ms >> size;
-
-    wipeElements_.reserve(size);
-    for (size_t i = 0; i < size; ++i) {
-        wipeElements_.push_back(std::make_shared<WipeElement>(ms));
-    }
-
-    return wipeElements_;
+void RemoteStore::doWipeEmptyDatabases() const {
+    // emptyDatabases_ will be accumulated on the server side.
+    controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), true);
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -14,11 +14,14 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
+#include <vector>
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/SelectMatcher.h"
 
 using namespace eckit;
@@ -138,11 +141,30 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
     return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+InnerWipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
-    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    });
+    NOTIMP; // WE SHOULD JUST ALWAYS RETURN WIPESTATES
+
+    // // XXX: Awkward api coercion
+    // return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+    //     WipeIterator it = fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    //     std::vector<std::shared_ptr<WipeElement>> elements;
+    //     WipeElement e;
+    //     while (it.next(e)) {
+    //         elements.push_back(std::make_shared<WipeElement>(std::move(e)));
+    //     }
+
+    //     using ValueType     = std::unique_ptr<CatalogueWipeState>;
+    //     using QueryIterator = APIIterator<ValueType>;
+    //     using AsyncIterator = APIAsyncIterator<ValueType>;
+
+    //     auto async_worker = [elements = std::move(elements)](Queue<ValueType>& queue) {
+    //         auto state = std::make_unique<CatalogueWipeState>(elements);
+    //         queue.emplace(std::move(state));
+    //     };
+
+    //     return QueryIterator(new AsyncIterator(async_worker));
+    // });
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

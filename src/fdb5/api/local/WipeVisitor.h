@@ -23,6 +23,7 @@
 
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/WipeState.h"
 
 
 template <>
@@ -47,12 +48,12 @@ struct StoreURIs {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WipeVisitor : public QueryVisitor<WipeElement> {
+class WipeCatalogueVisitor : public QueryVisitor<std::unique_ptr<CatalogueWipeState>> {
 
 public:  // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
-                bool unsafeWipeAll);
+    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue, const metkit::mars::MarsRequest& request,
+                         bool doit, bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;
@@ -65,10 +66,6 @@ public:  // methods
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
-private:  // methods
-
-    void storeURI(const eckit::URI& dataURI, bool include);
-
 private:  // members
 
     bool doit_;
@@ -77,7 +74,11 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    std::unordered_map<eckit::URI, StoreURIs> stores_;
+    // std::unordered_map<eckit::URI, StoreURIs> stores_;
+    std::unique_ptr<CatalogueWipeState> catalogueWipeState_;
+
+    // are these pointers for any reason?
+    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates_; // I dont think these should exist delete me.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

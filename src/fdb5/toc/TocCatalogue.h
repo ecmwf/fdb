@@ -28,7 +28,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// DB that implements the FDB on POSIX filesystems
-
+class TocWipeState;
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public:  // methods
@@ -78,15 +78,20 @@ protected:  // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
-    bool wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include) const override;
-    std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe() const override;
+    // wipe
+    std::unique_ptr<CatalogueWipeState> wipeInit() const override;
+    bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
+    void wipeFinalise(CatalogueWipeState& wipeState) const override;
+    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipe(const CatalogueWipeState& wipeState) const override;
+
+    void doWipeEmptyDatabases() const override;
 
 private:  // methods
 
-    void addMaskedPaths(std::set<eckit::URI>& maskedDataPath) const;
+    // void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
+    void addMaskedPaths(TocWipeState& tocWipeState) const;
+
     // void ensureSafePaths() const;
     // void calculateResidualPaths() const;
 
@@ -101,15 +106,6 @@ private:  // members
     // non-owning
     const Schema* schema_;
     const RuleDatabase* rule_;
-
-    // wipe
-    mutable std::set<eckit::URI> subtocPaths_         = {};
-    mutable std::set<eckit::PathName> lockfilePaths_  = {};
-    mutable std::set<eckit::URI> indexPaths_          = {};
-    mutable std::set<eckit::URI> safePaths_           = {};
-    mutable std::set<eckit::PathName> residualPaths_  = {};
-    mutable std::vector<Index> indexesToMask_         = {};
-    mutable std::set<eckit::PathName> cataloguePaths_ = {};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

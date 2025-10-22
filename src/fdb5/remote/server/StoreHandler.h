@@ -13,6 +13,7 @@
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/database/WipeState.h"
 
 #include <cstdint>
 #include <map>
@@ -46,7 +47,6 @@ private:  // methods
     bool remove(bool control, uint32_t clientID) override;
 
     void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
-    void wipeElements(const uint32_t clientID, const uint32_t requestID);
     void doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipe(const uint32_t clientID, const uint32_t requestID);
 
@@ -59,6 +59,15 @@ private:  // members
     struct StoreHelper;
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
+
+
+    struct WipeInProgress {
+        uint32_t clientID = 0;
+        uint32_t requestID = 0;
+        std::unique_ptr<StoreWipeState> state;
+    };
+
+    WipeInProgress currentWipe_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

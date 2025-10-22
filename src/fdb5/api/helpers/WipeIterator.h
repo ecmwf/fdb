@@ -37,19 +37,27 @@ class Stream;
 
 namespace fdb5 {
 
+class CatalogueWipeState;
 //----------------------------------------------------------------------------------------------------------------------
 
 enum WipeElementType {
     WIPE_ERROR,
+
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
     WIPE_CATALOGUE_SAFE,
     WIPE_CATALOGUE_AUX,
+
+    // Data URIs from catalogue to be sent to the stores. NB: I haven't ended up using these?
+    // WIPE_INCLUDE,
+    // WIPE_EXCLUDE,
+
     WIPE_STORE_INFO,
     WIPE_STORE_URI,
     WIPE_STORE,
     WIPE_STORE_SAFE,
     WIPE_STORE_AUX,
+
     WIPE_UNKNOWN
 };
 
@@ -94,6 +102,7 @@ private:  // members
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
+using InnerWipeIterator     = APIIterator<std::unique_ptr<CatalogueWipeState>>;
 using WipeIterator          = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
 using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;

@@ -37,6 +37,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
@@ -250,7 +251,30 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+
+    auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
+        // Visit the catalogues to determine what they would wipe
+        InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll); // WipeStateIterator
+
+        // Coordinate the wipe across catalogues and stores
+        WipeCoordinator coordinator{internal_->config()};
+        std::unique_ptr<CatalogueWipeState> catalogueWipeState;
+        while (it.next(catalogueWipeState)) {
+
+            if (!catalogueWipeState) {
+                continue;
+            }
+
+            // need to cast to CatalogueWipeState // TODO: make visitor return CatalogueWipeState directly
+            CatalogueWipeState& catalogueWipeStateRef = static_cast<CatalogueWipeState&>(*catalogueWipeState);
+
+            coordinator.wipe(queue, catalogueWipeStateRef, doit, unsafeWipeAll);
+        }
+
+        queue.close();
+    };
+
+    return WipeIterator(new APIAsyncIterator<WipeElement>(async));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
