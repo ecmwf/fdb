@@ -17,7 +17,6 @@
 #include "fdb5/api/FDB.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -27,7 +26,6 @@ public:
 
     DataLayout layout(eckit::DataHandle& handle) const override;
 
-    void writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const override;
     void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                    const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const override;
 };

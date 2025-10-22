@@ -15,7 +15,6 @@ namespace chunked_data_view {
 
 struct DataLayout {
     size_t countValues{};
-    // TODO(kkratz): Replace by datatype
     size_t bytesPerValue{};
 };
 

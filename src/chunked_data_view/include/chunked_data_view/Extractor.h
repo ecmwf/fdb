@@ -39,11 +39,6 @@ public:
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enought memory allccated for all values to be copied into out.
     /// @param out pointer to write into.
-    virtual void writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const = 0;
-
-    /// Writes the extracted data into the out pointer.
-    /// The caller must ensure there is enought memory allccated for all values to be copied into out.
-    /// @param out pointer to write into.
     virtual void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                            const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const = 0;
 };

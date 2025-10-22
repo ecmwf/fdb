@@ -105,14 +105,6 @@ struct FakeExtractor : public cdv::Extractor {
         handle.close();
         return layout;
     }
-    void writeInto(eckit::DataHandle& handle, uint8_t* out, const cdv::DataLayout& layout) const override {
-        handle.openForRead();
-        cdv::DataLayout readLayout{};
-        EXPECT_EQUAL(handle.read(&readLayout.countValues, sizeof(layout.countValues)), 8l);
-        EXPECT_EQUAL(handle.read(&readLayout.bytesPerValue, sizeof(layout.bytesPerValue)), 4l);
-        const size_t totalBytes = layout.countValues * layout.bytesPerValue;
-        EXPECT_EQUAL(handle.read(out, totalBytes), totalBytes);
-    }
 
     void writeInto(std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
                    const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,

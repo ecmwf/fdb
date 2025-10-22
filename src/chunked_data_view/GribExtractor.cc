@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <exception>
 #include <memory>
 #include <ostream>
@@ -39,22 +38,7 @@ DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
     return {countValues, 4};
 }
 
-void GribExtractor::writeInto(eckit::DataHandle& handle, uint8_t* out, const DataLayout& layout) const {
-    // TODO(kkratz): Add error handling and length checks!
-    eckit::message::Reader reader(handle);
-    eckit::message::Message msg{};
-    auto copyInto = reinterpret_cast<float*>(out);
-    // TODO(kkratz): This just copies the date in the order as it is retrieved!
-    while ((msg = reader.next())) {
-        size_t countValues = msg.getSize("values");
-        msg.getFloatArray("values", copyInto, countValues);
-        copyInto += countValues;
-    }
-}
-
-
 size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
-
     std::vector<size_t> result;
     result.reserve(axes.size());
 
