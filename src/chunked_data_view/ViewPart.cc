@@ -33,8 +33,8 @@
 
 namespace chunked_data_view {
 
-ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<Fdb> fdb,
-                   const std::vector<AxisDefinition>& axes) :
+ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor,
+                   std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes) :
     request_(std::move(request)), extractor_(std::move(extractor)), fdb_(std::move(fdb)) {
     ASSERT(fdb_);
     axes_.reserve(axes.size());

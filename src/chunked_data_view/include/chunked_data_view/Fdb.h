@@ -21,14 +21,14 @@
 
 namespace chunked_data_view {
 
-class Fdb {
+class FdbInterface {
 public:
 
-    virtual ~Fdb()                                                                                   = default;
+    virtual ~FdbInterface()                                                                          = default;
     virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request)    = 0;
     virtual std::unique_ptr<ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request) = 0;
 };
 
-std::unique_ptr<Fdb> makeFdb(std::optional<std::filesystem::path> configPath = std::nullopt);
+std::unique_ptr<FdbInterface> makeFdb(std::optional<std::filesystem::path> configPath = std::nullopt);
 
 };  // namespace chunked_data_view

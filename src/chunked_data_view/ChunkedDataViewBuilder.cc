@@ -28,7 +28,7 @@
 
 namespace chunked_data_view {
 
-ChunkedDataViewBuilder::ChunkedDataViewBuilder(std::unique_ptr<Fdb> fdb) : fdb_(std::move(fdb)) {}
+ChunkedDataViewBuilder::ChunkedDataViewBuilder(std::unique_ptr<FdbInterface> fdb) : fdb_(std::move(fdb)) {}
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
@@ -67,7 +67,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         throw eckit::UserError("Must specify an extension axis if multiple parts are specified.");
     }
 
-    std::shared_ptr<Fdb> fdb = std::move(fdb_);
+    std::shared_ptr<FdbInterface> fdb = std::move(fdb_);
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
         viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);

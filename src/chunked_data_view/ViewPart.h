@@ -26,7 +26,7 @@ namespace chunked_data_view {
 class ViewPart {
 public:
 
-    ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<Fdb> fdb,
+    ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
              const std::vector<AxisDefinition>& axes);
     void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const;
     std::vector<size_t> shape() const { return shape_; }
@@ -46,7 +46,7 @@ private:
     metkit::mars::MarsRequest request_{};
     std::vector<Axis> axes_{};
     std::unique_ptr<Extractor> extractor_{};
-    std::shared_ptr<Fdb> fdb_{};
+    std::shared_ptr<FdbInterface> fdb_{};
     DataLayout layout_{};
     std::vector<size_t> shape_{};
 };

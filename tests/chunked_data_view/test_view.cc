@@ -76,7 +76,7 @@ struct MockListIterator final : public chunked_data_view::ListIteratorInterface 
 };
 
 
-struct MockFdb final : public cdv::Fdb {
+struct MockFdb final : public cdv::FdbInterface {
     using RetFunc = std::function<std::unique_ptr<eckit::DataHandle>(const metkit::mars::MarsRequest&)>;
     using InsFunc =
         std::function<std::unique_ptr<chunked_data_view::ListIteratorInterface>(const metkit::mars::MarsRequest&)>;
