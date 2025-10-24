@@ -59,8 +59,6 @@ Installation
 
 Z3FDB requires libfdb5 to be present on your system during runtime.
 
-The current installation process looks as follows:
-
 During the `cmake` step, set the following variable: `-DENABLE_PYTHON_ZARR_INTERFACE=ON`.
 
 After building the bundle with `ninja` or `make`, a python project is created in your

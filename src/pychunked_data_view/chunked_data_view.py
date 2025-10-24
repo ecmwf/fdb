@@ -11,6 +11,8 @@ import pathlib
 
 import chunked_data_view_bindings.chunked_data_view_bindings as pdv
 
+from pychunked_data_view.exceptions import MarsRequestFormattingError
+
 pdv.init_bindings()
 
 
@@ -90,4 +92,21 @@ class ChunkedDataViewBuilder:
         self._obj.extend_on_axis(axis)
 
     def build(self):
-        return ChunkedDataView(self._obj.build())
+        try:
+            return ChunkedDataView(self._obj.build())
+        except RuntimeError as re:
+            exception_msg = str(re)
+            if "StreamParser::next" in exception_msg:
+                raise MarsRequestFormattingError(
+                    exception_msg + "\n Did the MARS request end in a comma?"
+                )
+            elif "MarsParser::parseVerb" in exception_msg:
+                raise MarsRequestFormattingError(
+                    exception_msg + "\n Did you miss a comma between keys?"
+                )
+            elif "Cannot match" in exception_msg:
+                raise MarsRequestFormattingError(
+                    exception_msg + "\n Did you misspell a MARS key?"
+                )
+            else:
+                raise re

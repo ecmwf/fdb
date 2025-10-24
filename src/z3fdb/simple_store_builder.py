@@ -40,7 +40,7 @@ class SimpleStoreBuilder:
         """Add a MARS request to the view.
 
         Args:
-            mars_request_key_values(str): A string with fully spefified MARS 
+            mars_request_key_values(str): A string with fully spefified MARS
                 key:values pairs.
                 For example:
                     type=an,
@@ -49,12 +49,12 @@ class SimpleStoreBuilder:
                     expver=0001,
                     stream=oper,
                     date=2020-01-01/to/2020-01-04,
-                    levtype=sfc
-                    step=0
+                    levtype=sfc,
+                    step=0,
                     param=167/131/132,
                     time=0/to/21/by/3
 
-            axes(:obj:`list` of :obj:`AxisDefinition`):  List of 
+            axes(:obj:`list` of :obj:`AxisDefinition`):  List of
                 AxisDefinitions that describe how axis in the MARS request are
                 mapped to axis in the Zarr array.
             extractor_type: Defines how to extract data from FDB. Currently
@@ -64,7 +64,7 @@ class SimpleStoreBuilder:
 
     def extendOnAxis(self, axis: int) -> None:
         """Defines the extension axis when multiple parts are added.
-        
+
         Args:
             axis(int): Index of the axis that is extendet when multiple parts
                 have been added.
