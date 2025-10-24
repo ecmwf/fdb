@@ -11,39 +11,36 @@
 #include <pwd.h>
 #include <sys/types.h>
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/fdb5_version.h"
 
 #include <iomanip>
 
 #include "TocRecord.h"
 
-#include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
-#include "eckit/memory/Zero.h"
 #include "eckit/runtime/Main.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag) : tag_(tag) {
-
+TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag) :
+    tag_(tag),
+    spare_{},
+    serialisationVersion_(tag == TOC_NULL ? 0 : serialisationVersion),
+    fdbVersion_(tag == TOC_NULL ? 0 : ::fdb5_version_int()),
+    timestamp_{},
+    pid_(tag == TOC_NULL ? 0 : ::getpid()),
+    uid_(tag == TOC_NULL ? 0 : ::getuid()),
+    hostname_{},
+    size_(0) {
     if (tag_ != TOC_NULL) {
-        eckit::zero(*this);
-        tag_                  = tag;
-        serialisationVersion_ = serialisationVersion;
-
-        fdbVersion_ = ::fdb5_version_int();
-
         SYSCALL(::gettimeofday(&timestamp_, 0));
 
-        pid_ = ::getpid();
-        uid_ = ::getuid();
-
         std::string host = eckit::Main::hostname();
-        host             = host.substr(0, host.find("."));  // guaranteed to be less than 64 chars -- seee RFC 1035
-        hostname_        = host;
+        // host is guaranteed to be less than 64 chars -- seee RFC 1035
+        host      = host.substr(0, host.find("."));
+        hostname_ = host;
     }
 }
 
