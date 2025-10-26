@@ -298,8 +298,6 @@ public:
 
         if (mdCheck_ || fullCheck_) {
 
-            // TODO: Check that worker thread is running
-            // TODO: Push message onto a queue (block if necessary
             if (!verificationWorker_) {
                 verificationWorker_.emplace(std::thread([this]() { verifyMessageLoop(); }));
             }
@@ -323,8 +321,10 @@ private:
     void verifyMessageLoop() {
         try {
             message::Message msg;
-            while (messageQueue_->pop(msg) >= 0) {
+            long n;
+            while ((n = messageQueue_->pop(msg)) >= 0) {
 
+                Log::debug() << "queue len: " << n << std::endl;
                 if (verificationList_.empty()) {
                     throw Exception("Unexpected field found in retrieved data", Here());
                 }
@@ -584,7 +584,7 @@ HammerConfig HammerConfig::parse(const eckit::option::CmdArgs& args) {
             !args.getBool("no-randomise-data", false),
             itt,
             args.getString("uri-file", ""),
-            args.getLong("check-queues-size", 10),
+            args.getLong("check-queue-size", 11),
     };
 
     config.timing = {
@@ -599,7 +599,7 @@ HammerConfig HammerConfig::parse(const eckit::option::CmdArgs& args) {
 
     config.parallel = {
         args.getLong("ppn", 1),
-        args.getStringVector("nodes", {}),
+        Tokenizer(",").tokenize(args.getString("nodes", "")),
          args.getInt("barrier-port", 7777),
          args.getInt("barrier-max-wait", 10),
     };
@@ -822,9 +822,8 @@ void barrier_internode(const std::vector<std::string>& nodes, int port, int max_
         eckit::net::TCPServer server(port);
         std::vector<eckit::net::TCPSocket> connections(nodes.size() - 1);
 
-        for (int i = 0; i < nodes.size(); ++i) {
+        for (int i = 0; i < connections.size(); ++i) {
             connections[i] = server.accept("Waiting for connection", max_wait);
-            eckit::net::TCPSocket& socket = connections[i];
         }
 
         // once all nodes are ready, send barrier end signal to all clients.
