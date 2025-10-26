@@ -93,6 +93,16 @@ auto to_string<>(const std::string& val) {
     return val;
 }
 
+template <typename Q, typename R, typename S, typename T>
+Key shortFDBKey(const Q& step, const R& member, const S& level, const T& param) {
+    return {
+        {"number", to_string(member)},
+        {"step",   to_string(step)},
+        {"level",  to_string(level)},
+        {"param",  to_string(param)}
+    };
+}
+
 } // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -134,6 +144,7 @@ struct HammerConfig {
         bool randomiseData;
         bool itt;
         std::string uriFile;
+        long checkQueueSize;
     };
 
     struct TimingConfig {
@@ -181,6 +192,12 @@ class HammerVerifier {
     bool fullCheck_;
     std::string hostname_;
     unsigned long long unique_;
+
+    // Used for verification only
+    std::deque<Key> verificationList_;
+    std::optional<Queue<message::Message>> messageQueue_;
+    std::optional<std::thread> verificationWorker_;
+    eckit::Length originalSize_;
 
     // Standardise the data which can be stored
     // TODO(ssmart): Not clear to me why we convert these to longs, rather than just storing the strings?
@@ -241,11 +258,22 @@ class HammerVerifier {
 
 public:
 
+    HammerVerifier(const HammerConfig& config, std::deque<Key>&& verificationList):
+        HammerVerifier(config) {
+        verificationList_ = std::move(verificationList);
+        messageQueue_.emplace(config.execution.checkQueueSize);
+
+        // Get the size of the template grib for comparison purposes
+        eckit::FileHandle fin(config.execution.templateGrib);
+        originalSize_ = fin.size();
+    }
+
     HammerVerifier(const HammerConfig& config) :
         mdCheck_(config.execution.mdCheck),
         fullCheck_(config.execution.fullCheck),
         hostname_(eckit::Main::hostname()),
-        unique_( (((unsigned long long) ::getpid()) << 32) ) {
+        unique_( (((unsigned long long) ::getpid()) << 32) ),
+        originalSize_(0) {
         ASSERT(!(mdCheck_ && fullCheck_));
     }
 
@@ -256,15 +284,58 @@ public:
         else if (fullCheck_) { storeFullVerificationData(key_digest, unique_digest, data, dataSize); }
     }
 
-    void verifyMessage(const message::Message& msg, const fdb5::Key& key) {
-        verifyMessage(msg, StoredDigest(MD5(std::string(key))));
+    void verifyMessage(message::Message&& msg) {
+
+        if (eckit::Length(msg.length()) != originalSize_) {
+            throw eckit::Exception("Found a field of different size than the template GRIB", Here());
+        }
+
+        if (mdCheck_ || fullCheck_) {
+
+            // TODO: Check that worker thread is running
+            // TODO: Push message onto a queue (block if necessary
+            if (!verificationWorker_) {
+                verificationWorker_.emplace(std::thread([this]() { verifyMessageLoop(); }));
+            }
+
+            messageQueue_->emplace(std::move(msg));
+        }
     }
 
-    void verifyMessage(const message::Message& msg, long step, long member, const std::string& level, const std::string& param) {
-        verifyMessage(msg, constructKeyDigest(step, member, level, param));
+    void readComplete() {
+        messageQueue_->close();
+        verificationWorker_->join();
+        ASSERT(messageQueue_->empty());
+
+        if (!verificationList_.empty()) {
+            throw Exception("Found fewer fields than expected", Here());
+        }
     }
 
-    void verifyMessage(const message::Message& msg, const StoredDigest& key_digest) {
+private:
+
+    void verifyMessageLoop() {
+        try {
+            message::Message msg;
+            while (messageQueue_->pop(msg) >= 0) {
+
+                if (verificationList_.empty()) {
+                    throw Exception("Unexpected field found in retrieved data", Here());
+                }
+
+                auto key = verificationList_.front();
+                verificationList_.pop_front();
+                verifyMessageBlocking(msg, key);
+            }
+        } catch (...) {
+            messageQueue_->interrupt(std::current_exception());
+            Log::error() << "Aborting (failed) worker thread" << std::endl;
+        }
+    }
+
+    void verifyMessageBlocking(const message::Message& msg, const fdb5::Key& key) {
+
+        auto key_digest = StoredDigest(MD5(std::string(key)));
 
         long offsetBeforeData = msg.getLong("offsetBeforeData");
         long offsetAfterData = msg.getLong("offsetAfterData");
@@ -272,23 +343,13 @@ public:
         const char* data = &static_cast<const char*>(msg.data())[offsetBeforeData];
         size_t dataSize = offsetAfterData - offsetBeforeData;
 
-
         if (mdCheck_) { verifyMDVerificationData(key_digest, data, dataSize); }
         else if (fullCheck_) { verifyFullVerificationData(key_digest, data, dataSize); }
     }
 
+    StoredDigest constructKeyDigest(long step, long member, long level, long param) {
 
-private:
-
-    template <typename T>
-    StoredDigest constructKeyDigest(long step, long member, const T& level, const T& param) {
-        fdb5::Key key{
-                {"number", to_string(member)},
-                {"step",   to_string(step)},
-                {"level",  to_string(level)},
-                {"param",  to_string(param)}
-        };
-
+        fdb5::Key key = shortFDBKey(step, member, level, param);
         std::string keystr(key);
         return StoredDigest{MD5(keystr)};
     }
@@ -430,6 +491,10 @@ void HammerConfig::constructOptions(std::vector<eckit::option::Option*>& options
            "Disable randomisation of field data written. Written field data is randomised by default unless "
            " --full-check is supplied."));
     options.push_back(new eckit::option::SimpleOption<bool>("itt", "Run the benchmark in ITT mode"));
+    options.push_back(new eckit::option::SimpleOption<long>(
+            "check-queue-size",
+            "How many messages should be stored in the message queue for asynchronous processing of checks. "
+            "(default 10)"));
 
     /// TODO(ssmart): Provide a description of what this uri-file should contain. And ideally rename the option as
     ///               it is utterly non-descriptive.
@@ -513,6 +578,7 @@ HammerConfig HammerConfig::parse(const eckit::option::CmdArgs& args) {
             !args.getBool("no-randomise-data", false),
             itt,
             args.getString("uri-file", ""),
+            args.getLong("check-queues-size", 10),
     };
 
     config.timing = {
@@ -657,7 +723,19 @@ metkit::mars::MarsRequest HammerConfig::templateRequest() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 class FDBHammer : public fdb5::FDBTool {
+
+    struct ReadStats {
+        size_t totalRead = 0;
+        size_t fieldsRead = 0;
+        Timer totalTimer;
+        Timer readTimer;
+        Timer listTimer;
+        size_t listAttempts = 0;
+        struct ::timeval timeBeforeIO;
+        struct ::timeval timeAfterIO;
+    };
 
 public: // methods
 
@@ -668,18 +746,22 @@ public: // methods
 private: // methods
 
     void usage(const std::string& tool) const override;
-
     void init(const eckit::option::CmdArgs& args) override;
-
     int numberOfPositionalArguments() const override { return 1; }
 
     void execute(const eckit::option::CmdArgs& args) override;
-
     void executeRead();
-
     void executeWrite();
-
     void executeList();
+
+    std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+    constructReadData(std::optional<FDB>& fdb, ReadStats& stats);
+    std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+    constructReadDataURIFile(std::optional<FDB>& fdb, ReadStats& stats);
+    std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+    constructReadDataStandard(std::optional<FDB>& fdb, ReadStats& stats);
+    std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+    constructReadDataITT(std::optional<FDB>& fdb, ReadStats& stats);
 
 private: // members
 
@@ -1212,35 +1294,134 @@ void FDBHammer::executeWrite() {
         Log::info() << "Average time slept per step: " << total_slept / config_.request.steplist.size() << std::endl;
 }
 
+std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+FDBHammer::constructReadData(std::optional<FDB>& fdb, FDBHammer::ReadStats& stats) {
 
-void FDBHammer::executeRead() {
+    if (config_.execution.itt) {
 
-    // Construct template request
+        if (config_.request.steplist.size() > 1) {
+            // @note: Usually, fdb-hammer in ITT mode is run on multiple nodes and concurrent
+            //   processes. All reader processes in a node are set to retrieve fields for
+            //   one step at a time. If there are more steps than reader nodes, the steps are
+            //   processed in a round-robin fashion across the available nodes.
+            //   The ITT benchmark scripts run a new set of fdb-hammer processes in every reader
+            //   node for every subsequent step assigned to that node, and it would therefore be
+            //   a bug if a single fdb-hammer reader process in ITT mode were configured to
+            //   retrieve fields for multiple steps.
+            Log::warning() << "A reader fdb-hammer process in ITT mode has been configured to "
+                           << "retrieve fields for multiple steps (" << config_.request.steplist.size() << ")." << std::endl;
+        }
+
+        if (config_.execution.uriFile.empty()) {
+            return constructReadDataITT(fdb, stats);
+        } else {
+            // uriFile not empty
+            return constructReadDataURIFile(fdb, stats);
+        }
+    } else {
+        // Normal execution of the hammer
+        return constructReadDataStandard(fdb, stats);
+    }
+}
+
+std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+FDBHammer::constructReadDataURIFile(std::optional<FDB>& fdb, ReadStats& stats) {
+
+    std::vector<eckit::URI> uris;
+    std::ifstream in{config_.execution.uriFile};
+    for (std::string line; getline(in, line);) {
+        uris.push_back(eckit::URI{line});
+    }
+
+    // ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
+    gettimeofday(&stats.timeBeforeIO, NULL);
+    stats.fieldsRead = uris.size();
+
+    // We still need to work out what fields are expected...
+
+    std::deque<Key> expected_keys;
+
+    for (const auto& istep : config_.request.steplist) {
+        for (const auto& imember : config_.request.ensemblelist) {
+            size_t iter_count = 0;
+
+            for (const auto& ilevel : config_.request.levelist) {
+                if (iter_count > config_.iteration.stopAtChunk)
+                    break;
+
+                for (const auto& iparam : config_.request.paramlist) {
+                    if (iter_count > config_.iteration.stopAtChunk)
+                        break;
+                    if (iter_count++ < config_.iteration.startAtChunk)
+                        continue;
+
+                    expected_keys.push_back(shortFDBKey(istep, imember, ilevel, iparam));
+                }
+            }
+        }
+    }
+
+
+    return std::make_pair(std::unique_ptr<DataHandle>(fdb->read(uris)), std::move(expected_keys));
+}
+
+std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+FDBHammer::constructReadDataStandard(std::optional<FDB>& fdb, ReadStats& stats) {
 
     metkit::mars::MarsRequest request = config_.templateRequest();
     request.setValue("optimised", "on");
 
+    HandleGatherer handles(false);
+    std::deque<Key> expected_keys;
 
-    eckit::Translator<size_t, std::string> str;
+    gettimeofday(&stats.timeBeforeIO, NULL);
 
-    if (config_.execution.itt && config_.request.steplist.size() > 1) {
-        // @note: Usually, fdb-hammer in ITT mode is run on multiple nodes and concurrent
-        //   processes. All reader processes in a node are set to retrieve fields for
-        //   one step at a time. If there are more steps than reader nodes, the steps are
-        //   processed in a round-robin fashion across the available nodes.
-        //   The ITT benchmark scripts run a new set of fdb-hammer processes in every reader
-        //   node for every subsequent step assigned to that node, and it would therefore be
-        //   a bug if a single fdb-hammer reader process in ITT mode were configured to
-        //   retrieve fields for multiple steps.
-        Log::warning() << "A reader fdb-hammer process in ITT mode has been configured to "
-                       << "retrieve fields for multiple steps (" << config_.request.steplist.size() << ")." << std::endl;
+    for (const auto& istep : config_.request.steplist) {
+        request.setValue("step", istep);
+
+        for (const auto& imember: config_.request.ensemblelist) {
+            if (config_.iteration.hasEnsembles) {
+                request.setValue("number", imember);
+            }
+
+            size_t iter_count = 0;
+
+            for (const auto& ilevel : config_.request.levelist) {
+                request.setValue("levelist", ilevel);
+
+                if (iter_count > config_.iteration.stopAtChunk)
+                    break;
+
+                for (const auto& iparam : config_.request.paramlist) {
+                    request.setValue("param", iparam);
+
+                    if (iter_count > config_.iteration.stopAtChunk)
+                        break;
+                    if (iter_count++ < config_.iteration.startAtChunk)
+                        continue;
+
+                    if (config_.interface.verbose) {
+                        Log::info() << "Member: " << imember << ", step: " << istep << ", level: " << ilevel
+                                    << ", param: " << iparam << std::endl;
+                    }
+
+                    handles.add(fdb->retrieve(request));
+                    expected_keys.push_back(shortFDBKey(istep, imember, ilevel, iparam));
+                    stats.fieldsRead++;
+                }
+            }
+        }
     }
 
-    struct timeval tval_before_io, tval_after_io;
-    eckit::Timer timer;
-    timer.start();
+    return std::make_pair(
+            std::unique_ptr<DataHandle>(handles.dataHandle()),
+            std::move(expected_keys));
+}
 
-    std::vector<metkit::mars::MarsRequest> mars_list_requests;
+std::pair<std::unique_ptr<DataHandle>, std::deque<Key>>
+FDBHammer::constructReadDataITT(std::optional<FDB>& fdb, ReadStats& stats) {
+
+    // First we need to determine _which data we should be listing
 
     // Mutable versions of the config lists, so that we can manipulate them before the run
 
@@ -1249,11 +1430,13 @@ void FDBHammer::executeRead() {
     auto paramlist = to_stringvec(config_.request.paramlist);
     const size_t nparams = paramlist.size();
 
-    // If ITT mode and no URI file is specified, build the list request(s) matching the whole domain,
+    // Build the list request(s) matching the whole domain,
     // optionally cropped via start_at and stop_at, to be used to fetch the field locations.
     // This manipulates the 'levelist' variable.
-    if (config_.execution.itt && config_.execution.uriFile.empty()) {
 
+    std::vector<metkit::mars::MarsRequest> mars_list_requests;
+
+    {
         metkit::mars::MarsRequest template_request = config_.templateRequest();
         template_request.setValuesTyped(new metkit::mars::TypeAny("number"), to_stringvec(config_.request.ensemblelist));
 
@@ -1312,251 +1495,153 @@ void FDBHammer::executeRead() {
         }
     }
 
-    eckit::Timer list_timer;
-    size_t list_attempts = 0;
 
-    fdb5::HandleGatherer handles(false);
+    // Then we need to perform the list operations, to construct the DataHandle, and the expected
+    // FDB key lists.
 
-    // We hold the FDB instance in an optional to be able to recreate/re-destroy it on-demand to purge all
-    // cached state when polling for data availability
-    std::optional<fdb5::FDB> fdb;
+    metkit::mars::MarsRequest request = config_.templateRequest();
+    request.setValue("optimised", "on");
 
-    list_timer.start();
-    fdb.emplace(config_.fdbConfig);
-    list_timer.stop();
+    std::deque<Key> expected_keys;
+    HandleGatherer handles(false);
 
-    size_t fieldsRead = 0;
-    std::vector<fdb5::Key> listed_keys;
+    gettimeofday(&stats.timeBeforeIO, NULL);
 
-    if (config_.execution.itt && !config_.execution.uriFile.empty()) {
+    for (const auto& istep : config_.request.steplist) {
+        request.setValue("step", istep);
+
+        /// @note: ensure the step to retrieve data for has been fully
+        ///   archived+flushed by listing all of its fields
+        for (auto& mars_list_request: mars_list_requests) {
+            mars_list_request.setValue("step", istep);
+        }
+
+        if (config_.interface.verbose) {
+            for (auto& mars_list_request: mars_list_requests)
+                eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
+        }
+
+        size_t expected = 0;
+        std::vector<fdb5::FDBToolRequest> list_requests;
+        for (auto& mars_list_request: mars_list_requests) {
+            list_requests.push_back(fdb5::FDBToolRequest{mars_list_request, false});
+            expected += mars_list_request.count();
+        }
+
         std::vector<eckit::URI> uris;
-        std::ifstream in{config_.execution.uriFile};
-        for (std::string line; getline(in, line);) {
-            uris.push_back(eckit::URI{line});
-        }
-        // ASSERT(uris.size() == (nsteps * nensembles * levelist.size() * paramlist.size()));
-        gettimeofday(&tval_before_io, NULL);
-        handles.add(fdb->read(uris));
-        fieldsRead += uris.size();
-    } else {
-        for (const auto& istep : config_.request.steplist) {
-            request.setValue("step", istep);
-            if (config_.execution.itt) {
-                /// @note: ensure the step to retrieve data for has been fully
-                ///   archived+flushed by listing all of its fields
-                for (auto& mars_list_request: mars_list_requests)
-                    mars_list_request.setValue("step", istep);
-                if (config_.interface.verbose) {
-                    for (auto& mars_list_request: mars_list_requests)
-                        eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
-                }
-                size_t expected = 0;
-                std::vector<fdb5::FDBToolRequest> list_requests;
-                for (auto& mars_list_request: mars_list_requests) {
-                    list_requests.push_back(fdb5::FDBToolRequest{mars_list_request, false});
-                    expected += mars_list_request.count();
-                }
-                std::vector<eckit::URI> uris;
-                bool dataReady = false;
-                size_t attempts = 0;
-                if (istep == config_.request.steplist.front())
-                    gettimeofday(&tval_before_io, NULL);
-                while (!dataReady) {
-                    uris.clear();
-                    listed_keys.clear();
+        std::deque<Key> step_expected_keys;
+        bool dataReady = false;
+        size_t attempts = 0;
 
-                    list_timer.start();
-                    size_t count = 0;
-                    for (auto& list_request: list_requests) {
-                        auto listObject = fdb->list(list_request, true);
-                        fdb5::ListElement info;
-                        while (listObject.next(info)) {
-                            if (config_.interface.verbose)
-                                Log::info() << info.keys()[2] << std::endl;
-                            uris.push_back(info.location().fullUri());
-                            fdb5::Key key = info.combinedKey();
-                            fdb5::Key short_key;
-                            short_key.set("number", key.get("number"));
-                            short_key.set("step", key.get("step"));
-                            short_key.set("level", key.get("levelist"));
-                            short_key.set("param", key.get("param"));
-                            listed_keys.push_back(short_key);
-                            ++count;
-                        }
-                    }
-                    list_timer.stop();
+        while (!dataReady) {
+            uris.clear();
+            step_expected_keys.clear();
 
-                    ++list_attempts;
-                    ++attempts;
-                    if (count == expected) {
-                        dataReady = true;
-                    } else {
-                        if (config_.interface.verbose) {
-                            eckit::Log::info() << "Expected " << expected << ", found " << count << std::endl;
-                        }
-                        if (attempts >= config_.timing.pollMaxAttempts)
-                            throw eckit::Exception(std::string("List maximum attempts (") +
-                                                   eckit::Translator<size_t, std::string>()(config_.timing.pollMaxAttempts) +
-                                                   ") exceeded");
-                        ::sleep(config_.timing.pollPeriod);
-                        list_timer.start();
-                        fdb.emplace(config_.fdbConfig);
-                        list_timer.stop();
-                    }
+            stats.listTimer.start();
+            size_t count = 0;
+            for (auto& list_request: list_requests) {
+                auto listObject = fdb->list(list_request, true);
+                fdb5::ListElement info;
+                while (listObject.next(info)) {
+                    if (config_.interface.verbose)
+                        Log::info() << info.keys()[2] << std::endl;
+                    uris.push_back(info.location().fullUri());
+                    fdb5::Key key = info.combinedKey();
+
+                    step_expected_keys.push_back(shortFDBKey(key.get("step"), key.get("number"), key.get("levelist"), key.get("param")));
+                    ++count;
                 }
-                handles.add(fdb->read(uris));
-                fieldsRead += uris.size();
+            }
+            stats.listTimer.stop();
+
+            ++stats.listAttempts;
+            ++attempts;
+            if (count == expected) {
+                dataReady = true;
             } else {
-                for (const auto& imember : config_.request.ensemblelist) {
-                    if (config_.iteration.hasEnsembles) {
-                        request.setValue("number", imember);
-                    }
-
-                    size_t iter_count = 0;
-
-                    for (const auto& level : levelist) {
-                        request.setValue("levelist", level);
-
-                        if (iter_count > config_.iteration.stopAtChunk)
-                            break;
-
-                        for (const auto& param : paramlist) {
-                            request.setValue("param", param);
-
-                            if (iter_count > config_.iteration.stopAtChunk)
-                                break;
-                            if (iter_count++ < config_.iteration.startAtChunk)
-                                continue;
-
-                            if (config_.interface.verbose) {
-                                Log::info() << "Member: " << imember << ", step: " << istep << ", level: " << level
-                                            << ", param: " << param << std::endl;
-                            }
-
-                            if (imember == config_.request.ensemblelist.front() && istep == config_.request.steplist.front() && (iter_count - 1 == config_.iteration.startAtChunk)) {
-                                gettimeofday(&tval_before_io, NULL);
-                            }
-                            handles.add(fdb->retrieve(request));
-                            fieldsRead++;
-                        }
-                    }
+                if (config_.interface.verbose) {
+                    eckit::Log::info() << "Expected " << expected << ", found " << count << std::endl;
                 }
+                if (attempts >= config_.timing.pollMaxAttempts)
+                    throw eckit::Exception(std::string("List maximum attempts (") +
+                                           eckit::Translator<size_t, std::string>()(config_.timing.pollMaxAttempts) +
+                                           ") exceeded");
+                ::sleep(config_.timing.pollPeriod);
+                stats.listTimer.start();
+                fdb.emplace(config_.fdbConfig);
+                stats.listTimer.stop();
             }
+        }
+
+        handles.add(fdb->read(uris));
+        stats.fieldsRead += uris.size();
+        for (const auto& k : step_expected_keys) {
+            expected_keys.emplace_back(k);
         }
     }
 
-    std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
+    return std::make_pair(
+            std::unique_ptr<DataHandle>(handles.dataHandle()),
+            std::move(expected_keys));
+}
 
-    std::optional<eckit::Buffer> buff;
-    std::optional<eckit::MemoryHandle> mh;
-    std::optional<eckit::Length> original_size;
+void FDBHammer::executeRead() {
 
-    size_t total = 0;
+    ReadStats stats;
 
-    eckit::Timer read_timer;
-    read_timer.start();
-    if (config_.execution.fullCheck || config_.execution.mdCheck) {
-        // if storing all read data in memory for later checksum calculation and verification
-        // is not an option, it could be stored and processed by parts as follows:
-        //
-        // struct Hack {
-        //   bool sorted_;
-        //   std::vector<eckit::DataHandle *> handles_;
-        //   size_t count_;
-        // }
-        // Hack* dh2 = reinterpret_cast<Hack *>(dh.get());
-        // for (auto& ph : dh2->datahandles_) { ... }
+    // We keep one instance of the FDB for all options, but hold it in an optional so that we can
+    // recreate/re-destroy it on demand to purge all cached state when polling for data availability
+    std::optional<fdb5::FDB> fdb;
+    stats.listTimer.start();
+    fdb.emplace(config_.fdbConfig);
+    stats.listTimer.stop();
 
-        eckit::FileHandle fin(config_.execution.templateGrib);
-        original_size.emplace(fin.size());
-        size_t expected = fieldsRead * (size_t) original_size.value();
-        buff.emplace(expected);
-        mh.emplace(buff.value(), expected);
-        total = dh->saveInto(mh.value());
-    } else {
+    // Work out what work we expect to do
+
+    stats.totalTimer.start();
+    auto [source_dh, expected_keys] = constructReadData(fdb, stats);
+
+    // Short-circuit if there really are _no_ checks to perform
+
+    stats.readTimer.start();
+    if (!(config_.execution.fullCheck || config_.execution.mdCheck)) {
         EmptyHandle nullOutputHandle;
-        total = dh->saveInto(nullOutputHandle);
-    }
-    read_timer.stop();
+        stats.totalRead = source_dh->saveInto(nullOutputHandle);
+        stats.readTimer.stop();
+        stats.totalTimer.stop();
+    } else {
+        HammerVerifier verifier(config_, std::move(expected_keys));
 
-    gettimeofday(&tval_after_io, NULL);
-
-    timer.stop();
-
-    if (config_.execution.fullCheck || config_.execution.mdCheck) {
-
-        eckit::message::Reader reader(mh.value());
-        eckit::message::Message msg;
-
-        HammerVerifier verifier(config_);
-
-        if (config_.execution.itt && config_.execution.uriFile.empty()) {
-
-            for (const auto& key: listed_keys) {
-                if (!(msg = reader.next()))
-                    throw eckit::Exception("Found less fields than expected.");
-
-                if (eckit::Length(msg.length()) != original_size.value())
-                    throw eckit::Exception("Found a field of different size than the seed.");
-
-                verifier.verifyMessage(msg, key);
-            }
-
-        } else {
-
-            for (const auto& istep : config_.request.steplist) {
-                for (const auto& imember : config_.request.ensemblelist) {
-
-                    size_t iter_count = 0;
-
-                    for (const auto& level : levelist) {
-
-                        if (iter_count > config_.iteration.stopAtChunk)
-                            break;
-
-                        for (const auto& param : paramlist) {
-
-                            if (iter_count > config_.iteration.stopAtChunk)
-                                break;
-                            if (iter_count++ < config_.iteration.startAtChunk)
-                                continue;
-
-                            if (!(msg = reader.next()))
-                                throw eckit::Exception("Found less fields than expected.");
-
-                            if (eckit::Length(msg.length()) != original_size.value())
-                                throw eckit::Exception("Found a field of different size than the seed.");
-
-                            fdb5::Key key({
-                                  {"number", std::to_string(imember)},
-                                  {"step",   std::to_string(istep)},
-                                  {"level",  level},
-                                  {"param",  param},
-                            });
-
-                            verifier.verifyMessage(msg, istep, imember, level, param);
-                        }
-                    }
-                }
-            }
+        message::Reader reader(*source_dh);
+        message::Message msg;
+        while ((msg = reader.next())) {
+            stats.totalRead += msg.length();
+            verifier.verifyMessage(std::move(msg));
         }
+
+        stats.readTimer.stop();
+        stats.totalTimer.stop(); // exclude any leftover verification
+        verifier.readComplete();
     }
+
+    // Pretty output
 
     if (config_.execution.itt) {
-        Log::info() << "Time spent on " << list_attempts << " list attempts: " << list_timer.elapsed() << " s"
+        Log::info() << "Time spent on " << stats.listAttempts
+                    << " list attempts: " << stats.listTimer.elapsed() << " s"
                     << std::endl;
     }
-    Log::info() << "Data read duration: " << read_timer.elapsed() << std::endl;
-    Log::info() << "Fields read: " << fieldsRead << std::endl;
-    Log::info() << "Bytes read: " << total << std::endl;
-    Log::info() << "Total duration: " << timer.elapsed() << std::endl;
-    Log::info() << "Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
-    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1_MiB) << " MB / s" << std::endl;
+    Log::info() << "Data read duration: " << stats.readTimer.elapsed() << std::endl;
+    Log::info() << "Fields read: " << stats.fieldsRead << std::endl;
+    Log::info() << "Bytes read: " << stats.totalRead << std::endl;
+    Log::info() << "Total duration: " << stats.totalTimer.elapsed() << std::endl;
+    Log::info() << "Total rate: " << double(stats.totalRead) / stats.totalTimer.elapsed() << " bytes / s" << std::endl;
+    Log::info() << "Total rate: " << double(stats.totalRead) / (stats.totalTimer.elapsed() * 1_MiB) << " MB / s" << std::endl;
 
-    Log::info() << "Timestamp before first IO: " << (long int) tval_before_io.tv_sec << "." << std::setw(6)
-                << std::setfill('0') << (long int) tval_before_io.tv_usec << std::endl;
-    Log::info() << "Timestamp after last IO: " << (long int) tval_after_io.tv_sec << "." << std::setw(6)
-                << std::setfill('0') << (long int) tval_after_io.tv_usec << std::endl;
+    Log::info() << "Timestamp before first IO: " << (long int) stats.timeBeforeIO.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int) stats.timeBeforeIO.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " << (long int) stats.timeAfterIO.tv_sec << "." << std::setw(6)
+                << std::setfill('0') << (long int) stats.timeAfterIO.tv_usec << std::endl;
 }
 
 
