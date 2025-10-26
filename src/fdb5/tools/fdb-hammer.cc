@@ -264,8 +264,13 @@ public:
         messageQueue_.emplace(config.execution.checkQueueSize);
 
         // Get the size of the template grib for comparison purposes
-        eckit::FileHandle fin(config.execution.templateGrib);
-        originalSize_ = fin.size();
+        // If we are randomising data, the encoded size will vary depending if CCSDS is enabled, so the
+        // size check is not valid.
+        if (!config.execution.randomiseData) {
+            eckit::FileHandle fin(config.execution.templateGrib);
+            originalSize_ = fin.size();
+            Log::info() << "Using template GRIB of size " << originalSize_ << std::endl;
+        }
     }
 
     HammerVerifier(const HammerConfig& config) :
@@ -286,7 +291,8 @@ public:
 
     void verifyMessage(message::Message&& msg) {
 
-        if (eckit::Length(msg.length()) != originalSize_) {
+        if (originalSize_ != 0 && eckit::Length(msg.length()) != originalSize_) {
+            eckit::Log::info() << "Mismatched size: " << msg.length() << " - " << originalSize_ << std::endl;
             throw eckit::Exception("Found a field of different size than the template GRIB", Here());
         }
 
@@ -367,7 +373,7 @@ private:
         key_digest.store(data);
         unique_digest.store(data + sizeof(StoredDigest));
         key_digest.store(data + dataSize - 2 * sizeof(StoredDigest));
-        key_digest.store(data + dataSize - sizeof(StoredDigest));
+        unique_digest.store(data + dataSize - sizeof(StoredDigest));
     }
 
     void storeFullVerificationData(const StoredDigest& key_digest, const StoredDigest& unique_digest,
@@ -610,9 +616,9 @@ HammerConfig HammerConfig::parse(const eckit::option::CmdArgs& args) {
 
     // post-Validation
 
-    if (config.execution.randomiseData && config.execution.fullCheck) {
-        throw UserError("Cannot enable full consistency checks with data randomisation enabled", Here());
-    }
+    //if (config.execution.mode == Mode::Write && config.execution.randomiseData && config.execution.fullCheck) {
+    //    throw UserError("Cannot enable full consistency checks with data randomisation enabled", Here());
+    //}
 
     long nparams = config.request.paramlist.size();
     long nlevels = config.request.levelist.size();
@@ -1142,7 +1148,7 @@ void FDBHammer::executeWrite() {
     CODES_CHECK(codes_get_long(handle, std::string("numberOfValues").c_str(), &numberOfValues), 0);
 
     std::vector<double> random_values;
-    if (!config_.execution.fullCheck) {
+    if (config_.execution.randomiseData) {
         random_values.resize(numberOfValues);
     }
 
@@ -1202,7 +1208,7 @@ void FDBHammer::executeWrite() {
                     CODES_CHECK(codes_set_long(handle, "paramId", iparam), 0);
 
                     if (config_.execution.randomiseData) {
-                        ASSERT(!config_.execution.fullCheck);
+//                        ASSERT(!config_.execution.fullCheck);
 
                         // randomise field data
                         for (int i = 0; i < numberOfValues; ++i) {
@@ -1211,6 +1217,10 @@ void FDBHammer::executeWrite() {
 
                         CODES_CHECK(codes_set_double_array(handle, "values", random_values.data(),
                                                            random_values.size()), 0);
+
+                        // If using CCSDS, the size of the data may have been adjusted...
+                        CODES_CHECK(codes_get_long(handle, std::string("offsetBeforeData").c_str(), &offsetBeforeData), 0);
+                        CODES_CHECK(codes_get_long(handle, std::string("offsetAfterData").c_str(), &offsetAfterData), 0);
                     }
 
                     size_t messageSize = 0;
