@@ -86,7 +86,7 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
                 bitset[msgIndex] = true;
             }
         }
-        catch (std::exception e) {
+        catch (const std::exception& e) {
             eckit::Log::debug() << e.what() << std::endl;
         }
     }
