@@ -91,14 +91,6 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
             && readUnsafe(socket, &tail, sizeof(tail))) {
 
             ASSERT(tail == MessageHeader::EndMarker);
-
-            if (hdr.message == Message::Error) {
-                char msg[hdr.payloadSize + 1];
-                if (hdr.payloadSize) {
-                    char msg[hdr.payloadSize + 1];
-                }
-            }
-
             return payload;
         }
     }

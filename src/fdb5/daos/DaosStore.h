@@ -55,6 +55,7 @@ protected:  // methods
     eckit::DataHandle* retrieve(Field& field) const override;
     std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
+    using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
