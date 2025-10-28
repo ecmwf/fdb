@@ -1,8 +1,8 @@
-name: Build and Test z3fdb
+name: Build and Test Z3FDB
 
 on:
   pull_request:
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
   push:
     branches:
       - "master"
@@ -11,8 +11,15 @@ on:
       - "**"
 
 jobs:
-  prepare-deps:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        runner:
+          - [self-hosted, platform-builder-debian-11]
+          - [self-hosted, platform-builder-ubuntu-22.04]
+          - [self-hosted, platform-builder-rocky-8.6]
+          - [self-hosted, platform-builder-fedora-37]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Get ecbuild
         uses: actions/checkout@v5
@@ -44,7 +51,6 @@ jobs:
           cmake \
             -B eccodes-build \
             -S eccodes-src \
-            -GNinja \
             -DCMAKE_INSTALL_PREFIX=dependencies \
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -63,7 +69,6 @@ jobs:
           cmake \
             -B eckit-build \
             -S eckit-src \
-            -GNinja \
             -DCMAKE_INSTALL_PREFIX=dependencies \
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -80,47 +85,14 @@ jobs:
           cmake \
             -B metkit-build \
             -S metkit-src \
-            -GNinja \
             -DCMAKE_INSTALL_PREFIX=dependencies \
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build metkit-build -j -t install
-      - name: Archive with permissions preserved
-        run: tar --zstd -cpf files.tar.zst dependencies/ ecbuild/
-      - name: Upload dependencies
-        uses: actions/upload-artifact@v4
-        with:
-          name: deps
-          path: files.tar.zst
-          retention-days: 1
-  build-wheels:
-    needs: prepare-deps
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
-      fail-fast: false  # Continue running other versions if one fails
-    
-    steps:
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Download dependencies
-        uses: actions/download-artifact@v4
-        with:
-          name: deps
-      - name: Extract with zstd
-        run: tar --zstd -xpf files.tar.zst
-      - name: Get fdb5
+      - name: Get fdb
         uses: actions/checkout@v5
         with:
-          repository: ecmwf/fdb
           path: fdb-src
-      - name: Display Python version
-        run: python --version
-      - name: Install 'build'
-        run: pip install -r fdb-src/requirements.txt
       - name: Build fdb
         run: |
           export PATH=$(pwd)/dependencies/bin:$PATH
@@ -128,24 +100,16 @@ jobs:
           cmake \
             -B fdb-build \
             -S fdb-src \
-            -GNinja \
             -DCMAKE_INSTALL_PREFIX=dependencies \
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DENABLE_TOOLS=ON \
-            -DENABLE_PYTHON_ZARR_INTERFACE=ON
-          cmake --build fdb-build -j
+          cmake --build fdb-build -j -t install
           cd fdb-build
           ctest -j $(nproc) --output-on-failure
-      - name: Upload wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: z3fdb-wheel-py${{ matrix.python-version }}
-          path: "fdb-build/z3fdb-*.whl"
-          retention-days: 10
-          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-  build-upstream:
-    uses: ./.github/workflows/build-bundles.yml
-    secrets: inherit
+  build-mars-client-bundle:
+    uses: ozaq/test-bundle/.github/workflows/build.yml@demo/ci
+    secrets:
+      GH_REPO_READ_TOKEN: ${{ secrets.GH_REPO_READ_TOKEN }}
     with:
       ref: ${{ github.ref }}
