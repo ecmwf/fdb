@@ -349,8 +349,8 @@ private:
         const char* data = &static_cast<const char*>(msg.data())[offsetBeforeData];
         size_t dataSize = offsetAfterData - offsetBeforeData;
 
-        if (mdCheck_) { verifyMDVerificationData(key_digest, data, dataSize); }
-        else if (fullCheck_) { verifyFullVerificationData(key_digest, data, dataSize); }
+        if (mdCheck_) { verifyMDVerificationData(key_digest, data, dataSize, key.empty()); }
+        else if (fullCheck_) { verifyFullVerificationData(key_digest, data, dataSize, key.empty()); }
     }
 
     StoredDigest constructKeyDigest(long step, long member, long level, long param) {
@@ -393,7 +393,7 @@ private:
         checksum_digest.store(data + sizeof(StoredDigest));
     }
 
-    void verifyMDVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize) {
+    void verifyMDVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize, bool noKey) {
 
         ASSERT(dataSize > 4 * sizeof(StoredDigest));
 
@@ -403,12 +403,15 @@ private:
         auto key_digest2 = StoredDigest::load(data + dataSize - 2 * sizeof(StoredDigest));
         auto unique_digest2 = StoredDigest::load(data + dataSize - sizeof(StoredDigest));
 
-        ASSERT(key_digest == key_digest1);
-        ASSERT(key_digest == key_digest2);
+        if (!noKey) {
+            ASSERT(key_digest == key_digest1);
+            ASSERT(key_digest == key_digest2);
+        }
+        ASSERT(key_digest1 == key_digest2);
         ASSERT(unique_digest1 == unique_digest2);
     }
 
-    void verifyFullVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize) {
+    void verifyFullVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize, bool noKey) {
 
         ASSERT(dataSize > 3 * sizeof(StoredDigest));
 
@@ -421,7 +424,9 @@ private:
         auto key_digest_stored = StoredDigest::load(data);
         auto checksum_digest_stored = StoredDigest::load(data + sizeof(StoredDigest));
 
-        ASSERT(key_digest == key_digest_stored);
+        if (!noKey) {
+            ASSERT(key_digest == key_digest_stored);
+        }
         ASSERT(checksum_digest == checksum_digest_stored);
     }
 
@@ -1347,9 +1352,12 @@ FDBHammer::constructReadDataURIFile(std::optional<FDB>& fdb, ReadStats& stats) {
     stats.fieldsRead = uris.size();
 
     // We still need to work out what fields are expected...
+    // But ... the expected keys ARE NOT KNOWN. So fill with empty keys, and ignore their value.
 
     std::deque<Key> expected_keys;
+    for (const auto& _ : uris) expected_keys.emplace_back(Key{});
 
+    /*
     for (const auto& istep : config_.request.steplist) {
         for (const auto& imember : config_.request.ensemblelist) {
             size_t iter_count = 0;
@@ -1368,7 +1376,7 @@ FDBHammer::constructReadDataURIFile(std::optional<FDB>& fdb, ReadStats& stats) {
                 }
             }
         }
-    }
+    }*/
 
 
     return std::make_pair(std::unique_ptr<DataHandle>(fdb->read(uris)), std::move(expected_keys));
