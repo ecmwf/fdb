@@ -103,8 +103,8 @@ bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis
             continue;
         }
         // Checking the size of the combined axis
-        // @info This is not checking whether the parameters are matching, in theory we could
-        // stitch mismatching parameters.
+        // @info This is not checking whether the parameters are matching. We intentionally
+        // can stitch mismatching parameters.
         if (other.shape()[index] != shape()[index]) {
             return false;
         }

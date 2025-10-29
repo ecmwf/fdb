@@ -44,10 +44,6 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
 
 bool ChunkedDataViewBuilder::doPartsAlign(const std::vector<ViewPart>& viewParts) {
 
-    if (viewParts.empty()) {
-        throw eckit::UserError("ChunkedDataViewBuilder: No view parts are given.");
-    }
-
     const ViewPart& first = viewParts[0];
 
     bool extensible = true;
@@ -71,6 +67,10 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
         viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);
+    }
+
+    if (viewParts.empty()) {
+        throw eckit::UserError("ChunkedDataViewBuilder: No view parts are given.");
     }
 
     if (!doPartsAlign(viewParts)) {
