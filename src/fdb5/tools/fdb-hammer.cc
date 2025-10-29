@@ -62,6 +62,12 @@ namespace {
 // Note that not all paramids are valid for encoding GRIB data with all combinations of type, levtype.
 // This provides a set which can be used for providing a range corresponding to --nparams.
 
+enum class CheckType : long {
+    NONE = 0,
+    MD_CHECK,
+    FULL_CHECK
+};
+
 const std::vector<size_t> VALID_PARAMS{
         1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25,
         26, 27, 28, 29, 30, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 43, 46, 53, 54, 60, 62, 63,
@@ -236,6 +242,7 @@ class HammerVerifier {
     // 1. MD Check:
     //
     //     - message header
+    //     - CheckType MD_CHECK
     //     - FDB key digest
     //     - unique operation id digest
     //     - (potentially random) GRIB data
@@ -248,6 +255,7 @@ class HammerVerifier {
     // 2. Full Check:
     //
     //     - message header
+    //     - CheckType FULL_CHECK
     //     - FDB key digest
     //     - checksum digest
     //     - unique operation id digest
@@ -366,12 +374,15 @@ private:
         return StoredDigest{MD5(os.str())};
     }
 
+
     void storeMDVerificationData(const StoredDigest& key_digest, const StoredDigest& unique_digest,
                                  char* data, size_t dataSize) {
 
-        ASSERT(dataSize > 4 * sizeof(StoredDigest));
-        key_digest.store(data);
-        unique_digest.store(data + sizeof(StoredDigest));
+        ASSERT(dataSize > (sizeof(CheckType) + 4 * sizeof(StoredDigest)));
+        auto p = reinterpret_cast<long*>(data);
+        p[0] = static_cast<long>(CheckType::MD_CHECK);
+        key_digest.store(data + sizeof(CheckType));
+        unique_digest.store(data + sizeof(CheckType) + sizeof(StoredDigest));
         key_digest.store(data + dataSize - 2 * sizeof(StoredDigest));
         unique_digest.store(data + dataSize - sizeof(StoredDigest));
     }
@@ -379,26 +390,31 @@ private:
     void storeFullVerificationData(const StoredDigest& key_digest, const StoredDigest& unique_digest,
                                    char* data, size_t dataSize) {
 
-        ASSERT(dataSize > 3 * sizeof(StoredDigest));
+        ASSERT(dataSize > (sizeof(CheckType) + 3 * sizeof(StoredDigest)));
+
+        auto p = reinterpret_cast<long*>(data);
+        p[0] = static_cast<long>(CheckType::FULL_CHECK);
+        key_digest.store(data + sizeof(CheckType));
 
         // Construct a checksum over data including the unique digest
 
-        unique_digest.store(data + 2 * sizeof(StoredDigest));
+        unique_digest.store(data + sizeof(CheckType) + 2 * sizeof(StoredDigest));
 
         MD5 md5;
-        md5.add(data + 2 * sizeof(StoredDigest), dataSize - 2 * sizeof(StoredDigest));
+        md5.add(data + sizeof(CheckType) + 2 * sizeof(StoredDigest), dataSize - sizeof(CheckType) - 2 * sizeof(StoredDigest));
         StoredDigest checksum_digest(md5);
 
-        key_digest.store(data);
-        checksum_digest.store(data + sizeof(StoredDigest));
+        checksum_digest.store(data + sizeof(CheckType) + sizeof(StoredDigest));
     }
 
     void verifyMDVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize, bool noKey) {
 
-        ASSERT(dataSize > 4 * sizeof(StoredDigest));
+        ASSERT(dataSize > (sizeof(CheckType) + 4 * sizeof(StoredDigest)));
+        auto p = reinterpret_cast<const long*>(data);
+        ASSERT(p[0] == static_cast<long>(CheckType::MD_CHECK));
 
-        auto key_digest1 = StoredDigest::load(data);
-        auto unique_digest1 = StoredDigest::load(data + sizeof(StoredDigest));
+        auto key_digest1 = StoredDigest::load(data + sizeof(CheckType));
+        auto unique_digest1 = StoredDigest::load(data + sizeof(CheckType) + sizeof(StoredDigest));
 
         auto key_digest2 = StoredDigest::load(data + dataSize - 2 * sizeof(StoredDigest));
         auto unique_digest2 = StoredDigest::load(data + dataSize - sizeof(StoredDigest));
@@ -413,16 +429,18 @@ private:
 
     void verifyFullVerificationData(const StoredDigest& key_digest, const char* data, size_t dataSize, bool noKey) {
 
-        ASSERT(dataSize > 3 * sizeof(StoredDigest));
+        ASSERT(dataSize > (sizeof(CheckType) + 3 * sizeof(StoredDigest)));
+        auto p = reinterpret_cast<const long*>(data);
+        ASSERT(p[0] == static_cast<long>(CheckType::FULL_CHECK));
 
         // Construct a checksum over data including the unique digest
 
         MD5 md5;
-        md5.add(data + 2 * sizeof(StoredDigest), dataSize - 2 * sizeof(StoredDigest));
+        md5.add(data + sizeof(CheckType) + 2 * sizeof(StoredDigest), dataSize - sizeof(CheckType) - 2 * sizeof(StoredDigest));
         StoredDigest checksum_digest(md5);
 
-        auto key_digest_stored = StoredDigest::load(data);
-        auto checksum_digest_stored = StoredDigest::load(data + sizeof(StoredDigest));
+        auto key_digest_stored = StoredDigest::load(data + sizeof(CheckType));
+        auto checksum_digest_stored = StoredDigest::load(data + sizeof(CheckType) + sizeof(StoredDigest));
 
         if (!noKey) {
             ASSERT(key_digest == key_digest_stored);
