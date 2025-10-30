@@ -149,7 +149,9 @@ bool MessageArchiver::filterOut(const Key& k) const {
 
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
-    eckit::Timer timer("fdb::service::archive");
+    std::optional<eckit::Timer> timer;
+    if (verbose_)
+        timer.emplace("fdb::service::archive");
 
     eckit::message::Reader reader(source);
 
@@ -219,10 +221,12 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
-                       << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
-                       << std::endl;
+    if (verbose_) {
+        eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
+                           << " size " << eckit::Bytes(total_size) << ","
+                           << " in " << eckit::Seconds(timer->elapsed()) << " ("
+                           << eckit::Bytes(total_size, timer.value()) << ")" << std::endl;
+    }
 
     return total_size;
 }
