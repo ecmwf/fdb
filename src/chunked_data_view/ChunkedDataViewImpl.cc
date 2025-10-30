@@ -13,8 +13,8 @@
 #include "eckit/exception/Exceptions.h"
 
 #include <cstddef>
+#include <ostream>
 #include <sstream>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 

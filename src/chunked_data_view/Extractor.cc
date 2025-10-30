@@ -10,6 +10,7 @@
 #include "chunked_data_view/Extractor.h"
 
 #include "GribExtractor.h"
+#include "eckit/exception/Exceptions.h"
 
 #include <memory>
 

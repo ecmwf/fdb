@@ -16,7 +16,6 @@
 #include "eckit/io/DataHandle.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <vector>
 
