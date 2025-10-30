@@ -349,8 +349,7 @@ size_t ServerConnection::archiveThreadLoop() {
     ArchiveElem elem;
 
     try {
-        long queuelen;
-        while ((queuelen = archiveQueue_.pop(elem)) != -1) {
+        while (archiveQueue_.pop(elem) != -1) {
             if (elem.multiblob_) {
                 // Handle MultiBlob
 
@@ -513,6 +512,7 @@ void ServerConnection::handle() {
                             listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
                         }
                     }
+                        [[fallthrough]];
                     case Handled::Yes:
                         write(Message::Received, true, hdr.clientID(), hdr.requestID);
                         break;

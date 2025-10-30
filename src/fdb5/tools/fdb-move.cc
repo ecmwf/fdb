@@ -125,7 +125,7 @@ public:  // methods
         LOG_DEBUG_LIB(LibFdb5) << "Request:     " << request << std::endl;
         LOG_DEBUG_LIB(LibFdb5) << "Destination: " << destination << std::endl;
 
-        moveIterator_ = new fdb_moveiterator_t(fdb_.move(request, destination));
+        moveIterator_ = std::make_unique<fdb_moveiterator_t>(fdb_.move(request, destination));
     }
     ~MoveProducer() {}
 
@@ -173,7 +173,7 @@ private:  // attributes
     fdb5::FDB fdb_;
     fdb5::MoveElement last_;
     std::vector<fdb5::MoveElement> list_;
-    fdb_moveiterator_t* moveIterator_;
+    std::unique_ptr<fdb_moveiterator_t> moveIterator_;
 
     bool keep_;
     int removeDelay_;

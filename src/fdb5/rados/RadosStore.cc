@@ -63,7 +63,7 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const uint32_t, const K
 
     ASSERT(len == length);
 
-    return std::unique_ptr<const RadosFieldLocation>(new RadosFieldLocation(dataUri, position, length));
+    return std::make_unique<const RadosFieldLocation>(dataUri, position, length);
 }
 
 size_t RadosStore::flush() {
