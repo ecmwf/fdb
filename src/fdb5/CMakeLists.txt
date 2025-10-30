@@ -518,6 +518,19 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
+ecbuild_add_executable( TARGET    fdb-compare
+                        CONDITION HAVE_FDB_BUILD_TOOLS
+                        SOURCES   tools/compare/fdb-compare.cc
+                                  tools/compare/datautil/comparator.cc
+                                  tools/compare/datautil/common/comparison_map.cc
+                                  tools/compare/datautil/mars/compare.cc
+                        INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                                  tools/compare/datautils/grib/
+                                  tools/compare/datautils/mars/
+                                  tools/compare/datautils/common/
+                                  tools/compare/
+                        LIBS      fdb5 )
+                        
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )

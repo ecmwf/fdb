@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -euxo
+
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+testname=all
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+echo $bindir 
+
+rm -rf $bindir/test-root
+mkdir -p $bindir/test-root
+
+for f in test.yaml
+do
+    cp $srcdir/$f $bindir
+done
+
+# ########################################################################################################################
+# DEPENDS ON SETUP REFERENCE FDB
+
+#Different comparisons: 
+# compare the reference fdb with itself => bitidentical
+fdb write --config=test.yaml grib/6.grib
+fdb write --config=test.yaml grib/9.grib
+fdb write --config=test.yaml grib/an6.grib
+fdb write --config=test.yaml grib/an9.grib
+
+
+# ####### Check lots of content compare mars keys only
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all| tee out
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only| tee out
+grep -Fq "GRIB COMPARISON MISMATCH" out && die "Grib Comparison check failed although grib messages should be identical"
+
+fdb-compare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all| tee out
+grep -Fq "Average Error: 0" out || die "Mars Key check failed although the fdbs should be identical"
+
+
+
+

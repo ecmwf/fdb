@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -euxo
+
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+testname=all
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+rm -rf $bindir/ref-root
+mkdir -p $bindir/ref-root 
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+for f in ref.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+# ########################################################################################################################
+
+grib_set -s edition=2 x.grib x2.grib
+grib_set -s step=6 x2.grib grib/6.grib
+grib_set -s step=9 x2.grib grib/9.grib
+grib_set -s type=an grib/6.grib grib/an6.grib
+grib_set -s type=an grib/9.grib grib/an9.grib
+
+fdb write --config=ref.yaml grib/6.grib
+fdb write --config=ref.yaml grib/9.grib
+fdb write --config=ref.yaml grib/an6.grib
+fdb write --config=ref.yaml grib/an9.grib

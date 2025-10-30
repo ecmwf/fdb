@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -euxo
+
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+testname=all
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+rm -rf $bindir/test_grib-root
+mkdir -p $bindir/test_grib-root
+
+for f in test_grib.yaml
+do
+    cp $srcdir/$f $bindir
+done
+
+cp $srcdir/scaled.grib $bindir/grib
+
+# ########################################################################################################################
+# Modify one grib file to contain different metadata
+
+grib_set -s localTablesVersion=1 grib/an6.grib grib/wronggrib.grib
+
+fdb write --config=test_grib.yaml grib/6.grib
+fdb write --config=test_grib.yaml grib/9.grib
+fdb write --config=test_grib.yaml grib/wronggrib.grib
+fdb write --config=test_grib.yaml grib/an9.grib
+
+
+### Test with diverging MARS entries. 
+fdb-compare --reference-config=ref.yaml --test-config=test_grib.yaml --minimum-keys="" --all | tee out
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key mismatch and this should have been detected"
+
+### Test with diverging MARS entries. 
+fdb-compare --reference-config=ref.yaml --test-config=test_grib.yaml --minimum-keys="" --all --scope=header-only| tee out
+grep -Fq "GRIB COMPARISON MISMATCH" out || die "Grib Comparison check failed although grib messages should be identical"
+
+fdb write --config=test_grib.yaml grib/scaled.grib
+
+### Test with diverging MARS entries. 
+fdb-compare --reference-config=ref.yaml --test-config=test_grib.yaml --minimum-keys="" --all --scope=all| tee out
+! grep -Fq "Average Error: 0" out || die "Data should not match"
+
+### Test with diverging MARS entries. 
+fdb-compare --reference-config=ref.yaml --test-config=test_grib.yaml --minimum-keys="" --all --scope=header-only| tee out
+! grep -Fq "GRIB COMPARISON MISMATCH" out || die "data headers should match"
+
+
+

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+set -euxo
+
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+testname=all
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+
+########################################################################################################################
+
+rm -rf $bindir/test_sfme-root
+mkdir -p $bindir/test_sfme-root
+
+
+for f in test_sfme.yaml
+do
+    cp $srcdir/$f $bindir
+done
+
+
+######################## test for sfme (single fdb multiple experiments)
+
+grib_set -s expver=abcd,class=od grib/6.grib grib/6_ref.grib
+grib_set -s expver=abcd,class=od grib/9.grib grib/9_ref.grib
+grib_set -s expver=abcd,class=od grib/an6.grib grib/an6_ref.grib
+grib_set -s expver=abcd,class=od grib/an9.grib grib/an9_ref.grib
+
+fdb write --config=test_sfme.yaml grib/6_ref.grib
+fdb write --config=test_sfme.yaml grib/9_ref.grib
+fdb write --config=test_sfme.yaml grib/an6_ref.grib
+fdb write --config=test_sfme.yaml grib/an9_ref.grib
+
+grib_set -s expver=1234,class=rd grib/6.grib grib/6_dec.grib
+grib_set -s expver=1234,class=rd grib/9.grib grib/9_dec.grib
+grib_set -s expver=1234,class=rd grib/an6.grib grib/an6_dec.grib
+grib_set -s expver=1234,class=rd grib/an9.grib grib/an9_dec.grib
+
+fdb write --config=test_sfme.yaml grib/6_dec.grib
+fdb write --config=test_sfme.yaml grib/9_dec.grib
+fdb write --config=test_sfme.yaml grib/an6_dec.grib
+fdb write --config=test_sfme.yaml grib/an9_dec.grib
+
+fdb-compare --config=test_sfme.yaml --reference-request="class=od,expver=abcd" --test-request="class=rd,expver=1234" --test-request-overwrite="class=rd,expver=1234" | tee out
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out || die "Mars Key check failed although the fdbs should be identical"
+
+
+fdb-compare --config=test_sfme.yaml --reference-request="class=od,expver=abcd" --test-request="class=rd,expver=1234" --test-request-overwrite="class=rd,expver=1234" --scope=header-only| tee out
+grep -Fq "GRIB COMPARISON MISMATCH" out && die "Grib Comparison check failed although grib messages should be identical"
+
+fdb-compare --config=test_sfme.yaml --reference-request="class=od,expver=abcd" --test-request="class=rd,expver=1234" --test-request-overwrite="class=rd,expver=1234" --scope=all | tee out
+grep -Fq "Average Error: 0" out || die "Mars Key check failed although the fdbs should be identical"
+
