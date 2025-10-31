@@ -44,7 +44,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) const {
+Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");

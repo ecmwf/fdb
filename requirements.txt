@@ -1,0 +1,8 @@
+zarr>=3,<4
+numpy
+pytest
+pytest-asyncio
+eccodes
+pyfdb
+build
+setuptools

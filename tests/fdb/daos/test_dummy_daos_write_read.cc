@@ -30,6 +30,7 @@
 using namespace eckit::literals;
 using namespace eckit::testing;
 using namespace eckit;
+using namespace eckit::literals;
 
 eckit::TmpDir& tmp_dummy_daos_root() {
     static eckit::TmpDir d{};
