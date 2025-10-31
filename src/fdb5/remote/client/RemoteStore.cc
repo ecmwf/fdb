@@ -220,11 +220,11 @@ Client::EndpointList storeEndpoints(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
+    Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -353,6 +353,10 @@ void RemoteStore::closeConnection() {
             kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
         }
     }
+}
+
+const eckit::Configuration& RemoteStore::clientConfig() const {
+    return config();
 }
 
 bool RemoteStore::handle(Message message, uint32_t requestID) {

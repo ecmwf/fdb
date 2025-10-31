@@ -77,6 +77,7 @@ private:  // methods
     void print(std::ostream& s) const override;
 
     // Client
+    const eckit::Configuration& clientConfig() const override;
     bool handle(remote::Message message, uint32_t requestID) override;
     bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 

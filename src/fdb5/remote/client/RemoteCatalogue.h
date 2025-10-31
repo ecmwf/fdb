@@ -87,6 +87,7 @@ protected:
 private:
 
     // From Client
+    const eckit::Configuration& clientConfig() const override;
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -97,7 +98,6 @@ private:
 
 protected:
 
-    Config config_;
     ControlIdentifiers controlIdentifiers_;
 
 private:
