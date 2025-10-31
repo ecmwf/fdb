@@ -102,14 +102,15 @@ bool RemoteConfiguration::singleConnection() const {
     return singleConnection_;
 }
 
-eckit::Value RemoteConfiguration::get() const {
+eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
     eckit::Value val           = eckit::Value::makeOrderedMap();
-    val["RemoteFieldLocation"] = eckit::toValue(remoteFieldLocationVersions);
-    val["NumberOfConnections"] = eckit::toValue(numberOfConnections);
-    if (preferSingleConnection) {
-        val["PreferSingleConnection"] = eckit::toValue(preferSingleConnection.value());
+    val["RemoteFieldLocation"] = eckit::toValue(r.remoteFieldLocationVersions);
+    val["NumberOfConnections"] = eckit::toValue(r.numberOfConnections);
+    if (r.preferSingleConnection) {
+        val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection.value());
     }
-    return val;
+    s << val;
+    return s;
 }
 
 RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf, RemoteConfiguration& serverConf) {

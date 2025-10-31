@@ -14,6 +14,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include "eckit/config/Configuration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
@@ -38,7 +39,9 @@ void Client::setClientID() {
     id_ = ++clientId_;
 }
 
-///@todo: is default endpoint used anywhere? can it be removed?
+Client::Client(const eckit::Configuration& config) :
+    Client(config, eckit::net::Endpoint{config.getString("host"), config.getInt("port")}, "") {}
+
 Client::Client(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
                const std::string& defaultEndpoint) :
     connection_(ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint)) {

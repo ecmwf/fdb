@@ -270,7 +270,7 @@ void ClientConnection::writeControlStartupMessage(const eckit::Configuration& co
     s << sessionID_;
     s << eckit::net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
-    s << availableFunctionality(config).get();
+    s << availableFunctionality(config);
 
     LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control "
                            << controlEndpoint_ << std::endl;

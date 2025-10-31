@@ -217,9 +217,7 @@ void ServerConnection::initialiseConnections() {
     s << clientSession;
     s << sessionID_;
     s << dataEndpoint;
-    s << agreedConf_.get();
-
-    // LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
+    s << agreedConf_;
 
     write(Message::Startup, true, 0, 0, startupBuffer.data(), s.position());
 

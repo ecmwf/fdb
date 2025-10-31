@@ -37,6 +37,14 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// We use a dictionary to negotiate FDB remote protocol:
+/// * the server recives a dictionary describing client capabilities
+/// * server computes the intersection of client and server capabilities and then sends the enabled features to
+///   the client
+/// On-the-wire protocol is thus independent of the FDB version:  we negotiate using the values which happen to be
+/// present. This is to make rolling forward easier (i.e. if a client/server doesn't provide a value, then we know
+/// that it isn't supported).
+
 class RemoteConfiguration {
 
 public:
@@ -49,7 +57,7 @@ public:
 
     bool singleConnection() const;
 
-    eckit::Value get() const;
+    friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
 
 private:
 

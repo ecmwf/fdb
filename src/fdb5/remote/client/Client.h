@@ -49,9 +49,9 @@ public:  // types
 
 public:  // methods
 
+    Client(const eckit::Configuration& config);
     Client(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
            const std::string& defaultEndpoint);
-
     Client(const eckit::Configuration& config, const EndpointList& endpoints);
 
     virtual ~Client();
