@@ -7,7 +7,7 @@
 # does it submit to any jurisdiction.
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
@@ -45,6 +45,12 @@ class MarsRequest:
                 "MarsRequest: verb and key_values can only be specified together."
             )
 
+    @classmethod
+    def _from_raw(cls, raw_mars_request: pyfdb_internal.MarsRequest):
+        result = MarsRequest()
+        result.request = raw_mars_request
+        return result
+
     def verb(self) -> str:
         return self.request.verb()
 
@@ -74,35 +80,60 @@ class Config:
 
 class FDBToolRequest:
     def __init__(
-        self, verb: str | None = None, key_values: Dict[str, Any] | None = None
+        self,
+        verb: str | None = None,
+        key_values: Dict[str, Any] | None = None,
+        all: bool = False,
+        minimum_key_set: List[str] = [],
     ) -> None:
         if key_values:
             key_values = _flatten_values(key_values)
 
-        if verb is None and key_values is None:
-            self.request = pyfdb_internal.FDBToolRequest()
-        elif verb and key_values:
-            self.request = pyfdb_internal.FDBToolRequest(verb, key_values)
-        elif verb is not None:
-            self.request = pyfdb_internal.FDBToolRequest(verb)
-        elif verb or key_values:
-            raise RuntimeError(
-                "FDBToolRequest: verb and key_values can only be specified together."
-            )
+        mars_request = MarsRequest(verb, key_values)
+
+        self.tool_request = pyfdb_internal.FDBToolRequest(
+            mars_request.request, all, minimum_key_set
+        )
+
+    def mars_request(self) -> MarsRequest:
+        return MarsRequest._from_raw(self.tool_request.mars_request())
+
+
+class ListElement:
+    def __init__(self) -> None:
+        self.element = None
+
+    @classmethod
+    def _from_raw(cls, list_element: pyfdb_internal.ListElement):
+        result = ListElement()
+        result.element = list_element
+        return result
+
+    def __str__(self) -> str:
+        return self.element.__str__()
 
 
 class ListIterator:
-    def __init__(self, list_iterator: pyfdb_internal.ListIterator):
-        self.list_iterator = list_iterator
+    def __init__(self) -> None:
+        self._list_iterator = None
+
+    @classmethod
+    def _from_raw(cls, list_iterator: pyfdb_internal.ListIterator):
+        result = ListIterator()
+        result._list_iterator = list_iterator
+        return result
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        optional = self.list_iterator.next()
+        if not self._list_iterator:
+            raise StopIteration
+
+        optional = self._list_iterator.next()
 
         if optional:
-            return optional
+            return ListElement._from_raw(optional)
         else:
             raise StopIteration
 
@@ -122,10 +153,14 @@ class PyFDB:
         return DataHandle(self.FDB.retrieve(mars_request.request))
 
     def list(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        self.FDB.list(fdb_tool_request, level)
+        return ListIterator._from_raw(
+            self.FDB.list(fdb_tool_request.tool_request, level)
+        )
 
     def list_no_duplicates(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        self.FDB.list_no_duplicates(fdb_tool_request, level)
+        return ListIterator._from_raw(
+            self.FDB.list_no_duplicates(fdb_tool_request.tool_request, level)
+        )
 
     def flush(self):
         self.FDB.flush()

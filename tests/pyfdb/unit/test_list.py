@@ -27,9 +27,64 @@ def test_list(read_only_fdb_setup):
             },
         )
 
-        list_iterator = pyfdb.list(request)
-
+        list_iterator = pyfdb.list(request, level=1)
         assert list_iterator
+
+        elements = []
 
         for el in list_iterator:
             print(el)
+            elements.append(el)
+
+        assert len(elements) == 1
+
+        request = FDBToolRequest(
+            "retrieve",
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "time": "1800",
+            },
+        )
+
+        list_iterator = pyfdb.list(request, level=2)
+        assert list_iterator
+
+        elements = []
+
+        for el in list_iterator:
+            elements.append(el)
+
+        assert len(elements) == 1
+
+        request = FDBToolRequest(
+            "retrieve",
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "time": "1800",
+            },
+        )
+
+        list_iterator = pyfdb.list(request, level=3)
+        assert list_iterator
+
+        elements = []
+
+        for el in list_iterator:
+            print(el)
+            elements.append(el)
+
+        assert len(elements) == 3
