@@ -61,10 +61,10 @@ public:
 
 private:
 
-    std::vector<int> remoteFieldLocationVersions;
-    std::vector<int> numberOfConnections;
+    std::vector<int> remoteFieldLocationVersions_;
+    std::vector<int> numberOfConnections_;
 
-    std::optional<bool> preferSingleConnection;
+    std::optional<bool> preferSingleConnection_;
 
     bool singleConnection_{false};
 };

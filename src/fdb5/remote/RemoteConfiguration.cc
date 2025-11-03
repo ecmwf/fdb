@@ -1,9 +1,6 @@
 #include "fdb5/remote/RemoteConfiguration.h"
 
 #include <algorithm>
-// #include <cstdint>
-// #include <mutex>
-// #include <string_view>
 
 #include "eckit/config/Configuration.h"
 #include "eckit/log/Log.h"
@@ -11,8 +8,6 @@
 #include "eckit/value/Value.h"
 
 #include "fdb5/LibFdb5.h"
-// #include "fdb5/remote/Connection.h"
-// #include "fdb5/remote/Messages.h"
 
 namespace {
 
@@ -35,23 +30,23 @@ namespace fdb5::remote {
 
 RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
 
-    remoteFieldLocationVersions = {1};
+    remoteFieldLocationVersions_ = {1};
 
-    numberOfConnections = config.getIntVector("supportedConnections", {1, 2});
-    ASSERT(0 < numberOfConnections.size());
-    ASSERT(numberOfConnections[0] == 1 || numberOfConnections[0] == 2);
+    numberOfConnections_ = config.getIntVector("supportedConnections", {1, 2});
+    ASSERT(0 < numberOfConnections_.size());
+    ASSERT(numberOfConnections_[0] == 1 || numberOfConnections_[0] == 2);
 
-    ASSERT(numberOfConnections.size() <= 2);
-    if (numberOfConnections.size() > 1) {
-        ASSERT(numberOfConnections[0] == 1);
-        ASSERT(numberOfConnections[1] == 2);
+    ASSERT(numberOfConnections_.size() <= 2);
+    if (numberOfConnections_.size() > 1) {
+        ASSERT(numberOfConnections_[0] == 1);
+        ASSERT(numberOfConnections_[1] == 2);
     }
 
     if (config.has("preferSingleConnection")) {
-        preferSingleConnection = config.getBool("preferSingleConnection");
+        preferSingleConnection_ = config.getBool("preferSingleConnection");
     }
     else {
-        preferSingleConnection = std::nullopt;
+        preferSingleConnection_ = std::nullopt;
     }
 }
 
@@ -62,39 +57,39 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     if (v.contains("RemoteFieldLocation")) {
         eckit::Value rfl = v["RemoteFieldLocation"];
         ASSERT(rfl.isList());
-        remoteFieldLocationVersions.reserve(rfl.size());
+        remoteFieldLocationVersions_.reserve(rfl.size());
         for (size_t i = 0; i < rfl.size(); ++i) {
-            remoteFieldLocationVersions.push_back(rfl[i]);
+            remoteFieldLocationVersions_.push_back(rfl[i]);
         }
     }
     else {
-        remoteFieldLocationVersions = {1};
+        remoteFieldLocationVersions_ = {1};
     }
 
     if (v.contains("NumberOfConnections")) {
         eckit::Value nc = v["NumberOfConnections"];
         if (nc.isList()) {
-            numberOfConnections.reserve(nc.size());
+            numberOfConnections_.reserve(nc.size());
             for (size_t i = 0; i < nc.size(); ++i) {
-                numberOfConnections.push_back(nc[i]);
+                numberOfConnections_.push_back(nc[i]);
             }
         }
         else {
             ASSERT(nc.isNumber());
-            numberOfConnections = std::vector<int>{nc};
+            numberOfConnections_ = std::vector<int>{nc};
         }
     }
     else {
-        numberOfConnections = {1, 2};
+        numberOfConnections_ = {1, 2};
     }
 
     if (v.contains("PreferSingleConnection")) {
         eckit::Value psc = v["PreferSingleConnection"];
         ASSERT(psc.isBool());
-        preferSingleConnection.emplace(psc);
+        preferSingleConnection_.emplace(psc);
     }
     else {
-        preferSingleConnection = std::nullopt;
+        preferSingleConnection_ = std::nullopt;
     }
 }
 
@@ -104,10 +99,10 @@ bool RemoteConfiguration::singleConnection() const {
 
 eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
     eckit::Value val           = eckit::Value::makeOrderedMap();
-    val["RemoteFieldLocation"] = eckit::toValue(r.remoteFieldLocationVersions);
-    val["NumberOfConnections"] = eckit::toValue(r.numberOfConnections);
-    if (r.preferSingleConnection) {
-        val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection.value());
+    val["RemoteFieldLocation"] = eckit::toValue(r.remoteFieldLocationVersions_);
+    val["NumberOfConnections"] = eckit::toValue(r.numberOfConnections_);
+    if (r.preferSingleConnection_) {
+        val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection_.value());
     }
     s << val;
     return s;
@@ -118,34 +113,34 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     RemoteConfiguration agreedConf{};
 
     std::vector<int> rflCommon =
-        intersection(clientConf.remoteFieldLocationVersions, serverConf.remoteFieldLocationVersions);
+        intersection(clientConf.remoteFieldLocationVersions_, serverConf.remoteFieldLocationVersions_);
     if (rflCommon.empty()) {
         std::stringstream ss;
         ss << "RemoteFieldLocation version not matching." << std::endl
-           << "Client supports " << clientConf.remoteFieldLocationVersions << ", server supports "
-           << serverConf.remoteFieldLocationVersions;
+           << "Client supports " << clientConf.remoteFieldLocationVersions_ << ", server supports "
+           << serverConf.remoteFieldLocationVersions_;
         throw RemoteConnectionNegotiationException(ss.str(), Here());
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
-    agreedConf.remoteFieldLocationVersions = {rflCommon.back()};
+    agreedConf.remoteFieldLocationVersions_ = {rflCommon.back()};
 
     // initial implementation was not sending the supported number of connections; set the default {2} for both client
     // and server
-    if (clientConf.numberOfConnections.empty()) {
-        clientConf.numberOfConnections.push_back(2);
+    if (clientConf.numberOfConnections_.empty()) {
+        clientConf.numberOfConnections_.push_back(2);
     }
-    if (serverConf.numberOfConnections.empty()) {
-        serverConf.numberOfConnections.push_back(2);
+    if (serverConf.numberOfConnections_.empty()) {
+        serverConf.numberOfConnections_.push_back(2);
     }
 
     // agree on a common functionality by intersecting server and client version numbers
-    std::vector<int> ncCommon = intersection(clientConf.numberOfConnections, serverConf.numberOfConnections);
+    std::vector<int> ncCommon = intersection(clientConf.numberOfConnections_, serverConf.numberOfConnections_);
     if (ncCommon.empty()) {
         std::stringstream ss;
         ss << "Number of remote connections not matching." << std::endl
-           << "Client supports " << clientConf.numberOfConnections << ", server supports "
-           << serverConf.numberOfConnections;
+           << "Client supports " << clientConf.numberOfConnections_ << ", server supports "
+           << serverConf.numberOfConnections_;
         throw RemoteConnectionNegotiationException(ss.str(), Here());
     }
 
@@ -156,8 +151,8 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     }
     else {
         ncSelected = ncCommon.back();
-        if (clientConf.preferSingleConnection.has_value()) {
-            int preferredMode = clientConf.preferSingleConnection.value() ? 1 : 2;
+        if (clientConf.preferSingleConnection_.has_value()) {
+            int preferredMode = clientConf.preferSingleConnection_.value() ? 1 : 2;
             if (std::find(ncCommon.begin(), ncCommon.end(), preferredMode) != ncCommon.end()) {
                 ncSelected = preferredMode;
             }
@@ -165,8 +160,8 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
-    agreedConf.numberOfConnections = {ncSelected};
-    agreedConf.singleConnection_   = (ncSelected == 1);
+    agreedConf.numberOfConnections_ = {ncSelected};
+    agreedConf.singleConnection_    = (ncSelected == 1);
 
     return agreedConf;
 }
