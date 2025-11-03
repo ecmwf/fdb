@@ -14,6 +14,7 @@
 #include <chunked_data_view/Extractor.h>
 #include <chunked_data_view/LibChunkedDataView.h>
 
+#include <pybind11/iostream.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -22,6 +23,7 @@
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 #include "eckit/config/YAMLConfiguration.h"
@@ -101,19 +103,31 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
         .def(py::init([](const mars::MarsRequest& mars_request, bool all, std::vector<std::string>& minimum_key_set) {
             return fdb5::FDBToolRequest(mars_request, all, minimum_key_set);
-        }));
+        }))
+        .def("mars_request", [](const fdb5::FDBToolRequest& tool_request) { return tool_request.request(); });
 
     py::class_<fdb5::ListElement>(m, "ListElement")
         .def(py::init())
         .def(py::init([](const std::string& key, const std::time_t& timestamp) {
             return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
-        }));
+        }))
+        .def("__str__", [](const fdb5::ListElement& list_element) {
+            std::stringstream buf;
+            list_element.print(buf, true, true, true, ",");
+            return buf.str();
+        });
 
-    py::class_<fdb5::ListIterator>(m, "ListIterator").def("next", [](fdb5::ListIterator& list_iterator) {
-        fdb5::ListElement result{};
-        list_iterator.next(result);
-        return std::make_optional(result);
-    });
+    py::class_<fdb5::ListIterator>(m, "ListIterator")
+        .def("next", [](fdb5::ListIterator& list_iterator) -> std::optional<fdb5::ListElement> {
+            fdb5::ListElement result{};
+            bool has_next = list_iterator.next(result);
+            if (has_next) {
+                return std::make_optional(result);
+            }
+            else {
+                return std::nullopt;
+            }
+        });
 
     py::class_<fdb5::FDB>(m, "FDB")
         .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
