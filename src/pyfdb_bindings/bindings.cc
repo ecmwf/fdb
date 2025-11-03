@@ -21,15 +21,18 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/MultiHandle.h"
 #include "eckit/runtime/Main.h"
-#include "eckit/serialisation/Streamable.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace py   = pybind11;
@@ -95,11 +98,32 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return result;
         });
 
+    py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
+        .def(py::init([](const mars::MarsRequest& mars_request, bool all, std::vector<std::string>& minimum_key_set) {
+            return fdb5::FDBToolRequest(mars_request, all, minimum_key_set);
+        }));
+
+    py::class_<fdb5::ListElement>(m, "ListElement")
+        .def(py::init())
+        .def(py::init([](const std::string& key, const std::time_t& timestamp) {
+            return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
+        }));
+
+    py::class_<fdb5::ListIterator>(m, "ListIterator").def("next", [](fdb5::ListIterator& list_iterator) {
+        fdb5::ListElement result{};
+        list_iterator.next(result);
+        return std::make_optional(result);
+    });
+
     py::class_<fdb5::FDB>(m, "FDB")
         .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
         .def(py::init([](const fdb5::Config& conf) { return fdb5::FDB(conf); }))
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
         .def("retrieve",
              [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request) { return fdb.retrieve(mars_request); })
+        .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
+                        size_t level) { return fdb.list(tool_request, false, level); })
+        .def("list_no_duplicates", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
+                                      size_t level) { return fdb.list(tool_request, true, level); })
         .def("flush", [](fdb5::FDB& fdb) { return fdb.flush(); });
 }
