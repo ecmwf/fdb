@@ -11,6 +11,8 @@ from typing import Any, Dict, List
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
+type MarsSelection = Dict[str, str]
+
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
     result = {}
@@ -57,6 +59,15 @@ class MarsRequest:
     def key_values(self) -> dict[str, str]:
         return _flatten_values(self.request.key_values())
 
+    def empty(self) -> bool:
+        return self.request.empty()
+
+    def __str__(self) -> str:
+        return str(self.request)
+
+    def __len__(self) -> int:
+        return len(self.request)
+
 
 class DataHandle:
     def __init__(self, dataHandle: pyfdb_internal.DataHandle):
@@ -81,36 +92,55 @@ class Config:
 class FDBToolRequest:
     def __init__(
         self,
-        verb: str | None = None,
-        key_values: Dict[str, Any] | None = None,
+        key_values: MarsSelection | None = None,
         all: bool = False,
         minimum_key_set: List[str] = [],
     ) -> None:
         if key_values:
             key_values = _flatten_values(key_values)
 
-        mars_request = MarsRequest(verb, key_values)
+        # TODO(TKR): Get rid of this retrieve dummy verb
+        mars_request = MarsRequest("retrieve", key_values)
 
         self.tool_request = pyfdb_internal.FDBToolRequest(
             mars_request.request, all, minimum_key_set
         )
 
+    @classmethod
+    def from_mars_request(
+        cls,
+        mars_request: MarsRequest,
+        all: bool = False,
+        minimum_key_set: List[str] = [],
+    ):
+        if mars_request.empty():
+            all = True
+
+        return FDBToolRequest(
+            key_values=mars_request.key_values(),
+            all=all,
+            minimum_key_set=minimum_key_set,
+        )
+
     def mars_request(self) -> MarsRequest:
         return MarsRequest._from_raw(self.tool_request.mars_request())
+
+    def __str__(self) -> str:
+        return str(self.tool_request)
 
 
 class ListElement:
     def __init__(self) -> None:
-        self.element = None
+        self._element = None
 
     @classmethod
     def _from_raw(cls, list_element: pyfdb_internal.ListElement):
         result = ListElement()
-        result.element = list_element
+        result._element = list_element
         return result
 
     def __str__(self) -> str:
-        return self.element.__str__()
+        return str(self._element)
 
 
 class ListIterator:
@@ -132,8 +162,47 @@ class ListIterator:
 
         optional = self._list_iterator.next()
 
-        if optional:
+        if optional is not None:
             return ListElement._from_raw(optional)
+        else:
+            raise StopIteration
+
+
+class WipeElement:
+    def __init__(self) -> None:
+        self.element = None
+
+    @classmethod
+    def _from_raw(cls, wipe_element: pyfdb_internal.WipeElement):
+        result = WipeElement()
+        result.element = wipe_element
+        return result
+
+    def __str__(self) -> str:
+        return str(self.element)
+
+
+class WipeIterator:
+    def __init__(self) -> None:
+        self._iterator = None
+
+    @classmethod
+    def _from_raw(cls, iterator: pyfdb_internal.WipeIterator):
+        result = WipeIterator()
+        result._iterator = iterator
+        return result
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if not self._iterator:
+            raise StopIteration
+
+        optional = self._iterator.next()
+
+        if optional is not None:
+            return WipeElement._from_raw(optional)
         else:
             raise StopIteration
 
@@ -149,6 +218,12 @@ class PyFDB:
     def archive(self, bytes: bytes):
         self.FDB.archive(bytes, len(bytes))
 
+    def archive_key(self, key: str, bytes: bytes):
+        self.FDB.archive(key, bytes, len(bytes))
+
+    def archive_handle(self, mars_request: MarsRequest, data_handle: DataHandle):
+        self.FDB.archive(mars_request.request, data_handle.dataHandle)
+
     def retrieve(self, mars_request: MarsRequest) -> DataHandle:
         return DataHandle(self.FDB.retrieve(mars_request.request))
 
@@ -160,6 +235,19 @@ class PyFDB:
     def list_no_duplicates(self, fdb_tool_request: FDBToolRequest, level: int = 3):
         return ListIterator._from_raw(
             self.FDB.list_no_duplicates(fdb_tool_request.tool_request, level)
+        )
+
+    def wipe(
+        self,
+        fdb_tool_request: FDBToolRequest,
+        doit: bool = False,
+        porcelain: bool = False,
+        unsafe_wipe_all: bool = False,
+    ) -> WipeIterator:
+        return WipeIterator._from_raw(
+            self.FDB.wipe(
+                fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
+            )
         )
 
     def flush(self):

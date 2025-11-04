@@ -1,4 +1,4 @@
-from pyfdb import MarsRequest, PyFDB, Config
+from pyfdb import Config, PyFDB
 from pyfdb.pyfdb import FDBToolRequest
 
 
@@ -12,7 +12,6 @@ def test_list(read_only_fdb_setup):
         pyfdb = PyFDB(fdb_config)
 
         request = FDBToolRequest(
-            "retrieve",
             {
                 "type": "an",
                 "class": "ea",
@@ -38,8 +37,9 @@ def test_list(read_only_fdb_setup):
 
         assert len(elements) == 1
 
+        print("----------------------------------")
+
         request = FDBToolRequest(
-            "retrieve",
             {
                 "type": "an",
                 "class": "ea",
@@ -59,12 +59,14 @@ def test_list(read_only_fdb_setup):
         elements = []
 
         for el in list_iterator:
+            print(el)
             elements.append(el)
 
         assert len(elements) == 1
 
+        print("----------------------------------")
+
         request = FDBToolRequest(
-            "retrieve",
             {
                 "type": "an",
                 "class": "ea",
