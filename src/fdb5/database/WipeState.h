@@ -12,21 +12,22 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include "eckit/filesystem/URI.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
 
-class Catalogue;
-class Index;
 
 namespace fdb5 {
+    
+class Catalogue;
+class Index;
 
 class WipeElement;
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 class WipeState;
+
 // Dummy placeholder for signed behaviour
 class Signature {
 
@@ -163,95 +164,30 @@ class CatalogueWipeState : public WipeState {
 
 public:
 
-    // consider not storing config in these classes. Just pass it by ref when needed.
-    CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
+    // CatalogueWipeState();
+    explicit CatalogueWipeState(const Key& dbKey);
+    CatalogueWipeState(const Key& dbKey, WipeElements elements);
+    explicit CatalogueWipeState(eckit::Stream& s);
 
-    CatalogueWipeState(const Key& dbKey, WipeElements elements) :
-        WipeState(dbKey, std::move(elements)) {}  // maybe only the catalogue needs this.
+    void encode(eckit::Stream& s) const;
 
+    friend eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state);
 
-    CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
-        size_t n;
-        s >> n;
+    const std::vector<Index>& indexesToMask() const;
 
-        for (size_t i = 0; i < n; ++i) {
-            eckit::URI uri(s);
-            auto state = std::make_unique<StoreWipeState>(s);
-            storeWipeStates_.emplace(uri, std::move(state));
-        }
-    }
+    void buildStoreStates();
 
-    void encode(eckit::Stream& s) const {
-        WipeState::encode(s);
+    [[nodiscard]] StoreStates takeStoreStates() const;
 
-        s << static_cast<size_t>(storeWipeStates_.size());
-        for (const auto& [uri, state] : storeWipeStates_) {
-            s << uri;
-            s << *state;
-        }
-    }
+    StoreStates& storeStates();
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state) {
-        state.encode(s);
-        return s;
-    }
-
-    const std::vector<Index>& indexesToMask() const { return indexesToMask_; }
-
-    // Use WipeState from the Catalogue to assign safe and data URIs to the corresponding stores
-    void buildStoreStates() {
-        ASSERT(storeWipeStates_.empty());
-
-        // Build store wipe states from include/exclude URIs. Note, unsigned at this point.
-
-        auto storeState = [&](const eckit::URI& storeURI) -> StoreWipeState& {
-            auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
-            if (inserted || !it->second) {
-                it->second = std::make_unique<StoreWipeState>(it->first);
-            }
-            return *it->second;
-        };
-
-        for (const auto& dataURI : includeURIs()) {
-            eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
-            storeState(storeURI).include(dataURI);
-        }
-
-        for (const auto& dataURI : excludeURIs()) {
-            eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
-            storeState(storeURI).exclude(dataURI);
-        }
-
-        // catalogue has no need for the data uris anymore.
-    }
-
-    [[nodiscard]] StoreStates takeStoreStates() const {
-        // Move out and reset the member to an empty map
-        return std::exchange(storeWipeStates_, {});
-    }
-
-    StoreStates& storeStates() { return storeWipeStates_; }
-
-    // Secret only known by the catalogue and store handlers.
-    void signStoreStates(std::string secret) {
-        std::cout << "ZZZ Signing CatalogueWipeState store states" << std::endl;
-        for (auto& [uri, state] : storeWipeStates_) {
-            state->sign(secret);
-            std::cout << "ZZZ StoreWipeState for " << uri << " signature: " << state->signature().sig_ << std::endl;
-        }
-
-        // self sign. This shouldn't be needed. XXX
-        sign(secret);
-
-        std::cout << "ZZZ Catalogue signature: " << signature_.sig_ << std::endl;
-    }
+    void signStoreStates(std::string secret);
 
 protected:
 
     std::vector<Index> indexesToMask_ = {};
     mutable StoreStates storeWipeStates_;
 };
-
 class TocWipeState : public CatalogueWipeState {
 public:
 

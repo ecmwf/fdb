@@ -178,6 +178,83 @@ void StoreWipeState::encode(eckit::Stream& s) const {
 
 // -----------------------------------------------------------------------------------------------
 
+CatalogueWipeState::CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
+
+CatalogueWipeState::CatalogueWipeState(const Key& dbKey, WipeElements elements) :
+    WipeState(dbKey, std::move(elements)) {}
+
+CatalogueWipeState::CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
+    size_t n;
+    s >> n;
+
+    for (size_t i = 0; i < n; ++i) {
+        eckit::URI uri(s);
+        auto state = std::make_unique<StoreWipeState>(s);
+        storeWipeStates_.emplace(uri, std::move(state));
+    }
+}
+
+void CatalogueWipeState::encode(eckit::Stream& s) const {
+    WipeState::encode(s);
+
+    s << static_cast<size_t>(storeWipeStates_.size());
+    for (const auto& [uri, state] : storeWipeStates_) {
+        s << uri;
+        s << *state;
+    }
+}
+
+eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state) {
+    state.encode(s);
+    return s;
+}
+
+const std::vector<Index>& CatalogueWipeState::indexesToMask() const {
+    return indexesToMask_;
+}
+
+void CatalogueWipeState::buildStoreStates() {
+    ASSERT(storeWipeStates_.empty());
+
+    auto storeState = [&](const eckit::URI& storeURI) -> StoreWipeState& {
+        auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
+        if (inserted || !it->second) {
+            it->second = std::make_unique<StoreWipeState>(it->first);
+        }
+        return *it->second;
+    };
+
+    for (const auto& dataURI : includeURIs()) {
+        eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+        storeState(storeURI).include(dataURI);
+    }
+
+    for (const auto& dataURI : excludeURIs()) {
+        eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+        storeState(storeURI).exclude(dataURI);
+    }
+}
+
+CatalogueWipeState::StoreStates CatalogueWipeState::takeStoreStates() const {
+    return std::exchange(storeWipeStates_, {});
+}
+
+CatalogueWipeState::StoreStates& CatalogueWipeState::storeStates() {
+    return storeWipeStates_;
+}
+
+void CatalogueWipeState::signStoreStates(std::string secret) {
+    std::cout << "ZZZ Signing CatalogueWipeState store states" << std::endl;
+    for (auto& [uri, state] : storeWipeStates_) {
+        state->sign(secret);
+        std::cout << "ZZZ StoreWipeState for " << uri << " signature: " << state->signature().sig_ << std::endl;
+    }
+
+    sign(secret);
+
+    std::cout << "ZZZ Catalogue signature: " << signature_.sig_ << std::endl;
+}
+// ----
 
 // todo: break this logic up a bit more, for readability.
 // Almost certainly std::unique_ptr<CatalogueWipeState> can just be CatalogueWipeState everywhere...
