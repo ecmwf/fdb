@@ -120,7 +120,7 @@ public:  // methods
     /// @param length Size in bytes of the binary blob to archive
     void archive(const Key& key, const void* data, size_t length);
 
-    /// Generate an new index entry for an existing field location.
+    /// Generate a new index entry for an existing field location.
     ///
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.

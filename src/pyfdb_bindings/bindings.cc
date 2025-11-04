@@ -33,7 +33,9 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/BaseKey.h"
 #include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -88,22 +90,32 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return mars::MarsRequest(verb, key_values);
         }))
         .def("verb", [](mars::MarsRequest& mars_request) { return mars_request.verb(); })
-        .def("key_values", [](mars::MarsRequest& mars_request) {
-            std::map<std::string, std::vector<std::string>> result{};
+        .def("key_values",
+             [](mars::MarsRequest& mars_request) {
+                 std::map<std::string, std::vector<std::string>> result{};
 
-            for (const auto& param : mars_request.parameters()) {
-                const std::string& key = param.name();
-                const auto& values     = param.values();
-                result.emplace(key, values);
-            }
+                 for (const auto& param : mars_request.parameters()) {
+                     const std::string& key = param.name();
+                     const auto& values     = param.values();
+                     result.emplace(key, values);
+                 }
 
-            return result;
-        });
+                 return result;
+             })
+        .def("empty", &mars::MarsRequest::empty)
+        .def("__len__", [](const mars::MarsRequest& mars_request) { return mars_request.params().size(); })
+        .def("__str__", &mars::MarsRequest::asString);
 
     py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
         .def(py::init([](const mars::MarsRequest& mars_request, bool all, std::vector<std::string>& minimum_key_set) {
             return fdb5::FDBToolRequest(mars_request, all, minimum_key_set);
         }))
+        .def("__str__",
+             [](const fdb5::FDBToolRequest& tool_request) {
+                 std::stringstream buf;
+                 tool_request.print(buf);
+                 return buf.str();
+             })
         .def("mars_request", [](const fdb5::FDBToolRequest& tool_request) { return tool_request.request(); });
 
     py::class_<fdb5::ListElement>(m, "ListElement")
@@ -129,15 +141,46 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             }
         });
 
+    py::class_<fdb5::WipeElement>(m, "WipeElement")
+        .def(py::init())
+        .def(py::init([](const std::string& element) { return fdb5::WipeElement(element); }))
+        .def("__str__", [](const fdb5::WipeElement& wipe_element) { return wipe_element; });
+
+
+    py::class_<fdb5::WipeIterator>(m, "WipeIterator")
+        .def("next", [](fdb5::WipeIterator& wipe_iterator) -> std::optional<fdb5::WipeElement> {
+            fdb5::WipeElement result{};
+            bool has_next = wipe_iterator.next(result);
+
+            if (has_next) {
+                return std::make_optional(result);
+            }
+            return std::nullopt;
+        });
+
+    // py::class_<fdb5::Key>(m, "Key")
+    //     .def(py::init())
+    //     .def(py::init(
+    //         [](std::vector<std::pair<const std::string, std::string>>& key_value) { return fdb5::Key(key_value); }))
+    //     .def("__str__", [](const fdb5::WipeElement& wipe_element) { return wipe_element; });
+    //
+
     py::class_<fdb5::FDB>(m, "FDB")
         .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
         .def(py::init([](const fdb5::Config& conf) { return fdb5::FDB(conf); }))
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
+        .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
+                           const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
+        .def("archive", [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request,
+                           eckit::DataHandle& data_handle) { return fdb.archive(mars_request, data_handle); })
+        .def("reindex", [](fdb5::FDB& fdb, fdb5::Key& key,
+                           fdb5::FieldLocation& field_location) { return fdb.reindex(key, field_location); })
         .def("retrieve",
              [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request) { return fdb.retrieve(mars_request); })
         .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
                         size_t level) { return fdb.list(tool_request, false, level); })
         .def("list_no_duplicates", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
                                       size_t level) { return fdb.list(tool_request, true, level); })
-        .def("flush", [](fdb5::FDB& fdb) { return fdb.flush(); });
+        .def("wipe", &fdb5::FDB::wipe)
+        .def("flush", &fdb5::FDB::flush);
 }
