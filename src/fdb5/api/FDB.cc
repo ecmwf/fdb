@@ -35,6 +35,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WipeState.h"
@@ -250,11 +251,12 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeStateIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
 
-    auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
+    auto async = [this, request, doit, porcelain,
+                  unsafeWipeAll](eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue) {
         // Visit the catalogues to determine what they would wipe
-        InnerWipeIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll); // WipeStateIterator
+        WipeStateIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);  // WipeStateIterator
 
         // Coordinate the wipe across catalogues and stores
         WipeCoordinator coordinator{internal_->config()};
@@ -268,13 +270,14 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
             // need to cast to CatalogueWipeState // TODO: make visitor return CatalogueWipeState directly
             CatalogueWipeState& catalogueWipeStateRef = static_cast<CatalogueWipeState&>(*catalogueWipeState);
 
-            coordinator.wipe(queue, catalogueWipeStateRef, doit, unsafeWipeAll);
+            // Coordinator will mutate the catalogue wipe state (e.g. populating missing files etc.)
+            queue.emplace(coordinator.wipe(catalogueWipeStateRef, doit, unsafeWipeAll));
         }
 
         queue.close();
     };
 
-    return WipeIterator(new APIAsyncIterator<WipeElement>(async));
+    return WipeStateIterator(new APIAsyncIterator<std::unique_ptr<CatalogueWipeState>>(async));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

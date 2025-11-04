@@ -157,7 +157,7 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeStat
 
     TocWipeState& tocWipeState = static_cast<TocWipeState&>(wipeState);
 
-    if (!locationURI.path().dirName().sameAs(basePath())) { // as in the overlay
+    if (!locationURI.path().dirName().sameAs(basePath())) {  // as in the overlay
         include = false;
     }
 
@@ -179,7 +179,7 @@ void TocCatalogue::addMaskedPaths(TocWipeState& tocWipeState) const {
 
     std::set<eckit::URI> maskedDataPaths = {};
     std::set<std::pair<eckit::URI, Offset>> metadata;
-    
+
     allMasked(metadata, maskedDataPaths);
     for (const auto& entry : metadata) {
         eckit::PathName path = entry.first.path();
@@ -207,15 +207,11 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
 
     bool wipeAll = tocWipeState.safePaths_.empty();
 
-    std::stringstream ss;
-    ss << "FDB owner: " << owner();
-
-    tocWipeState.insertWipeElement(
-        std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, ss.str(), std::set<eckit::URI>{}));
-
     std::set<eckit::URI> catalogueURIs;
     std::set<eckit::URI> auxURIs;
     std::set<eckit::URI> indexURIs;
+    std::set<eckit::URI> safeURIs;
+    std::set<eckit::URI> unknownURIs;
 
     if (wipeAll) {
 
@@ -243,12 +239,9 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
             tocWipeState.indexPaths_.erase(p);
         }
 
-        std::set<eckit::URI> safeURIs;
         for (const auto& p : tocWipeState.safePaths_) {
             safeURIs.insert(p);
         }
-        tocWipeState.insertWipeElement(std::make_shared<WipeElement>(
-            WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
     }
 
     // Add index paths to be removed
@@ -257,7 +250,6 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     }
 
     if (wipeAll) {
-        std::set<eckit::URI> unknownURIs;
         std::vector<eckit::PathName> allPathsVector;
         StdDir(basePath()).children(allPathsVector);
         for (const eckit::PathName& uri : allPathsVector) {
@@ -267,6 +259,14 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
                 unknownURIs.insert(u);
             }
         }
+    }
+
+    tocWipeState.insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO,
+                                                                 "FDB Owner: " + owner(), std::set<eckit::URI>{}));
+
+
+    if (wipeAll) {
+
         tocWipeState.insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
                                                                      "Toc files to delete:", std::move(catalogueURIs)));
         tocWipeState.insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_AUX,
@@ -276,6 +276,11 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
                 WipeElementType::WIPE_UNKNOWN, "Unexpected files present in the catalogue:", std::move(unknownURIs)));
         }
     }
+    else {
+        tocWipeState.insertWipeElement(std::make_shared<WipeElement>(
+            WipeElementType::WIPE_CATALOGUE_SAFE, "Protected files (explicitly untouched):", std::move(safeURIs)));
+    }
+
     tocWipeState.insertWipeElement(
         std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE, "Index files to delete:", std::move(indexURIs)));
 
@@ -303,6 +308,7 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
         if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
             std::cout << "TocCatalogue::doWipe Not wiping all: found safe URI: " << *el << std::endl;
             wipeAll = false;
+            break;
         }
     }
 
@@ -313,7 +319,6 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
                 if (wipeAll) {
                     // cataloguePaths.insert(uri.path().dirName());
                     emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
-
                 }
                 remove(uri.path(), std::cout, std::cout, true);
             }

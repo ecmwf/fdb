@@ -22,6 +22,7 @@
 
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/database/WipeState.h"
 
 #include <set>
 #include <string>
@@ -102,8 +103,7 @@ private:  // members
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
-using InnerWipeIterator     = APIIterator<std::unique_ptr<CatalogueWipeState>>;
-using WipeIterator          = APIIterator<WipeElement>;
+using WipeStateIterator = APIIterator<std::unique_ptr<CatalogueWipeState>>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
 using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;
 

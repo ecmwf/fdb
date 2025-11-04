@@ -114,7 +114,6 @@ private:  // members
     mutable PathStore dataPaths_;
     size_t archivedFields_;
     std::set<std::string> auxFileExtensions_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

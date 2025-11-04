@@ -29,7 +29,6 @@
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
@@ -38,7 +37,6 @@
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
-// #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -113,7 +111,7 @@ public:
     virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
 
     virtual bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;
+    virtual bool doWipe(const CatalogueWipeState& wipeState) const             = 0;
 
     virtual void doWipeEmptyDatabases() const = 0;
 
@@ -122,6 +120,7 @@ protected:  // methods
     virtual void loadSchema() = 0;
 
 protected:  // members
+
     mutable std::set<eckit::URI> emptyDatabases_;
 };
 

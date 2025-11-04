@@ -12,12 +12,13 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
-#include "fdb5/database/WipeState.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -396,19 +397,20 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     bool unsafeAll = false;
     bool canWipe   = false;  // This is always false!
     eckit::MemoryStream inStream(payload);
-    
+
     StoreWipeState inState(inStream);
     inStream >> all;
     // inStream >> unsafeAll;  // why did we drop this?
 
     // XXX Validate signature.
     std::string dummy_secret = "These URIs have been approved by the catalogue";
-    uint64_t expected_hash = inState.hash(dummy_secret);
+    uint64_t expected_hash   = inState.hash(dummy_secret);
     ASSERT(inState.signature().validSignature(expected_hash));
 
     // -- We trust the in state came from the catalogue. --
     // StoreWipeState storeState{inStoreState.storeURI()}; // << possibly correct?
-    auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI())); // << possibly correct?
+    auto storeState =
+        std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));  // << possibly correct?
 
     for (const auto& uri : inState.includeURIs()) {
         storeState->include(RemoteFieldLocation::internalURI(uri));
@@ -438,7 +440,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     currentWipe_.clientID  = clientID;
     currentWipe_.requestID = requestID;
     currentWipe_.state     = std::move(storeState);
- 
+
     write(Message::Received, true, clientID, requestID, wipeBuf.data(), outStream.position());
 }
 

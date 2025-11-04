@@ -11,14 +11,14 @@
 #include "fdb5/remote/server/CatalogueHandler.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
-#include "fdb5/database/WipeState.h"
-#include "fdb5/api/FDBFactory.h"
 
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
@@ -220,7 +220,9 @@ private:
 };
 
 struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
-    virtual size_t encodeBufferSize(const std::unique_ptr<CatalogueWipeState>& el) const { return el->encodeSize(); } // can possibly avoid entirely
+    virtual size_t encodeBufferSize(const std::unique_ptr<CatalogueWipeState>& el) const {
+        return el->encodeSize();
+    }  // can possibly avoid entirely
 
     Encoded encode(const std::unique_ptr<CatalogueWipeState>& state, CatalogueHandler& handler) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
@@ -234,10 +236,12 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
 
         if (doit_) {
             // Keep a copy of part of the state locally, for later.
-            ASSERT(handler.currentWipe_.state == nullptr); // Another wipe is still in progress...?
-            handler.currentWipe_.state     = std::make_unique<CatalogueWipeState>(state->dbKey(), state->wipeElements()); // XXX move to not using wipe elements...
+            ASSERT(handler.currentWipe_.state == nullptr);  // Another wipe is still in progress...?
+            handler.currentWipe_.state = std::make_unique<CatalogueWipeState>(
+                state->dbKey(), state->wipeElements());  // XXX move to not using wipe elements...
             handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state->dbKey(), handler.config_);
-        } else {
+        }
+        else {
 
             handler.currentWipe_.clientID  = 0;
             handler.currentWipe_.requestID = 0;
@@ -245,7 +249,7 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
             handler.currentWipe_.catalogue.reset();
         }
         return {s.position(), std::move(encodeBuffer)};
-}
+    }
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
@@ -253,16 +257,16 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
         s >> unsafeWipeAll_;
     }
 
-    InnerWipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+    WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         using ValueType     = std::unique_ptr<CatalogueWipeState>;
         using QueryIterator = APIIterator<ValueType>;
         using AsyncIterator = APIAsyncIterator<ValueType>;
 
         auto async_worker = [request, &fdb, this](Queue<ValueType>& queue) {
-
-            // XXX: Maybe a  bit of a hack, but I can't call fdb.wipe() directly (otherwise catalogue will try to talk to stores remotely)
+            // XXX: Maybe a  bit of a hack, but I can't call fdb.wipe() directly (otherwise catalogue will try to talk
+            // to stores remotely)
             auto internal = FDBFactory::instance().build(fdb.config());
-            auto it = internal->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
+            auto it       = internal->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
 
             std::vector<std::unique_ptr<CatalogueWipeState>> states;
             std::unique_ptr<CatalogueWipeState> state;
@@ -273,10 +277,10 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
         };
 
         return QueryIterator(new AsyncIterator((async_worker)));
-
     }
 
 private:
+
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;
@@ -323,7 +327,7 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
                                    auto iterator = helper.apiCall(*fdb, request);
 
                                    typename decltype(iterator)::value_type elem;
-                                   while (iterator.next(elem)) { // std::exception!!!
+                                   while (iterator.next(elem)) {  // std::exception!!!
                                        auto encoded(helper.encode(elem, *this));
                                        write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
                                    }
@@ -590,34 +594,38 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
 }
 
 bool CatalogueHandler::wipeInProgress(uint32_t clientID, uint32_t requestID) const {
-    std::cout << "CatalogueHandler::wipeInProgress called. Client match? " << (currentWipe_.clientID == clientID ? "yes" : "no")
-              << ", request match? " << (currentWipe_.requestID == requestID ? "yes" : "no") << std::endl;
-    std::cout << "catalogue set? " << (currentWipe_.catalogue ? "yes" : "no") << ", state set? " << (currentWipe_.state ? "yes" : "no") << std::endl;
-    // return (currentWipe_.catalogue && currentWipe_.state && currentWipe_.clientID == clientID && currentWipe_.requestID == requestID);
-    return (currentWipe_.catalogue && currentWipe_.state); // XXX: TODO: understand why clientID/requestID always changes.
+    std::cout << "CatalogueHandler::wipeInProgress called. Client match? "
+              << (currentWipe_.clientID == clientID ? "yes" : "no") << ", request match? "
+              << (currentWipe_.requestID == requestID ? "yes" : "no") << std::endl;
+    std::cout << "catalogue set? " << (currentWipe_.catalogue ? "yes" : "no") << ", state set? "
+              << (currentWipe_.state ? "yes" : "no") << std::endl;
+    // return (currentWipe_.catalogue && currentWipe_.state && currentWipe_.clientID == clientID &&
+    // currentWipe_.requestID == requestID);
+    return (currentWipe_.catalogue &&
+            currentWipe_.state);  // XXX: TODO: understand why clientID/requestID always changes.
 }
 
 void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
     MemoryStream s(payload);
-    uint32_t x; // dummy
+    uint32_t x;  // dummy
     s >> x;      // dummy
-    // auto wipeState = std::make_unique<CatalogueWipeState>(s); // THERE IS NO REASON TO BE RECEIVING THE WIPESTATE AGAIN. ONLY RECEIVE CORRECTIONS.
-    // const Key& dbKey = wipeState->dbKey();
+    // auto wipeState = std::make_unique<CatalogueWipeState>(s); // THERE IS NO REASON TO BE RECEIVING THE WIPESTATE
+    // AGAIN. ONLY RECEIVE CORRECTIONS. const Key& dbKey = wipeState->dbKey();
 
     // currentWipe_.catalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
     // currentWipe_.clientID  = clientID;
     // currentWipe_.requestID = requestID;
 
-    // std::cout << "CatalogueHandler::doWipe, set currentWipe_ for dbKey, clientID, requestID: " << dbKey << ", " << clientID << ", " << requestID << std::endl;
-    // Do the wipe
+    // std::cout << "CatalogueHandler::doWipe, set currentWipe_ for dbKey, clientID, requestID: " << dbKey << ", " <<
+    // clientID << ", " << requestID << std::endl; Do the wipe
     currentWipe_.catalogue->doWipe(*currentWipe_.state);
 }
 
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
     ASSERT(wipeInProgress(clientID, requestID));
-    
+
     // Get the list of URIs from the payload
     MemoryStream s(payload);
     size_t n;

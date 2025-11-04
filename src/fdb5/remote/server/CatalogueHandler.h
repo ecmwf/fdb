@@ -44,9 +44,9 @@ struct CatalogueArchiver {
 
 struct WipeHelper;
 class CatalogueHandler : public ServerConnection {
-    
+
     friend struct WipeHelper;
-    
+
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -99,14 +99,13 @@ private:  // member
 
     // catalogue currently being wiped
     struct WipeInProgress {
-        uint32_t clientID = 0;
+        uint32_t clientID  = 0;
         uint32_t requestID = 0;
-        std::unique_ptr<CatalogueReader> catalogue; // Maybe not needed
+        std::unique_ptr<CatalogueReader> catalogue;  // Maybe not needed
         std::unique_ptr<CatalogueWipeState> state;
     };
 
     WipeInProgress currentWipe_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -52,8 +52,8 @@ class WipeCatalogueVisitor : public QueryVisitor<std::unique_ptr<CatalogueWipeSt
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue, const metkit::mars::MarsRequest& request,
-                         bool doit, bool porcelain, bool unsafeWipeAll);
+    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue,
+                         const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;
@@ -78,7 +78,8 @@ private:  // members
     std::unique_ptr<CatalogueWipeState> catalogueWipeState_;
 
     // are these pointers for any reason?
-    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>> storeWipeStates_; // I dont think these should exist delete me.
+    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>>
+        storeWipeStates_;  // I dont think these should exist delete me.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

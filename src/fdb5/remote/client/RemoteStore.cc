@@ -12,16 +12,17 @@
 
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/database/WipeState.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
@@ -516,9 +517,9 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 static uint64_t count = 0;
 void RemoteStore::prepareWipe(StoreWipeState& storeState, bool all) {
-    count ++;
+    count++;
     std::cout << "YYY RemoteStore::prepareWipe called " << count << " times" << std::endl;
-    const std::set<eckit::URI>& uris = storeState.includeURIs();
+    const std::set<eckit::URI>& uris     = storeState.includeURIs();
     const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
 
     bool canWipe = false;
@@ -542,7 +543,6 @@ void RemoteStore::prepareWipe(StoreWipeState& storeState, bool all) {
     for (size_t i = 0; i < size; ++i) {
         storeState.insertWipeElement(std::make_shared<WipeElement>(rms));
     }
-
 }
 
 bool RemoteStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {

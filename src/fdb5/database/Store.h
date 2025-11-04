@@ -21,7 +21,6 @@
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/helpers/MoveIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
@@ -87,8 +86,9 @@ public:
     virtual void doWipeEmptyDatabases() const = 0;
 
 protected:
-    mutable std::set<eckit::URI> emptyDatabases_; // Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
 
+    mutable std::set<eckit::URI>
+        emptyDatabases_;  // Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
 };
 
 

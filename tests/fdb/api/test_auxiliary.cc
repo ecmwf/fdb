@@ -80,11 +80,13 @@ CASE("Wipe with extensions") {
     // call wipe
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
     bool doit              = true;
-    auto listObject        = fdb.wipe(request, doit);
+    auto iter              = fdb.wipe(request, doit);
 
-    WipeElement elem;
-    while (listObject.next(elem)) {
-        eckit::Log::info() << elem << std::endl;
+    std::unique_ptr<CatalogueWipeState> state;
+    while (iter.next(state)) {
+        for (auto elem : state->wipeElements()) {
+            eckit::Log::info() << elem;
+        }
     }
 
     // Check that the auxiliary files have been removed

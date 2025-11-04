@@ -13,6 +13,8 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit;
@@ -91,13 +93,16 @@ void FDBWipe::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        auto listObject = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
+        auto iter = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
 
         size_t count = 0;
-        WipeElement elem;
-        while (listObject.next(elem)) {
-            Log::info() << elem;
-            count++;
+
+        std::unique_ptr<CatalogueWipeState> state;
+        while (iter.next(state)) {
+            for (auto elem : state->wipeElements()) {
+                Log::info() << elem;
+                count++;
+            }
         }
 
         if (count == 0 && !ignoreNoData_ && fail()) {

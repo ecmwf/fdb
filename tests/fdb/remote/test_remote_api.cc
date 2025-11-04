@@ -133,14 +133,17 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(retrieved_string, data_string);
     }
 
-    auto k1 = keys_level_1("20000101", 1);
+    auto k1     = keys_level_1("20000101", 1);
     auto wipeit = fdb.wipe(make_request(k1));
-    WipeElement we;
-    count = 0;
-    while (wipeit.next(we)) {
-        eckit::Log::info() << we << std::endl;
-        count++;
+
+    std::unique_ptr<CatalogueWipeState> state;
+    while (wipeit.next(state)) {
+        for (auto elem : state->wipeElements()) {
+            eckit::Log::info() << elem;
+            count++;
+        }
     }
+
     // just in case...
     ASSERT(count > 0);
 
@@ -155,11 +158,14 @@ CASE("Remote protocol: the basics") {
     EXPECT_EQUAL(count, Nfields);
 
     wipeit = fdb.wipe(make_request(k1), true);
-    count = 0;
-    while (wipeit.next(we)) {
-        eckit::Log::info() << we << std::endl;
-        count++;
+    count  = 0;
+    while (wipeit.next(state)) {
+        for (auto elem : state->wipeElements()) {
+            eckit::Log::info() << elem;
+            count++;
+        }
     }
+
     ASSERT(count > 0);
 
     // -- list all remaining fields

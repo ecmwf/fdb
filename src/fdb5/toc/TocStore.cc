@@ -394,8 +394,8 @@ void TocStore::remove(const Key& key) const {
 
 void TocStore::prepareWipe(StoreWipeState& storeState, bool all) {
 
-    const std::set<eckit::URI>& uris = storeState.includeURIs();
-     const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
+    const std::set<eckit::URI>& uris     = storeState.includeURIs();
+    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
 
     WipeElements wipeElements;
 
@@ -485,7 +485,7 @@ bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs)
 }
 
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
-    bool wipeAll              = true;
+    bool wipeAll = true;
 
     const WipeElements& elements = wipeState.wipeElements();
     for (const auto& el : elements) {
@@ -508,7 +508,7 @@ bool TocStore::doWipe(StoreWipeState& wipeState) const {
             std::cout << "TocStore::doWipe: skipping non-store/aux wipe element: " << *el << std::endl;
         }
     }
-    
+
     return true;
 }
 

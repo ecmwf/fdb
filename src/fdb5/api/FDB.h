@@ -193,8 +193,8 @@ public:  // methods
     /// @param porcelain flag print only a list of files to be deleted / that are deleted
     /// @param unsafeWipeAll flag for omitting all security checks and force a wipe
     /// @return WipeIterator for iterating over the set of wiped items
-    WipeIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
-                      bool unsafeWipeAll = false);
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
+                           bool unsafeWipeAll = false);
 
     /// Move content of one FDB database.
     ///

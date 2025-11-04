@@ -58,7 +58,7 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     }
 
     ASSERT(!catalogueWipeState_);
-    
+
     catalogueWipeState_ = catalogue.wipeInit();
 
     // Having selected a DB, construct the residual request. This is the request that is used for

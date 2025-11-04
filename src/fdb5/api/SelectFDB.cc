@@ -14,9 +14,12 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
+#include <sstream>
 #include <vector>
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -141,30 +144,31 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
     return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
-InnerWipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
-    NOTIMP; // WE SHOULD JUST ALWAYS RETURN WIPESTATES
 
-    // // XXX: Awkward api coercion
-    // return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-    //     WipeIterator it = fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    //     std::vector<std::shared_ptr<WipeElement>> elements;
-    //     WipeElement e;
-    //     while (it.next(e)) {
-    //         elements.push_back(std::make_shared<WipeElement>(std::move(e)));
-    //     }
+    FDBLane* matchingLane = nullptr;
+    for (auto& lane : subFdbs_) {
+        if (lane.matches(request.request(), Matcher::DontMatchOnMissing)) {
+            if (matchingLane != nullptr) {
+                std::cout << "XXX matched multiple..." << std::endl;
+                std::stringstream ss;
+                throw eckit::UserError("fdb.wipe request must not match multiple SelectFDB lanes.", Here());
+            }
 
-    //     using ValueType     = std::unique_ptr<CatalogueWipeState>;
-    //     using QueryIterator = APIIterator<ValueType>;
-    //     using AsyncIterator = APIAsyncIterator<ValueType>;
+            matchingLane = &lane;
+        }
+    }
 
-    //     auto async_worker = [elements = std::move(elements)](Queue<ValueType>& queue) {
-    //         auto state = std::make_unique<CatalogueWipeState>(elements);
-    //         queue.emplace(std::move(state));
-    //     };
+    if (matchingLane == nullptr) {
+        std::stringstream ss;
+        ss << "No matching lane for request " << request.request();
+        throw eckit::UserError(ss.str(), Here());
+    }
 
-    //     return QueryIterator(new AsyncIterator(async_worker));
-    // });
+    FDB& fdb = matchingLane->get();
+
+    return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

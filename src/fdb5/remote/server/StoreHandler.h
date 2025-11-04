@@ -12,8 +12,8 @@
 
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/remote/server/ServerConnection.h"
 #include "fdb5/database/WipeState.h"
+#include "fdb5/remote/server/ServerConnection.h"
 
 #include <cstdint>
 #include <map>
@@ -62,7 +62,7 @@ private:  // members
 
 
     struct WipeInProgress {
-        uint32_t clientID = 0;
+        uint32_t clientID  = 0;
         uint32_t requestID = 0;
         std::unique_ptr<StoreWipeState> state;
     };

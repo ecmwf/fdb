@@ -226,15 +226,20 @@ private:
 };
 
 // Wipe iterator
+// To be removed / replaced by pybind impl.
 struct fdb_wipe_iterator_t {
 
-    fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
+    fdb_wipe_iterator_t(WipeStateIterator&& iter) : iter_(std::move(iter)) {}
 
-    int next(WipeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
+    int next(WipeElement& e) {
+        //  return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
+        NOTIMP;
+        return FDB_ERROR_UNKNOWN_EXCEPTION;
+    }
 
 private:
 
-    WipeIterator iter_;
+    WipeStateIterator iter_;
 };
 
 struct fdb_wipe_element_t {
@@ -476,7 +481,8 @@ int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, b
         ASSERT(req);
         ASSERT(it);
 
-        *it = new fdb_wipe_iterator_t(fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll));
+        NOTIMP;
+        // *it = new fdb_wipe_iterator_t(fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll));
     });
 }
 
