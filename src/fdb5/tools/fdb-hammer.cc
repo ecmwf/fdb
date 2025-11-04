@@ -1678,6 +1678,8 @@ void FDBHammer::executeRead() {
         verifier.readComplete();
     }
 
+    gettimeofday(&stats.timeAfterIO, NULL);
+
     // Pretty output
 
     if (config_.execution.itt) {
