@@ -7,11 +7,16 @@
 # does it submit to any jurisdiction.
 
 import json
+import pathlib
+
 from typing import Any, Dict, List
+
+from findlibs import Path
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 type MarsSelection = Dict[str, str]
+type Key = Dict[str, str]
 
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
@@ -160,12 +165,7 @@ class ListIterator:
         if not self._list_iterator:
             raise StopIteration
 
-        optional = self._list_iterator.next()
-
-        if optional is not None:
-            return ListElement._from_raw(optional)
-        else:
-            raise StopIteration
+        return ListElement._from_raw(self._list_iterator.next())
 
 
 class WipeElement:
@@ -199,12 +199,66 @@ class WipeIterator:
         if not self._iterator:
             raise StopIteration
 
-        optional = self._iterator.next()
+        return WipeElement._from_raw(self._iterator.next())
 
-        if optional is not None:
-            return WipeElement._from_raw(optional)
-        else:
-            raise StopIteration
+
+class URI:
+    def __init__(self):
+        self._uri = pyfdb_internal.URI()
+
+    @classmethod
+    def from_str(cls, uri: str):
+        result = URI()
+        result._uri = pyfdb_internal.URI(uri)
+        return result
+
+    @classmethod
+    def from_scheme_path(cls, scheme: str, path: pathlib.Path):
+        result = URI()
+        result._uri = pyfdb_internal.URI(scheme, path.resolve().as_posix())
+        return result
+
+    @classmethod
+    def from_scheme_uri(cls, scheme: str, uri: "URI"):
+        result = URI()
+        result._uri = pyfdb_internal.URI(scheme, uri._uri)
+        return result
+
+    @classmethod
+    def from_scheme_host_port(cls, scheme: str, host: str, port: int):
+        result = URI()
+        result._uri = pyfdb_internal.URI(scheme, host, port)
+        return result
+
+    @classmethod
+    def from_scheme_uri_host_port(cls, scheme: str, uri: "URI", host: str, port: int):
+        result = URI()
+        result._uri = pyfdb_internal.URI(scheme, uri._uri, host, port)
+        return result
+
+    def name(self) -> str:
+        return self._uri.name()
+
+    def scheme(self) -> str:
+        return self._uri.scheme()
+
+    def user(self) -> str:
+        return self._uri.user()
+
+    def host(self) -> str:
+        return self._uri.host()
+
+    def port(self) -> int:
+        return self._uri.port()
+
+    def path(self) -> str:
+        return self._uri.path()
+
+    def fragment(self) -> str:
+        return self._uri.fragment()
+
+    def __str__(self) -> str:
+        return str(self._uri)
 
 
 class PyFDB:
@@ -223,6 +277,15 @@ class PyFDB:
 
     def archive_handle(self, mars_request: MarsRequest, data_handle: DataHandle):
         self.FDB.archive(mars_request.request, data_handle.dataHandle)
+
+    # def reindex(self, key: Key, str], field_location: ):
+    #     self.FDB.reindex(key, field_location)
+
+    def flush(self):
+        self.FDB.flush()
+
+    def read(self, uri: URI) -> DataHandle:
+        return self.FDB.read(uri._uri)
 
     def retrieve(self, mars_request: MarsRequest) -> DataHandle:
         return DataHandle(self.FDB.retrieve(mars_request.request))
@@ -249,6 +312,3 @@ class PyFDB:
                 fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
             )
         )
-
-    def flush(self):
-        self.FDB.flush()
