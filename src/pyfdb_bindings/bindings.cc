@@ -27,15 +27,18 @@
 #include <string>
 #include <vector>
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/runtime/Main.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -57,6 +60,10 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
                                read,              /* Name of function in C++ (must match Python name) */
                                buf, length);
     }
+};
+
+class PyFieldLocation : public fdb5::FieldLocation, public py::trampoline_self_life_support {
+    /* Trampoline (need one for each virtual function) */
 };
 
 PYBIND11_MODULE(pyfdb_bindings, m) {
@@ -130,15 +137,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
     py::class_<fdb5::ListIterator>(m, "ListIterator")
-        .def("next", [](fdb5::ListIterator& list_iterator) -> std::optional<fdb5::ListElement> {
+        .def("next", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
             fdb5::ListElement result{};
             bool has_next = list_iterator.next(result);
             if (has_next) {
-                return std::make_optional(result);
+                return result;
             }
-            else {
-                return std::nullopt;
-            }
+            throw py::stop_iteration();
         });
 
     py::class_<fdb5::WipeElement>(m, "WipeElement")
@@ -148,22 +153,65 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
 
     py::class_<fdb5::WipeIterator>(m, "WipeIterator")
-        .def("next", [](fdb5::WipeIterator& wipe_iterator) -> std::optional<fdb5::WipeElement> {
+        .def("next", [](fdb5::WipeIterator& wipe_iterator) -> fdb5::WipeElement {
             fdb5::WipeElement result{};
             bool has_next = wipe_iterator.next(result);
 
             if (has_next) {
-                return std::make_optional(result);
+                return result;
             }
-            return std::nullopt;
+
+            throw py::stop_iteration();
         });
 
-    // py::class_<fdb5::Key>(m, "Key")
-    //     .def(py::init())
-    //     .def(py::init(
-    //         [](std::vector<std::pair<const std::string, std::string>>& key_value) { return fdb5::Key(key_value); }))
-    //     .def("__str__", [](const fdb5::WipeElement& wipe_element) { return wipe_element; });
-    //
+    py::class_<fdb5::FieldLocation, PyFieldLocation, py::smart_holder>(m, "FieldLocation")
+        .def("__str__", [](const fdb5::FieldLocation& field_location) {
+            std::stringstream buf;
+            field_location.dump(buf);
+            return buf.str();
+        });
+
+    // TODO(TKR): Why is the module_local needed here?
+    py::class_<fdb5::DumpElement>(m, "DumpElement", py::module_local())
+        .def(py::init())
+        .def(py::init([](const std::string& element) { return fdb5::DumpElement(element); }))
+        .def("__str__", [](const fdb5::DumpElement& dump_element) { return dump_element; });
+
+    // TODO(TKR): Why is the module_local needed here?
+    py::class_<fdb5::DumpIterator>(m, "DumpIterator", py::module_local())
+        .def("next", [](fdb5::DumpIterator& dump_iterator) -> fdb5::DumpElement {
+            fdb5::DumpElement result{};
+            bool has_next = dump_iterator.next(result);
+
+            if (has_next) {
+                return result;
+            }
+
+            throw py::stop_iteration();
+        });
+
+    py::class_<eckit::URI>(m, "URI")
+        .def(py::init())
+        .def(py::init([](const std::string& uri) { return eckit::URI(uri); }))
+        .def(py::init([](const std::string& scheme, const std::string& path) {
+            return eckit::URI(scheme, eckit::PathName(path));
+        }))
+        .def(py::init([](const std::string& scheme, const eckit::URI& uri) { return eckit::URI(scheme, uri); }))
+        .def(py::init([](const std::string& scheme, const std::string& hostname, int port) {
+            return eckit::URI(scheme, hostname, port);
+        }))
+        .def(py::init([](const std::string& scheme, const eckit::URI& uri, const std::string& hostname, int port) {
+            return eckit::URI(scheme, uri, hostname, port);
+        }))
+        .def("name", &eckit::URI::name)
+        .def("scheme", &eckit::URI::scheme)
+        .def("user", &eckit::URI::user)
+        .def("host", [](const eckit::URI& uri) { return uri.host(); })
+        .def("port", [](const eckit::URI& uri) { return uri.port(); })
+        .def("path", [](const eckit::URI& uri) { return uri.path().asString(); })
+        .def("fragment", [](const eckit::URI& uri) { return uri.fragment(); })
+        .def("__str__", &eckit::URI::asString);
+
 
     py::class_<fdb5::FDB>(m, "FDB")
         .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
@@ -173,14 +221,22 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                            const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
         .def("archive", [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request,
                            eckit::DataHandle& data_handle) { return fdb.archive(mars_request, data_handle); })
-        .def("reindex", [](fdb5::FDB& fdb, fdb5::Key& key,
-                           fdb5::FieldLocation& field_location) { return fdb.reindex(key, field_location); })
+        // .def("reindex", [](fdb5::FDB& fdb, fdb5::Key& key,
+        //                    fdb5::FieldLocation& field_location) { return fdb.reindex(key, field_location); })
+        .def("flush", &fdb5::FDB::flush)
+        .def("read", [](fdb5::FDB& fdb, const eckit::URI& uri) { return fdb.read(uri); })
+        .def("read", [](fdb5::FDB& fdb, const std::vector<eckit::URI>& uris,
+                        bool in_storage_order = false) { return fdb.read(uris, in_storage_order); })
+        .def("read", [](fdb5::FDB& fdb, fdb5::ListIterator& list_iterator,
+                        bool in_storage_order = false) { return fdb.read(list_iterator, in_storage_order); })
         .def("retrieve",
              [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request) { return fdb.retrieve(mars_request); })
         .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
                         size_t level) { return fdb.list(tool_request, false, level); })
         .def("list_no_duplicates", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
                                       size_t level) { return fdb.list(tool_request, true, level); })
-        .def("wipe", &fdb5::FDB::wipe)
-        .def("flush", &fdb5::FDB::flush);
+        .def("dump", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
+                        bool simple = false) { fdb.dump(tool_request, simple); })
+        .def("inspect", &fdb5::FDB::inspect)
+        .def("wipe", &fdb5::FDB::wipe);
 }

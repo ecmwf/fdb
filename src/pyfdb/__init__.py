@@ -12,14 +12,6 @@ import findlibs
 
 findlibs.load("fdb5")
 
-from .pyfdb import FDBToolRequest, PyFDB, Config, MarsRequest
+from .pyfdb import URI, FDBToolRequest, PyFDB, Config, MarsRequest
 
-__all__ = [
-    PyFDB,
-    Config,
-    MarsRequest,
-    FDBToolRequest,
-    # "ChunkedDataView",
-    # "ChunkedDataViewBuilder",
-    # "ExtractorType",
-]
+__all__ = [PyFDB, Config, MarsRequest, FDBToolRequest, URI]
