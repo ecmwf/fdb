@@ -1,0 +1,36 @@
+name: "Example View"
+parts:
+  - request: |
+      type=an,
+      class=ea,
+      domain=g,
+      expver=0001,
+      stream=oper,
+      date=20240101,
+      levtype=sfc,
+      step=0,
+      param=165/166,
+      time=0000
+    axis:
+      - keywords: ["step"]
+        chunking: true
+      - keywords: ["param"]
+        chunking: true
+  - request: |
+      type=an,
+      class=ea,
+      domain=g,
+      expver=0001,
+      stream=oper,
+      date=20240101,
+      levtype=pl,
+      step=0,
+      param=133/130,
+      levelist=50/100,
+      time=0000
+    axis:
+      - keywords: ["step"]
+        chunking: true
+      - keywords: ["param", "levelist"]
+        chunking: true
+extension_axis: 1
