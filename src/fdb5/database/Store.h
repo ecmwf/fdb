@@ -104,7 +104,7 @@ public:
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
     std::unique_ptr<Store> make(const Key& key, const Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override {
         return std::unique_ptr<T>(new T(uri, config));

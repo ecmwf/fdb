@@ -9,7 +9,9 @@
  */
 
 #include "fdb5/daos/DaosEngine.h"
+
 #include "eckit/serialisation/MemoryStream.h"
+
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/daos/DaosName.h"
@@ -101,7 +103,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
     /// @todo: use this Optional technique in all cases where an action needs to be performed
     ///   (i.e. not just throw an exception) if an object does not exist
-    eckit::Optional<fdb5::DaosKeyValue> main_kv;
+    std::optional<fdb5::DaosKeyValue> main_kv;
     try {
         main_kv.emplace(s, main_kv_name);
     }
@@ -193,7 +195,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
 
     /// @todo: use this Optional technique in all cases where an action needs to be performed
     ///   (i.e. not just throw an exception) if an object does not exist
-    eckit::Optional<fdb5::DaosKeyValue> main_kv;
+    std::optional<fdb5::DaosKeyValue> main_kv;
     try {
         main_kv.emplace(s, main_kv_name);
     }

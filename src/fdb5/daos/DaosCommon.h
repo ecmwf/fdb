@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/config/Config.h"
@@ -46,8 +48,8 @@ protected:  // members
     std::string root_cont_;
     std::string db_cont_;
 
-    eckit::Optional<fdb5::DaosKeyValueName> root_kv_;
-    eckit::Optional<fdb5::DaosKeyValueName> db_kv_;
+    std::optional<fdb5::DaosKeyValueName> root_kv_;
+    std::optional<fdb5::DaosKeyValueName> db_kv_;
 
     fdb5::DaosOID main_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};       /// @todo: take oclass from config
     fdb5::DaosOID catalogue_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config

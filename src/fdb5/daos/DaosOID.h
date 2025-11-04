@@ -15,7 +15,7 @@
 
 #include <daos.h>
 
-#include "eckit/utils/Optional.h"
+#include <optional>
 
 namespace fdb5 {
 
@@ -55,7 +55,7 @@ private:  // members
     daos_obj_id_t oid_;
     daos_oclass_id_t oclass_;
     bool wasGenerated_;
-    mutable eckit::Optional<std::string> as_string_;
+    mutable std::optional<std::string> as_string_;
 };
 
 class DaosArrayOID : public DaosOID {

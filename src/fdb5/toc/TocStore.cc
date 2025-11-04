@@ -347,7 +347,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             dest_db.mkdir();
             DIR* dirp = ::opendir(src_db.asString().c_str());
             struct dirent* dp;
-            std::multimap<long, FileCopy*, std::greater<long>> files;
+            std::multimap<long, std::unique_ptr<FileCopy>, std::greater<long>> files;
             while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr(dp->d_name, ".data")) {
                     eckit::PathName file(src_db / dp->d_name);
@@ -355,7 +355,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
                         auxFileExtensions_.find(file.extension()) != auxFileExtensions_.end()) {
                         struct stat fileStat;
                         SYSCALL(::stat(file.asString().c_str(), &fileStat));
-                        files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
+                        files.emplace(fileStat.st_size, std::make_unique<FileCopy>(src_db.path(), dest_db, dp->d_name));
                     }
                 }
             }
