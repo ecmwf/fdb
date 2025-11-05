@@ -244,6 +244,8 @@ if(HAVE_FDB_REMOTE)
         remote/Messages.cc
         remote/FdbServer.h
         remote/FdbServer.cc
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
 
         remote/client/Client.h
         remote/client/Client.cc

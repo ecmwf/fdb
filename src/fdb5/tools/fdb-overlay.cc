@@ -145,7 +145,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
+    auto newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
     if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName()) {
         newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }

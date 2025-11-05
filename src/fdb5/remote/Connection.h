@@ -28,9 +28,15 @@
 namespace eckit {
 
 class Buffer;
+class Value;
+
+}  // namespace eckit
+
+namespace fdb5 {
+
+class Config;
 
 }
-
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------

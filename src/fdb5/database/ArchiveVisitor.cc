@@ -39,7 +39,7 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     auto writer = self->catalogue();  // XXX: raw pointer. Are we certain that it will still be valid when the callback
                                       // is invoked? I don't think so...
 
-    store()->archive(idxKey, data_, size_,
+    store()->archiveCb(idxKey, data_, size_,
                      [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {
                          self->callbacks(writer, idxKey, datumKey, p, std::move(loc));
                      });
