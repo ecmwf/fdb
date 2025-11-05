@@ -6,14 +6,15 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from typing import Generator
 from pyfdb import URI, Config, DataHandle, FDBToolRequest, MarsRequest
 from pyfdb.pyfdb_iterator import (
-    DumpIterator,
-    ListIterator,
-    MoveIterator,
-    PurgeIterator,
-    StatusIterator,
-    WipeIterator,
+    DumpElement,
+    ListElement,
+    MoveElement,
+    PurgeElement,
+    StatusElement,
+    WipeElement,
 )
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
@@ -49,17 +50,28 @@ class PyFDB:
         return DataHandle(self.FDB.retrieve(mars_request.request))
 
     def list(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        return ListIterator._from_raw(
-            self.FDB.list(fdb_tool_request.tool_request, False, level)
-        )
+        iterator = self.FDB.list(fdb_tool_request.tool_request, False, level)
+        while True:
+            try:
+                yield ListElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def list_no_duplicates(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        return ListIterator._from_raw(
-            self.FDB.list_no_duplicates(fdb_tool_request.tool_request, True, level)
-        )
+        iterator = self.FDB.list(fdb_tool_request.tool_request, True, level)
+        while True:
+            try:
+                yield ListElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def inspect(self, mars_request: MarsRequest):
-        return ListIterator._from_raw(self.FDB.inspect(mars_request.request))
+        iterator = self.FDB.inspect(mars_request.request)
+        while True:
+            try:
+                yield DumpElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def dump(self, fdb_tool_request: FDBToolRequest, simple: bool = False):
         """TODO(TKR) check why this leads to a fdb5::AsyncIterationCancellation error and wipe doesn't
@@ -71,12 +83,20 @@ class PyFDB:
         Returns:
             [TODO:return]
         """
-        return DumpIterator._from_raw(
-            self.FDB.dump(fdb_tool_request.tool_request, simple)
-        )
+        iterator = self.FDB.dump(fdb_tool_request.tool_request, simple)
+        while True:
+            try:
+                yield DumpElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def status(self, fdb_tool_request: FDBToolRequest):
-        return StatusIterator._from_raw(self.FDB.status(fdb_tool_request.tool_request))
+        iterator = self.FDB.status(fdb_tool_request.tool_request)
+        while True:
+            try:
+                yield StatusElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def wipe(
         self,
@@ -84,17 +104,23 @@ class PyFDB:
         doit: bool = False,
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
-    ) -> WipeIterator:
-        return WipeIterator._from_raw(
-            self.FDB.wipe(
-                fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
-            )
+    ) -> Generator[WipeElement, None, None]:
+        iterator = self.FDB.wipe(
+            fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
         )
+        while True:
+            try:
+                yield WipeElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def move(self, fdb_tool_request: FDBToolRequest, destination: URI):
-        return MoveIterator._from_raw(
-            self.FDB.move(fdb_tool_request.tool_request, destination._uri)
-        )
+        iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
+        while True:
+            try:
+                yield MoveElement._from_raw(next(iterator))
+            except StopIteration:
+                return
 
     def purge(
         self,
@@ -102,6 +128,9 @@ class PyFDB:
         doit: bool = False,
         porcelain: bool = False,
     ):
-        return PurgeIterator._from_raw(
-            self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
-        )
+        iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
+        while True:
+            try:
+                yield PurgeElement._from_raw(next(iterator))
+            except StopIteration:
+                return
