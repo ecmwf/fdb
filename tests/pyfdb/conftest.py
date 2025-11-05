@@ -17,7 +17,7 @@ import git
 import eccodes as ec
 
 import pyfdb
-from pyfdb.pyfdb import Config
+from pyfdb import Config
 
 
 @pytest.fixture(scope="function")
@@ -87,7 +87,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
     return messages
 
 
-@pytest.fixture(scope="session", autouse=False)
+@pytest.fixture(scope="function", autouse=False)
 def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
