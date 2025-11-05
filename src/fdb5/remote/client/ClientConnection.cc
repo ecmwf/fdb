@@ -1,10 +1,18 @@
 
 #include "fdb5/remote/client/ClientConnection.h"
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/client/Client.h"
-#include "fdb5/remote/client/ClientConnectionRouter.h"
+
+#include <unistd.h>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -19,18 +27,12 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Literals.h"
 
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <future>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
+#include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 using namespace eckit::literals;
 
@@ -107,7 +109,7 @@ uint32_t ClientConnection::generateRequestID() {
     return ++id_;
 }
 
-bool ClientConnection::connect(bool singleAttempt) {
+bool ClientConnection::connect(const eckit::Configuration& config, bool singleAttempt) {
 
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
@@ -122,7 +124,7 @@ bool ClientConnection::connect(bool singleAttempt) {
         LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
-        writeControlStartupMessage();
+        writeControlStartupMessage(config);
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
         if (!single_) {
@@ -175,14 +177,8 @@ const eckit::net::Endpoint& ClientConnection::controlEndpoint() const {
     return controlEndpoint_;
 }
 
-eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
-    eckit::LocalConfiguration conf;
-    std::vector<int> remoteFieldLocationVersions = {1};
-    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
-    std::vector<int> numberOfConnections = {1, 2};
-    conf.set("NumberOfConnections", numberOfConnections);
-    conf.set("PreferSingleConnection", false);
-    return conf;
+RemoteConfiguration ClientConnection::availableFunctionality(const eckit::Configuration& config) const {
+    return RemoteConfiguration{config};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -267,18 +263,14 @@ void ClientConnection::dataWriteThreadLoop() {
     // They will be released when flush() is called.
 }
 
-void ClientConnection::writeControlStartupMessage() {
+void ClientConnection::writeControlStartupMessage(const eckit::Configuration& config) {
 
     eckit::Buffer payload(4096);
     eckit::MemoryStream s(payload);
     s << sessionID_;
     s << eckit::net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
-
-    // TODO: Abstract this dictionary into a RemoteConfiguration object, which
-    //       understands how to do the negotiation, etc, but uses Value (i.e.
-    //       essentially JSON) over the wire for flexibility.
-    s << availableFunctionality().get();
+    s << availableFunctionality(config);
 
     LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control "
                            << controlEndpoint_ << std::endl;

@@ -14,6 +14,10 @@
 
 #include <unordered_map>
 
+namespace eckit {
+class Configuration;
+}
+
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,12 +27,14 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    std::shared_ptr<ClientConnection> connection(const eckit::net::Endpoint& endpoint,
+    std::shared_ptr<ClientConnection> connection(const eckit::Configuration& config,
+                                                 const eckit::net::Endpoint& endpoint,
                                                  const std::string& defaultEndpoint);
     std::shared_ptr<ClientConnection> connection(
-        const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+        const eckit::Configuration& config, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
-    std::shared_ptr<ClientConnection> refresh(const std::shared_ptr<ClientConnection>& connection);
+    std::shared_ptr<ClientConnection> refresh(const eckit::Configuration& config,
+                                              const std::shared_ptr<ClientConnection>& connection);
 
     void teardown(std::exception_ptr e);
 

@@ -61,20 +61,6 @@ namespace {
 constexpr const auto defaultRetrieveQueueSize = 10000;
 constexpr const auto defaultArchiveQueueSize  = 320;
 
-std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2,
-                              const std::string& field) {
-
-    std::vector<int> v1 = c1.getIntVector(field);
-    std::vector<int> v2 = c2.getIntVector(field);
-    std::vector<int> v3;
-
-    std::sort(v1.begin(), v1.end());
-    std::sort(v2.begin(), v2.end());
-
-    std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
-    return v3;
-}
-
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -154,25 +140,8 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::No;
 }
 
-eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
-    eckit::LocalConfiguration conf;
-    //    Add to the configuration all the components that require to be versioned, as in the following example, with a
-    //    vector of supported version numbers
-    static std::vector<int> remoteFieldLocationVersions = {1};
-    static std::vector<int> numberOfConnections         = config_.getIntVector("supportedConnections", {1, 2});
-
-    ASSERT(0 < numberOfConnections.size());
-    ASSERT(numberOfConnections[0] == 1 || numberOfConnections[0] == 2);
-
-    ASSERT(numberOfConnections.size() <= 2);
-    if (numberOfConnections.size() > 1) {
-        ASSERT(numberOfConnections[0] == 1);
-        ASSERT(numberOfConnections[1] == 2);
-    }
-
-    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
-    conf.set("NumberOfConnections", numberOfConnections);
-    return conf;
+RemoteConfiguration ServerConnection::availableFunctionality() const {
+    return RemoteConfiguration{config_};
 }
 
 void ServerConnection::initialiseConnections() {
@@ -207,57 +176,14 @@ void ServerConnection::initialiseConnections() {
         return;
     }
 
-    eckit::LocalConfiguration clientAvailableFunctionality(s1);
-    eckit::LocalConfiguration serverConf = availableFunctionality();
-    agreedConf_                          = eckit::LocalConfiguration();
-    std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-
-    if (rflCommon.size() > 0) {
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back()
-                               << std::endl;
-        agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+    RemoteConfiguration clientConf{s1};
+    RemoteConfiguration serverConf = availableFunctionality();
+    try {
+        agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
+        single_     = agreedConf_.singleConnection();
     }
-    else {
-        std::stringstream ss;
-        ss << "FDB server version " << fdb5_version_str()
-           << " - RemoteFieldLocation version not matching - impossible to establish a connection" << std::endl;
-        error(ss.str(), hdr.clientID(), hdr.requestID);
-        return;
-    }
-
-    if (!clientAvailableFunctionality.has("NumberOfConnections")) {  // set the default
-        std::vector<int> conn = {2};
-        clientAvailableFunctionality.set("NumberOfConnections", conn);
-    }
-    // agree on a common functionality by intersecting server and client version numbers
-    std::vector<int> ncCommon = intersection(clientAvailableFunctionality, serverConf, "NumberOfConnections");
-    if (ncCommon.size() > 0) {
-        int ncSelected = 2;
-
-        if (ncCommon.size() == 1) {
-            ncSelected = ncCommon.at(0);
-        }
-        else {
-            ncSelected = ncCommon.back();
-            if (clientAvailableFunctionality.has("PreferSingleConnection")) {
-                int preferredMode = clientAvailableFunctionality.getBool("PreferSingleConnection") ? 1 : 2;
-                if (std::find(ncCommon.begin(), ncCommon.end(), preferredMode) != ncCommon.end()) {
-                    ncSelected = preferredMode;
-                }
-            }
-        }
-
-        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
-        agreedConf_.set("NumberOfConnections", ncSelected);
-        single_ = (ncSelected == 1);
-    }
-    else {
-        std::stringstream ss;
-        ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client"
-           << std::endl;
-        ss << "    server functionality: " << serverConf << std::endl;
-        ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
-        error(ss.str(), hdr.clientID(), hdr.requestID);
+    catch (const eckit::Exception& e) {
+        error(e.what(), hdr.clientID(), hdr.requestID);
         return;
     }
 
@@ -291,9 +217,7 @@ void ServerConnection::initialiseConnections() {
     s << clientSession;
     s << sessionID_;
     s << dataEndpoint;
-    s << agreedConf_.get();
-
-    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ << std::endl;
+    s << agreedConf_;
 
     write(Message::Startup, true, 0, 0, startupBuffer.data(), s.position());
 
