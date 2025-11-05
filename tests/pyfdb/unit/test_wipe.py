@@ -60,7 +60,7 @@ def test_wipe_single_date_doit(read_write_fdb_setup):
     )
     assert len(elements) > len(elements_after_wipe)
     assert len(elements) == 96
-    assert len(elements) == 72
+    assert len(elements_after_wipe) == 72
 
 
 BASE_REQUEST = {

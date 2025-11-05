@@ -4,7 +4,6 @@ from pyfdb.pyfdb import MarsRequest
 
 def test_initialization():
     pyfdb = PyFDB()
-
     assert pyfdb
 
 
@@ -17,7 +16,7 @@ def test_initialization_config():
 
 def test_initialization_metkit_request():
     request = MarsRequest()
-    assert request
+    assert request is not None
 
 
 def test_initialization_config_fixture(read_only_fdb_setup):

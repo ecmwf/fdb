@@ -140,7 +140,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
     py::class_<fdb5::ListIterator>(m, "ListIterator")
-        .def("next", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
+        .def("__next__", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
             fdb5::ListElement result{};
             bool has_next = list_iterator.next(result);
             if (has_next) {
@@ -158,7 +158,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
     py::class_<fdb5::APIIterator<std::string>>(m, "StringApiIterator")
-        .def("next", [](fdb5::APIIterator<std::string>& string_api_iterator) -> std::string {
+        .def("__next__", [](fdb5::APIIterator<std::string>& string_api_iterator) -> std::string {
             std::string result{};
             bool has_next = string_api_iterator.next(result);
 
@@ -181,7 +181,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
     py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
-        .def("next", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
+        .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
             fdb5::ControlElement result{};
             bool has_next = status_iterator.next(result);
             if (has_next) {
@@ -202,7 +202,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("cleanup", &fdb5::FileCopy::cleanup);
 
     py::class_<fdb5::APIIterator<fdb5::FileCopy>>(m, "FileCopyApiIterator")
-        .def("next", [](fdb5::APIIterator<fdb5::FileCopy>& status_iterator) -> fdb5::FileCopy {
+        .def("__next__", [](fdb5::APIIterator<fdb5::FileCopy>& status_iterator) -> fdb5::FileCopy {
             fdb5::FileCopy result{};
             bool has_next = status_iterator.next(result);
             if (has_next) {
