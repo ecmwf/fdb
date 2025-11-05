@@ -16,15 +16,10 @@ from .pyfdb_type import URI, FDBToolRequest, Config, MarsRequest, DataHandle
 from .pyfdb import PyFDB
 
 from .pyfdb_iterator import (
-    ListIterator,
     ListElement,
-    WipeIterator,
     WipeElement,
-    StatusIterator,
     StatusElement,
-    DumpIterator,
     DumpElement,
-    MoveIterator,
     MoveElement,
 )
 
@@ -35,14 +30,9 @@ __all__ = [
     FDBToolRequest,
     URI,
     DataHandle,
-    ListIterator,
     ListElement,
-    WipeIterator,
     WipeElement,
-    StatusIterator,
     StatusElement,
-    DumpIterator,
     DumpElement,
-    MoveIterator,
     MoveElement,
 ]

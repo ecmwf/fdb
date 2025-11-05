@@ -21,15 +21,17 @@ def test_purge(empty_fdb_setup, build_grib_messages):
 
     print(f"Elements after archive: {len(archived_elements)}")
 
-    purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}))
+    purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
     purged_output = list(purge_iterator)
 
     assert len(purged_output) > 0
 
-    elements_after_purge = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements_after_first_purge = list(
+        pyfdb.list(FDBToolRequest(key_values={"class": "ea"}))
+    )
 
-    print(f"Elements after purge: {len(elements_after_purge)}")
-    assert len(archived_elements) == len(elements_after_purge)
+    print(f"Elements after purge: {len(elements_after_first_purge)}")
+    assert len(archived_elements) == len(elements_after_first_purge)
 
     pyfdb.archive(build_grib_messages.read_bytes())
     pyfdb.flush()
@@ -39,16 +41,18 @@ def test_purge(empty_fdb_setup, build_grib_messages):
     )
 
     print(
-        f"Elements after archive: {len(after_archive_elements)}, before: {len(initial_elements)}"
+        f"Elements after masking archive: {len(after_archive_elements)}, before: {len(initial_elements)}"
     )
     assert len(after_archive_elements) > len(initial_elements)
 
-    purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}))
+    purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
     purged_output = list(purge_iterator)
 
     assert len(purged_output) > 0
 
-    elements_after_purge = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements_after_second_purge = list(
+        pyfdb.list(FDBToolRequest(key_values={"class": "ea"}))
+    )
 
-    print(f"Elements after purge: {len(elements_after_purge)}")
-    assert len(initial_elements) == len(elements_after_purge)
+    print(f"Elements after second purge: {len(elements_after_second_purge)}")
+    assert len(archived_elements) == len(elements_after_second_purge)

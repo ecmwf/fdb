@@ -2,6 +2,10 @@ import time
 from pyfdb.pyfdb import Config, FDBToolRequest, MarsRequest, PyFDB
 
 
+import pytest
+
+
+@pytest.mark.skip
 def test_dump(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 

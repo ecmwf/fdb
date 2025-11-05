@@ -46,14 +46,15 @@ def test_move(read_only_fdb_setup):
 
         print(str(new_root))
 
-        dump_iterator = pyfdb.move(
+        move_iterator = pyfdb.move(
             FDBToolRequest.from_mars_request(request),
             URI.from_str(str(new_root)),
         )
 
         elements = []
 
-        for el in dump_iterator:
+        for el in move_iterator:
+            print(el)
             elements.append(el)
 
         assert len(elements) == 8

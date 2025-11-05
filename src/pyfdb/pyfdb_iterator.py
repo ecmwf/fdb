@@ -25,26 +25,6 @@ class ListElement:
         return str(self._element)
 
 
-class ListIterator:
-    def __init__(self) -> None:
-        self._list_iterator = None
-
-    @classmethod
-    def _from_raw(cls, list_iterator: pyfdb_internal.ListIterator):
-        result = ListIterator()
-        result._list_iterator = list_iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._list_iterator:
-            raise StopIteration
-
-        return ListElement._from_raw(self._list_iterator.next())
-
-
 class WipeElement:
     def __init__(self) -> None:
         self.element: str | None = None
@@ -57,26 +37,6 @@ class WipeElement:
 
     def __str__(self) -> str:
         return str(self.element)
-
-
-class WipeIterator:
-    def __init__(self) -> None:
-        self._iterator: pyfdb_internal.StringApiIterator | None = None
-
-    @classmethod
-    def _from_raw(cls, iterator: pyfdb_internal.StringApiIterator):
-        result = WipeIterator()
-        result._iterator = iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._iterator:
-            raise StopIteration
-
-        return WipeElement._from_raw(self._iterator.next())
 
 
 class DumpElement:
@@ -93,26 +53,6 @@ class DumpElement:
         return str(self.element)
 
 
-class DumpIterator:
-    def __init__(self) -> None:
-        self._dump_iterator: pyfdb_internal.StringApiIterator | None = None
-
-    @classmethod
-    def _from_raw(cls, dump_iterator: pyfdb_internal.StringApiIterator):
-        result = DumpIterator()
-        result._dump_iterator = dump_iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._dump_iterator:
-            raise StopIteration
-
-        return DumpElement._from_raw(self._dump_iterator.next())
-
-
 class StatusElement:
     def __init__(self) -> None:
         self.element: pyfdb_internal.StatusElement | None = None
@@ -127,34 +67,14 @@ class StatusElement:
         return str(self.element)
 
 
-class StatusIterator:
-    def __init__(self) -> None:
-        self._status_iterator: pyfdb_internal.ControlApiIterator | None = None
-
-    @classmethod
-    def _from_raw(cls, status_iterator: pyfdb_internal.ControlApiIterator):
-        result = StatusIterator()
-        result._status_iterator = status_iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._status_iterator:
-            raise StopIteration
-
-        return StatusElement._from_raw(self._status_iterator.next())
-
-
 class MoveElement:
     def __init__(self) -> None:
         self.element: pyfdb_internal.FileCopy | None = None
 
     @classmethod
-    def _from_raw(cls, dump_element: str):
+    def _from_raw(cls, move_element: str):
         result = MoveElement()
-        result.element = dump_element
+        result.element = move_element
         return result
 
     def execute(self):
@@ -163,26 +83,6 @@ class MoveElement:
 
     def __str__(self) -> str:
         return str(self.element)
-
-
-class MoveIterator:
-    def __init__(self) -> None:
-        self._iterator: pyfdb_internal.FileCopyApiIterator | None = None
-
-    @classmethod
-    def _from_raw(cls, move_iterator: pyfdb_internal.FileCopyApiIterator):
-        result = MoveIterator()
-        result._iterator = move_iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._iterator:
-            raise StopIteration
-
-        return MoveElement._from_raw(self._iterator.next())
 
 
 class PurgeElement:
@@ -197,23 +97,3 @@ class PurgeElement:
 
     def __str__(self) -> str:
         return str(self.element)
-
-
-class PurgeIterator:
-    def __init__(self) -> None:
-        self._iterator: pyfdb_internal.StringApiIterator | None = None
-
-    @classmethod
-    def _from_raw(cls, purge_iterator: pyfdb_internal.StringApiIterator):
-        result = PurgeIterator()
-        result._iterator = purge_iterator
-        return result
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if not self._iterator:
-            raise StopIteration
-
-        return PurgeElement._from_raw(self._iterator.next())
