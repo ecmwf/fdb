@@ -1,10 +1,8 @@
-from gitdb.util import time
-
-from pyfdb import Config, PyFDB
-from pyfdb.pyfdb import FDBToolRequest
+from pyfdb import PyFDB, Config
+from pyfdb.pyfdb_type import FDBToolRequest
 
 
-def test_wipe(read_write_fdb_setup):
+def test_wipe_dryrun(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
     fdb_config = Config(fdb_config_path.read_text())
@@ -14,11 +12,55 @@ def test_wipe(read_write_fdb_setup):
     assert len(elements) > 0
 
     wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"}))
-    elements = list(wipe_iterator)
-    assert len(elements) > 0
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
 
     elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    assert len(elements) == len(elements_after_wipe)
+
+
+def test_wipe_all_doit(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb_config = Config(fdb_config_path.read_text())
+    pyfdb = PyFDB(fdb_config)
+
+    elements = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    assert len(elements) > 0
+
+    wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
     assert len(elements) > len(elements_after_wipe)
+
+
+def test_wipe_single_date_doit(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb_config = Config(fdb_config_path.read_text())
+    pyfdb = PyFDB(fdb_config)
+
+    elements = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    assert len(elements) > 0
+
+    wipe_iterator = pyfdb.wipe(
+        FDBToolRequest(key_values={"class": "ea", "date": "20200101"}), doit=True
+    )
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
+    assert len(elements) > len(elements_after_wipe)
+    assert len(elements) == 96
+    assert len(elements) == 72
 
 
 BASE_REQUEST = {
