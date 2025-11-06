@@ -35,9 +35,11 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -211,6 +213,28 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
+    py::class_<fdb5::StatsElement>(m, "StatsElement")
+        .def(py::init())
+        .def("__str__", [](const fdb5::StatsElement& stats_element) {
+            std::stringstream buf{};
+            buf << "Index Statistics: \n";
+            stats_element.indexStatistics.report(buf);
+            buf << "\n";
+            buf << "DB Statistics: \n";
+            stats_element.dbStatistics.report(buf);
+            return buf.str();
+        });
+
+    py::class_<fdb5::APIIterator<fdb5::StatsElement>>(m, "StatsElementApiIterator")
+        .def("__next__", [](fdb5::APIIterator<fdb5::StatsElement>& status_iterator) -> fdb5::StatsElement {
+            fdb5::StatsElement result{};
+            bool has_next = status_iterator.next(result);
+            if (has_next) {
+                return result;
+            }
+            throw py::stop_iteration();
+        });
+
     py::class_<eckit::URI>(m, "URI")
         .def(py::init())
         .def(py::init([](const std::string& uri) { return eckit::URI(uri); }))
@@ -263,5 +287,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("status", &fdb5::FDB::status)
         .def("wipe", &fdb5::FDB::wipe)
         .def("move", &fdb5::FDB::move)
-        .def("purge", &fdb5::FDB::purge);
+        .def("purge", &fdb5::FDB::purge)
+        .def("stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); });
 }

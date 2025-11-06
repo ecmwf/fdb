@@ -58,9 +58,9 @@ class StatusElement:
         self.element: pyfdb_internal.StatusElement | None = None
 
     @classmethod
-    def _from_raw(cls, dump_element: str):
+    def _from_raw(cls, status_element: str):
         result = StatusElement()
-        result.element = dump_element
+        result.element = status_element
         return result
 
     def __str__(self) -> str:
@@ -93,6 +93,20 @@ class PurgeElement:
     def _from_raw(cls, purge_element: str):
         result = PurgeElement()
         result.element = purge_element
+        return result
+
+    def __str__(self) -> str:
+        return str(self.element)
+
+
+class StatsElement:
+    def __init__(self) -> None:
+        self.element: pyfdb_internal.StatsElement | None = None
+
+    @classmethod
+    def _from_raw(cls, stats_element: str):
+        result = StatusElement()
+        result.element = stats_element
         return result
 
     def __str__(self) -> str:
