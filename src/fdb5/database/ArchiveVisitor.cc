@@ -20,6 +20,11 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, cons
                                const ArchiveCallback& callback) :
     BaseArchiveVisitor(owner, initialFieldKey), data_(data), size_(size), callback_(callback) {}
 
+std::shared_ptr<ArchiveVisitor> ArchiveVisitor::create(Archiver& owner, const Key& dataKey, const void* data,
+                                                       size_t size, const ArchiveCallback& callback) {
+    return std::shared_ptr<ArchiveVisitor>(new ArchiveVisitor(owner, dataKey, data, size, callback));
+}
+
 void ArchiveVisitor::callbacks(std::shared_ptr<CatalogueWriter> catalogue, const Key& idxKey, const Key& datumKey,
                                std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
                                std::shared_ptr<const FieldLocation> fieldLocation) {

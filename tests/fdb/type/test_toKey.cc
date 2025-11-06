@@ -130,7 +130,7 @@ CASE("Step & ClimateDaily - expansion") {
 
     fdb5::Config conf = config.expandConfig();
     fdb5::Archiver archiver(conf);
-    auto visitor = std::make_shared<fdb5::ArchiveVisitor>(archiver, key, data, 4);
+    auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
     config.schema().expand(key, visitor);
 
     fdb5::TypedKey tKey(visitor->rule()->registry());
@@ -265,7 +265,7 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        auto visitor = std::make_shared<fdb5::ArchiveVisitor>(archiver, key, data, 4);
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
@@ -294,7 +294,7 @@ CASE("ClimateMonthly - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        auto visitor = std::make_shared<fdb5::ArchiveVisitor>(archiver, key, data, 4);
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
@@ -327,7 +327,7 @@ CASE("Date - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        auto visitor = std::make_shared<fdb5::ArchiveVisitor>(archiver, key, data, 4);
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
