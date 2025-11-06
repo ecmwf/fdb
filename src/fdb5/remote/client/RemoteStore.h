@@ -52,6 +52,8 @@ public:
         if (it == locations_.end()) {
             return false;
         }
+
+        // Invoke the callback to archive the location in the catalogue
         it->second(std::move(location));
 
         locations_.erase(it);

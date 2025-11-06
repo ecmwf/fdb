@@ -49,10 +49,10 @@ const Schema& BaseArchiveVisitor::databaseSchema() const {
     return catalogue()->schema();
 }
 
-CatalogueWriter* BaseArchiveVisitor::catalogue() const {
+std::shared_ptr<CatalogueWriter> BaseArchiveVisitor::catalogue() const {
     ASSERT(owner_.db_);
     ASSERT(owner_.db_->catalogue_);
-    return owner_.db_->catalogue_.get();
+    return owner_.db_->catalogue_;
 }
 
 Store* BaseArchiveVisitor::store() const {
