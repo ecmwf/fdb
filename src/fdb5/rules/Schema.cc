@@ -138,9 +138,9 @@ std::vector<Key> Schema::expandDatabase(const metkit::mars::MarsRequest& request
     return result;
 }
 
-void Schema::expand(const Key& field, std::shared_ptr<WriteVisitor> visitor) const {
+void Schema::expand(const Key& field, WriteVisitor& visitor) const {
 
-    visitor->rule(nullptr);  // reset to no rule so we verify that we pick at least one
+    visitor.rule(nullptr);  // reset to no rule so we verify that we pick at least one
 
     for (const auto& rule : rules_) {
         if (rule->expand(field, visitor)) {

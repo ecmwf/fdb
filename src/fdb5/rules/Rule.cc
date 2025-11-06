@@ -552,20 +552,20 @@ void RuleDatum::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
     }
 }
 
-bool RuleDatum::expand(const Key& field, std::shared_ptr<WriteVisitor> visitor, Key& full) const {
+bool RuleDatum::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
 
     if (const auto key = findMatchingKey(field)) {
 
         full.pushFrom(*key);
 
-        if (visitor->rule()) {
+        if (visitor.rule()) {
             std::ostringstream oss;
-            oss << "More than one rule matching " << full << " " << topRule() << " and " << visitor->rule()->topRule();
+            oss << "More than one rule matching " << full << " " << topRule() << " and " << visitor.rule()->topRule();
             throw eckit::SeriousBug(oss.str());
         }
 
-        if (visitor->selectDatum(*key, full)) {
-            visitor->rule(this);
+        if (visitor.selectDatum(*key, full)) {
+            visitor.rule(this);
             static const bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
             if (matchFirstFdbRule) {
                 return true;
@@ -616,13 +616,13 @@ void RuleIndex::expand(const metkit::mars::MarsRequest& request, ReadVisitor& vi
     }
 }
 
-bool RuleIndex::expand(const Key& field, std::shared_ptr<WriteVisitor> visitor, Key& full) const {
+bool RuleIndex::expand(const Key& field, WriteVisitor& visitor, Key& full) const {
 
     if (const auto key = findMatchingKey(field)) {
 
         full.pushFrom(*key);
 
-        if (visitor->selectIndex(*key) || visitor->createIndex(*key, rule_->size())) {
+        if (visitor.selectIndex(*key) || visitor.createIndex(*key, rule_->size())) {
             if (rule_->expand(field, visitor, full)) {
                 return true;
             }
@@ -681,13 +681,13 @@ void RuleDatabase::expand(const metkit::mars::MarsRequest& request, ReadVisitor&
     }
 }
 
-bool RuleDatabase::expand(const Key& field, std::shared_ptr<WriteVisitor> visitor) const {
+bool RuleDatabase::expand(const Key& field, WriteVisitor& visitor) const {
 
     if (auto key = findMatchingKey(field)) {
 
-        if (visitor->selectDatabase(*key, *key)) {
+        if (visitor.selectDatabase(*key, *key)) {
             // (important) using the database's schema
-            for (const auto& rule : visitor->databaseSchema().matchingRule(*key).rules()) {
+            for (const auto& rule : visitor.databaseSchema().matchingRule(*key).rules()) {
                 if (rule->expand(field, visitor, *key)) {
                     return true;
                 }

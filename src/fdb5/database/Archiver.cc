@@ -36,17 +36,18 @@ Archiver::~Archiver() {
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
-    archive(key, ArchiveVisitor::create(*this, key, data, len, callback_));
+    auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
+    archive(key, *visitor);
 }
 
-void Archiver::archive(const Key& key, std::shared_ptr<BaseArchiveVisitor> visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
-    visitor->rule(nullptr);
+    visitor.rule(nullptr);
 
     dbConfig_.schema().expand(key, visitor);
 
-    const Rule* rule = visitor->rule();
+    const Rule* rule = visitor.rule();
     if (rule == nullptr) {  // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;

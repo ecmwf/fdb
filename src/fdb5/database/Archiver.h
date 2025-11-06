@@ -57,7 +57,7 @@ public:  // methods
 
     virtual ~Archiver();
 
-    void archive(const Key& key, std::shared_ptr<BaseArchiveVisitor> visitor);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
     void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
