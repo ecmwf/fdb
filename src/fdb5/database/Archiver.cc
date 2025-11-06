@@ -36,18 +36,17 @@ Archiver::~Archiver() {
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
-    auto visitor = std::make_shared<ArchiveVisitor>(*this, key, data, len, callback_);
-    archive(key, *visitor);
+    archive(key, std::make_shared<ArchiveVisitor>(*this, key, data, len, callback_));
 }
 
-void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, std::shared_ptr<BaseArchiveVisitor> visitor) {
 
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
-    visitor.rule(nullptr);
+    visitor->rule(nullptr);
 
     dbConfig_.schema().expand(key, visitor);
 
-    const Rule* rule = visitor.rule();
+    const Rule* rule = visitor->rule();
     if (rule == nullptr) {  // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
@@ -105,7 +104,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
             }
         }
 
-        std::unique_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
+        std::shared_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
         ASSERT(cat);
 
         // If this database is locked for writing then this is an error
@@ -115,8 +114,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
             throw eckit::UserError(ss.str(), Here());
         }
 
-        std::unique_ptr<Store> str = cat->buildStore();
-        db_                        = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
+        db_ = &(databases_[dbKey] = Database{::time(0), cat, cat->buildStore()});
     }
 }
 

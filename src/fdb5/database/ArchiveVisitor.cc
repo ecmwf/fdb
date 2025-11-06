@@ -20,7 +20,7 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, cons
                                const ArchiveCallback& callback) :
     BaseArchiveVisitor(owner, initialFieldKey), data_(data), size_(size), callback_(callback) {}
 
-void ArchiveVisitor::callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey,
+void ArchiveVisitor::callbacks(std::shared_ptr<CatalogueWriter> catalogue, const Key& idxKey, const Key& datumKey,
                                std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
                                std::shared_ptr<const FieldLocation> fieldLocation) {
     p->set_value(fieldLocation);
@@ -36,13 +36,12 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     auto p = std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>();
 
     std::shared_ptr<ArchiveVisitor> self = shared_from_this();
-    auto writer = self->catalogue();  // XXX: raw pointer. Are we certain that it will still be valid when the callback
-                                      // is invoked? I don't think so...
+    auto writer                          = catalogue();
 
     store()->archiveCb(idxKey, data_, size_,
-                     [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {
-                         self->callbacks(writer, idxKey, datumKey, p, std::move(loc));
-                     });
+                       [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {
+                           self->callbacks(writer, idxKey, datumKey, p, std::move(loc));
+                       });
 
     callback_(initialFieldKey(), data_, size_, p->get_future());
 

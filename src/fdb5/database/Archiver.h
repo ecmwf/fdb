@@ -46,7 +46,7 @@ class Schema;
 
 struct Database {
     time_t time_;
-    std::unique_ptr<CatalogueWriter> catalogue_;
+    std::shared_ptr<CatalogueWriter> catalogue_;
     std::unique_ptr<Store> store_;
 };
 class Archiver : public eckit::NonCopyable {
@@ -57,7 +57,7 @@ public:  // methods
 
     virtual ~Archiver();
 
-    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, std::shared_ptr<BaseArchiveVisitor> visitor);
     void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state

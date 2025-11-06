@@ -58,7 +58,7 @@ public:  // methods
 
     // expand
 
-    void expand(const Key& field, WriteVisitor& visitor) const;
+    void expand(const Key& field, std::shared_ptr<WriteVisitor> visitor) const;
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 

@@ -44,7 +44,7 @@ protected:  // methods
 
 private:  // methods
 
-    void callbacks(fdb5::CatalogueWriter* catalogue, const Key& idxKey, const Key& datumKey,
+    void callbacks(std::shared_ptr<CatalogueWriter> catalogue, const Key& idxKey, const Key& datumKey,
                    std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
                    std::shared_ptr<const FieldLocation> fieldLocation);
 

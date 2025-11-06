@@ -135,7 +135,7 @@ public:  // methods
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
-    bool expand(const Key& field, WriteVisitor& visitor, Key& full) const;
+    bool expand(const Key& field, std::shared_ptr<WriteVisitor> visitor, Key& full) const;
 
     const char* type() const override { return "RuleDatum"; }
 
@@ -175,7 +175,7 @@ public:  // methods
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, Key& full) const;
 
-    bool expand(const Key& field, WriteVisitor& visitor, Key& full) const;
+    bool expand(const Key& field, std::shared_ptr<WriteVisitor> visitor, Key& full) const;
 
     void updateParent(const Rule* parent) override;
 
@@ -225,7 +225,7 @@ public:  // methods
 
     void expand(const metkit::mars::MarsRequest& request, ReadVisitor& visitor) const;
 
-    bool expand(const Key& field, WriteVisitor& visitor) const;
+    bool expand(const Key& field, std::shared_ptr<WriteVisitor> visitor) const;
 
     void updateParent(const Rule* parent) override;
 

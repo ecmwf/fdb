@@ -92,8 +92,8 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    auto visitor = std::make_shared<ArchiveVisitor>(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, *visitor);
+                    fdb.archive(k, std::make_shared<ArchiveVisitor>(fdb, k, static_cast<const void*>(data_str.c_str()),
+                                                                    data_str.size()));
                 }
             }
         }
