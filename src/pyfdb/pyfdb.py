@@ -13,6 +13,7 @@ from pyfdb.pyfdb_iterator import (
     ListElement,
     MoveElement,
     PurgeElement,
+    StatsElement,
     StatusElement,
     WipeElement,
 )
@@ -132,5 +133,13 @@ class PyFDB:
         while True:
             try:
                 yield PurgeElement._from_raw(next(iterator))
+            except StopIteration:
+                return
+
+    def stats(self, fdb_tool_request: FDBToolRequest):
+        iterator = self.FDB.stats(fdb_tool_request.tool_request)
+        while True:
+            try:
+                yield StatsElement._from_raw(next(iterator))
             except StopIteration:
                 return
