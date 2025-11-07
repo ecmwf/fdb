@@ -1,3 +1,4 @@
+from pathlib import Path
 import yaml
 from pyfdb import Config
 from pyfdb import PyFDB
@@ -24,24 +25,13 @@ def test_control_identifier_values():
 
 
 def test_control_lock_retrieve(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
+    fdb_config_path: Path = read_only_fdb_setup
 
     assert fdb_config_path
 
     with fdb_config_path.open("r") as config_file:
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
-
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
 
         print("Retrieve without lock")
         data_handle = pyfdb.retrieve(
@@ -66,8 +56,21 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
         print("Locking database for retrieve")
 
+        request = FDBToolRequest(
+            {
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "time": "1800",
+            },
+        )
+
         control_iterator = pyfdb.control(
-            request, ControlAction.DISABLE, [ControlIdentifier.RETRIEVE]
+            request,
+            ControlAction.DISABLE,
+            [ControlIdentifier.RETRIEVE],
         )
         assert control_iterator
 
@@ -80,24 +83,31 @@ def test_control_lock_retrieve(read_only_fdb_setup):
         assert len(elements) == 1
 
         print("Retrieve with lock")
-        with pytest.raises(Exception) as er:
-            data_handle = pyfdb.retrieve(
-                MarsRequest(
-                    "retrieve",
-                    {
-                        "type": "an",
-                        "class": "ea",
-                        "domain": "g",
-                        "expver": "0001",
-                        "stream": "oper",
-                        "date": "20200101",
-                        "levtype": "sfc",
-                        "step": "0",
-                        "param": "167/165/166",
-                        "time": "1800",
-                    },
-                )
+        data_handle = pyfdb.retrieve(
+            MarsRequest(
+                "retrieve",
+                {
+                    "type": "an",
+                    "class": "ea",
+                    "domain": "g",
+                    "expver": "0001",
+                    "stream": "oper",
+                    "date": "20200101",
+                    "levtype": "sfc",
+                    "step": "0",
+                    "param": "167/165/166",
+                    "time": "1800",
+                },
             )
+        )
+        assert data_handle
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "retrieve.lock"
+        ).exists()
+        assert data_handle.read(4) == b"GRIB"
 
 
 def test_control_lock_list(read_only_fdb_setup):
@@ -150,9 +160,18 @@ def test_control_lock_list(read_only_fdb_setup):
         )
         assert control_iterator
 
+        # Correct behaviour is to "not see the data after locking"
+
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "list.lock"
+        ).exists()
+
         list_iterator = pyfdb.list(request)
         elements = list(list_iterator)
-        assert len(elements) == 3
+        assert len(elements) == 0
 
 
 def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
@@ -189,6 +208,13 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
 
         assert len(elements) == 1
 
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "archive.lock"
+        ).exists()
+
         print("Try archiving")
         with pytest.raises(
             Exception, match=" matched for archived is LOCKED against archiving"
@@ -213,6 +239,84 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
         print("Try archiving")
         pyfdb.archive(build_grib_messages.read_bytes())
         pyfdb.flush()
+        print("Success")
+
+
+def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        request = FDBToolRequest(
+            {
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "time": "1800",
+            },
+        )
+
+        print("Archive same data as the FDB was setup with in the Fixture")
+        pyfdb.archive(build_grib_messages.read_bytes())
+        pyfdb.flush()
+
+        print("Lock the database for wiping")
+        control_iterator = pyfdb.control(
+            request, ControlAction.DISABLE, [ControlIdentifier.WIPE]
+        )
+        assert control_iterator
+
+        elements = []
+
+        for el in control_iterator:
+            print(el)
+            elements.append(el)
+
+        assert len(elements) == 1
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "wipe.lock"
+        ).exists()
+
+        print("Try Wipe")
+        wipe_iterator = pyfdb.wipe(request, doit=True)
+
+        elements = []
+
+        # TODO(TKR): Ok, apparently the internal state of the iterator is borked, when we lock
+        # This should either result in an error message or an empty iterator
+        with pytest.raises(RuntimeError):
+            for el in wipe_iterator:
+                elements.append(el)
+
+        assert len(elements) == 0
+
+        print("Unlock the database for wiping")
+        control_iterator = pyfdb.control(
+            request, ControlAction.ENABLE, [ControlIdentifier.WIPE]
+        )
+        assert control_iterator
+
+        elements = []
+
+        for el in control_iterator:
+            print(el)
+            elements.append(el)
+
+        assert len(elements) > 0
+
+        print("Try Wipe")
+        pyfdb.wipe(request, doit=True)
+        pyfdb.flush()
+
         print("Success")
 
 

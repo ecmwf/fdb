@@ -78,7 +78,12 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::Config>(m, "Config")
         .def(py::init([]() { return fdb5::Config(); }))
-        .def(py::init([](const std::string& config) { return fdb5::Config(eckit::YAMLConfiguration(config)); }));
+        .def(py::init([](const std::string& config, const std::optional<std::string>& user_config) {
+            if (user_config.has_value()) {
+                return fdb5::Config(eckit::YAMLConfiguration(config), eckit::YAMLConfiguration(user_config.value()));
+            }
+            return fdb5::Config(eckit::YAMLConfiguration(config));
+        }));
 
     py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle")
         .def(py::init())
@@ -350,13 +355,12 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<fdb5::FDB>(m, "FDB")
         .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
         .def(py::init([](const fdb5::Config& conf) { return fdb5::FDB(conf); }))
+
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
         .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
                            const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
         .def("archive", [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request,
                            eckit::DataHandle& data_handle) { return fdb.archive(mars_request, data_handle); })
-        // .def("reindex", [](fdb5::FDB& fdb, fdb5::Key& key,
-        //                    fdb5::FieldLocation& field_location) { return fdb.reindex(key, field_location); })
         .def("flush", &fdb5::FDB::flush)
         .def("read", [](fdb5::FDB& fdb, const eckit::URI& uri) { return fdb.read(uri); })
         .def("read", [](fdb5::FDB& fdb, const std::vector<eckit::URI>& uris,
@@ -385,7 +389,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  for (const auto& control_identifier : control_identifiers) {
                      interal_control_identifiers |= control_identifier;
                  }
-
                  return fdb.control(tool_request, control_action, interal_control_identifiers);
              })
         .def("axes", &fdb5::FDB::axes)
