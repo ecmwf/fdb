@@ -360,18 +360,11 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
                            const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
         .def("flush", &fdb5::FDB::flush)
-        .def("read", [](fdb5::FDB& fdb, const eckit::URI& uri) { return fdb.read(uri); })
-        .def("read", [](fdb5::FDB& fdb, const std::vector<eckit::URI>& uris,
-                        bool in_storage_order = false) { return fdb.read(uris, in_storage_order); })
-        .def("read", [](fdb5::FDB& fdb, fdb5::ListIterator& list_iterator,
-                        bool in_storage_order = false) { return fdb.read(list_iterator, in_storage_order); })
         .def("retrieve",
              [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request) { return fdb.retrieve(mars_request); })
         .def("inspect", &fdb5::FDB::inspect)
         .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate,
                         size_t level) { return fdb.list(tool_request, deduplicate, level); })
-        .def("dump", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
-                        bool simple = false) { fdb.dump(tool_request, simple); })
         .def("inspect", &fdb5::FDB::inspect)
         .def("dump", &fdb5::FDB::dump)
         .def("status", &fdb5::FDB::status)
