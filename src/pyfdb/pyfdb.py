@@ -6,10 +6,19 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from typing import Generator
-from pyfdb import URI, Config, DataHandle, FDBToolRequest, MarsRequest
+from typing import Generator, List
+from pyfdb import (
+    URI,
+    Config,
+    DataHandle,
+    FDBToolRequest,
+    MarsRequest,
+)
+
 from pyfdb.pyfdb_iterator import (
+    ControlElement,
     DumpElement,
+    IndexAxis,
     ListElement,
     MoveElement,
     PurgeElement,
@@ -17,6 +26,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
+
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 
@@ -143,3 +153,21 @@ class PyFDB:
                 yield StatsElement._from_raw(next(iterator))
             except StopIteration:
                 return
+
+    def control(
+        self,
+        fdb_tool_request: FDBToolRequest,
+        control_action: pyfdb_internal.ControlAction,
+        control_identifiers: List[pyfdb_internal.ControlIdentifier],
+    ):
+        iterator = self.FDB.control(
+            fdb_tool_request.tool_request, control_action, control_identifiers
+        )
+        while True:
+            try:
+                yield ControlElement._from_raw(next(iterator))
+            except StopIteration:
+                return
+
+    def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3):
+        return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))

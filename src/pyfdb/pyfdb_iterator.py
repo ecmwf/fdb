@@ -1,3 +1,4 @@
+from typing import Dict, List, Tuple
 from pyfdb import DataHandle
 
 from pyfdb import URI
@@ -104,10 +105,79 @@ class StatsElement:
         self.element: pyfdb_internal.StatsElement | None = None
 
     @classmethod
-    def _from_raw(cls, stats_element: str):
+    def _from_raw(cls, stats_element: pyfdb_internal.StatsElement):
         result = StatusElement()
         result.element = stats_element
         return result
 
     def __str__(self) -> str:
         return str(self.element)
+
+
+class ControlElement:
+    def __init__(self) -> None:
+        self.element: pyfdb_internal.ControlElement | None = None
+
+    @classmethod
+    def _from_raw(cls, control_element: pyfdb_internal.ControlElement):
+        result = ControlElement()
+        result.element = control_element
+        return result
+
+    def __str__(self) -> str:
+        return str(self.element)
+
+
+class IndexAxis:
+    def __init__(self) -> None:
+        self.index_axis: pyfdb_internal.IndexAxis | None = None
+
+    @classmethod
+    def _from_raw(cls, index_axis: pyfdb_internal.IndexAxis):
+        result = IndexAxis()
+        result.index_axis = index_axis
+        return result
+
+    def map(self) -> Dict[str, List[str]]:
+        return self.index_axis.map()
+
+    def __str__(self) -> str:
+        return str(self.index_axis)
+
+    def __setitem__(self, key, item):
+        raise AttributeError("IndexAxis class is read only.")
+
+    def __getitem__(self, key) -> List[str]:
+        return self.index_axis[key]
+
+    def __len__(self) -> int:
+        if self.index_axis is not None:
+            return len(self.index_axis)
+        else:
+            return 0
+
+    def __delitem__(self, key):
+        raise AttributeError("IndexAxis class is read only.")
+
+    def clear(self):
+        raise RuntimeError("IndexAxis class is read only.")
+
+    def copy(self):
+        raise RuntimeError("IndexAxis is non-copyable.")
+
+    def has_key(self, k) -> bool:
+        return k in self.__dict__
+
+    def keys(self) -> List[str]:
+        if self.index_axis is None:
+            return []
+        return self.index_axis.keys()
+
+    def values(self):
+        return self.index_axis.values()
+
+    def items(self):
+        return self.index_axis.items()
+
+    def __contains__(self, item: str):
+        return item in self.index_axis

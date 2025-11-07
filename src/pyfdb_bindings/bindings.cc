@@ -15,6 +15,7 @@
 #include <chunked_data_view/LibChunkedDataView.h>
 
 #include <pybind11/iostream.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -24,6 +25,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/URI.h"
@@ -39,6 +41,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
@@ -235,6 +238,92 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
+    py::native_enum<fdb5::ControlAction>(m, "ControlAction", "enum.IntFlag")
+        .value("NONE", fdb5::ControlAction::None)
+        .value("DISABLE", fdb5::ControlAction::Disable)
+        .value("ENABLE", fdb5::ControlAction::Enable)
+        .finalize();
+
+    py::native_enum<fdb5::ControlIdentifier>(m, "ControlIdentifier", "enum.IntFlag")
+        .value("NONE", fdb5::ControlIdentifier::None)
+        .value("LIST", fdb5::ControlIdentifier::List)
+        .value("RETRIEVE", fdb5::ControlIdentifier::Retrieve)
+        .value("ARCHIVE", fdb5::ControlIdentifier::Archive)
+        .value("WIPE", fdb5::ControlIdentifier::Wipe)
+        .value("UNIQUEROOT", fdb5::ControlIdentifier::UniqueRoot)
+        .finalize();
+
+    py::class_<fdb5::IndexAxis>(m, "IndexAxis")
+        .def(py::init())
+        .def("__str__",
+             [](const fdb5::IndexAxis& index_axis) {
+                 std::stringstream buf{};
+                 buf << index_axis;
+                 return buf.str();
+             })
+        .def("__getitem__",
+             [](const fdb5::IndexAxis& index_axis, const std::string& key) {
+                 try {
+                     const auto& values = index_axis.values(key);
+                     return std::vector<std::string>{values.begin(), values.end()};
+                 }
+                 // TODO(TKR): why is there SeriousBug not caught if put in the catch statement?
+                 catch (std::exception& serious_bug) {
+                     std::cout << "Hit the catch" << std::endl;
+                     std::stringstream buf;
+                     buf << "Couldn't find key: " << key << " in IndexAxis.";
+                     throw py::key_error(buf.str());
+                 }
+             })
+        .def("keys",
+             [](const fdb5::IndexAxis& index_axis) {
+                 std::vector<std::string> result;
+                 for (const auto& [key, _] : index_axis.map()) {
+                     result.emplace_back(key);
+                 }
+                 return result;
+             })
+        .def("values",
+             [](const fdb5::IndexAxis& index_axis) {
+                 std::vector<std::vector<std::string>> result;
+                 for (const auto& [_, values] : index_axis.map()) {
+                     result.emplace_back(values.begin(), values.end());
+                 }
+                 return result;
+             })
+        .def("items", ,
+             [](const fdb5::IndexAxis& index_axis) {
+                 std::vector<std::pair<std::string, std::vector<std::string>>> result;
+                 for (const auto& [key, values] : index_axis.map()) {
+                     result.emplace_back(key, std::vector<std::string>{values.begin(), values.end()});
+                 }
+                 return result;
+             })
+        .def("__contains__",
+             [](const fdb5::IndexAxis& index_axis, const std::string& key) {
+                 const auto& map = index_axis.map();
+                 const auto it   = map.find(key);
+
+                 if (it == map.end()) {
+                     return false;
+                 }
+
+                 return true;
+             })
+        .def("__len__", [](const fdb5::IndexAxis& index_axis) { return index_axis.map().size(); })
+        .def("__iter__", )
+        .def("map", [](const fdb5::IndexAxis& index_axis) {
+            const auto& map = index_axis.map();
+            std::map<std::string, std::vector<std::string>> result{};
+
+            for (const auto& [key, value] : map) {
+                std::vector<std::string> mapped_values(value.begin(), value.end());
+                result.emplace(key, mapped_values);
+            }
+            return result;
+        });
+
+
     py::class_<eckit::URI>(m, "URI")
         .def(py::init())
         .def(py::init([](const std::string& uri) { return eckit::URI(uri); }))
@@ -288,5 +377,17 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("wipe", &fdb5::FDB::wipe)
         .def("move", &fdb5::FDB::move)
         .def("purge", &fdb5::FDB::purge)
-        .def("stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); });
+        .def("stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); })
+        .def("control",
+             [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, const fdb5::ControlAction& control_action,
+                const std::vector<fdb5::ControlIdentifier>& control_identifiers) {
+                 auto interal_control_identifiers = fdb5::ControlIdentifiers();
+
+                 for (const auto& control_identifier : control_identifiers) {
+                     interal_control_identifiers |= control_identifier;
+                 }
+
+                 return fdb.control(tool_request, control_action, interal_control_identifiers);
+             })
+        .def("axes", &fdb5::FDB::axes);
 }
