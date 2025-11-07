@@ -1,3 +1,4 @@
+from _typeshed import Self
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -113,9 +114,10 @@ class DataHandle:
         return self.dataHandle.read(len)
 
 
-# TODO(TKR): Create a config builder
 class Config:
-    def __init__(self, config: str | dict = "") -> None:
+    def __init__(self, config: str | dict | Path = "") -> None:
+        if isinstance(config, Path):
+            config_str = config.read_text()
         if isinstance(config, dict):
             config_str = json.dumps(config)
         elif isinstance(config, str):

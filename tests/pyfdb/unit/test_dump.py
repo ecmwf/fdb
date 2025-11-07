@@ -5,7 +5,6 @@ from pyfdb.pyfdb import Config, FDBToolRequest, MarsRequest, PyFDB
 import pytest
 
 
-@pytest.mark.skip
 def test_dump(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
@@ -18,21 +17,17 @@ def test_dump(read_only_fdb_setup):
         request = MarsRequest(
             "retrieve",
             {
-                "type": "an",
                 "class": "ea",
                 "domain": "g",
-                # "expver": "0001",
-                # "stream": "oper",
-                # "date": "20200101",
-                # "levtype": "sfc",
-                # "step": "0",
-                # "param": "167/165/166",
-                # "time": "1800",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "time": "1800",
             },
         )
 
         dump_iterator = pyfdb.dump(
-            FDBToolRequest.from_mars_request(request), simple=True
+            FDBToolRequest.from_mars_request(request), simple=False
         )
 
         elements = []
@@ -42,8 +37,4 @@ def test_dump(read_only_fdb_setup):
             elements.append(el)
             print(el)
 
-        assert len(elements) > 0
-
-        time.sleep(2)
-
-        raise RuntimeError
+        assert len(elements) == 0
