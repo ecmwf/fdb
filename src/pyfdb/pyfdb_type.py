@@ -113,6 +113,7 @@ class DataHandle:
         return self.dataHandle.read(len)
 
 
+# TODO(TKR): Create a config builder
 class Config:
     def __init__(self, config: str | dict = "") -> None:
         if isinstance(config, dict):

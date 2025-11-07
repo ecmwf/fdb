@@ -1,3 +1,4 @@
+import yaml
 from pyfdb import Config
 from pyfdb import PyFDB
 from pyfdb import FDBToolRequest
@@ -213,3 +214,95 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
         pyfdb.archive(build_grib_messages.read_bytes())
         pyfdb.flush()
         print("Success")
+
+
+def test_enabled_per_default(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        assert pyfdb.enabled(ControlIdentifier.NONE) is True
+        assert pyfdb.enabled(ControlIdentifier.LIST) is True
+        assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
+        assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is True
+        assert pyfdb.enabled(ControlIdentifier.WIPE) is True
+        assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+
+
+def test_disabled_writabled(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb_config = yaml.safe_load(fdb_config_path.read_text())
+    fdb_config["writable"] = False
+
+    fdb_config = Config(yaml.dump(fdb_config))
+    pyfdb = PyFDB(fdb_config)
+
+    assert pyfdb.enabled(ControlIdentifier.NONE) is True
+    assert pyfdb.enabled(ControlIdentifier.LIST) is True
+    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
+    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is False
+    assert pyfdb.enabled(ControlIdentifier.WIPE) is False
+    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+
+
+def test_disabled_visitable(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb_config = yaml.safe_load(fdb_config_path.read_text())
+    fdb_config["visitable"] = False
+
+    fdb_config = Config(yaml.dump(fdb_config))
+    pyfdb = PyFDB(fdb_config)
+
+    assert pyfdb.enabled(ControlIdentifier.NONE) is True
+    assert pyfdb.enabled(ControlIdentifier.LIST) is False
+    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is False
+    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is True
+    assert pyfdb.enabled(ControlIdentifier.WIPE) is True
+    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+
+
+def test_disabled_visitable_writeable(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb_config = yaml.safe_load(fdb_config_path.read_text())
+    fdb_config["visitable"] = False
+    fdb_config["writable"] = False
+
+    fdb_config = Config(yaml.dump(fdb_config))
+    pyfdb = PyFDB(fdb_config)
+
+    assert pyfdb.enabled(ControlIdentifier.NONE) is True
+    assert pyfdb.enabled(ControlIdentifier.LIST) is False
+    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is False
+    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is False
+    assert pyfdb.enabled(ControlIdentifier.WIPE) is False
+    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+
+
+def test_needs_flush(empty_fdb_setup, test_data_path):
+    fdb_config_path = empty_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        filename = test_data_path / "x138-300.grib"
+
+        pyfdb.archive(open(filename, "rb").read())
+        assert pyfdb.needs_flush() is True
+        pyfdb.flush()
+        assert pyfdb.needs_flush() is False

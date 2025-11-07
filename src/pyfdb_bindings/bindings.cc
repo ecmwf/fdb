@@ -291,7 +291,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  }
                  return result;
              })
-        .def("items", ,
+        .def("items",
              [](const fdb5::IndexAxis& index_axis) {
                  std::vector<std::pair<std::string, std::vector<std::string>>> result;
                  for (const auto& [key, values] : index_axis.map()) {
@@ -311,7 +311,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  return true;
              })
         .def("__len__", [](const fdb5::IndexAxis& index_axis) { return index_axis.map().size(); })
-        .def("__iter__", )
         .def("map", [](const fdb5::IndexAxis& index_axis) {
             const auto& map = index_axis.map();
             std::map<std::string, std::vector<std::string>> result{};
@@ -389,5 +388,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
                  return fdb.control(tool_request, control_action, interal_control_identifiers);
              })
-        .def("axes", &fdb5::FDB::axes);
+        .def("axes", &fdb5::FDB::axes)
+        .def("enabled", &fdb5::FDB::enabled)
+        .def("dirty", &fdb5::FDB::dirty);
 }
