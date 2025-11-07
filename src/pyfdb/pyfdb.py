@@ -38,6 +38,56 @@ class PyFDB:
         config: Config | str | dict | Path | None = None,
         user_config: Config | str | dict | Path | None = None,
     ) -> None:
+        """
+        Constructor for the PyFDB object.
+
+        Parameters
+        ----------
+        `config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+            Config object for setting up the FDB.
+        `user_config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+            Config object for setting up user specific options, e.g., enabling sub-TOCs.
+
+        Returns
+        -------
+        PyFDB object
+
+        Note
+        ----
+        Every config can be a `Config` object, but is converted accordingly if another type is supplied:
+            - `str` is used as a yaml representation to parse the config
+            - `dict` is interpreted as hierarchical format to represent a config, see example
+            - `Path` is interpreted as a location of the config and read as a YAML file
+            - `None` is the fallback. The default config in `$FDB5_HOME` is loaded
+
+        PyFDB and its methods are thread-safe. However the caller needs to be aware that flush acts on all archive calls,
+        including archived messages from other threads. An call to flush will persist all archived messages regardless
+        from which thread the message has been archived. In case the caller wants a finer control it is advised to
+        instantiate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
+        object.
+
+
+        Examples
+        --------
+        >>> pyfdb = pyfdb.PyFDB()
+
+        >>> config = pyfdb.Config(
+                dict(
+                    type="local",
+                    engine="toc",
+                    schema=<schema_path>,
+                    spaces=[
+                        dict(
+                            handler="Default",
+                            roots=[
+                                {"path": <db_store_path>},
+                            ],
+                        )
+                    ],
+                ))
+        >>> pyfdb.PyFDB(config)
+        """
+
         pyfdb_internal.init_bindings()
 
         # Convert to Config if necessary
@@ -59,54 +109,247 @@ class PyFDB:
             self.FDB = pyfdb_internal.FDB()
 
     def archive(self, bytes: bytes, key: Key | None = None):
+        """
+        Archive binary data into the underlying FDB.
+        *No constistency checks are applied. The caller needs to ensure the provided key matches metadata present in data.*
+
+        Parameters
+        ----------
+        `bytes` : `bytes`
+            The binary data to be archived.
+        `key` : `Key` | None, optional
+            A unique identifier for the archived data.
+            - If provided, the data will be stored under this key.
+            - If None, the data will be archived without an explicit key.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> pyfdb.archive(bytes=b"binary-data")
+        >>> pyfdb.archive(key=Key([("key-1", "value-1")]), bytes=b"binary-data")
+        """
         if key is None:
             self.FDB.archive(bytes, len(bytes))
         else:
             self.FDB.archive(str(key), bytes, len(bytes))
 
     def flush(self):
+        """
+        Flush all buffers and closes all data handles of the underlying FDB into a consistent DB state.
+        *Always safe to call*
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> pyfdb.archive(bytes=b"some-binary-data") // Archive
+        >>> pyfdb.flush() // Data is synced
+        """
         self.FDB.flush()
 
-    def read(self, uri: URI) -> bytes:
-        return self.FDB.read(uri._uri)
-
     def retrieve(self, mars_request: MarsRequest) -> DataHandle:
+        """
+        Retrieve data which is specified by a MARS request.
+
+        Parameters
+        ----------
+        `mars_request`
+            MARS request which describes the data which should be retrieved
+
+        Returns
+        -------
+        DataHandle
+            A data handle which can be read like a bytesLike object.
+
+        Examples
+        --------
+        >>> mars_request = MarsRequest("retrieve", {"key-1": "value-1", ...})
+        >>> data_handle = pyfdb.retrieve(mars_request)
+        >>> data_handle.read(4) // == b'GRIB'
+        """
         return DataHandle(self.FDB.retrieve(mars_request.request))
 
-    def list(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        iterator = self.FDB.list(fdb_tool_request.tool_request, False, level)
+    def list(
+        self,
+        fdb_tool_request: FDBToolRequest,
+        duplicates: bool = False,
+        level: int = 3,
+    ) -> Generator[ListElement, None, None]:
+        """
+        List data present at the underlying fdb archive and which can be retrieved.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which describes the data which can be listed.
+        `duplicates` : bool, *optional*
+            If True, the returned iterator lists duplicates, if False the elements are unique.
+        `level` : int, *optional*
+            Specifies the FDB schema level of the elements which are matching the request.
+            A level of 1 means return a level 1 key which is matching the FDB tool request.
+
+        Returns
+        -------
+        datahandle
+            a data handle which can be read like a byteslike object.
+
+        Note
+        ----
+        *this call lists duplicate elements.*
+
+        Examples
+        --------
+        >>> request = fdbtoolrequest(
+        >>>     "type": "an",
+        >>>     "class": "ea",
+        >>>     "domain": "g",
+        >>>     "expver": "0001",
+        >>>     "stream": "oper",
+        >>>     "date": "20200101",
+        >>>     "levtype": "sfc",
+        >>>     "step": "0",
+        >>>     "time": "1800",
+        >>> )
+        >>> list_iterator = pyfdb.list(request) // level == 3
+        >>> elements = list(list_iterator)
+        >>> print(elements[0])
+
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
+        {type=an,levtype=sfc}{step=0,param=131},
+        tocfieldlocation[uri=uri[scheme=file,name=<location>],offset=10732,length=10732,remapkey={}],
+        length=10732,timestamp=176253515
+
+        >>> list_iterator = pyfdb.list(request, level=2)
+        >>> elements = list(list_iterator)
+        >>> print(elements[0])
+
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
+        {type=an,levtype=sfc},
+        length=0,
+        timestamp=0
+
+
+        >>> list_iterator = pyfdb.list(request, level=1)
+        >>> elements = list(list_iterator)
+        >>> print(elements[0])
+
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},length=0,timestamp=0
+        """
+        iterator = self.FDB.list(fdb_tool_request.tool_request, not duplicates, level)
         while True:
             try:
                 yield ListElement._from_raw(next(iterator))
             except StopIteration:
                 return
 
-    def list_no_duplicates(self, fdb_tool_request: FDBToolRequest, level: int = 3):
-        iterator = self.FDB.list(fdb_tool_request.tool_request, True, level)
-        while True:
-            try:
-                yield ListElement._from_raw(next(iterator))
-            except StopIteration:
-                return
+    def inspect(self, mars_request: MarsRequest) -> Generator[ListElement, None, None]:
+        """
+        Inspects the content of the underlying FDB and returns a generator of list elements
+        describing which databases/fields were part of the MARS request.
 
-    def inspect(self, mars_request: MarsRequest):
+        Parameters
+        ----------
+        `mars_request` : `MarsRequest`
+            An MARS request for which the inspect should be executed
+
+        Returns
+        -------
+        Generator[ListElement, None, None]
+            A generator for `ListElement`s describing FDB entries containing data of the MARS request
+
+
+        Examples
+        --------
+        >>> request = MarsRequest(
+        >>>     "retrieve",
+        >>>     {
+        >>>         "type": "an",
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "levtype": "sfc",
+        >>>         "step": "0",
+        >>>         "param": "167/165/166",
+        >>>         "time": "1800",
+        >>>     },
+        >>> )
+        >>> list_iterator = pyfdb.inspect(request)
+        >>> elements = list(list_iterator) // single element in iterator
+        >>> elements[0]
+
+        ```
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
+        {type=an,levtype=sfc}
+        {param=167,step=0},
+        TocFieldLocation[
+            uri=URI[scheme=<location>],
+            offset=0,
+            length=10732,
+            remapKey={}
+        ],
+        length=10732,
+        timestamp=1762537447
+        ```
+        """
         iterator = self.FDB.inspect(mars_request.request)
         while iterator is not None:
             try:
-                yield DumpElement._from_raw(next(iterator))
+                yield ListElement._from_raw(next(iterator))
             except StopIteration:
                 return
 
-    def dump(self, fdb_tool_request: FDBToolRequest, simple: bool = False):
-        # TODO(TKR): check why this leads to a fdb5::AsyncIterationCancellation error and wipe doesn't
-        iterator = self.FDB.dump(fdb_tool_request.tool_request, simple)
-        while iterator is not None:
-            try:
-                yield DumpElement._from_raw(next(iterator))
-            except StopIteration:
-                return
+    def status(
+        self, fdb_tool_request: FDBToolRequest
+    ) -> Generator[StatusElement, None, None]:
+        """
+        List the status of all FDB entries with their control identifiers, e.g., whether a certain
+        database was locked for retrieval.
 
-    def status(self, fdb_tool_request: FDBToolRequest):
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the queried data
+
+        Returns
+        -------
+        Generator[StatusElement, None, None]
+            A generator for `StatusElement`s describing FDB entries and their control identifier
+
+
+        Examples
+        --------
+        >>> request = MarsRequest(
+        >>>     "retrieve",
+        >>>     {
+        >>>         "type": "an",
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>     },
+        >>> )
+        >>> dump_iterator = pyfdb.status(FDBToolRequest.from_mars_request(request))
+        >>> elements = list(dump_iterator)
+        >>> elements[0]
+
+        ```
+        ControlIdentifiers[],
+        {class=ea,expver=0001,stream=oper,date=20200101,time=0000,domain=g},
+        URI[
+            scheme=toc,
+            name=<location>
+        ]
+        ```
+        """
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
             try:
@@ -121,6 +364,48 @@ class PyFDB:
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
     ) -> Generator[WipeElement, None, None]:
+        """
+        Wipe data from the database.
+
+        Deletes FDB databases and the data therein contained. Uses the passed
+        request to identify the database to delete. This is equivalent to a UNIX rm command.
+        This tool deletes either whole databases, or whole indexes within databases
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the affected data
+        `doit` : `bool`, *optional*
+            If true the wipe command is executed, per default there are only dry-run
+        `porcelain` : `bool`, *optional*
+            Restricts the output to the wiped files
+        `unsafe_wipe_all` : `bool`, *optional*
+            Flag for disabling all security checks and force a wipe
+
+        Returns
+        -------
+        Generator[WipeElement, None, None]
+            A generator for `WipeElement`s
+
+        Note
+        ----
+        Wipe elements are not directly corresponding to the wiped files. This can be a cause for confusion.
+        The individual wipe elements strings of the wipe output.
+
+        Examples
+        --------
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> wipe_iterator = pyfdb.wipe(pyfdb.FDBToolRequest(key_values={"class": "ea"}))
+        >>> wiped_elements = list(wipe_iterator)
+
+        ```
+        ...
+        Toc files to delete:
+        <path_to_database>/toc
+        ...
+        ```
+        """
         iterator = self.FDB.wipe(
             fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
         )
@@ -130,7 +415,64 @@ class PyFDB:
             except StopIteration:
                 return
 
-    def move(self, fdb_tool_request: FDBToolRequest, destination: URI):
+    def move(
+        self, fdb_tool_request: FDBToolRequest, destination: URI
+    ) -> Generator[MoveElement, None, None]:
+        """
+        Move content of one FDB database to a new URI.
+
+        This locks the source database, make it possible to create a second
+        database in another root, duplicates all data.
+        Source data is moved.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the affected data
+        `destination` : `URI`
+            A new FDB root to which a database should be moved
+
+        Returns
+        -------
+        Generator[MoveElement, None, None]
+            A generator for `MoveElement`s
+
+        Note
+        ----
+        The destination `URI` must be a known root to the `FDB`, meaning it must be stated in
+        the `FDB` config file.
+
+        **The last element in the move_iterator contains a move element specifying the root of the
+        database entry with a destination of '/'.**
+
+        Examples
+        --------
+        >>> request = MarsRequest(
+        >>>     "retrieve",
+        >>>     {
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "time": "1800",
+        >>>     },
+        >>> )
+        >>> move_iterator = pyfdb.move(
+        >>>     FDBToolRequest.from_mars_request(request),
+        >>>     URI.from_str(<new_root>),
+        >>> )
+        >>> print(list(move_iterator)[0])
+
+        ```
+        FileCopy(
+            src=<db_store>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
+            dest=<new_db>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
+            sync=0
+        )
+        ...
+        ```
+        """
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
         while True:
             try:
@@ -143,7 +485,56 @@ class PyFDB:
         fdb_tool_request: FDBToolRequest,
         doit: bool = False,
         porcelain: bool = False,
-    ):
+    ) -> Generator[PurgeElement, None, None]:
+        """
+        Removes duplicate data from the database.
+
+        Purge duplicate entries from the database and remove the associated data if the data is owned and not adopted.
+        Data in the FDB5 is immutable. It is masked, but not removed, when overwritten with new data using the same key.
+        Masked data can no longer be accessed. Indexes and data files that only contains masked data may be removed.
+
+        If an index refers to data that is not owned by the FDB (in particular data which has been adopted from an
+        existing FDB5), this data will not be removed.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which describes the data which is purged.
+        `doit` : `bool`, *optional*
+            If true the wipe command is executed, per default there are only dry-run
+        `porcelain` : `bool`, *optional*
+            Restricts the output to the wiped files
+
+        Returns
+        -------
+        Generator[PurgeElement, None, None]
+            A generator for `PurgeElement`s
+
+        Examples
+        --------
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+        >>> purged_elements = list(purge_iterator)
+        >>> print(purged_elements[0])
+
+        ```
+        {class=ea,expver=0001,stream=oper,date=20200104,time=1800,domain=g}
+        {type=an,levtype=sfc}
+        {step=0,param=167},
+        TocFieldLocation[
+            uri=URI[
+                scheme=file,
+                name=<location>
+            ],
+            offset=32196,
+            length=10732,
+            remapKey={}
+        ],
+        length=10732,
+        timestamp=176253976
+        ```
+        """
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
             try:
@@ -151,7 +542,53 @@ class PyFDB:
             except StopIteration:
                 return
 
-    def stats(self, fdb_tool_request: FDBToolRequest):
+    def stats(
+        self, fdb_tool_request: FDBToolRequest
+    ) -> Generator[StatsElement, None, None]:
+        """
+        Prints information about FDB databases, aggregating the
+        information over all the databases visited into a final summary.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the affected data.
+
+        Returns
+        -------
+        Generator[StatsElement, None, None]
+            A generator for `StatsElement`s
+
+        Examples
+        --------
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> stats_iterator = pyfdb.stats(request)
+        >>> for el list(stats_iterator):
+        >>>     print(el)
+
+        ```
+        Index Statistics:
+        Fields                          : 3
+        Size of fields                  : 32,196 (31.4414 Kbytes)
+        Reacheable fields               : 3
+        Reachable size                  : 32,196 (31.4414 Kbytes)
+
+        DB Statistics:
+        Databases                       : 1
+        TOC records                     : 2
+        Size of TOC files               : 2,048 (2 Kbytes)
+        Size of schemas files           : 228 (228 bytes)
+        TOC records                     : 2
+        Owned data files                : 1
+        Size of owned data files        : 32,196 (31.4414 Kbytes)
+        Index files                     : 1
+        Size of index files             : 131,072 (128 Kbytes)
+        Size of TOC files               : 2,048 (2 Kbytes)
+        Total owned size                : 165,544 (161.664 Kbytes)
+        Total size                      : 165,544 (161.664 Kbytes`
+        ```
+        """
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
             try:
@@ -164,7 +601,62 @@ class PyFDB:
         fdb_tool_request: FDBToolRequest,
         control_action: pyfdb_internal.ControlAction,
         control_identifiers: List[pyfdb_internal.ControlIdentifier],
-    ):
+    ) -> Generator[ControlElement, None, None]:
+        """
+        Enables certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the affected data.
+        `control_action` : `ControlAction`
+            Which action should be modified, e.g., ControlAction.RETRIEVE
+        `control_identifier` : `ControlIdentifier`
+            Should an action be enabled or disabled, e.g., ControlIdentifier.ENABLE or ControlIdentifier.DISABLE
+
+        Returns
+        -------
+        Generator[ControlElement, None, None]
+            A generator for `ControlElement`s
+
+        Note
+        ----
+        Disabling of an ControlAction, e.g., ControlAction.RETRIEVE leads to the creation
+        of a `retrieve.lock` in the corresponding FDB database. This is true for all actions.
+        The file is removed after the Action has been disabled.
+
+        Examples
+        --------
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> request = FDBToolRequest(
+        >>>     {
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "time": "1800",
+        >>>     },
+        >>> )
+        >>> control_iterator = pyfdb.control(
+        >>>     request,
+        >>>     ControlAction.DISABLE,
+        >>>     [ControlIdentifier.RETRIEVE],
+        >>> )
+        >>> elements = list(control_iterator)
+        >>> print(elements[0])
+
+
+        ```
+        ControlIdentifiers[2],
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},
+        URI[
+            scheme=toc,
+            name=<location_fdb_database>
+        ]
+        ```
+        """
         iterator = self.FDB.control(
             fdb_tool_request.tool_request, control_action, control_identifiers
         )
@@ -174,11 +666,14 @@ class PyFDB:
             except StopIteration:
                 return
 
+    # TODO(TKR): Document
     def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3):
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
 
+    # TODO(TKR): Document
     def enabled(self, control_identifier: pyfdb_internal.ControlIdentifier) -> bool:
         return self.FDB.enabled(control_identifier)
 
+    # TODO(TKR): Document
     def needs_flush(self):
         return self.FDB.dirty()
