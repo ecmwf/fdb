@@ -16,13 +16,6 @@ def test_status(read_only_fdb_setup):
                 "type": "an",
                 "class": "ea",
                 "domain": "g",
-                # "expver": "0001",
-                # "stream": "oper",
-                # "date": "20200101",
-                # "levtype": "sfc",
-                # "step": "0",
-                # "param": "167/165/166",
-                # "time": "1800",
             },
         )
 
@@ -31,6 +24,7 @@ def test_status(read_only_fdb_setup):
         elements = []
 
         for el in dump_iterator:
+            print(el)
             elements.append(el)
 
         assert len(elements) == 32

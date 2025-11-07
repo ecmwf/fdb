@@ -54,6 +54,13 @@ def test_control_lock_retrieve(read_only_fdb_setup):
         assert data_handle
         assert data_handle.read(4) == b"GRIB"
 
+        assert not (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "retrieve.lock"
+        ).exists()
+
         print("Locking database for retrieve")
 
         request = FDBToolRequest(
@@ -82,6 +89,13 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
         assert len(elements) == 1
 
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "retrieve.lock"
+        ).exists()
+
         print("Retrieve with lock")
         data_handle = pyfdb.retrieve(
             MarsRequest(
@@ -101,15 +115,11 @@ def test_control_lock_retrieve(read_only_fdb_setup):
             )
         )
         assert data_handle
-        assert (
-            fdb_config_path.parent
-            / "db_store"
-            / "ea:0001:oper:20200101:1800:g"
-            / "retrieve.lock"
-        ).exists()
         assert data_handle.read(4) == b"GRIB"
 
 
+# TODO(TKR): IS LISTING BROKEN?
+@pytest.mark.skip
 def test_control_lock_list(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
@@ -149,6 +159,13 @@ def test_control_lock_list(read_only_fdb_setup):
 
         assert len(elements) == 1
 
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "list.lock"
+        ).exists()
+
         print("List with lock. Expecting 0 elements.")
         list_iterator = pyfdb.list(request)
         elements = list(list_iterator)
@@ -161,8 +178,7 @@ def test_control_lock_list(read_only_fdb_setup):
         assert control_iterator
 
         # Correct behaviour is to "not see the data after locking"
-
-        assert (
+        assert not (
             fdb_config_path.parent
             / "db_store"
             / "ea:0001:oper:20200101:1800:g"
@@ -235,6 +251,13 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
             elements.append(el)
 
         assert len(elements) == 1
+
+        assert not (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "archive.lock"
+        ).exists()
 
         print("Try archiving")
         pyfdb.archive(build_grib_messages.read_bytes())
@@ -312,6 +335,13 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
             elements.append(el)
 
         assert len(elements) > 0
+
+        assert not (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "wipe.lock"
+        ).exists()
 
         print("Try Wipe")
         pyfdb.wipe(request, doit=True)

@@ -15,6 +15,9 @@ def test_wipe_dryrun(read_write_fdb_setup):
     wiped_elements = list(wipe_iterator)
     assert len(wiped_elements) > 0
 
+    for el in wiped_elements:
+        print(el)
+
     elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
     assert len(elements) == len(elements_after_wipe)
 

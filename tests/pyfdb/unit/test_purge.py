@@ -54,5 +54,8 @@ def test_purge(empty_fdb_setup, build_grib_messages):
         pyfdb.list(FDBToolRequest(key_values={"class": "ea"}))
     )
 
+    for el in elements_after_second_purge:
+        print(el)
+
     print(f"Elements after second purge: {len(elements_after_second_purge)}")
     assert len(archived_elements) == len(elements_after_second_purge)

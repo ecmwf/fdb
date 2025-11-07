@@ -229,6 +229,61 @@ def test_index_axis_items(read_only_fdb_setup):
 
         assert len(index_axis.items()) == 6
 
+        for k, v in index_axis.items():
+            print(f"k={k} | v={v}")
+
+
+def test_index_axis_items_levels(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        request = FDBToolRequest(
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "param": "167/165/166",
+                "time": "1800",
+            },
+        )
+
+        index_axis: IndexAxis = pyfdb.axes(request)
+
+        assert len(index_axis.items()) == 6
+
+        print("---------- Level 3: ----------")
+
+        for k, v in index_axis.items():
+            print(f"k={k} | v={v}")
+
+        index_axis: IndexAxis = pyfdb.axes(request, level=2)
+
+        assert len(index_axis.items()) == 6
+
+        print("---------- Level 2: ----------")
+
+        for k, v in index_axis.items():
+            print(f"k={k} | v={v}")
+
+        index_axis: IndexAxis = pyfdb.axes(request, level=1)
+
+        assert len(index_axis.items()) == 6
+
+        print("---------- Level 1: ----------")
+
+        for k, v in index_axis.items():
+            print(f"k={k} | v={v}")
+
 
 def test_index_axis_expected_to_fail(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
