@@ -359,8 +359,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
         .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
                            const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
-        .def("archive", [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request,
-                           eckit::DataHandle& data_handle) { return fdb.archive(mars_request, data_handle); })
         .def("flush", &fdb5::FDB::flush)
         .def("read", [](fdb5::FDB& fdb, const eckit::URI& uri) { return fdb.read(uri); })
         .def("read", [](fdb5::FDB& fdb, const std::vector<eckit::URI>& uris,

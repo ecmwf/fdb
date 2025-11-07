@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from pathlib import Path
 from typing import Generator, List
 from pyfdb import (
     URI,
@@ -27,34 +28,46 @@ from pyfdb.pyfdb_iterator import (
     WipeElement,
 )
 
+from pyfdb.pyfdb_type import Key
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 
 class PyFDB:
-    # TODO(TKR): Two configs, system and user config as dicts
-    def __init__(self, config: Config | None = None) -> None:
+    def __init__(
+        self,
+        config: Config | str | dict | Path | None = None,
+        user_config: Config | str | dict | Path | None = None,
+    ) -> None:
         pyfdb_internal.init_bindings()
-        if isinstance(config, Config):
-            self.FDB = pyfdb_internal.FDB(config.raw)
+
+        # Convert to Config if necessary
+        if config is not None and not isinstance(config, Config):
+            config = Config(config)
+
+        # Convert to Config if necessary
+        if user_config is not None and not isinstance(user_config, Config):
+            user_config = Config(user_config)
+
+        if config is not None and user_config is not None:
+            internal_config = pyfdb_internal.Config(config.config_str)
+            internal_user_config = pyfdb_internal.Config(user_config.config_str)
+            self.FDB = pyfdb_internal.FDB(internal_config, internal_user_config)
+        elif config is not None:
+            internal_config = pyfdb_internal.Config(config.config_str, None)
+            self.FDB = pyfdb_internal.FDB(internal_config)
         else:
             self.FDB = pyfdb_internal.FDB()
 
-    def archive(self, bytes: bytes):
-        self.FDB.archive(bytes, len(bytes))
-
-    def archive_key(self, key: str, bytes: bytes):
-        self.FDB.archive(key, bytes, len(bytes))
-
-    def archive_handle(self, mars_request: MarsRequest, data_handle: DataHandle):
-        self.FDB.archive(mars_request.request, data_handle.dataHandle)
-
-    # def reindex(self, key: Key, str], field_location: ):
-    #     self.FDB.reindex(key, field_location)
+    def archive(self, bytes: bytes, key: Key | None = None):
+        if key is None:
+            self.FDB.archive(bytes, len(bytes))
+        else:
+            self.FDB.archive(str(key), bytes, len(bytes))
 
     def flush(self):
         self.FDB.flush()
 
-    def read(self, uri: URI) -> DataHandle:
+    def read(self, uri: URI) -> bytes:
         return self.FDB.read(uri._uri)
 
     def retrieve(self, mars_request: MarsRequest) -> DataHandle:
@@ -78,7 +91,7 @@ class PyFDB:
 
     def inspect(self, mars_request: MarsRequest):
         iterator = self.FDB.inspect(mars_request.request)
-        while True:
+        while iterator is not None:
             try:
                 yield DumpElement._from_raw(next(iterator))
             except StopIteration:
