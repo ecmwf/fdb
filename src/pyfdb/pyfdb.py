@@ -171,3 +171,9 @@ class PyFDB:
 
     def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3):
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
+
+    def enabled(self, control_identifier: pyfdb_internal.ControlIdentifier) -> bool:
+        return self.FDB.enabled(control_identifier)
+
+    def needs_flush(self):
+        return self.FDB.dirty()
