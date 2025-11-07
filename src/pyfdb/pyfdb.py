@@ -85,17 +85,9 @@ class PyFDB:
                 return
 
     def dump(self, fdb_tool_request: FDBToolRequest, simple: bool = False):
-        """TODO(TKR) check why this leads to a fdb5::AsyncIterationCancellation error and wipe doesn't
-
-        Args:
-            fdb_tool_request: [TODO:description]
-            simple: [TODO:description]
-
-        Returns:
-            [TODO:return]
-        """
+        # TODO(TKR): check why this leads to a fdb5::AsyncIterationCancellation error and wipe doesn't
         iterator = self.FDB.dump(fdb_tool_request.tool_request, simple)
-        while True:
+        while iterator is not None:
             try:
                 yield DumpElement._from_raw(next(iterator))
             except StopIteration:
