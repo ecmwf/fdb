@@ -1,12 +1,10 @@
-from _typeshed import Self
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, DefaultDict, Dict, List, Tuple
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 
 type MarsSelection = Dict[str, str]
-type Key = Dict[str, str]
 
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
@@ -104,8 +102,6 @@ class FDBToolRequest:
         return str(self.tool_request)
 
 
-# TODO(TKR): Replace this class with bytesLike object
-# Pending eckit implementation in the python world
 class DataHandle:
     def __init__(self, dataHandle: pyfdb_internal.DataHandle):
         self.dataHandle = dataHandle
@@ -117,15 +113,25 @@ class DataHandle:
 class Config:
     def __init__(self, config: str | dict | Path = "") -> None:
         if isinstance(config, Path):
-            config_str = config.read_text()
-        if isinstance(config, dict):
-            config_str = json.dumps(config)
+            self.config_str = config.read_text()
+        elif isinstance(config, dict):
+            self.config_str = json.dumps(config)
         elif isinstance(config, str):
-            config_str = config
+            self.config_str = config
         else:
             raise RuntimeError("Config: Unkown config type, must be str or dict.")
 
-        self.raw = pyfdb_internal.Config(config_str)
+
+class Key:
+    def __init__(self, key_value_pairs: List[Tuple[str, str]]):
+        self.key_values = DefaultDict(list)
+
+        for k, v in key_value_pairs:
+            self.key_values[k].append(v)
+
+    # TODO(TKR): Think whether this should only accept a single value per key
+    def __str__(self) -> str:
+        return ",".join([f"{k}={'/'.join(v)}" for k, v in self.key_values.items()])
 
 
 class URI:
