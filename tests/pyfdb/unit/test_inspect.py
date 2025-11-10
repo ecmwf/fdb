@@ -28,10 +28,11 @@ def test_inspect(read_only_fdb_setup):
         elements = []
 
         for el in list_iterator:
-            print(el)
+            # print(el)
             elements.append(el)
+            print(el.uri())
 
-        for el in list_iterator:
-            data_handle = el.dataHandle()
+        for el in elements:
+            data_handle = el.data_handle()
             assert data_handle
             assert data_handle.read(4) == b"GRIB"
