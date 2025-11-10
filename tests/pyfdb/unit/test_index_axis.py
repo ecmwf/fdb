@@ -249,17 +249,16 @@ def test_index_axis_items_levels(read_only_fdb_setup):
                 "domain": "g",
                 "expver": "0001",
                 "stream": "oper",
-                "date": "20200101",
+                # "date": "20200101",
                 "levtype": "sfc",
                 "step": "0",
-                "param": "167/165/166",
                 "time": "1800",
             },
         )
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
-        assert len(index_axis.items()) == 6
+        assert len(index_axis.items()) == 11
 
         print("---------- Level 3: ----------")
 
@@ -268,7 +267,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
         index_axis: IndexAxis = pyfdb.axes(request, level=2)
 
-        assert len(index_axis.items()) == 6
+        assert len(index_axis.items()) == 8
 
         print("---------- Level 2: ----------")
 
