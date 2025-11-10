@@ -66,10 +66,6 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
     }
 };
 
-class PyFieldLocation : public fdb5::FieldLocation, public py::trampoline_self_life_support {
-    /* Trampoline (need one for each virtual function) */
-};
-
 PYBIND11_MODULE(pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
@@ -159,14 +155,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::FieldLocation, PyFieldLocation, py::smart_holder>(m, "FieldLocation")
-        .def("dataHandle", &fdb5::FieldLocation::dataHandle)
-        .def("__str__", [](const fdb5::FieldLocation& field_location) {
-            std::stringstream buf;
-            field_location.dump(buf);
-            return buf.str();
-        });
-
     py::class_<fdb5::APIIterator<std::string>>(m, "StringApiIterator")
         .def("__next__", [](fdb5::APIIterator<std::string>& string_api_iterator) -> std::string {
             std::string result{};
@@ -190,7 +178,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return buf.str();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
+    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlElementApiIterator")
         .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
             fdb5::ControlElement result{};
             bool has_next = status_iterator.next(result);
