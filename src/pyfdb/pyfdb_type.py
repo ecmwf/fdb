@@ -28,6 +28,38 @@ type MarsSelection = Dict[str, str]
 
 
 class FDBToolRequest:
+    """
+    FDBToolRequest object.
+
+    Parameters
+    ----------
+    `key_values` : `MarsSelection` | None, *optional*, default: `None`
+        Dictionary of key-value pairs which describe the MARS selection
+    `all` : `bool`, *optional*, default: `False`
+        Should a tool request be interpreted as querying all data? True if so, False otherwise.
+    `minimum_key_set` : `List[str]`, *optional*, default: `None`
+        Define the minimum set of keys that must be specified. This prevents inadvertently exploring the entire FDB.
+
+    Returns
+    -------
+    FDBToolRequest object
+
+    Examples
+    --------
+    >>> request = FDBToolRequest(
+    >>>     {
+    >>>         "class": "ea",
+    >>>         "domain": "g",
+    >>>         "expver": "0001",
+    >>>         "stream": "oper",
+    >>>         "date": "20200101",
+    >>>         "time": "1800",
+    >>>     },
+    >>>     # all = False,
+    >>>     # minimum_key_set = None,
+    >>> )
+    """
+
     def __init__(
         self,
         key_values: MarsSelection | None = None,
@@ -40,7 +72,6 @@ class FDBToolRequest:
         if minimum_key_set is None:
             minimum_key_set = []
 
-        # TODO(TKR): Get rid of this retrieve dummy verb
         mars_request = MarsRequest("retrieve", key_values)
 
         self.tool_request = _internal.FDBToolRequest(
