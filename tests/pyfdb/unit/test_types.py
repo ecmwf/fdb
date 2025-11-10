@@ -8,6 +8,7 @@ from pyfdb.pyfdb_iterator import (
     PurgeElement,
     StatsElement,
     StatusElement,
+    WipeElement,
 )
 
 classes = [
@@ -18,6 +19,7 @@ classes = [
     PurgeElement,
     StatsElement,
     ControlElement,
+    WipeElement,
 ]
 
 
@@ -25,3 +27,14 @@ classes = [
 def test_initialization_raises_error(cls):
     with pytest.raises(NotImplementedError):
         cls()
+
+
+def test_status_element_eq():
+    control_element_1 = StatusElement._from_raw("test")
+    control_element_2 = StatusElement._from_raw("test2")
+    control_element_3 = StatusElement._from_raw("test")
+
+    assert control_element_1 != control_element_2
+    assert control_element_1 == control_element_3
+
+    assert control_element_1 != "test"

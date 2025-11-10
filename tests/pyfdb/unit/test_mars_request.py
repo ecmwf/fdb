@@ -1,3 +1,4 @@
+import pytest
 from pyfdb._internal import MarsRequest
 
 
@@ -15,6 +16,20 @@ def test_mars_request_default():
     mars_request = MarsRequest()
 
     assert mars_request.verb() == "retrieve"
+
+
+def test_mars_request_no_verb_but_key_values():
+    key_values = {"key1": "value1", "key2": "value3"}
+
+    with pytest.raises(RuntimeError):
+        MarsRequest(key_values=key_values)
+
+
+def test_mars_request_key_values_unknown_type():
+    key_values = {"key1": "value1", "key2": "value3", "key3": dict()}
+
+    with pytest.raises(RuntimeError):
+        MarsRequest("retrieve", key_values=key_values)
 
 
 def test_mars_request_verb_key_values():

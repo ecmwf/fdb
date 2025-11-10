@@ -155,7 +155,7 @@ class StatusElement:
         `StatusElement`
             User facing status element
         """
-        result = StatusElement()
+        result = cls.__new__(cls)
         result.element = status_element
         return result
 
