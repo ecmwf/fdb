@@ -18,7 +18,6 @@ from pyfdb import (
 
 from pyfdb.pyfdb_iterator import (
     ControlElement,
-    DumpElement,
     IndexAxis,
     ListElement,
     MoveElement,
@@ -337,8 +336,8 @@ class PyFDB:
         >>>         "domain": "g",
         >>>     },
         >>> )
-        >>> dump_iterator = pyfdb.status(FDBToolRequest.from_mars_request(request))
-        >>> elements = list(dump_iterator)
+        >>> status_iterator = pyfdb.status(FDBToolRequest.from_mars_request(request))
+        >>> elements = list(status_iterator)
         >>> elements[0]
 
         ```
@@ -487,7 +486,7 @@ class PyFDB:
         porcelain: bool = False,
     ) -> Generator[PurgeElement, None, None]:
         """
-        Removes duplicate data from the database.
+        Remove duplicate data from the database.
 
         Purge duplicate entries from the database and remove the associated data if the data is owned and not adopted.
         Data in the FDB5 is immutable. It is masked, but not removed, when overwritten with new data using the same key.
@@ -546,7 +545,7 @@ class PyFDB:
         self, fdb_tool_request: FDBToolRequest
     ) -> Generator[StatsElement, None, None]:
         """
-        Prints information about FDB databases, aggregating the
+        Print information about FDB databases, aggregating the
         information over all the databases visited into a final summary.
 
         Parameters
@@ -603,7 +602,7 @@ class PyFDB:
         control_identifiers: List[pyfdb_internal.ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
         """
-        Enables certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
+        Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
 
         Parameters
         ----------
@@ -666,14 +665,114 @@ class PyFDB:
             except StopIteration:
                 return
 
-    # TODO(TKR): Document
-    def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3):
+    def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3) -> IndexAxis:
+        """
+        Return the 'axes' and their extent of an FDBToolRequest for a given level of the schema in
+        an IndexAxis object.
+
+        If a key isn't specified the entire extent (all values) are returned.
+
+        Parameters
+        ----------
+        `fdb_tool_request` : `FDBToolRequest`
+            An fdb tool request which specifies the affected data. The request can be partial.
+        `level` : `int`
+            Level of the FDB Schema. Only keys of the given level are returned.
+
+        Returns
+        -------
+        IndexAxis
+            A map containing Key-Value pairs of the axes and their extent
+
+        Examples
+        --------
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> request = FDBToolRequest(
+        >>>     {
+        >>>         "type": "an",
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "levtype": "sfc",
+        >>>         "step": "0",
+        >>>         "time": "1800",
+        >>>     },
+        >>> )
+        >>> index_axis: IndexAxis = pyfdb.axes(request) // level == 3
+        >>> for k, v in index_axis.items():
+        >>>     print(f"k={k} \t| v={v}")
+
+        ```
+        k=class    | v=['ea']
+        k=date     | v=['20200101', '20200102', '20200103', '20200104']
+        k=domain   | v=['g']
+        k=expver   | v=['0001']
+        k=levelist | v=['']
+        k=levtype  | v=['sfc']
+        k=param    | v=['131', '132', '167']
+        k=step     | v=['0']
+        k=stream   | v=['oper']
+        k=time     | v=['1800']
+        k=type     | v=['an']
+        ```
+        """
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
 
-    # TODO(TKR): Document
     def enabled(self, control_identifier: pyfdb_internal.ControlIdentifier) -> bool:
+        """
+        Check whether a specific control identifier is enabled
+
+        Parameters
+        ----------
+        `control_identifier` : `ControlIdentifier`
+            A given control identifier
+
+        Returns
+        -------
+        `bool`
+            `True` if the given control identifier is set, `False` otherwise.
+
+        Examples
+        --------
+        >>> fdb_config = yaml.safe_load(fdb_config_path.read_text())
+        >>> fdb_config["writable"] = False
+        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
+        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb.enabled(ControlIdentifier.NONE) // == True
+        >>> pyfdb.enabled(ControlIdentifier.LIST) // == True
+        >>> pyfdb.enabled(ControlIdentifier.RETRIEVE) // == True
+        >>> pyfdb.enabled(ControlIdentifier.ARCHIVE) // == False, default True
+        >>> pyfdb.enabled(ControlIdentifier.WIPE) // == False, default True
+        >>> pyfdb.enabled(ControlIdentifier.UNIQUEROOT) // == True
+
+        """
         return self.FDB.enabled(control_identifier)
 
-    # TODO(TKR): Document
     def needs_flush(self):
+        """
+        Return whether a flush of the FDB is needed.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        `bool`
+            `True` if an archive happened and a flush is needed, `False` otherwise.
+
+
+        Examples
+        --------
+        >>> fdb_config = Config(config_file.read())
+        >>> pyfdb = PyFDB(fdb_config)
+        >>> filename = <test_data_path>
+        >>> pyfdb.archive(open(filename, "rb").read())
+        >>> pyfdb.needs_flush()                         // == True
+        >>> pyfdb.flush()
+        >>> pyfdb.needs_flush()                         // == False
+
+        """
         return self.FDB.dirty()
