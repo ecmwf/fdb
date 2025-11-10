@@ -6,26 +6,76 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from typing import Dict, List
+from typing import List
 
 from pyfdb import URI, DataHandle
+from pyfdb._internal import ListElement as _ListElement
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 
 class ListElement:
+    """Element returned from a listing command"""
+
     def __init__(self) -> None:
         self._element = None
 
     @classmethod
-    def _from_raw(cls, list_element: pyfdb_internal.ListElement):
+    def _from_raw(cls, list_element: _ListElement) -> "ListElement":
+        """
+        Internal method for generating a `ListElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `list_element` : `pyfdb._interal.ListElement`
+            Internal list element
+
+        Returns
+        -------
+        `ListElement`
+            User facing list element
+        """
         result = ListElement()
         result._element = list_element
         return result
 
-    def dataHandle(self):
-        return DataHandle(self._element.location().dataHandle())
+    def data_handle(self) -> DataHandle:
+        """
+        Access the DataHandle
 
-    def uri(self):
+        Returns
+        -------
+        `DataHandle`
+            Data Handle for accessing the data of the list element
+
+        Examples
+        --------
+        >>> data_handle = list_element.dataHandle()
+        >>> data_handle.read(4)
+
+        ```
+        b"GRIB"
+        ```
+        """
+        return DataHandle(self._element.data_handle())
+
+    def uri(self) -> URI:
+        """
+        Access the URI of the list element
+
+        Returns
+        -------
+        `URI`
+            URI of the data
+
+        Examples
+        --------
+        >>> uri = list_element.uri()
+        >>> print(uri)
+
+        ```
+        <path/to/data_file>
+        ```
+        """
         return URI._from_raw(self._element.uri())
 
     def __str__(self) -> str:
@@ -37,7 +87,20 @@ class WipeElement:
         self.element: str | None = None
 
     @classmethod
-    def _from_raw(cls, wipe_element: str):
+    def _from_raw(cls, wipe_element: str) -> "WipeElement":
+        """
+        Internal method for generating a `WipeElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `wipe_element` : `pyfdb._interal.WipeElement`
+            Internal wipe element
+
+        Returns
+        -------
+        `WipeElement`
+            User facing wipe element
+        """
         result = WipeElement()
         result.element = wipe_element
         return result
@@ -48,10 +111,23 @@ class WipeElement:
 
 class StatusElement:
     def __init__(self) -> None:
-        self.element: pyfdb_internal.StatusElement | None = None
+        self.element: pyfdb_internal.ControlElement | None = None
 
     @classmethod
-    def _from_raw(cls, status_element: str):
+    def _from_raw(cls, status_element: str) -> "StatusElement":
+        """
+        Internal method for generating a `StatusElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `status_element` : `pyfdb._interal.StatusElement`
+            Internal status element
+
+        Returns
+        -------
+        `StatusElement`
+            User facing status element
+        """
         result = StatusElement()
         result.element = status_element
         return result
@@ -65,12 +141,28 @@ class MoveElement:
         self.element: pyfdb_internal.FileCopy | None = None
 
     @classmethod
-    def _from_raw(cls, move_element: str):
+    def _from_raw(cls, move_element: str) -> "MoveElement":
+        """
+        Internal method for generating a `MoveElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `move_element` : `pyfdb._interal.MoveElement`
+            Internal move element
+
+        Returns
+        -------
+        `MoveElement`
+            User facing move element
+        """
         result = MoveElement()
         result.element = move_element
         return result
 
     def execute(self):
+        """
+        Method for executing a `MoveElement`. This triggers the move of the associated data.
+        """
         if self.element is not None:
             self.element.execute()
 
@@ -83,7 +175,20 @@ class PurgeElement:
         self.element: str | None = None
 
     @classmethod
-    def _from_raw(cls, purge_element: str):
+    def _from_raw(cls, purge_element: str) -> "PurgeElement":
+        """
+        Internal method for generating a `PurgeElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `purge_element` : `pyfdb._interal.PurgeElement`
+            Internal purge element
+
+        Returns
+        -------
+        `PurgeElement`
+            User facing purge element
+        """
         result = PurgeElement()
         result.element = purge_element
         return result
@@ -97,8 +202,21 @@ class StatsElement:
         self.element: pyfdb_internal.StatsElement | None = None
 
     @classmethod
-    def _from_raw(cls, stats_element: pyfdb_internal.StatsElement):
-        result = StatusElement()
+    def _from_raw(cls, stats_element: pyfdb_internal.StatsElement) -> "StatsElement":
+        """
+        Internal method for generating a `StatsElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `stats_element` : `pyfdb._interal.StatsElement`
+            Internal stats element
+
+        Returns
+        -------
+        `StatsElement`
+            User facing stats element
+        """
+        result = StatsElement()
         result.element = stats_element
         return result
 
@@ -111,7 +229,22 @@ class ControlElement:
         self.element: pyfdb_internal.ControlElement | None = None
 
     @classmethod
-    def _from_raw(cls, control_element: pyfdb_internal.ControlElement):
+    def _from_raw(
+        cls, control_element: pyfdb_internal.ControlElement
+    ) -> "ControlElement":
+        """
+        Internal method for generating a `ControlElement` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `control_element` : `pyfdb._interal.ControlElement`
+            Internal control element
+
+        Returns
+        -------
+        `ControlElement`
+            User facing control element
+        """
         result = ControlElement()
         result.element = control_element
         return result
@@ -121,17 +254,34 @@ class ControlElement:
 
 
 class IndexAxis:
+    """
+    `IndexAxis` class respresenting axes and their extent. The class implements all Dictionary
+    functionalities. Key are the corresponding FDB keys (axes) and values are the values defining the extent
+    of an axis.
+
+    """
+
     def __init__(self) -> None:
         self.index_axis: pyfdb_internal.IndexAxis | None = None
 
     @classmethod
-    def _from_raw(cls, index_axis: pyfdb_internal.IndexAxis):
+    def _from_raw(cls, index_axis: pyfdb_internal.IndexAxis) -> "IndexAxis":
+        """
+        Internal method for generating an `IndexAxis` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `index_axis` : `pyfdb._interal.IndexAxis`
+            Internal IndexAxis element
+
+        Returns
+        -------
+        `IndexAxis`
+            User facing IndexAxis element
+        """
         result = IndexAxis()
         result.index_axis = index_axis
         return result
-
-    def map(self) -> Dict[str, List[str]]:
-        return self.index_axis.map()
 
     def __str__(self) -> str:
         return str(self.index_axis)

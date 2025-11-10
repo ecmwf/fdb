@@ -103,7 +103,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
         index_axis: IndexAxis = pyfdb.axes(request)
 
         assert index_axis
-        assert len(index_axis.map()) == 6
+        assert len(index_axis.keys()) == 6
         assert "class" in index_axis
         assert "domain" in index_axis
         assert "date" in index_axis
