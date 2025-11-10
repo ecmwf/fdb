@@ -111,8 +111,6 @@ def test_control_lock_retrieve(read_only_fdb_setup):
         assert data_handle.read(4) == b"GRIB"
 
 
-# TODO(TKR): IS LISTING BROKEN?
-# @pytest.mark.skip
 def test_control_lock_list(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 

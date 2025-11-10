@@ -67,7 +67,6 @@ class PyFDB:
         Examples
         --------
         >>> pyfdb = pyfdb.PyFDB()
-
         >>> config = pyfdb.Config(
                 dict(
                     type="local",
