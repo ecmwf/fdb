@@ -79,7 +79,15 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                 return fdb5::Config(eckit::YAMLConfiguration(config), eckit::YAMLConfiguration(user_config.value()));
             }
             return fdb5::Config(eckit::YAMLConfiguration(config));
-        }));
+        }))
+        .def("__str__", [](const fdb5::Config& config) {
+            std::stringstream buf;
+            buf << "Configuration: \n";
+            buf << config;
+            buf << "\nUser configuration: \n";
+            buf << config.userConfig();
+            return buf.str();
+        });
 
     py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle")
         .def(py::init())
@@ -188,7 +196,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::FileCopy>(m, "FileCopyElement")
+    py::class_<fdb5::FileCopy>(m, "FileCopy")
         .def(py::init())
         .def("__str__",
              [](fdb5::FileCopy& file_copy_element) {
@@ -362,5 +370,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
              })
         .def("axes", &fdb5::FDB::axes)
         .def("enabled", &fdb5::FDB::enabled)
-        .def("dirty", &fdb5::FDB::dirty);
+        .def("dirty", &fdb5::FDB::dirty)
+        .def(
+            "config", [](const fdb5::FDB& fdb) -> const fdb5::Config& { return fdb.config(); },
+            py::return_value_policy::reference_internal)
+        .def("__str__", [](const fdb5::FDB& fdb) {
+            std::stringstream buf;
+            buf << fdb;
+            return buf.str();
+        });
 }

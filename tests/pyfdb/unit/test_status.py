@@ -16,11 +16,11 @@ def test_status(read_only_fdb_setup):
             "domain": "g",
         }
 
-        dump_iterator = pyfdb.status(FDBToolRequest(selection))
+        status_iterator = pyfdb.status(FDBToolRequest(selection))
 
         elements = []
 
-        for el in dump_iterator:
+        for el in status_iterator:
             print(el)
             elements.append(el)
 

@@ -15,6 +15,7 @@ from pyfdb._internal import (
     StatsElement as _StatsElement,
     ControlElement as _ControlElement,
     IndexAxis as _IndexAxis,
+    FileCopy as _FileCopy,
 )
 
 
@@ -22,7 +23,14 @@ class ListElement:
     """Element returned from a listing command"""
 
     def __init__(self) -> None:
-        self._element = None
+        self._element: _ListElement
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "ListElement":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, list_element: _ListElement) -> "ListElement":
@@ -39,7 +47,7 @@ class ListElement:
         `ListElement`
             User facing list element
         """
-        result = ListElement()
+        result = cls.__new__(cls)
         result._element = list_element
         return result
 
@@ -89,7 +97,14 @@ class ListElement:
 
 class WipeElement:
     def __init__(self) -> None:
-        self.element: str | None = None
+        self.element: str
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "WipeElement":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, wipe_element: str) -> "WipeElement":
@@ -106,7 +121,7 @@ class WipeElement:
         `WipeElement`
             User facing wipe element
         """
-        result = WipeElement()
+        result = cls.__new__(cls)
         result.element = wipe_element
         return result
 
@@ -116,10 +131,17 @@ class WipeElement:
 
 class StatusElement:
     def __init__(self) -> None:
-        self.element: _ControlElement | None = None
+        self.element: _ControlElement
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "StatusElement":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
-    def _from_raw(cls, status_element: str) -> "StatusElement":
+    def _from_raw(cls, status_element: _ControlElement) -> "StatusElement":
         """
         Internal method for generating a `StatusElement` from the PyBind11 exposed element
 
@@ -137,13 +159,26 @@ class StatusElement:
         result.element = status_element
         return result
 
+    def __eq__(self, other: object, /) -> bool:
+        if isinstance(other, StatusElement):
+            return str(self.element) == str(other.element)
+
+        return False
+
     def __str__(self) -> str:
         return str(self.element)
 
 
 class MoveElement:
     def __init__(self) -> None:
-        self.element: pyfdb_internal.FileCopy | None = None
+        self.element: _FileCopy
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "MoveElement":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, move_element: str) -> "MoveElement":
@@ -160,7 +195,7 @@ class MoveElement:
         `MoveElement`
             User facing move element
         """
-        result = MoveElement()
+        result = cls.__new__(cls)
         result.element = move_element
         return result
 
@@ -177,7 +212,10 @@ class MoveElement:
 
 class PurgeElement:
     def __init__(self) -> None:
-        self.element: str | None = None
+        self.element: str
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
 
     @classmethod
     def _from_raw(cls, purge_element: str) -> "PurgeElement":
@@ -194,7 +232,7 @@ class PurgeElement:
         `PurgeElement`
             User facing purge element
         """
-        result = PurgeElement()
+        result = cls.__new__(cls)
         result.element = purge_element
         return result
 
@@ -204,7 +242,14 @@ class PurgeElement:
 
 class StatsElement:
     def __init__(self) -> None:
-        self.element: pyfdb_internal.StatsElement | None = None
+        self.element: _StatsElement
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "StatsElement":
+        bare_instance = object.__new__(StatsElement)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, stats_element: _StatsElement) -> "StatsElement":
@@ -221,7 +266,7 @@ class StatsElement:
         `StatsElement`
             User facing stats element
         """
-        result = StatsElement()
+        result = cls.__new__(cls)
         result.element = stats_element
         return result
 
@@ -231,7 +276,14 @@ class StatsElement:
 
 class ControlElement:
     def __init__(self) -> None:
-        self.element: pyfdb_internal.ControlElement | None = None
+        self.element = _ControlElement
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "ControlElement":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, control_element: _ControlElement) -> "ControlElement":
@@ -248,7 +300,7 @@ class ControlElement:
         `ControlElement`
             User facing control element
         """
-        result = ControlElement()
+        result = cls.__new__(cls)
         result.element = control_element
         return result
 
@@ -265,7 +317,14 @@ class IndexAxis:
     """
 
     def __init__(self) -> None:
-        self.index_axis: _IndexAxis | None = None
+        self.index_axis = _IndexAxis
+        raise NotImplementedError(
+            "Read-only class. Should be construced using the _from_raw method"
+        )
+
+    def __new__(cls) -> "IndexAxis":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
     def _from_raw(cls, index_axis: _IndexAxis) -> "IndexAxis":
@@ -282,7 +341,7 @@ class IndexAxis:
         `IndexAxis`
             User facing IndexAxis element
         """
-        result = IndexAxis()
+        result = cls.__new__(cls)
         result.index_axis = index_axis
         return result
 
@@ -296,10 +355,7 @@ class IndexAxis:
         return self.index_axis[key]
 
     def __len__(self) -> int:
-        if self.index_axis is not None:
-            return len(self.index_axis)
-        else:
-            return 0
+        return len(self.index_axis)
 
     def __delitem__(self, key):
         raise AttributeError("IndexAxis class is read only.")
@@ -311,11 +367,9 @@ class IndexAxis:
         raise RuntimeError("IndexAxis is non-copyable.")
 
     def has_key(self, k) -> bool:
-        return k in self.__dict__
+        return k in self.index_axis
 
     def keys(self) -> List[str]:
-        if self.index_axis is None:
-            return []
         return self.index_axis.keys()
 
     def values(self):

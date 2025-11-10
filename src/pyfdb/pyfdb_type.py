@@ -63,7 +63,7 @@ class Config:
         elif isinstance(config, str):
             self.config_str = config
         else:
-            raise RuntimeError("Config: Unkown config type, must be str or dict.")
+            raise RuntimeError("Config: Unknown config type, must be str or dict.")
 
 
 class Key:

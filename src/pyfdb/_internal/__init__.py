@@ -24,6 +24,7 @@ from pyfdb_bindings.pyfdb_bindings import (
     StatsElement,
     ControlElement,
     IndexAxis,
+    FileCopy,
 )
 
 from pyfdb_bindings import pyfdb_bindings as bindings
@@ -43,4 +44,5 @@ __all__ = [
     StatsElement,
     ControlElement,
     IndexAxis,
+    FileCopy,
 ]
