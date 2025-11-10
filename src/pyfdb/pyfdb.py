@@ -8,14 +8,14 @@
 
 from pathlib import Path
 from typing import Generator, List
+
+import pyfdb._internal as _interal
 from pyfdb import (
     URI,
     Config,
     DataHandle,
     FDBToolRequest,
-    MarsRequest,
 )
-
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -26,9 +26,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-
-from pyfdb.pyfdb_type import Key
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
+from pyfdb.pyfdb_type import Key, MarsSelection
 
 
 class PyFDB:
@@ -87,7 +85,7 @@ class PyFDB:
         >>> pyfdb.PyFDB(config)
         """
 
-        pyfdb_internal.init_bindings()
+        _interal.init_bindings()
 
         # Convert to Config if necessary
         if config is not None and not isinstance(config, Config):
@@ -98,14 +96,14 @@ class PyFDB:
             user_config = Config(user_config)
 
         if config is not None and user_config is not None:
-            internal_config = pyfdb_internal.Config(config.config_str)
-            internal_user_config = pyfdb_internal.Config(user_config.config_str)
-            self.FDB = pyfdb_internal.FDB(internal_config, internal_user_config)
+            internal_config = _interal.Config(config.config_str)
+            internal_user_config = _interal.Config(user_config.config_str)
+            self.FDB = _interal.FDB(internal_config, internal_user_config)
         elif config is not None:
-            internal_config = pyfdb_internal.Config(config.config_str, None)
-            self.FDB = pyfdb_internal.FDB(internal_config)
+            internal_config = _interal.Config(config.config_str, None)
+            self.FDB = _interal.FDB(internal_config)
         else:
-            self.FDB = pyfdb_internal.FDB()
+            self.FDB = _interal.FDB()
 
     def archive(self, bytes: bytes, key: Key | None = None):
         """
@@ -155,14 +153,14 @@ class PyFDB:
         """
         self.FDB.flush()
 
-    def retrieve(self, mars_request: MarsRequest) -> DataHandle:
+    def retrieve(self, mars_selection: MarsSelection) -> DataHandle:
         """
-        Retrieve data which is specified by a MARS request.
+        Retrieve data which is specified by a MARS selection.
 
         Parameters
         ----------
-        `mars_request`
-            MARS request which describes the data which should be retrieved
+        `mars_selection`
+            MARS selection which describes the data which should be retrieved
 
         Returns
         -------
@@ -171,10 +169,11 @@ class PyFDB:
 
         Examples
         --------
-        >>> mars_request = MarsRequest("retrieve", {"key-1": "value-1", ...})
-        >>> data_handle = pyfdb.retrieve(mars_request)
+        >>> mars_selection = {"key-1": "value-1", ...}
+        >>> data_handle = pyfdb.retrieve(mars_selection)
         >>> data_handle.read(4) // == b'GRIB'
         """
+        mars_request = _interal.MarsRequest.from_selection(mars_selection)
         return DataHandle(self.FDB.retrieve(mars_request.request))
 
     def list(
@@ -250,27 +249,27 @@ class PyFDB:
             except StopIteration:
                 return
 
-    def inspect(self, mars_request: MarsRequest) -> Generator[ListElement, None, None]:
+    def inspect(
+        self, mars_selection: MarsSelection
+    ) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
-        describing which databases/fields were part of the MARS request.
+        describing which databases/fields were part of the MARS selection.
 
         Parameters
         ----------
-        `mars_request` : `MarsRequest`
-            An MARS request for which the inspect should be executed
+        `mars_selection` : `MarsSelection`
+            An MARS selection for which the inspect should be executed
 
         Returns
         -------
         Generator[ListElement, None, None]
-            A generator for `ListElement`s describing FDB entries containing data of the MARS request
+            A generator for `ListElement`s describing FDB entries containing data of the MARS selection
 
 
         Examples
         --------
-        >>> request = MarsRequest(
-        >>>     "retrieve",
-        >>>     {
+        >>> selection = {
         >>>         "type": "an",
         >>>         "class": "ea",
         >>>         "domain": "g",
@@ -281,9 +280,8 @@ class PyFDB:
         >>>         "step": "0",
         >>>         "param": "167/165/166",
         >>>         "time": "1800",
-        >>>     },
-        >>> )
-        >>> list_iterator = pyfdb.inspect(request)
+        >>>     }
+        >>> list_iterator = pyfdb.inspect(selection)
         >>> elements = list(list_iterator) // single element in iterator
         >>> elements[0]
 
@@ -301,7 +299,9 @@ class PyFDB:
         timestamp=1762537447
         ```
         """
+        mars_request = _interal.MarsRequest.from_selection(mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
+
         while iterator is not None:
             try:
                 yield ListElement._from_raw(next(iterator))
@@ -598,8 +598,8 @@ class PyFDB:
     def control(
         self,
         fdb_tool_request: FDBToolRequest,
-        control_action: pyfdb_internal.ControlAction,
-        control_identifiers: List[pyfdb_internal.ControlIdentifier],
+        control_action: _interal.ControlAction,
+        control_identifiers: List[_interal.ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
         """
         Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
@@ -720,7 +720,7 @@ class PyFDB:
         """
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
 
-    def enabled(self, control_identifier: pyfdb_internal.ControlIdentifier) -> bool:
+    def enabled(self, control_identifier: _interal.ControlIdentifier) -> bool:
         """
         Check whether a specific control identifier is enabled
 

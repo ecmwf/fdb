@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="pyfdb",
     version="@fdb5_VERSION_STR@",
-    packages=["pyfdb", "pyfdb_bindings"],
+    packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
     package_data={
         "pyfdb_bindings": ["*.so", "*.pyd"],
     },

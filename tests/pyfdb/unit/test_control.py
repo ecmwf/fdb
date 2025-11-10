@@ -3,7 +3,6 @@ import yaml
 from pyfdb import Config
 from pyfdb import PyFDB
 from pyfdb import FDBToolRequest
-from pyfdb.pyfdb_type import MarsRequest
 from pyfdb_bindings.pyfdb_bindings import ControlAction, ControlIdentifier
 
 import pytest
@@ -35,21 +34,18 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
         print("Retrieve without lock")
         data_handle = pyfdb.retrieve(
-            MarsRequest(
-                "retrieve",
-                {
-                    "type": "an",
-                    "class": "ea",
-                    "domain": "g",
-                    "expver": "0001",
-                    "stream": "oper",
-                    "date": "20200101",
-                    "levtype": "sfc",
-                    "step": "0",
-                    "param": "167/165/166",
-                    "time": "1800",
-                },
-            )
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "param": "167/165/166",
+                "time": "1800",
+            }
         )
         assert data_handle
         assert data_handle.read(4) == b"GRIB"
@@ -98,21 +94,18 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
         print("Retrieve with lock")
         data_handle = pyfdb.retrieve(
-            MarsRequest(
-                "retrieve",
-                {
-                    "type": "an",
-                    "class": "ea",
-                    "domain": "g",
-                    "expver": "0001",
-                    "stream": "oper",
-                    "date": "20200101",
-                    "levtype": "sfc",
-                    "step": "0",
-                    "param": "167/165/166",
-                    "time": "1800",
-                },
-            )
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "param": "167/165/166",
+                "time": "1800",
+            },
         )
         assert data_handle
         assert data_handle.read(4) == b"GRIB"

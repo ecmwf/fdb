@@ -1,6 +1,8 @@
 from pathlib import Path
+
 import yaml
-from pyfdb.pyfdb import URI, Config, FDBToolRequest, MarsRequest, PyFDB
+
+from pyfdb.pyfdb import URI, Config, FDBToolRequest, PyFDB
 
 
 def add_new_root(fdb_config_path: Path, new_root: Path) -> str:
@@ -27,27 +29,24 @@ def test_move(read_only_fdb_setup):
 
     print(updated_config)
 
-    with fdb_config_path.open("r") as config_file:
+    with fdb_config_path.open("r"):
         fdb_config = Config(updated_config)
         pyfdb = PyFDB(fdb_config)
 
         # Request for the second level of the schema
-        request = MarsRequest(
-            "retrieve",
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        selection = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         print(str(new_root))
 
         move_iterator = pyfdb.move(
-            FDBToolRequest.from_mars_request(request),
+            FDBToolRequest(selection),
             URI.from_str(str(new_root)),
         )
 
