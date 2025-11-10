@@ -69,7 +69,7 @@ class ListElement:
         b"GRIB"
         ```
         """
-        return DataHandle(self._element.data_handle())
+        return DataHandle._from_raw(self._element.data_handle())
 
     def uri(self) -> URI:
         """
