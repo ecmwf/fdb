@@ -1,6 +1,6 @@
 import pytest
 from pyfdb import PyFDB
-from pyfdb.pyfdb import Config, FDBToolRequest, MarsRequest
+from pyfdb.pyfdb import Config, FDBToolRequest
 
 
 STATIC_DICTIONARY = {
@@ -19,12 +19,11 @@ STATIC_DICTIONARY = {
 
 
 def assert_one_field(pyfdb: PyFDB):
-    mars_request = MarsRequest("retrieve", STATIC_DICTIONARY)
-    data_handle = pyfdb.retrieve(mars_request)
+    data_handle = pyfdb.retrieve(STATIC_DICTIONARY)
 
     assert data_handle
 
-    request = FDBToolRequest.from_mars_request(mars_request, all=False)
+    request = FDBToolRequest(STATIC_DICTIONARY, all=False)
     list_iterator = pyfdb.list(request)
 
     elements = []

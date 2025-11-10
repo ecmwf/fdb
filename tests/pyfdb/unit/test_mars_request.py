@@ -1,9 +1,15 @@
-from pyfdb.pyfdb import MarsRequest
+from pyfdb._internal import MarsRequest
 
 
-def test_initialization_metkit_request_verb():
+def test_initialization_mars_request_verb():
     request = MarsRequest("verb")
     assert request.verb() == "verb"
+
+
+def test_initialization_mars_request_default():
+    mars_request = MarsRequest()
+
+    assert mars_request.verb() == "retrieve"
 
 
 def test_initialization_metkit_request_verb_key_values():

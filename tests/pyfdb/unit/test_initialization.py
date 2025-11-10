@@ -1,5 +1,5 @@
 from pyfdb import PyFDB, Config
-from pyfdb.pyfdb import MarsRequest
+from pyfdb._internal import MarsRequest
 
 
 def test_initialization():

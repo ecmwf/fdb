@@ -70,6 +70,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
     file(GLOB_RECURSE
         _pyfdb_package_files
         "pyfdb/*.py"
+        "pyfdb/_internal/*.py"
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp
