@@ -5,7 +5,8 @@ from pyfdb.pyfdb_type import Config, FDBToolRequest
 
 
 def test_index_axis_initialization():
-    assert IndexAxis() is not None
+    with pytest.raises(NotImplementedError):
+        index_axis = IndexAxis()
 
 
 def test_index_axis_string(read_only_fdb_setup):
@@ -264,6 +265,9 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
         for k, v in index_axis.items():
             print(f"k={k} | v={v}")
+
+        for k, v in index_axis.items():
+            assert index_axis.has_key(k)
 
         index_axis: IndexAxis = pyfdb.axes(request, level=2)
 
