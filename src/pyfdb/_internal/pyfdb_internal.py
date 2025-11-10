@@ -40,12 +40,6 @@ class MarsRequest:
             )
 
     @classmethod
-    def _from_raw(cls, raw_mars_request: pyfdb_internal.MarsRequest):
-        result = MarsRequest()
-        result.request = raw_mars_request
-        return result
-
-    @classmethod
     def from_selection(cls, mars_selection: MarsSelection):
         result = MarsRequest()
         result.request = pyfdb_internal.MarsRequest("retrieve", mars_selection)
