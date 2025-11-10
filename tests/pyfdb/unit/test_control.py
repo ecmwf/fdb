@@ -112,7 +112,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
 
 # TODO(TKR): IS LISTING BROKEN?
-@pytest.mark.skip
+# @pytest.mark.skip
 def test_control_lock_list(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
@@ -170,6 +170,9 @@ def test_control_lock_list(read_only_fdb_setup):
         )
         assert control_iterator
 
+        elements = list(control_iterator)
+        assert len(elements) > 0
+
         # Correct behaviour is to "not see the data after locking"
         assert not (
             fdb_config_path.parent
@@ -180,7 +183,7 @@ def test_control_lock_list(read_only_fdb_setup):
 
         list_iterator = pyfdb.list(request)
         elements = list(list_iterator)
-        assert len(elements) == 0
+        assert len(elements) == 3
 
 
 def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
