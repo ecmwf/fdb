@@ -156,6 +156,7 @@ void Barrier::init() {
 
     if (nodes_.size() == 1) {
         ASSERT(hostname_ == nodes_[0]);
+        init_ = true;
         return;
     }
 
