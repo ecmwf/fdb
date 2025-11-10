@@ -25,6 +25,7 @@ def test_list(read_only_fdb_setup):
                 "time": "1800",
             },
         )
+        print(f"Stringified tool request:\n  {request}")
 
         list_iterator = pyfdb.list(request, level=1)
         assert list_iterator
