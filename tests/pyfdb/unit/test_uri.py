@@ -42,6 +42,29 @@ def test_uri_initialization_string():
     print(uri)
 
 
+def test_uri_initialization_raw_string():
+    uri = URI.from_str(
+        "scheme+demo://user:pa%3Ass@[2001:db8:85a3::8a2e:370:7334]:8443/a/b;c=1;d=two/e;f=3?q=search%20terms&sort=asc&flag&list=a,b,c#section-2"
+    )
+
+    assert uri.scheme() == "unix"
+
+    assert (
+        uri.name()
+        == "scheme+demo://user:pa%3Ass@[2001:db8:85a3::8a2e:370:7334]:8443/a/b;c=1;d=two/e;f=3?q=search%20terms&sort=asc&flag&list=a,b,c#section-2"
+    )
+    assert uri.user() == ""
+    assert uri.host() == ""
+    assert uri.port() == -1
+    assert (
+        uri.path()
+        == "scheme+demo:/user:pa%3Ass@[2001:db8:85a3::8a2e:370:7334]:8443/a/b;c=1;d=two/e;f=3?q=search%20terms&sort=asc&flag&list=a,b,c#section-2"
+    )
+    assert uri.fragment() == ""
+
+    print(uri.rawStr())
+
+
 def test_uri_initialization_path():
     uri = URI.from_scheme_path(scheme="file", path=Path("/test"))
 
