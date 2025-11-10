@@ -22,7 +22,11 @@ def test_purge(empty_fdb_setup, build_grib_messages):
     print(f"Elements after archive: {len(archived_elements)}")
 
     purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
-    purged_output = list(purge_iterator)
+    purged_output = []
+
+    for el in purge_iterator:
+        print(el)
+        purged_output.append(el)
 
     assert len(purged_output) > 0
 
