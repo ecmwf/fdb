@@ -172,7 +172,7 @@ class PyFDB:
         >>> data_handle.read(4) // == b'GRIB'
         """
         mars_request = _interal.MarsRequest.from_selection(mars_selection)
-        return DataHandle(self.FDB.retrieve(mars_request.request))
+        return DataHandle._from_raw(self.FDB.retrieve(mars_request.request))
 
     def list(
         self,

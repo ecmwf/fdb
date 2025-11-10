@@ -10,6 +10,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
+from pyfdb.pyfdb_type import URI, DataHandle
 
 classes = [
     IndexAxis,
@@ -20,6 +21,8 @@ classes = [
     StatsElement,
     ControlElement,
     WipeElement,
+    URI,
+    DataHandle,
 ]
 
 
