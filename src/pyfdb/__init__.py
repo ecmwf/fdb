@@ -19,7 +19,6 @@ from .pyfdb_iterator import (
     ListElement,
     WipeElement,
     StatusElement,
-    DumpElement,
     MoveElement,
 )
 
@@ -33,6 +32,5 @@ __all__ = [
     ListElement,
     WipeElement,
     StatusElement,
-    DumpElement,
     MoveElement,
 ]
