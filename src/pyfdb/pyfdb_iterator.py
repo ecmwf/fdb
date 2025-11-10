@@ -40,20 +40,6 @@ class WipeElement:
         return str(self.element)
 
 
-class DumpElement:
-    def __init__(self) -> None:
-        self.element: str | None = None
-
-    @classmethod
-    def _from_raw(cls, dump_element: str):
-        result = DumpElement()
-        result.element = dump_element
-        return result
-
-    def __str__(self) -> str:
-        return str(self.element)
-
-
 class StatusElement:
     def __init__(self) -> None:
         self.element: pyfdb_internal.StatusElement | None = None
