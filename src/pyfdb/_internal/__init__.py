@@ -8,30 +8,29 @@
 
 # libfdb5.so and dependencies have to be loaded prior to importing
 # pyfdb
-import findlibs
 
-findlibs.load("fdb5")
+from .pyfdb_internal import MarsRequest, _flatten_values
 
-from .pyfdb_type import URI, FDBToolRequest, Config, DataHandle
-from .pyfdb import PyFDB
-
-from ._internal import MarsRequest
-
-from .pyfdb_iterator import (
-    ListElement,
-    WipeElement,
-    StatusElement,
-    MoveElement,
+from pyfdb_bindings.pyfdb_bindings import (
+    init_bindings,
+    DataHandle,
+    URI,
+    Config,
+    FDB,
+    FDBToolRequest,
+    ControlAction,
+    ControlIdentifier,
 )
 
 __all__ = [
-    PyFDB,
+    MarsRequest,
+    init_bindings,
+    DataHandle,
+    _flatten_values,
+    URI,
+    FDB,
     Config,
     FDBToolRequest,
-    URI,
-    DataHandle,
-    ListElement,
-    WipeElement,
-    StatusElement,
-    MoveElement,
+    ControlAction,
+    ControlIdentifier,
 ]

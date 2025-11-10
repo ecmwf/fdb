@@ -1,4 +1,4 @@
-from pyfdb.pyfdb import Config, FDBToolRequest, MarsRequest, PyFDB
+from pyfdb.pyfdb import Config, FDBToolRequest, PyFDB
 
 
 def test_status(read_only_fdb_setup):
@@ -10,16 +10,13 @@ def test_status(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = MarsRequest(
-            "retrieve",
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-            },
-        )
+        selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+        }
 
-        dump_iterator = pyfdb.status(FDBToolRequest.from_mars_request(request))
+        dump_iterator = pyfdb.status(FDBToolRequest(selection))
 
         elements = []
 

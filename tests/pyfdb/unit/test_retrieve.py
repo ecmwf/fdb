@@ -1,5 +1,4 @@
 from pyfdb import Config, PyFDB
-from pyfdb.pyfdb import MarsRequest
 
 
 def test_retrieve(read_only_fdb_setup):
@@ -11,21 +10,18 @@ def test_retrieve(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = MarsRequest(
-            "retrieve",
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         data_handle = pyfdb.retrieve(request)
 

@@ -88,6 +88,7 @@ public:  // methods
     /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
     /// @param handle eckit::message::Message to data to archive
+    /// NOT
     void archive(eckit::message::Message msg);
 
     /// Archives a stream of one or more messages.
@@ -95,6 +96,7 @@ public:  // methods
     /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param handle eckit::DataHandle reference data to archive
+    /// NOT
     void archive(eckit::DataHandle& handle);
 
     /// Archive binary data to a FDB.
@@ -112,6 +114,7 @@ public:  // methods
     /// @param handle a data handle pointing to the data
     /// @throws eckit::UserError if there are more keys in the MarsRequest then in the messages.
     /// @throws eckit::UserError if message key not present in MarsRequest.
+    /// NOT
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
     /// Archive a binary blob into FDB.
@@ -129,6 +132,7 @@ public:  // methods
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.
     /// @param location Location of existing data in an FDB store.
+    /// NOT
     void reindex(const Key& key, const FieldLocation& location);
 
     /// Flush all buffers and closes all data handles into a consistent DB state
@@ -140,6 +144,7 @@ public:  // methods
     /// Read binary data from an URI.
     /// @param uri eckit uri to the data source
     /// @return DataHandle for reading the requested data from
+    /// NOT
     eckit::DataHandle* read(const eckit::URI& uri);
 
     /// Read binary data from an list of URI.
@@ -147,6 +152,7 @@ public:  // methods
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data
+    /// NOT
     eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false);
 
     /// Read binary from a ListIterator.
@@ -154,6 +160,7 @@ public:  // methods
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
+    /// NOT
     eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false);
 
     /// Retrieve data which is specified by a MARS request.
@@ -184,6 +191,7 @@ public:  // methods
     /// @param request
     /// @param simple
     /// @return DumpIterator for iterating over the set of found items
+    /// NOT
     DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
     // TODO(kkratz): Provide doc!
@@ -248,6 +256,7 @@ public:  // methods
     /// @param request FDB tool request
     /// @param level maximum level the axis visitor should respect
     /// @return AxisIterator
+    /// NOT
     AxesIterator axesIterator(const FDBToolRequest& request, int level = 3);
 
     /// Check whether a specific control identifier is enabled
@@ -261,19 +270,23 @@ public:  // methods
 
     /// Register an archive callback.
     /// @param callback an archive callback which should be triggered during archive
+    /// NOT
     void registerArchiveCallback(ArchiveCallback callback);
 
     /// Register a flush callback.
     /// @param callback an flush callback which should be triggered during flushing
+    /// NOT
     void registerFlushCallback(FlushCallback callback);
 
     // -------------- API management -----------------------------------------------------------------------------------
 
     /// Returns the coniguration serialised into a string.
     /// @return config as string.
+    /// NOT
     const std::string id() const;
 
     // TODO(kkratz): Provide doc!
+    /// NOT
     FDBStats stats() const;
 
     /// Type of FDB, local or remote
