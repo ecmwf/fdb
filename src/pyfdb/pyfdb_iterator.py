@@ -9,8 +9,13 @@
 from typing import List
 
 from pyfdb import URI, DataHandle
-from pyfdb._internal import ListElement as _ListElement
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
+
+from pyfdb._internal import (
+    ListElement as _ListElement,
+    StatsElement as _StatsElement,
+    ControlElement as _ControlElement,
+    IndexAxis as _IndexAxis,
+)
 
 
 class ListElement:
@@ -111,7 +116,7 @@ class WipeElement:
 
 class StatusElement:
     def __init__(self) -> None:
-        self.element: pyfdb_internal.ControlElement | None = None
+        self.element: _ControlElement | None = None
 
     @classmethod
     def _from_raw(cls, status_element: str) -> "StatusElement":
@@ -202,7 +207,7 @@ class StatsElement:
         self.element: pyfdb_internal.StatsElement | None = None
 
     @classmethod
-    def _from_raw(cls, stats_element: pyfdb_internal.StatsElement) -> "StatsElement":
+    def _from_raw(cls, stats_element: _StatsElement) -> "StatsElement":
         """
         Internal method for generating a `StatsElement` from the PyBind11 exposed element
 
@@ -229,9 +234,7 @@ class ControlElement:
         self.element: pyfdb_internal.ControlElement | None = None
 
     @classmethod
-    def _from_raw(
-        cls, control_element: pyfdb_internal.ControlElement
-    ) -> "ControlElement":
+    def _from_raw(cls, control_element: _ControlElement) -> "ControlElement":
         """
         Internal method for generating a `ControlElement` from the PyBind11 exposed element
 
@@ -262,10 +265,10 @@ class IndexAxis:
     """
 
     def __init__(self) -> None:
-        self.index_axis: pyfdb_internal.IndexAxis | None = None
+        self.index_axis: _IndexAxis | None = None
 
     @classmethod
-    def _from_raw(cls, index_axis: pyfdb_internal.IndexAxis) -> "IndexAxis":
+    def _from_raw(cls, index_axis: _IndexAxis) -> "IndexAxis":
         """
         Internal method for generating an `IndexAxis` from the PyBind11 exposed element
 
