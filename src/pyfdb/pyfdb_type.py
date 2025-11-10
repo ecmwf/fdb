@@ -42,9 +42,6 @@ class FDBToolRequest:
             mars_request.request, all, minimum_key_set
         )
 
-    def mars_request(self) -> MarsRequest:
-        return MarsRequest._from_raw(self.tool_request.mars_request())
-
     def __str__(self) -> str:
         return str(self.tool_request)
 
