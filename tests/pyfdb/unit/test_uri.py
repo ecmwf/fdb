@@ -1,15 +1,6 @@
 from pathlib import Path
 
-import pytest
-
 from pyfdb.pyfdb import URI
-
-
-def test_uri_initialization():
-    uri = URI()
-
-    with pytest.raises(RuntimeError):
-        print(uri)
 
 
 def test_uri_initialization_string_unkown_scheme():

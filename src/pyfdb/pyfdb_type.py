@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import DefaultDict, Dict, List, Tuple
 
 import pyfdb._internal as _internal
-from pyfdb._internal import URI, MarsRequest, _flatten_values
+from pyfdb._internal import (
+    _URI,
+    MarsRequest,
+    _flatten_values,
+    _DataHandle,
+)
 
 """
 Selection part of a MARS request.
@@ -47,8 +52,32 @@ class FDBToolRequest:
 
 
 class DataHandle:
-    def __init__(self, dataHandle: _internal.DataHandle):
-        self.dataHandle = dataHandle
+    def __init__(self):
+        self.dataHandle: _DataHandle
+        raise NotImplementedError
+
+    def __new__(cls) -> "DataHandle":
+        bare_instance = object.__new__(cls)
+        return bare_instance
+
+    @classmethod
+    def _from_raw(cls, data_handle: _DataHandle) -> "DataHandle":
+        """
+        Internal method for generating a `DataHandle` from the PyBind11 exposed element
+
+        Parameters
+        ----------
+        `data_handle` : `pyfdb._interal.DataHandle`
+            Internal data handle
+
+        Returns
+        -------
+        `DataHandle`
+            User facing data handle
+        """
+        result = cls.__new__(cls)
+        result.dataHandle = data_handle
+        return result
 
     def read(self, len: int) -> bytes:
         return self.dataHandle.read(len)
@@ -73,7 +102,6 @@ class Key:
         for k, v in key_value_pairs:
             self.key_values[k].append(v)
 
-    # TODO(TKR): Think whether this should only accept a single value per key
     def __str__(self) -> str:
         return ",".join([f"{k}={'/'.join(v)}" for k, v in self.key_values.items()])
 
@@ -103,42 +131,60 @@ class ControlAction(IntFlag):
 
 class URI:
     def __init__(self):
-        self._uri: _internal.URI = _internal.URI()
+        self._uri: _URI
+        raise NotImplementedError
+
+    def __new__(cls) -> "URI":
+        bare_instance = object.__new__(cls)
+        return bare_instance
 
     @classmethod
-    def from_str(cls, uri: str):
-        result = URI()
-        result._uri = _internal.URI(uri)
-        return result
+    def _from_raw(cls, uri: _URI) -> "URI":
+        """
+        Internal method for generating a `URI` from the PyBind11 exposed element
 
-    @classmethod
-    def _from_raw(cls, uri: _internal.URI):
-        result = URI()
+        Parameters
+        ----------
+        `uri` : `pyfdb._interal.URI`
+            Internal URI object
+
+        Returns
+        -------
+        `URI`
+            User facing URI
+        """
+        result = cls.__new__(cls)
         result._uri = uri
         return result
 
     @classmethod
+    def from_str(cls, uri: str):
+        result = cls.__new__(cls)
+        result._uri = _URI(uri)
+        return result
+
+    @classmethod
     def from_scheme_path(cls, scheme: str, path: Path):
-        result = URI()
-        result._uri = _internal.URI(scheme, path.resolve().as_posix())
+        result = cls.__new__(cls)
+        result._uri = _URI(scheme, path.resolve().as_posix())
         return result
 
     @classmethod
     def from_scheme_uri(cls, scheme: str, uri: "URI"):
-        result = URI()
-        result._uri = _internal.URI(scheme, uri._uri)
+        result = cls.__new__(cls)
+        result._uri = _URI(scheme, uri._uri)
         return result
 
     @classmethod
     def from_scheme_host_port(cls, scheme: str, host: str, port: int):
-        result = URI()
-        result._uri = _internal.URI(scheme, host, port)
+        result = cls.__new__(cls)
+        result._uri = _URI(scheme, host, port)
         return result
 
     @classmethod
     def from_scheme_uri_host_port(cls, scheme: str, uri: "URI", host: str, port: int):
-        result = URI()
-        result._uri = _internal.URI(scheme, uri._uri, host, port)
+        result = cls.__new__(cls)
+        result._uri = _URI(scheme, uri._uri, host, port)
         return result
 
     def name(self) -> str:

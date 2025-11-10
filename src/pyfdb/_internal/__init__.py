@@ -9,12 +9,12 @@
 # libfdb5.so and dependencies have to be loaded prior to importing
 # pyfdb
 
-from .pyfdb_internal import MarsRequest, _flatten_values
+from .pyfdb_internal import MarsRequest as MarsRequest, _flatten_values
 
 from pyfdb_bindings.pyfdb_bindings import (
     init_bindings,
-    DataHandle,
-    URI,
+    DataHandle as _DataHandle,
+    URI as _URI,
     Config,
     FDB,
     FDBToolRequest,
@@ -32,9 +32,9 @@ from pyfdb_bindings import pyfdb_bindings as bindings
 __all__ = [
     MarsRequest,
     init_bindings,
-    DataHandle,
+    _DataHandle,
     _flatten_values,
-    URI,
+    _URI,
     FDB,
     Config,
     FDBToolRequest,
