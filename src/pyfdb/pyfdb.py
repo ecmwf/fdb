@@ -624,6 +624,9 @@ class PyFDB:
         of a `retrieve.lock` in the corresponding FDB database. This is true for all actions.
         The file is removed after the Action has been disabled.
 
+        **It's important to consume the iterator, otherwise the lock file isn't deleted which
+        can cause unexpected behavior.**
+
         Examples
         --------
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
