@@ -21,11 +21,12 @@ from pyfdb_bindings.pyfdb_bindings import (
     ControlAction,
     ControlIdentifier,
     ListElement,
+    StatsElement,
+    ControlElement,
+    IndexAxis,
 )
 
 from pyfdb_bindings import pyfdb_bindings as bindings
-
-print(dir(bindings))
 
 __all__ = [
     MarsRequest,
@@ -39,4 +40,7 @@ __all__ = [
     ControlAction,
     ControlIdentifier,
     ListElement,
+    StatsElement,
+    ControlElement,
+    IndexAxis,
 ]
