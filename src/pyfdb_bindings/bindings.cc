@@ -137,8 +137,8 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         }))
         .def("uri", [](const fdb5::ListElement& list_element) { return list_element.uri(); })
         .def(
-            "location", [](const fdb5::ListElement& list_element) -> auto& { return list_element.location(); },
-            py::return_value_policy::reference)
+            "data_handle", [](const fdb5::ListElement& list_element) { return list_element.location().dataHandle(); },
+            py::return_value_policy::reference_internal)
         .def("__str__", [](const fdb5::ListElement& list_element) {
             std::stringstream buf;
             list_element.print(buf, true, true, true, ",");
@@ -178,7 +178,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return buf.str();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlElementApiIterator")
+    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
         .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
             fdb5::ControlElement result{};
             bool has_next = status_iterator.next(result);
@@ -303,17 +303,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
                  return true;
              })
-        .def("__len__", [](const fdb5::IndexAxis& index_axis) { return index_axis.map().size(); })
-        .def("map", [](const fdb5::IndexAxis& index_axis) {
-            const auto& map = index_axis.map();
-            std::map<std::string, std::vector<std::string>> result{};
-
-            for (const auto& [key, value] : map) {
-                std::vector<std::string> mapped_values(value.begin(), value.end());
-                result.emplace(key, mapped_values);
-            }
-            return result;
-        });
+        .def("__len__", [](const fdb5::IndexAxis& index_axis) { return index_axis.map().size(); });
 
 
     py::class_<eckit::URI>(m, "URI")
