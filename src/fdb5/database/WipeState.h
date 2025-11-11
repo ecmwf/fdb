@@ -100,6 +100,8 @@ public:
         return s;
     }
 
+    virtual WipeElements generateWipeElements() const = 0;
+
     const std::set<eckit::URI>& includeURIs() const { return includeDataURIs_; }
     const std::set<eckit::URI>& excludeURIs() const { return excludeDataURIs_; }
 
@@ -198,6 +200,8 @@ public:
     explicit StoreWipeState(eckit::URI uri);  // XXX: Empty key seems wrong.
     explicit StoreWipeState(eckit::Stream& s);
 
+    virtual ~StoreWipeState() = default;
+
     Store& store(const Config& config) const;
 
     void encode(eckit::Stream& s) const;
@@ -206,6 +210,8 @@ public:
         state.encode(s);
         return s;
     }
+
+    WipeElements generateWipeElements() const override;
 
     const eckit::URI& storeURI() const { return storeURI_; }
 
@@ -238,6 +244,8 @@ public:
     CatalogueWipeState(const Key& dbKey, WipeElements elements);
     explicit CatalogueWipeState(eckit::Stream& s);
 
+    virtual ~CatalogueWipeState() = default;
+
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state);
@@ -252,7 +260,7 @@ public:
 
     void signStoreStates(std::string secret);
 
-    void generateWipeElements();
+    WipeElements generateWipeElements() const override;
 
     bool ownsURI(const eckit::URI& uri) const;
 
@@ -295,6 +303,13 @@ private:
 class WipeCoordinator {
 public:
 
+    struct UnknownsBuckets {
+        std::map<eckit::URI, std::set<eckit::URI>> store; // store -> URIs
+        std::set<eckit::URI> catalogue;                      // owned by nobody (no store, not catalogue)
+    };
+
+public:
+
     WipeCoordinator(const Config& config) : config_(config) {}
 
     // just a place for the wipe logic to live
@@ -304,6 +319,28 @@ public:
                                              bool unsafeWipeAll) const;
 
     std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
+
+private: 
+
+
+
+    UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState, const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
+
+    // This being a CatalogueWipeState is odd.
+    std::unique_ptr<CatalogueWipeState> generateReport(
+        const CatalogueWipeState& catalogueWipeState, 
+        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+        // const std::set<eckit::URI>& unknownURIsSet,
+        const UnknownsBuckets& unknownURIs,
+        bool unsafeWipeAll
+    ) const;
+
+
+    void doWipe(
+        const CatalogueWipeState& catalogueWipeState, 
+        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+        const UnknownsBuckets& unknownURIs,
+        bool unsafeWipeAll) const;
 
 private:
 

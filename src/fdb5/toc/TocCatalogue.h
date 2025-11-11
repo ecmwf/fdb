@@ -82,7 +82,7 @@ protected:  // methods
     std::unique_ptr<CatalogueWipeState> wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
     void wipeFinalise(CatalogueWipeState& wipeState) const override;
-    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(const CatalogueWipeState& wipeState) const override;
 
     void doWipeEmptyDatabases() const override;

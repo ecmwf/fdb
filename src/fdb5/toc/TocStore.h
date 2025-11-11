@@ -64,7 +64,7 @@ public:  // methods
     void prepareWipe(StoreWipeState& storeState) override;
 
 
-    bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(StoreWipeState& wipeState) const override;
 
     void doWipeEmptyDatabases() const override;

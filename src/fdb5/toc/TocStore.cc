@@ -455,7 +455,7 @@ void TocStore::prepareWipe(StoreWipeState& storeState) {
     return;
 }
 
-bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
+bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
             remove(uri, std::cout, std::cout, true);

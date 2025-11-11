@@ -80,7 +80,7 @@ public:
 
     virtual void prepareWipe(StoreWipeState& storeState) = 0;
 
-    virtual bool doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
     virtual bool doWipe() const { NOTIMP; }                           // @todo: remove this function entirely.
     virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; }  // @TODO
     virtual void doWipeEmptyDatabases() const = 0;

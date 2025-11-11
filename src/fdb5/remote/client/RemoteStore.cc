@@ -545,7 +545,7 @@ void RemoteStore::prepareWipe(StoreWipeState& storeState) {
     }
 }
 
-bool RemoteStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs) const {
+bool RemoteStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::MemoryStream sms(sendBuf);
     sms << unknownURIs.size();

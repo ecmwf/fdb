@@ -635,13 +635,14 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
         return;
     }
 
-    std::vector<eckit::URI> unknownURIs;
-    unknownURIs.reserve(n);
-    for (size_t i = 0; i < n; ++i) {
-        eckit::URI uri;
-        s >> uri;
-        unknownURIs.push_back(uri);
-    }
+    std::set<eckit::URI> unknownURIs; // can we do this in one line with eckit?
+    // unknownURIs.reserve(n);
+    // for (size_t i = 0; i < n; ++i) {
+    //     eckit::URI uri;
+    //     s >> uri;
+    //     unknownURIs.insert(uri);
+    // }
+    s >> unknownURIs;
 
     // Do the wipe of unknowns
     currentWipe_.catalogue->wipeUnknown(unknownURIs);

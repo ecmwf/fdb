@@ -271,7 +271,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     return;
 }
 
-bool TocCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const {
+bool TocCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
 
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {

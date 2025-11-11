@@ -11,6 +11,7 @@
 #include "fdb5/remote/server/StoreHandler.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
@@ -355,7 +356,7 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
 
     eckit::MemoryStream stream(payload);
     size_t numURIs;
-    std::vector<eckit::URI> uris;
+    std::set<eckit::URI> uris;
     stream >> numURIs;
     stream >> uris;
     ASSERT(numURIs == uris.size());
@@ -436,7 +437,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
 
     const auto& elements = storeState->wipeElements();
     eckit::Buffer wipeBuf(50_KiB * elements.size());
-    eckit::MemoryStream outStream(wipeBuf);
+    eckit::ResizableMemoryStream outStream(wipeBuf);
     outStream << canWipe;
     outStream << elements.size();
     for (const auto& el : elements) {

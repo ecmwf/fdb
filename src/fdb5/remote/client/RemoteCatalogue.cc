@@ -258,7 +258,7 @@ bool RemoteCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false, sendBuf, s.position());
     return true;
 }
-bool RemoteCatalogue::wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const {
+bool RemoteCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
     // send unknown uris to server w/ Message::DoWipeUnknowns
     eckit::Buffer sendBuf(1 + unknownURIs.size() * 256);
     eckit::ResizableMemoryStream s(

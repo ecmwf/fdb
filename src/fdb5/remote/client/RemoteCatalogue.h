@@ -85,7 +85,7 @@ public:  // methods
 
     void wipeFinalise(CatalogueWipeState& wipeState) const override { NOTIMP; }
     bool doWipe(const CatalogueWipeState& wipeState) const override;
-    bool wipeUnknown(const std::vector<eckit::URI>& unknownURIs) const override;
+    bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     void doWipeEmptyDatabases() const override;
 
 protected:
