@@ -5,7 +5,6 @@ ecbuild_find_project_files()
 
 add_subdirectory(fdb5)
 add_subdirectory(chunked_data_view)
-# add_subdirectory(pyfdb)
 
 if (HAVE_PYTHON_ZARR_INTERFACE)
     # We create the complete python package layout at this location.
@@ -54,7 +53,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
     # We create the complete python package layout at this location.
     # This allows us to run python wheel creation at this path and 
     # to put this path on the PYTHONPATH to allow direct use of
-    # z3fdb, e.g. for testing or local exploration.
+    # pyfdb, e.g. for testing or local exploration.
     set(PYFDB_STAGING "${CMAKE_BINARY_DIR}/pyfdb-python-package-staging")
     file(MAKE_DIRECTORY "${PYFDB_STAGING}")
     file(CREATE_LINK
