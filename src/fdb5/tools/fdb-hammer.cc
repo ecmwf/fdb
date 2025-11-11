@@ -113,13 +113,14 @@ Key shortFDBKey(const Q& step, const R& member, const S& level, const T& param) 
 
 /// @note: implements a multi-process multi-node barrier with FIFOs and TCP sockets.
 
-/// @note: this barrier implementation has been found to be slow in the intra-node 
-///        synchronisation phase if the node is very busy performing an intensive 
+/// @note: this barrier implementation has been found to be slow in the intra-node
+///        synchronisation phase if the node is very busy performing an intensive
 ///        POSIX I/O workload.
 
 class Barrier {
 
 public:
+
     Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait);
 
     void init();
@@ -127,11 +128,13 @@ public:
     void barrier();
 
 private:
+
     void electLeaderProcess();
     void barrierInternode();
     void barrierIntranode();
 
 private:
+
     size_t ppn_;
     const std::vector<std::string>& nodes_;
     int port_;
@@ -145,19 +148,23 @@ private:
     eckit::net::TCPSocket client_connection_;
 
     bool is_leader_process_ = false;
-    bool is_leader_node_ = false;
-    bool init_ = false;
-
+    bool is_leader_node_    = false;
+    bool init_              = false;
 };
 
-Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait) : 
-    ppn_(ppn), nodes_(nodes), port_(port), max_wait_(max_wait), server_connections_(nodes_.size() ? (nodes_.size() - 1) : 0) {
+Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait) :
+    ppn_(ppn),
+    nodes_(nodes),
+    port_(port),
+    max_wait_(max_wait),
+    server_connections_(nodes_.size() ? (nodes_.size() - 1) : 0) {
 
     hostname_ = Main::hostname();
 
     ASSERT(nodes_.size() > 0);
 
-    if (nodes_.size() == 1) ASSERT(hostname_ == nodes_[0]);
+    if (nodes_.size() == 1)
+        ASSERT(hostname_ == nodes_[0]);
 
     uid_t uid = ::getuid();
     eckit::Translator<uid_t, std::string> uid_to_str;
@@ -171,7 +178,6 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
     barrier_fifo_ = run_path / "fdb-hammer.barrier.fifo";
 
     pid_file_ = run_path / "fdb-hammer.pid";
-
 }
 
 void Barrier::electLeaderProcess() {
@@ -210,7 +216,6 @@ void Barrier::electLeaderProcess() {
                 eckit::AutoClose closer(*fh);
                 hs << (long)::getpid();
             }
-
         }
         else {
 
@@ -248,12 +253,10 @@ void Barrier::electLeaderProcess() {
                 }
                 continue;
             }
-
         }
 
         leader_found = true;
     }
-
 }
 
 void Barrier::init() {
@@ -282,19 +285,17 @@ void Barrier::init() {
         }
 
         // the TCPServer is auto-closed
-
-    } else {
+    }
+    else {
 
         /// @note if the server is not yet listening, the client connection wil fail and will be retried every second
         /// until timeout. This could be adjusted to retry more frequently.
 
         eckit::net::TCPClient client;
         client_connection_ = client.connect(nodes_[0], port_, max_wait_, 0, 1);
-
     }
 
     init_ = true;
-
 }
 
 void Barrier::fini() {
@@ -304,7 +305,6 @@ void Barrier::fini() {
         barrier_fifo_.unlink(false);
         pid_file_.unlink(false);
     }
-
 }
 
 void Barrier::barrier() {
@@ -312,10 +312,10 @@ void Barrier::barrier() {
     ASSERT(init_);
 
     // If there is only one process per node, we don't need the intra-node barrier
-    if (ppn_ == 1) return barrierInternode();
+    if (ppn_ == 1)
+        return barrierInternode();
 
     barrierIntranode();
-
 }
 
 /// implementation of internode barrier using TCP sockets.
@@ -332,7 +332,6 @@ void Barrier::barrierInternode() {
             socket.write(&message[0], sizeof(message));
             socket.closeOutput();  /// ensure all data is sent
         }
-
     }
     else {
 
@@ -343,7 +342,6 @@ void Barrier::barrierInternode() {
         std::array<char, 3> message;
         long read = client_connection_.read(message.data(), message.size());
         ASSERT(::memcmp("END", message.data(), message.size()) == 0);
-
     }
 }
 
@@ -442,7 +440,6 @@ void Barrier::barrierIntranode() {
         if (!future.get())
             throw eckit::Exception("Error receiving response from barrier leader process.");
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1272,12 +1269,8 @@ void FDBHammer::executeWrite() {
     if (config_.execution.itt) {
         eckit::Timer barrier_timer;
         barrier_timer.start();
-        Barrier barrier{
-            (size_t) config_.parallel.ppn,
-            config_.parallel.nodelist,
-            config_.parallel.barrierPort,
-            config_.parallel.barrierMaxWait
-        };
+        Barrier barrier{(size_t)config_.parallel.ppn, config_.parallel.nodelist, config_.parallel.barrierPort,
+                        config_.parallel.barrierMaxWait};
         barrier.init();
         barrier.barrier();
         barrier.fini();
