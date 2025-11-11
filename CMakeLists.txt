@@ -137,8 +137,8 @@ if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
 endif()
 
 # We need pyfdb in case z3fdb is enabled
-if(HAVE_PYTHON_ZARR_INTERFACE)
-    set(HAVE_PYTHON_FDB_INTERFACE ON)
+if(HAVE_PYTHON_ZARR_INTERFACE AND NOT HAVE_PYTHON_FDB_INTERFACE)
+    message( FATAL_ERROR "FDB Zarr interface requires PyFDB interface. Set -DENABLE_PYTHON_FDB_INTERFACE=ON, if you want to enable the Zarr interface." )
 endif()
 
 

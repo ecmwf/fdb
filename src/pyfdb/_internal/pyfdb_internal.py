@@ -3,7 +3,7 @@ from typing import Any, Dict
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
 
-type MarsSelection = Dict[str, str]
+MarsSelection = Dict[str, str]
 
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
