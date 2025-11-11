@@ -110,6 +110,9 @@ class DataHandle:
         result.dataHandle = data_handle
         return result
 
+    # TODO(TKR): Create a read_all function which handles the reading in a loop with error handling
+    # or make the len arg optional
+
     def read(self, len: int) -> bytes:
         return self.dataHandle.read(len)
 
@@ -126,6 +129,7 @@ class Config:
             raise RuntimeError("Config: Unknown config type, must be str or dict.")
 
 
+# https://github.com/ecmwf/datacube-spec
 class Key:
     def __init__(self, key_value_pairs: List[Tuple[str, str]]):
         self.key_values = DefaultDict(list)
