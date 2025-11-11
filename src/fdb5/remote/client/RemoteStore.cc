@@ -515,42 +515,22 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 // high-level API for wipe/purge
 
-static uint64_t count = 0;
-void RemoteStore::prepareWipe(StoreWipeState& storeState) {
-    count++;
-    std::cout << "YYY RemoteStore::prepareWipe called " << count << " times" << std::endl;
-    const std::set<eckit::URI>& uris     = storeState.includeURIs();
-    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
-
-    bool canWipe = false;
+void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const {
 
     eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
-    eckit::ResizableMemoryStream sms(sendBuf);
-    // sms << uris;
-    // sms << safeURIs;
-    sms << storeState;
-    sms << storeState.wipeAll();  // XXX: This is completely redundant now.
-    // sms << unsafeAll; // XXX: why did we drop this?
+    eckit::ResizableMemoryStream stream(sendBuf);
+    stream << storeState;
+    stream << unsafeWipeAll;
+    stream << doit;
 
-    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
-
-    eckit::MemoryStream rms(recvBuf);
-    rms >> canWipe;  // bool. XXX Never checked... do we error if false, or is it no longer meaningful?
-
-    size_t size;
-    rms >> size;
-
-    for (size_t i = 0; i < size; ++i) {
-        storeState.insertWipeElement(std::make_shared<WipeElement>(rms));
-    }
+    controlWriteCheckResponse(Message::Wipe, generateRequestID(), false, sendBuf, stream.position());
 }
 
 bool RemoteStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
-    eckit::MemoryStream sms(sendBuf);
-    sms << unknownURIs.size();
-    sms << unknownURIs;
-    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, sms.position());
+    eckit::ResizableMemoryStream stream(sendBuf);
+    stream << unknownURIs;
+    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
     return true;
 }
 

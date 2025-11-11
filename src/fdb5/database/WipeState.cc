@@ -223,11 +223,6 @@ bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
 }
 // -----------------------------------------------------------------------------------------------
 
-CatalogueWipeState::CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
-
-CatalogueWipeState::CatalogueWipeState(const Key& dbKey, WipeElements elements) :
-    WipeState(dbKey, std::move(elements)) {}
-
 CatalogueWipeState::CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
     size_t n;
     s >> n;

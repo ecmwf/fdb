@@ -77,7 +77,7 @@ private:  // methods
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
-    void doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doWipe(uint32_t clientID, uint32_t requestID);
     void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
     void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID);
 
@@ -101,6 +101,7 @@ private:  // member
     struct WipeInProgress {
         uint32_t clientID  = 0;
         uint32_t requestID = 0;
+        bool unsafeWipeAll = false;
         std::unique_ptr<CatalogueReader> catalogue;  // Maybe not needed
         std::unique_ptr<CatalogueWipeState> state;
     };

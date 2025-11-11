@@ -392,7 +392,9 @@ void TocStore::remove(const Key& key) const {
 // store to be empty, and wish to remove the directory
 //  this happens when your wipe request is essentially the entire first level key.
 
-void TocStore::prepareWipe(StoreWipeState& storeState) {
+void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const {
+
+    // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
     const std::set<eckit::URI>& uris     = storeState.includeURIs();  // included according to cat
     const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();  // excluded according to cat

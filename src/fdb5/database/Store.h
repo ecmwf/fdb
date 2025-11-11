@@ -78,7 +78,7 @@ public:
     // virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs,
     //                                  bool all)                            = 0;
 
-    virtual void prepareWipe(StoreWipeState& storeState) = 0;
+    virtual void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const = 0;
 
     virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
     virtual bool doWipe() const { NOTIMP; }                           // @todo: remove this function entirely.

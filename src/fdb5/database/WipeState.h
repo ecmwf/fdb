@@ -77,7 +77,12 @@ class WipeState {
 public:
 
     WipeState(const Key& dbKey);
-    WipeState(const Key& dbKey, WipeElements elements);
+    WipeState(const Key& dbKey, WipeElements elements);  // XXX rm this!
+
+    WipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, std::set<eckit::URI> deleteURIs) : dbKey_(dbKey) {
+        safeURIs_   = std::move(safeURIs);
+        deleteURIs_ = std::move(deleteURIs);
+    }
 
     explicit WipeState(eckit::Stream& s);
 
@@ -239,9 +244,11 @@ class CatalogueWipeState : public WipeState {
 
 public:
 
-    // CatalogueWipeState();
-    explicit CatalogueWipeState(const Key& dbKey);
-    CatalogueWipeState(const Key& dbKey, WipeElements elements);
+    explicit CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
+
+    CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, std::set<eckit::URI> deleteURIs) :
+        WipeState(dbKey, std::move(safeURIs), std::move(deleteURIs)) {}
+
     explicit CatalogueWipeState(eckit::Stream& s);
 
     virtual ~CatalogueWipeState() = default;

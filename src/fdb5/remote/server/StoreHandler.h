@@ -49,6 +49,8 @@ private:  // methods
     void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipe(const uint32_t clientID, const uint32_t requestID);
+    void doWipeEmptyDatabases(const uint32_t clientID, const uint32_t requestID);
+
 
     Store& store(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
@@ -61,9 +63,10 @@ private:  // members
     std::map<uint32_t, StoreHelper> stores_;
 
 
-    struct WipeInProgress {
+    struct WipeInProgress {  // I believe this will be identical for the cat and store handlers
         uint32_t clientID  = 0;
         uint32_t requestID = 0;
+        bool unsafeWipeAll = false;
         std::unique_ptr<StoreWipeState> state;
     };
 

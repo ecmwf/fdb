@@ -43,15 +43,17 @@ std::map<eckit::URI, std::unique_ptr<StoreWipeState>> WipeCoordinator::getStoreS
 
 WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     const CatalogueWipeState& catalogueWipeState,
-    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const
-{
+    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const {
     UnknownsBuckets unknowns;
 
     // 1) URIs the catalogue doesn't recognise AND no store claims -> "nobody"
     for (const auto& uri : catalogueWipeState.unrecognisedURIs()) {
         bool found = false;
         for (const auto& [storeURI, storeState] : storeWipeStates) {
-            if (storeState->ownsURI(uri)) { found = true; break; }
+            if (storeState->ownsURI(uri)) {
+                found = true;
+                break;
+            }
         }
         if (!found) {
             unknowns.catalogue.insert(uri);
@@ -62,7 +64,8 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     //    NB: we are not checking if another store might own these (same assumption as your current code).
     for (const auto& [storeURI, storeState] : storeWipeStates) {
         for (const auto& uri : storeState->unrecognisedURIs()) {
-            if (catalogueWipeState.ownsURI(uri)) continue;
+            if (catalogueWipeState.ownsURI(uri))
+                continue;
             unknowns.store[storeURI].insert(uri);
         }
     }
@@ -73,9 +76,10 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
 
 // Create WipeElements to report to the user what is going to be wiped.
 // NB: This copies every URI involved in the wipe.
-std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(const CatalogueWipeState& catalogueWipeState, const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates, const UnknownsBuckets& unknownURIs,
-    bool unsafeWipeAll
-) const {
+std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(
+    const CatalogueWipeState& catalogueWipeState,
+    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates, const UnknownsBuckets& unknownURIs,
+    bool unsafeWipeAll) const {
     auto report = std::make_unique<CatalogueWipeState>(catalogueWipeState.dbKey());
 
     for (const auto& el : catalogueWipeState.generateWipeElements()) {
@@ -100,13 +104,13 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(const Catalo
     }
 
     if (!unknownURIsSet.empty()) {
-        report->insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_UNKNOWN,
-                                                "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
+        report->insertWipeElement(std::make_shared<WipeElement>(
+            WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
 
         if (!unsafeWipeAll) {
-            report->insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:"));
+            report->insertWipeElement(
+                std::make_shared<WipeElement>(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:"));
         }
-
     }
 
     return report;
@@ -117,22 +121,23 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
                                                           bool unsafeWipeAll) const {
 
     auto storeWipeStates = catalogueWipeState.takeStoreStates();
-    ASSERT(!storeWipeStates.empty());  // XXX: We should handle case where there is no work for the stores... Is there such a case?
+    ASSERT(!storeWipeStates
+                .empty());  // XXX: We should handle case where there is no work for the stores... Is there such a case?
 
     eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
     // Contact each of the relevant stores.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
-        storeState->store(config_).prepareWipe(*storeState);
+        storeState->store(config_).prepareWipe(*storeState, doit, unsafeWipeAll);
     }
 
     UnknownsBuckets unknownURIs = gatherUnknowns(catalogueWipeState, storeWipeStates);
 
     bool unclean = !unknownURIs.catalogue.empty() || std::any_of(unknownURIs.store.begin(), unknownURIs.store.end(),
-        [](const auto& pair) { return !pair.second.empty(); });
+                                                                 [](const auto& pair) { return !pair.second.empty(); });
 
     auto report = generateReport(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
-    
+
     //  XXX todo: this should probably be reported via wipe element
     const auto& indexesToMask = catalogueWipeState.indexesToMask();
     if (!indexesToMask.empty()) {
@@ -142,17 +147,12 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
         }
     }
 
-    if (doit && unclean && !unsafeWipeAll ) {
+    if (doit && unclean && !unsafeWipeAll) {
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 
     if (doit && (!unclean || unsafeWipeAll)) {  // I'd love to put this in a doit function, called from outside.
-        doWipe(
-            catalogueWipeState,
-            storeWipeStates,
-            unknownURIs,
-            unsafeWipeAll
-        );
+        doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
     }
 
     eckit::Log::info() << "WipeCoordinator::wipe - completed" << std::endl;
@@ -161,8 +161,9 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
 }
 
 
-// Maybe it would be possible for this to operate on a single wipe state object, which is the object we would otherwise use for reporting.
-// This does at least make sure we are reporting exactly what we are wiping. But it also means WipeState is doing a bit too much.
+// Maybe it would be possible for this to operate on a single wipe state object, which is the object we would otherwise
+// use for reporting. This does at least make sure we are reporting exactly what we are wiping. But it also means
+// WipeState is doing a bit too much.
 
 // We shall do the following, in order:
 // - 1. mask any indexes that need masking.
@@ -171,12 +172,10 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
 // - 4. wipe the files known by the catalogue.
 // - 5. wipe empty databases.
 
-void WipeCoordinator::doWipe(
-    const CatalogueWipeState& catalogueWipeState, 
-    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-    const UnknownsBuckets& unknownBuckets,
-    bool unsafeWipeAll) const {
-    
+void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
+                             const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+                             const UnknownsBuckets& unknownBuckets, bool unsafeWipeAll) const {
+
     eckit::Log::info() << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
 
     std::unique_ptr<Catalogue> catalogue =
@@ -189,19 +188,19 @@ void WipeCoordinator::doWipe(
         //     function call. (Also, handler knows what indexes to match, probably, unless there's been an update.)
     }
 
-    // 2. Wipe unknown files
-    // What was my reason for doing the unknowns first? I think it would be better to do the knowns.
-    eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
 
-    //XXX: We probably shouldn't bother calling these functions if there are no unknown URIs.
-    catalogue->wipeUnknown(unknownBuckets.catalogue);
+    // 2. Wipe unknown files if unsafeWipeAll is set
+    if (unsafeWipeAll) {
+        eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
+        catalogue->wipeUnknown(unknownBuckets.catalogue);
 
-    for (const auto& [uri, storeState] : storeWipeStates) {
-        const Store& store = storeState->store(config_);
+        for (const auto& [uri, storeState] : storeWipeStates) {
+            const Store& store = storeState->store(config_);
 
-        auto it = unknownBuckets.store.find(uri);
-        if (it != unknownBuckets.store.end()) {
-            store.doWipeUnknownContents(it->second);
+            auto it = unknownBuckets.store.find(uri);
+            if (it != unknownBuckets.store.end()) {
+                store.doWipeUnknownContents(it->second);
+            }
         }
     }
 
@@ -226,4 +225,4 @@ void WipeCoordinator::doWipe(
 }
 
 
-} // namespace fdb5
+}  // namespace fdb5

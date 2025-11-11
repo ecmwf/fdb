@@ -23,8 +23,8 @@ class WipeCoordinator {
 public:
 
     struct UnknownsBuckets {
-        std::map<eckit::URI, std::set<eckit::URI>> store; // store -> URIs
-        std::set<eckit::URI> catalogue;                   // owned by nobody (no store, not catalogue)
+        std::map<eckit::URI, std::set<eckit::URI>> store;  // store -> URIs
+        std::set<eckit::URI> catalogue;                    // owned by nobody (no store, not catalogue)
     };
 
 public:
@@ -37,24 +37,21 @@ public:
 
     std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
 
-private: 
+private:
 
-    UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState, const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
+    UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState,
+                                   const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
 
     // This being a CatalogueWipeState is odd.
     std::unique_ptr<CatalogueWipeState> generateReport(
-        const CatalogueWipeState& catalogueWipeState, 
+        const CatalogueWipeState& catalogueWipeState,
         const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-        const UnknownsBuckets& unknownURIs,
-        bool unsafeWipeAll
-    ) const;
+        const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
 
-    void doWipe(
-        const CatalogueWipeState& catalogueWipeState, 
-        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-        const UnknownsBuckets& unknownURIs,
-        bool unsafeWipeAll) const;
+    void doWipe(const CatalogueWipeState& catalogueWipeState,
+                const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+                const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
 private:
 

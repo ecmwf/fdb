@@ -42,6 +42,22 @@ namespace fdb5::remote {
 //
 // ***************************************************************************************
 
+
+// ***************************************************************************************
+// TODO: Put this somewhere else...
+// When wiping, we expect the following to happen:
+// 1. Client sends Wipe request. This server creates a CatalogueWipeState and keeps it in
+//    currentWipe_. The server then sends this state back to the client, who will coordinate
+//    between this server and the stores.
+// If the client is not actually wiping (doit==false), then the process ends here. (?)
+// Otherwise, we expect the client to tell us when to wipe via various DoWipe messages.
+// If it is not a wipe all, then a simple "doit" would be sufficient. However, there are some complications:
+//   - We need to receieve an updated list of unknown URIs from the client, as the stores may have
+//   recognised some of the URIs that the catalogue did not.
+//   - We may be sharing this folder with a store. We cannot delete the directory if the store
+//   is still in the middle of deleting its files. So we need to wait until the store is finished.
+// Since we don't know anything about the stores, we rely on the client to tell us when it is safe to proceed.
+
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
     ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
 
@@ -75,6 +91,17 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
             case Message::Archive:  // notification that the client is starting to send data locations for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
+
+            case Message::DoWipe:
+                // doit! We expect DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
+                std::cout << "CatalogueHandler::handleControl: got DoWipe message" << std::endl;
+                doWipe(clientID, requestID);
+                return Handled::Yes;
+
+            case Message::DoWipeEmptyDatabases:
+                std::cout << "CatalogueHandler::handleControl: got DoWipeEmptyDatabases message" << std::endl;
+                doWipeEmptyDatabases(clientID, requestID);
+                return Handled::Yes;
 
             default: {
                 std::stringstream ss;
@@ -129,25 +156,13 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 exists(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
-            case Message::Wipe:  // wipe request. URIs of affected elements are sent aynchronously over the data
-                                 // connection - requires direct visibility of the stores
+            case Message::Wipe:  // wipe request.
                 wipe(clientID, requestID, std::move(payload));
-                return Handled::Yes;
-
-            case Message::DoWipe:
-                // doit! We expect DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
-                std::cout << "CatalogueHandler::handleControl: got DoWipe message" << std::endl;
-                doWipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:
                 std::cout << "CatalogueHandler::handleControl: got DoWipeUnknowns message" << std::endl;
                 doWipeUnknowns(clientID, requestID, std::move(payload));
-                return Handled::Yes;
-
-            case Message::DoWipeEmptyDatabases:
-                std::cout << "CatalogueHandler::handleControl: got DoWipeEmptyDatabases message" << std::endl;
-                doWipeEmptyDatabases(clientID, requestID);
                 return Handled::Yes;
 
             default: {
@@ -233,18 +248,18 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
 
         s << *state;
 
-
         if (doit_) {
-            // Keep a copy of part of the state locally, for later.
-            ASSERT(handler.currentWipe_.state == nullptr);  // Another wipe is still in progress...?
-            handler.currentWipe_.state = std::make_unique<CatalogueWipeState>(
-                state->dbKey(), state->wipeElements());  // XXX move to not using wipe elements...
+            ASSERT(handler.currentWipe_.state == nullptr);
+            // Keep a local copy of the wipe state, awaiting an explicit DoWipe command from the client
+            handler.currentWipe_.state =
+                std::make_unique<CatalogueWipeState>(state->dbKey(), state->safeURIs(), state->deleteURIs());
             handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state->dbKey(), handler.config_);
+            handler.currentWipe_.unsafeWipeAll = unsafeWipeAll_;
         }
         else {
-
-            handler.currentWipe_.clientID  = 0;
-            handler.currentWipe_.requestID = 0;
+            handler.currentWipe_.clientID      = 0;
+            handler.currentWipe_.requestID     = 0;
+            handler.currentWipe_.unsafeWipeAll = false;
             handler.currentWipe_.state.reset();
             handler.currentWipe_.catalogue.reset();
         }
@@ -263,6 +278,9 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
         using AsyncIterator = APIAsyncIterator<ValueType>;
 
         auto async_worker = [request, &fdb, this](Queue<ValueType>& queue) {
+            // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
+            ASSERT(!this->unsafeWipeAll_);
+
             // XXX: Maybe a  bit of a hack, but I can't call fdb.wipe() directly (otherwise catalogue will try to talk
             // to stores remotely)
             auto internal = FDBFactory::instance().build(fdb.config());
@@ -353,6 +371,7 @@ void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    // XXX - ASSERT NOT WIPE IN PROGRESS
     ASSERT(currentWipe_.clientID == 0 && currentWipe_.requestID == 0);
     currentWipe_.clientID  = clientID;
     currentWipe_.requestID = requestID;
@@ -605,55 +624,58 @@ bool CatalogueHandler::wipeInProgress(uint32_t clientID, uint32_t requestID) con
             currentWipe_.state);  // XXX: TODO: understand why clientID/requestID always changes.
 }
 
-void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
-    MemoryStream s(payload);
-    uint32_t x;  // dummy
-    s >> x;      // dummy
-    // auto wipeState = std::make_unique<CatalogueWipeState>(s); // THERE IS NO REASON TO BE RECEIVING THE WIPESTATE
-    // AGAIN. ONLY RECEIVE CORRECTIONS. const Key& dbKey = wipeState->dbKey();
-
-    // currentWipe_.catalogue = CatalogueReaderFactory::instance().build(dbKey, config_);
-    // currentWipe_.clientID  = clientID;
-    // currentWipe_.requestID = requestID;
-
-    // std::cout << "CatalogueHandler::doWipe, set currentWipe_ for dbKey, clientID, requestID: " << dbKey << ", " <<
-    // clientID << ", " << requestID << std::endl; Do the wipe
+void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID) {
+    // std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
+    // We actually dont need any payload. Just a signal to proceed.
+    // XXX --- in our protocol, how do I avoid sending a payload???
+    // MemoryStream s(payload);
+    // uint32_t x;  // dummy
+    // s >> x;      // dummy
     currentWipe_.catalogue->doWipe(*currentWipe_.state);
 }
 
+// So, this function might be pointless if unsafeWipeAll is not supported.
+// We only delete unknown URIs if unsafeWipeAll is set.
+// Still, here is the logic I'd expect it to have.
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
     ASSERT(wipeInProgress(clientID, requestID));
 
     // Get the list of URIs from the payload
     MemoryStream s(payload);
-    size_t n;
-    s >> n;
+    std::set<eckit::URI> rec_unknownURIs{s};
 
-    if (n == 0) {
-        return;
+    // The client should not talk to us unless there are unknown URIs to wipe.
+    ASSERT(!rec_unknownURIs.empty());
+
+    // Unknown URIs are only wiped if unsafeWipeAll is set.
+    ASSERT(currentWipe_.unsafeWipeAll);
+
+    std::set<eckit::URI> expected_unknownURIs = currentWipe_.state->unrecognisedURIs();
+
+    // Verify that the URIs we are being asked to delete were previously identified as unknown.
+    // Note: we are trusting the client to not be sending us anything claimed by the stores.
+    for (const auto& uri : rec_unknownURIs) {
+        if (expected_unknownURIs.find(uri) == expected_unknownURIs.end()) {
+            std::stringstream ss;
+            ss << "CatalogueHandler::doWipeUnknowns: Received unknown URI " << uri
+               << " which was not identified by the catalogue during wipe preparation";
+            throw SeriousBug(ss.str(), Here());
+        }
     }
 
-    std::set<eckit::URI> unknownURIs;  // can we do this in one line with eckit?
-    // unknownURIs.reserve(n);
-    // for (size_t i = 0; i < n; ++i) {
-    //     eckit::URI uri;
-    //     s >> uri;
-    //     unknownURIs.insert(uri);
-    // }
-    s >> unknownURIs;
-
-    // Do the wipe of unknowns
-    currentWipe_.catalogue->wipeUnknown(unknownURIs);
+    currentWipe_.catalogue->wipeUnknown(rec_unknownURIs);
 }
 
+// Serves two functions:
+// 1. Cleans up any empty databases after a wipe
+// 2. Resets our internal state to be ready for another wipe
 void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID) {
     ASSERT(wipeInProgress(clientID, requestID));
 
     currentWipe_.catalogue->doWipeEmptyDatabases();
 
-    // We're finished with the wipe!
+    // We're finished with the wipe for this DB!
     currentWipe_.catalogue.reset();
     currentWipe_.state.reset();
 }

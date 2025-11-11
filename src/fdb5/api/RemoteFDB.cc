@@ -127,7 +127,6 @@ struct WipeHelper : BaseAPIHelper<std::unique_ptr<fdb5::CatalogueWipeState>, fdb
         s << unsafeWipeAll_;
     }
 
-
     static std::unique_ptr<fdb5::CatalogueWipeState> valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         auto state = std::make_unique<fdb5::CatalogueWipeState>(s);
         return state;
