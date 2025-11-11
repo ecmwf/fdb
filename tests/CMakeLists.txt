@@ -21,5 +21,6 @@ add_subdirectory( regressions )
 if (HAVE_PYTHON_ZARR_INTERFACE)
     add_subdirectory( z3fdb )
     add_subdirectory( pychunked_data_view )
+    add_subdirectory( pyfdb )
 endif()
 

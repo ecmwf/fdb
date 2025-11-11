@@ -41,6 +41,7 @@ public:
     virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
 
     virtual void encode(eckit::Stream& s) const { NOTIMP; }
+    virtual void print(std::ostream& s) const { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
