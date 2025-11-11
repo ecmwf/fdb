@@ -105,8 +105,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 wipe(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::DoWipe:
-                doWipe(clientID, requestID, payload);
+            case Message::DoWipeUnknowns:
+                doWipeUnknown(clientID, requestID, payload);
                 return Handled::Yes;
 
             default: {
@@ -349,7 +349,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
 }
 
-void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
     ASSERT(payload.size() > 0);
 
@@ -372,6 +372,13 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
     // }
 
     // !!! we should rename this function too...
+
+
+    // XXX: Validate these URIs. They must be a subset of the expected unknowns.
+    // NOTE: You know, we probably shouldn't be deleting anything at all until we've validated everything the client is
+    // sending. and only delete on a final call. Well, we're a bit limited in what we can do here, given we have to
+    // communicate between many stores, its not hard to end up in a poor state if we lose connection to half the stores
+    // mid-wipe. But to be fair, the existing local wipe is also not robust against a crash mid-wipe.
 
     ss.doWipeUnknownContents(uris);
 }
@@ -425,7 +432,7 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     }
 
     auto& ss = store(clientID, *(storeState->includeURIs().begin()));
-    ss.prepareWipe(*storeState, all);
+    ss.prepareWipe(*storeState);
 
     const auto& elements = storeState->wipeElements();
     eckit::Buffer wipeBuf(50_KiB * elements.size());

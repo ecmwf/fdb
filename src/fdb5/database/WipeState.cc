@@ -1,5 +1,7 @@
 #include "fdb5/database/WipeState.h"
 #include <memory>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 
 namespace fdb5 {
@@ -37,14 +39,13 @@ WipeState::WipeState(const Key& dbKey) : dbKey_(dbKey) {}
 WipeState::WipeState(const Key& dbKey, WipeElements elements) : wipeElements_(std::move(elements)), dbKey_(dbKey) {}
 
 WipeState::WipeState(eckit::Stream& s) {
-    // signature_ = Signature(s) is equivalent to:
     signature_ = Signature(s);
 
     s >> dbKey_;
 
     std::size_t n = 0;
 
-    // wipeElements_
+    // wipeElements_ // TODO: I dont think there's a reason to communicate these ever.
     s >> n;
     for (std::size_t i = 0; i < n; ++i) {
         wipeElements_.emplace_back(std::make_shared<WipeElement>(s));
@@ -176,6 +177,77 @@ void StoreWipeState::encode(eckit::Stream& s) const {
     s << storeURI_;
 }
 
+void CatalogueWipeState::generateWipeElements() {
+    ASSERT(wipeElements_.empty());
+
+    if (!info_.empty()) {
+        insertWipeElement(
+            std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, info_,
+                                          std::set<eckit::URI>{}));  // The empty set here is stupid. Give the element a
+                                                                     // constructor that doesnt need a set...
+    }
+
+    if (!catalogueURIs_.empty()) {
+        auto catalogueURIs = catalogueURIs_;
+        insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
+                                                        "Catalogue URIs to delete:", std::move(catalogueURIs)));
+    }
+    if (auxCatalogueURIs_.empty()) {
+        auto auxURIs = auxCatalogueURIs_;
+        insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_CONTROL,
+                                                        "Control URIs to delete:", std::move(auxURIs)));
+    }
+
+    if (!unrecognisedURIs().empty()) {
+        std::set<eckit::URI> unrecognised = unrecognisedURIs();
+        insertWipeElement(std::make_shared<WipeElement>(
+            WipeElementType::WIPE_UNKNOWN, "Unexpected URIs present in the catalogue:", std::move(unrecognised)));
+    }
+
+    if (!safeURIs().empty()) {
+        auto safe = safeURIs();
+        insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_SAFE,
+                                                        "Protected URIs (explicitly untouched):", std::move(safe)));
+    }
+
+    if (!indexURIs_.empty()) {
+        auto indexURIs = indexURIs_;
+        insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
+                                                        "Index URIs to delete:", std::move(indexURIs)));
+    }
+
+    // if (!unknownURIs_.empty()) {
+    //     auto unknownURIs = unknownURIs_;
+    //     wipeElements_.push_back(std::make_shared<WipeElement>(
+    //         WipeElementType::WIPE_UNKNOWN, "Unexpected URIs present in store:", std::move(unknownURIs)));
+    // }
+
+    // if (!dataURIs_.empty()) {
+    //     auto dataURIs = dataURIs_;
+    //     wipeElements_.push_back(
+    //         std::make_shared<WipeElement>(WipeElementType::WIPE_STORE, "Data URIs to delete:", std::move(dataURIs)));
+    // }
+
+    // if (!auxURIs_.empty()) {
+    //     auto auxURIs = auxURIs_;
+    //     wipeElements_.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
+    //                                                          "Auxiliary URIs to delete:", std::move(auxURIs)));
+    // }
+}
+
+bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
+
+    // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
+
+    if (std::find(dataURIs_.begin(), dataURIs_.end(), uri) != dataURIs_.end()) {
+        return true;
+    }
+    if (std::find(auxURIs_.begin(), auxURIs_.end(), uri) != auxURIs_.end()) {
+        return true;
+    }
+
+    return false;
+}
 // -----------------------------------------------------------------------------------------------
 
 CatalogueWipeState::CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
@@ -254,37 +326,75 @@ void CatalogueWipeState::signStoreStates(std::string secret) {
 
     std::cout << "ZZZ Catalogue signature: " << signature_.sig_ << std::endl;
 }
-// ----
+
+
+bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
+
+    // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
+    // Maybe there isn't a reason to keep these in separate sets.
+
+    eckit::URI astoc  = eckit::URI("toc", uri_in.path());
+    eckit::URI asfile = eckit::URI("file", uri_in.path());
+
+    // XXX - hack. because we seemingly interchangeably use file and toc schemes
+    for (const auto& uri : {astoc, asfile}) {
+
+        if (std::find(safeURIs().begin(), safeURIs().end(), uri) != safeURIs().end()) {
+            return true;
+        }
+
+        if (std::find(deleteURIs().begin(), deleteURIs().end(), uri) != deleteURIs().end()) {
+            return true;
+        }
+
+        // ideally, remove all of these below. I want these to be explicitly subset / buckets of safe / delete URIs.
+        // if (std::find(indexURIs_.begin(), indexURIs_.end(), uri) != indexURIs_.end()) {
+        //     return true;
+        // }
+
+        // if (std::find(catalogueURIs_.begin(), catalogueURIs_.end(), uri) != catalogueURIs_.end()) {
+        //     return true;
+        // }
+
+        // if (std::find(auxCatalogueURIs_.begin(), auxCatalogueURIs_.end(), uri) != auxCatalogueURIs_.end()) {
+        //     return true;
+        // }
+    }
+
+    return false;
+}
+
+// ---------------------------------------------------------------------------------------------------
 
 // todo: break this logic up a bit more, for readability.
 // Almost certainly std::unique_ptr<CatalogueWipeState> can just be CatalogueWipeState everywhere...
+
+void gatherUnknowns(const CatalogueWipeState& catalogueWipeState) {}
+
 std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeState& catalogueWipeState, bool doit,
                                                           bool unsafeWipeAll) const {
 
-    bool error   = false;                                         ///
-    bool canWipe = true;                                          /// !!! unused.
-    bool wipeAll = true;                                          /// ?
-    std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;  /// < URIs not belonging to any store or catalogue.
-    std::map<WipeElementType, std::shared_ptr<WipeElement>>
-        aggregateStoreElements;  /// < Aggregate of all Wipe Elements from all stores
+    bool unclean = false;  ///
+    bool canWipe = true;   /// !!! unused.
 
-    auto report = std::make_unique<CatalogueWipeState>(catalogueWipeState.dbKey());
+    std::map<eckit::URI, std::optional<eckit::URI>> unknownURIs;  /// < URIs not belonging to any store or catalogue.
+
+    // ASSERT(catalogueWipeState.wipeElements().size() != 0);
+    ASSERT(catalogueWipeState.wipeElements().size() ==
+           0);  // I expect it to equal 0 because im deliberately not generating them. I want to not generate them in
+                // the state classes where possible.
+
 
     // Establish whether we will fully wipe the catalogue, and gather unknown URIs if so.
-    for (const auto& el : catalogueWipeState.wipeElements()) {
-        if (el->type() == WipeElementType::WIPE_CATALOGUE_SAFE && !el->uris().empty()) {
-            wipeAll = false;  // but I would assume wiping all on the catalogue ought to be decoupled from wiping all on
-                              // the store.
-            break;
-        }
+    // if (catalogueWipeState.wipeAll()) {
+    // We mustn't have any thing marked as safe if we are doing a wipe all.
+    ASSERT(catalogueWipeState.safeURIs().size() == 0);
 
-        // if wipeAll, collect all the unknown URIs
-        if (wipeAll && el->type() == WipeElementType::WIPE_UNKNOWN && !el->uris().empty()) {
-            for (const auto& uri : el->uris()) {
-                unknownURIs.emplace(uri, std::nullopt);
-            }
-        }
+    for (const auto& uri : catalogueWipeState.unrecognisedURIs()) {
+        std::cout << "XXX cat unknown - " << uri << std::endl;
+        unknownURIs.emplace(uri, std::nullopt);
     }
+    // }
 
     eckit::Log::info() << "WipeCoordinator::wipe - gathering store wipe states" << std::endl;
     auto storeWipeStates = catalogueWipeState.takeStoreStates();
@@ -293,115 +403,117 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
 
     eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
+    // XXX -- Why does the store not have a concept of "SAFE" URIS?
+    // Answer: it does. But we never push to it in the toc store it seems, or check it here...
+
     // Contact each of the relevant stores.
-    for (const auto& [storeURI, storeStatePtr] : storeWipeStates) {
-        auto& storeState = *storeStatePtr;
+    for (const auto& [storeURI, storeState] : storeWipeStates) {
 
-        if (!storeState.excludeURIs().empty()) {
-            wipeAll = false;  // But I would assume this should be on a per store basis...
+        storeState->store(config_).prepareWipe(*storeState);
+
+        // gather the unknowns
+        // if (storeState->wipeAll()){
+        for (const auto& uri : storeState->unrecognisedURIs()) {
+            std::cout << "XXX store unknown - " << uri << " from store " << storeURI << std::endl;
+            unknownURIs.try_emplace(uri, storeURI);  // we shouldn't need to copy these. we can get them when needed
+                                                     // from storeState->unrecognisedURIs ?
         }
-
-        storeState.store(config_).prepareWipe(storeState, wipeAll);
-
-        for (const auto& el : storeState.wipeElements()) {
-            const auto type = el->type();
-
-            // If wipeAll, collect all the unknown URIs
-            if (wipeAll && type == WipeElementType::WIPE_UNKNOWN) {
-                for (const auto& uri : el->uris()) {
-                    unknownURIs.try_emplace(uri, storeURI);
-                }
-                continue;
-            }
-
-            // Group elements by type, merging URIs if the type already exists
-            auto [it, inserted] = aggregateStoreElements.emplace(type, el);
-            if (!inserted) {
-                auto& target = *it->second;
-                for (const auto& uri : el->uris()) {
-                    target.add(uri);
-                }
-            }
-        }
+        // }
     }
-
-    // Helpers ...
-    auto isCatalogueElement = [](const auto& el) {
-        const auto t = el->type();
-        return (t == WipeElementType::WIPE_CATALOGUE || t == WipeElementType::WIPE_CATALOGUE_AUX) &&
-               !el->uris().empty();
-    };
-
-    auto isStoreElement = [](const auto& el) {
-        const auto t = el->type();
-        return t == WipeElementType::WIPE_STORE || t == WipeElementType::WIPE_STORE_AUX;
-    };
-
 
     // Check if unknowns are owned by the catalogue / stores.
 
-    ASSERT(aggregateStoreElements.size() != 0);
-    if (wipeAll && unknownURIs.size() > 0) {
+    if (unknownURIs.size() > 0) {  // unknownURIs.size() > 0) implies one of the stores / cat has set wipeall
+        std::cout << "XXX - there are unknown URIs to check ownership of " << std::endl;
 
         auto it = unknownURIs.begin();
         while (it != unknownURIs.end()) {
 
             const auto& uri = it->first;
 
-            // Remove uri from the unknowns if it is among the catalogue wipe elements
-            bool found = false;
-            for (const auto& el : catalogueWipeState.wipeElements()) {
-                if (isCatalogueElement(el) && el->uris().count(uri)) {
-                    it    = unknownURIs.erase(it);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (found) {
+            // Do not treat this uri as unknown if the catalogue has already marked it for deletion.
+            std::cout << "unknowns: checking uri " << uri << std::endl;
+            if (catalogueWipeState.ownsURI(uri)) {
+                std::cout << "-> owned by cat " << uri << std::endl;
+                it = unknownURIs.erase(it);
                 continue;
             }
 
-            for (const auto& [type, el] : aggregateStoreElements) {
-                if (isStoreElement(el) && el->uris().count(uri)) {
+            // Do not treat this uri as unknown if store has already marked it for deletion.
+            bool found = false;
+            for (const auto& [storeURI, storeState] : storeWipeStates) {
+                if (storeState->ownsURI(uri)) {
+                    std::cout << "-> owned by store " << uri << std::endl;
                     it    = unknownURIs.erase(it);
                     found = true;
                     break;
+                    // XXX - Doesn't this have implications for whether the store state should be still marked as
+                    // WipeAll? Multiple stores + cat really muddies what "wipe all" should mean...
                 }
             }
 
             if (!found) {
-                ++it;  // Move to the next URI
+                std::cout << "-> owned by no one " << uri << std::endl;  // going to be an error unless unsafeWipeAll
+                ++it;
             }
         }
     }
 
+
     // PUSHING TO THE REPORT QUEUE
+    auto report = std::make_unique<CatalogueWipeState>(catalogueWipeState.dbKey());
+
     eckit::Log::info() << "WipeCoordinator::wipe - pushing wipe elements to report queue" << std::endl;
-    if (wipeAll && doit && !unknownURIs.empty() && !unsafeWipeAll) {
+    if (doit && !unknownURIs.empty() && !unsafeWipeAll) {
+        std::cout << "XXX: error - unknowns are " << std::endl;
+        for (auto [u, opt] : unknownURIs) {
+            std::cout << "   " << u << std::endl;
+        }
         auto el = std::make_shared<WipeElement>(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:");
         report->insertWipeElement(el);
-        error = true;
+        unclean = true;
     }
 
     // gather all non-unknown elements from the catalogue and the stores
+    // catalogueWipeState.generateWipeElements();
     for (const auto& el : catalogueWipeState.wipeElements()) {
         if (el->type() != WipeElementType::WIPE_UNKNOWN) {
             report->insertWipeElement(el);
         }
     }
 
-    for (const auto& [type, el] : aggregateStoreElements) {
-        if (type != WipeElementType::WIPE_UNKNOWN) {
-            report->insertWipeElement(el);
+    for (const auto& [storeURI, storeState] : storeWipeStates) {
+
+        // todo: since we create these here, remove the generating function.
+        // If any of this needs to be backend specific (so far, only the case for the cat, we can have the states do the
+        // insertion themselves.)
+        auto unknownURIs =
+            storeState
+                ->unrecognisedURIs();  // either we are aggregating the unknowns , or we are not. make up your mind.
+        if (!unknownURIs.empty()) {
+            report->insertWipeElement(std::make_shared<WipeElement>(
+                WipeElementType::WIPE_UNKNOWN, "Unexpected URIs present in store:", std::move(unknownURIs)));
+        }
+
+        auto dataURIs = storeState->dataURIs();
+        if (!dataURIs.empty()) {
+            report->insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE,
+                                                                    "Data URIs to delete:", std::move(dataURIs)));
+        }
+
+        auto auxURIs = storeState->dataAuxiliaryURIs();
+        if (!auxURIs.empty()) {
+            report->insertWipeElement(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
+                                                                    "Auxiliary URIs to delete:", std::move(auxURIs)));
         }
     }
+
 
     // gather the unknowns.
     // This can surely be done better...
     eckit::Log::info() << "WipeCoordinator::wipe - gathering unknown URIs" << std::endl;
     std::set<eckit::URI> unknownURIsSet;
-    std::vector<eckit::URI> unknownURIsCatalogue;
+    std::vector<eckit::URI> unknownURIsCatalogue;  // I think we ought to be using these in the first place...
     std::map<eckit::URI, std::vector<eckit::URI>> unknownURIsStore;
     for (const auto& [uri, storeURI] : unknownURIs) {
         unknownURIsSet.insert(uri);
@@ -420,6 +532,7 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
         }
     }
 
+    // I feel like we are reporting the unknowns in several places.
     auto el = std::make_shared<WipeElement>(WipeElementType::WIPE_UNKNOWN,
                                             "Unexpected entries in FDB database:", std::move(unknownURIsSet));
     report->insertWipeElement(el);
@@ -433,12 +546,17 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
         }
     }
 
-    if (error && doit) {
-        ASSERT(false);  /// xxx:: actual error
-        return report;
+    if (doit && unclean) {
+        throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 
-    if (doit && !error) {
+    // print all of unknownURIsSet
+    std::cout << "XXX, unknown URIs to wipe: " << std::endl;
+    for (const auto& uri : unknownURIsSet) {
+        std::cout << "   " << uri << std::endl;
+    }
+
+    if (doit && !unclean) {  // I'd love to put this in a doit function, called from outside.
         eckit::Log::info() << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
         // We shall do the following, in order:
         // - 1. mask any indexes that need masking.
@@ -451,25 +569,27 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
             CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config_);
 
 
-        // 1. Mask indexes TODO
+        // 1. XXX Mask indexes TODO
         // eckit::Log::info() << "WipeCoordinator::wipe - masking indexes" << std::endl;
-        // for (const auto& index : catalogueWipeState.indexesToMask()) {
-        //     catalogue->maskIndexEntry(index); // This is way too chatty for remote fdb. This should be one function
-        //     call. (Also, handler knows what indexes to match, probably, unless there's been an update.)
-        // }
+        for (const auto& index : catalogueWipeState.indexesToMask()) {
+            //     catalogue->maskIndexEntry(index); // This is way too chatty for remote fdb. This should be one
+            //     function call. (Also, handler knows what indexes to match, probably, unless there's been an update.)
+        }
 
         // 2. Wipe unknown files
+        // What was my reason for doing the unknowns first? I think it would be better to do the knowns.
         eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs"
-                           << std::endl;  // THE REST OF THE LOGIC ASSUMES WE ONLY DO THIS ON WIPE ALL!!!!!
+                           << std::endl;
+
+        //XXX: We probably shouldn't bother calling these functions if there are no unknown URIs.
         catalogue->wipeUnknown(unknownURIsCatalogue);
 
         for (const auto& [uri, storeState] : storeWipeStates) {
             const Store& store = storeState->store(config_);
 
-            // should this only be for wipe all? I think maybe...
             auto it = unknownURIsStore.find(uri);
             if (it == unknownURIsStore.end()) {
-                store.doWipeUnknownContents(std::vector<eckit::URI>{});
+                store.doWipeUnknownContents(std::vector<eckit::URI>{});  // what is the point of this?
             }
             else {
                 store.doWipeUnknownContents(it->second);

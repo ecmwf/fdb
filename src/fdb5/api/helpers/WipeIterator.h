@@ -47,16 +47,15 @@ enum WipeElementType {
     WIPE_CATALOGUE_INFO,
     WIPE_CATALOGUE,
     WIPE_CATALOGUE_SAFE,
-    WIPE_CATALOGUE_AUX,
+    WIPE_CATALOGUE_CONTROL,
 
     // Data URIs from catalogue to be sent to the stores. NB: I haven't ended up using these?
     // WIPE_INCLUDE,
     // WIPE_EXCLUDE,
 
-    WIPE_STORE_INFO,
-    WIPE_STORE_URI,
+    WIPE_STORE_INFO,  /// ~ unused
+    WIPE_STORE_URI,   // ~ unused
     WIPE_STORE,
-    WIPE_STORE_SAFE,
     WIPE_STORE_AUX,
 
     WIPE_UNKNOWN
@@ -96,14 +95,14 @@ private:  // methods
 
 private:  // members
 
-    WipeElementType type_{WIPE_UNKNOWN};
+    WipeElementType type_{WipeElementType::WIPE_UNKNOWN};
     std::string msg_;
     std::set<eckit::URI> uris_;
 };
 
 using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
 
-using WipeStateIterator = APIIterator<std::unique_ptr<CatalogueWipeState>>;
+using WipeStateIterator     = APIIterator<std::unique_ptr<CatalogueWipeState>>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
 using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;
 

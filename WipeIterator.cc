@@ -31,7 +31,7 @@ std::ostream& operator<<(std::ostream& s, const WipeElementType& t) {
         case WipeElementType::WIPE_CATALOGUE_SAFE:
             s << "WIPE_CATALOGUE_SAFE";
             break;
-        case WipeElementType::WIPE_CATALOGUE_AUX:
+        case WipeElementType::WIPE_CATALOGUE_CONTROL:
             s << "WIPE_CATALOGUE_AUX";
             break;
         case WipeElementType::WIPE_STORE_INFO:

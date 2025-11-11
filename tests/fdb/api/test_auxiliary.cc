@@ -1,4 +1,6 @@
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/api/FDB.h"
@@ -8,8 +10,6 @@
 namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-std::set<std::string> extensions = {"foo", "bar"};
 
 eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::string ext) {
     eckit::PathName auxpath(datapath + "." + ext);
@@ -23,13 +23,13 @@ eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::st
     return auxpath;
 }
 
-std::set<eckit::PathName> setup(FDB& fdb) {
+std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = {"foo", "bar"}) {
     // Setup: Write data, generating auxiliary files using the archive callback
     std::set<eckit::PathName> auxPaths;
-    fdb.registerArchiveCallback([&auxPaths](const Key& key, const void* data, size_t length,
-                                            std::future<std::shared_ptr<const FieldLocation>> future) {
+    fdb.registerArchiveCallback([&auxPaths, auxExtensions](const Key& key, const void* data, size_t length,
+                                                           std::future<std::shared_ptr<const FieldLocation>> future) {
         std::shared_ptr<const FieldLocation> location = future.get();
-        for (const auto& ext : extensions) {
+        for (const auto& ext : auxExtensions) {
             auxPaths.insert(writeAuxiliaryData(location->uri().path(), ext));
         }
     });
@@ -63,6 +63,27 @@ std::set<eckit::PathName> setup(FDB& fdb) {
     return auxPaths;
 }
 
+void expectEmpty(eckit::PathName dir) {
+
+    // If this directory exists, the wipe did not complete. Print some useful diagnostic info...
+    if (dir.exists()) {
+        std::cout << "err -- expected dir to no longer exist: " << dir << std::endl;
+
+        std::vector<eckit::PathName> allPaths;
+        StdDir(dir).children(allPaths);
+
+        if (allPaths.empty()) {
+            std::cout << "err -- (directory is empty)" << std::endl;
+        }
+
+        for (const eckit::PathName& path : allPaths) {
+            std::cout << "err -- unwiped path: " << path << std::endl;
+        }
+    }
+
+    EXPECT_NOT(dir.exists());
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Wipe with extensions") {
@@ -93,6 +114,65 @@ CASE("Wipe with extensions") {
     for (const auto& auxPath : auxPaths) {
         EXPECT(!auxPath.exists());
     }
+
+    // Check that all data and index files are gone, and the dir deleted.
+    expectEmpty(auxPaths.begin()->dirName());
+}
+
+
+CASE("Ensure wipe fails if extensions are unknown") {
+    eckit::TmpDir tmpdir(eckit::LocalPathName::cwd().c_str());
+    eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
+
+    eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
+    FDB fdb;
+    std::set<eckit::PathName> auxPaths =
+        setup(fdb, {"foo", "UNKNOWN"});  // Write ".UNKNOWN" files, which should prevent wipe.
+    EXPECT(auxPaths.size() == 6);
+    for (const auto& auxPath : auxPaths) {
+        EXPECT(auxPath.exists());
+    }
+
+    // call wipe
+    FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
+    bool doit              = true;
+    bool unsafeWipeAll     = false;
+    bool error_was_thrown  = false;
+
+    // Expect an error to be thrown when unsafeWipeAll is false.
+    try {
+        auto iter = fdb.wipe(request, doit, false, unsafeWipeAll);
+        std::unique_ptr<CatalogueWipeState> state;
+        while (iter.next(state)) {}
+    }
+    catch (eckit::Exception) {
+        error_was_thrown = true;
+    }
+    EXPECT(error_was_thrown);
+
+    // Check that the auxiliary files all still exist.
+    for (const auto& auxPath : auxPaths) {
+        EXPECT(auxPath.exists());
+    }
+
+    // Use unsafe wipe all to actually delete everything.
+    unsafeWipeAll = true;
+    auto iter     = fdb.wipe(request, doit, false, unsafeWipeAll);
+
+    std::unique_ptr<CatalogueWipeState> state;
+    while (iter.next(state)) {
+        for (auto elem : state->wipeElements()) {
+            eckit::Log::info() << elem;
+        }
+    }
+
+    // Check that the auxiliary files have been removed
+    for (const auto& auxPath : auxPaths) {
+        EXPECT(!auxPath.exists());
+    }
+
+    // Check that all data and index files are gone, and the dir deleted.
+    expectEmpty(auxPaths.begin()->dirName());
 }
 
 CASE("Purge with extensions") {

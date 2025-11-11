@@ -113,6 +113,7 @@ std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::set<eckit::URI>& 
     std::set<eckit::URI> res;
 
     for (auto& uri : uris) {
+        std::cout << "URI: " << uri << std::endl;
         ASSERT(uri.path().extension() == ".data");
         res.insert(uri);
     }
@@ -170,6 +171,7 @@ void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
+
         if (doit)
             path.rmdir(false);
     }
@@ -319,8 +321,8 @@ eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& e
 std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const {
     ASSERT(uri.scheme() == type());
     std::vector<eckit::URI> uris;
-    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
-        auto auxURI = getAuxiliaryURI(uri, e);
+    for (const auto& ext : LibFdb5::instance().auxiliaryRegistry()) {
+        auto auxURI = getAuxiliaryURI(uri, ext);
         if (!onlyExisting || auxiliaryURIExists(auxURI)) {
             uris.push_back(auxURI);
         }
@@ -390,20 +392,14 @@ void TocStore::remove(const Key& key) const {
 // store to be empty, and wish to remove the directory
 //  this happens when your wipe request is essentially the entire first level key.
 
-// this could operate on a wipestate object instead
+void TocStore::prepareWipe(StoreWipeState& storeState) {
 
-void TocStore::prepareWipe(StoreWipeState& storeState, bool all) {
+    const std::set<eckit::URI>& uris     = storeState.includeURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();  // excluded according to cat
 
-    const std::set<eckit::URI>& uris     = storeState.includeURIs();
-    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();
+    bool all = storeState.excludeURIs().empty();  // XXX: is this correct in a multi-store wipe?
 
-    WipeElements wipeElements;
-
-    std::set<eckit::URI> dataURIs;
-    std::set<eckit::URI> auxURIs;
-    std::set<eckit::URI> safeDataURIs;
-
-    for (const eckit::URI& uri : asCollocatedDataURIs(uris)) {
+    for (const eckit::URI& uri : asCollocatedDataURIs(uris)) {  // XXX - this prints an error but never raises?
         if (!uriBelongs(uri)) {
             Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store."
                          << std::endl;
@@ -413,9 +409,8 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool all) {
                          << std::endl;
             return;
         }
-        dataURIs.insert(uri);
 
-        /// @todo check if the URI exists
+        /// @todo XXX check if the URI exists
 
         // void TocStore::calculateResidualPaths() {
         //     for (std::set<PathName>* fileset : {&dataPaths_}) {
@@ -432,43 +427,29 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool all) {
 
         // }
 
+        // dataURIs.insert(uri);
+
+        // WE ought to only insert URIs which exist.
+        storeState.insertDataURI(uri);
+
+        // Add any existing auxiliary URIs
         for (const auto& au : getAuxiliaryURIs(uri, true)) {
-            auxURIs.insert(au);
+            storeState.insertAuxiliaryURI(au);
         }
     }
 
     if (all) {
-        std::set<eckit::URI> unknownURIs;
         std::vector<eckit::PathName> allPathsVector;
         StdDir(basePath()).children(allPathsVector);
         for (const eckit::PathName& uri : allPathsVector) {
             eckit::URI u("file", uri);
+            const auto& dataURIs = storeState.dataURIs();
+            const auto& auxURIs  = storeState.dataAuxiliaryURIs();
             if (dataURIs.find(u) == dataURIs.end() && auxURIs.find(u) == auxURIs.end() &&
                 safeURIs.find(u) == safeURIs.end()) {
-                unknownURIs.insert(u);
+                storeState.insertUnrecognised(u);
             }
         }
-        if (!unknownURIs.empty()) {
-            wipeElements.push_back(std::make_shared<WipeElement>(
-                WipeElementType::WIPE_UNKNOWN, "Unexpected files present in store:", std::move(unknownURIs)));
-        }
-    }
-
-    if (!dataURIs.empty()) {
-        wipeElements.push_back(
-            std::make_shared<WipeElement>(WipeElementType::WIPE_STORE, "Data files to delete:", std::move(dataURIs)));
-    }
-    if (!safeDataURIs.empty()) {
-        wipeElements.push_back(std::make_shared<WipeElement>(
-            WipeElementType::WIPE_STORE_SAFE, "Protected data files (explicitly untouched):", std::move(safeDataURIs)));
-    }
-    if (!auxURIs.empty()) {
-        wipeElements.push_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
-                                                             "Auxiliary files to delete:", std::move(auxURIs)));
-    }
-
-    for (const auto& el : wipeElements) {
-        storeState.insertWipeElement(el);
     }
 
     return;
@@ -485,28 +466,22 @@ bool TocStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownURIs)
 }
 
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
-    bool wipeAll = true;
 
-    const WipeElements& elements = wipeState.wipeElements();
-    for (const auto& el : elements) {
-        if (el->type() == WipeElementType::WIPE_STORE_SAFE && !el->uris().empty()) {
-            wipeAll = false;
-        }
+    for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+        std::cout << "XXX TocStore removing aux uri: " << uri << std::endl;
+        remove(uri, std::cout, std::cout, true);
+        std::cout << "done." << std::endl;
     }
 
-    for (const auto& el : elements) {
-        auto type = el->type();
-        if (type == WipeElementType::WIPE_STORE || type == WipeElementType::WIPE_STORE_AUX) {
-            for (const auto& uri : el->uris()) {
-                if (wipeAll) {
-                    emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
-                }
-                remove(uri, std::cout, std::cout, true);
-            }
+    for (const auto& uri : wipeState.dataURIs()) {
+        if (wipeState.wipeAll()) {
+            std::cout << "marking db as empty... probably should not do this here anymore" << std::endl;
+            emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
+            std::cout << "done." << std::endl;
         }
-        else {
-            std::cout << "TocStore::doWipe: skipping non-store/aux wipe element: " << *el << std::endl;
-        }
+        std::cout << "XXX TocStore removing regular uri: " << uri << std::endl;
+        remove(uri, std::cout, std::cout, true);
+        std::cout << "done." << std::endl;
     }
 
     return true;

@@ -516,7 +516,7 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 // high-level API for wipe/purge
 
 static uint64_t count = 0;
-void RemoteStore::prepareWipe(StoreWipeState& storeState, bool all) {
+void RemoteStore::prepareWipe(StoreWipeState& storeState) {
     count++;
     std::cout << "YYY RemoteStore::prepareWipe called " << count << " times" << std::endl;
     const std::set<eckit::URI>& uris     = storeState.includeURIs();
@@ -529,8 +529,8 @@ void RemoteStore::prepareWipe(StoreWipeState& storeState, bool all) {
     // sms << uris;
     // sms << safeURIs;
     sms << storeState;
-    sms << all;
-    // sms << unsafeAll; // why did we drop this?
+    sms << storeState.wipeAll();  // XXX: This is completely redundant now.
+    // sms << unsafeAll; // XXX: why did we drop this?
 
     auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, sms.position());
 
@@ -550,11 +550,14 @@ bool RemoteStore::doWipeUnknownContents(const std::vector<eckit::URI>& unknownUR
     eckit::MemoryStream sms(sendBuf);
     sms << unknownURIs.size();
     sms << unknownURIs;
-    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true, sendBuf, sms.position());
+    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, sms.position());
     return true;
 }
 
 bool RemoteStore::doWipe(StoreWipeState& wipeState) const {
+    // We really should be sending something here(?)
+    // This is telling the remote store to wipe its copy of the wipestate (signed by the cat)
+    // So, presumably we know for a fact this object has not changed?
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
     return true;
 }

@@ -338,7 +338,7 @@ CASE("dump_distributed_according_to_select") {
 
     // Explicitly match everything
     /// @TODO: -- This is no longer allowed! We should check that we raise an error!
-    
+
     // fdb.dump(fdb5::FDBToolRequest({}, true));
 
     // EXPECT(spy_od.counts().dump == 2);

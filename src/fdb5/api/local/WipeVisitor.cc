@@ -83,7 +83,6 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
-        // aggregateURIs(dataURI, include, *catalogueWipeState_);
         if (include) {
             catalogueWipeState_->include(dataURI);
         }
@@ -99,6 +98,8 @@ void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
     ASSERT(currentCatalogue_ == &catalogue);
 
     catalogue.wipeFinalise(*catalogueWipeState_);
+    catalogueWipeState_->lock();
+    catalogueWipeState_->buildStoreStates();  // Perhaps these should be built on the fly, when data uris are included.
 
     queue_.emplace(std::move(catalogueWipeState_));
     EntryVisitor::catalogueComplete(catalogue);

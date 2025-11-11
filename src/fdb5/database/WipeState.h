@@ -20,7 +20,7 @@
 
 
 namespace fdb5 {
-    
+
 class Catalogue;
 class Index;
 
@@ -87,6 +87,7 @@ public:
 
     const Key& dbKey() const { return dbKey_; }
 
+    // trying to phase this out...
     const WipeElements& wipeElements() const { return wipeElements_; }
     void insertWipeElement(const std::shared_ptr<WipeElement>& element) {
         // failIfSigned(); // Modifying wipe elements is fine. Modifying include/exclude URIs is not.
@@ -115,6 +116,56 @@ public:
 
     std::uint64_t hash(std::string secret) const;
 
+    const std::set<eckit::URI>& unrecognisedURIs() const { return unknownURIs_; }
+    void insertUnrecognised(const eckit::URI& uri) {
+        failIfSigned();
+        unknownURIs_.insert(uri);
+    }
+
+    virtual bool wipeAll() const {
+        return safeURIs_.empty();  // not really a concept for the store.
+    }
+
+
+    // No more uris may be marked as safe or for deletion.
+    void lock() {
+        locked = true;
+
+        // Also, perform a sanity check to ensure there is no overlap between the 3 sets.
+        for (auto& uri : deleteURIs_) {
+            ASSERT(safeURIs_.find(uri) == safeURIs_.end());
+        }
+
+        for (auto& uri : unknownURIs_) {
+            ASSERT(safeURIs_.find(uri) == safeURIs_.end());
+        }
+
+        for (auto& uri : unknownURIs_) {
+            ASSERT(deleteURIs_.find(uri) == deleteURIs_.end());
+        }
+    }
+
+
+    const std::set<eckit::URI>& safeURIs() const { return safeURIs_; }
+
+    const std::set<eckit::URI>& deleteURIs() const { return deleteURIs_; }
+
+    bool isNotMarkedAsSafe(const eckit::URI& uri) const { return safeURIs().find(uri) == safeURIs().end(); }
+
+    void markAsSafe(const std::set<eckit::URI>& uris) {
+        ASSERT(!locked);
+        safeURIs_.insert(uris.begin(), uris.end());
+    }
+
+    void markForDeletion(const std::set<eckit::URI>& uris) {
+        ASSERT(!locked);
+        deleteURIs_.insert(uris.begin(), uris.end());
+    }
+
+private:
+
+    void failIfSigned() const;
+
 protected:
 
     // I kinda don't like wipeElements at all.
@@ -124,13 +175,19 @@ protected:
     std::set<eckit::URI> includeDataURIs_;
     std::set<eckit::URI> excludeDataURIs_;
 
+    std::set<eckit::URI> unknownURIs_;
+
     // For finding the catalogue again later.
     Signature signature_;
     Key dbKey_;
 
 private:
 
-    void failIfSigned() const;
+    std::set<eckit::URI> safeURIs_;  // files explicitly not to be deleted. // <-- I dont think the store has any reason
+                                     // to mark anything as safe. Just delete and unrecognised.
+    std::set<eckit::URI> deleteURIs_;  // files that will be deleted. // <-- for the store, this is mostly predetermined
+                                       // by the catalogue, with the exception of auxiliary files!.
+    bool locked = false;
 };
 
 /* ------------------------------ StoreWipeState ------------------------------ */
@@ -152,10 +209,22 @@ public:
 
     const eckit::URI& storeURI() const { return storeURI_; }
 
+    const std::set<eckit::URI>& dataURIs() const { return dataURIs_; }
+    void insertDataURI(const eckit::URI& uri) { dataURIs_.insert(uri); }
+
+    const std::set<eckit::URI>& dataAuxiliaryURIs() const { return auxURIs_; }
+    void insertAuxiliaryURI(const eckit::URI& uri) { auxURIs_.insert(uri); }
+
+    bool ownsURI(const eckit::URI& uri) const;
+
+
 private:
 
     eckit::URI storeURI_;
     mutable std::unique_ptr<Store> store_;
+
+    std::set<eckit::URI> dataURIs_;
+    std::set<eckit::URI> auxURIs_;
 };
 
 class CatalogueWipeState : public WipeState {
@@ -183,12 +252,22 @@ public:
 
     void signStoreStates(std::string secret);
 
+    void generateWipeElements();
+
+    bool ownsURI(const eckit::URI& uri) const;
+
+
 protected:
 
     std::vector<Index> indexesToMask_ = {};
     mutable StoreStates storeWipeStates_;
+
+    std::set<eckit::URI> catalogueURIs_;     // e.g. tocs, subtocs
+    std::set<eckit::URI> auxCatalogueURIs_;  // e.g. schema, lock files.
+    std::set<eckit::URI> indexURIs_;  // .index files
+    std::string info_;                // Additional info about this particular catalogue (e.g. owner)
 };
-class TocWipeState : public CatalogueWipeState {
+class TocWipeState : public CatalogueWipeState {  // Im not entirely convinced I need this.
 public:
 
     TocWipeState(const Key& dbKey) : CatalogueWipeState(dbKey) {}
@@ -197,7 +276,7 @@ private:
 
     friend class TocCatalogue;
 
-    // XXX ENSURE WE USE THESE!!!
+    // XXX ENSURE WE USE THESE!!! Or remove them. I think many / all can be removed
     // Probably ought to be encoding them too, if the client cares. Maybe not.
     std::set<eckit::URI> subtocPaths_         = {};
     std::set<eckit::PathName> lockfilePaths_  = {};
