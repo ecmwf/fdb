@@ -12,12 +12,12 @@ import findlibs
 
 findlibs.load("fdb5")
 
-from .pyfdb_type import URI, FDBToolRequest, Config, DataHandle
-from .pyfdb import PyFDB
+from pyfdb.pyfdb_type import URI, FDBToolRequest, Config, DataHandle
+from pyfdb.pyfdb import PyFDB
 
-from ._internal import MarsRequest
+from pyfdb._internal import MarsRequest
 
-from .pyfdb_iterator import (
+from pyfdb.pyfdb_iterator import (
     ListElement,
     WipeElement,
     StatusElement,

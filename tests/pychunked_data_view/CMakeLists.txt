@@ -8,7 +8,7 @@ function(add_py_test test)
             -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/${test}
     )
     set(_env
-        "PYTHONPATH=${CMAKE_BINARY_DIR}/z3fdb-python-package-staging"
+        "PYTHONPATH=${CMAKE_BINARY_DIR}/z3fdb-python-package-staging:${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:${PYTHONPATH}"
         #prevent findlibs in pyfdb to pickup any globally installed fdb
         "FDB5_DIR=${CMAKE_BINARY_DIR}"
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes

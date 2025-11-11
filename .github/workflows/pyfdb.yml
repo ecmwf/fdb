@@ -1,12 +1,8 @@
-name: Build and Test z3fdb
+name: Build and Test PyFDB
 
 on:
   pull_request:
   workflow_dispatch:  # Allows manual trigger
-  workflow_run:
-    workflows: ["Build and Test PyFDB"]
-    types:
-      - completed
 
 jobs:
   prepare-deps:
@@ -131,14 +127,15 @@ jobs:
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DENABLE_TOOLS=ON \
-            -DENABLE_PYTHON_ZARR_INTERFACE=ON
+            -DENABLE__INTERFACE=ON
           cmake --build fdb-build -j
           cd fdb-build
           ctest -j $(nproc) --output-on-failure
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
-          name: z3fdb-wheel-py${{ matrix.python-version }}
-          path: "fdb-build/z3fdb-*.whl"
+          name: pyfdb-wheel-py${{ matrix.python-version }}
+          path: "fdb-build/pyfdb-*.whl"
           retention-days: 10
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+
