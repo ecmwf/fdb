@@ -123,9 +123,11 @@ public:
     Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait);
 
     void init();
+    void fini();
     void barrier();
 
 private:
+    void electLeaderProcess();
     void barrierInternode();
     void barrierIntranode();
 
@@ -136,9 +138,14 @@ private:
     int max_wait_;
 
     std::string hostname_;
+    eckit::PathName wait_fifo_;
+    eckit::PathName barrier_fifo_;
+    eckit::PathName pid_file_;
     std::vector<eckit::net::TCPSocket> server_connections_;
     eckit::net::TCPSocket client_connection_;
 
+    bool is_leader_process_ = false;
+    bool is_leader_node_ = false;
     bool init_ = false;
 
 };
@@ -150,12 +157,113 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
 
     ASSERT(nodes_.size() > 0);
 
+    if (nodes_.size() == 1) ASSERT(hostname_ == nodes_[0]);
+
+    uid_t uid = ::getuid();
+    eckit::Translator<uid_t, std::string> uid_to_str;
+    eckit::PathName default_run_path{"/var/run/user"};
+    default_run_path /= uid_to_str(uid);
+
+    eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", default_run_path));
+
+    wait_fifo_ = run_path / "fdb-hammer.wait.fifo";
+
+    barrier_fifo_ = run_path / "fdb-hammer.barrier.fifo";
+
+    pid_file_ = run_path / "fdb-hammer.pid";
+
+}
+
+void Barrier::electLeaderProcess() {
+
+    bool leader_found = false;
+    while (!leader_found) {
+
+        /// attempt exclusive create of an application-unique file
+        int fd;
+        fd = ::open(pid_file_.localPath(), O_EXCL | O_CREAT | O_WRONLY, 0666);
+        if (fd < 0 && errno != EEXIST)
+            throw eckit::FailedSystemCall("open", Here(), errno);
+
+        if (fd >= 0) {
+
+            /// if succeeded, this process is the leader
+            is_leader_process_ = true;
+
+            /// a pair of FIFOs are created. One for clients to communicate the leader they are
+            ///   waiting, and another to open in blocking mode until leader opens it for write
+            ///   once it has synchronised with peer nodes
+            if (wait_fifo_.exists())
+                wait_fifo_.unlink();
+            SYSCALL(::mkfifo(wait_fifo_.localPath(), 0666));
+
+            if (barrier_fifo_.exists())
+                barrier_fifo_.unlink();
+            SYSCALL(::mkfifo(barrier_fifo_.localPath(), 0666));
+
+            /// the leader PID is written into the file
+            SYSCALL(::close(fd));
+            std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
+            eckit::HandleStream hs{*fh};
+            fh->openForWrite(eckit::Length(sizeof(long)));
+            {
+                eckit::AutoClose closer(*fh);
+                hs << (long)::getpid();
+            }
+
+        }
+        else {
+
+            /// otherwise, the process is a client
+
+            /// the leader PID is read from the file
+            std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
+            eckit::HandleStream hs{*fh};
+            long pid;
+            eckit::Length size = fh->openForRead();
+            {
+                eckit::AutoClose closer(*fh);
+                /// the PID file may be empty if trying too soon
+                if (size == eckit::Length(0)) {
+                    fh->close();
+                    ::sleep(1);
+                    size = fh->openForRead();
+                }
+                if (size == eckit::Length(0)) {
+                    throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
+                }
+                hs >> pid;
+            }
+            pid_t leader_pid = (long)pid;
+
+            /// the leadr PID is checked to exist. If not, clean up and
+            /// restart election procedure
+            if (::kill(leader_pid, 0) != 0) {
+                try {
+                    pid_file_.unlink();
+                }
+                catch (eckit::FailedSystemCall& e) {
+                    if (errno != ENOENT)
+                        throw;
+                }
+                continue;
+            }
+
+        }
+
+        leader_found = true;
+    }
+
 }
 
 void Barrier::init() {
 
-    if (nodes_.size() == 1) {
-        ASSERT(hostname_ == nodes_[0]);
+    electLeaderProcess();
+
+    // if this process is the intranode leader process and there are multiple nodes,
+    // establish TCP connections between all intranode leader processes.
+
+    if (!is_leader_process_ || nodes_.size() == 1) {
         init_ = true;
         return;
     }
@@ -163,6 +271,7 @@ void Barrier::init() {
     if (hostname_ == nodes_[0]) {
 
         // this is the leader node
+        is_leader_node_ = true;
 
         // accept as many connections as peer nodes, on the designated port.
 
@@ -185,6 +294,16 @@ void Barrier::init() {
     }
 
     init_ = true;
+
+}
+
+void Barrier::fini() {
+
+    if (init_ && is_leader_process_) {
+        wait_fifo_.unlink(false);
+        barrier_fifo_.unlink(false);
+        pid_file_.unlink(false);
+    }
 
 }
 
@@ -230,191 +349,98 @@ void Barrier::barrierInternode() {
 
 void Barrier::barrierIntranode() {
 
-    bool leader_found = false;
-    while (!leader_found) {
+    if (is_leader_process_) {
 
-        uid_t uid = ::getuid();
-        eckit::Translator<uid_t, std::string> uid_to_str;
-        eckit::PathName default_run_path{"/var/run/user"};
-        default_run_path /= uid_to_str(uid);
-
-        eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", default_run_path));
-
-        eckit::PathName wait_fifo = run_path;
-        wait_fifo /= "fdb-hammer.wait.fifo";
-
-        eckit::PathName barrier_fifo = run_path;
-        barrier_fifo /= "fdb-hammer.barrier.fifo";
-
-        /// attempt exclusive create of an application-unique file
-        eckit::PathName pid_file = run_path;
-        pid_file /= "fdb-hammer.pid";
-
-        int fd;
-        fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY, 0666);
-        if (fd < 0 && errno != EEXIST)
-            throw eckit::FailedSystemCall("open", Here(), errno);
-
-        if (fd >= 0) {
-
-            /// if succeeded, this process is the leader
-
-            /// a pair of FIFOs are created. One for clients to communicate the leader they are
-            ///   waiting, and another to open in blocking mode until leader opens it for write
-            ///   once it has synchronised with peer nodes
-            if (wait_fifo.exists())
-                wait_fifo.unlink();
-            SYSCALL(::mkfifo(wait_fifo.localPath(), 0666));
-
-            if (barrier_fifo.exists())
-                barrier_fifo.unlink();
-            SYSCALL(::mkfifo(barrier_fifo.localPath(), 0666));
-
-            /// the leader PID is written into the file
-            SYSCALL(::close(fd));
-            std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
-            eckit::HandleStream hs{*fh};
-            fh->openForWrite(eckit::Length(sizeof(long)));
-            {
-                eckit::AutoClose closer(*fh);
-                hs << (long)::getpid();
+        /// a signal from each peer process in the node is received
+        std::vector<char> message = {'S', 'I', 'G'};
+        std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo_.fileHandle());
+        /// TODO: handle errors and no-replies on open as well as on read and unlink
+        fh_wait->openForRead();
+        {
+            eckit::AutoClose closer(*fh_wait);
+            size_t pending = ppn_ - 1;
+            while (pending > 0) {
+                message = {'0', '0', '0'};
+                ASSERT(fh_wait->read(&message[0], message.size()) == message.size());
+                ASSERT(std::string(message.begin(), message.end()) == "SIG");
+                --pending;
             }
+        }
 
-            /// a signal from each peer process in the node is received
-            std::vector<char> message = {'S', 'I', 'G'};
-            std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo.fileHandle());
-            /// TODO: handle errors and no-replies on open as well as on read and unlink
-            fh_wait->openForRead();
-            {
-                eckit::AutoClose closer(*fh_wait);
+        /// once all processes in the node are ready, barrier with peer nodes
+        std::exception_ptr eptr;
+        try {
+            eckit::Timer barrier_timer;
+            barrier_timer.start();
+            barrierInternode();
+            barrier_timer.stop();
+            // barrier_timer.reset("Inter-node barrier");
+        }
+        catch (...) {
+            eptr = std::current_exception();
+        }
+
+        /// once all nodes are ready, open the barrier fifo for write which will
+        ///   release all waiting peer processes in the node
+        std::unique_ptr<eckit::DataHandle> fh_barrier(barrier_fifo_.fileHandle());
+        /// TODO: handle errors and no-replies on open as well as unlink
+        fh_barrier->openForWrite(eckit::Length(0));
+        {
+            eckit::AutoClose closer(*fh_barrier);
+            /// if the inter-node barrier failed, notify the clients via the barrier fifo
+            if (eptr) {
+                message        = {'S', 'I', 'G'};
                 size_t pending = ppn_ - 1;
                 while (pending > 0) {
-                    message = {'0', '0', '0'};
-                    ASSERT(fh_wait->read(&message[0], message.size()) == message.size());
-                    ASSERT(std::string(message.begin(), message.end()) == "SIG");
+                    ASSERT(fh_barrier->write(&message[0], message.size()) == message.size());
                     --pending;
                 }
             }
-            /// remove the wait fifo
-            wait_fifo.unlink(false);
-
-            /// once all processes in the node are ready, barrier with peer nodes
-            std::exception_ptr eptr;
-            try {
-                eckit::Timer barrier_timer;
-                barrier_timer.start();
-                barrierInternode();
-                barrier_timer.stop();
-                // barrier_timer.reset("Inter-node barrier");
-            }
-            catch (...) {
-                eptr = std::current_exception();
-            }
-
-            /// once all nodes are ready, open the barrier fifo for write which will
-            ///   release all waiting peer processes in the node
-            std::unique_ptr<eckit::DataHandle> fh_barrier(barrier_fifo.fileHandle());
-            /// TODO: handle errors and no-replies on open as well as unlink
-            fh_barrier->openForWrite(eckit::Length(0));
-            {
-                eckit::AutoClose closer(*fh_barrier);
-                /// if the inter-node barrier failed, notify the clients via the barrier fifo
-                if (eptr) {
-                    message        = {'S', 'I', 'G'};
-                    size_t pending = ppn_ - 1;
-                    while (pending > 0) {
-                        ASSERT(fh_barrier->write(&message[0], message.size()) == message.size());
-                        --pending;
-                    }
-                }
-            }
-
-            /// remove the barrier fifo
-            barrier_fifo.unlink(false);
-
-            pid_file.unlink(false);
-
-            /// throw if the inter-node barrier failed
-            if (eptr)
-                std::rethrow_exception(eptr);
         }
-        else {
 
-            /// otherwise, the process is a client
+        /// throw if the inter-node barrier failed
+        if (eptr)
+            std::rethrow_exception(eptr);
+    }
+    else {
 
-            /// the leader PID is read from the file
-            std::unique_ptr<eckit::DataHandle> fh(pid_file.fileHandle());
-            eckit::HandleStream hs{*fh};
-            long pid;
-            eckit::Length size = fh->openForRead();
-            {
-                eckit::AutoClose closer(*fh);
-                /// the PID file may be empty if trying too soon
-                if (size == eckit::Length(0)) {
-                    fh->close();
-                    ::sleep(1);
-                    size = fh->openForRead();
-                }
-                if (size == eckit::Length(0)) {
-                    throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
-                }
-                hs >> pid;
-            }
-            pid_t leader_pid = (long)pid;
+        /// wait for leader to open barrier FIFO to signal barrier end
+        auto future = std::async(std::launch::async, [this]() {
+            try {
+                /// TODO: handle errors and no-replies on opens as well as on write
+                /// NOTE: cannot use FileHandle.openForRead as it internally performs
+                ///   an estimate() on the fifo which may have been removed by leader.
+                int fd;
+                SYSCALL(fd = ::open(barrier_fifo_.localPath(), O_RDONLY));
+                eckit::FileDescHandle fh_barrier(fd, true);
 
-            /// the leadr PID is checked to exist. If not, clean up and
-            /// restart election procedure
-            if (::kill(leader_pid, 0) != 0) {
-                try {
-                    pid_file.unlink();
-                }
-                catch (eckit::FailedSystemCall& e) {
-                    if (errno != ENOENT)
-                        throw;
-                }
-                continue;
-            }
-
-            /// wait for leader to open barrier FIFO to signal barrier end
-            auto future = std::async(std::launch::async, [barrier_fifo]() {
-                try {
-                    /// TODO: handle errors and no-replies on opens as well as on write
-                    /// NOTE: cannot use FileHandle.openForRead as it internally performs
-                    ///   an estimate() on the fifo which may have been removed by leader.
-                    int fd;
-                    SYSCALL(fd = ::open(barrier_fifo.localPath(), O_RDONLY));
-                    eckit::FileDescHandle fh_barrier(fd, true);
-
-                    /// check for any errors reported by leader
-                    std::vector<char> message = {'0', '0', '0'};
-                    long bytes                = fh_barrier.read(&message[0], message.size());
-                    if (bytes > 0) {
-                        ASSERT(bytes == message.size());
-                        ASSERT(std::string(message.begin(), message.end()) == "SIG");
-                        return false;
-                    }
-
-                    /// fd is autoclosed
-                    return true;
-                }
-                catch (std::exception& e) {
+                /// check for any errors reported by leader
+                std::vector<char> message = {'0', '0', '0'};
+                long bytes                = fh_barrier.read(&message[0], message.size());
+                if (bytes > 0) {
+                    ASSERT(bytes == message.size());
+                    ASSERT(std::string(message.begin(), message.end()) == "SIG");
                     return false;
                 }
-            });
 
-            /// signal the leader this process is waiting
-            std::vector<char> message = {'S', 'I', 'G'};
-            std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo.fileHandle());
-            // eckit::HandleStream hs_wait{*fh_wait};
-            fh_wait->openForWrite(eckit::Length(sizeof(long)));
-            eckit::AutoClose closer(*fh_wait);
-            ASSERT(fh_wait->write(&message[0], message.size()) == message.size());
+                /// fd is autoclosed
+                return true;
+            }
+            catch (std::exception& e) {
+                return false;
+            }
+        });
 
-            if (!future.get())
-                throw eckit::Exception("Error receiving response from barrier leader process.");
-        }
+        /// signal the leader this process is waiting
+        std::vector<char> message = {'S', 'I', 'G'};
+        std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo_.fileHandle());
+        // eckit::HandleStream hs_wait{*fh_wait};
+        fh_wait->openForWrite(eckit::Length(sizeof(long)));
+        eckit::AutoClose closer(*fh_wait);
+        ASSERT(fh_wait->write(&message[0], message.size()) == message.size());
 
-        leader_found = true;
+        if (!future.get())
+            throw eckit::Exception("Error receiving response from barrier leader process.");
     }
 
 }
@@ -1254,6 +1280,7 @@ void FDBHammer::executeWrite() {
         };
         barrier.init();
         barrier.barrier();
+        barrier.fini();
         barrier_timer.stop();
         // barrier_timer.reset("Barrier pre-step 0");
 
