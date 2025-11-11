@@ -13,12 +13,11 @@ import pathlib
 import shutil
 
 import eccodes as ec
-from numpy import repeat
-import pyfdb
 import pytest
 import yaml
+from numpy import repeat
 
-from pyfdb.pyfdb import PyFDB
+from pyfdb import PyFDB
 
 
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:

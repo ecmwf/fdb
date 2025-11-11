@@ -136,6 +136,11 @@ if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
     find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 endif()
 
+# We need pyfdb in case z3fdb is enabled
+if(HAVE_PYTHON_ZARR_INTERFACE)
+    set(HAVE_PYTHON_FDB_INTERFACE ON)
+endif()
+
 
 ### build the tools
 
