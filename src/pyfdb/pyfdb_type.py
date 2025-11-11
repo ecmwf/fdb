@@ -24,7 +24,7 @@ Selection part of a MARS request.
 
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 """
-type MarsSelection = Dict[str, str]
+MarsSelection = Dict[str, str]
 
 
 class FDBToolRequest:
