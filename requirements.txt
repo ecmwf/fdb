@@ -5,3 +5,4 @@ pytest-asyncio
 eccodes
 build
 setuptools
+GitPython

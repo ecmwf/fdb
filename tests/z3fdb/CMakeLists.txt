@@ -14,6 +14,7 @@ function(add_py_test test)
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=${CMAKE_BINARY_DIR}"
+        "LD_DEBUG=libs"
     )
     set_tests_properties(pychunked_data_view_${stem}
         PROPERTIES
