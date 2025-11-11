@@ -111,7 +111,7 @@ public:
     virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
 
     virtual bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe(const CatalogueWipeState& wipeState) const             = 0;
+    virtual bool doWipe(const CatalogueWipeState& wipeState) const          = 0;
 
     virtual void doWipeEmptyDatabases() const = 0;
 

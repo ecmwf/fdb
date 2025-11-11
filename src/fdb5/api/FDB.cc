@@ -38,6 +38,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeCoordinator.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"

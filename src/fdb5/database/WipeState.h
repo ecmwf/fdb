@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2025- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -272,8 +272,8 @@ protected:
 
     std::set<eckit::URI> catalogueURIs_;     // e.g. tocs, subtocs
     std::set<eckit::URI> auxCatalogueURIs_;  // e.g. schema, lock files.
-    std::set<eckit::URI> indexURIs_;  // .index files
-    std::string info_;                // Additional info about this particular catalogue (e.g. owner)
+    std::set<eckit::URI> indexURIs_;         // .index files
+    std::string info_;                       // Additional info about this particular catalogue (e.g. owner)
 };
 class TocWipeState : public CatalogueWipeState {  // Im not entirely convinced I need this.
 public:
@@ -299,53 +299,5 @@ private:
 
 
 // ------------------------------------------------------------------------------------------------------
-
-class WipeCoordinator {
-public:
-
-    struct UnknownsBuckets {
-        std::map<eckit::URI, std::set<eckit::URI>> store; // store -> URIs
-        std::set<eckit::URI> catalogue;                      // owned by nobody (no store, not catalogue)
-    };
-
-public:
-
-    WipeCoordinator(const Config& config) : config_(config) {}
-
-    // just a place for the wipe logic to live
-
-    // returns a WipeState to be used for reporting to the client.
-    std::unique_ptr<CatalogueWipeState> wipe(const CatalogueWipeState& catalogueState, bool doit,
-                                             bool unsafeWipeAll) const;
-
-    std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
-
-private: 
-
-
-
-    UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState, const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
-
-    // This being a CatalogueWipeState is odd.
-    std::unique_ptr<CatalogueWipeState> generateReport(
-        const CatalogueWipeState& catalogueWipeState, 
-        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-        // const std::set<eckit::URI>& unknownURIsSet,
-        const UnknownsBuckets& unknownURIs,
-        bool unsafeWipeAll
-    ) const;
-
-
-    void doWipe(
-        const CatalogueWipeState& catalogueWipeState, 
-        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-        const UnknownsBuckets& unknownURIs,
-        bool unsafeWipeAll) const;
-
-private:
-
-    const Config& config_;
-};
-
 
 }  // namespace fdb5

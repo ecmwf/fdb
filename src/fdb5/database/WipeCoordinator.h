@@ -1,0 +1,64 @@
+/*
+ * (C) Copyright 2025- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+#pragma once
+
+#include <memory>
+#include "eckit/filesystem/URI.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/WipeState.h"
+
+namespace fdb5 {
+
+
+// Class for coordinating fdb.wipe across catalogue and stores
+class WipeCoordinator {
+public:
+
+    struct UnknownsBuckets {
+        std::map<eckit::URI, std::set<eckit::URI>> store; // store -> URIs
+        std::set<eckit::URI> catalogue;                   // owned by nobody (no store, not catalogue)
+    };
+
+public:
+
+    WipeCoordinator(const Config& config) : config_(config) {}
+
+    // returns a WipeState to be used for reporting to the client.
+    std::unique_ptr<CatalogueWipeState> wipe(const CatalogueWipeState& catalogueState, bool doit,
+                                             bool unsafeWipeAll) const;
+
+    std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
+
+private: 
+
+    UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState, const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
+
+    // This being a CatalogueWipeState is odd.
+    std::unique_ptr<CatalogueWipeState> generateReport(
+        const CatalogueWipeState& catalogueWipeState, 
+        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+        const UnknownsBuckets& unknownURIs,
+        bool unsafeWipeAll
+    ) const;
+
+
+    void doWipe(
+        const CatalogueWipeState& catalogueWipeState, 
+        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+        const UnknownsBuckets& unknownURIs,
+        bool unsafeWipeAll) const;
+
+private:
+
+    const Config& config_;
+};
+
+}  // namespace fdb5
