@@ -17,9 +17,11 @@
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/io/FileDescHandle.h"
+#include "eckit/io/FileLock.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/StdFile.h"
 #include "eckit/log/TimeStamp.h"
@@ -121,14 +123,14 @@ class Barrier {
 
 public:
 
-    Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait);
+    Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait, bool report);
 
-    void init();
-    void fini();
+    void finalise();
     void barrier();
 
 private:
 
+    void init();
     void electLeaderProcess();
     void barrierInternode();
     void barrierIntranode();
@@ -138,28 +140,31 @@ private:
     size_t ppn_;
     const std::vector<std::string>& nodes_;
     int port_;
-    int max_wait_;
+    int maxWait_;
 
     std::string hostname_;
-    eckit::PathName wait_fifo_;
-    eckit::PathName barrier_fifo_;
-    eckit::PathName pid_file_;
-    std::vector<eckit::net::TCPSocket> server_connections_;
-    eckit::net::TCPSocket client_connection_;
+    bool report_;
 
-    bool is_leader_process_ = false;
-    bool is_leader_node_    = false;
-    bool init_              = false;
+    eckit::PathName waitFifo_;
+    eckit::PathName barrierFifo_;
+    eckit::PathName pidFile_;
+    std::vector<eckit::net::TCPSocket> serverConnections_;
+    eckit::net::TCPSocket clientConnection_;
+    std::unique_ptr<eckit::Timer> timer_;
+
+    bool isLeaderProcess_ = false;
+    bool isLeaderNode_    = false;
+    bool init_            = false;
 };
 
-Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait) :
+Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait, bool report) :
     ppn_(ppn),
     nodes_(nodes),
     port_(port),
-    max_wait_(max_wait),
-    server_connections_(nodes_.size() ? (nodes_.size() - 1) : 0) {
-
-    hostname_ = Main::hostname();
+    maxWait_(max_wait),
+    hostname_(Main::hostname()),
+    report_(report),
+    serverConnections_(nodes_.size() ? (nodes_.size() - 1) : 0) {
 
     ASSERT(nodes_.size() > 0);
 
@@ -173,69 +178,74 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
 
     eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", default_run_path));
 
-    wait_fifo_ = run_path / "fdb-hammer.wait.fifo";
+    waitFifo_ = run_path / "fdb-hammer.wait.fifo";
 
-    barrier_fifo_ = run_path / "fdb-hammer.barrier.fifo";
+    barrierFifo_ = run_path / "fdb-hammer.barrier.fifo";
 
-    pid_file_ = run_path / "fdb-hammer.pid";
+    pidFile_ = run_path / "fdb-hammer.pid";
+
+    timer_ = std::make_unique<eckit::Timer>();
 }
 
 void Barrier::electLeaderProcess() {
 
-        /// create an application-unique PID file if not exists, and lock it
-        eckit::FileLock flock{pid_file_};
-        flock.lock();
+    /// create an application-unique PID file if not exists, and lock it
+    eckit::FileLock flock{pidFile_};
+    flock.lock();
 
-        /// the leader PID is read from the file
-        std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
-        eckit::HandleStream hs{*fh};
-        long pid = 0;
-        eckit::Length size = fh->openForRead();
+    /// the leader PID is read from the file
+    std::unique_ptr<eckit::DataHandle> fh(pidFile_.fileHandle());
+    eckit::HandleStream hs{*fh};
+    long pid           = 0;
+    eckit::Length size = fh->openForRead();
+    {
+        eckit::AutoClose closer(*fh);
+        if (size > eckit::Length(0))
+            hs >> pid;
+    }
+    pid_t leader_pid = (long)pid;
+
+    /// if no PID is found or the PID does not exist, this process becomes the leader
+    if (size == eckit::Length(0) || ::kill(leader_pid, 0) != 0) {
+        isLeaderProcess_ = true;
+
+        /// a pair of FIFOs are created. One for clients to communicate the leader they are
+        ///   waiting, and another to open in blocking mode until leader opens it for write
+        ///   once it has synchronised with peer nodes
+        if (waitFifo_.exists())
+            waitFifo_.unlink();
+        SYSCALL(::mkfifo(waitFifo_.localPath(), 0666));
+
+        if (barrierFifo_.exists())
+            barrierFifo_.unlink();
+        SYSCALL(::mkfifo(barrierFifo_.localPath(), 0666));
+
+        /// the leader PID is written into the file
+        LocalPathName{pidFile_}.truncate(eckit::Length(0));
+        ASSERT(fh->isEmpty());
+        eckit::HandleStream hs_write{*fh};
+        fh->openForWrite(eckit::Length(sizeof(long)));
         {
             eckit::AutoClose closer(*fh);
-            if (size > eckit::Length(0)) hs >> pid;
+            hs_write << (long)::getpid();
         }
-        pid_t leader_pid = (long)pid;
+    }
 
-        /// if no PID is found or the PID does not exist, this process becomes the leader
-        if (size == 0 || ::kill(leader_pid, 0) != 0) {
-            is_leader_process_ = true;
-
-            /// a pair of FIFOs are created. One for clients to communicate the leader they are
-            ///   waiting, and another to open in blocking mode until leader opens it for write
-            ///   once it has synchronised with peer nodes
-            if (wait_fifo_.exists())
-                wait_fifo_.unlink();
-            SYSCALL(::mkfifo(wait_fifo_.localPath(), 0666));
-
-            if (barrier_fifo_.exists())
-                barrier_fifo_.unlink();
-            SYSCALL(::mkfifo(barrier_fifo_.localPath(), 0666));
-
-            /// the leader PID is written into the file
-            pid_file_.truncate();
-            ASSERT(fh->isEmpty());
-            eckit::HandleStream hs_write{*fh};
-            fh->openForWrite(eckit::Length(sizeof(long)));
-            {
-                eckit::AutoClose closer(*fh);
-                hs_write << (long)::getpid();
-            }
-        }
-
-        /// unlock the PID file
-        flock.unlock();
-
+    /// unlock the PID file
+    flock.unlock();
 }
 
 void Barrier::init() {
+
+    if (init_)
+        return;
 
     electLeaderProcess();
 
     // if this process is the intranode leader process and there are multiple nodes,
     // establish TCP connections between all intranode leader processes.
 
-    if (!is_leader_process_ || nodes_.size() == 1) {
+    if (!isLeaderProcess_ || nodes_.size() == 1) {
         init_ = true;
         return;
     }
@@ -243,14 +253,14 @@ void Barrier::init() {
     if (hostname_ == nodes_[0]) {
 
         // this is the leader node
-        is_leader_node_ = true;
+        isLeaderNode_ = true;
 
         // accept as many connections as peer nodes, on the designated port.
 
         eckit::net::TCPServer server(port_);
 
-        for (int i = 0; i < server_connections_.size(); ++i) {
-            server_connections_[i] = server.accept("Waiting for connection", max_wait_);
+        for (int i = 0; i < serverConnections_.size(); ++i) {
+            serverConnections_[i] = server.accept("Waiting for connection", maxWait_);
         }
 
         // the TCPServer is auto-closed
@@ -261,30 +271,39 @@ void Barrier::init() {
         /// until timeout. This could be adjusted to retry more frequently.
 
         eckit::net::TCPClient client;
-        client_connection_ = client.connect(nodes_[0], port_, max_wait_, 0, 1);
+        clientConnection_ = client.connect(nodes_[0], port_, maxWait_, 0, 1);
     }
 
     init_ = true;
 }
 
-void Barrier::fini() {
+void Barrier::finalise() {
 
-    if (init_ && is_leader_process_) {
-        wait_fifo_.unlink(false);
-        barrier_fifo_.unlink(false);
-        pid_file_.unlink(false);
+    if (init_ && isLeaderProcess_) {
+        waitFifo_.unlink(false);
+        barrierFifo_.unlink(false);
+        pidFile_.unlink(false);
     }
+
+    if (report_)
+        timer_->report("Barrier time");
+    timer_ = std::make_unique<eckit::Timer>();
 }
 
 void Barrier::barrier() {
 
-    ASSERT(init_);
+    timer_->start();
+
+    if (!init_)
+        init();
 
     // If there is only one process per node, we don't need the intra-node barrier
     if (ppn_ == 1)
         return barrierInternode();
 
     barrierIntranode();
+
+    timer_->stop();
 }
 
 /// implementation of internode barrier using TCP sockets.
@@ -297,7 +316,7 @@ void Barrier::barrierInternode() {
         // send barrier end signal to all clients.
 
         const char message[] = {'E', 'N', 'D'};
-        for (auto& socket : server_connections_) {
+        for (auto& socket : serverConnections_) {
             socket.write(&message[0], sizeof(message));
             socket.closeOutput();  /// ensure all data is sent
         }
@@ -309,18 +328,18 @@ void Barrier::barrierInternode() {
         // Wait for barrier end
 
         std::array<char, 3> message;
-        long read = client_connection_.read(message.data(), message.size());
+        long read = clientConnection_.read(message.data(), message.size());
         ASSERT(::memcmp("END", message.data(), message.size()) == 0);
     }
 }
 
 void Barrier::barrierIntranode() {
 
-    if (is_leader_process_) {
+    if (isLeaderProcess_) {
 
         /// a signal from each peer process in the node is received
-        std::vector<char> message = {'S', 'I', 'G'};
-        std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo_.fileHandle());
+        std::array<char, 3> message = {'S', 'I', 'G'};
+        std::unique_ptr<eckit::DataHandle> fh_wait(waitFifo_.fileHandle());
         /// TODO: handle errors and no-replies on open as well as on read and unlink
         fh_wait->openForRead();
         {
@@ -349,7 +368,7 @@ void Barrier::barrierIntranode() {
 
         /// once all nodes are ready, open the barrier fifo for write which will
         ///   release all waiting peer processes in the node
-        std::unique_ptr<eckit::DataHandle> fh_barrier(barrier_fifo_.fileHandle());
+        std::unique_ptr<eckit::DataHandle> fh_barrier(barrierFifo_.fileHandle());
         /// TODO: handle errors and no-replies on open as well as unlink
         fh_barrier->openForWrite(eckit::Length(0));
         {
@@ -378,12 +397,12 @@ void Barrier::barrierIntranode() {
                 /// NOTE: cannot use FileHandle.openForRead as it internally performs
                 ///   an estimate() on the fifo which may have been removed by leader.
                 int fd;
-                SYSCALL(fd = ::open(barrier_fifo_.localPath(), O_RDONLY));
+                SYSCALL(fd = ::open(barrierFifo_.localPath(), O_RDONLY));
                 eckit::FileDescHandle fh_barrier(fd, true);
 
                 /// check for any errors reported by leader
-                std::vector<char> message = {'0', '0', '0'};
-                long bytes                = fh_barrier.read(&message[0], message.size());
+                std::array<char, 3> message = {'0', '0', '0'};
+                long bytes                  = fh_barrier.read(&message[0], message.size());
                 if (bytes > 0) {
                     ASSERT(bytes == message.size());
                     ASSERT(std::string(message.begin(), message.end()) == "SIG");
@@ -399,8 +418,8 @@ void Barrier::barrierIntranode() {
         });
 
         /// signal the leader this process is waiting
-        std::vector<char> message = {'S', 'I', 'G'};
-        std::unique_ptr<eckit::DataHandle> fh_wait(wait_fifo_.fileHandle());
+        std::array<char, 3> message = {'S', 'I', 'G'};
+        std::unique_ptr<eckit::DataHandle> fh_wait(waitFifo_.fileHandle());
         // eckit::HandleStream hs_wait{*fh_wait};
         fh_wait->openForWrite(eckit::Length(sizeof(long)));
         eckit::AutoClose closer(*fh_wait);
@@ -1236,15 +1255,10 @@ void FDBHammer::executeWrite() {
     }
 
     if (config_.execution.itt) {
-        eckit::Timer barrier_timer;
-        barrier_timer.start();
         Barrier barrier{(size_t)config_.parallel.ppn, config_.parallel.nodelist, config_.parallel.barrierPort,
-                        config_.parallel.barrierMaxWait};
-        barrier.init();
+                        config_.parallel.barrierMaxWait, false};
         barrier.barrier();
-        barrier.fini();
-        barrier_timer.stop();
-        // barrier_timer.reset("Barrier pre-step 0");
+        barrier.finalise();
 
         float delay_range = config_.iteration.stepWindow * (config_.iteration.randomDelay / 100);
         if (delay_range > 0) {
