@@ -182,18 +182,23 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
 
 void Barrier::electLeaderProcess() {
 
-    bool leader_found = false;
-    while (!leader_found) {
+        /// create an application-unique PID file if not exists, and lock it
+        eckit::FileLock flock{pid_file_};
+        flock.lock();
 
-        /// attempt exclusive create of an application-unique file
-        int fd;
-        fd = ::open(pid_file_.localPath(), O_EXCL | O_CREAT | O_WRONLY, 0666);
-        if (fd < 0 && errno != EEXIST)
-            throw eckit::FailedSystemCall("open", Here(), errno);
+        /// the leader PID is read from the file
+        std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
+        eckit::HandleStream hs{*fh};
+        long pid = 0;
+        eckit::Length size = fh->openForRead();
+        {
+            eckit::AutoClose closer(*fh);
+            if (size > eckit::Length(0)) hs >> pid;
+        }
+        pid_t leader_pid = (long)pid;
 
-        if (fd >= 0) {
-
-            /// if succeeded, this process is the leader
+        /// if no PID is found or the PID does not exist, this process becomes the leader
+        if (size == 0 || ::kill(leader_pid, 0) != 0) {
             is_leader_process_ = true;
 
             /// a pair of FIFOs are created. One for clients to communicate the leader they are
@@ -208,55 +213,19 @@ void Barrier::electLeaderProcess() {
             SYSCALL(::mkfifo(barrier_fifo_.localPath(), 0666));
 
             /// the leader PID is written into the file
-            SYSCALL(::close(fd));
-            std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
-            eckit::HandleStream hs{*fh};
+            pid_file_.truncate();
+            ASSERT(fh->isEmpty());
+            eckit::HandleStream hs_write{*fh};
             fh->openForWrite(eckit::Length(sizeof(long)));
             {
                 eckit::AutoClose closer(*fh);
-                hs << (long)::getpid();
-            }
-        }
-        else {
-
-            /// otherwise, the process is a client
-
-            /// the leader PID is read from the file
-            std::unique_ptr<eckit::DataHandle> fh(pid_file_.fileHandle());
-            eckit::HandleStream hs{*fh};
-            long pid;
-            eckit::Length size = fh->openForRead();
-            {
-                eckit::AutoClose closer(*fh);
-                /// the PID file may be empty if trying too soon
-                if (size == eckit::Length(0)) {
-                    fh->close();
-                    ::sleep(1);
-                    size = fh->openForRead();
-                }
-                if (size == eckit::Length(0)) {
-                    throw eckit::SeriousBug("Found empty PID file. Leader too slow or manual remove required.");
-                }
-                hs >> pid;
-            }
-            pid_t leader_pid = (long)pid;
-
-            /// the leadr PID is checked to exist. If not, clean up and
-            /// restart election procedure
-            if (::kill(leader_pid, 0) != 0) {
-                try {
-                    pid_file_.unlink();
-                }
-                catch (eckit::FailedSystemCall& e) {
-                    if (errno != ENOENT)
-                        throw;
-                }
-                continue;
+                hs_write << (long)::getpid();
             }
         }
 
-        leader_found = true;
-    }
+        /// unlock the PID file
+        flock.unlock();
+
 }
 
 void Barrier::init() {
