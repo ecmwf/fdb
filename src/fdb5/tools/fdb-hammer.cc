@@ -137,13 +137,13 @@ private:
 
 private:
 
-    size_t ppn_;
     const std::vector<std::string>& nodes_;
+    size_t ppn_;
     int port_;
     int maxWait_;
 
-    std::string hostname_;
     bool report_;
+    std::string hostname_;
 
     eckit::PathName waitFifo_;
     eckit::PathName barrierFifo_;
@@ -158,9 +158,9 @@ private:
     bool init_            = false;
 };
 
-Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait, bool report) :
-    ppn_(ppn),
+Barrier::Barrier(const std::vector<std::string>& nodes, size_t ppn, int port, int max_wait, bool report) :
     nodes_(nodes),
+    ppn_(ppn),
     port_(port),
     maxWait_(max_wait),
     hostname_(Main::hostname()),
@@ -177,14 +177,14 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
     eckit::PathName default_run_path{"/var/run/user"};
     default_run_path /= uid_to_str(uid);
 
-    eckit::PathName run_path(eckit::Resource<std::string>("$FDB_HAMMER_RUN_PATH", default_run_path));
+    eckit::PathName run_path(eckit::Resource<std::string>("$FDB_BARRIER_RUN_PATH", default_run_path));
 
-    waitFifo_ = run_path / "fdb-hammer.wait.fifo";
+    waitFifo_ = run_path / "barrier.wait.fifo";
 
-    barrierFifo_ = run_path / "fdb-hammer.barrier.fifo";
+    barrierFifo_ = run_path / "barrier.release.fifo";
 
-    lockFile_ = run_path / "fdb-hammer.lock";
-    pidFile_ = run_path / "fdb-hammer.pid";
+    lockFile_ = run_path / "barrier.lock";
+    pidFile_ = run_path / "barrier.pid";
 
     timer_ = std::make_unique<eckit::Timer>();
 }
