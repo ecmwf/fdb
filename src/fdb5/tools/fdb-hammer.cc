@@ -148,6 +148,7 @@ private:
     eckit::PathName waitFifo_;
     eckit::PathName barrierFifo_;
     eckit::PathName pidFile_;
+    eckit::PathName lockFile_;
     std::vector<eckit::net::TCPSocket> serverConnections_;
     eckit::net::TCPSocket clientConnection_;
     std::unique_ptr<eckit::Timer> timer_;
@@ -182,6 +183,7 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
 
     barrierFifo_ = run_path / "fdb-hammer.barrier.fifo";
 
+    lockFile_ = run_path / "fdb-hammer.lock";
     pidFile_ = run_path / "fdb-hammer.pid";
 
     timer_ = std::make_unique<eckit::Timer>();
@@ -189,9 +191,12 @@ Barrier::Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, in
 
 void Barrier::electLeaderProcess() {
 
-    /// create an application-unique PID file if not exists, and lock it
-    eckit::FileLock flock{pidFile_};
+    /// create an application-unique lock file if not exists, and lock it
+    eckit::FileLock flock{lockFile_};
     flock.lock();
+
+    /// create an application-unique PID file if not exists
+    pidFile_.touch();
 
     /// the leader PID is read from the file
     std::unique_ptr<eckit::DataHandle> fh(pidFile_.fileHandle());
@@ -207,6 +212,7 @@ void Barrier::electLeaderProcess() {
 
     /// if no PID is found or the PID does not exist, this process becomes the leader
     if (size == eckit::Length(0) || ::kill(leader_pid, 0) != 0) {
+
         isLeaderProcess_ = true;
 
         /// a pair of FIFOs are created. One for clients to communicate the leader they are
@@ -283,6 +289,7 @@ void Barrier::finalise() {
         waitFifo_.unlink(false);
         barrierFifo_.unlink(false);
         pidFile_.unlink(false);
+        lockFile_.unlink(false);
     }
 
     if (report_)
