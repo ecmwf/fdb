@@ -123,7 +123,7 @@ class Barrier {
 
 public:
 
-    Barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int max_wait, bool report);
+    Barrier(const std::vector<std::string>& nodes, size_t ppn, int port, int max_wait, bool report);
 
     void finalise();
     void barrier();
@@ -163,8 +163,8 @@ Barrier::Barrier(const std::vector<std::string>& nodes, size_t ppn, int port, in
     ppn_(ppn),
     port_(port),
     maxWait_(max_wait),
-    hostname_(Main::hostname()),
     report_(report),
+    hostname_(Main::hostname()),
     serverConnections_(nodes_.size() ? (nodes_.size() - 1) : 0) {
 
     ASSERT(nodes_.size() > 0);
@@ -1262,7 +1262,7 @@ void FDBHammer::executeWrite() {
     }
 
     if (config_.execution.itt) {
-        Barrier barrier{(size_t)config_.parallel.ppn, config_.parallel.nodelist, config_.parallel.barrierPort,
+        Barrier barrier{config_.parallel.nodelist, (size_t)config_.parallel.ppn, config_.parallel.barrierPort,
                         config_.parallel.barrierMaxWait, false};
         barrier.barrier();
         barrier.finalise();
