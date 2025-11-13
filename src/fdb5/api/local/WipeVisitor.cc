@@ -15,22 +15,15 @@
  */
 
 #include "fdb5/api/local/WipeVisitor.h"
-#include "eckit/filesystem/URI.h"
 #include "fdb5/database/WipeState.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
-#include <iostream>
 #include <memory>
 
-#include "eckit/os/Stat.h"
-
-#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/Store.h"
 #include "fdb5/database/WipeState.h"
 
 using namespace eckit;

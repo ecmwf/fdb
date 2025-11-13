@@ -76,19 +76,20 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
 
 // Create WipeElements to report to the user what is going to be wiped.
 // NB: This copies every URI involved in the wipe.
-std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(
+WipeElements WipeCoordinator::generateWipeElements(
     const CatalogueWipeState& catalogueWipeState,
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates, const UnknownsBuckets& unknownURIs,
     bool unsafeWipeAll) const {
-    auto report = std::make_unique<CatalogueWipeState>(catalogueWipeState.dbKey());
+
+    WipeElements report{};
 
     for (const auto& el : catalogueWipeState.generateWipeElements()) {
-        report->insertWipeElement(el);
+        report.push_back(el);
     }
 
     for (const auto& [storeURI, storeState] : storeWipeStates) {
         for (const auto& el : storeState->generateWipeElements()) {
-            report->insertWipeElement(el);
+            report.push_back(el);
         }
     }
 
@@ -104,12 +105,11 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(
     }
 
     if (!unknownURIsSet.empty()) {
-        report->insertWipeElement(std::make_shared<WipeElement>(
+        report.push_back(WipeElement(
             WipeElementType::WIPE_UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
 
         if (!unsafeWipeAll) {
-            report->insertWipeElement(
-                std::make_shared<WipeElement>(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:"));
+            report.push_back(WipeElement(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:"));
         }
     }
 
@@ -117,12 +117,12 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::generateReport(
 }
 
 // Almost certainly std::unique_ptr<CatalogueWipeState> can just be CatalogueWipeState everywhere...
-std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeState& catalogueWipeState, bool doit,
+WipeElements WipeCoordinator::wipe(const CatalogueWipeState& catalogueWipeState, bool doit,
                                                           bool unsafeWipeAll) const {
 
     auto storeWipeStates = catalogueWipeState.takeStoreStates();
-    ASSERT(!storeWipeStates
-                .empty());  // XXX: We should handle case where there is no work for the stores... Is there such a case?
+    // XXX: We should handle case where there is no work for the stores... Is there such a case?
+    ASSERT(!storeWipeStates.empty());
 
     eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
@@ -135,8 +135,6 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
 
     bool unclean = !unknownURIs.catalogue.empty() || std::any_of(unknownURIs.store.begin(), unknownURIs.store.end(),
                                                                  [](const auto& pair) { return !pair.second.empty(); });
-
-    auto report = generateReport(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
 
     //  XXX todo: this should probably be reported via wipe element
     const auto& indexesToMask = catalogueWipeState.indexesToMask();
@@ -151,13 +149,13 @@ std::unique_ptr<CatalogueWipeState> WipeCoordinator::wipe(const CatalogueWipeSta
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 
-    if (doit && (!unclean || unsafeWipeAll)) {  // I'd love to put this in a doit function, called from outside.
+    if (doit && (!unclean || unsafeWipeAll)) {
         doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
     }
 
     eckit::Log::info() << "WipeCoordinator::wipe - completed" << std::endl;
 
-    return report;
+    return generateWipeElements(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
 }
 
 

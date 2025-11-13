@@ -68,6 +68,7 @@ public:  // methods
 
 private:  // members
 
+    // XXX these are all unused
     bool doit_;
     bool porcelain_;
     bool unsafeWipeAll_;

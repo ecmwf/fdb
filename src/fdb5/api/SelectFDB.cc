@@ -20,6 +20,7 @@
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -168,7 +169,8 @@ WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
 
     FDB& fdb = matchingLane->get();
 
-    return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    // return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    NOTIMP; // Pending lanes switching to using FDBBase istead of FDB.
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

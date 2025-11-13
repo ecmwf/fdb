@@ -242,6 +242,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
 
     std::vector<eckit::PathName> allPathsVector;
     StdDir(basePath()).children(allPathsVector);
+    // XXX: Should really only do this in a wipe all scenario
     for (const eckit::PathName& uri : allPathsVector) {
         // XXX: I think we are very inconsistent about where we use scheme = file vs toc. e.g., the toc itself is scheme
         // file.

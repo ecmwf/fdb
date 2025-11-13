@@ -12,6 +12,7 @@
 
 #include <memory>
 #include "eckit/filesystem/URI.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/WipeState.h"
 
@@ -32,7 +33,7 @@ public:
     WipeCoordinator(const Config& config) : config_(config) {}
 
     // returns a WipeState to be used for reporting to the client.
-    std::unique_ptr<CatalogueWipeState> wipe(const CatalogueWipeState& catalogueState, bool doit,
+    WipeElements wipe(const CatalogueWipeState& catalogueState, bool doit,
                                              bool unsafeWipeAll) const;
 
     std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
@@ -43,7 +44,7 @@ private:
                                    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
 
     // This being a CatalogueWipeState is odd.
-    std::unique_ptr<CatalogueWipeState> generateReport(
+    WipeElements generateWipeElements(
         const CatalogueWipeState& catalogueWipeState,
         const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
         const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;

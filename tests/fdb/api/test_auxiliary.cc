@@ -5,7 +5,8 @@
 #include "eckit/testing/Test.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "metkit/mars/MarsRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/toc/TocCommon.h"
 
 namespace fdb5::test {
 
@@ -103,11 +104,9 @@ CASE("Wipe with extensions") {
     bool doit              = true;
     auto iter              = fdb.wipe(request, doit);
 
-    std::unique_ptr<CatalogueWipeState> state;
-    while (iter.next(state)) {
-        for (auto elem : state->wipeElements()) {
-            eckit::Log::info() << elem;
-        }
+    WipeElement elem;
+    while (iter.next(elem)) {
+        eckit::Log::info() << elem;
     }
 
     // Check that the auxiliary files have been removed
@@ -138,12 +137,12 @@ CASE("Ensure wipe fails if extensions are unknown") {
     bool doit              = true;
     bool unsafeWipeAll     = false;
     bool error_was_thrown  = false;
+    WipeElement elem;
 
     // Expect an error to be thrown when unsafeWipeAll is false.
     try {
         auto iter = fdb.wipe(request, doit, false, unsafeWipeAll);
-        std::unique_ptr<CatalogueWipeState> state;
-        while (iter.next(state)) {}
+        while (iter.next(elem)) {}
     }
     catch (eckit::Exception) {
         error_was_thrown = true;
@@ -159,11 +158,8 @@ CASE("Ensure wipe fails if extensions are unknown") {
     unsafeWipeAll = true;
     auto iter     = fdb.wipe(request, doit, false, unsafeWipeAll);
 
-    std::unique_ptr<CatalogueWipeState> state;
-    while (iter.next(state)) {
-        for (auto elem : state->wipeElements()) {
-            eckit::Log::info() << elem;
-        }
+    while (iter.next(elem)) {
+        eckit::Log::info() << elem;
     }
 
     // Check that the auxiliary files have been removed

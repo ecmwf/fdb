@@ -229,17 +229,15 @@ private:
 // To be removed / replaced by pybind impl.
 struct fdb_wipe_iterator_t {
 
-    fdb_wipe_iterator_t(WipeStateIterator&& iter) : iter_(std::move(iter)) {}
+    fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
 
     int next(WipeElement& e) {
-        //  return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
-        NOTIMP;
-        return FDB_ERROR_UNKNOWN_EXCEPTION;
+        return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
 
 private:
 
-    WipeStateIterator iter_;
+    WipeIterator iter_;
 };
 
 struct fdb_wipe_element_t {

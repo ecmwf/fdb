@@ -97,12 +97,10 @@ void FDBWipe::execute(const CmdArgs& args) {
 
         size_t count = 0;
 
-        std::unique_ptr<CatalogueWipeState> state;
-        while (iter.next(state)) {
-            for (auto elem : state->wipeElements()) {
-                Log::info() << elem;
-                count++;
-            }
+        WipeElement elem;
+        while (iter.next(elem)) {
+            Log::info() << elem;
+            count++;
         }
 
         if (count == 0 && !ignoreNoData_ && fail()) {

@@ -252,10 +252,10 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
 
-WipeStateIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
 
     auto async = [this, request, doit, porcelain,
-                  unsafeWipeAll](eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue) {
+                  unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
         WipeStateIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);  // WipeStateIterator
 
@@ -264,7 +264,7 @@ WipeStateIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porce
         std::unique_ptr<CatalogueWipeState> catalogueWipeState;
         while (it.next(catalogueWipeState)) {
 
-            if (!catalogueWipeState) {
+            if (!catalogueWipeState) { // XXX is this even possible?
                 continue;
             }
 
@@ -272,13 +272,16 @@ WipeStateIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porce
             CatalogueWipeState& catalogueWipeStateRef = static_cast<CatalogueWipeState&>(*catalogueWipeState);
 
             // Coordinator will mutate the catalogue wipe state (e.g. populating missing files etc.)
-            queue.emplace(coordinator.wipe(catalogueWipeStateRef, doit, unsafeWipeAll));
+            auto elements = coordinator.wipe(catalogueWipeStateRef, doit, unsafeWipeAll);
+            for (auto& el : elements) {
+                queue.emplace(el);
+            }
         }
 
         queue.close();
     };
 
-    return WipeStateIterator(new APIAsyncIterator<std::unique_ptr<CatalogueWipeState>>(async));
+    return WipeIterator(new APIAsyncIterator<WipeElement>(async));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

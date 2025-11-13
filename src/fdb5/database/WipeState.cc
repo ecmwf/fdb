@@ -19,11 +19,6 @@ WipeState::WipeState(eckit::Stream& s) {
 
     std::size_t n = 0;
 
-    // wipeElements_ // TODO: I dont think there's a reason to communicate these ever.
-    s >> n;
-    for (std::size_t i = 0; i < n; ++i) {
-        wipeElements_.emplace_back(std::make_shared<WipeElement>(s));
-    }
 
     // includeDataURIs_
     s >> n;
@@ -46,9 +41,6 @@ std::size_t WipeState::encodeSize() const {
     size += sizeof(std::size_t);  // key string size (placeholder/approx)
     size += 256;                  // dbkey string (approx)
     size += sizeof(std::size_t);  // number of wipe elements
-    for (const auto& el : wipeElements_) {
-        size += el->encodeSize();
-    }
     size += 2 * sizeof(std::size_t);  // num include + num exclude
     size += (includeDataURIs_.size() + excludeDataURIs_.size()) * 256;
     return size;
@@ -64,6 +56,11 @@ void WipeState::exclude(const eckit::URI& uri) {
     excludeDataURIs_.insert(uri);
 }
 
+void WipeState::insertWipeElement(const WipeElement& element) {
+    // failIfSigned(); // Modifying wipe elements is fine. Modifying include/exclude URIs is not.
+    wipeElements_.emplace_back(element);
+}
+
 void WipeState::encode(eckit::Stream& s) const {
     // Encoding implies we are sending to the Store/Catalogue for wiping, which requires signing.
     if (!signature_.isSigned()) {
@@ -73,10 +70,6 @@ void WipeState::encode(eckit::Stream& s) const {
     s << signature_;
     s << dbKey_;
 
-    s << static_cast<std::size_t>(wipeElements_.size());
-    for (const auto& el : wipeElements_) {
-        s << *el;
-    }
 
     s << static_cast<std::size_t>(includeDataURIs_.size());
     for (const auto& uri : includeDataURIs_) {
@@ -94,10 +87,6 @@ void WipeState::print(std::ostream& out) const {
     std::string sep;
 
     sep.clear();
-    for (const auto& el : wipeElements_) {
-        out << sep << *el;
-        sep = ",";
-    }
 
     out << "], includeDataURIs=[";
     sep.clear();
@@ -157,32 +146,32 @@ WipeElements CatalogueWipeState::generateWipeElements() const {
     WipeElements wipeElements;
     if (!info_.empty()) {
         wipeElements.emplace_back(
-            std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_INFO, info_,
-                                          std::set<eckit::URI>{}));  // The empty set here is stupid. Give the element a
+            WipeElementType::WIPE_CATALOGUE_INFO, info_,
+                                          std::set<eckit::URI>{});  // The empty set here is stupid. Give the element a
                                                                      // constructor that doesnt need a set...
     }
 
     if (!catalogueURIs_.empty()) {
         auto catalogueURIs = catalogueURIs_;
-        wipeElements.emplace_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
-                                                                "Catalogue URIs to delete:", std::move(catalogueURIs)));
+        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE,
+                                                                "Catalogue URIs to delete:", std::move(catalogueURIs));
     }
     if (auxCatalogueURIs_.empty()) {
         auto auxURIs = auxCatalogueURIs_;
-        wipeElements.emplace_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE_CONTROL,
-                                                                "Control URIs to delete:", std::move(auxURIs)));
+        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE_CONTROL,
+                                                                "Control URIs to delete:", std::move(auxURIs));
     }
 
     if (!safeURIs().empty()) {
         auto safe = safeURIs();
-        wipeElements.emplace_back(std::make_shared<WipeElement>(
-            WipeElementType::WIPE_CATALOGUE_SAFE, "Protected URIs (explicitly untouched):", std::move(safe)));
+        wipeElements.emplace_back(
+            WipeElementType::WIPE_CATALOGUE_SAFE, "Protected URIs (explicitly untouched):", std::move(safe));
     }
 
     if (!indexURIs_.empty()) {
         auto indexURIs = indexURIs_;
-        wipeElements.emplace_back(std::make_shared<WipeElement>(WipeElementType::WIPE_CATALOGUE,
-                                                                "Index URIs to delete:", std::move(indexURIs)));
+        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE,
+                                                                "Index URIs to delete:", std::move(indexURIs));
     }
 
     return wipeElements;
@@ -196,13 +185,13 @@ WipeElements StoreWipeState::generateWipeElements() const {
     if (!dataURIs_.empty()) {
         auto dataURIs = dataURIs_;
         wipeElements.emplace_back(
-            std::make_shared<WipeElement>(WipeElementType::WIPE_STORE, "Data URIs to delete:", std::move(dataURIs)));
+            WipeElementType::WIPE_STORE, "Data URIs to delete:", std::move(dataURIs));
     }
 
     if (!auxURIs_.empty()) {
         auto auxURIs = auxURIs_;
-        wipeElements.emplace_back(std::make_shared<WipeElement>(WipeElementType::WIPE_STORE_AUX,
-                                                                "Auxiliary URIs to delete:", std::move(auxURIs)));
+        wipeElements.emplace_back(WipeElementType::WIPE_STORE_AUX,
+                                                                "Auxiliary URIs to delete:", std::move(auxURIs));
     }
 
     return wipeElements;
@@ -284,15 +273,11 @@ CatalogueWipeState::StoreStates& CatalogueWipeState::storeStates() {
 }
 
 void CatalogueWipeState::signStoreStates(std::string secret) {
-    std::cout << "ZZZ Signing CatalogueWipeState store states" << std::endl;
     for (auto& [uri, state] : storeWipeStates_) {
         state->sign(secret);
-        std::cout << "ZZZ StoreWipeState for " << uri << " signature: " << state->signature().sig_ << std::endl;
     }
 
     sign(secret);
-
-    std::cout << "ZZZ Catalogue signature: " << signature_.sig_ << std::endl;
 }
 
 

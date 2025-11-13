@@ -17,6 +17,8 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/APIIterator.h"
 
 
 namespace fdb5 {
@@ -24,8 +26,9 @@ namespace fdb5 {
 class Catalogue;
 class Index;
 
-class WipeElement;
-using WipeElements = std::vector<std::shared_ptr<WipeElement>>;
+class CatalogueWipeState;
+using WipeStateIterator = APIIterator<std::unique_ptr<CatalogueWipeState>>;
+
 class WipeState;
 
 // Dummy placeholder for signed behaviour
@@ -94,11 +97,7 @@ public:
 
     // trying to phase this out...
     const WipeElements& wipeElements() const { return wipeElements_; }
-    void insertWipeElement(const std::shared_ptr<WipeElement>& element) {
-        // failIfSigned(); // Modifying wipe elements is fine. Modifying include/exclude URIs is not.
-        wipeElements_.emplace_back(element);
-    }
-
+    void insertWipeElement(const WipeElement& element);
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const WipeState& state) {
         state.encode(s);

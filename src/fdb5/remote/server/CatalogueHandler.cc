@@ -281,10 +281,7 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
             // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
             ASSERT(!this->unsafeWipeAll_);
 
-            // XXX: Maybe a  bit of a hack, but I can't call fdb.wipe() directly (otherwise catalogue will try to talk
-            // to stores remotely)
-            auto internal = FDBFactory::instance().build(fdb.config());
-            auto it       = internal->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
+            auto it = fdb.internal_->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
 
             std::vector<std::unique_ptr<CatalogueWipeState>> states;
             std::unique_ptr<CatalogueWipeState> state;
