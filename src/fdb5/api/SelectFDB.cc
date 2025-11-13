@@ -167,8 +167,8 @@ ControlIterator SelectFDB::control(const FDBToolRequest& request, ControlAction 
 
 AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::axesIterator() >> " << request << std::endl;
-    return queryInternal(request,
-                         [level](FDBBase& fdb, const FDBToolRequest& request) { return fdb.axesIterator(request, level); });
+    return queryInternal(
+        request, [level](FDBBase& fdb, const FDBToolRequest& request) { return fdb.axesIterator(request, level); });
 }
 
 void SelectFDB::flush() {
