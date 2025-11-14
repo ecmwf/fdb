@@ -76,6 +76,8 @@ def test_index_axis_get(read_only_fdb_setup):
         with pytest.raises(KeyError, match="Couldn't find key:"):
             assert index_axis["non-existing-key"]
 
+        raise RuntimeError()
+
 
 def test_fdb_index_axis_in(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
