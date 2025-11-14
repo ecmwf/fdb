@@ -78,7 +78,9 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
             eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
-            auto copyInto = ptr + msgIndex * layout.countValues;
+            auto copyInto  = ptr + msgIndex * layout.countValues;
+            const auto end = copyInto + layout.countValues;
+            ASSERT(end - ptr <= len);
 
             while ((msg = reader.next())) {
                 size_t countValues = msg.getSize("values");
