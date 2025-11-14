@@ -80,7 +80,7 @@ void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len,
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
+    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
