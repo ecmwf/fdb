@@ -22,12 +22,14 @@
 #include <pybind11/stl/filesystem.h>
 
 #include <cstddef>
+#include <exception>
 #include <map>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/runtime/Main.h"
@@ -265,12 +267,28 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("__getitem__",
              [](const fdb5::IndexAxis& index_axis, const std::string& key) {
                  try {
+                     std::cout << "-------------- BEFORE VALUES CALL ------------" << std::endl;
                      const auto& values = index_axis.values(key);
+                     std::cout << "-------------- AFTER VALUES CALL ------------" << std::endl;
                      return std::vector<std::string>{values.begin(), values.end()};
                  }
                  // TODO(TKR): why is there SeriousBug not caught if put in the catch statement?
-                 catch (std::exception& serious_bug) {
-                     std::cout << "Hit the catch" << std::endl;
+                 catch (const eckit::SeriousBug& serious_bug) {
+                     std::cout << "SERIOUS BUG: " << std::endl;
+                     std::string s = typeid(serious_bug).name();
+                     std::cout << s << std::endl;
+                     std::cout << dynamic_cast<const eckit::SeriousBug*>(&serious_bug) << std::endl;
+                     std::cout << dynamic_cast<const std::exception*>(&serious_bug) << std::endl;
+                     std::stringstream buf;
+                     buf << "Couldn't find key: " << key << " in IndexAxis.";
+                     throw py::key_error(buf.str());
+                 }
+                 catch (const eckit::Exception& serious_bug) {
+                     std::cout << "ECKIT EXCEPTION: " << std::endl;
+                     std::string s = typeid(serious_bug).name();
+                     std::cout << s << std::endl;
+                     std::cout << dynamic_cast<const eckit::SeriousBug*>(&serious_bug) << std::endl;
+                     std::cout << dynamic_cast<const std::exception*>(&serious_bug) << std::endl;
                      std::stringstream buf;
                      buf << "Couldn't find key: " << key << " in IndexAxis.";
                      throw py::key_error(buf.str());
