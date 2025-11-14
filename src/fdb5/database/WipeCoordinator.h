@@ -33,10 +33,7 @@ public:
     WipeCoordinator(const Config& config) : config_(config) {}
 
     // returns a WipeState to be used for reporting to the client.
-    WipeElements wipe(const CatalogueWipeState& catalogueState, bool doit,
-                                             bool unsafeWipeAll) const;
-
-    std::map<eckit::URI, std::unique_ptr<StoreWipeState>> getStoreStates(const WipeState& wipeState) const;
+    WipeElements wipe(const CatalogueWipeState& catalogueState, bool doit, bool unsafeWipeAll) const;
 
 private:
 
@@ -44,10 +41,9 @@ private:
                                    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
 
     // This being a CatalogueWipeState is odd.
-    WipeElements generateWipeElements(
-        const CatalogueWipeState& catalogueWipeState,
-        const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-        const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
+    WipeElements generateWipeElements(const CatalogueWipeState& catalogueWipeState,
+                                      const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+                                      const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
 
     void doWipe(const CatalogueWipeState& catalogueWipeState,

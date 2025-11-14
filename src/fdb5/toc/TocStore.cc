@@ -396,10 +396,10 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
-    const std::set<eckit::URI>& uris     = storeState.includeURIs();  // included according to cat
-    const std::set<eckit::URI>& safeURIs = storeState.excludeURIs();  // excluded according to cat
+    const std::set<eckit::URI>& uris     = storeState.includeDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.excludeDataURIs();  // excluded according to cat
 
-    bool all = storeState.excludeURIs().empty();  // XXX: is this correct in a multi-store wipe?
+    bool all = storeState.excludeDataURIs().empty();  // XXX: is this correct in a multi-store wipe?
 
     for (const eckit::URI& uri : asCollocatedDataURIs(uris)) {  // XXX - this prints an error but never raises?
         if (!uriBelongs(uri)) {

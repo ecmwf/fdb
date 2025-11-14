@@ -231,9 +231,7 @@ struct fdb_wipe_iterator_t {
 
     fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
 
-    int next(WipeElement& e) {
-        return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
-    }
+    int next(WipeElement& e) { return iter_.next(e) ? FDB_SUCCESS : FDB_ITERATION_COMPLETE; }
 
 private:
 

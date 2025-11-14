@@ -170,7 +170,7 @@ WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
     FDB& fdb = matchingLane->get();
 
     // return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    NOTIMP; // Pending lanes switching to using FDBBase istead of FDB.
+    NOTIMP;  // Pending lanes switching to using FDBBase istead of FDB.
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

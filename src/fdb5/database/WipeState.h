@@ -13,12 +13,12 @@
 #include <memory>
 #include <string>
 #include "eckit/filesystem/URI.h"
+#include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
-#include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/api/helpers/APIIterator.h"
 
 
 namespace fdb5 {
@@ -47,10 +47,7 @@ public:
 
     Signature() {}
 
-    Signature(eckit::Stream& s) {
-        s >> sig_;
-        std::cout << "YYY Decoded Signature: " << sig_ << std::endl;
-    }
+    Signature(eckit::Stream& s) { s >> sig_; }
 
     void sign(uint64_t sig) {
         ASSERT(sig != 0);
@@ -61,14 +58,10 @@ public:
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const Signature& sig) {
         s << sig.sig_;
-        std::cout << "YYY Encoded Signature: " << sig.sig_ << std::endl;
         return s;
     }
 
-    bool validSignature(uint64_t expected) const {
-        std::cout << "YYY Validating Signature: got " << sig_ << " expected " << expected << std::endl;
-        return sig_ == expected;
-    }
+    bool validSignature(uint64_t expected) const { return sig_ == expected; }
 
 public:
 
@@ -79,10 +72,9 @@ public:
 class WipeState {
 public:
 
-    WipeState(const Key& dbKey);
-    WipeState(const Key& dbKey, WipeElements elements);  // XXX rm this!
+    WipeState();
 
-    WipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, std::set<eckit::URI> deleteURIs) : dbKey_(dbKey) {
+    WipeState(std::set<eckit::URI> safeURIs, std::set<eckit::URI> deleteURIs) {
         safeURIs_   = std::move(safeURIs);
         deleteURIs_ = std::move(deleteURIs);
     }
@@ -91,13 +83,8 @@ public:
 
     std::size_t encodeSize() const;
 
+
     friend eckit::Stream& operator<<(eckit::Stream& s, const WipeState& state);
-
-    const Key& dbKey() const { return dbKey_; }
-
-    // trying to phase this out...
-    const WipeElements& wipeElements() const { return wipeElements_; }
-    void insertWipeElement(const WipeElement& element);
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const WipeState& state) {
         state.encode(s);
@@ -106,38 +93,22 @@ public:
 
     virtual WipeElements generateWipeElements() const = 0;
 
-    const std::set<eckit::URI>& includeURIs() const { return includeDataURIs_; }
-    const std::set<eckit::URI>& excludeURIs() const { return excludeDataURIs_; }
-
-    void include(const eckit::URI& uri);
-    void exclude(const eckit::URI& uri);
-
     // encode / decode
     void encode(eckit::Stream& s) const;
 
-    void print(std::ostream& out) const;
-
-    void sign(std::string secret);
-    const Signature& signature() const { return signature_; }
-
-    std::uint64_t hash(std::string secret) const;
-
     const std::set<eckit::URI>& unrecognisedURIs() const { return unknownURIs_; }
-    void insertUnrecognised(const eckit::URI& uri) {
-        failIfSigned();
-        unknownURIs_.insert(uri);
-    }
+
+    void insertUnrecognised(const eckit::URI& uri) { unknownURIs_.insert(uri); }
 
     virtual bool wipeAll() const {
         return safeURIs_.empty();  // not really a concept for the store.
     }
 
-
     // No more uris may be marked as safe or for deletion.
     void lock() {
-        locked = true;
+        locked_ = true;
 
-        // Also, perform a sanity check to ensure there is no overlap between the 3 sets.
+        // Sanity check: ensure there is no overlap between the 3 sets.
         for (auto& uri : deleteURIs_) {
             ASSERT(safeURIs_.find(uri) == safeURIs_.end());
         }
@@ -159,33 +130,18 @@ public:
     bool isNotMarkedAsSafe(const eckit::URI& uri) const { return safeURIs().find(uri) == safeURIs().end(); }
 
     void markAsSafe(const std::set<eckit::URI>& uris) {
-        ASSERT(!locked);
+        ASSERT(!locked_);
         safeURIs_.insert(uris.begin(), uris.end());
     }
 
     void markForDeletion(const std::set<eckit::URI>& uris) {
-        ASSERT(!locked);
+        ASSERT(!locked_);
         deleteURIs_.insert(uris.begin(), uris.end());
     }
 
-private:
-
-    void failIfSigned() const;
-
 protected:
 
-    // I kinda don't like wipeElements at all.
-    WipeElements wipeElements_;
-
-    // Are these always just .data, or can they be other things?
-    std::set<eckit::URI> includeDataURIs_;
-    std::set<eckit::URI> excludeDataURIs_;
-
     std::set<eckit::URI> unknownURIs_;
-
-    // For finding the catalogue again later.
-    Signature signature_;
-    Key dbKey_;
 
 private:
 
@@ -193,7 +149,7 @@ private:
                                      // to mark anything as safe. Just delete and unrecognised.
     std::set<eckit::URI> deleteURIs_;  // files that will be deleted. // <-- for the store, this is mostly predetermined
                                        // by the catalogue, with the exception of auxiliary files!.
-    bool locked = false;
+    bool locked_ = false;
 };
 
 /* ------------------------------ StoreWipeState ------------------------------ */
@@ -204,10 +160,6 @@ public:
     explicit StoreWipeState(eckit::URI uri);  // XXX: Empty key seems wrong.
     explicit StoreWipeState(eckit::Stream& s);
 
-    virtual ~StoreWipeState() = default;
-
-    Store& store(const Config& config) const;
-
     void encode(eckit::Stream& s) const;
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const StoreWipeState& state) {
@@ -215,9 +167,6 @@ public:
         return s;
     }
 
-    WipeElements generateWipeElements() const override;
-
-    const eckit::URI& storeURI() const { return storeURI_; }
 
     const std::set<eckit::URI>& dataURIs() const { return dataURIs_; }
     void insertDataURI(const eckit::URI& uri) { dataURIs_.insert(uri); }
@@ -227,8 +176,39 @@ public:
 
     bool ownsURI(const eckit::URI& uri) const;
 
+    void includeData(const eckit::URI& uri) {
+        failIfSigned();
+        includeDataURIs_.insert(uri);
+    }
+    void excludeData(const eckit::URI& uri) {
+        failIfSigned();
+        excludeDataURIs_.insert(uri);
+    }
+
+    Store& store(const Config& config) const;
+    WipeElements generateWipeElements() const override;
+
+    const eckit::URI& storeURI() const { return storeURI_; }
+    const std::set<eckit::URI>& includeDataURIs() const { return includeDataURIs_; }
+    const std::set<eckit::URI>& excludeDataURIs() const { return excludeDataURIs_; }
+
+    // signing
+
+    void sign(const std::string& secret);
+    const Signature& signature() const { return signature_; }
+    std::uint64_t hash(const std::string& secret) const;
 
 private:
+
+    void failIfSigned() const;
+
+private:
+
+    Signature signature_;
+
+    // Are these always just .data, or can they be other things?
+    std::set<eckit::URI> includeDataURIs_;
+    std::set<eckit::URI> excludeDataURIs_;
 
     eckit::URI storeURI_;
     mutable std::unique_ptr<Store> store_;
@@ -243,10 +223,10 @@ class CatalogueWipeState : public WipeState {
 
 public:
 
-    explicit CatalogueWipeState(const Key& dbKey) : WipeState(dbKey) {}
+    explicit CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, std::set<eckit::URI> deleteURIs) :
-        WipeState(dbKey, std::move(safeURIs), std::move(deleteURIs)) {}
+        WipeState(std::move(safeURIs), std::move(deleteURIs)), dbKey_(dbKey) {}
 
     explicit CatalogueWipeState(eckit::Stream& s);
 
@@ -258,8 +238,6 @@ public:
 
     const std::vector<Index>& indexesToMask() const;
 
-    void buildStoreStates();
-
     [[nodiscard]] StoreStates takeStoreStates() const;
 
     StoreStates& storeStates();
@@ -270,8 +248,15 @@ public:
 
     bool ownsURI(const eckit::URI& uri) const;
 
+    void includeData(const eckit::URI& uri);
+    void excludeData(const eckit::URI& uri);
+
+    const Key& dbKey() const { return dbKey_; }
 
 protected:
+
+    // For finding the catalogue again later.
+    Key dbKey_;
 
     std::vector<Index> indexesToMask_ = {};
     mutable StoreStates storeWipeStates_;

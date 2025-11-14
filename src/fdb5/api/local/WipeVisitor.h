@@ -75,12 +75,7 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    // std::unordered_map<eckit::URI, StoreURIs> stores_;
     std::unique_ptr<CatalogueWipeState> catalogueWipeState_;
-
-    // are these pointers for any reason?
-    std::unordered_map<eckit::URI, std::unique_ptr<StoreWipeState>>
-        storeWipeStates_;  // I dont think these should exist delete me.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

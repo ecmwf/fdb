@@ -138,8 +138,8 @@ CASE("Remote protocol: the basics") {
 
     WipeElement wipeElem;
     while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << elem;
-            count++;
+        eckit::Log::info() << elem;
+        count++;
     }
 
     // just in case...

@@ -195,7 +195,7 @@ void TocCatalogue::addMaskedPaths(TocWipeState& tocWipeState) const {
     }
 
     for (const auto& datauri : maskedDataPaths) {
-        tocWipeState.include(datauri);
+        tocWipeState.includeData(datauri);
     }
 }
 

@@ -52,8 +52,8 @@ class MarsRequest;
 namespace fdb5 {
 
 namespace remote {
-    struct WipeHelper;
-} 
+struct WipeHelper;
+}
 
 class FDBBase;
 class FDBToolRequest;
@@ -198,7 +198,7 @@ public:  // methods
     /// @param unsafeWipeAll flag for omitting all security checks and force a wipe
     /// @return WipeIterator for iterating over the set of wiped items
     WipeIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
-                           bool unsafeWipeAll = false);
+                      bool unsafeWipeAll = false);
 
     /// Move content of one FDB database.
     ///

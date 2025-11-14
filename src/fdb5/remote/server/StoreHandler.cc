@@ -60,8 +60,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::DoWipeEmptyDatabases: // request to delete empty databases and finish the wipe.
-                doWipeEmptyDatabases(clientID, requestID); // XXX Maybe rename doWipeFinish.
+            case Message::DoWipeEmptyDatabases:             // request to delete empty databases and finish the wipe.
+                doWipeEmptyDatabases(clientID, requestID);  // XXX Maybe rename doWipeFinish.
                 std::cout << "StoreHandler::handleControl received DoWipeEmptyDatabases message" << std::endl;
                 return Handled::Yes;
 
@@ -106,7 +106,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 wipe(clientID, requestID, payload);
                 return Handled::Yes;
 
-            case Message::DoWipeUnknowns: // request to delete unknown URIs as part of a wipe
+            case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
                 doWipeUnknown(clientID, requestID, payload);
                 return Handled::Yes;
 
@@ -359,15 +359,14 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
     eckit::MemoryStream stream(payload);
     std::set<eckit::URI> uris{stream};
 
-    auto& ss = store(clientID); // hmm... im not sure about this...
+    auto& ss = store(clientID);  // hmm... im not sure about this...
 
     // check received URIs are at least a subset of expected unknowns.
     const auto& expectedUnknowns = currentWipe_.state->deleteURIs();
     for (const auto& uri : uris) {
         if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
             std::stringstream ss;
-            ss << "StoreHandler::doWipeUnknown: Received unknown URI " << uri
-               << " which was not expected to be wiped.";
+            ss << "StoreHandler::doWipeUnknown: Received unknown URI " << uri << " which was not expected to be wiped.";
             Log::status() << ss.str() << std::endl;
             Log::error() << ss.str() << std::endl;
             throw SeriousBug(ss.str(), Here());
@@ -397,8 +396,8 @@ void StoreHandler::doWipeEmptyDatabases(const uint32_t clientID, const uint32_t 
 
     // reset wipe state
     currentWipe_.state.reset();
-    currentWipe_.clientID = 0;
-    currentWipe_.requestID = 0;
+    currentWipe_.clientID      = 0;
+    currentWipe_.requestID     = 0;
     currentWipe_.unsafeWipeAll = false;
 }
 
@@ -423,19 +422,19 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     // The URIs need to be converted to internal URIs for this store.
     auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));
 
-    for (const auto& uri : inState.includeURIs()) {
-        storeState->include(RemoteFieldLocation::internalURI(uri));
+    for (const auto& uri : inState.includeDataURIs()) {
+        storeState->includeData(RemoteFieldLocation::internalURI(uri));
     }
-    for (const auto& uri : inState.excludeURIs()) {
-        storeState->exclude(RemoteFieldLocation::internalURI(uri));
+    for (const auto& uri : inState.excludeDataURIs()) {
+        storeState->excludeData(RemoteFieldLocation::internalURI(uri));
     }
 
-    if (storeState->includeURIs().empty()) {
+    if (storeState->includeDataURIs().empty()) {
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
-    auto& ss = store(clientID, *(storeState->includeURIs().begin()));
+    auto& ss = store(clientID, *(storeState->includeDataURIs().begin()));
     ss.prepareWipe(*storeState, doit, unsafeAll);
 
     // keep state for doWipe
