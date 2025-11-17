@@ -63,7 +63,9 @@ class ListElement:
         Examples
         --------
         >>> data_handle = list_element.dataHandle()
+        >>> data_handle.open()
         >>> data_handle.read(4)
+        >>> data_handle.close()
 
         ```
         b"GRIB"

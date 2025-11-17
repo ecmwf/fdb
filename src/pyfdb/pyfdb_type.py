@@ -29,7 +29,7 @@ MarsSelection = Dict[str, str]
 
 class FDBToolRequest:
     """
-    FDBToolRequest object.
+    FDBToolRequest object
 
     Parameters
     ----------
@@ -83,8 +83,44 @@ class FDBToolRequest:
 
 
 class DataHandle:
+    """
+    DataHandle class for lazy reading from a data source.
+
+    Parameters
+    ----------
+    None
+
+    Note
+    ----
+    *This class can't be instantiated / is only returned from the underlying FDB calls*
+
+    Returns
+    -------
+    `DataHandle` class
+
+    Examples
+    --------
+    >>> request = {
+    >>>     "type": "an",
+    >>>     "class": "ea",
+    >>>     "domain": "g",
+    >>>     "expver": "0001",
+    >>>     "stream": "oper",
+    >>>     "date": "20200101",
+    >>>     "levtype": "sfc",
+    >>>     "step": "0",
+    >>>     "param": "167/165/166",
+    >>>     "time": "1800",
+    >>> }
+    >>> data_handle = pyfdb.retrieve(request)
+    >>> data_handle.open()
+    >>> data_handle.read(4) == b"GRIB"
+    >>> data_handle.close()
+    """
+
     def __init__(self):
         self.dataHandle: _DataHandle
+        self.opened = False
         raise NotImplementedError
 
     def __new__(cls) -> "DataHandle":
@@ -94,7 +130,7 @@ class DataHandle:
     @classmethod
     def _from_raw(cls, data_handle: _DataHandle) -> "DataHandle":
         """
-        Internal method for generating a `DataHandle` from the PyBind11 exposed element
+        Internal method for generating a `DataHandle` from the PyBind11 exposed element>
 
         Parameters
         ----------
@@ -108,13 +144,124 @@ class DataHandle:
         """
         result = cls.__new__(cls)
         result.dataHandle = data_handle
+        result.opened = False
         return result
 
-    # TODO(TKR): Create a read_all function which handles the reading in a loop with error handling
-    # or make the len arg optional
+    def open(self) -> None:
+        """
+        Open the DataHandle object for reading.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle.open()
+        >>> data_handle.read(4) == b"GRIB"
+        >>> data_handle.close()
+        """
+        self.opened = True
+        self.dataHandle.open_for_read()
+
+    def close(self) -> None:
+        """
+        Close the DataHandle object after reading.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle.open()
+        >>> data_handle.read(4) == b"GRIB"
+        >>> data_handle.close()
+        """
+        self.opened = False
+        self.dataHandle.close()
 
     def read(self, len: int) -> bytes:
-        return self.dataHandle.read(len)
+        """
+        Read a given amount of bytes from the DataHandle.
+
+        Parameters
+        ----------
+        `len`: int
+            The amount of bytes to read.
+
+        Returns
+        -------
+        `bytes` object resembling the read data.
+
+        Raises
+        ------
+        `RuntimeError` if the DataHandle wasn't opened before the read.
+
+        Examples
+        --------
+        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle.open()
+        >>> data_handle.read(4) == b"GRIB"
+        >>> data_handle.close()
+        """
+        if self.opened is False:
+            raise RuntimeError(
+                "DataHandle: Read occured before the handle was opened. Must be opened first."
+            )
+
+        buffer = bytearray(len)
+        self.dataHandle.read(buffer)
+
+        return bytes(buffer)
+
+    def read_all(self) -> bytes:
+        """
+        Read all bytes from the DataHandle.
+
+        Parameters
+        ----------
+        None
+
+        Note
+        ----
+        *There is no need to open the DataHandle before*. This is handled by the function.
+
+        Returns
+        -------
+        `bytes` object resembling the read data
+
+        Examples
+        --------
+        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle.read_all(4) == b"GRIB"
+        """
+        buffer = bytearray()
+        total_bytes_read = 0
+
+        chunk_buf = bytearray(1024)
+
+        self.open()
+        bytes_read = self.dataHandle.read(chunk_buf)
+
+        while bytes_read > 0:
+            total_bytes_read += bytes_read
+            buffer.extend(chunk_buf[:bytes_read])
+            bytes_read = self.dataHandle.read(chunk_buf)
+
+        self.close()
+
+        return bytes(buffer)
 
 
 class Config:
