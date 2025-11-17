@@ -35,4 +35,6 @@ def test_inspect(read_only_fdb_setup):
         for el in elements:
             data_handle = el.data_handle()
             assert data_handle
+            data_handle.open()
             assert data_handle.read(4) == b"GRIB"
+            data_handle.close()
