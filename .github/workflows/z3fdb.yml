@@ -122,7 +122,7 @@ jobs:
       - name: Build fdb
         run: |
           export PATH=$(pwd)/dependencies/bin:$PATH
-          export ECCODES_HOME=$(pwd)/dependencies
+          export ECCODES_HOME=dependencies
           export FINDLIBS_DISABLE_PACKAGE=yes
           export FINDLIBS_DISABLE_PYTHON=yes
           export ECCODES_PYTHON_USE_FINDLIBS=1
