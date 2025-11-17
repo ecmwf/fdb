@@ -144,7 +144,7 @@ public:  // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     // bool auxiliaryURIExists(const eckit::URI&) const override;
 
-    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const override;
+    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
     bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(StoreWipeState& wipeState) const override;
 

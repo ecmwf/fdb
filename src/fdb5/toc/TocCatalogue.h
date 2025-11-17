@@ -28,7 +28,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// DB that implements the FDB on POSIX filesystems
-class TocWipeState;
+class CatalogueWipeState;
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public:  // methods
@@ -90,7 +90,7 @@ protected:  // methods
 private:  // methods
 
     // void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
-    void addMaskedPaths(TocWipeState& tocWipeState) const;
+    void addMaskedPaths(CatalogueWipeState& tocWipeState) const;
 
     // void ensureSafePaths() const;
     // void calculateResidualPaths() const;

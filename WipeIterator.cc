@@ -22,29 +22,38 @@ namespace fdb5 {
 
 std::ostream& operator<<(std::ostream& s, const WipeElementType& t) {
     switch (t) {
-        case WipeElementType::WIPE_CATALOGUE_INFO:
+        case WipeElementType::CATALOGUE_INFO:
             s << "WIPE_CATALOGUE_INFO";
             break;
-        case WipeElementType::WIPE_CATALOGUE:
+        case WipeElementType::CATALOGUE:
             s << "WIPE_CATALOGUE";
             break;
-        case WipeElementType::WIPE_CATALOGUE_SAFE:
+        case WipeElementType::CATALOGUE_SAFE:
             s << "WIPE_CATALOGUE_SAFE";
             break;
-        case WipeElementType::WIPE_CATALOGUE_CONTROL:
+        case WipeElementType::CATALOGUE_INDEX:
+            s << "WIPE_CATALOGUE_INDEX";
+            break;
+        case WipeElementType::CATALOGUE_CONTROL:
             s << "WIPE_CATALOGUE_AUX";
             break;
-        case WipeElementType::WIPE_STORE_INFO:
+        case WipeElementType::STORE_INFO:
             s << "WIPE_STORE_INFO";
             break;
-        case WipeElementType::WIPE_STORE:
+        case WipeElementType::STORE:
             s << "WIPE_STORE";
             break;
-        case WipeElementType::WIPE_STORE_URI:
+        case WipeElementType::STORE_URI:
             s << "WIPE_STORE_URI";
             break;
-        case WipeElementType::WIPE_STORE_AUX:
+        case WipeElementType::STORE_AUX:
             s << "WIPE_STORE_AUX";
+            break;
+        case WipeElementType::ERROR:
+            s << "WIPE_ERROR";
+            break;
+        case WipeElementType::UNKNOWN:
+            s << "WIPE_UNKNOWN";
             break;
     }
     s << "(" << ((int)t) << ")";
@@ -81,7 +90,7 @@ void WipeElement::print(std::ostream& out) const {
 
 
     out << msg_ << std::endl;
-    if (type_ != WIPE_CATALOGUE_INFO && type_ != WIPE_STORE_INFO) {
+    if (type_ != CATALOGUE_INFO && type_ != STORE_INFO) {
         if (uris_.size() > 0) {
             for (const auto& uri : uris_) {
                 out << "    " << uri.asString() << std::endl;

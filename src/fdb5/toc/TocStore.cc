@@ -67,9 +67,7 @@ eckit::URI TocStore::uri(const eckit::URI& dataURI) {
 }
 
 bool TocStore::uriBelongs(const eckit::URI& uri) const {
-
-    // TODO: assert uri represents a (not necessarily existing) data file
-    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)));
+    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)) && uri.path().extension() == ".data");
 }
 
 bool TocStore::uriExists(const eckit::URI& uri) const {
@@ -113,7 +111,6 @@ std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::set<eckit::URI>& 
     std::set<eckit::URI> res;
 
     for (auto& uri : uris) {
-        std::cout << "URI: " << uri << std::endl;
         ASSERT(uri.path().extension() == ".data");
         res.insert(uri);
     }
@@ -392,16 +389,20 @@ void TocStore::remove(const Key& key) const {
 // store to be empty, and wish to remove the directory
 //  this happens when your wipe request is essentially the entire first level key.
 
-void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const {
+void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
-    const std::set<eckit::URI>& uris     = storeState.includeDataURIs();  // included according to cat
+    std::set<eckit::URI>& dataURIs       = storeState.includeDataURIs();  // included according to cat
     const std::set<eckit::URI>& safeURIs = storeState.excludeDataURIs();  // excluded according to cat
 
     bool all = storeState.excludeDataURIs().empty();  // XXX: is this correct in a multi-store wipe?
 
-    for (const eckit::URI& uri : asCollocatedDataURIs(uris)) {  // XXX - this prints an error but never raises?
+    // Validate the URIs
+    for (auto it = dataURIs.begin(); it != dataURIs.end();) {
+        const eckit::URI& uri = *it;
+
+        // XXX - this prints an error but never raises?
         if (!uriBelongs(uri)) {
             Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store."
                          << std::endl;
@@ -412,49 +413,35 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
             return;
         }
 
-        /// @todo XXX check if the URI exists
+        for (const auto& aux : getAuxiliaryURIs(uri, true)) {
+            storeState.insertAuxiliaryURI(aux);
+        }
 
-        // void TocStore::calculateResidualPaths() {
-        //     for (std::set<PathName>* fileset : {&dataPaths_}) {
-        //         for (std::set<PathName>::iterator it = fileset->begin(); it != fileset->end();) {
-
-        //             if (store_.uriExists(eckit::URI(store_.type(), *it))) {
-        //                 ++it;
-        //             }
-        //             else {
-        //                 fileset->erase(it++);
-        //             }
-        //         }
-        //     }
-
-        // }
-
-        // dataURIs.insert(uri);
-
-        // WE ought to only insert URIs which exist.
-        storeState.insertDataURI(uri);
-
-        // Add any existing auxiliary URIs
-        for (const auto& au : getAuxiliaryURIs(uri, true)) {
-            storeState.insertAuxiliaryURI(au);
+        // URI may not exist (e.g. due to a prior incomplete wipe.)
+        if (!uri.path().exists()) {
+            it = dataURIs.erase(it);
+        }
+        else {
+            ++it;
         }
     }
 
-    if (all) {
-        std::vector<eckit::PathName> allPathsVector;
-        StdDir(basePath()).children(allPathsVector);
-        for (const eckit::PathName& uri : allPathsVector) {
-            eckit::URI u("file", uri);
-            const auto& dataURIs = storeState.dataURIs();
-            const auto& auxURIs  = storeState.dataAuxiliaryURIs();
-            if (dataURIs.find(u) == dataURIs.end() && auxURIs.find(u) == auxURIs.end() &&
-                safeURIs.find(u) == safeURIs.end()) {
-                storeState.insertUnrecognised(u);
-            }
-        }
+    if (!all) {
+        return;
     }
 
-    return;
+    // Plan to erase all files in this folder. Find any unaccounted for.
+
+    const auto& auxURIs = storeState.dataAuxiliaryURIs();
+    std::vector<eckit::PathName> allPathsVector;
+    StdDir(basePath()).children(allPathsVector);
+    for (const eckit::PathName& path : allPathsVector) {
+        eckit::URI u("file", path);
+        if (dataURIs.find(u) == dataURIs.end() && auxURIs.find(u) == auxURIs.end() &&
+            safeURIs.find(u) == safeURIs.end()) {
+            storeState.insertUnrecognised(u);
+        }
+    }
 }
 
 bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
@@ -469,21 +456,16 @@ bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) co
 
 bool TocStore::doWipe(StoreWipeState& wipeState) const {
 
+    bool wipeall = false;  // todo, notimp.
     for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
-        std::cout << "XXX TocStore removing aux uri: " << uri << std::endl;
         remove(uri, std::cout, std::cout, true);
-        std::cout << "done." << std::endl;
     }
 
     for (const auto& uri : wipeState.dataURIs()) {
-        if (wipeState.wipeAll()) {
-            std::cout << "marking db as empty... probably should not do this here anymore" << std::endl;
+        if (wipeall) {
             emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
-            std::cout << "done." << std::endl;
         }
-        std::cout << "XXX TocStore removing regular uri: " << uri << std::endl;
         remove(uri, std::cout, std::cout, true);
-        std::cout << "done." << std::endl;
     }
 
     return true;

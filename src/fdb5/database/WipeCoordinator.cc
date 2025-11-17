@@ -51,18 +51,18 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
 // Create WipeElements to report to the user what is going to be wiped.
 // NB: This copies every URI involved in the wipe.
 WipeElements WipeCoordinator::generateWipeElements(
-    const CatalogueWipeState& catalogueWipeState,
+    CatalogueWipeState& catalogueWipeState,
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates, const UnknownsBuckets& unknownURIs,
     bool unsafeWipeAll) const {
 
     WipeElements report{};
 
-    for (const auto& el : catalogueWipeState.generateWipeElements()) {
+    for (const auto& el : catalogueWipeState.extractWipeElements()) {
         report.push_back(el);
     }
 
     for (const auto& [storeURI, storeState] : storeWipeStates) {
-        for (const auto& el : storeState->generateWipeElements()) {
+        for (const auto& el : storeState->extractWipeElements()) {
             report.push_back(el);
         }
     }
@@ -79,11 +79,11 @@ WipeElements WipeCoordinator::generateWipeElements(
     }
 
     if (!unknownURIsSet.empty()) {
-        report.push_back(WipeElement(WipeElementType::WIPE_UNKNOWN,
-                                     "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
+        report.push_back(
+            WipeElement(WipeElementType::UNKNOWN, "Unexpected entries in FDB database:", std::move(unknownURIsSet)));
 
         if (!unsafeWipeAll) {
-            report.push_back(WipeElement(WipeElementType::WIPE_ERROR, "Cannot fully wipe unclean FDB database:"));
+            report.push_back(WipeElement(WipeElementType::ERROR, "Cannot fully wipe unclean FDB database:"));
         }
     }
 
@@ -91,9 +91,10 @@ WipeElements WipeCoordinator::generateWipeElements(
 }
 
 // Almost certainly std::unique_ptr<CatalogueWipeState> can just be CatalogueWipeState everywhere...
-WipeElements WipeCoordinator::wipe(const CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
+WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
 
-    auto storeWipeStates = catalogueWipeState.takeStoreStates();
+    auto& storeWipeStates = catalogueWipeState.storeStates();
+
     // XXX: We should handle case where there is no work for the stores... Is there such a case?
     ASSERT(!storeWipeStates.empty());
 

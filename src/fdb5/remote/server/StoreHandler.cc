@@ -362,7 +362,7 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
     auto& ss = store(clientID);  // hmm... im not sure about this...
 
     // check received URIs are at least a subset of expected unknowns.
-    const auto& expectedUnknowns = currentWipe_.state->deleteURIs();
+    const auto& expectedUnknowns = currentWipe_.state->unrecognisedURIs();
     for (const auto& uri : uris) {
         if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
             std::stringstream ss;

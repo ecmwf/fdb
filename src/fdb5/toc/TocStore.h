@@ -61,15 +61,11 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
-    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const override;
-
+    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
 
     bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(StoreWipeState& wipeState) const override;
-
     void doWipeEmptyDatabases() const override;
-
-    // const std::vector<eckit::URI>& deleteURIs() override;
 
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
     std::set<std::string> auxFileExtensions() const;

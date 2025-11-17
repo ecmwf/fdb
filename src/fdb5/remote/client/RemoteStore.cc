@@ -515,10 +515,10 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 // high-level API for wipe/purge
 
-void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) const {
+void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
-    // XXX: Errm, Im pretty sure the server should be responding for updates to the store state (e.g. aux files, unknowns)
-    // otherwise we will not be generating the wipe elements correctly.
+    // XXX: Errm, Im pretty sure the server should be responding for updates to the store state (e.g. aux files,
+    // unknowns) otherwise we will not be generating the wipe elements correctly.
 
     eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
     eckit::ResizableMemoryStream stream(sendBuf);

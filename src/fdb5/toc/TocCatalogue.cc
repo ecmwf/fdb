@@ -148,14 +148,12 @@ bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
 
 
 std::unique_ptr<CatalogueWipeState> TocCatalogue::wipeInit() const {
-    return std::make_unique<TocWipeState>(dbKey_);
+    return std::make_unique<CatalogueWipeState>(dbKey_);
 }
 
 bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const {
 
     eckit::URI locationURI{index.location().uri()};
-
-    TocWipeState& tocWipeState = static_cast<TocWipeState&>(wipeState);
 
     if (!locationURI.path().dirName().sameAs(basePath())) {  // as in the overlay
         include = false;
@@ -163,39 +161,43 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeStat
 
     // Add the index paths to be removed.
     if (include) {
-        tocWipeState.indexesToMask_.emplace_back(
-            index);  // XXX: Unused!!! Make sure we have tests that cover index masking.
-        tocWipeState.indexURIs_.insert(locationURI);
+        // XXX: Unused!!! Make sure we have tests that cover index masking.
+        wipeState.markForMasking(index);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, locationURI);
     }
     else {
         // This will ensure that if only some indexes are to be removed from a file, then
         // they will be masked out but the file not deleted.
-        tocWipeState.markAsSafe({locationURI});
+        // @todo: Is the above comment correct? Where does this masking happen?
+        wipeState.markAsSafe({locationURI});
     }
 
     return include;
 }
 
-void TocCatalogue::addMaskedPaths(TocWipeState& tocWipeState) const {
+void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
 
-    std::set<eckit::URI> maskedDataPaths = {};
+    std::set<eckit::URI> maskedDataURIs = {};
     std::set<std::pair<eckit::URI, Offset>> metadata;
 
-    allMasked(metadata, maskedDataPaths);
+    allMasked(metadata, maskedDataURIs);
     for (const auto& entry : metadata) {
         eckit::PathName path = entry.first.path();
         if (path.dirName().sameAs(basePath())) {
             if (path.baseName().asString().substr(0, 4) == "toc.") {
-                tocWipeState.subtocPaths_.insert(entry.first);
+                // tocWipeState.subtocPaths_.insert(entry.first); // is there any reason to keep subtocs specifically
+                // separate?
+                wipeState.markForDeletion(WipeElementType::CATALOGUE, entry.first);
             }
             else {
-                tocWipeState.indexURIs_.insert(entry.first);
+                // tocWipeState.indexURIs_.insert(entry.first);
+                wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, entry.first);
             }
         }
     }
 
-    for (const auto& datauri : maskedDataPaths) {
-        tocWipeState.includeData(datauri);
+    for (const auto& datauri : maskedDataURIs) {
+        wipeState.includeData(datauri);
     }
 }
 
@@ -204,40 +206,38 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     // We wipe everything if there is nothing within safePaths - i.e. there is
     // no data that wasn't matched by the request
 
-    TocWipeState& tocWipeState = static_cast<TocWipeState&>(wipeState);
-
     // Gather masked data paths
-    addMaskedPaths(tocWipeState);
+    addMaskedPaths(wipeState);
 
     // toc, subtocs
     // We may wish to switch to using an insert function, rather than protected friend access.
-    tocWipeState.catalogueURIs_.emplace("file", tocPath().path());
+    std::set<eckit::URI> catalogueURIs;
+    std::set<eckit::URI> auxURIs;
+    catalogueURIs.emplace("file", tocPath().path());
     for (const auto& sub : subTocPaths()) {
-        tocWipeState.catalogueURIs_.emplace("file", sub);
+        catalogueURIs.emplace("file", sub);
     }
 
     // schema
-    tocWipeState.catalogueURIs_.emplace("file", schemaPath().path());
+    catalogueURIs.emplace("file", schemaPath().path());
 
     // lockfiles
     for (const auto& lck : lockfilePaths()) {
-        tocWipeState.auxCatalogueURIs_.emplace("file", lck);
+        auxURIs.emplace("file", lck);
     }
 
-    tocWipeState.info_ = "FDB Owner: " + owner();
+    wipeState.info("FDB Owner: " + owner());
 
     // ---- MARK FOR DELETION OR AS SAFE ----
 
-    wipeState.markForDeletion(tocWipeState.indexURIs_);
-
     bool wipeall = wipeState.safeURIs().empty();
     if (wipeall) {
-        wipeState.markForDeletion(tocWipeState.catalogueURIs_);
-        wipeState.markForDeletion(tocWipeState.auxCatalogueURIs_);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE, catalogueURIs);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, auxURIs);
     }
     else {
-        wipeState.markAsSafe(tocWipeState.catalogueURIs_);
-        wipeState.markAsSafe(tocWipeState.auxCatalogueURIs_);
+        wipeState.markAsSafe(catalogueURIs);
+        wipeState.markAsSafe(auxURIs);
     }
 
     std::vector<eckit::PathName> allPathsVector;
@@ -247,11 +247,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
         // XXX: I think we are very inconsistent about where we use scheme = file vs toc. e.g., the toc itself is scheme
         // file.
         if (!(wipeState.ownsURI(eckit::URI("file", uri)) || wipeState.ownsURI(eckit::URI("toc", uri)))) {
-            std::cout << "XXX TocCatalogue::wipeFinalise - unrecognised URI: " << uri << std::endl;
             wipeState.insertUnrecognised(eckit::URI("file", uri));
-        }
-        else {
-            std::cout << "XXX TocCatalogue::wipeFinalise - owned URI: " << uri << std::endl;
         }
     }
 
@@ -288,7 +284,9 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
     bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the directory.
 
-    for (auto& uri : wipeState.deleteURIs()) {
+    auto uris = wipeState.FlattenedDeleteURIs();
+
+    for (auto& uri : uris) {
         remove(uri.path(), std::cout, std::cout, true);
 
         if (wipeAll) {  // XXX There should only be one folder... why are we doing this every time?

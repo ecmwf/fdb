@@ -41,23 +41,24 @@ class CatalogueWipeState;
 //----------------------------------------------------------------------------------------------------------------------
 
 enum WipeElementType {
-    WIPE_ERROR,
+    ERROR,
 
-    WIPE_CATALOGUE_INFO,
-    WIPE_CATALOGUE,
-    WIPE_CATALOGUE_SAFE,
-    WIPE_CATALOGUE_CONTROL,
+    CATALOGUE_INFO,
+    CATALOGUE,
+    CATALOGUE_INDEX,
+    CATALOGUE_SAFE,
+    CATALOGUE_CONTROL,
 
     // Data URIs from catalogue to be sent to the stores. NB: I haven't ended up using these?
     // WIPE_INCLUDE,
     // WIPE_EXCLUDE,
 
-    WIPE_STORE_INFO,  /// ~ unused
-    WIPE_STORE_URI,   // ~ unused
-    WIPE_STORE,
-    WIPE_STORE_AUX,
+    STORE_INFO,  /// ~ unused
+    STORE_URI,   // ~ unused
+    STORE,
+    STORE_AUX,
 
-    WIPE_UNKNOWN
+    UNKNOWN
 };
 
 class WipeElement {
@@ -94,7 +95,7 @@ private:  // methods
 
 private:  // members
 
-    WipeElementType type_{WipeElementType::WIPE_UNKNOWN};
+    WipeElementType type_{WipeElementType::UNKNOWN};
     std::string msg_;
     std::set<eckit::URI> uris_;
 };

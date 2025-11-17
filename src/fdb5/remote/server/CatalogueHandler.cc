@@ -250,9 +250,9 @@ struct WipeHelper : public BaseHelper<std::unique_ptr<CatalogueWipeState>> {
 
         if (doit_) {
             ASSERT(handler.currentWipe_.state == nullptr);
-            // Keep a local copy of the wipe state, awaiting an explicit DoWipe command from the client
+            // Keep a local copy of the (catalogue) wipe state, awaiting an explicit DoWipe command from the client
             handler.currentWipe_.state =
-                std::make_unique<CatalogueWipeState>(state->dbKey(), state->safeURIs(), state->deleteURIs());
+                std::make_unique<CatalogueWipeState>(state->dbKey(), state->safeURIs(), state->deleteMap());
             handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state->dbKey(), handler.config_);
             handler.currentWipe_.unsafeWipeAll = unsafeWipeAll_;
         }

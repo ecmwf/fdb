@@ -3,13 +3,13 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 
 // -----------------------------------------------------------------------------------------------
 
-WipeState::WipeState() {}
-
+WipeState::WipeState() {}  // rm these entirely?
 
 WipeState::WipeState(eckit::Stream& s) {}
 
@@ -67,11 +67,9 @@ void StoreWipeState::failIfSigned() const {
     }
 }
 
-// -----------------------------------------------------------------------------------------------
+StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
 
-StoreWipeState::StoreWipeState(eckit::URI uri) : WipeState(), storeURI_(std::move(uri)) {}
-
-StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
+StoreWipeState::StoreWipeState(eckit::Stream& s) {
 
     signature_ = Signature(s);
     s >> storeURI_;
@@ -99,12 +97,13 @@ Store& StoreWipeState::store(const Config& config) const {
 }
 
 void StoreWipeState::encode(eckit::Stream& s) const {
+    WipeState::encode(s);
 
     if (!signature_.isSigned()) {
         throw eckit::SeriousBug("StoreWipeState must be signed before encoding");
     }
 
-    WipeState::encode(s);
+    // WipeState::encode(s);
     s << signature_;
     s << storeURI_;
 
@@ -119,52 +118,50 @@ void StoreWipeState::encode(eckit::Stream& s) const {
     }
 }
 
-WipeElements CatalogueWipeState::generateWipeElements() const {
+// -----------------------------------------------------------------------------------------------
+
+WipeElements CatalogueWipeState::extractWipeElements() {
 
     WipeElements wipeElements;
     if (!info_.empty()) {
-        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE_INFO, info_,
-                                  std::set<eckit::URI>{});  // The empty set here is stupid. Give the element a
-                                                            // constructor that doesnt need a set...
+        wipeElements.emplace_back(WipeElementType::CATALOGUE_INFO, info_);
     }
 
-    if (!catalogueURIs_.empty()) {
-        auto catalogueURIs = catalogueURIs_;
-        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE,
-                                  "Catalogue URIs to delete:", std::move(catalogueURIs));
-    }
-    if (auxCatalogueURIs_.empty()) {
-        auto auxURIs = auxCatalogueURIs_;
-        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE_CONTROL,
-                                  "Control URIs to delete:", std::move(auxURIs));
-    }
+    auto addWipeElement = [&](WipeElementType type, const char* msg) {
+        auto it = deleteURIs_.find(type);
+        if (it == deleteURIs_.end() || it->second.empty()) {
+            return;
+        }
+
+        wipeElements.emplace_back(type, msg, std::move(it->second));
+        deleteURIs_.erase(it);
+    };
+
+    addWipeElement(WipeElementType::CATALOGUE, "Catalogue URIs to delete:");
+    addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete:");
+    addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete:");
 
     if (!safeURIs().empty()) {
-        auto safe = safeURIs();
-        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE_SAFE,
+        auto safe = safeURIs();  // note: needless copy.
+        wipeElements.emplace_back(WipeElementType::CATALOGUE_SAFE,
                                   "Protected URIs (explicitly untouched):", std::move(safe));
-    }
-
-    if (!indexURIs_.empty()) {
-        auto indexURIs = indexURIs_;
-        wipeElements.emplace_back(WipeElementType::WIPE_CATALOGUE, "Index URIs to delete:", std::move(indexURIs));
     }
 
     return wipeElements;
 }
 
-WipeElements StoreWipeState::generateWipeElements() const {
+WipeElements StoreWipeState::extractWipeElements() {
 
     WipeElements wipeElements;
 
-    if (!dataURIs_.empty()) {
-        auto dataURIs = dataURIs_;
-        wipeElements.emplace_back(WipeElementType::WIPE_STORE, "Data URIs to delete:", std::move(dataURIs));
+    if (!includeDataURIs_.empty()) {
+        auto dataURIs = includeDataURIs_;
+        wipeElements.emplace_back(WipeElementType::STORE, "Data URIs to delete:", std::move(dataURIs));
     }
 
     if (!auxURIs_.empty()) {
         auto auxURIs = auxURIs_;
-        wipeElements.emplace_back(WipeElementType::WIPE_STORE_AUX, "Auxiliary URIs to delete:", std::move(auxURIs));
+        wipeElements.emplace_back(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:", std::move(auxURIs));
     }
 
     return wipeElements;
@@ -174,7 +171,7 @@ bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
 
     // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
 
-    if (std::find(dataURIs_.begin(), dataURIs_.end(), uri) != dataURIs_.end()) {
+    if (std::find(includeDataURIs_.begin(), includeDataURIs_.end(), uri) != includeDataURIs_.end()) {
         return true;
     }
     if (std::find(auxURIs_.begin(), auxURIs_.end(), uri) != auxURIs_.end()) {
@@ -219,13 +216,9 @@ const std::vector<Index>& CatalogueWipeState::indexesToMask() const {
     return indexesToMask_;
 }
 
-CatalogueWipeState::StoreStates CatalogueWipeState::takeStoreStates() const {
-    return std::exchange(storeWipeStates_, {});
-}
-
-CatalogueWipeState::StoreStates& CatalogueWipeState::storeStates() {
-    return storeWipeStates_;
-}
+// CatalogueWipeState::StoreStates& CatalogueWipeState::storeStates() {
+//     return storeWipeStates_;
+// }
 
 void CatalogueWipeState::signStoreStates(std::string secret) {
     for (auto& [uri, state] : storeWipeStates_) {
@@ -234,6 +227,7 @@ void CatalogueWipeState::signStoreStates(std::string secret) {
 }
 
 // This is backend specific: should be in toccatalogue class.
+// XXX -- check where this is used. Maybe it is not strictly required.
 bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
 
     // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
@@ -247,13 +241,16 @@ bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
     eckit::URI asfile = eckit::URI("file", uri_in.path());
 
     // XXX - hack. because we seemingly interchangeably use file and toc schemes
+    // Correct behaviour would be to prevent those uris from getting this far.
     for (const auto& uri : {astoc, asfile}) {
 
         if (std::find(safeURIs().begin(), safeURIs().end(), uri) != safeURIs().end()) {
             return true;
         }
 
-        if (std::find(deleteURIs().begin(), deleteURIs().end(), uri) != deleteURIs().end()) {
+        auto deleteURIs = FlattenedDeleteURIs();
+
+        if (std::find(deleteURIs.begin(), deleteURIs.end(), uri) != deleteURIs.end()) {
             return true;
         }
     }
