@@ -1,5 +1,5 @@
 from pyfdb import PyFDB, Config
-from pyfdb.pyfdb_type import FDBToolRequest, Key
+from pyfdb.pyfdb_type import FDBToolRequest, Identifier
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
@@ -96,7 +96,7 @@ def populate_fdb(fdb: PyFDB):
     data = b"-1 Kelvin"
     for i in range(NFIELDS):
         key = requests[i]
-        key = Key([(k, v) for k, v in key.items()])
+        key = Identifier([(k, v) for k, v in key.items()])
         fdb.archive(key=key, bytes=data)
     fdb.flush()
 
