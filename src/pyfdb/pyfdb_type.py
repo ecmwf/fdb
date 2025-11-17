@@ -265,7 +265,47 @@ class DataHandle:
 
 
 class Config:
-    def __init__(self, config: str | dict | Path = "") -> None:
+    """
+    Config object of the FDB. This can be used as a system or user configuration.
+
+    Parameters
+    ----------
+    `config`: `str` | `dict` | `Path`
+            System or user configuration
+
+    Note
+    ----
+    *In case you want to supply a config to a FDB, hand in the needed arguments to the FDB directly.*
+    For usage examples see the comments of the PyFDB constructor.
+
+    Every config can be a `Config` object, but is converted accordingly if another type is supplied:
+        - `str` is used as a yaml representation to parse the config
+        - `dict` is interpreted as hierarchical format to represent a config, see example
+        - `Path` is interpreted as a location of the config and read as a YAML file
+
+    Returns
+    -------
+    Config object
+
+    Examples
+    --------
+    >>> config = pyfdb.Config(
+            dict(
+                type="local",
+                engine="toc",
+                schema=<schema_path>,
+                spaces=[
+                    dict(
+                        handler="Default",
+                        roots=[
+                            {"path": <db_store_path>},
+                        ],
+                    )
+                ],
+            ))
+    """
+
+    def __init__(self, config: str | dict | Path) -> None:
         if isinstance(config, Path):
             self.config_str = config.read_text()
         elif isinstance(config, dict):
@@ -273,7 +313,9 @@ class Config:
         elif isinstance(config, str):
             self.config_str = config
         else:
-            raise RuntimeError("Config: Unknown config type, must be str or dict.")
+            raise RuntimeError(
+                "Config: Unknown config type, must be str, dict or Path."
+            )
 
 
 # https://github.com/ecmwf/datacube-spec
