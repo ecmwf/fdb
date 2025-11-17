@@ -393,14 +393,13 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
-    std::set<eckit::URI>& dataURIs       = storeState.includeDataURIs();  // included according to cat
-    const std::set<eckit::URI>& safeURIs = storeState.excludeDataURIs();  // excluded according to cat
-
-    bool all = storeState.excludeDataURIs().empty();  // XXX: is this correct in a multi-store wipe?
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.excludedDataURIs();  // excluded according to cat
 
     // Validate the URIs
-    for (auto it = dataURIs.begin(); it != dataURIs.end();) {
-        const eckit::URI& uri = *it;
+
+    std::set<eckit::URI> nonExistingURIs;
+    for (auto& uri : dataURIs) {
 
         // XXX - this prints an error but never raises?
         if (!uriBelongs(uri)) {
@@ -419,13 +418,15 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
 
         // URI may not exist (e.g. due to a prior incomplete wipe.)
         if (!uri.path().exists()) {
-            it = dataURIs.erase(it);
-        }
-        else {
-            ++it;
+            nonExistingURIs.insert(uri);
         }
     }
 
+    for (const auto& uri : nonExistingURIs) {
+        storeState.unincludeURI(uri);
+    }
+
+    bool all = storeState.excludedDataURIs().empty();  // XXX: is this correct in a multi-store wipe?
     if (!all) {
         return;
     }
@@ -461,7 +462,7 @@ bool TocStore::doWipe(StoreWipeState& wipeState) const {
         remove(uri, std::cout, std::cout, true);
     }
 
-    for (const auto& uri : wipeState.dataURIs()) {
+    for (const auto& uri : wipeState.includedDataURIs()) {
         if (wipeall) {
             emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
         }

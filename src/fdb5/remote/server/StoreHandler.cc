@@ -422,19 +422,19 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
     // The URIs need to be converted to internal URIs for this store.
     auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));
 
-    for (const auto& uri : inState.includeDataURIs()) {
+    for (const auto& uri : inState.includedDataURIs()) {
         storeState->includeData(RemoteFieldLocation::internalURI(uri));
     }
-    for (const auto& uri : inState.excludeDataURIs()) {
+    for (const auto& uri : inState.excludedDataURIs()) {
         storeState->excludeData(RemoteFieldLocation::internalURI(uri));
     }
 
-    if (storeState->includeDataURIs().empty()) {
+    if (storeState->includedDataURIs().empty()) {
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
-    auto& ss = store(clientID, *(storeState->includeDataURIs().begin()));
+    auto& ss = store(clientID, *(storeState->includedDataURIs().begin()));
     ss.prepareWipe(*storeState, doit, unsafeAll);
 
     // keep state for doWipe

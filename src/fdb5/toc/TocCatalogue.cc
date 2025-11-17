@@ -284,7 +284,7 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
     bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the directory.
 
-    auto uris = wipeState.FlattenedDeleteURIs();
+    auto uris = wipeState.flattenedDeleteURIs();
 
     for (auto& uri : uris) {
         remove(uri.path(), std::cout, std::cout, true);

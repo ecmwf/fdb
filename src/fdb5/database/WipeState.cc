@@ -23,102 +23,57 @@ std::size_t WipeState::encodeSize() const {
     // size += (includeDataURIs_.size() + excludeDataURIs_.size()) * 256;
     return size;
 }
-
-void CatalogueWipeState::includeData(const eckit::URI& uri) {
-    // We should make these add directory to the store state, imo. Though maybe it'll need some uri scheme faffing
-
-    eckit::URI storeURI = StoreFactory::instance().uri(uri);
-
-    auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
-    if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first);
-    }
-
-    it->second->includeData(uri);
-}
-
-void CatalogueWipeState::excludeData(const eckit::URI& uri) {
-
-    eckit::URI storeURI = StoreFactory::instance().uri(uri);
-
-    auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
-    if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first);
-    }
-
-    it->second->excludeData(uri);
-}
-
 void WipeState::encode(eckit::Stream& s) const {}
 
-void StoreWipeState::sign(const std::string& secret) {
-    signature_.sign(hash(secret));
-}
 
-std::uint64_t StoreWipeState::hash(const std::string& secret) const {
-    std::uint64_t h = Signature::hashURIs(includeDataURIs_, secret + "in");
-    h ^= Signature::hashURIs(excludeDataURIs_, secret + "ex");
-    return h;
-}
+void WipeState::lock() {
+    locked_ = true;
 
-void StoreWipeState::failIfSigned() const {
-    if (signature_.isSigned()) {
-        throw eckit::SeriousBug("Attempt to modify signed WipeState");
+    // Sanity check: ensure there is no overlap between the 3 sets.
+    URIIterator deleteURIs = flattenedDeleteURIs();
+    for (auto& uri : deleteURIs) {
+        ASSERT(safeURIs_.find(uri) == safeURIs_.end());
+    }
+
+    for (auto& uri : unknownURIs_) {
+        ASSERT(safeURIs_.find(uri) == safeURIs_.end());
+    }
+
+    for (auto& uri : deleteURIs) {
+        ASSERT(unknownURIs_.find(uri) == unknownURIs_.end());
     }
 }
 
-StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
-
-StoreWipeState::StoreWipeState(eckit::Stream& s) {
-
-    signature_ = Signature(s);
-    s >> storeURI_;
-
-    std::size_t n = 0;
-
-    s >> n;
-    for (std::size_t i = 0; i < n; ++i) {
-        eckit::URI uri(s);
-        includeDataURIs_.insert(uri);
-    }
-
-    s >> n;
-    for (std::size_t i = 0; i < n; ++i) {
-        eckit::URI uri(s);
-        excludeDataURIs_.insert(uri);
-    }
-}
-
-Store& StoreWipeState::store(const Config& config) const {
-    if (!store_) {
-        store_ = StoreFactory::instance().build(storeURI_, config);
-    }
-    return *store_;
-}
-
-void StoreWipeState::encode(eckit::Stream& s) const {
-    WipeState::encode(s);
-
-    if (!signature_.isSigned()) {
-        throw eckit::SeriousBug("StoreWipeState must be signed before encoding");
-    }
-
-    // WipeState::encode(s);
-    s << signature_;
-    s << storeURI_;
-
-    s << static_cast<std::size_t>(includeDataURIs_.size());
-    for (const auto& uri : includeDataURIs_) {
-        s << uri;
-    }
-
-    s << static_cast<std::size_t>(excludeDataURIs_.size());
-    for (const auto& uri : excludeDataURIs_) {
-        s << uri;
-    }
+URIIterator WipeState::flattenedDeleteURIs() const {
+    return URIIterator{deleteURIs_};
 }
 
 // -----------------------------------------------------------------------------------------------
+
+void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
+    // We should make these add directory to the store state, imo. Though maybe it'll need some uri scheme faffing
+
+    eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+
+    auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
+    if (inserted || !it->second) {
+        it->second = std::make_unique<StoreWipeState>(it->first);
+    }
+
+    it->second->includeData(dataURI);
+}
+
+void CatalogueWipeState::excludeData(const eckit::URI& dataURI) {
+
+    eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
+
+    auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
+    if (inserted || !it->second) {
+        it->second = std::make_unique<StoreWipeState>(it->first);
+    }
+
+    it->second->excludeData(dataURI);
+}
 
 WipeElements CatalogueWipeState::extractWipeElements() {
 
@@ -149,38 +104,6 @@ WipeElements CatalogueWipeState::extractWipeElements() {
 
     return wipeElements;
 }
-
-WipeElements StoreWipeState::extractWipeElements() {
-
-    WipeElements wipeElements;
-
-    if (!includeDataURIs_.empty()) {
-        auto dataURIs = includeDataURIs_;
-        wipeElements.emplace_back(WipeElementType::STORE, "Data URIs to delete:", std::move(dataURIs));
-    }
-
-    if (!auxURIs_.empty()) {
-        auto auxURIs = auxURIs_;
-        wipeElements.emplace_back(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:", std::move(auxURIs));
-    }
-
-    return wipeElements;
-}
-
-bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
-
-    // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
-
-    if (std::find(includeDataURIs_.begin(), includeDataURIs_.end(), uri) != includeDataURIs_.end()) {
-        return true;
-    }
-    if (std::find(auxURIs_.begin(), auxURIs_.end(), uri) != auxURIs_.end()) {
-        return true;
-    }
-
-    return false;
-}
-// -----------------------------------------------------------------------------------------------
 
 CatalogueWipeState::CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
 
@@ -216,10 +139,6 @@ const std::vector<Index>& CatalogueWipeState::indexesToMask() const {
     return indexesToMask_;
 }
 
-// CatalogueWipeState::StoreStates& CatalogueWipeState::storeStates() {
-//     return storeWipeStates_;
-// }
-
 void CatalogueWipeState::signStoreStates(std::string secret) {
     for (auto& [uri, state] : storeWipeStates_) {
         state->sign(secret);
@@ -248,7 +167,7 @@ bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
             return true;
         }
 
-        auto deleteURIs = FlattenedDeleteURIs();
+        auto deleteURIs = flattenedDeleteURIs();
 
         if (std::find(deleteURIs.begin(), deleteURIs.end(), uri) != deleteURIs.end()) {
             return true;
@@ -258,5 +177,108 @@ bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
     return false;
 }
 
+// -----------------------------------------------------------------------------------------------
+
+void StoreWipeState::sign(const std::string& secret) {
+    signature_.sign(hash(secret));
+}
+
+std::uint64_t StoreWipeState::hash(const std::string& secret) const {
+    std::uint64_t h = Signature::hashURIs(includedDataURIs(), secret + "in");
+    h ^= Signature::hashURIs(excludeDataURIs_, secret + "ex");
+    return h;
+}
+
+void StoreWipeState::failIfSigned() const {
+    if (signature_.isSigned()) {
+        throw eckit::SeriousBug("Attempt to modify signed WipeState");
+    }
+}
+
+StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
+
+StoreWipeState::StoreWipeState(eckit::Stream& s) {
+
+    auto signature = Signature(s);
+    s >> storeURI_;
+
+    std::size_t n = 0;
+
+    s >> n;
+    for (std::size_t i = 0; i < n; ++i) {
+        eckit::URI uri(s);
+        includeData(uri);
+    }
+
+    s >> n;
+    for (std::size_t i = 0; i < n; ++i) {
+        eckit::URI uri(s);
+        excludeDataURIs_.insert(uri);
+    }
+
+    signature_ = signature;
+}
+
+Store& StoreWipeState::store(const Config& config) const {
+    if (!store_) {
+        store_ = StoreFactory::instance().build(storeURI_, config);
+    }
+    return *store_;
+}
+
+void StoreWipeState::encode(eckit::Stream& s) const {
+
+    if (!signature_.isSigned()) {
+        throw eckit::SeriousBug("StoreWipeState must be signed before encoding");
+    }
+
+    WipeState::encode(s);
+
+    s << signature_;
+    s << storeURI_;
+
+    s << static_cast<std::size_t>(includedDataURIs().size());
+    for (const auto& uri : includedDataURIs()) {
+        s << uri;
+    }
+
+    s << static_cast<std::size_t>(excludeDataURIs_.size());
+    for (const auto& uri : excludeDataURIs_) {
+        s << uri;
+    }
+}
+
+WipeElements StoreWipeState::extractWipeElements() {
+    WipeElements wipeElements;
+
+    auto addWipeElement = [&](WipeElementType type, const char* msg) {
+        auto it = deleteURIs_.find(type);
+        if (it == deleteURIs_.end() || it->second.empty()) {
+            return;
+        }
+
+        wipeElements.emplace_back(type, msg, std::move(it->second));
+        deleteURIs_.erase(it);
+    };
+
+    addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
+    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
+
+    // store's safe uris?
+
+    return wipeElements;
+}
+
+bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
+
+    auto dataURIs = flattenedDeleteURIs();
+    if (std::find(dataURIs.begin(), dataURIs.end(), uri) != dataURIs.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+// -----------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
