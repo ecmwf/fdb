@@ -13,15 +13,16 @@ def test_initialization():
 
 
 def test_fdb_config():
-    config = Config()
-    pyfdb = PyFDB(config)
-
-    assert pyfdb
+    with pytest.raises(
+        TypeError,
+        match="missing 1 required positional argument: 'config'",
+    ):
+        config = Config()
 
 
 def test_fdb_config_wrong_type():
     with pytest.raises(
-        RuntimeError, match="Config: Unknown config type, must be str or dict"
+        RuntimeError, match="Config: Unknown config type, must be str, dict or Path"
     ):
         config = Config(0)
         pyfdb = PyFDB(config)
