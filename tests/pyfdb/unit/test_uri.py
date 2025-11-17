@@ -1,12 +1,33 @@
 from pathlib import Path
 
 from pyfdb.pyfdb import URI
+import pytest
 
 
 def test_uri_initialization_string_unkown_scheme():
     uri = URI.from_str("scheme://netloc/path;parameters?query#fragment")
 
     assert uri.scheme() == "unix"
+
+
+def test_uri_initialization_string_http_easy():
+    uri = URI.from_str(
+        "http://user@localhost:8443/a/b;c=1;d=two/e;f=3?q=search%20terms&sort=asc&flag&list=a,b,c#section-2"
+    )
+
+    assert uri.scheme() == "http"
+
+    assert uri.name() == "/a/b;c=1;d=two/e;f=3"
+    assert uri.user() == "user"
+    assert uri.host() == "localhost"
+    assert uri.port() == 8443
+
+    with pytest.raises(RuntimeError, match="Not implemented"):
+        uri.path()
+
+    assert uri.fragment() == "section-2"
+
+    print(uri)
 
 
 def test_uri_initialization_string():
@@ -56,7 +77,7 @@ def test_uri_initialization_raw_string():
 
 
 def test_uri_initialization_path():
-    uri = URI.from_scheme_path(scheme="file", path=Path("/test"))
+    uri = URI.from_path(path=Path("/test"))
 
     assert uri.scheme() == "file"
     assert uri.path() == "/test"
