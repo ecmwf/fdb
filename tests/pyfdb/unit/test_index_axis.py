@@ -319,9 +319,3 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
 
         with pytest.raises(AttributeError):
             del index_axis["type"]
-
-        with pytest.raises(RuntimeError):
-            index_axis.clear()
-
-        with pytest.raises(RuntimeError):
-            index_axis.copy()

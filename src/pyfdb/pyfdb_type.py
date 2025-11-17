@@ -319,18 +319,71 @@ class Config:
 
 
 # https://github.com/ecmwf/datacube-spec
-class Key:
+class Identifier:
+    """
+    A identifier is a dictionary describing the coordinates of a datacube which point to an
+    individual element or sub-datacube. Each entry in the dictionary may only have a single value.
+
+    Parameters
+    ----------
+    `key_value_pairs`: `List[Tuple[str, str]]`
+        A list of key-value-pairs describing the keys of a MARS request and the corresponding values
+
+    Note
+    ----
+    *All inserted keys and values will be converted to lower-case*
+
+    Returns
+    -------
+    Identifier object
+
+    Examples
+    --------
+    >>> config = pyfdb.Config(
+            dict(
+                type="local",
+                engine="toc",
+                schema=<schema_path>,
+                spaces=[
+                    dict(
+                        handler="Default",
+                        roots=[
+                            {"path": <db_store_path>},
+                        ],
+                    )
+                ],
+            ))
+    """
+
     def __init__(self, key_value_pairs: List[Tuple[str, str]]):
-        self.key_values = DefaultDict(list)
+        self.key_values: Dict[str, str] = {}
 
         for k, v in key_value_pairs:
-            self.key_values[k].append(v)
+            if k in self.key_values.keys():
+                raise KeyError(
+                    f"Identifier: Key {k} already exists in Identifier: {str(self)}"
+                )
+            else:
+                self.key_values[k] = v
 
     def __str__(self) -> str:
-        return ",".join([f"{k}={'/'.join(v)}" for k, v in self.key_values.items()])
+        return ",".join([f"{k}={v}" for k, v in self.key_values.items()])
 
 
 class ControlIdentifier(IntFlag):
+    """
+    Specify which functionality of the FDB should be addressed, e.g. RETRIEVE or LIST.
+
+    Values
+    ----
+    NONE
+    LIST
+    RETRIEVE
+    ARCHIVE
+    WIPE
+    UNIQUEROOT
+    """
+
     NONE = 0
     LIST = auto()
     RETRIEVE = auto()
@@ -344,6 +397,16 @@ class ControlIdentifier(IntFlag):
 
 
 class ControlAction(IntFlag):
+    """
+    Specify which action should be executed, e.g. `DISABLE` or `ENABLE`.
+
+    Values
+    ----
+    NONE
+    DISABLE
+    ENABLE
+    """
+
     NONE = 0
     DISABLE = auto()
     ENABLE = auto()
@@ -354,6 +417,36 @@ class ControlAction(IntFlag):
 
 
 class URI:
+    """
+    Class describing a unique resource identifier.
+
+    Parameters
+    ----------
+    None
+
+    Note
+    ----
+    *This class can't be default instantiated / is only returned from the underlying FDB calls*
+    If you want to instantiate, use the static class methods `from_*`.
+
+    Examples
+    --------
+    >>> config = pyfdb.Config(
+            dict(
+                type="local",
+                engine="toc",
+                schema=<schema_path>,
+                spaces=[
+                    dict(
+                        handler="Default",
+                        roots=[
+                            {"path": <db_store_path>},
+                        ],
+                    )
+                ],
+            ))
+    """
+
     def __init__(self):
         self._uri: _URI
         raise NotImplementedError
@@ -383,30 +476,124 @@ class URI:
 
     @classmethod
     def from_str(cls, uri: str):
+        """
+        Generate a `URI` from a string
+
+        Parameters
+        ----------
+        `uri` : `str`
+            A URI given as string
+
+        Note:
+        -----
+        *Currently there are only three schemes supported: file, http, https.
+        Every other scheme will fall back to scheme `unix` with limited parsing support.*
+
+        Returns
+        -------
+        `URI`
+        """
         result = cls.__new__(cls)
         result._uri = _URI(uri)
         return result
 
     @classmethod
-    def from_scheme_path(cls, scheme: str, path: Path):
+    def from_path(cls, path: Path):
+        """
+        Generate a `URI` from a file system path
+
+        Parameters
+        ----------
+        `path` : `Path`
+            A path to the file system resource
+
+        Returns
+        -------
+        `URI`
+        """
         result = cls.__new__(cls)
-        result._uri = _URI(scheme, path.resolve().as_posix())
+        result._uri = _URI("file", path.resolve().as_posix())
         return result
 
     @classmethod
     def from_scheme_uri(cls, scheme: str, uri: "URI"):
+        """
+        Generating a `URI` from a scheme and an existing `URI`.
+        Replaces the elements of the given `URI` with the given scheme.
+
+        Parameters
+        ----------
+        `scheme` : `str`
+            A supported scheme
+        `uri`: `URI`
+            A existing URI
+
+        Note:
+        -----
+        *Currently there are only three schemes supported: file, http, https.
+        Every other scheme will fall back to scheme `unix` with limited parsing support.*
+
+        Returns
+        -------
+        `URI`
+        """
         result = cls.__new__(cls)
         result._uri = _URI(scheme, uri._uri)
         return result
 
     @classmethod
     def from_scheme_host_port(cls, scheme: str, host: str, port: int):
+        """
+        Generating a `URI` from a scheme, a host and a port.
+
+        Parameters
+        ----------
+        `scheme` : `str`
+            A supported scheme
+        `host`: `str`
+            A host name
+        `port`: `int`
+            A port
+
+        Note:
+        -----
+        *Currently there are only three schemes supported: file, http, https.
+        Every other scheme will fall back to scheme `unix` with limited parsing support.*
+
+        Returns
+        -------
+        `URI`
+        """
         result = cls.__new__(cls)
         result._uri = _URI(scheme, host, port)
         return result
 
     @classmethod
     def from_scheme_uri_host_port(cls, scheme: str, uri: "URI", host: str, port: int):
+        """
+        Generating a `URI` from a scheme, a host and a port and an existing URI.
+        Replaces the elements of the given `URI` with those specified as parameters.
+
+        Parameters
+        ----------
+        `scheme` : `str`
+            A supported scheme
+        `uri` : `URI`
+            An existing URI
+        `host`: `str`
+            A host name
+        `port`: `int`
+            A port
+
+        Note:
+        -----
+        *Currently there are only three schemes supported: file, http, https.
+        Every other scheme will fall back to scheme `unix` with limited parsing support.*
+
+        Returns
+        -------
+        `URI`
+        """
         result = cls.__new__(cls)
         result._uri = _URI(scheme, uri._uri, host, port)
         return result

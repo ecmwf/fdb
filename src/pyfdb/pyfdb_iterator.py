@@ -362,12 +362,6 @@ class IndexAxis:
     def __delitem__(self, key):
         raise AttributeError("IndexAxis class is read only.")
 
-    def clear(self):
-        raise RuntimeError("IndexAxis class is read only.")
-
-    def copy(self):
-        raise RuntimeError("IndexAxis is non-copyable.")
-
     def has_key(self, k) -> bool:
         return k in self.index_axis
 

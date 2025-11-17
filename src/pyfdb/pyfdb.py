@@ -26,7 +26,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-from pyfdb.pyfdb_type import Key, MarsSelection
+from pyfdb.pyfdb_type import Identifier, MarsSelection
 
 
 class PyFDB:
@@ -103,7 +103,7 @@ class PyFDB:
         else:
             self.FDB = _interal.FDB()
 
-    def archive(self, bytes: bytes, key: Key | None = None):
+    def archive(self, bytes: bytes, key: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.
         *No constistency checks are applied. The caller needs to ensure the provided key matches metadata present in data.*

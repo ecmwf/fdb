@@ -3,6 +3,8 @@ import yaml
 from pyfdb import PyFDB, Config
 from pyfdb._internal import MarsRequest
 
+import pytest
+
 
 def test_initialization():
     pyfdb = PyFDB()
@@ -10,10 +12,8 @@ def test_initialization():
 
 
 def test_initialization_config():
-    config = Config()
-    pyfdb = PyFDB(config)
-
-    assert pyfdb
+    with pytest.raises(TypeError, match="missing 1 required positional argument"):
+        Config()
 
 
 def test_initialization_config_fixture(read_only_fdb_setup):
