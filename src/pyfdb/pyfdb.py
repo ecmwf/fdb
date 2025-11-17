@@ -169,7 +169,9 @@ class PyFDB:
         --------
         >>> mars_selection = {"key-1": "value-1", ...}
         >>> data_handle = pyfdb.retrieve(mars_selection)
+        >>> data_handle.open()
         >>> data_handle.read(4) // == b'GRIB'
+        >>> data_handle.close()
         """
         mars_request = _interal.MarsRequest.from_selection(mars_selection)
         return DataHandle._from_raw(self.FDB.retrieve(mars_request.request))

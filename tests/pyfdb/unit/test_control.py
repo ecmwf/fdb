@@ -48,7 +48,9 @@ def test_control_lock_retrieve(read_only_fdb_setup):
             }
         )
         assert data_handle
+        data_handle.open()
         assert data_handle.read(4) == b"GRIB"
+        data_handle.close()
 
         assert not (
             fdb_config_path.parent
@@ -108,7 +110,9 @@ def test_control_lock_retrieve(read_only_fdb_setup):
             },
         )
         assert data_handle
+        data_handle.open()
         assert data_handle.read(4) == b"GRIB"
+        data_handle.close()
 
 
 def test_control_lock_list(read_only_fdb_setup):
@@ -308,8 +312,6 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
 
         elements = []
 
-        # TODO(TKR): Ok, apparently the internal state of the iterator is borked, when we lock
-        # This should either result in an error message or an empty iterator
         with pytest.raises(RuntimeError):
             for el in wipe_iterator:
                 elements.append(el)

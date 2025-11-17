@@ -9,7 +9,6 @@ def test_uri_initialization_string_unkown_scheme():
     assert uri.scheme() == "unix"
 
 
-# TODO(TKR): This shows how borked the implementation of the parsing is. Leave this for now.
 def test_uri_initialization_string():
     uri = URI.from_str(
         "scheme+demo://user:pa%3Ass@[2001:db8:85a3::8a2e:370:7334]:8443/a/b;c=1;d=two/e;f=3?q=search%20terms&sort=asc&flag&list=a,b,c#section-2"

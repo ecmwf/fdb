@@ -1,3 +1,4 @@
+import pytest
 from pyfdb import Config, PyFDB
 
 
@@ -26,4 +27,6 @@ def test_retrieve(read_only_fdb_setup):
         data_handle = pyfdb.retrieve(request)
 
         assert data_handle
+        data_handle.open()
         assert data_handle.read(4) == b"GRIB"
+        data_handle.close()

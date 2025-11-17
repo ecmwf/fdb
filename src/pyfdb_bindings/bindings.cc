@@ -93,15 +93,12 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle")
         .def(py::init())
+        .def("open_for_read", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); })
+        .def("close", [](eckit::DataHandle& data_handle) { data_handle.close(); })
         .def("read",
-             [](eckit::DataHandle& data_handle, size_t len) {
-                 std::vector<char> buf;
-                 buf.resize(len);
-
-                 data_handle.openForRead();
-                 data_handle.read(buf.data(), len);
-
-                 return py::bytes(buf.data(), buf.size());
+             [](eckit::DataHandle& data_handle, py::buffer& buffer) {
+                 py::buffer_info info = buffer.request();
+                 return data_handle.read(info.ptr, info.size);
              })
         .def("print", &eckit::DataHandle::print);
 
@@ -267,28 +264,16 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("__getitem__",
              [](const fdb5::IndexAxis& index_axis, const std::string& key) {
                  try {
-                     std::cout << "-------------- BEFORE VALUES CALL ------------" << std::endl;
                      const auto& values = index_axis.values(key);
-                     std::cout << "-------------- AFTER VALUES CALL ------------" << std::endl;
                      return std::vector<std::string>{values.begin(), values.end()};
                  }
-                 // TODO(TKR): why is there SeriousBug not caught if put in the catch statement?
                  catch (const eckit::SeriousBug& serious_bug) {
-                     std::cout << "SERIOUS BUG: " << std::endl;
-                     std::string s = typeid(serious_bug).name();
-                     std::cout << s << std::endl;
-                     std::cout << dynamic_cast<const eckit::SeriousBug*>(&serious_bug) << std::endl;
-                     std::cout << dynamic_cast<const std::exception*>(&serious_bug) << std::endl;
                      std::stringstream buf;
                      buf << "Couldn't find key: " << key << " in IndexAxis.";
                      throw py::key_error(buf.str());
                  }
+                 // INFO:: Clang isn't able to derive the correct type, so we are catching the base
                  catch (const eckit::Exception& serious_bug) {
-                     std::cout << "ECKIT EXCEPTION: " << std::endl;
-                     std::string s = typeid(serious_bug).name();
-                     std::cout << s << std::endl;
-                     std::cout << dynamic_cast<const eckit::SeriousBug*>(&serious_bug) << std::endl;
-                     std::cout << dynamic_cast<const std::exception*>(&serious_bug) << std::endl;
                      std::stringstream buf;
                      buf << "Couldn't find key: " << key << " in IndexAxis.";
                      throw py::key_error(buf.str());
