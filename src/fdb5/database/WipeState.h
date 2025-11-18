@@ -78,6 +78,8 @@ public:
         safeURIs_   = std::move(safeURIs);
         deleteURIs_ = std::move(deleteURIs);
     }
+    
+    virtual ~WipeState() = default;
 
     explicit WipeState(eckit::Stream& s);
 
@@ -226,9 +228,6 @@ public:
         WipeState(std::move(safeURIs), std::move(deleteURIs)), dbKey_(dbKey) {}
 
     explicit CatalogueWipeState(eckit::Stream& s);
-
-    virtual ~CatalogueWipeState() = default;
-
 
     // Insert URIs
     void includeData(const eckit::URI& uri);
