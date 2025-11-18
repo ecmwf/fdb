@@ -103,8 +103,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             case Message::Wipe:  // notification that the client is starting to send data location for read
-                wipe(clientID, requestID, payload);
-                return Handled::Yes;
+                prepareWipe(clientID, requestID, payload);
+                return Handled::Replied;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
                 doWipeUnknown(clientID, requestID, payload);
@@ -402,7 +402,7 @@ void StoreHandler::doWipeEmptyDatabases(const uint32_t clientID, const uint32_t 
 }
 
 
-void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
     bool unsafeAll = false;
     bool doit      = false;
@@ -436,6 +436,14 @@ void StoreHandler::wipe(const uint32_t clientID, const uint32_t requestID, const
 
     auto& ss = store(clientID, *(storeState->includedDataURIs().begin()));
     ss.prepareWipe(*storeState, doit, unsafeAll);
+
+    // Write back with the additional URIs to be wiped.
+    eckit::Buffer outBuffer(1_MiB);
+    eckit::ResizableMemoryStream outStream(outBuffer);
+    outStream << storeState->dataAuxiliaryURIs();
+    outStream << storeState->unrecognisedURIs();
+
+    write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipe
     if (doit) {

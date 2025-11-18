@@ -622,12 +622,6 @@ bool CatalogueHandler::wipeInProgress(uint32_t clientID, uint32_t requestID) con
 }
 
 void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID) {
-    // std::cout << "CatalogueHandler::doWipe called, wipestate payload size = " << payload.size() << std::endl;
-    // We actually dont need any payload. Just a signal to proceed.
-    // XXX --- in our protocol, how do I avoid sending a payload???
-    // MemoryStream s(payload);
-    // uint32_t x;  // dummy
-    // s >> x;      // dummy
     currentWipe_.catalogue->doWipe(*currentWipe_.state);
 }
 

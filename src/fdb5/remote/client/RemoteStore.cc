@@ -517,16 +517,29 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
-    // XXX: Errm, Im pretty sure the server should be responding for updates to the store state (e.g. aux files,
-    // unknowns) otherwise we will not be generating the wipe elements correctly.
-
+    // Send StoreWipeState to server
     eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
     eckit::ResizableMemoryStream stream(sendBuf);
     stream << storeState;
     stream << unsafeWipeAll;
     stream << doit;
 
-    controlWriteCheckResponse(Message::Wipe, generateRequestID(), false, sendBuf, stream.position());
+    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, stream.position());
+
+    // Receieve auxiliary and unknown URIs back from server
+    eckit::MemoryStream rstream(recvBuf);
+    std::set<eckit::URI> auxFiles;
+    std::set<eckit::URI> unknownFiles;
+    rstream >> auxFiles;
+    rstream >> unknownFiles;
+
+    for (const auto& uri : auxFiles) {
+        storeState.insertAuxiliaryURI(uri);
+    }
+
+    for (const auto& uri : unknownFiles) {
+        storeState.insertUnrecognised(uri);
+    }
 }
 
 bool RemoteStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {

@@ -46,7 +46,7 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
-    void wipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipe(const uint32_t clientID, const uint32_t requestID);
     void doWipeEmptyDatabases(const uint32_t clientID, const uint32_t requestID);
