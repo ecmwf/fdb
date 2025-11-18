@@ -2,7 +2,6 @@ from typing import Any, Dict
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
-
 MarsSelection = Dict[str, str]
 
 

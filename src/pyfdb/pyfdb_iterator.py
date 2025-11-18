@@ -9,13 +9,12 @@
 from typing import List
 
 from pyfdb import URI, DataHandle
-
 from pyfdb._internal import (
+    ControlElement as _ControlElement,
+    FileCopy as _FileCopy,
+    IndexAxis as _IndexAxis,
     ListElement as _ListElement,
     StatsElement as _StatsElement,
-    ControlElement as _ControlElement,
-    IndexAxis as _IndexAxis,
-    FileCopy as _FileCopy,
 )
 
 
