@@ -23,7 +23,7 @@ def assert_one_field(pyfdb: PyFDB):
 
     assert data_handle
 
-    request = FDBToolRequest(STATIC_DICTIONARY, all=False)
+    request = FDBToolRequest(STATIC_DICTIONARY)
     list_iterator = pyfdb.list(request)
 
     elements = []

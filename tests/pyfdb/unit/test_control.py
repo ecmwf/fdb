@@ -263,6 +263,90 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
         print("Success")
 
 
+def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        request = FDBToolRequest(
+            {
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "time": "1800",
+            },
+        )
+
+        print("Lock the database for archiving")
+        control_iterator = pyfdb.control(
+            request, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
+        )
+        assert control_iterator
+
+        elements = []
+
+        for el in control_iterator:
+            print(el)
+            elements.append(el)
+
+        assert len(elements) == 1
+
+        print("--------- OUTPUT STATUS -----------")
+
+        status_iterator = pyfdb.status(request)
+
+        elements = list(status_iterator)
+
+        for el in elements:
+            print(el)
+
+        assert (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "archive.lock"
+        ).exists()
+
+        print("Try archiving")
+        with pytest.raises(
+            Exception, match=" matched for archived is LOCKED against archiving"
+        ):
+            pyfdb.archive(build_grib_messages.read_bytes())
+            pyfdb.flush()
+
+        print("Unlock the database for archiving")
+        control_iterator = pyfdb.control(
+            request, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
+        )
+        assert control_iterator
+
+        elements = []
+
+        for el in control_iterator:
+            print(el)
+            elements.append(el)
+
+        assert len(elements) == 1
+
+        assert not (
+            fdb_config_path.parent
+            / "db_store"
+            / "ea:0001:oper:20200101:1800:g"
+            / "archive.lock"
+        ).exists()
+
+        print("Try archiving")
+        pyfdb.archive(build_grib_messages.read_bytes())
+        pyfdb.flush()
+        print("Success")
+
+
 def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     fdb_config_path = read_only_fdb_setup
 
