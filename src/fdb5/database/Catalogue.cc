@@ -8,11 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include <_stdio.h>
-#include <cstring>
 #include <map>
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
