@@ -319,3 +319,38 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
 
         with pytest.raises(AttributeError):
             del index_axis["type"]
+
+
+def test_index_axis_items_empty_request(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with fdb_config_path.open("r") as config_file:
+        fdb_config = Config(config_file.read())
+        pyfdb = PyFDB(fdb_config)
+
+        request = FDBToolRequest(
+            {
+                # "type": "an",
+                # "class": "ea",
+                # "domain": "g",
+                # "expver": "0001",
+                # "stream": "oper",
+                # "date": "20200101",
+                # "levtype": "sfc",
+                # "step": "0",
+                # "time": "180",
+            },
+            all=True,
+        )
+
+        index_axis: IndexAxis = pyfdb.axes(request)
+
+        assert len(index_axis.items()) == 11
+
+        for k, v in index_axis.items():
+            print(f"k={k} | v={v}")
+
+        for k, v in index_axis.items():
+            assert index_axis.has_key(k)

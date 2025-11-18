@@ -26,7 +26,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 autoapi_dirs = ["../../src/pyfdb"]
 autoapi_type = "python"
-autoapi_generate_api_docs = False
+autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = False
 autoapi_python_class_content = "class"
 autoapi_ignore = [

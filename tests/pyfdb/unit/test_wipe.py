@@ -97,7 +97,7 @@ def populate_fdb(fdb: PyFDB):
     for i in range(NFIELDS):
         key = requests[i]
         key = Identifier([(k, v) for k, v in key.items()])
-        fdb.archive(key=key, bytes=data)
+        fdb.archive(identifier=key, bytes=data)
     fdb.flush()
 
     return NFIELDS

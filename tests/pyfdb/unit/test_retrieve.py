@@ -11,7 +11,7 @@ def test_retrieve(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = {
+        selection = {
             "type": "an",
             "class": "ea",
             "domain": "g",
@@ -24,7 +24,7 @@ def test_retrieve(read_only_fdb_setup):
             "time": "1800",
         }
 
-        data_handle = pyfdb.retrieve(request)
+        data_handle = pyfdb.retrieve(selection)
 
         assert data_handle
         data_handle.open()

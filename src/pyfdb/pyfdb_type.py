@@ -66,7 +66,7 @@ class FDBToolRequest:
         all: bool = False,
         minimum_key_set: List[str] | None = None,
     ) -> None:
-        if key_values:
+        if key_values is not None:
             key_values = _flatten_values(key_values)
 
         if minimum_key_set is None:
