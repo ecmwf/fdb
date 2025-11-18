@@ -135,7 +135,7 @@ eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state) {
     return s;
 }
 
-const std::vector<Index>& CatalogueWipeState::indexesToMask() const {
+const std::set<Index>& CatalogueWipeState::indexesToMask() const {
     return indexesToMask_;
 }
 

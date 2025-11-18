@@ -237,10 +237,9 @@ void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifi
 std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {
     NOTIMP;
 }
-void RemoteCatalogue::maskIndexEntry(const Index& index) const {
-    // NOTIMP;
-    // TODO: implement remote masking of index entries
-    std::cout << "XXX RemoteCatalogue::maskIndexEntry NOOP" << std::endl;
+void RemoteCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+    // The server already knows which indexes to mask, just send the command
+    controlWriteCheckResponse(Message::DoMaskIndexEntries, generateRequestID(), false);
 }
 void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                                 std::set<eckit::URI>& data) const {

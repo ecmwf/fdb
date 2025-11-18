@@ -92,14 +92,16 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 archiver();
                 return Handled::YesAddArchiveListener;
 
+            case Message::DoMaskIndexEntries:
+                // doit! We expect DoMaskIndexEntries, DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
+                doMaskIndexEntries(clientID, requestID);
+                return Handled::Yes;
+
             case Message::DoWipe:
-                // doit! We expect DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
-                std::cout << "CatalogueHandler::handleControl: got DoWipe message" << std::endl;
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
             case Message::DoWipeEmptyDatabases:
-                std::cout << "CatalogueHandler::handleControl: got DoWipeEmptyDatabases message" << std::endl;
                 doWipeEmptyDatabases(clientID, requestID);
                 return Handled::Yes;
 
@@ -610,15 +612,12 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
 }
 
 bool CatalogueHandler::wipeInProgress(uint32_t clientID, uint32_t requestID) const {
-    std::cout << "CatalogueHandler::wipeInProgress called. Client match? "
-              << (currentWipe_.clientID == clientID ? "yes" : "no") << ", request match? "
-              << (currentWipe_.requestID == requestID ? "yes" : "no") << std::endl;
-    std::cout << "catalogue set? " << (currentWipe_.catalogue ? "yes" : "no") << ", state set? "
-              << (currentWipe_.state ? "yes" : "no") << std::endl;
-    // return (currentWipe_.catalogue && currentWipe_.state && currentWipe_.clientID == clientID &&
-    // currentWipe_.requestID == requestID);
-    return (currentWipe_.catalogue &&
-            currentWipe_.state);  // XXX: TODO: understand why clientID/requestID always changes.
+    return (currentWipe_.catalogue && currentWipe_.state);
+}
+
+void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID) {
+    ASSERT(wipeInProgress(clientID, requestID));
+    currentWipe_.catalogue->maskIndexEntries(currentWipe_.state->indexesToMask());
 }
 
 void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID) {

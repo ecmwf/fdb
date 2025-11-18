@@ -77,6 +77,7 @@ private:  // methods
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
+    void doMaskIndexEntries(uint32_t clientID, uint32_t requestID);
     void doWipe(uint32_t clientID, uint32_t requestID);
     void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
     void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID);

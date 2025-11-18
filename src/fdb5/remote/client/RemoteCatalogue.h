@@ -64,7 +64,8 @@ public:  // methods
                              eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
     std::vector<fdb5::Index> indexes(bool sorted = false) const override;
-    void maskIndexEntry(const Index& index) const override;
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
+
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
     void print(std::ostream& out) const override;
 

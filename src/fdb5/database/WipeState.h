@@ -233,7 +233,7 @@ public:
     // Insert URIs
     void includeData(const eckit::URI& uri);
     void excludeData(const eckit::URI& uri);
-    void markForMasking(Index idx) { indexesToMask_.push_back(idx); }
+    void markForMasking(Index idx) { indexesToMask_.insert(idx); }
     void info(const std::string& in) { info_ = in; }
 
     // Signing
@@ -242,7 +242,7 @@ public:
     // Getters
     const Key& dbKey() const { return dbKey_; }
     StoreStates& storeStates() { return storeWipeStates_; }
-    const std::vector<Index>& indexesToMask() const;
+    const std::set<Index>& indexesToMask() const;
 
     // Overrides
     void encode(eckit::Stream& s) const override;
@@ -254,7 +254,7 @@ private:
     // For finding the catalogue again later.
     Key dbKey_;
 
-    std::vector<Index> indexesToMask_ = {};  // @todo, use this...
+    std::set<Index> indexesToMask_ = {};  // @todo, use this...
     StoreStates storeWipeStates_;
 
     std::string info_;  // Additional info about this particular catalogue (e.g. owner)

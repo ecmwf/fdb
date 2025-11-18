@@ -52,7 +52,6 @@ public:  // methods
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
     };
-    void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
     void loadSchema() override;
 

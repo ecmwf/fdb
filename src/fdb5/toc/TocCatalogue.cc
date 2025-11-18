@@ -102,9 +102,11 @@ MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::M
     return new TocMoveVisitor(*this, store, request, dest, queue);
 }
 
-void TocCatalogue::maskIndexEntry(const Index& index) const {
+void TocCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
     TocHandler handler(basePath(), config_);
-    handler.writeClearRecord(index);
+    for (const auto& index : indexes) {
+        handler.writeClearRecord(index);
+    }
 }
 
 std::vector<Index> TocCatalogue::indexes(bool sorted) const {

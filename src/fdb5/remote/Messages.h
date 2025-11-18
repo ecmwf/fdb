@@ -69,9 +69,10 @@ enum class Message : uint16_t {
     Exists,
 
     // Wipe related messages
-    DoWipe,
+    DoWipe = 150,
     DoWipeUnknowns,
     DoWipeEmptyDatabases,
+    DoMaskIndexEntries,
 
     // Responses
     Received = 200,

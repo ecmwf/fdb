@@ -84,7 +84,7 @@ public:
     virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
 
     /// For use by the WipeVisitor
-    virtual void maskIndexEntry(const Index& index) const = 0;
+    virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
 
     /// For use by purge/wipe
     virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
@@ -338,7 +338,7 @@ public:
     std::vector<fdb5::Index> indexes(bool sorted = false) const override { NOTIMP; }
 
     /// For use by the WipeVisitor
-    void maskIndexEntry(const Index& index) const override { NOTIMP; }
+    void maskIndexEntries(const std::set<Index>& indexes) const override { NOTIMP; }
 
     /// For use by purge/wipe
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,

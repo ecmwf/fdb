@@ -153,13 +153,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     std::unique_ptr<Catalogue> catalogue =
         CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config_);
 
-    // 1. XXX Mask indexes TODO
-    // eckit::Log::info() << "WipeCoordinator::wipe - masking indexes" << std::endl;
-    for (const auto& index : catalogueWipeState.indexesToMask()) {
-        //     catalogue->maskIndexEntry(index); // This is way too chatty for remote fdb. This should be one
-        //     function call. (Also, handler knows what indexes to match, probably, unless there's been an update.)
-    }
-
+    // 1. Mask indexes XXX: this requires better test coverage...
+    catalogue->maskIndexEntries(catalogueWipeState.indexesToMask());
 
     // 2. Wipe unknown files if unsafeWipeAll is set
     if (unsafeWipeAll) {

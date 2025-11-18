@@ -67,7 +67,7 @@ protected:  // methods
     PurgeVisitor* purgeVisitor(const Store& store) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
-    void maskIndexEntry(const Index& index) const override;
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
 
     void loadSchema() override;
 
