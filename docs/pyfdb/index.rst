@@ -5,8 +5,8 @@
 PyFDB documentation
 ===================
 
-`PyFDB` is a Python client for **FDB5**, offering archival, search, listing,
-retrieval of GRIB files with ease [1](https://github.com/ecmwf/pyfdb/blob/develop/README.md).
+`PyFDB` is a Python API for **FDB5**, offering archival,search, listing, retrieval of GRIB files with ease 
+[1](https://github.com/ecmwf/pyfdb/blob/develop/README.md).
 
 .. toctree::
    :maxdepth: 2

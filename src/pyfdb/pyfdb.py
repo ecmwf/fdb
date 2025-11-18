@@ -103,19 +103,23 @@ class PyFDB:
         else:
             self.FDB = _interal.FDB()
 
-    def archive(self, bytes: bytes, key: Identifier | None = None):
+    def archive(self, bytes: bytes, identifier: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.
-        *No constistency checks are applied. The caller needs to ensure the provided key matches metadata present in data.*
+        *No constistency checks are applied. The caller needs to ensure the provided identifier matches metadata present in data.*
 
         Parameters
         ----------
         `bytes` : `bytes`
             The binary data to be archived.
-        `key` : `Key` | None, optional
+        `identifier` : `Identifier` | None, optional
             A unique identifier for the archived data.
-            - If provided, the data will be stored under this key.
-            - If None, the data will be archived without an explicit key.
+            - If provided, the data will be stored under this identifier.
+            - If None, the data will be archived without an explicit identifier.
+
+        Note
+        ----
+        Sometime an identifier is also referred to as a Key.
 
         Returns
         -------
@@ -126,10 +130,10 @@ class PyFDB:
         >>> pyfdb.archive(bytes=b"binary-data")
         >>> pyfdb.archive(key=Key([("key-1", "value-1")]), bytes=b"binary-data")
         """
-        if key is None:
+        if identifier is None:
             self.FDB.archive(bytes, len(bytes))
         else:
-            self.FDB.archive(str(key), bytes, len(bytes))
+            self.FDB.archive(str(identifier), bytes, len(bytes))
 
     def flush(self):
         """
@@ -206,25 +210,29 @@ class PyFDB:
 
         Examples
         --------
-        >>> request = fdbtoolrequest(
-        >>>     "type": "an",
-        >>>     "class": "ea",
-        >>>     "domain": "g",
-        >>>     "expver": "0001",
-        >>>     "stream": "oper",
-        >>>     "date": "20200101",
-        >>>     "levtype": "sfc",
-        >>>     "step": "0",
-        >>>     "time": "1800",
+        >>> request = FDBToolRequest(
+        >>>     {
+        >>>         "type": "an",
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "levtype": "sfc",
+        >>>         "step": "0",
+        >>>         "time": "1800",
+        >>>     },
         >>> )
         >>> list_iterator = pyfdb.list(request) // level == 3
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
         {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
-        {type=an,levtype=sfc}{step=0,param=131},
+        {type=an,levtype=sfc}
+        {step=0,param=131},
         tocfieldlocation[uri=uri[scheme=file,name=<location>],offset=10732,length=10732,remapkey={}],
-        length=10732,timestamp=176253515
+        length=10732,
+        timestamp=176253515
 
         >>> list_iterator = pyfdb.list(request, level=2)
         >>> elements = list(list_iterator)
@@ -240,7 +248,9 @@ class PyFDB:
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
-        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},length=0,timestamp=0
+        {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},
+        length=0,
+        timestamp=0
         """
         iterator = self.FDB.list(fdb_tool_request.tool_request, not duplicates, level)
         while True:
@@ -254,12 +264,16 @@ class PyFDB:
     ) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
-        describing which databases/fields were part of the MARS selection.
+        describing which field was part of the MARS selection.
 
         Parameters
         ----------
         `mars_selection` : `MarsSelection`
             An MARS selection for which the inspect should be executed
+
+        Note
+        ----
+        *If multiple values for a key are specified, only the first one is respected and returned.*
 
         Returns
         -------
@@ -278,7 +292,7 @@ class PyFDB:
         >>>         "date": "20200101",
         >>>         "levtype": "sfc",
         >>>         "step": "0",
-        >>>         "param": "167/165/166",
+        >>>         "param": "167",
         >>>         "time": "1800",
         >>>     }
         >>> list_iterator = pyfdb.inspect(selection)
@@ -366,9 +380,9 @@ class PyFDB:
         """
         Wipe data from the database.
 
-        Deletes FDB databases and the data therein contained. Uses the passed
+        Delete FDB databases and the data therein contained. Use the passed
         request to identify the database to delete. This is equivalent to a UNIX rm command.
-        This tool deletes either whole databases, or whole indexes within databases
+        This function deletes either whole databases, or whole indexes within databases
 
         Parameters
         ----------
@@ -585,7 +599,7 @@ class PyFDB:
         Size of index files             : 131,072 (128 Kbytes)
         Size of TOC files               : 2,048 (2 Kbytes)
         Total owned size                : 165,544 (161.664 Kbytes)
-        Total size                      : 165,544 (161.664 Kbytes`
+        Total size                      : 165,544 (161.664 Kbytes)
         ```
         """
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
