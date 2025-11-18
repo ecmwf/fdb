@@ -6,17 +6,17 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from enum import IntFlag, auto
 import json
+from enum import IntFlag, auto
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import pyfdb._internal as _internal
 from pyfdb._internal import (
     _URI,
     MarsRequest,
-    _flatten_values,
     _DataHandle,
+    _flatten_values,
 )
 
 """
