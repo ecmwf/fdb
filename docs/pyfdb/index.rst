@@ -13,6 +13,7 @@ PyFDB documentation
    :caption: Contents:
 
    installation
+   configuration
    examples
 
 Indices and tables

@@ -27,12 +27,13 @@ endfunction()
 set(test_files
     unit/test_archive.py
     unit/test_control.py
+    unit/test_data_handle.py
     unit/test_enums.py
     unit/test_fdb.py
+    unit/test_identifier.py
     unit/test_index_axis.py
     unit/test_initialization.py
     unit/test_inspect.py
-    unit/test_key.py
     unit/test_list.py
     unit/test_mars_request.py
     unit/test_move.py

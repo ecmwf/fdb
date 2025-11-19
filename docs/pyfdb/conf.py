@@ -5,9 +5,10 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import datetime
 
 project = "PyFDB"
-copyright = "2025, ECMWF"
+copyright = f"{datetime.datetime.today().year}, ECMWF"
 author = "ECMWF"
 
 # -- General configuration ---------------------------------------------------
