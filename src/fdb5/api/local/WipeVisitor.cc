@@ -51,8 +51,27 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     }
 
     ASSERT(!catalogueWipeState_);
-
     catalogueWipeState_ = catalogue.wipeInit();
+
+    if (doit_) {
+        // Lock the database for everything but wiping.
+        // Build the initial control state (is there really not a function for this?)
+        ControlIdentifiers id;
+        if (catalogue.enabled(ControlIdentifier::Wipe)) {
+            id |= ControlIdentifier::Wipe;
+        }
+        if (catalogue.enabled(ControlIdentifier::List)) {
+            id |= ControlIdentifier::List;
+        }
+        if (catalogue.enabled(ControlIdentifier::Retrieve)) {
+            id |= ControlIdentifier::Retrieve;
+        }
+        catalogueWipeState_->initialControlState(id);
+
+        catalogue.control(ControlAction::Disable,
+                          ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
+    }
+
 
     // Having selected a DB, construct the residual request. This is the request that is used for
     // matching Index(es) -- which is relevant if there is subselection of the database.

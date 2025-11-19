@@ -190,11 +190,18 @@ bool TocCatalogue::uriBelongs(const eckit::URI& uri) const {
         return false;
     }
 
-    // Scheme is "file", so must be a toc/subtoc, schema or .index file
+    // Is it a toc/subtoc, schema or .index file?
     eckit::PathName basename = uri.path().baseName();
 
     if (basename.extension() == ".index" || basename.asString().substr(0, 3) == "toc" || basename == "schema") {
         return true;
+    }
+
+    // Check against lock files
+    for (const auto& lck : lockfilePaths()) {
+        if (basename == lck.baseName()) {
+            return true;
+        }
     }
 
     return false;

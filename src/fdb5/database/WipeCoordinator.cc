@@ -115,6 +115,8 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
                                                                  [](const auto& pair) { return !pair.second.empty(); });
 
     if (doit && unclean && !unsafeWipeAll) {
+        // @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
+        catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 

@@ -14,6 +14,7 @@
 #include <string>
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -230,6 +231,15 @@ public:
         return *catalogue_;
     }
 
+    void initialControlState(const ControlIdentifiers& ids) { initialControlState_ = ids; }
+
+    // Reset the control state (i.e. locks) of the catalogue to their pre-wipe state.
+    void resetControlState(Catalogue& catalogue) const {
+        if (initialControlState_) {
+            catalogue.control(ControlAction::Enable, *initialControlState_);
+        }
+    }
+
     // Insert URIs
     void includeData(const eckit::URI& uri);
     void excludeData(const eckit::URI& uri);
@@ -259,6 +269,9 @@ private:
     StoreStates storeWipeStates_;
 
     std::string info_;  // Additional info about this particular catalogue (e.g. owner)
+
+    // Used to reset control state in event of incomplete wipe
+    std::optional<ControlIdentifiers> initialControlState_;
 };
 
 // -----------------------------------------------------------------------------------------------
