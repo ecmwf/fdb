@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
 # add_link_options(-fsanitize=address)
 # set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare")
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-sign-compare -Wvla-cxx-extension")
+# set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-sign-compare -Wvla-cxx-extension")
 
 CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
 
