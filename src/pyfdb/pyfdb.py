@@ -40,14 +40,14 @@ class PyFDB:
 
         Parameters
         ----------
-        `config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+        :`config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up the FDB.
-        `user_config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+        :`user_config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up user specific options, e.g., enabling sub-TOCs.
 
         Returns
         -------
-        PyFDB object
+        :returns: PyFDB object
 
         Note
         ----
@@ -110,7 +110,7 @@ class PyFDB:
 
         Parameters
         ----------
-        `bytes` : `bytes`
+        `bytes`: `bytes`
             The binary data to be archived.
         `identifier` : `Identifier` | None, optional
             A unique identifier for the archived data.
@@ -119,7 +119,7 @@ class PyFDB:
 
         Note
         ----
-        Sometime an identifier is also referred to as a Key.
+        Sometimes an identifier is also referred to as a Key.
 
         Returns
         -------

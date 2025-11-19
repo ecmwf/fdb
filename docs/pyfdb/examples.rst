@@ -1,11 +1,10 @@
 Example usage
-=============
+#############
 
 This example demonstrates how to use common functionality of the ``PyFDB``.
 
-
-Initializing a PyFDB instance
------------------------------
+PyFDB Intro
+***********
 
 .. code-block:: python
 
@@ -35,20 +34,23 @@ a ``Dict[str, Any]`` as shown below.
                 handler="Default",
                 roots=[
                     {"path": "/path/to/root"}
-                    ]
+                ]
             )
         ],
     )
     fdb = pyfdb.PyFDB(config=config, userconfig={})
 
-
-
 .. TODO(TKR): Specify what a user config is and how this can be used here.
+
+
+
+
+
 
 Down below are some of the common examples you want to use `PyFDB` for:
 
 Archive
---------------
+***********
 
 **Archive binary data into the underlying FDB.**
 
@@ -70,7 +72,7 @@ given from the supplied ``identifier``.
 The ``flush`` command guarantees that the archived data has been flushed to the ``FDB``.
 
 Flush
---------------
+***********
 
 **Flush all buffers and closes all data handles of the underlying FDB into a consistent DB state.**
 
@@ -91,12 +93,12 @@ Flush
 The ``flush`` command guarantees that the archived data has been flushed to the ``FDB``.
 
 Retrieving
-----------
+***********
 
 **Retrieve data which is specified by a MARS selection.**
 
 To Memory
-^^^^^^^^^
+=========
 
 .. code-block:: python
 
@@ -133,7 +135,7 @@ has to be opened before being read and closed afterwards. If you are interested 
     to ``open`` or ``close`` the ``data_handle`` after the call to ``read_all``.
 
 To File
-^^^^^^^^^
+=========
 
 Another use-case, which is often needed, is saving certain ``GRIB`` data in a file on your local machine.
 The following code is showing how to achieve this:
@@ -154,7 +156,7 @@ The following code is showing how to achieve this:
 
 
 List
----------------
+****
 
 **List data present at the underlying fdb archive and which can be retrieved.**
 
@@ -259,7 +261,7 @@ level of the underlying FDB. If you specify ``level=3``, the returned ``ListElem
 
 
 Inspect
--------
+*******
 
 **Inspects the content of the underlying FDB and returns a generator of list elements
 describing which field was part of the MARS selection.**
@@ -309,7 +311,7 @@ be used to directly access the data associated with the element, see the example
 
 
 Status
-------
+*******
 
 **List the status of all FDB entries with their control identifiers, e.g., whether a certain database was locked for retrieval.**
 
@@ -347,7 +349,7 @@ This corresponds to the ``ControlIdentifier.ARCHIVE`` value.
    Refer to the ``control`` section for further information.
 
 Wipe
-----
+*******
 
 **Wipe data from the database**
 
@@ -385,7 +387,7 @@ A potential deletion operation could look like this:
 
 
 Move
-----
+*******
 
 **Move content of one FDB database to a new URI.**
 
@@ -468,7 +470,7 @@ the first and second level of the schema, we can call the ``move`` function. The
 can be iterated and the actual move operation can be triggered by calling ``execute`` on each element.
 
 Purge
------
+*******
 **Remove duplicate data from the database.**
 
 Purge duplicate entries from the database and remove the associated data if the data is owned and not adopted.
@@ -504,7 +506,7 @@ existing ``FDB``), this data will not be removed.
         print(element)
 
 Stats
------
+*******
 **Print information about FDB databases, aggregating the information over all the databases visited into a final summary.**
 
 .. code-block:: python
@@ -560,7 +562,7 @@ the underlying ``FDB``. A potential call of the example above could lead to the 
     Total size                      : 165,544 (161.664 Kbytes)
 
 Control
--------
+*******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
 
 .. tip::
@@ -641,7 +643,7 @@ file gets deleted.
 After disabling the action, a call to it results in an empty iterator being returned.
 
 Axes
-----
+*******
 **Return the 'axes' and their extent of an FDBToolRequest for a given level of the schema in an IndexAxis object.**
 
 If a key isn't specified the entire extent (all values) are returned.
@@ -756,7 +758,7 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
     index_axis: IndexAxis = pyfdb.axes(request)
 
 Enabled
--------
+*******
 **Check whether a specific control identifier is enabled.**
 
 .. code-block:: python
@@ -795,7 +797,7 @@ we end up with the following ``ControlIdentifier`` s:
 The configuration changes accordingly, if we substitute ``writable = False`` with ``visitable = False``.
 
 Needs Flush
------------
+*************
 **Return whether a flush of the FDB is needed.**
 
 .. code-block:: python

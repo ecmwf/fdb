@@ -45,3 +45,27 @@ def test_initialization_config_equality(read_only_fdb_setup):
     assert pyfdb_config_dict
 
     print(pyfdb_config_str)
+
+
+def test_initialization_config_system_and_user(read_only_fdb_setup):
+    fdb_config_path: Path = read_only_fdb_setup
+
+    fdb_user_config_str = """
+    type: local
+    engine: toc
+    useSubToc: true
+    spaces:
+    - roots:
+      - path: "/a/path/is/something"
+    """
+
+    assert fdb_config_path
+
+    fdb_sytem_config = Config(fdb_config_path.read_text())
+    fdb_user_config = Config(fdb_user_config_str)
+
+    pyfdb = PyFDB(fdb_sytem_config, fdb_user_config)
+    assert pyfdb
+
+    print(pyfdb.config())
+    assert "useSubToc => true" in pyfdb.config()
