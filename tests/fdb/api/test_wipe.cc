@@ -56,7 +56,8 @@ eckit::PathName& wipe_tests_tmp_root() {
     return wipeRoot;
 }
 
-size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::FDBToolRequest>> reqs, bool deduplicate = false) {
+size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::FDBToolRequest>> reqs,
+                bool deduplicate = false) {
     size_t count = 0;
     fdb5::ListElement info;
 
@@ -229,7 +230,6 @@ CASE("Wipe tests") {
         wipe_tests_tmp_root().children(dbFiles, dbDirs);
         ASSERT(dbFiles.size() == 0);
         ASSERT(dbDirs.size() == 0);
-
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -295,7 +295,6 @@ CASE("Wipe tests") {
         while (wipeObject.next(elem))
             std::cout << elem << std::endl;
         EXPECT(countAll(fdb, {commonReq}) == 0);
-
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -366,9 +365,7 @@ CASE("Wipe tests") {
         wipe_tests_tmp_root().children(dbFiles, dbDirs);
         ASSERT(dbFiles.size() == 0);
         ASSERT(dbDirs.size() == 0);
-
     }
-
 }
 
 }  // namespace test
