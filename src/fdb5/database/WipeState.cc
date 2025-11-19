@@ -149,32 +149,6 @@ void CatalogueWipeState::signStoreStates(std::string secret) {
     }
 }
 
-// This is backend specific: should be in toccatalogue class.
-// XXX -- check where this is used. Maybe it is not strictly required.
-bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
-
-    // We need to reconcile these URIs with the "include URIs", which come from the catalogue I think.
-    // Maybe there isn't a reason to keep these in separate sets.
-
-    if (!(uri_in.scheme() == "file" || uri_in.scheme() == "toc")) {
-        return false;
-    }
-
-    eckit::URI astoc  = eckit::URI("toc", uri_in.path());
-    eckit::URI asfile = eckit::URI("file", uri_in.path());
-
-    // XXX - hack. because we seemingly interchangeably use file and toc schemes
-    // Correct behaviour would be to prevent those uris from getting this far.
-    for (const auto& uri : {astoc, asfile}) {
-
-        if (isMarkedSafe(uri) || isMarkedForDeletion(uri)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // -----------------------------------------------------------------------------------------------
 
 void StoreWipeState::sign(const std::string& secret) {
@@ -265,14 +239,6 @@ WipeElements StoreWipeState::extractWipeElements() {
     // store's safe uris?
 
     return wipeElements;
-}
-
-bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
-
-    if (isMarkedForDeletion(uri) || isMarkedSafe(uri)) {
-        return true;
-    }
-    return false;
 }
 
 // -----------------------------------------------------------------------------------------------

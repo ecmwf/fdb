@@ -176,6 +176,30 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeStat
     return include;
 }
 
+bool TocCatalogue::uriBelongs(const eckit::URI& uri) const {
+    if (!uri.path().dirName().sameAs(basePath())) {
+        return false;
+    }
+
+    if (uri.scheme() == "toc") {
+        return true;
+    }
+
+    // Any scheme other than  "toc" or "file" cannot be ours
+    if (uri.scheme() != "file") {
+        return false;
+    }
+
+    // Scheme is "file", so must be a toc/subtoc, schema or .index file
+    eckit::PathName basename = uri.path().baseName();
+
+    if (basename.extension() == ".index" || basename.asString().substr(0, 3) == "toc" || basename == "schema") {
+        return true;
+    }
+
+    return false;
+}
+
 void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
 
     std::set<eckit::URI> maskedDataURIs = {};
@@ -237,30 +261,20 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
         wipeState.markAsSafe(controlURIs);
     }
 
-    std::vector<eckit::PathName> allPathsVector;
-    StdDir(basePath()).children(allPathsVector);
-    // XXX: Should really only do this in a wipe all scenario
-    for (const eckit::PathName& uri : allPathsVector) {
-        // XXX: I think we are very inconsistent about where we use scheme = file vs toc. e.g., the toc itself is scheme
-        // file.
-        if (!(wipeState.ownsURI(eckit::URI("file", uri)) || wipeState.ownsURI(eckit::URI("toc", uri)))) {
-            wipeState.insertUnrecognised(eckit::URI("file", uri));
-        }
+    if (!wipeall) {
+        return;
     }
 
-    // XXX
-    // I think, from this point onwards, we should have a well defined
-    // include
-    // exclude / safe
-    // unrecognised.
+    // Find any files unaccounted for.
+    std::vector<eckit::PathName> allPathsVector;
+    StdDir(basePath()).children(allPathsVector);
 
-    // and there should be:
-    // 1. no overlap between these
-    // 2. include and safe can no longer change for the cat.
-    // 3. the unrecognised can be removed.
-
-    // since there are operations in the indexes that are not rm (e.g. masking), we also need to have these stored.
-    // but, this should be separated from the above.
+    for (const eckit::PathName& path : allPathsVector) {
+        auto uri = eckit::URI("file", path);
+        if (!(wipeState.isMarkedForDeletion(uri))) {
+            wipeState.insertUnrecognised(uri);
+        }
+    }
 
     return;
 }

@@ -83,6 +83,8 @@ public:
 
     virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
 
+    virtual bool uriBelongs(const eckit::URI& uri) const = 0;
+
     /// For use by the WipeVisitor
     virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
 

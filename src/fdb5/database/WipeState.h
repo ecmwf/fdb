@@ -136,10 +136,6 @@ public:
     // that the object will be left in a special state.
     virtual WipeElements extractWipeElements() = 0;
 
-
-    virtual bool ownsURI(const eckit::URI& uri) const = 0;
-
-
 protected:
 
     mutable URIMap deleteURIs_;  // why mutable?
@@ -197,7 +193,6 @@ public:
     // Overrides
     void encode(eckit::Stream& s) const override;
     WipeElements extractWipeElements() override;
-    bool ownsURI(const eckit::URI& uri) const override;
 
 private:
 
@@ -228,6 +223,13 @@ public:
 
     explicit CatalogueWipeState(eckit::Stream& s);
 
+    Catalogue& catalogue(const Config& config) const {
+        if (!catalogue_) {
+            catalogue_ = CatalogueReaderFactory::instance().build(dbKey_, config);
+        }
+        return *catalogue_;
+    }
+
     // Insert URIs
     void includeData(const eckit::URI& uri);
     void excludeData(const eckit::URI& uri);
@@ -245,12 +247,13 @@ public:
     // Overrides
     void encode(eckit::Stream& s) const override;
     WipeElements extractWipeElements() override;
-    bool ownsURI(const eckit::URI& uri) const override;
 
 private:
 
     // For finding the catalogue again later.
     Key dbKey_;
+
+    mutable std::unique_ptr<Catalogue> catalogue_;
 
     std::set<Index> indexesToMask_ = {};  // @todo, use this...
     StoreStates storeWipeStates_;

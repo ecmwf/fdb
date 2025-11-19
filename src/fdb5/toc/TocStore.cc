@@ -67,7 +67,22 @@ eckit::URI TocStore::uri(const eckit::URI& dataURI) {
 }
 
 bool TocStore::uriBelongs(const eckit::URI& uri) const {
-    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)) && uri.path().extension() == ".data");
+    if (uri.scheme() != type() || !uri.path().dirName().sameAs(directory_)) {
+        return false;
+    }
+
+    std::string ext = uri.path().extension();
+    if (ext == ".data") {
+        return true;
+    }
+
+    for (const auto& auxExt : auxFileExtensions_) {
+        if (ext == auxExt) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool TocStore::uriExists(const eckit::URI& uri) const {
@@ -396,12 +411,10 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
     const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
     const std::set<eckit::URI>& safeURIs = storeState.excludedDataURIs();  // excluded according to cat
 
-    // Validate the URIs
-
     std::set<eckit::URI> nonExistingURIs;
     for (auto& uri : dataURIs) {
 
-        // XXX - this prints an error but never raises?
+        // XXX - this prints an error but never raises? Is this intentional?
         if (!uriBelongs(uri)) {
             Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store."
                          << std::endl;
@@ -426,7 +439,7 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
         storeState.unincludeURI(uri);
     }
 
-    bool all = storeState.excludedDataURIs().empty();  // XXX: is this correct in a multi-store wipe?
+    bool all = safeURIs.empty();
     if (!all) {
         return;
     }

@@ -251,6 +251,11 @@ bool RemoteCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false);
     return true;
 }
+
+bool RemoteCatalogue::uriBelongs(const eckit::URI& uri) const {
+    // This functionality is deliberately not required for RemoteCatalogue, so assume false.
+    return false;
+}
 bool RemoteCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
     // send unknown uris to server w/ Message::DoWipeUnknowns
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
