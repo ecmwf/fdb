@@ -1,9 +1,9 @@
 Installation
-============
+############
 
 
 Build from sources (recommended way):
--------------------------------------
+*************************************
 
 To install ``PyFDB`` from the sources you first need to create a directory which will contain our bundle file.
 A bundle file represents a subset of our stack; at least the dependencies we need to build ``PyFDB``.
@@ -87,6 +87,6 @@ and execute ``pytest``:
 
 
 Installation via PyPI
--------------------------------------
+*********************
 
 **This is currently not available**

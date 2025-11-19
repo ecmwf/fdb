@@ -6,3 +6,4 @@ eccodes
 build
 setuptools
 GitPython
+sphinx
