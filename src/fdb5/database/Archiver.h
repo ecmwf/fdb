@@ -46,7 +46,7 @@ class Schema;
 
 struct Database {
     time_t time_;
-    std::unique_ptr<CatalogueWriter> catalogue_;
+    std::shared_ptr<CatalogueWriter> catalogue_;
     std::unique_ptr<Store> store_;
 };
 class Archiver : public eckit::NonCopyable {

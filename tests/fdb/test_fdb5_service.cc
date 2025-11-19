@@ -27,7 +27,7 @@
 #include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
@@ -92,8 +92,9 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    ArchiveVisitor visitor(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, visitor);
+                    auto visitor =
+                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
+                    fdb.archive(k, *visitor);
                 }
             }
         }
@@ -179,7 +180,7 @@ CASE("test_fdb_stepunit_archive") {
     listReq.values("step", {"0", "to", "2", "by", "30m"});
     listReq.unsetValues("param");
     {
-        metkit::mars::MarsExpension expand{false};
+        metkit::mars::MarsExpansion expand{false};
 
         metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
         fdb5::FDBToolRequest r(expandedRequests);

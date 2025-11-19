@@ -53,8 +53,7 @@ void MessageIndexer::index(const eckit::PathName& path) {
         eckit::Length length = msg.length();
         eckit::Offset offset = reader.position() - length;
 
-        AdoptVisitor visitor(*this, key, full, offset, length);
-
+        AdoptVisitor visitor{*this, key, full, offset, length};
         archive(key, visitor);
 
         total_size += length;

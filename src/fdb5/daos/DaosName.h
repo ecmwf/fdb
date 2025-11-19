@@ -16,11 +16,11 @@
 #include <daos.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/utils/Optional.h"
 
 #include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosObject.h"
@@ -88,9 +88,9 @@ private:  // methods
 protected:  // members
 
     std::string pool_;
-    eckit::Optional<std::string> cont_;
-    mutable eckit::Optional<fdb5::DaosOID> oid_;
-    mutable eckit::Optional<std::string> as_string_;
+    std::optional<std::string> cont_;
+    mutable std::optional<fdb5::DaosOID> oid_;
+    mutable std::optional<std::string> as_string_;
 };
 
 class DaosArrayName : public DaosNameBase {
