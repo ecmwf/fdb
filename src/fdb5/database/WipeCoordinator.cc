@@ -9,6 +9,8 @@
  */
 
 #include "fdb5/database/WipeCoordinator.h"
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 
 namespace fdb5 {
@@ -98,7 +100,7 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
     // XXX: We should handle case where there is no work for the stores... Is there such a case?
     ASSERT(!storeWipeStates.empty());
 
-    eckit::Log::info() << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
     // Contact each of the relevant stores.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
@@ -110,15 +112,6 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
     bool unclean = !unknownURIs.catalogue.empty() || std::any_of(unknownURIs.store.begin(), unknownURIs.store.end(),
                                                                  [](const auto& pair) { return !pair.second.empty(); });
 
-    //  XXX todo: this should probably be reported via wipe element
-    const auto& indexesToMask = catalogueWipeState.indexesToMask();
-    if (!indexesToMask.empty()) {
-        eckit::Log::info() << "Masking indexes: " << std::endl;
-        for (const auto& index : indexesToMask) {
-            eckit::Log::info() << index << std::endl;  // !! issues on remote fdb?
-        }
-    }
-
     if (doit && unclean && !unsafeWipeAll) {
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
@@ -127,7 +120,7 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
         doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
     }
 
-    eckit::Log::info() << "WipeCoordinator::wipe - completed" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - completed" << std::endl;
 
     return generateWipeElements(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
 }
@@ -148,7 +141,7 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
                              const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                              const UnknownsBuckets& unknownBuckets, bool unsafeWipeAll) const {
 
-    eckit::Log::info() << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
 
     std::unique_ptr<Catalogue> catalogue =
         CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config_);
@@ -158,7 +151,7 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
 
     // 2. Wipe unknown files if unsafeWipeAll is set
     if (unsafeWipeAll) {
-        eckit::Log::info() << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
         catalogue->wipeUnknown(unknownBuckets.catalogue);
 
         for (const auto& [uri, storeState] : storeWipeStates) {
@@ -172,18 +165,18 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     }
 
     // 3. Wipe files known by the stores
-    eckit::Log::info() << "WipeCoordinator::wipe - wiping store known URIs" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping store known URIs" << std::endl;
     for (const auto& [uri, storeState] : storeWipeStates) {
         const Store& store = storeState->store(config_);
         store.doWipe(*storeState);
     }
 
     // 4. Wipe files known by the catalogue
-    eckit::Log::info() << "WipeCoordinator::wipe - wiping catalogue known URIs" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping catalogue known URIs" << std::endl;
     catalogue->doWipe(catalogueWipeState);
 
     // 5. wipe empty databases
-    eckit::Log::info() << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
     catalogue->doWipeEmptyDatabases();
     for (const auto& [uri, storeState] : storeWipeStates) {
         const Store& store = storeState->store(config_);

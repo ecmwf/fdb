@@ -163,7 +163,6 @@ bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeStat
 
     // Add the index paths to be removed.
     if (include) {
-        // XXX: Unused!!! Make sure we have tests that cover index masking.
         wipeState.markForMasking(index);
         wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, locationURI);
     }
@@ -187,12 +186,9 @@ void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
         eckit::PathName path = entry.first.path();
         if (path.dirName().sameAs(basePath())) {
             if (path.baseName().asString().substr(0, 4) == "toc.") {
-                // tocWipeState.subtocPaths_.insert(entry.first); // is there any reason to keep subtocs specifically
-                // separate?
                 wipeState.markForDeletion(WipeElementType::CATALOGUE, entry.first);
             }
             else {
-                // tocWipeState.indexURIs_.insert(entry.first);
                 wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, entry.first);
             }
         }
@@ -212,9 +208,8 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     addMaskedPaths(wipeState);
 
     // toc, subtocs
-    // We may wish to switch to using an insert function, rather than protected friend access.
     std::set<eckit::URI> catalogueURIs;
-    std::set<eckit::URI> auxURIs;
+    std::set<eckit::URI> controlURIs;
     catalogueURIs.emplace("file", tocPath().path());
     for (const auto& sub : subTocPaths()) {
         catalogueURIs.emplace("file", sub);
@@ -225,7 +220,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
 
     // lockfiles
     for (const auto& lck : lockfilePaths()) {
-        auxURIs.emplace("file", lck);
+        controlURIs.emplace("file", lck);
     }
 
     wipeState.info("FDB Owner: " + owner());
@@ -235,11 +230,11 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     bool wipeall = wipeState.safeURIs().empty();
     if (wipeall) {
         wipeState.markForDeletion(WipeElementType::CATALOGUE, catalogueURIs);
-        wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, auxURIs);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, controlURIs);
     }
     else {
         wipeState.markAsSafe(catalogueURIs);
-        wipeState.markAsSafe(auxURIs);
+        wipeState.markAsSafe(controlURIs);
     }
 
     std::vector<eckit::PathName> allPathsVector;
@@ -286,13 +281,14 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
     bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the directory.
 
-    auto uris = wipeState.flattenedDeleteURIs();
+    for (const auto& [type, uris] : wipeState.deleteMap()) {
 
-    for (auto& uri : uris) {
-        remove(uri.path(), std::cout, std::cout, true);
+        for (auto& uri : uris) {
+            remove(uri.path(), std::cout, std::cout, true);
 
-        if (wipeAll) {  // XXX There should only be one folder... why are we doing this every time?
-            emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
+            if (wipeAll) {  // XXX There should only be one folder... why are we doing this in the loop?
+                emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
+            }
         }
     }
 

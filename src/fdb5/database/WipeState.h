@@ -27,7 +27,6 @@ class CatalogueWipeState;
 using WipeStateIterator = APIIterator<std::unique_ptr<CatalogueWipeState>>;
 using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 
-struct URIIterator;
 class Signature;
 
 // Dummy placeholder for signed behaviour
@@ -78,7 +77,7 @@ public:
         safeURIs_   = std::move(safeURIs);
         deleteURIs_ = std::move(deleteURIs);
     }
-    
+
     virtual ~WipeState() = default;
 
     explicit WipeState(eckit::Stream& s);
@@ -95,6 +94,10 @@ public:
     // Insert URIs
 
     void insertUnrecognised(const eckit::URI& uri) { unknownURIs_.insert(uri); }
+
+    bool isMarkedForDeletion(const eckit::URI& uri) const;
+    bool isMarkedSafe(const eckit::URI& uri) const;
+
 
     void markAsSafe(const std::set<eckit::URI>& uris) {
         ASSERT(!locked_);
@@ -118,10 +121,6 @@ public:
 
     // No more uris may be marked as safe or for deletion.
     void lock();
-
-    URIIterator flattenedDeleteURIs() const;
-
-    bool isNotMarkedAsSafe(const eckit::URI& uri) const { return safeURIs().find(uri) == safeURIs().end(); }
 
     // Getters
     const std::set<eckit::URI>& unrecognisedURIs() const { return unknownURIs_; }
@@ -257,62 +256,6 @@ private:
     StoreStates storeWipeStates_;
 
     std::string info_;  // Additional info about this particular catalogue (e.g. owner)
-};
-
-// -----------------------------------------------------------------------------------------------
-
-/// Iterator that treats a map as a flattened object.
-/// @note: I believe we could replace this object with a one-liner in C++20 using Ranges.
-struct URIIterator {
-    using OuterIt = URIMap::const_iterator;
-    using InnerIt = std::set<eckit::URI>::const_iterator;
-
-    const URIMap& data_;
-
-    struct iterator {
-        OuterIt outer_;
-        OuterIt outerEnd_;
-        InnerIt inner_;
-
-        iterator(OuterIt o, OuterIt oEnd) : outer_(o), outerEnd_(oEnd) {
-            if (outer_ != outerEnd_) {
-                inner_ = outer_->second.begin();
-                skipEmptySets();
-            }
-        }
-
-        // Advance to next valid element or to end
-        void skipEmptySets() {
-            while (outer_ != outerEnd_ && inner_ == outer_->second.end()) {
-                ++outer_;
-                if (outer_ != outerEnd_) {
-                    inner_ = outer_->second.begin();
-                }
-            }
-        }
-
-        const eckit::URI& operator*() const { return *inner_; }
-
-        iterator& operator++() {
-            ++inner_;
-            skipEmptySets();
-            return *this;
-        }
-
-        bool operator==(const iterator& other) const {
-            // When both are at end, outer == outerEnd in both
-            if (outer_ == outerEnd_ && other.outer_ == other.outerEnd_) {
-                return true;
-            }
-            return outer_ == other.outer_ && inner_ == other.inner_;
-        }
-
-        bool operator!=(const iterator& other) const { return !(*this == other); }
-    };
-
-    iterator begin() const { return iterator{data_.begin(), data_.end()}; }
-
-    iterator end() const { return iterator{data_.end(), data_.end()}; }
 };
 
 // -----------------------------------------------------------------------------------------------

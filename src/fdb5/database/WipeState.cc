@@ -25,27 +25,31 @@ std::size_t WipeState::encodeSize() const {
 }
 void WipeState::encode(eckit::Stream& s) const {}
 
+bool WipeState::isMarkedForDeletion(const eckit::URI& uri) const {
+    for (const auto& [type, uris] : deleteURIs_) {
+        if (uris.find(uri) != uris.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool WipeState::isMarkedSafe(const eckit::URI& uri) const {
+    return safeURIs_.find(uri) != safeURIs_.end();
+}
+
 
 void WipeState::lock() {
     locked_ = true;
 
-    // Sanity check: ensure there is no overlap between the 3 sets.
-    URIIterator deleteURIs = flattenedDeleteURIs();
-    for (auto& uri : deleteURIs) {
-        ASSERT(safeURIs_.find(uri) == safeURIs_.end());
-    }
-
     for (auto& uri : unknownURIs_) {
-        ASSERT(safeURIs_.find(uri) == safeURIs_.end());
+        ASSERT(!isMarkedSafe(uri));
+        ASSERT(!isMarkedForDeletion(uri));
     }
 
-    for (auto& uri : deleteURIs) {
-        ASSERT(unknownURIs_.find(uri) == unknownURIs_.end());
+    for (auto& uri : safeURIs_) {
+        ASSERT(!isMarkedForDeletion(uri));
     }
-}
-
-URIIterator WipeState::flattenedDeleteURIs() const {
-    return URIIterator{deleteURIs_};
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -163,13 +167,7 @@ bool CatalogueWipeState::ownsURI(const eckit::URI& uri_in) const {
     // Correct behaviour would be to prevent those uris from getting this far.
     for (const auto& uri : {astoc, asfile}) {
 
-        if (std::find(safeURIs().begin(), safeURIs().end(), uri) != safeURIs().end()) {
-            return true;
-        }
-
-        auto deleteURIs = flattenedDeleteURIs();
-
-        if (std::find(deleteURIs.begin(), deleteURIs.end(), uri) != deleteURIs.end()) {
+        if (isMarkedSafe(uri) || isMarkedForDeletion(uri)) {
             return true;
         }
     }
@@ -271,11 +269,9 @@ WipeElements StoreWipeState::extractWipeElements() {
 
 bool StoreWipeState::ownsURI(const eckit::URI& uri) const {
 
-    auto dataURIs = flattenedDeleteURIs();
-    if (std::find(dataURIs.begin(), dataURIs.end(), uri) != dataURIs.end()) {
+    if (isMarkedForDeletion(uri) || isMarkedSafe(uri)) {
         return true;
     }
-
     return false;
 }
 
