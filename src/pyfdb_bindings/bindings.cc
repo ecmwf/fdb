@@ -22,7 +22,6 @@
 #include <pybind11/stl/filesystem.h>
 
 #include <cstddef>
-#include <exception>
 #include <map>
 #include <sstream>
 #include <string>
@@ -64,7 +63,8 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
         PYBIND11_OVERRIDE_PURE(long,              /* Return type */
                                eckit::DataHandle, /* Parent class */
                                read,              /* Name of function in C++ (must match Python name) */
-                               buf, length);
+                               buf,               /* Name of parameter */
+                               length);           /* Name of parameter */
     }
 };
 
@@ -349,11 +349,9 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
                            const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
         .def("flush", &fdb5::FDB::flush)
-        .def("retrieve",
-             [](fdb5::FDB& fdb, const mars::MarsRequest& mars_request) { return fdb.retrieve(mars_request); })
+        .def("retrieve", &fdb5::FDB::retrieve)
         .def("inspect", &fdb5::FDB::inspect)
-        .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate,
-                        size_t level) { return fdb.list(tool_request, deduplicate, level); })
+        .def("list", &fdb5::FDB::list)
         .def("inspect", &fdb5::FDB::inspect)
         .def("dump", &fdb5::FDB::dump)
         .def("status", &fdb5::FDB::status)
