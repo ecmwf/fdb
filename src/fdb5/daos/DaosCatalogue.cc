@@ -175,21 +175,21 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 }
 
 
-bool DaosCatalogue::wipeInit() const {
-    return true;
-}
-bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
-    return true;
-}
-std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
-    return {};
-}
-bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
-    return true;
-}
-bool DaosCatalogue::doWipe() const {
-    return true;
-}
+// bool DaosCatalogue::wipeInit() const {
+//     return true;
+// }
+// bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
+//     return true;
+// }
+// std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
+//     return {};
+// }
+// bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+//     return true;
+// }
+// bool DaosCatalogue::doWipe() const {
+//     return true;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
