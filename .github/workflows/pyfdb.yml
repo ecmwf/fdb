@@ -111,6 +111,7 @@ jobs:
         with:
           repository: ecmwf/fdb
           path: fdb-src
+          ref: pyfdb-integration-findlibs
       - name: Display Python version
         run: python --version
       - name: Install 'build'
@@ -122,6 +123,60 @@ jobs:
           export FINDLIBS_DISABLE_PACKAGE=yes
           export FINDLIBS_DISABLE_PYTHON=yes
           export ECCODES_PYTHON_USE_FINDLIBS=1
+          mkdir fdb-build
+          cmake \
+            -B fdb-build \
+            -S fdb-src \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=dependencies \
+            -DCMAKE_PREFIX_PATH=dependencies \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_TOOLS=ON \
+            -DENABLE_PYTHON_FDB_INTERFACE=ON
+          cmake --build fdb-build -j
+          cd fdb-build
+          ctest -j $(nproc) --output-on-failure
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyfdb-wheel-py${{ matrix.python-version }}
+          path: "fdb-build/pyfdb-*.whl"
+          retention-days: 10
+          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+  build-wheels-findlibs-only:
+    needs: prepare-deps
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
+      fail-fast: false  # Continue running other versions if one fails
+    
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get ecbuild
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/ecbuild
+          path: ecbuild-src
+      - name: Get fdb5
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/fdb
+          path: fdb-src
+          ref: pyfdb-integration-findlibs
+      - name: Display Python version
+        run: python --version
+      - name: Install 'build'
+        run: pip install -r fdb-src/requirements-findlib.txt
+      - name: Build fdb
+        run: |
+          export PATH=ecbuild-src/bin/:$PATH
+          export ECCODES_PYTHON_USE_FINDLIBS=1
+          export FINDLIBS_DISABLE_PACKAGE=no
+          export FINDLIBS_DISABLE_PYTHON=no
           mkdir fdb-build
           cmake \
             -B fdb-build \
