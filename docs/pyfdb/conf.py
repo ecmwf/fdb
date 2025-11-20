@@ -17,9 +17,11 @@ author = "ECMWF"
 extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinxcontrib.mermaid",
-    "autoapi.extension",
+    # "autoapi.extension",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    # "sphinx.ext.autodoc",
+    # "sphinx.ext.inheritance_diagram",
 ]
 
 templates_path = ["_templates"]
