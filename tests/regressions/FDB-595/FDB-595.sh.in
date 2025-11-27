@@ -17,15 +17,17 @@ export ECKIT_DEBUG=0
 rm -f out.*
 rm -rf ${bindir}/catalogue_root
 rm -rf ${bindir}/store_root
-rm -rf ${bindir}/etc
 mkdir -p ${bindir}/catalogue_root
 mkdir -p ${bindir}/store_root
-mkdir -p ${bindir}/etc/fdb
 
-for f in catalogue.yaml store.yaml client.yaml schema levtypes.grib
+for f in catalogue.yaml store.yaml client.yaml levtypes.grib
 do
     cp $srcdir/$f $bindir
 done
+
+cp $srcdir/schema $bindir
+
+export FDB_HOME=$bindir
 
 FDB5_CONFIG_FILE=$bindir/catalogue.yaml $fdbserver &
 catal_pid=$!
@@ -42,7 +44,9 @@ cat > list <<EOF
 EOF
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
-cmp out list
 
 kill -9 $catal_pid
 kill -9 $store_pid
+
+cmp out list
+

@@ -4,7 +4,7 @@ supportedConnections: [1]
 serverPort: 11000
 stores:
 - default: "localhost:11001"
-schema: ./schema
+schema: ~fdb/schema
 spaces:
 - handler: Default
   roots:
