@@ -56,6 +56,11 @@ eckit::PathName& wipe_tests_tmp_root() {
     return wipeRoot;
 }
 
+eckit::PathName& wipe_tests_tmp_root_store() {
+    static eckit::PathName wipeRootStore("./wipe_tests_fdb_root_store");
+    return wipeRootStore;
+}
+
 size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::FDBToolRequest>> reqs,
                 bool deduplicate = false) {
     size_t count = 0;
@@ -73,6 +78,9 @@ size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::F
     return count;
 }
 
+std::string configName;
+fdb5::Config config;
+
 namespace fdb {
 namespace test {
 
@@ -83,7 +91,10 @@ CASE("Setup") {
     if (wipe_tests_tmp_root().exists())
         deldir(wipe_tests_tmp_root());
     wipe_tests_tmp_root().mkdir();
-    ::setenv("FDB_ROOT_DIRECTORY", wipe_tests_tmp_root().path().c_str(), 1);
+
+    if (wipe_tests_tmp_root_store().exists())
+        deldir(wipe_tests_tmp_root_store());
+    wipe_tests_tmp_root_store().mkdir();
 
     // prepare schema
 
@@ -101,25 +112,8 @@ CASE("Setup") {
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
 }
-
+    
 CASE("Wipe tests") {
-
-    // FDB configuration
-
-    std::string configStr{
-        "spaces:\n"
-        "- roots:\n"
-        "  - path: " +
-        wipe_tests_tmp_root().asString() +
-        "\n"
-        "type: local\n"
-        "schema : " +
-        schema_file().path() +
-        "\n"
-        "engine: toc\n"
-        "store: file"};
-
-    fdb5::Config config{YAMLConfiguration(configStr)};
 
     // request
 
@@ -223,13 +217,27 @@ CASE("Wipe tests") {
             std::cout << elem << std::endl;
         EXPECT(countAll(fdb, {commonReq}) == 0);
         std::cout << "Wiped 2 databases" << std::endl;
+
         // check database directories do not exist
-        /// @note: disable this check if testing against FDB remote
-        std::vector<eckit::PathName> dbFiles;
-        std::vector<eckit::PathName> dbDirs;
-        wipe_tests_tmp_root().children(dbFiles, dbDirs);
-        ASSERT(dbFiles.size() == 0);
-        ASSERT(dbDirs.size() == 0);
+        if (configName == "localSingleRoot") {
+            std::vector<eckit::PathName> dbFiles;
+            std::vector<eckit::PathName> dbDirs;
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+        } else if (configName == "localSeparateRoots") {
+            std::vector<eckit::PathName> dbFiles;
+            std::vector<eckit::PathName> dbDirs;
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+            dbFiles.clear();
+            dbDirs.clear();
+            wipe_tests_tmp_root_store().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+        }
+
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -268,12 +276,22 @@ CASE("Wipe tests") {
         EXPECT(countAll(fdb, {dbReq1}) == 0);
         std::cout << "Wiped 1 database" << std::endl;
         // check database1 directory does not exist
-        /// @note: disable this check if testing against FDB remote
         std::vector<eckit::PathName> dbFiles;
         std::vector<eckit::PathName> dbDirs;
-        wipe_tests_tmp_root().children(dbFiles, dbDirs);
-        ASSERT(dbFiles.size() == 0);
-        ASSERT(dbDirs.size() == 1);
+        if (configName == "localSingleRoot") {
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 1);
+        } else if (configName == "localSeparateRoots") {
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 1);
+            dbFiles.clear();
+            dbDirs.clear();
+            wipe_tests_tmp_root_store().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 1);
+        }
 
         // wipe one index for other database
         wipeObject = fdb.wipe(indexReq2, true);
@@ -283,12 +301,24 @@ CASE("Wipe tests") {
         EXPECT(countAll(fdb, {indexReq2}) == 0);
         std::cout << "Wiped 1 index" << std::endl;
         // check database2 only contains 4 files (toc, schema, index, data)
-        /// @note: disable this check if testing against FDB remote
-        dbFiles.clear();
-        dbDirs.clear();
-        (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-        ASSERT(dbFiles.size() == 4);
-        ASSERT(dbDirs.size() == 0);
+        if (configName == "localSingleRoot") {
+            dbFiles.clear();
+            dbDirs.clear();
+            (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 4);
+            ASSERT(dbDirs.size() == 0);
+        } else if (configName == "localSeparateRoots") {
+            dbFiles.clear();
+            dbDirs.clear();
+            (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 3);
+            ASSERT(dbDirs.size() == 0);
+            dbFiles.clear();
+            dbDirs.clear();
+            (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 1);
+            ASSERT(dbDirs.size() == 0);
+        }
 
         // fully wipe remaning part of the database
         wipeObject = fdb.wipe(commonReq, true);
@@ -345,12 +375,23 @@ CASE("Wipe tests") {
         EXPECT(countAll(fdb, {indexReq3}, true) == 1);
         std::cout << "Wiped 1 index" << std::endl;
         // check database2 only contains 4 files (toc, schema, index, data)
-        /// @note: disable this check if testing against FDB remote
         std::vector<eckit::PathName> dbFiles;
         std::vector<eckit::PathName> dbDirs;
-        (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-        ASSERT(dbFiles.size() == 4);
-        ASSERT(dbDirs.size() == 0);
+        if (configName == "localSingleRoot") {
+            (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 4);
+            ASSERT(dbDirs.size() == 0);
+        } else if (configName == "localSeparateRoots") {
+            (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 3);
+            ASSERT(dbDirs.size() == 0);
+            dbFiles.clear();
+            dbDirs.clear();
+            (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 1);
+            ASSERT(dbDirs.size() == 0);
+        }
+
 
         // wipe all database and ensure no fields can be listed, and all dirs are gone
         wipeObject = fdb.wipe(dbReq2, true);
@@ -359,18 +400,391 @@ CASE("Wipe tests") {
         EXPECT(countAll(fdb, {dbReq2}) == 0);
         std::cout << "Wiped database" << std::endl;
         // check database directories do not exist
-        /// @note: disable this check if testing against FDB remote
-        dbFiles.clear();
-        dbDirs.clear();
-        wipe_tests_tmp_root().children(dbFiles, dbDirs);
-        ASSERT(dbFiles.size() == 0);
-        ASSERT(dbDirs.size() == 0);
+        if (configName == "localSingleRoot") {
+            dbFiles.clear();
+            dbDirs.clear();
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+        } else if (configName == "localSeparateRoots") {
+            dbFiles.clear();
+            dbDirs.clear();
+            wipe_tests_tmp_root().children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+            dbFiles.clear();
+            dbDirs.clear();
+            (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            ASSERT(dbFiles.size() == 0);
+            ASSERT(dbDirs.size() == 0);
+        }
     }
 }
+
+// CASE("Wipe tests using separate catalogue and store roots") {
+
+//     // FDB configuration
+
+//     std::string configStr{
+//         "spaces:\n"
+//         "- catalogueRoots:\n"
+//         "  - path: " +
+//         wipe_tests_tmp_root().asString() +
+//         "\n"
+//         "  storeRoots:\n"
+//         "  - path: " +
+//         wipe_tests_tmp_root_store().asString() +
+//         "\n"
+//         "type: local\n"
+//         "schema : " +
+//         schema_file().path() +
+//         "\n"
+//         "engine: toc\n"
+//         "store: file"};
+
+//     fdb5::Config config{YAMLConfiguration(configStr)};
+
+//     // request
+
+//     fdb5::Key requestKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+//     fdb5::Key dbKey1({{"a", "1"}, {"b", "2"}});
+//     fdb5::Key indexKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
+
+//     fdb5::FDBToolRequest fullReq1{requestKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest indexReq1{indexKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest dbReq1{dbKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+
+//     fdb5::Key requestKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
+//     fdb5::Key dbKey2({{"a", "1"}, {"b", "y"}});
+//     fdb5::Key indexKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}});
+
+//     fdb5::FDBToolRequest fullReq2{requestKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest indexReq2{indexKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest dbReq2{dbKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+
+//     fdb5::Key requestKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
+//     fdb5::Key dbKey3({{"a", "1"}, {"b", "y"}});
+//     fdb5::Key indexKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}});
+
+//     fdb5::FDBToolRequest fullReq3{requestKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest indexReq3{indexKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+//     fdb5::FDBToolRequest dbReq3{dbKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+
+//     fdb5::Key commonKey({{"a", "1"}});
+//     fdb5::FDBToolRequest commonReq{commonKey.request("retrieve"), false, std::vector<std::string>{"a"}};
+
+//     // dummy field data
+
+//     char data[] = "test";
+
+//     SECTION("WIPE MULTIPLE DATABASES; DRY-RUN WIPE") {
+
+//         // initialise FDB
+
+//         fdb5::FDB fdb(config);
+
+//         // check FDB is empty
+
+//         EXPECT(countAll(fdb, {commonReq}) == 0);
+//         std::cout << "Listed 0 fields" << std::endl;
+
+//         // store data
+
+//         fdb.archive(requestKey1, data, sizeof(data));
+//         fdb.archive(requestKey2, data, sizeof(data));
+//         std::cout << "Archived 2 fields on 2 databases" << std::endl;
+
+//         fdb.flush();
+//         std::cout << "Flushed 2 fields on 2 databases" << std::endl;
+
+//         // check FDB is populated
+
+//         EXPECT(countAll(fdb, {commonReq}) == 2);
+//         std::cout << "Listed 2 fields" << std::endl;
+
+//         // wipe data
+
+//         fdb5::WipeElement elem;
+//         size_t count;
+
+//         // dry run attempt to wipe with too specific request
+
+//         auto wipeObject = fdb.wipe(fullReq1);
+//         count           = 0;
+//         while (wipeObject.next(elem))
+//             count++;
+//         EXPECT(count == 0);
+
+//         // dry run wipe index and data files
+//         wipeObject = fdb.wipe(indexReq1);
+//         count      = 0;
+//         while (wipeObject.next(elem))
+//             count++;
+//         EXPECT(count > 0);
+
+//         // dry run wipe all databases
+//         wipeObject = fdb.wipe(commonReq);
+//         count      = 0;
+//         while (wipeObject.next(elem))
+//             count++;
+//         EXPECT(count > 0);
+
+//         // ensure fields still exist
+//         EXPECT(countAll(fdb, {commonReq}) == 2);
+//         std::cout << "Listed 2 fields" << std::endl;
+
+//         // attempt to wipe with too specific request, no dry run
+//         wipeObject = fdb.wipe(fullReq1, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 2);
+//         std::cout << "Listed 2 fields" << std::endl;
+
+//         // wipe both databases, no dry run
+//         wipeObject = fdb.wipe(commonReq, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 0);
+//         std::cout << "Wiped 2 databases" << std::endl;
+//         // check database directories do not exist
+//         /// @note: disable this check if testing against FDB remote
+//         std::vector<eckit::PathName> dbFiles;
+//         std::vector<eckit::PathName> dbDirs;
+//         wipe_tests_tmp_root().children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 0);
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         wipe_tests_tmp_root_store().children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 0);
+//     }
+
+//     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
+//     // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
+//     SECTION("WIPE SINGLE DATABASE AND SINGLE INDEX") {
+
+//         // initialise FDB
+
+//         fdb5::FDB fdb(config);
+
+//         // check FDB is empty
+
+//         EXPECT(countAll(fdb, {commonReq}) == 0);
+//         std::cout << "Listed 0 fields" << std::endl;
+
+//         // rearchive both databases, archive req3 as well
+//         fdb.archive(requestKey1, data, sizeof(data));
+//         fdb.archive(requestKey2, data, sizeof(data));
+//         fdb.archive(requestKey3, data, sizeof(data));
+//         std::cout << "Archived 3 fields on 2 databases" << std::endl;
+
+//         fdb.flush();
+//         std::cout << "Flushed 3 fields on 2 databases" << std::endl;
+
+//         // check FDB is populated
+
+//         EXPECT(countAll(fdb, {commonReq}) == 3);
+//         std::cout << "Listed 3 fields" << std::endl;
+
+//         // wipe one database
+//         fdb5::WipeElement elem;
+//         auto wipeObject = fdb.wipe(dbReq1, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 2);
+//         EXPECT(countAll(fdb, {dbReq1}) == 0);
+//         std::cout << "Wiped 1 database" << std::endl;
+//         // check database1 directory does not exist
+//         /// @note: disable this check if testing against FDB remote
+//         std::vector<eckit::PathName> dbFiles;
+//         std::vector<eckit::PathName> dbDirs;
+//         wipe_tests_tmp_root().children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 1);
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         wipe_tests_tmp_root_store().children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 1);
+
+//         // wipe one index for other database
+//         wipeObject = fdb.wipe(indexReq2, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 1);
+//         EXPECT(countAll(fdb, {indexReq2}) == 0);
+//         std::cout << "Wiped 1 index" << std::endl;
+//         // check database2 only contains 4 files (toc, schema, index, data)
+//         /// @note: disable this check if testing against FDB remote
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 3);
+//         ASSERT(dbDirs.size() == 0);
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 1);
+//         ASSERT(dbDirs.size() == 0);
+
+//         // fully wipe remaning part of the database
+//         wipeObject = fdb.wipe(commonReq, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 0);
+//     }
+
+//     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
+//     // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
+//     SECTION("WIPE MASKED DATA") {
+
+//         // initialise FDB
+
+//         fdb5::FDB fdb(config);
+
+//         // check FDB is empty
+
+//         EXPECT(countAll(fdb, {commonReq}) == 0);
+//         std::cout << "Listed 0 fields" << std::endl;
+
+//         // archive second database (two indices) two times
+
+//         fdb.archive(requestKey2, data, sizeof(data));
+//         fdb.archive(requestKey3, data, sizeof(data));
+
+//         fdb.flush();
+//         std::cout << "Flushed 2 fields in 1 database" << std::endl;
+
+//         fdb.archive(requestKey2, data, sizeof(data));
+//         fdb.archive(requestKey3, data, sizeof(data));
+
+//         fdb.flush();
+//         std::cout << "Flushed 2 fields in 1 database" << std::endl;
+
+//         std::cout << "Archived 2 fields (4 including masked) in 1 database" << std::endl;
+
+//         // list masked and ensure there are four fields
+//         EXPECT(countAll(fdb, {commonReq}) == 4);
+//         std::cout << "Listed 4 fields including masked" << std::endl;
+
+//         // list non-masked and ensure there are two fields
+//         EXPECT(countAll(fdb, {commonReq}, true) == 2);
+//         std::cout << "Listed 2 fields excluding masked" << std::endl;
+
+//         // wipe one index and ensure its field is gone
+//         fdb5::WipeElement elem;
+//         auto wipeObject = fdb.wipe(indexReq2, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {commonReq}) == 2);
+//         EXPECT(countAll(fdb, {indexReq2}) == 0);
+//         EXPECT(countAll(fdb, {indexReq3}) == 2);
+//         EXPECT(countAll(fdb, {indexReq3}, true) == 1);
+//         std::cout << "Wiped 1 index" << std::endl;
+//         // check database2 only contains 4 files (toc, schema, index, data)
+//         /// @note: disable this check if testing against FDB remote
+//         std::vector<eckit::PathName> dbFiles;
+//         std::vector<eckit::PathName> dbDirs;
+//         (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 3);
+//         ASSERT(dbDirs.size() == 0);
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 1);
+//         ASSERT(dbDirs.size() == 0);
+
+//         // wipe all database and ensure no fields can be listed, and all dirs are gone
+//         wipeObject = fdb.wipe(dbReq2, true);
+//         while (wipeObject.next(elem))
+//             std::cout << elem << std::endl;
+//         EXPECT(countAll(fdb, {dbReq2}) == 0);
+//         std::cout << "Wiped database" << std::endl;
+//         // check database directories do not exist
+//         /// @note: disable this check if testing against FDB remote
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         wipe_tests_tmp_root().children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 0);
+//         dbFiles.clear();
+//         dbDirs.clear();
+//         (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+//         ASSERT(dbFiles.size() == 0);
+//         ASSERT(dbDirs.size() == 0);
+//     }
+// }
 
 }  // namespace test
 }  // namespace fdb
 
 int main(int argc, char** argv) {
-    return run_tests(argc, argv);
+    int failures = 0;
+
+    // FDB configurations to test
+
+    std::string localSingleRootConfig{
+        "spaces:\n"
+        "- roots:\n"
+        "  - path: " +
+        wipe_tests_tmp_root().asString() +
+        "\n"
+        "type: local\n"
+        "schema : " +
+        schema_file().path() +
+        "\n"
+        "engine: toc\n"
+        "store: file"};
+
+    std::string localSeparateRootsConfig{
+        "spaces:\n"
+        "- catalogueRoots:\n"
+        "  - path: " +
+        wipe_tests_tmp_root().asString() +
+        "\n"
+        "  storeRoots:\n"
+        "  - path: " +
+        wipe_tests_tmp_root_store().asString() +
+        "\n"
+        "type: local\n"
+        "schema : " +
+        schema_file().path() +
+        "\n"
+        "engine: toc\n"
+        "store: file"};
+
+    /// @todo:
+
+    // std::string localCatalogueRemoteStoreConfig{};
+
+    // std::string remoteCatalogueLocalStoreConfig{};
+
+    // std::string remoteSingleServerConfig{};
+
+    // std::string remoteSeparateServersConfig{};
+
+    std::map<std::string, std::string> configurations{
+        {"localSingleRoot", localSingleRootConfig},
+        // {"localSeparateRoots", localSeparateRootsConfig},
+        // {"localCatalogueRemoteStore", localCatalogueRemoteStoreConfig},
+        // ...
+    };
+
+    for (const auto& configEntry : configurations) {
+
+        configName = configEntry.first;
+        config = fdb5::Config{YAMLConfiguration(configEntry.second)};
+
+        std::cout << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "TESTING CONFIG " << configName << std::endl;
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << std::endl;
+
+        failures += run_tests(argc, argv);
+    }
+
+    return failures;
+
 }
