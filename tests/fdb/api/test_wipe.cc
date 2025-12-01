@@ -112,7 +112,7 @@ CASE("Setup") {
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
 }
-    
+
 CASE("Wipe tests") {
 
     // request
@@ -225,7 +225,8 @@ CASE("Wipe tests") {
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 0);
-        } else if (configName == "localSeparateRoots") {
+        }
+        else if (configName == "localSeparateRoots") {
             std::vector<eckit::PathName> dbFiles;
             std::vector<eckit::PathName> dbDirs;
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
@@ -237,7 +238,6 @@ CASE("Wipe tests") {
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 0);
         }
-
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -282,7 +282,8 @@ CASE("Wipe tests") {
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 1);
-        } else if (configName == "localSeparateRoots") {
+        }
+        else if (configName == "localSeparateRoots") {
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 1);
@@ -307,7 +308,8 @@ CASE("Wipe tests") {
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 4);
             ASSERT(dbDirs.size() == 0);
-        } else if (configName == "localSeparateRoots") {
+        }
+        else if (configName == "localSeparateRoots") {
             dbFiles.clear();
             dbDirs.clear();
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
@@ -381,7 +383,8 @@ CASE("Wipe tests") {
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 4);
             ASSERT(dbDirs.size() == 0);
-        } else if (configName == "localSeparateRoots") {
+        }
+        else if (configName == "localSeparateRoots") {
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 3);
             ASSERT(dbDirs.size() == 0);
@@ -406,7 +409,8 @@ CASE("Wipe tests") {
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 0);
-        } else if (configName == "localSeparateRoots") {
+        }
+        else if (configName == "localSeparateRoots") {
             dbFiles.clear();
             dbDirs.clear();
             wipe_tests_tmp_root().children(dbFiles, dbDirs);
@@ -774,7 +778,7 @@ int main(int argc, char** argv) {
     for (const auto& configEntry : configurations) {
 
         configName = configEntry.first;
-        config = fdb5::Config{YAMLConfiguration(configEntry.second)};
+        config     = fdb5::Config{YAMLConfiguration(configEntry.second)};
 
         std::cout << std::endl;
         std::cout << "---------------------------------" << std::endl;
@@ -786,5 +790,4 @@ int main(int argc, char** argv) {
     }
 
     return failures;
-
 }
