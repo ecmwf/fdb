@@ -14,6 +14,7 @@
 #include <string>
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -29,15 +30,23 @@ using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 
 class Signature;
 
-// Dummy placeholder for signed behaviour
+// Dummy placeholder for signing. We can argue over what we want to do later.
+// The Catalogue Server signs the wipe states before sending them to clients,
+// which the client will forward to the stores. The stores will verify the signatures before proceeding with the wipe.
 class Signature {
 
 public:
 
     static uint64_t hashURIs(const std::set<eckit::URI>& uris, const std::string& secret) {
         uint64_t h = 0;
+        std::vector<std::string> sortedURIs;
         for (const auto& uri : uris) {
-            h ^= std::hash<std::string>{}(uri.asRawString()) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            sortedURIs.push_back(uri.asRawString());
+        }
+        std::sort(sortedURIs.begin(), sortedURIs.end());
+
+        for (const auto& uri : sortedURIs) {
+            h ^= std::hash<std::string>{}(uri) + 0x9e3779b9 + (h << 6) + (h >> 2);
         }
         h ^= std::hash<std::string>{}(secret) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
@@ -45,7 +54,11 @@ public:
 
     Signature() {}
 
-    Signature(eckit::Stream& s) { s >> sig_; }
+    Signature(eckit::Stream& s) {
+        unsigned long long in;
+        s >> in;
+        sig_ = in;
+    }
 
     void sign(uint64_t sig) {
         ASSERT(sig != 0);
@@ -55,7 +68,8 @@ public:
     bool isSigned() const { return sig_ != 0; }
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const Signature& sig) {
-        s << sig.sig_;
+        // pending patch in eckit to support uint64_t directly
+        s << static_cast<unsigned long long>(sig.sig_);
         return s;
     }
 
@@ -67,7 +81,7 @@ public:
 };
 
 // -----------------------------------------------------------------------------------------------
-
+// Class for storing all URIs to be wiped.
 class WipeState {
 public:
 
@@ -136,10 +150,6 @@ public:
     // that the object will be left in a special state.
     virtual WipeElements extractWipeElements() = 0;
 
-
-    virtual bool ownsURI(const eckit::URI& uri) const = 0;
-
-
 protected:
 
     mutable URIMap deleteURIs_;  // why mutable?
@@ -197,7 +207,6 @@ public:
     // Overrides
     void encode(eckit::Stream& s) const override;
     WipeElements extractWipeElements() override;
-    bool ownsURI(const eckit::URI& uri) const override;
 
 private:
 
@@ -228,6 +237,22 @@ public:
 
     explicit CatalogueWipeState(eckit::Stream& s);
 
+    Catalogue& catalogue(const Config& config) const {
+        if (!catalogue_) {
+            catalogue_ = CatalogueReaderFactory::instance().build(dbKey_, config);
+        }
+        return *catalogue_;
+    }
+
+    void initialControlState(const ControlIdentifiers& ids) { initialControlState_ = ids; }
+
+    // Reset the control state (i.e. locks) of the catalogue to their pre-wipe state.
+    void resetControlState(Catalogue& catalogue) const {
+        if (initialControlState_) {
+            catalogue.control(ControlAction::Enable, *initialControlState_);
+        }
+    }
+
     // Insert URIs
     void includeData(const eckit::URI& uri);
     void excludeData(const eckit::URI& uri);
@@ -245,17 +270,21 @@ public:
     // Overrides
     void encode(eckit::Stream& s) const override;
     WipeElements extractWipeElements() override;
-    bool ownsURI(const eckit::URI& uri) const override;
 
 private:
 
     // For finding the catalogue again later.
     Key dbKey_;
 
+    mutable std::unique_ptr<Catalogue> catalogue_;
+
     std::set<Index> indexesToMask_ = {};  // @todo, use this...
     StoreStates storeWipeStates_;
 
     std::string info_;  // Additional info about this particular catalogue (e.g. owner)
+
+    // Used to reset control state in event of incomplete wipe
+    std::optional<ControlIdentifiers> initialControlState_;
 };
 
 // -----------------------------------------------------------------------------------------------

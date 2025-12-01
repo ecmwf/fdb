@@ -22,11 +22,11 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const {
     UnknownsBuckets unknowns;
 
-    // 1) URIs the catalogue doesn't recognise AND no store claims -> "nobody"
+    // 1) The catalogue should ignore URIs belonging to stores.
     for (const auto& uri : catalogueWipeState.unrecognisedURIs()) {
         bool found = false;
         for (const auto& [storeURI, storeState] : storeWipeStates) {
-            if (storeState->ownsURI(uri)) {
+            if (storeState->store(config_).uriBelongs(uri)) {
                 found = true;
                 break;
             }
@@ -36,15 +36,17 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
         }
     }
 
-    // 2) For each store’s own "unrecognised" URIs, if catalogue doesn't own, bucket them under that store
-    //    NB: we are not checking if another store might own these (same assumption as your current code).
+    // 2) Each store should ignore URIs belonging to the catalogue.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
         for (const auto& uri : storeState->unrecognisedURIs()) {
-            if (catalogueWipeState.ownsURI(uri))
+            if (catalogueWipeState.catalogue(config_).uriBelongs(uri)) {
                 continue;
+            }
             unknowns.store[storeURI].insert(uri);
         }
     }
+
+    /// XXX: I suspect we need to do something about lock files, which the stores dont recognise.
 
     return unknowns;
 }
@@ -113,6 +115,8 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
                                                                  [](const auto& pair) { return !pair.second.empty(); });
 
     if (doit && unclean && !unsafeWipeAll) {
+        // @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
+        catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 

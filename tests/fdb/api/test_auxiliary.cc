@@ -5,6 +5,7 @@
 #include "eckit/testing/Test.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/toc/TocCommon.h"
 
@@ -153,6 +154,17 @@ CASE("Ensure wipe fails if extensions are unknown") {
     for (const auto& auxPath : auxPaths) {
         EXPECT(auxPath.exists());
     }
+
+    // Check we can still list the data (i.e. there isn't a lingering lock)
+    auto listObject = fdb.list(request, false);
+    ;
+    size_t count = 0;
+    ListElement le;
+    while (listObject.next(le)) {
+        eckit::Log::info() << le;
+        count++;
+    }
+    EXPECT(count > 0);
 
     // Use unsafe wipe all to actually delete everything.
     unsafeWipeAll = true;

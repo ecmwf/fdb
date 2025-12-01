@@ -54,6 +54,8 @@ public:  // methods
     const Schema& schema() const override;
     const Rule& rule() const override;
 
+    bool uriBelongs(const eckit::URI& uri) const override;
+
     // std::vector<eckit::PathName> metadataPaths() const override;
     void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void dump(std::ostream& out, bool simple = false,

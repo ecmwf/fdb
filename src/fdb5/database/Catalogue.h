@@ -83,6 +83,8 @@ public:
 
     virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
 
+    virtual bool uriBelongs(const eckit::URI& uri) const = 0;
+
     /// For use by the WipeVisitor
     virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
 
@@ -115,6 +117,8 @@ public:
 
     virtual void doWipeEmptyDatabases() const = 0;
 
+    virtual const ControlIdentifiers& controlIdentifiers() const = 0;
+
 protected:  // methods
 
     virtual void loadSchema() = 0;
@@ -141,6 +145,8 @@ public:
     void hideContents() override { NOTIMP; }
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
+
+    const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
 
 protected:  // methods
 

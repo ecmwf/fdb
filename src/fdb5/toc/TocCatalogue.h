@@ -71,6 +71,8 @@ protected:  // methods
 
     void loadSchema() override;
 
+    bool uriBelongs(const eckit::URI& uri) const override;
+
     std::vector<Index> indexes(bool sorted = false) const override;
 
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
