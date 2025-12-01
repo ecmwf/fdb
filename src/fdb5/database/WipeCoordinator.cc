@@ -94,7 +94,6 @@ WipeElements WipeCoordinator::generateWipeElements(
     return report;
 }
 
-// Almost certainly std::unique_ptr<CatalogueWipeState> can just be CatalogueWipeState everywhere...
 WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
 
     auto& storeWipeStates = catalogueWipeState.storeStates();

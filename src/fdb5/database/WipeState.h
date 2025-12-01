@@ -25,7 +25,7 @@
 namespace fdb5 {
 
 class CatalogueWipeState;
-using WipeStateIterator = APIIterator<std::unique_ptr<CatalogueWipeState>>;
+using WipeStateIterator = APIIterator<CatalogueWipeState>;
 using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 
 class Signature;
@@ -192,7 +192,7 @@ public:
 
     // Signing
 
-    void sign(const std::string& secret);
+    void sign(const std::string& secret) const;
     std::uint64_t hash(const std::string& secret) const;
 
     // Getters
@@ -214,7 +214,7 @@ private:
 
 private:
 
-    Signature signature_;
+    mutable Signature signature_;
 
     std::set<eckit::URI> excludeDataURIs_;  // We dont really use this?
 
@@ -229,6 +229,8 @@ class CatalogueWipeState : public WipeState {
     using StoreStates = std::map<eckit::URI, std::unique_ptr<StoreWipeState>>;
 
 public:
+
+    explicit CatalogueWipeState() {}
 
     explicit CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
 
@@ -260,7 +262,7 @@ public:
     void info(const std::string& in) { info_ = in; }
 
     // Signing
-    void signStoreStates(std::string secret);
+    void signStoreStates(std::string secret) const;
 
     // Getters
     const Key& dbKey() const { return dbKey_; }

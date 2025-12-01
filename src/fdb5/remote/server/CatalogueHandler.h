@@ -12,6 +12,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
@@ -85,6 +86,13 @@ private:  // methods
     const Config& config() const { return config_; }
     bool wipeInProgress(uint32_t clientID, uint32_t requestID) const;
 
+    void resetWipeState() {
+        currentWipe_.inProgress = false;
+        currentWipe_.catalogue.reset();
+        currentWipe_.state = CatalogueWipeState();
+        currentWipe_.unsafeWipeAll = false;
+    }
+
 private:  // member
 
     // clientID --> <catalogue, locationsExpected, locationsArchived>
@@ -100,11 +108,10 @@ private:  // member
 
     // catalogue currently being wiped
     struct WipeInProgress {
-        uint32_t clientID  = 0;
-        uint32_t requestID = 0;
         bool unsafeWipeAll = false;
         std::unique_ptr<CatalogueReader> catalogue;  // Maybe not needed
-        std::unique_ptr<CatalogueWipeState> state;
+        CatalogueWipeState state;
+        bool inProgress = false;
     };
 
     WipeInProgress currentWipe_;

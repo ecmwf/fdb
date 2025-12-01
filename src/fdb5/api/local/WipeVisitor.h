@@ -48,11 +48,11 @@ struct StoreURIs {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WipeCatalogueVisitor : public QueryVisitor<std::unique_ptr<CatalogueWipeState>> {
+class WipeCatalogueVisitor : public QueryVisitor<CatalogueWipeState> {
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue,
+    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
                          const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
@@ -75,7 +75,7 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    std::unique_ptr<CatalogueWipeState> catalogueWipeState_;
+    CatalogueWipeState catalogueWipeState_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

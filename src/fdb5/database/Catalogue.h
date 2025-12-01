@@ -106,7 +106,7 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-    virtual std::unique_ptr<CatalogueWipeState> wipeInit() const = 0;
+    virtual CatalogueWipeState wipeInit() const = 0;
     // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
     virtual bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
 

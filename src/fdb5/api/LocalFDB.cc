@@ -106,8 +106,7 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
 
 WipeStateIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    // return queryInternal<WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
-    using ValueType     = std::unique_ptr<CatalogueWipeState>;
+    using ValueType     =  CatalogueWipeState;
     using QueryIterator = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 

@@ -256,22 +256,14 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
 
     auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
-        WipeStateIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);  // WipeStateIterator
+        WipeStateIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);
 
         // Coordinate the wipe across catalogues and stores
         WipeCoordinator coordinator{internal_->config()};
-        std::unique_ptr<CatalogueWipeState> catalogueWipeState;
+        CatalogueWipeState catalogueWipeState;
         while (it.next(catalogueWipeState)) {
 
-            if (!catalogueWipeState) {  // XXX is this even possible?
-                continue;
-            }
-
-            // need to cast to CatalogueWipeState // TODO: make visitor return CatalogueWipeState directly
-            CatalogueWipeState& catalogueWipeStateRef = static_cast<CatalogueWipeState&>(*catalogueWipeState);
-
-            // Coordinator will mutate the catalogue wipe state (e.g. populating missing files etc.)
-            auto elements = coordinator.wipe(catalogueWipeStateRef, doit, unsafeWipeAll);
+            auto elements = coordinator.wipe(catalogueWipeState, doit, unsafeWipeAll);
             for (auto& el : elements) {
                 queue.emplace(el);
             }

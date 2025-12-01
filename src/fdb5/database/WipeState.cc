@@ -143,7 +143,7 @@ const std::set<Index>& CatalogueWipeState::indexesToMask() const {
     return indexesToMask_;
 }
 
-void CatalogueWipeState::signStoreStates(std::string secret) {
+void CatalogueWipeState::signStoreStates(std::string secret) const {
     for (auto& [uri, state] : storeWipeStates_) {
         state->sign(secret);
     }
@@ -151,7 +151,7 @@ void CatalogueWipeState::signStoreStates(std::string secret) {
 
 // -----------------------------------------------------------------------------------------------
 
-void StoreWipeState::sign(const std::string& secret) {
+void StoreWipeState::sign(const std::string& secret) const {
     signature_.sign(hash(secret));
 }
 

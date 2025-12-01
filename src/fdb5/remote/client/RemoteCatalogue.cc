@@ -246,6 +246,11 @@ void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& 
     NOTIMP;
 }
 
+CatalogueWipeState RemoteCatalogue::wipeInit() const {
+    NOTIMP;
+}
+
+
 bool RemoteCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
     // Just tell the server to do it!
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false);

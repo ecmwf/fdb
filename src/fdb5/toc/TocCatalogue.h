@@ -81,7 +81,7 @@ protected:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     // wipe
-    std::unique_ptr<CatalogueWipeState> wipeInit() const override;
+    CatalogueWipeState wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
     void wipeFinalise(CatalogueWipeState& wipeState) const override;
     bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;

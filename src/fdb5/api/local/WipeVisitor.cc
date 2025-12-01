@@ -32,10 +32,10 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<std::unique_ptr<CatalogueWipeState>>& queue,
+WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
                                            const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
                                            bool unsafeWipeAll) :
-    QueryVisitor<std::unique_ptr<CatalogueWipeState>>(queue, request),
+    QueryVisitor<CatalogueWipeState>(queue, request),
     doit_(doit),
     porcelain_(porcelain),
     unsafeWipeAll_(unsafeWipeAll) {}
@@ -50,7 +50,6 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         return false;
     }
 
-    ASSERT(!catalogueWipeState_);
     catalogueWipeState_ = catalogue.wipeInit();
 
     if (doit_) {
@@ -66,7 +65,7 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         if (catalogue.enabled(ControlIdentifier::Retrieve)) {
             id |= ControlIdentifier::Retrieve;
         }
-        catalogueWipeState_->initialControlState(id);
+        catalogueWipeState_.initialControlState(id);
 
         catalogue.control(ControlAction::Disable,
                           ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
@@ -91,15 +90,15 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
     bool include = index.key().match(indexRequest_);
 
-    include = currentCatalogue_->wipeIndex(index, include, *catalogueWipeState_);
+    include = currentCatalogue_->wipeIndex(index, include, catalogueWipeState_);
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
         if (include) {
-            catalogueWipeState_->includeData(dataURI);
+            catalogueWipeState_.includeData(dataURI);
         }
         else {
-            catalogueWipeState_->excludeData(dataURI);
+            catalogueWipeState_.excludeData(dataURI);
         }
     }
     return true;
@@ -109,8 +108,8 @@ void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     ASSERT(currentCatalogue_ == &catalogue);
 
-    catalogue.wipeFinalise(*catalogueWipeState_);
-    catalogueWipeState_->lock();
+    catalogue.wipeFinalise(catalogueWipeState_);
+    catalogueWipeState_.lock();
 
     queue_.emplace(std::move(catalogueWipeState_));
     EntryVisitor::catalogueComplete(catalogue);
