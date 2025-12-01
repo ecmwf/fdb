@@ -169,7 +169,7 @@ void StoreWipeState::failIfSigned() const {
 
 StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
 
-StoreWipeState::StoreWipeState(eckit::Stream& s) {
+StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
 
     auto signature = Signature(s);
     s >> storeURI_;
