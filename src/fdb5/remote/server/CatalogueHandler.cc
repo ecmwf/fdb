@@ -465,7 +465,9 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         }
     }
 
-    it->second.catalogue->selectIndex(idxKey);
+    if (!it->second.catalogue->selectIndex(idxKey)) {
+        it->second.catalogue->createIndex(idxKey, datumKey.keys().size());
+    }
     it->second.catalogue->archive(idxKey, datumKey, std::move(location));
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
