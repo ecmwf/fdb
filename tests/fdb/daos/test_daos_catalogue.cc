@@ -42,27 +42,6 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
-
 #ifdef fdb5_HAVE_DUMMY_DAOS
 eckit::TmpDir& tmp_dummy_daos_root() {
     static eckit::TmpDir d{};
@@ -100,7 +79,7 @@ CASE("Setup") {
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Catalogue/Store tests fail.
     if (catalogue_tests_tmp_root().exists())
-        deldir(catalogue_tests_tmp_root());
+        testing::deldir(catalogue_tests_tmp_root());
     catalogue_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", catalogue_tests_tmp_root().path().c_str(), 1);
 

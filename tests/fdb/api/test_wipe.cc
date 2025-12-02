@@ -23,27 +23,6 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
-
 // temporary schema,spaces,root files common to all DAOS Store tests
 
 eckit::TmpFile& schema_file() {
@@ -84,16 +63,16 @@ fdb5::Config config;
 namespace fdb {
 namespace test {
 
-CASE("Setup") {
+CASE("Wipe tests") {
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Store tests fail.
     if (wipe_tests_tmp_root().exists())
-        deldir(wipe_tests_tmp_root());
+        testing::deldir(wipe_tests_tmp_root());
     wipe_tests_tmp_root().mkdir();
 
     if (wipe_tests_tmp_root_store().exists())
-        deldir(wipe_tests_tmp_root_store());
+        testing::deldir(wipe_tests_tmp_root_store());
     wipe_tests_tmp_root_store().mkdir();
 
     // prepare schema
@@ -111,9 +90,6 @@ CASE("Setup") {
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
-}
-
-CASE("Wipe tests") {
 
     // request
 
