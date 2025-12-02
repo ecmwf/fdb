@@ -106,17 +106,7 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
 
 WipeStateIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    using ValueType     =  CatalogueWipeState;
-    using QueryIterator = APIIterator<ValueType>;
-    using AsyncIterator = APIAsyncIterator<ValueType>;
-
-    auto async_worker = [this, request, doit, porcelain, unsafeWipeAll](Queue<ValueType>& queue) {
-        EntryVisitMechanism mechanism(config_);
-        WipeCatalogueVisitor visitor(queue, request.request(), doit, porcelain, unsafeWipeAll);
-        mechanism.visit(request, visitor);
-    };
-
-    return QueryIterator(new AsyncIterator(async_worker));
+    return queryInternal<WipeCatalogueVisitor>(request, doit, porcelain, unsafeWipeAll);
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {

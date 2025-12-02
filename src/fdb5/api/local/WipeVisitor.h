@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <unordered_map>
-
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/WipeState.h"
@@ -52,8 +50,8 @@ class WipeCatalogueVisitor : public QueryVisitor<CatalogueWipeState> {
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
-                         const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
+    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue, const metkit::mars::MarsRequest& request, bool doit,
+                         bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;

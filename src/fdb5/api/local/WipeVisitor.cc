@@ -109,7 +109,7 @@ void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
     ASSERT(currentCatalogue_ == &catalogue);
 
     catalogue.wipeFinalise(catalogueWipeState_);
-    catalogueWipeState_.lock();
+    catalogueWipeState_.sanityCheck();
 
     queue_.emplace(std::move(catalogueWipeState_));
     EntryVisitor::catalogueComplete(catalogue);

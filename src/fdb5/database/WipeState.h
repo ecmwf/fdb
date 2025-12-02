@@ -30,9 +30,9 @@ using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 
 class Signature;
 
-// Dummy placeholder for signing. We can argue over what we want to do later.
-// The Catalogue Server signs the wipe states before sending them to clients,
-// which the client will forward to the stores. The stores will verify the signatures before proceeding with the wipe.
+/// @todo: Dummy placeholder for signing. We need to work on this later (e.g. use GPG or some standard library) in a
+/// followup PR. The Catalogue Server signs the wipe states before sending them to clients, which the client will
+/// forward to the stores. The stores will verify the signatures before proceeding with the wipe.
 class Signature {
 
 public:
@@ -82,6 +82,11 @@ public:
 
 // -----------------------------------------------------------------------------------------------
 // Class for storing all URIs to be wiped.
+// There are several categories of URIs:
+// 1) URIs to be deleted, because they match against the wipe request.
+// 2) URIs marked as safe (not to be deleted). Typically these will be other URIs in the same DB, but did not match the request.
+// 3) "Unknown URIs" - If we are wiping all known URIs in a DB, any remaining files on disk are "unknown" to the catalogue/store.
+//    Their presence will cause the wipe to abort unless they can be associated with another store, or --unsafe-wipe-all is specified.
 class WipeState {
 public:
 
@@ -105,8 +110,6 @@ public:
         return s;
     }
 
-    // Insert URIs
-
     void insertUnrecognised(const eckit::URI& uri) { unknownURIs_.insert(uri); }
 
     bool isMarkedForDeletion(const eckit::URI& uri) const;
@@ -114,7 +117,6 @@ public:
 
 
     void markAsSafe(const std::set<eckit::URI>& uris) {
-        ASSERT(!locked_);
         safeURIs_.insert(uris.begin(), uris.end());
     }
 
@@ -125,16 +127,11 @@ public:
     }
 
     void markForDeletion(WipeElementType type, const eckit::URI& uri) {
-        ASSERT(!locked_);
         deleteURIs_[type].insert(uri);
     }
 
-    virtual bool wipeAll() const {
-        return safeURIs_.empty();  // not really sufficient for a store
-    }
-
-    // No more uris may be marked as safe or for deletion.
-    void lock();
+    // Ensure there are no overlaps between safe URIs and URIs to be deleted.
+    void sanityCheck() const;
 
     // Getters
     const std::set<eckit::URI>& unrecognisedURIs() const { return unknownURIs_; }
@@ -160,7 +157,6 @@ private:
 
     std::set<eckit::URI> safeURIs_;  // files explicitly not to be deleted. // <-- I dont think the store has any reason
                                      // to mark anything as safe. Just delete and unrecognised.
-    bool locked_ = false;
 };
 
 // -----------------------------------------------------------------------------------------------
@@ -216,7 +212,9 @@ private:
 
     mutable Signature signature_;
 
-    std::set<eckit::URI> excludeDataURIs_;  // We dont really use this?
+    /// @todo: we care whether or not this is empty (for wipe all), but we do not actually use the uris.
+    /// if this is true, then we could just set a bool instead.
+    std::set<eckit::URI> excludeDataURIs_;
 
     eckit::URI storeURI_;
     mutable std::unique_ptr<Store> store_;
@@ -252,6 +250,7 @@ public:
     void resetControlState(Catalogue& catalogue) const {
         if (initialControlState_) {
             catalogue.control(ControlAction::Enable, *initialControlState_);
+            initialControlState_.reset();
         }
     }
 
@@ -286,7 +285,7 @@ private:
     std::string info_;  // Additional info about this particular catalogue (e.g. owner)
 
     // Used to reset control state in event of incomplete wipe
-    std::optional<ControlIdentifiers> initialControlState_;
+    mutable std::optional<ControlIdentifiers> initialControlState_;
 };
 
 // -----------------------------------------------------------------------------------------------

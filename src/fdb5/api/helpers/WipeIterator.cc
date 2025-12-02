@@ -45,7 +45,7 @@ void WipeElement::print(std::ostream& out) const {
     // }
     // out << "])";
     out << msg_ << std::endl;
-    if (type_ != CATALOGUE_INFO && type_ != STORE_INFO) {
+    if (type_ != CATALOGUE_INFO) {
         if (uris_.size() > 0) {
             for (const auto& uri : uris_) {
                 out << "    " << uri.asString() << std::endl;

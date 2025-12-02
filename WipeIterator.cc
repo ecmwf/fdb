@@ -37,14 +37,8 @@ std::ostream& operator<<(std::ostream& s, const WipeElementType& t) {
         case WipeElementType::CATALOGUE_CONTROL:
             s << "WIPE_CATALOGUE_AUX";
             break;
-        case WipeElementType::STORE_INFO:
-            s << "WIPE_STORE_INFO";
-            break;
         case WipeElementType::STORE:
             s << "WIPE_STORE";
-            break;
-        case WipeElementType::STORE_URI:
-            s << "WIPE_STORE_URI";
             break;
         case WipeElementType::STORE_AUX:
             s << "WIPE_STORE_AUX";
@@ -90,7 +84,7 @@ void WipeElement::print(std::ostream& out) const {
 
 
     out << msg_ << std::endl;
-    if (type_ != CATALOGUE_INFO && type_ != STORE_INFO) {
+    if (type_ != CATALOGUE_INFO) {
         if (uris_.size() > 0) {
             for (const auto& uri : uris_) {
                 out << "    " << uri.asString() << std::endl;

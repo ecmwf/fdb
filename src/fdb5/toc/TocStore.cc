@@ -399,11 +399,6 @@ void TocStore::remove(const Key& key) const {
     closedir(dirp);
 }
 
-/// XXX: Document.
-// all == remove all contents of this store and also the corresponding toc. At the end of the wipe im expecting the
-// store to be empty, and wish to remove the directory
-//  this happens when your wipe request is essentially the entire first level key.
-
 void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.

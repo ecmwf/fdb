@@ -25,10 +25,10 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
-#include "eckit/config/Resource.h"
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
@@ -416,7 +416,7 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
     ASSERT(!dummy_secret.empty());
 
-    uint64_t expected_hash   = inState.hash(dummy_secret);
+    uint64_t expected_hash = inState.hash(dummy_secret);
     ASSERT(inState.signature().validSignature(expected_hash));
 
     // -- From here on, we can trust the state came from the catalogue. --

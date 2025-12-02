@@ -38,9 +38,7 @@ bool WipeState::isMarkedSafe(const eckit::URI& uri) const {
     return safeURIs_.find(uri) != safeURIs_.end();
 }
 
-
-void WipeState::lock() {
-    locked_ = true;
+void WipeState::sanityCheck() const {
 
     for (auto& uri : unknownURIs_) {
         ASSERT(!isMarkedSafe(uri));
@@ -55,7 +53,6 @@ void WipeState::lock() {
 // -----------------------------------------------------------------------------------------------
 
 void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
-    // We should make these add directory to the store state, imo. Though maybe it'll need some uri scheme faffing
 
     eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
 

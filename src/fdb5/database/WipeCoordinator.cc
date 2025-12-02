@@ -98,9 +98,6 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     auto& storeWipeStates = catalogueWipeState.storeStates();
 
-    // XXX: We should handle case where there is no work for the stores... Is there such a case?
-    ASSERT(!storeWipeStates.empty());
-
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
     // Contact each of the relevant stores.
@@ -115,6 +112,7 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     if (doit && unclean && !unsafeWipeAll) {
         // @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
+        // Perhaps in the destructor of the wipe state?
         catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
@@ -127,18 +125,6 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     return generateWipeElements(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
 }
-
-
-// Maybe it would be possible for this to operate on a single wipe state object, which is the object we would otherwise
-// use for reporting. This does at least make sure we are reporting exactly what we are wiping. But it also means
-// WipeState is doing a bit too much.
-
-// We shall do the following, in order:
-// - 1. mask any indexes that need masking.
-// - 2. wipe the unknown files in catalogue and stores.
-// - 3. wipe the files known by the stores.
-// - 4. wipe the files known by the catalogue.
-// - 5. wipe empty databases.
 
 void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
                              const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,

@@ -49,12 +49,6 @@ enum WipeElementType {
     CATALOGUE_SAFE,
     CATALOGUE_CONTROL,
 
-    // Data URIs from catalogue to be sent to the stores. NB: I haven't ended up using these?
-    // WIPE_INCLUDE,
-    // WIPE_EXCLUDE,
-
-    STORE_INFO,  /// ~ unused
-    STORE_URI,   // ~ unused
     STORE,
     STORE_AUX,
 

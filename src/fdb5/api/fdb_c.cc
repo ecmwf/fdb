@@ -477,8 +477,7 @@ int fdb_wipe(fdb_handle_t* fdb, fdb_request_t* req, bool doit, bool porcelain, b
         ASSERT(req);
         ASSERT(it);
 
-        NOTIMP;
-        // *it = new fdb_wipe_iterator_t(fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll));
+        *it = new fdb_wipe_iterator_t(fdb->wipe(req->request(), doit, porcelain, unsafeWipeAll));
     });
 }
 

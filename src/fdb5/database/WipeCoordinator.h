@@ -18,7 +18,6 @@
 
 namespace fdb5 {
 
-
 // Class for coordinating fdb.wipe across catalogue and stores
 class WipeCoordinator {
 public:
@@ -32,20 +31,24 @@ public:
 
     WipeCoordinator(const Config& config) : config_(config) {}
 
-    // returns a WipeState to be used for reporting to the client.
+    /// Perform a wipe operation on the provided wipe state.
+    /// URIs will only be deleted if 'doit' is true.
     WipeElements wipe(CatalogueWipeState& catalogueState, bool doit, bool unsafeWipeAll) const;
 
 private:
 
+
+    /// Identify URIs unknown to the catalogue and the stores
     UnknownsBuckets gatherUnknowns(const CatalogueWipeState& catalogueWipeState,
                                    const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const;
 
-    // This being a CatalogueWipeState is odd.
+    /// Create WipeElements to report to the user what is going to be wiped.
     WipeElements generateWipeElements(CatalogueWipeState& catalogueWipeState,
                                       const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                                       const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
 
+    /// Delete the data as per the wipe states.
     void doWipe(const CatalogueWipeState& catalogueWipeState,
                 const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                 const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;

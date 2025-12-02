@@ -106,15 +106,24 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
+    /// Wipe-related methods
+
+    /// Generate the initial wipe state object
     virtual CatalogueWipeState wipeInit() const = 0;
-    // virtual bool wipeIndex(const Index& index, bool include) const        = 0;
+
+    /// Mark an index as to be wiped (include=true) or preserved (include=false)
     virtual bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
 
+    /// Finish populating the wipe state
     virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
 
+    /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
     virtual bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe(const CatalogueWipeState& wipeState) const          = 0;
 
+    /// Delete URIs marked in the wipe state
+    virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;
+
+    /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;
 
     virtual const ControlIdentifiers& controlIdentifiers() const = 0;

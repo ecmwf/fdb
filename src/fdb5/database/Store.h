@@ -74,15 +74,18 @@ public:
 
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
 
-    // executed for each index
-    // virtual WipeElements prepareWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs,
-    //                                  bool all)                            = 0;
+    /// Wipe-related methods
 
+    /// Given a StoreWipeState from the Catalogue, identify URIs to be wiped
     virtual void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) = 0;
 
+    /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
     virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
-    virtual bool doWipe() const { NOTIMP; }                           // @todo: remove this function entirely.
+
+    /// Delete URIs marked in the wipe state
     virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; }  // @TODO
+
+    /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;
 
 protected:
