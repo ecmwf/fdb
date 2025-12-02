@@ -21,8 +21,8 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/testing/filesystem.h"
 #include "eckit/utils/MD5.h"
-#include "eckit/testing/Test.h"
 
 #include "../dummy_daos.h"
 #include "tests_lib.h"

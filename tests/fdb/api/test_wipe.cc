@@ -15,6 +15,7 @@
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/testing/Test.h"
+#include "eckit/testing/filesystem.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -424,30 +425,25 @@ int main(int argc, char** argv) {
     std::string localSingleRootConfig = R"(
 spaces:
 - roots:
-  - path: )" +
-wipe_tests_tmp_root().asString() +
-R"(
+  - path: )" + wipe_tests_tmp_root().asString() +
+                                        R"(
 type: local
-schema : )" +
-schema_file().path() +
-R"(
+schema : )" + schema_file().path() +
+                                        R"(
 engine: toc
 store: file)";
 
     std::string localSeparateRootsConfig = R"(
 spaces:
 - catalogueRoots:
-  - path: )" +
-wipe_tests_tmp_root().asString() +
-R"(
+  - path: )" + wipe_tests_tmp_root().asString() +
+                                           R"(
   storeRoots:
-  - path: )" +
-wipe_tests_tmp_root_store().asString() +
-R"(
+  - path: )" + wipe_tests_tmp_root_store().asString() +
+                                           R"(
 type: local
-schema : )" +
-schema_file().path() +
-R"(
+schema : )" + schema_file().path() +
+                                           R"(
 engine: toc
 store: file)";
 
