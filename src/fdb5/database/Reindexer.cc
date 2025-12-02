@@ -22,7 +22,7 @@ Reindexer::~Reindexer() {
 }
 
 void Reindexer::reindex(const Key& key, const FieldLocation& fieldLocation) {
-    ReindexVisitor visitor(*this, key, fieldLocation);
+    ReindexVisitor visitor{*this, key, fieldLocation};
     archive(key, visitor);
 }
 

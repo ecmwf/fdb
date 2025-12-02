@@ -176,9 +176,7 @@ public:  // methods
 
 private:  // methods
 
-    std::unique_ptr<FDBBase> make(const Config& config) const override {
-        return std::unique_ptr<T>(new T(config, name_));
-    }
+    std::unique_ptr<FDBBase> make(const Config& config) const override { return std::make_unique<T>(config, name_); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

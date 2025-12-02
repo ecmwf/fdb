@@ -36,8 +36,8 @@ Archiver::~Archiver() {
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
-    ArchiveVisitor visitor(*this, key, data, len, callback_);
-    archive(key, visitor);
+    auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
+    archive(key, *visitor);
 }
 
 void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
@@ -105,7 +105,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
             }
         }
 
-        std::unique_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
+        std::shared_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
         ASSERT(cat);
 
         // If this database is locked for writing then this is an error
@@ -115,8 +115,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
             throw eckit::UserError(ss.str(), Here());
         }
 
-        std::unique_ptr<Store> str = cat->buildStore();
-        db_                        = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
+        db_ = &(databases_[dbKey] = Database{::time(0), cat, cat->buildStore()});
     }
 }
 
