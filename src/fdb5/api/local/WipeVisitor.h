@@ -52,8 +52,8 @@ class WipeCatalogueVisitor : public QueryVisitor<CatalogueWipeState> {
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
-                         const metkit::mars::MarsRequest& request, bool doit, bool porcelain, bool unsafeWipeAll);
+    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue, const metkit::mars::MarsRequest& request, bool doit,
+                         bool porcelain, bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;

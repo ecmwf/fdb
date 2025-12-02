@@ -12,8 +12,8 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/database/WipeState.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include <memory>
@@ -89,7 +89,7 @@ private:  // methods
     void resetWipeState() {
         currentWipe_.inProgress = false;
         currentWipe_.catalogue.reset();
-        currentWipe_.state = CatalogueWipeState();
+        currentWipe_.state         = CatalogueWipeState();
         currentWipe_.unsafeWipeAll = false;
     }
 

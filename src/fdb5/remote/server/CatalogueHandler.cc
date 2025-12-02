@@ -252,10 +252,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
 
         if (doit_) {
             // Keep a local copy of the (catalogue) wipe state, awaiting an explicit DoWipe command from the client
-            handler.currentWipe_.state = CatalogueWipeState(state.dbKey(), state.safeURIs(), state.deleteMap());
+            handler.currentWipe_.state     = CatalogueWipeState(state.dbKey(), state.safeURIs(), state.deleteMap());
             handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state.dbKey(), handler.config_);
             handler.currentWipe_.unsafeWipeAll = unsafeWipeAll_;
-            handler.currentWipe_.inProgress = true;
+            handler.currentWipe_.inProgress    = true;
         }
         else {
             handler.resetWipeState();
