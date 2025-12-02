@@ -67,12 +67,14 @@ CASE("Wipe tests") {
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Store tests fail.
-    if (wipe_tests_tmp_root().exists())
+    if (wipe_tests_tmp_root().exists()) {
         testing::deldir(wipe_tests_tmp_root());
+    }
     wipe_tests_tmp_root().mkdir();
 
-    if (wipe_tests_tmp_root_store().exists())
+    if (wipe_tests_tmp_root_store().exists()) {
         testing::deldir(wipe_tests_tmp_root_store());
+    }
     wipe_tests_tmp_root_store().mkdir();
 
     // prepare schema
@@ -158,22 +160,25 @@ CASE("Wipe tests") {
 
         auto wipeObject = fdb.wipe(fullReq1);
         count           = 0;
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count == 0);
 
         // dry run wipe index and data files
         wipeObject = fdb.wipe(indexReq1);
         count      = 0;
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
 
         // dry run wipe all databases
         wipeObject = fdb.wipe(commonReq);
         count      = 0;
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
 
         // ensure fields still exist
@@ -182,15 +187,17 @@ CASE("Wipe tests") {
 
         // attempt to wipe with too specific request, no dry run
         wipeObject = fdb.wipe(fullReq1, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 2);
         std::cout << "Listed 2 fields" << std::endl;
 
         // wipe both databases, no dry run
         wipeObject = fdb.wipe(commonReq, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 0);
         std::cout << "Wiped 2 databases" << std::endl;
 
@@ -246,8 +253,9 @@ CASE("Wipe tests") {
         // wipe one database
         fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(dbReq1, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 2);
         EXPECT(countAll(fdb, {dbReq1}) == 0);
         std::cout << "Wiped 1 database" << std::endl;
@@ -272,8 +280,9 @@ CASE("Wipe tests") {
 
         // wipe one index for other database
         wipeObject = fdb.wipe(indexReq2, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 1);
         EXPECT(countAll(fdb, {indexReq2}) == 0);
         std::cout << "Wiped 1 index" << std::endl;
@@ -300,8 +309,9 @@ CASE("Wipe tests") {
 
         // fully wipe remaning part of the database
         wipeObject = fdb.wipe(commonReq, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 0);
     }
 
@@ -345,8 +355,9 @@ CASE("Wipe tests") {
         // wipe one index and ensure its field is gone
         fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(indexReq2, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {commonReq}) == 2);
         EXPECT(countAll(fdb, {indexReq2}) == 0);
         EXPECT(countAll(fdb, {indexReq3}) == 2);
@@ -374,8 +385,9 @@ CASE("Wipe tests") {
 
         // wipe all database and ensure no fields can be listed, and all dirs are gone
         wipeObject = fdb.wipe(dbReq2, true);
-        while (wipeObject.next(elem))
+        while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
+        }
         EXPECT(countAll(fdb, {dbReq2}) == 0);
         std::cout << "Wiped database" << std::endl;
         // check database directories do not exist
@@ -409,35 +421,35 @@ int main(int argc, char** argv) {
 
     // FDB configurations to test
 
-    std::string localSingleRootConfig{
-        "spaces:\n"
-        "- roots:\n"
-        "  - path: " +
-        wipe_tests_tmp_root().asString() +
-        "\n"
-        "type: local\n"
-        "schema : " +
-        schema_file().path() +
-        "\n"
-        "engine: toc\n"
-        "store: file"};
+    std::string localSingleRootConfig = R"(
+spaces:
+- roots:
+  - path: )" +
+wipe_tests_tmp_root().asString() +
+R"(
+type: local
+schema : )" +
+schema_file().path() +
+R"(
+engine: toc
+store: file)";
 
-    std::string localSeparateRootsConfig{
-        "spaces:\n"
-        "- catalogueRoots:\n"
-        "  - path: " +
-        wipe_tests_tmp_root().asString() +
-        "\n"
-        "  storeRoots:\n"
-        "  - path: " +
-        wipe_tests_tmp_root_store().asString() +
-        "\n"
-        "type: local\n"
-        "schema : " +
-        schema_file().path() +
-        "\n"
-        "engine: toc\n"
-        "store: file"};
+    std::string localSeparateRootsConfig = R"(
+spaces:
+- catalogueRoots:
+  - path: )" +
+wipe_tests_tmp_root().asString() +
+R"(
+  storeRoots:
+  - path: )" +
+wipe_tests_tmp_root_store().asString() +
+R"(
+type: local
+schema : )" +
+schema_file().path() +
+R"(
+engine: toc
+store: file)";
 
     /// @todo:
 
