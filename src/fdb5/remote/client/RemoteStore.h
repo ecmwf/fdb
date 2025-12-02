@@ -52,6 +52,8 @@ public:
         if (it == locations_.end()) {
             return false;
         }
+
+        // Invoke the callback to archive the location in the catalogue
         it->second(std::move(location));
 
         locations_.erase(it);
@@ -150,6 +152,8 @@ public:  // methods
 
     void doWipeEmptyDatabases() const override;
 
+    const Config& config() const { return config_; }
+
 protected:  // methods
 
     std::string type() const override { return typeName(); }
@@ -157,7 +161,7 @@ protected:  // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    void archive(
+    void archiveCb(
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
@@ -168,6 +172,7 @@ protected:  // methods
 
 private:  // methods
 
+    const eckit::Configuration& clientConfig() const override;
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -176,6 +181,8 @@ private:  // methods
 private:  // members
 
     Key dbKey_;
+
+    const Config& config_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.

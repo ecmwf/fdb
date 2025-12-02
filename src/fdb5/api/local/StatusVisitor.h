@@ -42,11 +42,8 @@ public:
         return true;
     }
     bool visitIndex(const Index&) override { NOTIMP; }
+    using QueryVisitor<StatusElement>::visitDatum;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
-
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
-        EntryVisitor::visitDatum(field, keyFingerprint);
-    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

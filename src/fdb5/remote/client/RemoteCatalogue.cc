@@ -56,12 +56,11 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config) :
-    CatalogueImpl(key, {}, config), Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {}
+    CatalogueImpl(key, {}, config), Client(config) {}
 
 // Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB
 // for catalogue traversal this ctor is here only to comply with the factory
-RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) :
-    Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {
+RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) : Client(config) {
     NOTIMP;
 }
 
@@ -188,6 +187,10 @@ void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
     // (outside of the catalogue)
     schema();
+}
+
+const eckit::Configuration& RemoteCatalogue::clientConfig() const {
+    return config();
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {

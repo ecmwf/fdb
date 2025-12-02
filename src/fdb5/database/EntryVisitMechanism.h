@@ -59,9 +59,6 @@ public:  // methods
 protected:
 
     Store& store() const;
-
-private:  // methods
-
     virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
 
 protected:  // members

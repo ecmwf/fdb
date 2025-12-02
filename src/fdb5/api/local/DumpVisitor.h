@@ -49,11 +49,8 @@ public:
 
     bool visitIndex(const Index&) override { NOTIMP; }
 
+    using QueryVisitor<DumpElement>::visitDatum;
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
-        EntryVisitor::visitDatum(field, keyFingerprint);
-    }
 
 private:
 

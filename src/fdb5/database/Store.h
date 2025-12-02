@@ -39,7 +39,7 @@ public:
     virtual ~Store() = default;
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual void archive(
+    virtual void archiveCb(
         const Key& idxKey, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive);
     virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void* data, eckit::Length length);
@@ -112,7 +112,7 @@ public:
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
     std::unique_ptr<Store> make(const Key& key, const Config& config) override {
-        return std::unique_ptr<T>(new T(key, config));
+        return std::make_unique<T>(key, config);
     }
     std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) override {
         return std::unique_ptr<T>(new T(uri, config));

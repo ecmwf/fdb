@@ -229,7 +229,7 @@ method:     Integer;
        [ type=ofb/mfb
                [ obsgroup, reportype ]]
 
-       [ type, levtype, anoffset
+       [ type, levtype, anoffset, timespan?
                [ step, levelist?, param]]
 ]
 
