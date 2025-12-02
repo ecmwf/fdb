@@ -79,8 +79,9 @@ bool ClientConnection::remove(uint32_t clientID) {
         auto it = clients_.find(clientID);
 
         if (it != clients_.end()) {
-            if (valid())
+            if (valid()) {
                 Connection::write(Message::Stop, true, clientID, 0);
+            }
 
             clients_.erase(it);
         }
@@ -117,7 +118,7 @@ bool ClientConnection::connect(const eckit::Configuration& config, bool singleAt
     }
 
     int fdbMaxConnectRetries = (singleAttempt ? 1 : eckit::Resource<int>("fdbMaxConnectRetries", 3));
-    int fdbConnectTimeout    = eckit::Resource<int>("fdbConnectTimeout", (singleAttempt ? 2 : 5));  // 0 = No timeout
+    int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", (singleAttempt ? 2 : 5));  // 0 = No timeout
 
     try {
         // Connect to server, and check that the server is happy on the response
@@ -190,7 +191,7 @@ std::future<eckit::Buffer> ClientConnection::controlWrite(const Client& client, 
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<eckit::Buffer>{}).first;
-        f       = pp->second.get_future();
+        f = pp->second.get_future();
     }
     Connection::write(msg, true, client.clientId(), requestID, payloads);
 
@@ -218,7 +219,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
 
-            dataWriteQueue_  = std::make_unique<eckit::Queue<DataWriteRequest>>(maxQueueLength);
+            dataWriteQueue_ = std::make_unique<eckit::Queue<DataWriteRequest>>(maxQueueLength);
             dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
         }
     }
@@ -449,7 +450,7 @@ void ClientConnection::listeningDataThreadLoop() {
             }
             else {
                 if (hdr.clientID()) {
-                    bool handled   = false;
+                    bool handled = false;
                     Client* client = nullptr;
                     {
                         std::lock_guard lock(clientsMutex_);

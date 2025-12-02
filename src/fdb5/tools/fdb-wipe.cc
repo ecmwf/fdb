@@ -73,9 +73,9 @@ void FDBWipe::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    doit_          = args.getBool("doit", false);
-    ignoreNoData_  = args.getBool("ignore-no-data", false);
-    porcelain_     = args.getBool("porcelain", false);
+    doit_ = args.getBool("doit", false);
+    ignoreNoData_ = args.getBool("ignore-no-data", false);
+    porcelain_ = args.getBool("porcelain", false);
     unsafeWipeAll_ = args.getBool("unsafe-wipe-all", false);
 }
 

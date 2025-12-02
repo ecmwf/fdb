@@ -51,8 +51,9 @@ eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const Key& key, const F
     if (value) {
         eckit::PathName path(value);
 
-        if (path.exists())
+        if (path.exists()) {
             return path;
+        }
 
         std::ostringstream msg;
         msg << "";

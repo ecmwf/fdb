@@ -58,16 +58,19 @@ std::vector<eckit::URI> DaosStore::collocatedDataURIs() const {
 
     fdb5::DaosName db_cont{pool_, db_str_};
 
-    if (!db_cont.exists())
+    if (!db_cont.exists()) {
         return collocated_data_uris;
+    }
 
     for (const auto& oid : db_cont.listOIDs()) {
 
-        if (oid.otype() != DAOS_OT_KV_HASHED && oid.otype() != DAOS_OT_ARRAY_BYTE)
+        if (oid.otype() != DAOS_OT_KV_HASHED && oid.otype() != DAOS_OT_ARRAY_BYTE) {
             throw eckit::SeriousBug("Found non-KV non-ByteArray objects in DB container " + db_cont.URI().asString());
+        }
 
-        if (oid.otype() == DAOS_OT_KV_HASHED)
+        if (oid.otype() == DAOS_OT_KV_HASHED) {
             continue;
+        }
 
         collocated_data_uris.push_back(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
     }
@@ -79,9 +82,10 @@ std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::vector<eckit::UR
 
     std::set<eckit::URI> res;
 
-    for (auto& uri : uris)
+    for (auto& uri : uris) {
         /// @note: seems redundant, but intends to check validity of input URIs
         res.insert(fdb5::DaosName(uri).URI());
+    }
 
     return res;
 }
@@ -157,8 +161,9 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
     }
 
     logAlways << n.asString() << std::endl;
-    if (doit)
+    if (doit) {
         n.destroy();
+    }
 }
 
 void DaosStore::print(std::ostream& out) const {

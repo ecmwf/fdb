@@ -67,16 +67,18 @@ class DaosURIManager : public eckit::URIManager {
 
     eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) {
             NOTIMP;
+        }
 
         return fdb5::DaosArrayName(f).dataHandle();
     }
 
     eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) {
             NOTIMP;
+        }
 
         return fdb5::DaosArrayName(f).dataHandle();
     }
@@ -84,19 +86,22 @@ class DaosURIManager : public eckit::URIManager {
     eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol,
                                      const eckit::LengthList& ll) override {
 
-        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY)
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) {
             NOTIMP;
+        }
 
         return fdb5::DaosArrayName(f).dataHandle();
     }
 
     std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
-        if (!q.empty())
+        if (!q.empty()) {
             q = "?" + q;
+        }
         std::string f = uri.fragment();
-        if (!f.empty())
+        if (!f.empty()) {
             f = "#" + f;
+        }
 
         return uri.scheme() + ":" + uri.name() + q + f;
     }

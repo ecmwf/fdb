@@ -121,7 +121,7 @@ void FdbServerBase::doRun() {
     // maintains the list of available ports.
     startPortReaperThread(config);
 
-    int port      = config.getInt("serverPort", 7654);
+    int port = config.getInt("serverPort", 7654);
     bool threaded = config.getBool("serverThreaded", false);
 
     net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
@@ -153,7 +153,7 @@ void FdbServerBase::startPortReaperThread(const Config& config) {
         ASSERT(config.has("dataPortCount"));
 
         int startPort = config.getInt("dataPortStart");
-        size_t count  = config.getLong("dataPortCount");
+        size_t count = config.getLong("dataPortCount");
 
         eckit::Log::info() << "Using custom port list. startPort=" << startPort << ", count=" << count << std::endl;
 

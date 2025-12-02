@@ -59,9 +59,9 @@ Store& EntryVisitor::store() const {
 
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_     = nullptr;
-    currentIndex_     = nullptr;
-    rule_             = &currentCatalogue_->rule();
+    currentStore_ = nullptr;
+    currentIndex_ = nullptr;
+    rule_ = &currentCatalogue_->rule();
     return true;
 }
 
@@ -73,13 +73,13 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
     delete currentStore_;
     currentStore_ = nullptr;
     currentIndex_ = nullptr;
-    rule_         = nullptr;
+    rule_ = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
     ASSERT(currentCatalogue_);
     currentIndex_ = &index;
-    rule_         = &currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
+    rule_ = &currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
     return true;
 }
 
@@ -152,8 +152,9 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
     }
     catch (eckit::Exception& e) {
         Log::warning() << e.what() << std::endl;
-        if (fail_)
+        if (fail_) {
             throw;
+        }
     }
 }
 

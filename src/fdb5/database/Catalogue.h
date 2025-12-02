@@ -50,19 +50,19 @@ typedef std::map<Key, Index> IndexStore;
 class Catalogue {
 public:
 
-    Catalogue()          = default;
+    Catalogue() = default;
     virtual ~Catalogue() = default;
 
-    virtual const Key& key() const       = 0;
-    virtual const Key& indexKey() const  = 0;
+    virtual const Key& key() const = 0;
+    virtual const Key& indexKey() const = 0;
     virtual const Config& config() const = 0;
 
     virtual std::unique_ptr<Store> buildStore() const = 0;
-    virtual const Schema& schema() const              = 0;
-    virtual const Rule& rule() const                  = 0;
+    virtual const Schema& schema() const = 0;
+    virtual const Rule& rule() const = 0;
 
     virtual bool selectIndex(const Key& idxKey) = 0;
-    virtual void deselectIndex()                = 0;
+    virtual void deselectIndex() = 0;
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
@@ -73,10 +73,10 @@ public:
     virtual void dump(std::ostream& out, bool simple = false,
                       const eckit::Configuration& conf = eckit::LocalConfiguration()) const = 0;
 
-    virtual StatsReportVisitor* statsReportVisitor() const                                           = 0;
-    virtual PurgeVisitor* purgeVisitor(const Store& store) const                                     = 0;
+    virtual StatsReportVisitor* statsReportVisitor() const = 0;
+    virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
     virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
-                                     bool doit, bool porcelain, bool unsafeWipeAll) const            = 0;
+                                     bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
     virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                      const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
@@ -96,13 +96,13 @@ public:
     friend std::ostream& operator<<(std::ostream& s, const Catalogue& x);
     virtual void print(std::ostream& out) const = 0;
 
-    virtual std::string type() const          = 0;
-    virtual bool open()                       = 0;
+    virtual std::string type() const = 0;
+    virtual bool open() = 0;
     virtual void flush(size_t archivedFields) = 0;
-    virtual void clean()                      = 0;
-    virtual void close()                      = 0;
+    virtual void clean() = 0;
+    virtual void close() = 0;
 
-    virtual bool exists() const   = 0;
+    virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
@@ -175,14 +175,14 @@ public:
     ~CatalogueWriter() override {}
 
     virtual bool createIndex(const Key& idxKey, size_t datumKeySize) = 0;
-    virtual const Index& currentIndex()                              = 0;
+    virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();
     virtual void archive(const Key& idxKey, const Key& datumKey,
-                         std::shared_ptr<const FieldLocation> fieldLocation)                              = 0;
+                         std::shared_ptr<const FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys,
-                           bool unmount)                                                                  = 0;
+                           bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
-    virtual void reconsolidate()                                                                          = 0;
+    virtual void reconsolidate() = 0;
     virtual size_t archivedLocations() const { NOTIMP; }
 };
 
@@ -195,7 +195,7 @@ public:
 
     CatalogueReaderBuilderBase(const std::string&);
     virtual ~CatalogueReaderBuilderBase();
-    virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config)  = 0;
+    virtual std::unique_ptr<CatalogueReader> make(const fdb5::Key& key, const fdb5::Config& config) = 0;
     virtual std::unique_ptr<CatalogueReader> make(const eckit::URI& uri, const fdb5::Config& config) = 0;
 };
 
@@ -247,7 +247,7 @@ public:
 
     CatalogueWriterBuilderBase(const std::string&);
     virtual ~CatalogueWriterBuilderBase();
-    virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config)  = 0;
+    virtual std::unique_ptr<CatalogueWriter> make(const fdb5::Key& key, const fdb5::Config& config) = 0;
     virtual std::unique_ptr<CatalogueWriter> make(const eckit::URI& uri, const fdb5::Config& config) = 0;
 };
 

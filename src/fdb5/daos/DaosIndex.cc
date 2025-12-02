@@ -54,8 +54,9 @@ DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::Dao
 
     int idx_key_max_len = 512;
 
-    if (hs.bytesWritten() > idx_key_max_len)
+    if (hs.bytesWritten() > idx_key_max_len) {
         throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
+    }
 
     /// @note: performed RPCs:
     /// - record index key into index kv (daos_kv_put)
@@ -65,8 +66,9 @@ DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::Dao
 DaosIndex::DaosIndex(const Key& key, const Catalogue& catalogue, const fdb5::DaosKeyValueName& name, bool readAxes) :
     IndexBase(key, "daosKeyValue"), location_(name, 0) {
 
-    if (readAxes)
+    if (readAxes) {
         updateAxes();
+    }
 }
 
 void DaosIndex::updateAxes() {
@@ -144,7 +146,7 @@ bool DaosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
     ms >> ts;
 
     auto loc = std::shared_ptr<fdb5::FieldLocation>(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
-    field    = fdb5::Field(loc, ts, fdb5::FieldDetails());
+    field = fdb5::Field(loc, ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
@@ -175,8 +177,9 @@ void DaosIndex::add(const Key& key, const Field& field) {
     }
 
     int field_loc_max_len = 512;  /// @todo: read from config
-    if (hs.bytesWritten() > field_loc_max_len)
+    if (hs.bytesWritten() > field_loc_max_len) {
         throw eckit::Exception("Serialised field location exceeded configured maximum location length.");
+    }
 
     fdb5::DaosSession s{};
 
@@ -203,8 +206,9 @@ void DaosIndex::entries(EntryVisitor& visitor) const {
 
         for (const auto& key : index_kv.keys()) {
 
-            if (key == "axes" || key == "key")
+            if (key == "axes" || key == "key") {
                 continue;
+            }
 
             /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each
             ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field
@@ -242,8 +246,9 @@ std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     for (const auto& key : index_kv.keys()) {
 
-        if (key == "axes" || key == "key")
+        if (key == "axes" || key == "key") {
             continue;
+        }
 
         std::vector<char> data;
         eckit::MemoryStream ms = index_kv.getMemoryStream(data, key, "index kv");

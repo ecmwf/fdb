@@ -67,8 +67,9 @@ public:
     /// but partial match for values
     bool match(const Key& k, const char* missing = 0) const {
 
-        if (k.size() != keyregex_.size())
+        if (k.size() != keyregex_.size()) {
             return false;
+        }
 
         for (Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
@@ -131,7 +132,7 @@ private:  // methods
     std::string substituteVars(const std::string& s, const Key& k, const char* missing = 0) const {
         std::string result;
         size_t len = s.length();
-        bool var   = false;
+        bool var = false;
         std::string word;
         std::map<std::string, std::string>::const_iterator j;
 
@@ -143,7 +144,7 @@ private:  // methods
                         os << "FDB RootManager substituteVars: unexpected { found in " << s << " at position " << i;
                         throw UserError(os.str());
                     }
-                    var  = true;
+                    var = true;
                     word = "";
                     break;
 
@@ -178,10 +179,12 @@ private:  // methods
                     break;
 
                 default:
-                    if (var)
+                    if (var) {
                         word += s[i];
-                    else
+                    }
+                    else {
                         result += s[i];
+                    }
                     break;
             }
         }
@@ -263,7 +266,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
             switch (s.size()) {
                 case 2: {
-                    const std::string& regex  = s[0];
+                    const std::string& regex = s[0];
                     const std::string& format = s[1];
 
                     table.push_back(DbPathNamer(regex, format));
@@ -327,10 +330,10 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
         switch (s.size()) {
             case 4: {
-                const std::string& path      = s[0];
+                const std::string& path = s[0];
                 const std::string& filespace = s[1];
-                bool writable                = str2bool(s[2]);
-                bool visit                   = str2bool(s[3]);
+                bool writable = str2bool(s[2]);
+                bool visit = str2bool(s[3]);
 
                 //                                     list   retrieve  archive   wipe
                 result.push_back(Root(path, filespace, visit, visit, writable, writable));
@@ -372,7 +375,7 @@ static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::
     }
 
     // these could be gotten from the file if we decide to extend the format
-    bool writable  = true;
+    bool writable = true;
     bool visitable = true;
 
     std::vector<Root> spaceRoots;
@@ -447,9 +450,9 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
         switch (s.size()) {
             case 3: {
-                const std::string& regex     = s[0];
+                const std::string& regex = s[0];
                 const std::string& filespace = s[1];
-                const std::string& handler   = s[2];
+                const std::string& handler = s[2];
 
                 std::vector<Root> roots = fileSpaceRoots(allRoots, filespace);
 
@@ -475,8 +478,9 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 std::vector<LocalConfiguration> CatalogueRootManager::getSpaceRoots(const LocalConfiguration& space) {
     ASSERT(space.has("roots") != space.has("catalogueRoots"));
 
-    if (space.has("roots"))
+    if (space.has("roots")) {
         return space.getSubConfigurations("roots");
+    }
 
     return space.getSubConfigurations("catalogueRoots");
 }
@@ -484,8 +488,9 @@ std::vector<LocalConfiguration> CatalogueRootManager::getSpaceRoots(const LocalC
 std::vector<LocalConfiguration> StoreRootManager::getSpaceRoots(const LocalConfiguration& space) {
     ASSERT(space.has("roots") != space.has("storeRoots"));
 
-    if (space.has("roots"))
+    if (space.has("roots")) {
         return space.getSubConfigurations("roots");
+    }
 
     return space.getSubConfigurations("storeRoots");
 }
@@ -514,13 +519,13 @@ FileSpaceTable RootManager::fileSpaces() {
 
             if (space.getBool("marsDisks", false)) {
                 PathName file = config_.expandPath(space.getString("path", "~fdb/etc/disks/fdb"));
-                spaceRoots    = parseMarsDisks(file, name);
+                spaceRoots = parseMarsDisks(file, name);
             }
             else {
                 std::vector<LocalConfiguration> roots = getSpaceRoots(space);
                 for (const auto& root : roots) {
                     bool writable = root.getBool("writable", true);
-                    bool visit    = root.getBool("visit", true);
+                    bool visit = root.getBool("visit", true);
                     spaceRoots.emplace_back(Root(root.getString("path"), root.getString("name", ""),
                                                  root.getBool("list", visit), root.getBool("retrieve", visit),
                                                  root.getBool("archive", writable), root.getBool("wipe", writable)));
@@ -641,8 +646,9 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
             }
         }
 
-        if (!matched)
+        if (!matched) {
             LOG_DEBUG_LIB(LibFdb5) << "FAIL to match space " << space << std::endl;
+        }
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "Visitable Roots " << roots << std::endl;
@@ -660,8 +666,9 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::Mar
     std::map<Key, const Rule*> results;
     std::set<Key> keys;
     config_.schema().matchDatabase(request, results, "");
-    for (const auto& [key, rule] : results)
+    for (const auto& [key, rule] : results) {
         keys.insert(key);
+    }
     return visitableRoots(keys);
 }
 

@@ -203,7 +203,7 @@ TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool
     directory_(catalogue.basePath()), includeReferencedNonOwnedData_(includeReferenced) {
 
     currentCatalogue_ = &catalogue;
-    dbStats_          = catalogue.stats();
+    dbStats_ = catalogue.stats();
 }
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
@@ -222,10 +222,12 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     if (!includeReferencedNonOwnedData_) {
         const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
 
-        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath()))
+        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath())) {
             return;
-        if (!field.location().uri().path().dirName().sameAs(cat->basePath()))
+        }
+        if (!field.location().uri().path().dirName().sameAs(cat->basePath())) {
             return;
+        }
     }
 
     // If this index is not yet in the map, then create an entry
@@ -243,7 +245,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     stats.addFieldsCount(1);
     stats.addFieldsSize(len);
 
-    const eckit::PathName& dataPath  = field.location().uri().path();
+    const eckit::PathName& dataPath = field.location().uri().path();
     const eckit::PathName& indexPath = currentIndex_->location().uri().path();
 
     if (dataPath != lastDataPath_) {

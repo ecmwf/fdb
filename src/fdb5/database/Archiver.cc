@@ -74,7 +74,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
     auto i = databases_.find(dbKey);
 
     if (i != databases_.end()) {
-        db_             = &(i->second);
+        db_ = &(i->second);
         i->second.time_ = ::time(0);
         return;
     }
@@ -84,13 +84,13 @@ void Archiver::selectDatabase(const Key& dbKey) {
     {
         std::lock_guard<std::mutex> cacheLock(cacheMutex_);
         if (databases_.size() >= fdbMaxNbDBsOpen) {
-            bool found    = false;
+            bool found = false;
             time_t oldest = ::time(0) + 24 * 60 * 60;
             Key oldK;
             for (auto i = databases_.begin(); i != databases_.end(); ++i) {
                 if (i->second.time_ <= oldest) {
-                    found  = true;
-                    oldK   = i->first;
+                    found = true;
+                    oldK = i->first;
                     oldest = i->second.time_;
                 }
             }

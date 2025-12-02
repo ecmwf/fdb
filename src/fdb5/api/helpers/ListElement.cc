@@ -49,8 +49,9 @@ ListElement::ListElement(eckit::Stream& stream) {
     keyParts_[1] = std::move(keys.at(1));
     keyParts_[2] = std::move(keys.at(2));
 
-    if (!keyParts_[2].empty())
+    if (!keyParts_[2].empty()) {
         loc_.reset(eckit::Reanimator<FieldLocation>::reanimate(stream));
+    }
     stream >> timestamp_;
 }
 
@@ -123,8 +124,9 @@ void ListElement::encode(eckit::Stream& stream) const {
     keys.push_back(keyParts_[2]);
     stream << keys;
 
-    if (loc_)
+    if (loc_) {
         stream << *loc_;
+    }
     stream << timestamp_;
 }
 

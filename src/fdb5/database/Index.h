@@ -64,9 +64,9 @@ public:  // methods
 
     virtual bool dirty() const = 0;
 
-    virtual void open()   = 0;
+    virtual void open() = 0;
     virtual void reopen() = 0;
-    virtual void close()  = 0;
+    virtual void close() = 0;
 
     /// Flush and Sync data (for mediums where sync() is required)
     virtual void flush() = 0;
@@ -98,7 +98,7 @@ public:  // methods
 
     virtual void print(std::ostream& out) const = 0;
 
-    virtual void flock() const   = 0;
+    virtual void flock() const = 0;
     virtual void funlock() const = 0;
 
 protected:  // methods

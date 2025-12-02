@@ -83,14 +83,18 @@ int daos_pool_connect(const char* pool, const char* sys, unsigned int flags, dao
 
     poh->impl = nullptr;
 
-    if (sys != NULL)
+    if (sys != NULL) {
         NOTIMP;
-    if (flags != DAOS_PC_RW)
+    }
+    if (flags != DAOS_PC_RW) {
         NOTIMP;
-    if (info != NULL)
+    }
+    if (info != NULL) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     eckit::PathName path = dummy_daos_root() / pool;
     eckit::PathName realpath{dummy_daos_root()};
@@ -109,18 +113,20 @@ int daos_pool_connect(const char* pool, const char* sys, unsigned int flags, dao
         }
         catch (eckit::FailedSystemCall& e) {
 
-            if (path.exists())
+            if (path.exists()) {
                 throw;
+            }
             return -1;
         }
     }
 
-    if (!realpath.exists())
+    if (!realpath.exists()) {
         return -1;
+    }
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
-    poh->impl  = impl.release();
+    poh->impl = impl.release();
 
     return 0;
 }
@@ -130,8 +136,9 @@ int daos_pool_disconnect(daos_handle_t poh, daos_event_t* ev) {
     ASSERT(poh.impl);
     delete poh.impl;
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     return 0;
 }
@@ -139,8 +146,9 @@ int daos_pool_disconnect(daos_handle_t poh, daos_event_t* ev) {
 int daos_pool_list_cont(daos_handle_t poh, daos_size_t* ncont, struct daos_pool_cont_info* cbuf, daos_event_t* ev) {
 
     ASSERT(poh.impl);
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     daos_size_t n(*ncont);
 
@@ -151,11 +159,13 @@ int daos_pool_list_cont(daos_handle_t poh, daos_size_t* ncont, struct daos_pool_
 
     *ncont = files.size();
 
-    if (cbuf == NULL)
+    if (cbuf == NULL) {
         return 0;
+    }
 
-    if (files.size() > n)
+    if (files.size() > n) {
         return -1;
+    }
 
     daos_size_t nfound = 0;
 
@@ -178,14 +188,15 @@ int daos_pool_list_cont(daos_handle_t poh, daos_size_t* ncont, struct daos_pool_
                 }
 
                 const char* uuid_cstr = uuid_str.c_str();
-                uuid_t uuid           = {0};
+                uuid_t uuid = {0};
                 ASSERT(uuid_parse(uuid_cstr, uuid) == 0);
                 uuid_copy(cbuf[nfound - 1].pci_uuid, uuid);
             }
             catch (eckit::FailedSystemCall& e) {
 
-                if (f.exists())
+                if (f.exists()) {
                     throw;
+                }
                 --nfound;
             }
         }
@@ -231,13 +242,15 @@ int daos_cont_create_internal(daos_handle_t poh, uuid_t* uuid) {
 
     eckit::PathName cont_path = poh.impl->path / cont_uuid_cstr;
 
-    if (cont_path.exists())
+    if (cont_path.exists()) {
         throw eckit::SeriousBug("UUID clash in cont create");
+    }
 
     cont_path.mkdir();
 
-    if (uuid != NULL)
+    if (uuid != NULL) {
         uuid_copy(*uuid, new_uuid);
+    }
 
     return 0;
 }
@@ -256,23 +269,27 @@ int daos_cont_create(daos_handle_t poh, uuid_t* uuid, daos_prop_t* cont_prop, da
 
     if (cont_prop != NULL && cont_prop->dpp_entries) {
 
-        if (cont_prop->dpp_nr != 1)
+        if (cont_prop->dpp_nr != 1) {
             NOTIMP;
-        if (cont_prop->dpp_entries[0].dpe_type != DAOS_PROP_CO_LABEL)
+        }
+        if (cont_prop->dpp_entries[0].dpe_type != DAOS_PROP_CO_LABEL) {
             NOTIMP;
+        }
 
         struct daos_prop_entry* entry = &cont_prop->dpp_entries[0];
 
-        if (entry == NULL)
+        if (entry == NULL) {
             NOTIMP;
+        }
 
         std::string cont_name{entry->dpe_str};
 
         return daos_cont_create_with_label(poh, cont_name.c_str(), NULL, uuid, ev);
     }
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     uuid_t new_uuid = {0};
 
@@ -297,8 +314,9 @@ int daos_cont_create(daos_handle_t poh, uuid_t* uuid, daos_prop_t* cont_prop, da
         }
     }
 
-    if (uuid != NULL)
+    if (uuid != NULL) {
         uuid_copy(*uuid, new_uuid);
+    }
 
     return 0;
 }
@@ -307,18 +325,21 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
                                 daos_event_t* ev) {
 
     ASSERT(poh.impl);
-    if (cont_prop != NULL)
+    if (cont_prop != NULL) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     ASSERT(std::string{label}.rfind("__dummy_daos_uuid_", 0) != 0);
     ASSERT(strlen(label) <= DAOS_PROP_LABEL_MAX_LEN);
 
     eckit::PathName label_symlink_path = poh.impl->path / label;
 
-    if (label_symlink_path.exists())
+    if (label_symlink_path.exists()) {
         return 0;
+    }
 
     uuid_t new_uuid = {0};
 
@@ -349,8 +370,9 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
         }
     }
 
-    if (uuid != NULL)
+    if (uuid != NULL) {
         uuid_copy(*uuid, new_uuid);
+    }
 
     return 0;
 }
@@ -371,15 +393,17 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
 int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event_t* ev) {
 
     ASSERT(poh.impl);
-    if (force != 1)
+    if (force != 1) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     ASSERT(std::string{cont}.rfind("__dummy_daos_uuid_", 0) != 0);
 
     eckit::PathName path = poh.impl->path;
-    uuid_t uuid          = {0};
+    uuid_t uuid = {0};
     if (uuid_parse(cont, uuid) == 0) {
         path /= std::string("__dummy_daos_uuid_") + cont;
     }
@@ -396,8 +420,9 @@ int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event
     }
     catch (eckit::FailedSystemCall& e) {
 
-        if (path.exists())
+        if (path.exists()) {
             throw;
+        }
         return -DER_NONEXIST;
     }
 
@@ -407,8 +432,9 @@ int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event
     }
     catch (eckit::FailedSystemCall& e) {
 
-        if (realpath.exists())
+        if (realpath.exists()) {
             throw;
+        }
         return -DER_NONEXIST;
     }
 
@@ -419,17 +445,20 @@ int daos_cont_open(daos_handle_t poh, const char* cont, unsigned int flags, daos
                    daos_event_t* ev) {
 
     ASSERT(poh.impl);
-    if (flags != DAOS_COO_RW)
+    if (flags != DAOS_COO_RW) {
         NOTIMP;
-    if (info != NULL)
+    }
+    if (info != NULL) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     ASSERT(std::string{cont}.rfind("__dummy_daos_uuid_", 0) != 0);
 
     eckit::PathName path = poh.impl->path;
-    uuid_t uuid          = {0};
+    uuid_t uuid = {0};
     if (uuid_parse(cont, uuid) == 0) {
         path /= std::string("__dummy_daos_uuid_") + cont;
     }
@@ -437,8 +466,9 @@ int daos_cont_open(daos_handle_t poh, const char* cont, unsigned int flags, daos
         path /= cont;
     }
 
-    if (!path.exists())
+    if (!path.exists()) {
         return -DER_NONEXIST;
+    }
 
     eckit::PathName realpath{poh.impl->path};
     try {
@@ -448,15 +478,17 @@ int daos_cont_open(daos_handle_t poh, const char* cont, unsigned int flags, daos
     }
     catch (eckit::FailedSystemCall& e) {
 
-        if (path.exists())
+        if (path.exists()) {
             throw;
+        }
         return -DER_NONEXIST;
     }
 
-    if (!realpath.exists())
+    if (!realpath.exists()) {
         return -DER_NONEXIST;
+    }
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
 
     coh->impl = impl.release();
@@ -468,8 +500,9 @@ int daos_cont_close(daos_handle_t coh, daos_event_t* ev) {
     ASSERT(coh.impl);
     delete coh.impl;
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     return 0;
 }
@@ -479,8 +512,9 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t* oid,
     static uint64_t next_oid = 0;
 
     ASSERT(coh.impl);
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
     ASSERT(num_oids > (uint64_t)0);
 
     // support for multi-node clients running dummy DAOS backed by a
@@ -520,14 +554,18 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t* oid, enum daos_otype
                           daos_oclass_hints_t hints, uint32_t args) {
 
     ASSERT(coh.impl);
-    if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY && type != DAOS_OT_ARRAY_BYTE)
+    if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY && type != DAOS_OT_ARRAY_BYTE) {
         NOTIMP;
-    if (cid != OC_S1)
+    }
+    if (cid != OC_S1) {
         NOTIMP;
-    if (hints != 0)
+    }
+    if (hints != 0) {
         NOTIMP;
-    if (args != 0)
+    }
+    if (args != 0) {
         NOTIMP;
+    }
 
     oid->hi &= (uint64_t)0x00000000FFFFFFFF;
     oid->hi |= ((((uint64_t)type) & OID_FMT_TYPE_MAX) << OID_FMT_TYPE_SHIFT);
@@ -541,17 +579,19 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t* oid, enum daos_otype
 int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode, daos_handle_t* oh, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (mode != DAOS_OO_RW)
+    if (mode != DAOS_OO_RW) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     impl->path.mkdir();
@@ -566,10 +606,12 @@ int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode, daos_h
 int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     try {
 
@@ -577,8 +619,9 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
     }
     catch (eckit::FailedSystemCall& e) {
 
-        if (oh.impl->path.exists())
+        if (oh.impl->path.exists()) {
             throw;
+        }
         return -DER_NONEXIST;
     }
 
@@ -590,8 +633,9 @@ int daos_obj_close(daos_handle_t oh, daos_event_t* ev) {
     ASSERT(oh.impl);
     delete oh.impl;
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     return 0;
 }
@@ -609,12 +653,15 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char* 
                 daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (flags != 0)
+    }
+    if (flags != 0) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     eckit::FileHandle fh(oh.impl->path / key, true);
     fh.openForWrite(eckit::Length(size));
@@ -629,32 +676,39 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char* 
                 daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (flags != 0)
+    }
+    if (flags != 0) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     bool exists = (oh.impl->path / key).exists();
 
-    if (!exists && buf != NULL)
+    if (!exists && buf != NULL) {
         return -DER_NONEXIST;
+    }
 
     daos_size_t dest_size = *size;
-    *size                 = 0;
-    if (!exists)
+    *size = 0;
+    if (!exists) {
         return 0;
+    }
 
     eckit::FileHandle fh(oh.impl->path / key);
     eckit::Length len = fh.size();
-    *size             = len;
+    *size = len;
 
-    if (buf == NULL)
+    if (buf == NULL) {
         return 0;
+    }
 
-    if (len > dest_size)
+    if (len > dest_size) {
         return -1;
+    }
 
     fh.openForRead();
     eckit::AutoClose closer(fh);
@@ -667,20 +721,25 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char* 
 int daos_kv_remove(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char* key, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (flags != 0)
+    }
+    if (flags != 0) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (!oh.impl->path.exists())
+    if (!oh.impl->path.exists()) {
         return -1;
+    }
 
     /// @todo: should removal of a non-existing key fail?
     /// @todo: if not, can the exist check be avoided and unlink be called directly?
-    if ((oh.impl->path / key).exists())
+    if ((oh.impl->path / key).exists()) {
         (oh.impl->path / key).unlink();
+    }
 
     return 0;
 }
@@ -693,48 +752,61 @@ int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t* nr, daos_key_desc
     static std::string req_hash;
     static unsigned long long n = (((unsigned long long)::getpid()) << 32);
 
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (nr == NULL)
+    if (nr == NULL) {
         return -1;
-    if (kds == NULL)
+    }
+    if (kds == NULL) {
         return -1;
-    if (sgl == NULL)
+    }
+    if (sgl == NULL) {
         return -1;
-    if (sgl->sg_nr != 1)
+    }
+    if (sgl->sg_nr != 1) {
         NOTIMP;
-    if (sgl->sg_iovs == NULL)
+    }
+    if (sgl->sg_iovs == NULL) {
         return -1;
-    if (anchor == NULL)
+    }
+    if (anchor == NULL) {
         return -1;
+    }
 
-    if (!oh.impl->path.exists())
+    if (!oh.impl->path.exists()) {
         return -1;
+    }
 
-    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF)
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF) {
         return -1;
-    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY)
+    }
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY) {
         NOTIMP;
+    }
 
     if (anchor->da_type == DAOS_ANCHOR_TYPE_ZERO) {
 
         /// client process must consume all key names before starting a new request
-        if (ongoing_req.size() != 0)
+        if (ongoing_req.size() != 0) {
             NOTIMP;
+        }
 
         std::vector<eckit::PathName> files;
         std::vector<eckit::PathName> dirs;
         oh.impl->path.children(files, dirs);
 
-        for (auto& f : files)
+        for (auto& f : files) {
             ongoing_req.push_back(f.baseName());
+        }
 
         anchor->da_type = DAOS_ANCHOR_TYPE_KEY;
 
-        std::string hostname      = eckit::Main::hostname();
+        std::string hostname = eckit::Main::hostname();
         static std::string format = "%Y%m%d.%H%M%S";
         std::ostringstream os;
         os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
@@ -753,24 +825,27 @@ int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t* nr, daos_key_desc
     }
     else {
 
-        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY)
+        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY) {
             throw eckit::SeriousBug("Unexpected anchor type");
+        }
 
         /// different processes cannot collaborate on consuming a same kv_list
         /// request (i.e. cannot share a hash)
-        if (std::string((char*)&(anchor->da_buf[0]), anchor->da_shard) != req_hash)
+        if (std::string((char*)&(anchor->da_buf[0]), anchor->da_shard) != req_hash) {
             NOTIMP;
+        }
     }
 
-    size_t remain_size  = sgl->sg_iovs[0].iov_buf_len;
+    size_t remain_size = sgl->sg_iovs[0].iov_buf_len;
     uint32_t remain_kds = *nr;
-    size_t sgl_pos      = 0;
-    *nr                 = 0;
+    size_t sgl_pos = 0;
+    *nr = 0;
     while (remain_kds > 0 && remain_size > 0 && ongoing_req.size() > 0) {
         size_t next_size = ongoing_req.back().size();
         if (next_size > remain_size) {
-            if (*nr == 0)
+            if (*nr == 0) {
                 return -1;
+            }
             remain_size = 0;
             continue;
         }
@@ -783,8 +858,9 @@ int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t* nr, daos_key_desc
         *nr += 1;
     }
 
-    if (ongoing_req.size() == 0)
+    if (ongoing_req.size() == 0) {
         anchor->da_type = DAOS_ANCHOR_TYPE_EOF;
+    }
 
     return 0;
 }
@@ -806,17 +882,19 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, da
                       daos_size_t chunk_size, daos_handle_t* oh, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     impl->path.touch();
@@ -828,10 +906,12 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, da
 int daos_array_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     try {
 
@@ -839,8 +919,9 @@ int daos_array_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
     }
     catch (eckit::FailedSystemCall& e) {
 
-        if (oh.impl->path.exists())
+        if (oh.impl->path.exists()) {
             throw;
+        }
         return -DER_NONEXIST;
     }
 
@@ -851,14 +932,17 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, unsi
                     daos_size_t* chunk_size, daos_handle_t* oh, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (mode != DAOS_OO_RW)
+    }
+    if (mode != DAOS_OO_RW) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    *cell_size  = 1;
+    *cell_size = 1;
     *chunk_size = (uint64_t)1048576;
 
     std::stringstream os;
@@ -866,7 +950,7 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, unsi
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / os.str();
 
     if (!impl->path.exists()) {
@@ -881,17 +965,22 @@ int daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid, daos_handle_
                               daos_size_t cell_size, daos_size_t chunk_size, daos_handle_t* oh, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (mode != DAOS_OO_RW)
+    }
+    if (mode != DAOS_OO_RW) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (cell_size != 1)
+    if (cell_size != 1) {
         NOTIMP;
-    if (chunk_size != (uint64_t)1048576)
+    }
+    if (chunk_size != (uint64_t)1048576) {
         NOTIMP;
+    }
 
     return daos_array_create(coh, oid, th, cell_size, chunk_size, oh, ev);
 }
@@ -901,8 +990,9 @@ int daos_array_close(daos_handle_t oh, daos_event_t* ev) {
     ASSERT(oh.impl);
     delete oh.impl;
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     return 0;
 }
@@ -913,22 +1003,28 @@ int daos_array_close(daos_handle_t oh, daos_event_t* ev) {
 int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t* iod, d_sg_list_t* sgl, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (iod->arr_nr != 1)
+    if (iod->arr_nr != 1) {
         NOTIMP;
+    }
 
-    if (sgl->sg_nr != 1)
+    if (sgl->sg_nr != 1) {
         NOTIMP;
+    }
     // source memory len
-    if (sgl->sg_iovs[0].iov_buf_len != sgl->sg_iovs[0].iov_len)
+    if (sgl->sg_iovs[0].iov_buf_len != sgl->sg_iovs[0].iov_len) {
         NOTIMP;
+    }
     // source memory vs. target object len
-    if (sgl->sg_iovs[0].iov_buf_len != iod->arr_rgs[0].rg_len)
+    if (sgl->sg_iovs[0].iov_buf_len != iod->arr_rgs[0].rg_len) {
         NOTIMP;
+    }
 
     // sgl->sg_iovs[0].iov_buf is a void * with the data to write
     // sgl->sg_iovs[0].iov_buf_len is a size_t with the source len
@@ -954,10 +1050,12 @@ int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t* iod, 
 int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t* size, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     *size = (daos_size_t)oh.impl->path.size();
 
@@ -967,22 +1065,28 @@ int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t* size, d
 int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t* iod, d_sg_list_t* sgl, daos_event_t* ev) {
 
     ASSERT(oh.impl);
-    if (th.impl != DAOS_TX_NONE.impl)
+    if (th.impl != DAOS_TX_NONE.impl) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (iod->arr_nr != 1)
+    if (iod->arr_nr != 1) {
         NOTIMP;
+    }
 
-    if (sgl->sg_nr != 1)
+    if (sgl->sg_nr != 1) {
         NOTIMP;
+    }
     // target memory len
-    if (sgl->sg_iovs[0].iov_buf_len != sgl->sg_iovs[0].iov_len)
+    if (sgl->sg_iovs[0].iov_buf_len != sgl->sg_iovs[0].iov_len) {
         NOTIMP;
+    }
     // target memory vs. source object len
-    if (sgl->sg_iovs[0].iov_buf_len != iod->arr_rgs[0].rg_len)
+    if (sgl->sg_iovs[0].iov_buf_len != iod->arr_rgs[0].rg_len) {
         NOTIMP;
+    }
 
     // sgl->sg_iovs[0].iov_buf is a void * where to read the data into
     // iod->arr_rgs[0].rg_len is a size_t with the source size
@@ -990,8 +1094,9 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t* iod, d
 
     eckit::FileHandle fh(oh.impl->path);
     eckit::Length len = fh.size();
-    if (iod->arr_rgs[0].rg_len + iod->arr_rgs[0].rg_idx > len)
+    if (iod->arr_rgs[0].rg_len + iod->arr_rgs[0].rg_idx > len) {
         return -1;
+    }
     fh.openForRead();
     eckit::AutoClose closer(fh);
     fh.seek(iod->arr_rgs[0].rg_idx);
@@ -1005,12 +1110,15 @@ int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t* epoch, char* name
                               daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (name != NULL)
+    if (name != NULL) {
         NOTIMP;
-    if (opts != (DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT))
+    }
+    if (opts != (DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT)) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
@@ -1018,15 +1126,16 @@ int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t* epoch, char* name
     coh.impl->path.children(files, dirs);
 
     std::string oids = "";
-    std::string sep  = "";
+    std::string sep = "";
 
     for (std::vector<eckit::PathName>* fileset : {&files, &dirs}) {
         for (std::vector<eckit::PathName>::iterator it = fileset->begin(); it != fileset->end(); ++it) {
 
             std::string oid = it->baseName();
 
-            if (strstr(oid.c_str(), ".snap"))
+            if (strstr(oid.c_str(), ".snap")) {
                 continue;
+            }
 
             ASSERT(oid.length() == 33);
 
@@ -1059,18 +1168,21 @@ int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t* epoch, char* name
 int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (epr.epr_hi != epr.epr_lo)
+    if (epr.epr_hi != epr.epr_lo) {
         NOTIMP;
-    if (ev != NULL)
+    }
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << epr.epr_hi;
 
     eckit::PathName snap = coh.impl->path / os.str() + ".snap";
 
-    if (!snap.exists())
+    if (!snap.exists()) {
         return -1;
+    }
 
     snap.unlink();
 
@@ -1080,15 +1192,16 @@ int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr, daos_event
 int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch, daos_handle_t* oh, daos_event_t* ev) {
 
     ASSERT(coh.impl);
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << epoch;
 
     std::string ts = os.str();
 
-    auto impl  = std::make_unique<daos_handle_internal_t>();
+    auto impl = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / ts + ".snap";
 
     if (!impl->path.exists()) {
@@ -1104,8 +1217,9 @@ int daos_oit_close(daos_handle_t oh, daos_event_t* ev) {
     ASSERT(oh.impl);
     delete oh.impl;
 
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
     return 0;
 }
@@ -1117,29 +1231,37 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t* oids, uint32_t* oids_nr, daos
     static unsigned long long n = (((unsigned long long)::getpid()) << 32);
 
     ASSERT(oh.impl);
-    if (ev != NULL)
+    if (ev != NULL) {
         NOTIMP;
+    }
 
-    if (oids_nr == NULL)
+    if (oids_nr == NULL) {
         return -1;
-    if (oids == NULL)
+    }
+    if (oids == NULL) {
         return -1;
-    if (anchor == NULL)
+    }
+    if (anchor == NULL) {
         return -1;
+    }
 
-    if (!oh.impl->path.exists())
+    if (!oh.impl->path.exists()) {
         return -1;
+    }
 
-    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF)
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF) {
         return -1;
-    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY)
+    }
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY) {
         NOTIMP;
+    }
 
     if (anchor->da_type == DAOS_ANCHOR_TYPE_ZERO) {
 
         /// client process must consume all key names before starting a new request
-        if (ongoing_req.size() != 0)
+        if (ongoing_req.size() != 0) {
             NOTIMP;
+        }
 
         eckit::Length size(oh.impl->path.size());
         std::vector<char> v(size);
@@ -1157,7 +1279,7 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t* oids, uint32_t* oids_nr, daos
 
         anchor->da_type = DAOS_ANCHOR_TYPE_KEY;
 
-        std::string hostname      = eckit::Main::hostname();
+        std::string hostname = eckit::Main::hostname();
         static std::string format = "%Y%m%d.%H%M%S";
         std::ostringstream os;
         os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
@@ -1176,17 +1298,19 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t* oids, uint32_t* oids_nr, daos
     }
     else {
 
-        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY)
+        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY) {
             throw eckit::SeriousBug("Unexpected anchor type");
+        }
 
         /// different processes cannot collaborate on consuming a same kv_list
         /// request (i.e. cannot share a hash)
-        if (std::string((char*)&(anchor->da_buf[0]), anchor->da_shard) != req_hash)
+        if (std::string((char*)&(anchor->da_buf[0]), anchor->da_shard) != req_hash) {
             NOTIMP;
+        }
     }
 
     uint32_t remain_oids = *oids_nr;
-    *oids_nr             = 0;
+    *oids_nr = 0;
     while (remain_oids > 0 && ongoing_req.size() > 0) {
 
         std::string next_oid = ongoing_req.back();
@@ -1200,8 +1324,9 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t* oids, uint32_t* oids_nr, daos
         *oids_nr += 1;
     }
 
-    if (ongoing_req.size() == 0)
+    if (ongoing_req.size() == 0) {
         anchor->da_type = DAOS_ANCHOR_TYPE_EOF;
+    }
 
     return 0;
 }

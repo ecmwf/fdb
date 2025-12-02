@@ -220,8 +220,8 @@ template <typename HelperClass>
 auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
     -> APIIterator<typename HelperClass::ValueType> {
 
-    using ValueType     = typename HelperClass::ValueType;
-    using IteratorType  = APIIterator<ValueType>;
+    using ValueType = typename HelperClass::ValueType;
+    using IteratorType = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 
     // Reconnect if necessary
@@ -231,7 +231,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // will result in return messages
 
     uint32_t id = generateRequestID();
-    auto entry  = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
+    auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
     ASSERT(entry.second);
     std::shared_ptr<MessageQueue> messageQueue(entry.first->second);
 

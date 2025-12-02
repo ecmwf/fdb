@@ -108,7 +108,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     -> decltype(fn(*(FDBBase*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDBBase*)(nullptr), request));
-    using ValueType     = typename QueryIterator::value_type;
+    using ValueType = typename QueryIterator::value_type;
 
     std::queue<APIIterator<ValueType>> iterQueue;
 

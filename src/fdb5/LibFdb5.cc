@@ -106,7 +106,7 @@ static bool getUserEnvSkipSanityCheck() {
 }
 
 RemoteProtocolVersion::RemoteProtocolVersion() {
-    static unsigned user  = getUserEnvRemoteProtocol();
+    static unsigned user = getUserEnvRemoteProtocol();
     static bool skipcheck = getUserEnvSkipSanityCheck();
 
     if (not user) {
@@ -157,8 +157,9 @@ std::string RemoteProtocolVersion::supportedStr() const {
 bool RemoteProtocolVersion::check(unsigned int version, bool throwOnFail) {
     std::vector<unsigned int> versionsSupported = supported();
     for (auto v : versionsSupported) {
-        if (version == v)
+        if (version == v) {
             return true;
+        }
     }
     if (throwOnFail) {
         std::ostringstream msg;

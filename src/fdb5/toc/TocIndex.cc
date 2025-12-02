@@ -98,8 +98,9 @@ void TocIndex::open() {
     if (!btree_) {
         LOG_DEBUG_LIB(LibFdb5) << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
-        if (mode_ == TocIndex::READ && preloadBTree_)
+        if (mode_ == TocIndex::READ && preloadBTree_) {
             btree_->preload();
+        }
     }
 }
 

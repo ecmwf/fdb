@@ -81,7 +81,7 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
 
     RemoteStore& store = RemoteStore::get(uri_);
 
-    const std::string scheme   = uri_.query("internalScheme");
+    const std::string scheme = uri_.query("internalScheme");
     const std::string hostport = uri_.query("internalHost");
     eckit::URI remote;
     if (hostport.empty()) {
@@ -135,11 +135,13 @@ class FdbURIManager : public eckit::URIManager {
 
     std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
-        if (!q.empty())
+        if (!q.empty()) {
             q = "?" + q;
+        }
         std::string f = uri.fragment();
-        if (!f.empty())
+        if (!f.empty()) {
             f = "#" + f;
+        }
 
         return uri.name() + q + f;
     }

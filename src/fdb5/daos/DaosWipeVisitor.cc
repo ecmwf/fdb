@@ -137,8 +137,9 @@ void DaosWipeVisitor::ensureSafeURIs() {
 
     // Very explicitly ensure that we cannot delete anything marked as safe
 
-    for (const auto& p : safeStoreURIs_)
+    for (const auto& p : safeStoreURIs_) {
         storeURIs_.erase(p);
+    }
 }
 
 void DaosWipeVisitor::calculateResidualURIs() {
@@ -154,8 +155,9 @@ void DaosWipeVisitor::calculateResidualURIs() {
     std::set<fdb5::DaosKeyValueName> deleteKvNames;
     deleteKvNames.insert(indexNames_.begin(), indexNames_.end());
     deleteKvNames.insert(axisNames_.begin(), axisNames_.end());
-    if (dbKvName_.poolName().size())
+    if (dbKvName_.poolName().size()) {
         deleteKvNames.insert(dbKvName_.URI());
+    }
 
     std::set<fdb5::DaosKeyValueName> allKvNames;
     /// @note: given a database container, list DB kv, index kvs and axis kvs
@@ -285,24 +287,27 @@ void DaosWipeVisitor::report(bool wipeAll) {
     }
 
     out_ << "Index KVs to delete: " << std::endl;
-    if (indexNames_.empty())
+    if (indexNames_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& n : indexNames_) {
         out_ << "    " << n.URI() << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Axis KVs to delete: " << std::endl;
-    if (axisNames_.empty())
+    if (axisNames_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& n : axisNames_) {
         out_ << "    " << n.URI() << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Store units (store files or arrays) to delete: " << std::endl;
-    if (storeURIs_.empty())
+    if (storeURIs_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& f : storeURIs_) {
         out_ << "    " << f << std::endl;
     }
@@ -354,8 +359,9 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
                 catalogue_.remove(name, logAlways, logVerbose, doit_);
 
                 fdb5::DaosKeyValue db_kv{s, catalogue_.dbKeyValue()};
-                if (doit_)
+                if (doit_) {
                     db_kv.remove(idx);
+                }
             }
             else {
                 NOTIMP;
@@ -367,18 +373,20 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
     if (wipeAll) {
 
-        if (store_.type() != "daos")
+        if (store_.type() != "daos") {
             /// @todo: if the store is holding catalogue information (e.g. index files) it
             ///    should not be removed
             store_.remove(store_.uri(), logAlways, logVerbose, doit_);
+        }
 
-        const fdb5::DaosKeyValueName& db_kv   = catalogue_.dbKeyValue();
+        const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
         const fdb5::DaosKeyValueName& root_kv = catalogue_.rootKeyValue();
 
         fdb5::DaosName db_cont{db_kv.poolName(), db_kv.containerName()};
 
-        if (db_cont.exists() && doit_)
+        if (db_cont.exists() && doit_) {
             db_cont.destroy();
+        }
 
         std::string db_key = db_kv.containerName();
         fdb5::DaosSession s{};
@@ -403,44 +411,50 @@ void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     dbKvName_ = fdb5::DaosName("");
     if (wipeAll) {
         const fdb5::DaosKeyValueName& n = catalogue_.dbKeyValue();
-        dbKvName_                       = fdb5::DaosName(n.poolName(), n.containerName(), n.OID());
+        dbKvName_ = fdb5::DaosName(n.poolName(), n.containerName(), n.OID());
     }
 
     ensureSafeURIs();
 
     if (anythingToWipe()) {
 
-        if (wipeAll)
+        if (wipeAll) {
             calculateResidualURIs();
+        }
 
-        if (!porcelain_)
+        if (!porcelain_) {
             report(wipeAll);
+        }
 
         // This is here as it needs to run whatever combination of doit/porcelain/...
         if (wipeAll && !residualKvNames_.empty()) {
 
             out_ << "Unexpected KVs present in DB container: " << std::endl;
-            for (const auto& n : residualKvNames_)
+            for (const auto& n : residualKvNames_) {
                 out_ << "    " << n.URI() << std::endl;
+            }
             out_ << std::endl;
         }
         if (wipeAll && !residualStoreURIs_.empty()) {
 
             out_ << "Unexpected store units (store files or arrays) present in store: " << std::endl;
-            for (const auto& u : residualStoreURIs_)
+            for (const auto& u : residualStoreURIs_) {
                 out_ << "    " << store_.type() << "://" << u << std::endl;
+            }
             out_ << std::endl;
         }
         if (wipeAll && (!residualKvNames_.empty() || !residualStoreURIs_.empty())) {
             if (!unsafeWipeAll_) {
                 out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
-                if (doit_)
+                if (doit_) {
                     throw Exception("Cannot fully wipe unclean Daos DB", Here());
+                }
             }
         }
 
-        if (doit_ || porcelain_)
+        if (doit_ || porcelain_) {
             wipe(wipeAll);
+        }
     }
 }
 

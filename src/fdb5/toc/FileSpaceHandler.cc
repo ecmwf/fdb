@@ -27,11 +27,11 @@ namespace fdb5 {
 
 static eckit::Mutex* local_mutex;
 typedef std::map<std::string, FileSpaceHandlerInstance*> HandlerMap;
-static HandlerMap* m       = 0;
+static HandlerMap* m = 0;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m           = new HandlerMap();
+    m = new HandlerMap();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -60,8 +60,9 @@ const FileSpaceHandler& FileSpaceHandler::lookup(const std::string& name, const 
     if (j == m->end()) {
         eckit::Log::error() << "No FileSpaceHandler factory for [" << name << "]" << std::endl;
         eckit::Log::error() << "Available FileSpaceHandler's are:" << std::endl;
-        for (j = m->begin(); j != m->end(); ++j)
+        for (j = m->begin(); j != m->end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No FileSpaceHandler called ") + name);
     }
 

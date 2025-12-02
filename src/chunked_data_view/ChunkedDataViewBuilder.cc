@@ -44,7 +44,7 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
 
 bool ChunkedDataViewBuilder::doPartsAlign(const std::vector<ViewPart>& viewParts) {
     const ViewPart& first = viewParts[0];
-    bool extensible       = true;
+    bool extensible = true;
     for (const ViewPart& viewPart : viewParts) {
         extensible &= first.extensibleWith(viewPart, extensionAxisIndex_.value_or(0));
     }

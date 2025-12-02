@@ -123,31 +123,33 @@ eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
 
 bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& existsDB) const {
     unsigned count = 0;
-    bool found     = false;
+    bool found = false;
 
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->enabled(ControlIdentifier::List) && i->exists()) {
             eckit::PathName fullDB = getFullDB(i->path(), db);
-            eckit::PathName dbToc  = fullDB / "toc";
+            eckit::PathName dbToc = fullDB / "toc";
             if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
                 bool allowMultipleDbs =
                     (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
                 if (!count || allowMultipleDbs) {  // take last
-                    existsDB.directory_          = fullDB;
+                    existsDB.directory_ = fullDB;
                     existsDB.controlIdentifiers_ = i->controlIdentifiers();
-                    found                        = true;
+                    found = true;
                 }
-                if (!allowMultipleDbs)
+                if (!allowMultipleDbs) {
                     ++count;
+                }
             }
         }
     }
 
-    if (count <= 1)
+    if (count <= 1) {
         return found;
+    }
 
     std::ostringstream msg;
     msg << "Found multiple FDB roots matching key " << key << ", roots -> [" << matchList << "]";

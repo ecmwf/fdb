@@ -154,7 +154,7 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
     pool_name = eckit::Resource<std::string>("fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name);
     EXPECT(pool_name.length() > 0);
 #endif
-    fdb5::DaosPool& pool      = s.getPool(pool_name);
+    fdb5::DaosPool& pool = s.getPool(pool_name);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);
 #endif
@@ -240,7 +240,7 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
 
         uint64_t res;
         char read_data[20] = "";
-        res                = kv.get(test_key, read_data, sizeof(read_data));
+        res = kv.get(test_key, read_data, sizeof(read_data));
         EXPECT(res == size);
         EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
 
@@ -464,7 +464,7 @@ CASE("DaosName and DaosHandle workflows") {
     pool_name = eckit::Resource<std::string>("fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name);
     EXPECT(pool_name.length() > 0);
 #endif
-    fdb5::DaosPool& pool      = s.getPool(pool_name);
+    fdb5::DaosPool& pool = s.getPool(pool_name);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);
 #endif
@@ -646,7 +646,7 @@ CASE("DaosName and DaosHandle workflows") {
         fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         long skip_bytes = 10;
-        Length t        = h2->openForRead();
+        Length t = h2->openForRead();
         std::vector<char> read_data((size_t)(t - eckit::Length(skip_bytes)), 0);
         {
             eckit::AutoClose closer(*h2);

@@ -45,7 +45,7 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
         }
 
         size_t index_in_dim = chunk_index / dim_prod;  // (1)
-        index[i]            = index_in_dim;
+        index[i] = index_in_dim;
         chunk_index -= index_in_dim * dim_prod;  // (2)
     }
 

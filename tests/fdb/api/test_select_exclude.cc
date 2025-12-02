@@ -28,7 +28,7 @@ namespace fdb5::test {
 //----------------------------------------------------------------------------------------------------------------------
 
 int count_in_list(FDB& fdb, const std::string& request_str) {
-    int count       = 0;
+    int count = 0;
     auto listObject = fdb.list(FDBToolRequest::requestsFromString(request_str, {})[0]);
     ListElement elem;
     while (listObject.next(elem)) {
@@ -44,7 +44,7 @@ int count_in_inspect(FDB& fdb, const std::string& request_str) {
     std::string base =
         "retrieve,class=od,stream=enfo,expver=xxxx,type=pf,date=20000101,domain=g,levtype=sfc,param=167,step=1";
 
-    auto request       = metkit::mars::MarsRequest::parse(base + "," + request_str);
+    auto request = metkit::mars::MarsRequest::parse(base + "," + request_str);
     auto inspectObject = fdb.inspect(request);
     ListElement elem;
     while (inspectObject.next(elem)) {
@@ -101,8 +101,8 @@ CASE("write") {
 
     // Do some archiving
     std::string data_str = "Let it snow";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
 
     Key k;
     k.set("class", "od");
@@ -124,7 +124,7 @@ CASE("write") {
     // enfo,yyyy -> lane 3
     // enfo,zzzz -> lane 2
 
-    auto times   = {"0000", "1200"};
+    auto times = {"0000", "1200"};
     auto numbers = {"1", "2", "3"};
 
     for (const auto& t : times) {

@@ -50,8 +50,9 @@ void ExcludeAll::encode(eckit::Stream& s) const {
 bool ExcludeAll::match(const std::string& keyword, const Key& key) const {
 
     if (const auto [iter, found] = key.find(keyword); found) {
-        if (!match(iter->second))
+        if (!match(iter->second)) {
             return false;
+        }
     }
 
     return true;

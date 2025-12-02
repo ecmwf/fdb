@@ -52,8 +52,9 @@ fdb5::Config theconfig(bool useSubToc = false) {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    if (!useSubToc)
+    if (!useSubToc) {
         return expanded;
+    }
 
     eckit::LocalConfiguration userConf;
     userConf.set("useSubToc", true);
@@ -132,7 +133,7 @@ void list(bool dedup, size_t expected) {
     {
         fdb5::FDB fdb(theconfig(false));
         fdb5::FDBToolRequest request = fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-        auto it                      = fdb.list(request, dedup);
+        auto it = fdb.list(request, dedup);
 
         ListElement elem;
         size_t count = 0;
@@ -187,8 +188,8 @@ CASE("FDB-425: Archive, rearchive, purge, then list.") {
 
     cleanup();
 
-    size_t Nparam  = 2;
-    size_t Nsteps  = 3;
+    size_t Nparam = 2;
+    size_t Nsteps = 3;
     size_t Nunique = Nsteps * Nparam;
 
     size_t Nruns = 3;
@@ -215,11 +216,11 @@ CASE("Check more finer-grained purge behaviour (note no forks)") {
     cleanup();
 
     // Initial run
-    size_t Nparam  = 2;  // == Nparams
-    size_t Nsteps  = 3;
+    size_t Nparam = 2;  // == Nparams
+    size_t Nsteps = 3;
     size_t Nunique = Nsteps * Nparam;
-    bool subtocs   = true;
-    bool dofork    = false;
+    bool subtocs = true;
+    bool dofork = false;
     runmodel(Nparam, Nsteps, subtocs, dofork);
 
     // Rerun #1: rewrite one step for every param
@@ -255,8 +256,9 @@ CASE("Check more finer-grained purge behaviour (note no forks)") {
 
 int main(int argc, char** argv) {
     int err = run_tests(argc, argv);
-    if (err)
+    if (err) {
         return err;
+    }
     // fdb5::test::cleanup();
     return 0;
 }

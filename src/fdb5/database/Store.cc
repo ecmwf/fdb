@@ -83,7 +83,7 @@ void StoreFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
-    std::string name          = config.getString("store", "file");
+    std::string name = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -94,8 +94,9 @@ std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config)
     if (j == builders_.end()) {
         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "StoreBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
@@ -109,8 +110,9 @@ StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     StoreFactory::instance().remove(name_);
 }
 

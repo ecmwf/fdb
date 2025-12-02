@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace py  = pybind11;
+namespace py = pybind11;
 namespace cdv = chunked_data_view;
 
 PYBIND11_MODULE(chunked_data_view_bindings, m) {

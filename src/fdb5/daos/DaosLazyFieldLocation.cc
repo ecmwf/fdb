@@ -47,8 +47,9 @@ std::shared_ptr<const FieldLocation> DaosLazyFieldLocation::stableLocation() con
 
 std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
 
-    if (fl_)
+    if (fl_) {
         return fl_;
+    }
 
     /// @note: performed RPCs:
     /// - index kv get (daos_kv_get)

@@ -101,7 +101,7 @@ void printHeader(const FDBToolRequest& request) {
 }
 
 void FDBInspectTool::execute(const eckit::option::CmdArgs& args) {
-    const auto fdbConfig    = config(args);
+    const auto fdbConfig = config(args);
     const auto toolRequests = requests();
 
     eckit::Log::info() << "Number of requests: " << toolRequests.size() << std::endl;

@@ -30,8 +30,9 @@ DaosArrayPartHandle::DaosArrayPartHandle(const fdb5::DaosArrayName& name, const 
 
 DaosArrayPartHandle::~DaosArrayPartHandle() {
 
-    if (open_)
+    if (open_) {
         eckit::Log::error() << "DaosArrayPartHandle not closed before destruction." << std::endl;
+    }
 }
 
 void DaosArrayPartHandle::print(std::ostream& s) const {
@@ -40,8 +41,9 @@ void DaosArrayPartHandle::print(std::ostream& s) const {
 
 Length DaosArrayPartHandle::openForRead() {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug{"Handle already opened."};
+    }
 
     session();
 
@@ -61,8 +63,9 @@ long DaosArrayPartHandle::read(void* buf, long len) {
     /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
     ///   so it is calculated here and returned to the user as expected
     eckit::Length s = size();
-    if (len > s - offset_)
+    if (len > s - offset_) {
         len = s - offset_;
+    }
 
     long read = arr_->read(buf, len, offset_);
 
@@ -73,8 +76,9 @@ long DaosArrayPartHandle::read(void* buf, long len) {
 
 void DaosArrayPartHandle::close() {
 
-    if (!open_)
+    if (!open_) {
         return;
+    }
 
     arr_->close();
 
@@ -127,8 +131,9 @@ std::string DaosArrayPartHandle::title() const {
 
 fdb5::DaosSession& DaosArrayPartHandle::session() {
 
-    if (!session_.has_value())
+    if (!session_.has_value()) {
         session_.emplace();
+    }
     return session_.value();
 }
 

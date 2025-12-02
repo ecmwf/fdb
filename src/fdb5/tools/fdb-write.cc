@@ -79,7 +79,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args) {
     args.get("exclude-filter", filterExclude_);
     args.get("modifiers", modifiers_);
     archivers_ = args.getLong("archivers", 1);
-    verbose_   = args.getBool("verbose", false);
+    verbose_ = args.getBool("verbose", false);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs& args) {

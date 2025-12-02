@@ -98,7 +98,7 @@ bool RemoteConfiguration::singleConnection() const {
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
-    eckit::Value val           = eckit::Value::makeOrderedMap();
+    eckit::Value val = eckit::Value::makeOrderedMap();
     val["RemoteFieldLocation"] = eckit::toValue(r.remoteFieldLocationVersions_);
     val["NumberOfConnections"] = eckit::toValue(r.numberOfConnections_);
     if (r.preferSingleConnection_) {
@@ -161,7 +161,7 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
 
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
     agreedConf.numberOfConnections_ = {ncSelected};
-    agreedConf.singleConnection_    = (ncSelected == 1);
+    agreedConf.singleConnection_ = (ncSelected == 1);
 
     return agreedConf;
 }

@@ -24,8 +24,8 @@ namespace chunked_data_view {
 class FdbInterface {
 public:
 
-    virtual ~FdbInterface()                                                                          = default;
-    virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request)    = 0;
+    virtual ~FdbInterface() = default;
+    virtual std::unique_ptr<eckit::DataHandle> retrieve(const metkit::mars::MarsRequest& request) = 0;
     virtual std::unique_ptr<ListIteratorInterface> inspect(const metkit::mars::MarsRequest& request) = 0;
 };
 

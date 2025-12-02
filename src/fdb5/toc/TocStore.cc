@@ -134,7 +134,7 @@ size_t TocStore::flush() {
     // ensure consistent state before writing Toc entry
     flushDataHandles();
 
-    size_t out      = archivedFields_;
+    size_t out = archivedFields_;
     archivedFields_ = 0;
 
     return out;
@@ -151,14 +151,16 @@ void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.rmdir(false);
+        }
     }
     else {
         logVerbose << "Unlinking: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.unlink(false);
+        }
     }
 }
 
@@ -198,7 +200,7 @@ std::unique_ptr<eckit::DataHandle> TocStore::createFileHandle(const eckit::PathN
 
 std::unique_ptr<eckit::DataHandle> TocStore::createAsyncHandle(const eckit::PathName& path) {
 
-    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
+    static size_t nbBuffers = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64_MiB);
 
     if (stripeLustre()) {
@@ -221,8 +223,9 @@ std::unique_ptr<eckit::DataHandle> TocStore::createDataHandle(const eckit::PathN
     }
 
     static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-    if (fdbAsyncWrite)
+    if (fdbAsyncWrite) {
         return createAsyncHandle(path);
+    }
 
     return createFileHandle(path);
 }
@@ -249,8 +252,9 @@ eckit::PathName TocStore::generateDataPath(const Key& key) const {
 
 eckit::PathName TocStore::getDataPath(const Key& key) const {
     PathStore::const_iterator j = dataPaths_.find(key);
-    if (j != dataPaths_.end())
+    if (j != dataPaths_.end()) {
         return j->second;
+    }
 
     eckit::PathName dataPath = generateDataPath(key);
 
@@ -320,7 +324,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
 
     for (const eckit::PathName& root : StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {
-            eckit::PathName src_db  = directory_;
+            eckit::PathName src_db = directory_;
             eckit::PathName dest_db = destPath / key.valuesToString();
 
             dest_db.mkdir();

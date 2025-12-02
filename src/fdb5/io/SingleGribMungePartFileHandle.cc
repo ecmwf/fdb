@@ -31,10 +31,12 @@ namespace fdb5 {
 ::eckit::Reanimator<SingleGribMungePartFileHandle> SingleGribMungePartFileHandle::reanimator_;
 
 void SingleGribMungePartFileHandle::print(std::ostream& s) const {
-    if (format(s) == Log::compactFormat)
+    if (format(s) == Log::compactFormat) {
         s << "SingleGribMungePartFileHandle";
-    else
+    }
+    else {
         s << "SingleGribMungePartFileHandle[path=" << name_ << ",offset=" << offset_ << ",length=" << length_ << ']';
+    }
 }
 
 SingleGribMungePartFileHandle::SingleGribMungePartFileHandle(const PathName& name, const Offset& offset,
@@ -61,11 +63,12 @@ SingleGribMungePartFileHandle::~SingleGribMungePartFileHandle() {
 
 Length SingleGribMungePartFileHandle::openForRead() {
 
-    pos_  = 0;
+    pos_ = 0;
     file_ = ::fopen(name_.localPath(), "r");
 
-    if (!file_)
+    if (!file_) {
         throw CantOpenFile(name_, errno == ENOENT);
+    }
 
     if (buffer_) {
         buffer_.reset();
@@ -108,7 +111,7 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
             CODES_CHECK(codes_set_string(handle, kv.first.c_str(), kv.second.c_str(), &valueSize), 0);
         }
 
-        size_t messageSize        = 0;
+        size_t messageSize = 0;
         const void* messageBuffer = 0;
         CODES_CHECK(codes_get_message(handle, &messageBuffer, &messageSize), 0);
 

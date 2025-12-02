@@ -48,10 +48,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-constexpr const char* retrieve_lock_file    = "retrieve.lock";
-constexpr const char* archive_lock_file     = "archive.lock";
-constexpr const char* list_lock_file        = "list.lock";
-constexpr const char* wipe_lock_file        = "wipe.lock";
+constexpr const char* retrieve_lock_file = "retrieve.lock";
+constexpr const char* archive_lock_file = "archive.lock";
+constexpr const char* list_lock_file = "list.lock";
+constexpr const char* wipe_lock_file = "wipe.lock";
 constexpr const char* allow_duplicates_file = "duplicates.allow";
 }  // namespace
 
@@ -84,8 +84,9 @@ public:  // methods
     }
 
     long read(void* buf, long len, const char** pdata = nullptr) {
-        if (pdata && !cached_)
+        if (pdata && !cached_) {
             throw SeriousBug("Can only return a pointer to data in memory if cached", Here());
+        }
         if (cached_) {
             if (pdata) {
                 *pdata = reinterpret_cast<const char*>(cached_->data()) + cached_->position();
@@ -295,7 +296,7 @@ void TocHandler::openForRead() const {
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
-    numSubtocsRaw_           = 0;
+    numSubtocsRaw_ = 0;
     maskedEntries_.clear();
 
     if (fdbCacheTocsOnRead) {
@@ -440,8 +441,9 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
     // For some tools (mainly diagnostic) it makes sense to be able to switch the
     // walking behaviour here.
 
-    if (!walkSubTocs)
+    if (!walkSubTocs) {
         return readNextInternal(r, data, length);
+    }
 
     // Ensure we are able to skip masked entries as appropriate
 
@@ -480,15 +482,17 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
             else if (r.header_.tag_ == TocRecord::TOC_INIT) {
 
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-                if (parentKey_.empty())
+                if (parentKey_.empty()) {
                     parentKey_ = Key(s);
+                }
                 return true;
             }
             else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
 
                 LocalPathName absPath = parseSubTocRecord(r, readMasked);
-                if (absPath == "")
+                if (absPath == "") {
                     continue;
+                }
 
                 if (parentTocPath) {
                     *parentTocPath = currentTocPath();
@@ -545,8 +549,9 @@ bool TocHandler::readNextInternal(TocRecord& r, const TocRecord** data, size_t* 
         long len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
         ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
-        if (length)
+        if (length) {
             (*length) = len + sizeof(TocRecord::Header);
+        }
     }
     catch (...) {
         dumpTocCache();
@@ -568,9 +573,9 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 
     std::vector<eckit::PathName> paths;
 
-    bool walkSubTocs       = true;
+    bool walkSubTocs = true;
     bool hideSubTocEntries = false;
-    bool hideClearEntries  = true;
+    bool hideClearEntries = true;
     while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
@@ -629,7 +634,7 @@ void TocHandler::close() const {
             dirty_ = false;
         }
         SYSCALL2(::close(fd_), tocPath_);
-        fd_        = -1;
+        fd_ = -1;
         writeMode_ = false;
     }
 }
@@ -732,14 +737,15 @@ class SubtocPreloader {
         AutoFDCloser(AutoFDCloser&& rhs) : fd_(rhs.fd_) { rhs.fd_ = -1; }
         AutoFDCloser(const AutoFDCloser&) = delete;
         AutoFDCloser& operator=(AutoFDCloser&& rhs) {
-            fd_     = rhs.fd_;
+            fd_ = rhs.fd_;
             rhs.fd_ = -1;
             return *this;
         }
         AutoFDCloser& operator=(const AutoFDCloser&) = delete;
         ~AutoFDCloser() {
-            if (fd_ > 0)
+            if (fd_ > 0) {
                 ::close(fd_);  // n.b. ignore return value
+            }
         }
     };
 
@@ -785,9 +791,9 @@ public:
                 aiocb& aio(aiocbs[i]);
                 zero(aio);
 
-                aio.aio_fildes                = fd;
-                aio.aio_offset                = 0;
-                aio.aio_nbytes                = tocSize;
+                aio.aio_fildes = fd;
+                aio.aio_offset = 0;
+                aio.aio_nbytes = tocSize;
                 aio.aio_sigevent.sigev_notify = SIGEV_NONE;
 
                 buffers[i].resize(tocSize);
@@ -822,8 +828,9 @@ public:
 
                 for (int n = 0; n < aiocbs.size(); ++n) {
 
-                    if (done[n])
+                    if (done[n]) {
                         continue;
+                    }
 
                     int e = ::aio_error(&aiocbs[n]);
                     if (e == EINPROGRESS) {
@@ -837,7 +844,7 @@ public:
                             aiocbs[n].aio_nbytes = len;
                         }
 
-                        bool grow      = true;
+                        bool grow = true;
                         auto cachedToc = std::make_unique<eckit::MemoryHandle>(buffers[n].size(), grow);
 
                         {
@@ -869,8 +876,9 @@ public:
 
 void TocHandler::preloadSubTocs(bool readMasked) const {
     ASSERT(enumeratedMaskedEntries_);
-    if (numSubtocsRaw_ == 0)
+    if (numSubtocsRaw_ == 0) {
         return;
+    }
 
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
     Offset startPosition = proxy.position();  // remember the current position of the file descriptor
@@ -891,8 +899,9 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
             switch (r->header_.tag_) {
                 case TocRecord::TOC_SUB_TOC: {
                     LocalPathName absPath = parseSubTocRecord(*r, readMasked);
-                    if (absPath != "")
+                    if (absPath != "") {
                         preloader.addPath(absPath);
+                    }
                 } break;
                 case TocRecord::TOC_INIT:
                     break;
@@ -980,7 +989,7 @@ void TocHandler::populateMaskedEntriesList() const {
     Offset ret = proxy.seek(startPosition);
     ASSERT(ret == startPosition);
 
-    numSubtocsRaw_           = countSubTocs;
+    numSubtocsRaw_ = countSubTocs;
     enumeratedMaskedEntries_ = true;
 }
 
@@ -1092,7 +1101,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
     const PathName& absPath = subToc.tocPath();
-    eckit::PathName path    = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    eckit::PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
     s << path;
     s << off_t{0};
@@ -1174,7 +1183,7 @@ void TocHandler::writeSubTocMaskRecord(const TocHandler& subToc) {
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
     const PathName& absPath = subToc.tocPath();
-    PathName path           = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
     appendBlock(*r, buildSubTocMaskRecord(*r, path));
 }
@@ -1260,9 +1269,9 @@ size_t TocHandler::numberOfRecords() const {
         auto r = std::make_unique<TocRecord>(
             serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
 
-        bool walkSubTocs       = true;
+        bool walkSubTocs = true;
         bool hideSubTocEntries = false;
-        bool hideClearEntries  = false;
+        bool hideClearEntries = false;
         while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries)) {
             count_++;
         }
@@ -1289,7 +1298,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
     // We've got a bit mangled with our constness here...
     if (parentKey_.empty() && remapKeys && !isSubToc_) {
         const auto& k = const_cast<TocHandler&>(*this).databaseKey();
-        parentKey_    = k;
+        parentKey_ = k;
     }
 
     openForRead();
@@ -1308,11 +1317,11 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
     };
     std::vector<IndexEntry> indexEntries;
 
-    bool debug             = LibFdb5::instance().debug();
-    bool walkSubTocs       = true;
+    bool debug = LibFdb5::instance().debug();
+    bool walkSubTocs = true;
     bool hideSubTocEntries = true;
-    bool hideClearEntries  = true;
-    bool readMasked        = false;
+    bool hideClearEntries = true;
+    bool readMasked = false;
     const TocRecord* pdata;
     size_t dataLength;
     while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, &pdata, &dataLength)) {
@@ -1392,8 +1401,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
             }));
         }
 
-        for (auto& thread : threads)
+        for (auto& thread : threads) {
             thread.get();
+        }
 
         indexes.reserve(indexEntries.size());
         for (TocIndex* ti : tocindexes) {
@@ -1456,7 +1466,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs, bool dum
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
 
     bool hideSubTocEntries = false;
-    bool hideClearEntries  = false;
+    bool hideClearEntries = false;
     bool readMasked = dumpStructure;  // disabled by default, to get accurate file offsets we need to read masked data.
 
     LocalPathName parentTocPath;
@@ -1552,10 +1562,10 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    bool walkSubTocs       = true;
+    bool walkSubTocs = true;
     bool hideSubTocEntries = true;
-    bool hideClearEntries  = true;
-    bool readMasked        = true;
+    bool hideClearEntries = true;
+    bool readMasked = true;
     while (readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked)) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
@@ -1683,8 +1693,9 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
                 if (absPath.exists()) {
                     Index index(new TocIndex(s, r->header_.serialisationVersion_, directory_, absPath, offset));
-                    for (const auto& dataURI : index.dataURIs())
+                    for (const auto& dataURI : index.dataURIs()) {
                         data.insert(dataURI);
+                    }
                 }
             }
         }
@@ -1808,7 +1819,7 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
     const PathName& absPath = subTocWrite_->tocPath();
-    PathName path           = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
     return buildSubTocMaskRecord(r, path);
 }
@@ -1867,8 +1878,9 @@ std::vector<PathName> TocHandler::lockfilePaths() const {
     for (const auto& name : {retrieve_lock_file, archive_lock_file, list_lock_file, wipe_lock_file}) {
 
         PathName fullPath = fullControlFilePath(name);
-        if (fullPath.exists())
+        if (fullPath.exists()) {
             paths.emplace_back(std::move(fullPath));
+        }
     }
 
     return paths;

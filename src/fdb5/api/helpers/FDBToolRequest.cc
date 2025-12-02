@@ -64,7 +64,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                                         std::make_move_iterator(ps.end()));*/
 
         bool inherit = false;
-        bool strict  = true;
+        bool strict = true;
         metkit::mars::MarsExpansion expand(inherit, strict);
         auto expandedRequests = expand.expand(parsedRequests);
 

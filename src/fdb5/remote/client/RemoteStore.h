@@ -70,11 +70,12 @@ public:
         std::lock_guard<std::mutex> lock(locationMutex_);
 
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
-        if (fieldsArchived_ == locationsReceived_)
+        if (fieldsArchived_ == locationsReceived_) {
             return true;
+        }
 
         promiseArchivalCompleted_ = std::promise<size_t>{};
-        archivalCompleted_        = promiseArchivalCompleted_.get_future();
+        archivalCompleted_ = promiseArchivalCompleted_.get_future();
         return false;
     }
 
@@ -86,7 +87,7 @@ public:
     void reset() {
         std::lock_guard<std::mutex> lock(locationMutex_);
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
-        fieldsArchived_    = locations_.size();
+        fieldsArchived_ = locations_.size();
         locationsReceived_ = 0;
     }
 
@@ -108,7 +109,7 @@ class RemoteStore : public Store, public Client {
 public:  // types
 
     using StoredMessage = std::pair<Message, eckit::Buffer>;
-    using MessageQueue  = eckit::Queue<StoredMessage>;
+    using MessageQueue = eckit::Queue<StoredMessage>;
 
     static const char* typeName() { return "remote"; }
 

@@ -106,8 +106,9 @@ private:  // methods
 
     long read(void* pos, long sz) override {
 
-        if (complete_)
+        if (complete_) {
             return 0;
+        }
 
         long total = 0;
         long n;
@@ -202,7 +203,7 @@ Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
     ASSERT(config.has("fieldLocationEndpoints"));
-    const auto stores                 = config.getStringVector("stores");
+    const auto stores = config.getStringVector("stores");
     const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
@@ -460,7 +461,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 
     uint32_t id = generateRequestID();
 
-    static size_t queueSize             = 320;
+    static size_t queueSize = 320;
     std::shared_ptr<MessageQueue> queue = nullptr;
     {
         std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
@@ -482,7 +483,7 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
 
     std::lock_guard<std::mutex> lock(storeMutex_);
     const std::string& endpoint = uri.hostport();
-    auto it                     = readStores_.find(endpoint);
+    auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {
         return *(it->second);
     }

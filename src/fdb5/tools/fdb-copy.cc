@@ -33,9 +33,9 @@ namespace fdb5::tools {
 
 class FDBCopy : public fdb5::tools::FDBVisitTool {
 
-    bool verbose_  = false;
+    bool verbose_ = false;
     bool fromList_ = false;
-    bool sort_     = false;
+    bool sort_ = false;
 
     std::string modifiers_;
 
@@ -92,9 +92,9 @@ void FDBCopy::init(const CmdArgs& args) {
 
     args.get("modifiers", modifiers_);
 
-    verbose_  = args.getBool("verbose", verbose_);
+    verbose_ = args.getBool("verbose", verbose_);
     fromList_ = args.getBool("from-list", fromList_);
-    sort_     = args.getBool("sort", sort_);
+    sort_ = args.getBool("sort", sort_);
 
     std::string from = args.getString("source");
     if (from.empty()) {
@@ -126,8 +126,9 @@ static std::vector<metkit::mars::MarsRequest> readRequestsFromFile(const CmdArgs
         auto parsedRequests = parser.parse();
 
         if (args.getBool("raw", false)) {
-            for (auto r : parsedRequests)
+            for (auto r : parsedRequests) {
                 requests.push_back(r);
+            }
         }
         else {
             const bool inherit = false;
@@ -151,7 +152,7 @@ void FDBCopy::checkModifiers(const metkit::mars::MarsRequest& request, const eck
 
 void FDBCopy::execute(const CmdArgs& args) {
 
-    fdb5::Config readConfig  = fdb5::Config::make(sourceConfig_);
+    fdb5::Config readConfig = fdb5::Config::make(sourceConfig_);
     fdb5::Config writeConfig = fdb5::Config::make(targetConfig_);
 
     fdb5::HandleGatherer handles(sort_);
@@ -164,7 +165,7 @@ void FDBCopy::execute(const CmdArgs& args) {
         for (const FDBToolRequest& request : requests("list")) {
             checkModifiers(request.request(), modifiers);
             bool deduplicate = true;
-            auto listObject  = fdbRead.list(request, deduplicate);
+            auto listObject = fdbRead.list(request, deduplicate);
             handles.add(fdbRead.read(listObject, sort_));
         }
     }

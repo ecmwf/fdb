@@ -71,7 +71,7 @@ public:  // methods
     FDB(const Config& config = Config().expandConfig());
     ~FDB();
 
-    FDB(const FDB&)            = delete;
+    FDB(const FDB&) = delete;
     FDB& operator=(const FDB&) = delete;
 
     FDB(FDB&&);

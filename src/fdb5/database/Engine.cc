@@ -23,13 +23,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 eckit::Mutex* local_mutex = 0;
-pthread_once_t once       = PTHREAD_ONCE_INIT;
+pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static std::map<std::string, Engine*>* m;
 
 void init() {
     local_mutex = new eckit::Mutex();
-    m           = new std::map<std::string, Engine*>();
+    m = new std::map<std::string, Engine*>();
 }
 
 bool EngineRegistry::has(const std::string& name) {

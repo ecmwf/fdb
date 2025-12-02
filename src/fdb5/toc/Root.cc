@@ -23,14 +23,18 @@ namespace fdb5 {
 
 Root::Root(const std::string& path, const std::string& filespace, bool list, bool retrieve, bool archive, bool wipe) :
     path_(path), filespace_(filespace), checked_(false), exists_(false), controlIdentifiers_() {
-    if (!list)
+    if (!list) {
         controlIdentifiers_ |= ControlIdentifier::List;
-    if (!retrieve)
+    }
+    if (!retrieve) {
         controlIdentifiers_ |= ControlIdentifier::Retrieve;
-    if (!archive)
+    }
+    if (!archive) {
         controlIdentifiers_ |= ControlIdentifier::Archive;
-    if (!wipe)
+    }
+    if (!wipe) {
         controlIdentifiers_ |= ControlIdentifier::Wipe;
+    }
 }
 
 bool Root::exists() const {

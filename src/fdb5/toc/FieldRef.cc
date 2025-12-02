@@ -32,7 +32,7 @@ FieldRefLocation::FieldRefLocation(UriStore& store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
-    uriId_  = store.insert(loc.uri());
+    uriId_ = store.insert(loc.uri());
     length_ = loc.length();
     offset_ = loc.offset();
 }

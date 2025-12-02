@@ -46,10 +46,10 @@ public:  // methods
 
     virtual daos_otype_t type() const = 0;
 
-    virtual bool exists()   = 0;
-    virtual void destroy()  = 0;
-    virtual void open()     = 0;
-    virtual void close()    = 0;
+    virtual bool exists() = 0;
+    virtual void destroy() = 0;
+    virtual void open() = 0;
+    virtual void close() = 0;
     virtual uint64_t size() = 0;
 
     std::string name() const;

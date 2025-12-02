@@ -75,7 +75,7 @@ ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest& request) {
 template <typename VisitorType, typename... Ts>
 APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts... args) {
 
-    using ValueType     = typename VisitorType::ValueType;
+    using ValueType = typename VisitorType::ValueType;
     using QueryIterator = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 

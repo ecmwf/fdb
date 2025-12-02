@@ -81,7 +81,7 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
-    rule_   = &schema_->matchingRule(dbKey_);
+    rule_ = &schema_->matchingRule(dbKey_);
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
@@ -127,14 +127,16 @@ void TocCatalogue::remove(const eckit::PathName& path, std::ostream& logAlways, 
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.rmdir(false);
+        }
     }
     else {
         logVerbose << "Unlinking: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.unlink(false);
+        }
     }
 }
 

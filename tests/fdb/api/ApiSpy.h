@@ -65,7 +65,7 @@ private:  // types
         size_t move;
     };
 
-    using Archives  = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
+    using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
     using Retrieves = std::vector<metkit::mars::MarsRequest>;
 
     class FakeDataHandle : public eckit::DataHandle {

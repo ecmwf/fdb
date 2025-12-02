@@ -74,7 +74,7 @@ void FDBStats::execute(const CmdArgs& args) {
 
             if (count == 0) {
                 totalIndexStats = elem.indexStatistics;
-                totaldbStats    = elem.dbStatistics;
+                totaldbStats = elem.dbStatistics;
             }
             else {
                 totalIndexStats += elem.indexStatistics;

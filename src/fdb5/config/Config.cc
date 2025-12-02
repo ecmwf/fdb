@@ -53,8 +53,9 @@ Config::Config(const Configuration& config, const eckit::Configuration& userConf
 
 Config Config::expandConfig() const {
     // stops recursion on loading configuration of sub-fdb's
-    if (has("type"))
+    if (has("type")) {
         return *this;
+    }
 
     // If we have explicitly specified a config as an environment variable, use that
 
@@ -82,8 +83,9 @@ Config Config::expandConfig() const {
     std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
-        if (!actual_path.exists())
+        if (!actual_path.exists()) {
             return *this;
+        }
         found = true;
     }
 
@@ -100,8 +102,9 @@ Config Config::expandConfig() const {
                     break;
                 }
             }
-            if (found)
+            if (found) {
                 break;
+            }
         }
     }
 
@@ -128,8 +131,9 @@ PathName Config::expandPath(const std::string& path) const {
     if (path[0] == '~') {
         if (path.length() > 1 && path[1] != '/') {
             size_t slashpos = path.find('/');
-            if (slashpos == std::string::npos)
+            if (slashpos == std::string::npos) {
                 slashpos = path.length();
+            }
 
             std::string key = path.substr(1, slashpos - 1) + "_home";
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
@@ -159,7 +163,7 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
-    schemaPath_            = schemaPath;
+    schemaPath_ = schemaPath;
     schemaPathInitialised_ = true;
 }
 

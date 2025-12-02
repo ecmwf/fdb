@@ -90,7 +90,7 @@ void FdbHide::execute(const CmdArgs& args) {
         eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
         if (doit_) {
             auto dbWriter = CatalogueWriterFactory::instance().build(key, conf);
-            auto* tocDB   = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
+            auto* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
             tocDB->hideContents();
         }
         else {

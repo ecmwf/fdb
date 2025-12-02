@@ -94,8 +94,9 @@ CASE("Setup") {
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Store tests fail.
-    if (store_tests_tmp_root().exists())
+    if (store_tests_tmp_root().exists()) {
         deldir(store_tests_tmp_root());
+    }
     store_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", store_tests_tmp_root().path().c_str(), 1);
 
@@ -315,7 +316,7 @@ CASE("DaosStore tests") {
 
         {
             fdb5::TocCatalogueWriter tcat{db_key, config};
-            fdb5::Catalogue& cat        = static_cast<fdb5::Catalogue&>(tcat);
+            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
             cat.visitEntries(*wv, false);
@@ -418,28 +419,31 @@ CASE("DaosStore tests") {
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        count           = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count == 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
-        count      = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
 
         // dry run wipe database
         wipeObject = fdb.wipe(db_req);
-        count      = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
 
         // ensure field still exists
         listObject = fdb.list(full_req);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -449,9 +453,10 @@ CASE("DaosStore tests") {
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        count      = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count == 0);
         /// @todo: really needed?
         fdb.flush();
@@ -459,9 +464,10 @@ CASE("DaosStore tests") {
 
         // wipe index and store unit (and DB container as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
-        count      = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
         std::cout << "Wiped 1 field" << std::endl;
         /// @todo: really needed?
@@ -470,9 +476,10 @@ CASE("DaosStore tests") {
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
-        count      = 0;
-        while (listObject.next(info))
+        count = 0;
+        while (listObject.next(info)) {
             count++;
+        }
         EXPECT(count == 0);
         std::cout << "Listed 0 fields" << std::endl;
 
@@ -541,9 +548,10 @@ CASE("DaosStore tests") {
 
         fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(db_req, true);
-        count           = 0;
-        while (wipeObject.next(elem))
+        count = 0;
+        while (wipeObject.next(elem)) {
             count++;
+        }
         EXPECT(count > 0);
         /// @todo: really needed?
         fdb.flush();
@@ -552,7 +560,7 @@ CASE("DaosStore tests") {
 
         fdb5::ListElement info;
         auto listObject = fdb.list(full_req);
-        count           = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -570,9 +578,11 @@ CASE("DaosStore tests") {
     /// created above with an ephemeral session
     fdb5::DaosSession().destroyPool(pool_uuid);
 #else
-    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers())
-        if (c == "1:2")
+    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers()) {
+        if (c == "1:2") {
             fdb5::DaosSession().getPool(pool_uuid).destroyContainer(c);
+        }
+    }
 #endif
 }
 

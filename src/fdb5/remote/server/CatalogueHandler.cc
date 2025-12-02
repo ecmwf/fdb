@@ -55,10 +55,11 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 if (it == fdbs_.end()) {
                     fdbs_[clientID];
                     fdbControlConnection_ = true;
-                    fdbDataConnection_    = !single_;
+                    fdbDataConnection_ = !single_;
                     numControlConnection_++;
-                    if (fdbDataConnection_)
+                    if (fdbDataConnection_) {
                         numDataConnection_++;
+                    }
                 }
             }
                 schema(clientID, requestID, eckit::Buffer(0));
@@ -282,7 +283,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
         Key dbKey(s);
 
         // 2. Get catalogue
-        Catalogue& cat       = catalogue(clientID, dbKey);
+        Catalogue& cat = catalogue(clientID, dbKey);
         const Schema& schema = cat.schema();
         stream << schema;
     }
@@ -403,8 +404,8 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
         it->second.fieldLocationsReceived = std::promise<size_t>{};
-        it->second.locationsExpected      = 0;
-        it->second.locationsArchived      = 0;
+        it->second.locationsExpected = 0;
+        it->second.locationsArchived = 0;
     }
 
     it->second.catalogue->flush(numArchived);

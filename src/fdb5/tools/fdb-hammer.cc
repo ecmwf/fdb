@@ -216,16 +216,16 @@ class HammerVerifier {
 
         explicit StoredDigest(const MD5& md5) {
             auto digest = md5.digest();
-            hi_         = std::stoull(digest.substr(0, 8), nullptr, 16);
-            lo_         = std::stoull(digest.substr(8, 16), nullptr, 16);
+            hi_ = std::stoull(digest.substr(0, 8), nullptr, 16);
+            lo_ = std::stoull(digest.substr(8, 16), nullptr, 16);
         }
 
         bool operator==(const StoredDigest& other) const { return hi_ == other.hi_ && lo_ == other.lo_; }
 
         void store(char* data) const {
             auto p = reinterpret_cast<long*>(data);
-            p[0]   = hi_;
-            p[1]   = lo_;
+            p[0] = hi_;
+            p[1] = lo_;
         }
 
         static StoredDigest load(const char* data) {
@@ -287,7 +287,7 @@ public:
     }
 
     void storeVerificationData(long step, long member, long level, long param, char* data, size_t dataSize) {
-        auto key_digest    = constructKeyDigest(step, member, level, param);
+        auto key_digest = constructKeyDigest(step, member, level, param);
         auto unique_digest = constructUniqueDigest();
         if (mdCheck_) {
             storeMDVerificationData(key_digest, unique_digest, data, dataSize);
@@ -353,10 +353,10 @@ private:
         auto key_digest = StoredDigest(MD5(std::string(key)));
 
         long offsetBeforeData = msg.getLong("offsetBeforeData");
-        long offsetAfterData  = msg.getLong("offsetAfterData");
+        long offsetAfterData = msg.getLong("offsetAfterData");
 
         const char* data = &static_cast<const char*>(msg.data())[offsetBeforeData];
-        size_t dataSize  = offsetAfterData - offsetBeforeData;
+        size_t dataSize = offsetAfterData - offsetBeforeData;
 
         if (mdCheck_) {
             verifyMDVerificationData(key_digest, data, dataSize, key.empty());
@@ -385,7 +385,7 @@ private:
 
         ASSERT(dataSize > (sizeof(CheckType) + 4 * sizeof(StoredDigest)));
         auto p = reinterpret_cast<long*>(data);
-        p[0]   = static_cast<long>(CheckType::MD_CHECK);
+        p[0] = static_cast<long>(CheckType::MD_CHECK);
         key_digest.store(data + sizeof(CheckType));
         unique_digest.store(data + sizeof(CheckType) + sizeof(StoredDigest));
         key_digest.store(data + dataSize - 2 * sizeof(StoredDigest));
@@ -398,7 +398,7 @@ private:
         ASSERT(dataSize > (sizeof(CheckType) + 3 * sizeof(StoredDigest)));
 
         auto p = reinterpret_cast<long*>(data);
-        p[0]   = static_cast<long>(CheckType::FULL_CHECK);
+        p[0] = static_cast<long>(CheckType::FULL_CHECK);
         key_digest.store(data + sizeof(CheckType));
 
         // Construct a checksum over data including the unique digest
@@ -419,10 +419,10 @@ private:
         auto p = reinterpret_cast<const long*>(data);
         ASSERT(p[0] == static_cast<long>(CheckType::MD_CHECK));
 
-        auto key_digest1    = StoredDigest::load(data + sizeof(CheckType));
+        auto key_digest1 = StoredDigest::load(data + sizeof(CheckType));
         auto unique_digest1 = StoredDigest::load(data + sizeof(CheckType) + sizeof(StoredDigest));
 
-        auto key_digest2    = StoredDigest::load(data + dataSize - 2 * sizeof(StoredDigest));
+        auto key_digest2 = StoredDigest::load(data + dataSize - 2 * sizeof(StoredDigest));
         auto unique_digest2 = StoredDigest::load(data + dataSize - sizeof(StoredDigest));
 
         if (!noKey) {
@@ -446,7 +446,7 @@ private:
                 dataSize - sizeof(CheckType) - 2 * sizeof(StoredDigest));
         StoredDigest checksum_digest(md5);
 
-        auto key_digest_stored      = StoredDigest::load(data + sizeof(CheckType));
+        auto key_digest_stored = StoredDigest::load(data + sizeof(CheckType));
         auto checksum_digest_stored = StoredDigest::load(data + sizeof(CheckType) + sizeof(StoredDigest));
 
         if (!noKey) {
@@ -667,7 +667,7 @@ std::vector<long> HammerConfig::parseLevelist(const eckit::option::CmdArgs& args
         }
     }
     else {
-        long level   = args.getLong("level", 0);
+        long level = args.getLong("level", 0);
         long nlevels = args.getLong("nlevels");
         levelist.reserve(nlevels);
         for (long i = 0; i < nlevels; ++i) {
@@ -710,7 +710,7 @@ std::vector<long> HammerConfig::parseEnsemblelist(const eckit::option::CmdArgs& 
 std::vector<long> HammerConfig::parseSteplist(const eckit::option::CmdArgs& args) {
 
     long baseStep = args.getLong("step", 0);
-    long nsteps   = args.getLong("nsteps");
+    long nsteps = args.getLong("nsteps");
 
     std::vector<long> steplist;
     steplist.reserve(nsteps);
@@ -763,7 +763,7 @@ metkit::mars::MarsRequest HammerConfig::templateRequest() const {
 class FDBHammer : public fdb5::FDBTool {
 
     struct ReadStats {
-        size_t totalRead  = 0;
+        size_t totalRead = 0;
         size_t fieldsRead = 0;
         Timer totalTimer;
         Timer readTimer;
@@ -919,8 +919,9 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
 
         int fd;
         fd = ::open(pid_file.localPath(), O_EXCL | O_CREAT | O_WRONLY, 0666);
-        if (fd < 0 && errno != EEXIST)
+        if (fd < 0 && errno != EEXIST) {
             throw eckit::FailedSystemCall("open", Here(), errno);
+        }
 
         if (fd >= 0) {
 
@@ -929,12 +930,14 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
             /// a pair of FIFOs are created. One for clients to communicate the leader they are
             ///   waiting, and another to open in blocking mode until leader opens it for write
             ///   once it has synchronised with peer nodes
-            if (wait_fifo.exists())
+            if (wait_fifo.exists()) {
                 wait_fifo.unlink();
+            }
             SYSCALL(::mkfifo(wait_fifo.localPath(), 0666));
 
-            if (barrier_fifo.exists())
+            if (barrier_fifo.exists()) {
                 barrier_fifo.unlink();
+            }
             SYSCALL(::mkfifo(barrier_fifo.localPath(), 0666));
 
             /// the leader PID is written into the file
@@ -987,7 +990,7 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
                 eckit::AutoClose closer(*fh_barrier);
                 /// if the inter-node barrier failed, notify the clients via the barrier fifo
                 if (eptr) {
-                    message        = {'S', 'I', 'G'};
+                    message = {'S', 'I', 'G'};
                     size_t pending = ppn - 1;
                     while (pending > 0) {
                         ASSERT(fh_barrier->write(&message[0], message.size()) == message.size());
@@ -1002,8 +1005,9 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
             pid_file.unlink(false);
 
             /// throw if the inter-node barrier failed
-            if (eptr)
+            if (eptr) {
                 std::rethrow_exception(eptr);
+            }
         }
         else {
 
@@ -1036,8 +1040,9 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
                     pid_file.unlink();
                 }
                 catch (eckit::FailedSystemCall& e) {
-                    if (errno != ENOENT)
+                    if (errno != ENOENT) {
                         throw;
+                    }
                 }
                 continue;
             }
@@ -1054,7 +1059,7 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
 
                     /// check for any errors reported by leader
                     std::vector<char> message = {'0', '0', '0'};
-                    long bytes                = fh_barrier.read(&message[0], message.size());
+                    long bytes = fh_barrier.read(&message[0], message.size());
                     if (bytes > 0) {
                         ASSERT(bytes == message.size());
                         ASSERT(std::string(message.begin(), message.end()) == "SIG");
@@ -1077,8 +1082,9 @@ void barrier(size_t ppn, const std::vector<std::string>& nodes, int port, int ma
             eckit::AutoClose closer(*fh_wait);
             ASSERT(fh_wait->write(&message[0], message.size()) == message.size());
 
-            if (!future.get())
+            if (!future.get()) {
                 throw eckit::Exception("Error receiving response from barrier leader process.");
+            }
         }
 
         leader_found = true;
@@ -1168,11 +1174,11 @@ void FDBHammer::executeWrite() {
     eckit::Timer timer;
     eckit::Timer gribTimer;
     double elapsed_grib = 0;
-    size_t writeCount   = 0;
+    size_t writeCount = 0;
     size_t bytesWritten = 0;
-    int total_slept     = 0;
+    int total_slept = 0;
 
-    uint32_t random_seed  = generateRandomUint32();
+    uint32_t random_seed = generateRandomUint32();
     long offsetBeforeData = 0, offsetAfterData = 0, numberOfValues = 0;
 
     // get message data offset
@@ -1223,15 +1229,18 @@ void FDBHammer::executeWrite() {
             for (const auto& ilevel : config_.request.levelist) {
                 CODES_CHECK(codes_set_long(handle, "level", ilevel), 0);
 
-                if (iter_count > config_.iteration.stopAtChunk)
+                if (iter_count > config_.iteration.stopAtChunk) {
                     break;
+                }
 
                 for (const auto& iparam : config_.request.paramlist) {
 
-                    if (iter_count > config_.iteration.stopAtChunk)
+                    if (iter_count > config_.iteration.stopAtChunk) {
                         break;
-                    if (iter_count++ < config_.iteration.startAtChunk)
+                    }
+                    if (iter_count++ < config_.iteration.startAtChunk) {
                         continue;
+                    }
 
                     if (config_.interface.verbose) {
                         Log::info() << "Member: " << imember << ", step: " << istep << ", level: " << ilevel
@@ -1274,8 +1283,9 @@ void FDBHammer::executeWrite() {
                     MemoryHandle dh(buffer, messageSize);
 
                     if (imember == config_.request.ensemblelist.front() && istep == config_.request.steplist.front() &&
-                        (iter_count - 1 == config_.iteration.startAtChunk))
+                        (iter_count - 1 == config_.iteration.startAtChunk)) {
                         gettimeofday(&tval_before_io, NULL);
+                    }
                     archiver.archive(dh);
                     writeCount++;
                     bytesWritten += messageSize;
@@ -1287,8 +1297,9 @@ void FDBHammer::executeWrite() {
             gribTimer.stop();
             elapsed_grib += gribTimer.elapsed();
             archiver.flush();
-            if (imember == config_.request.ensemblelist.back() && istep == config_.request.steplist.back())
+            if (imember == config_.request.ensemblelist.back() && istep == config_.request.steplist.back()) {
                 gettimeofday(&tval_after_io, NULL);
+            }
             gribTimer.start();
         }
 
@@ -1334,8 +1345,9 @@ void FDBHammer::executeWrite() {
                 << std::setfill('0') << (long int)tval_before_io.tv_usec << std::endl;
     Log::info() << "Timestamp after last IO: " << (long int)tval_after_io.tv_sec << "." << std::setw(6)
                 << std::setfill('0') << (long int)tval_after_io.tv_usec << std::endl;
-    if (config_.execution.itt)
+    if (config_.execution.itt) {
         Log::info() << "Average time slept per step: " << total_slept / config_.request.steplist.size() << std::endl;
+    }
 }
 
 std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructReadData(std::optional<FDB>& fdb,
@@ -1388,8 +1400,9 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
     // But ... the expected keys ARE NOT KNOWN. So fill with empty keys, and ignore their value.
 
     std::deque<Key> expected_keys;
-    for (const auto& _ : uris)
+    for (const auto& _ : uris) {
         expected_keys.emplace_back(Key{});
+    }
 
     /*
     for (const auto& istep : config_.request.steplist) {
@@ -1440,16 +1453,19 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
             for (const auto& ilevel : config_.request.levelist) {
                 request.setValue("levelist", ilevel);
 
-                if (iter_count > config_.iteration.stopAtChunk)
+                if (iter_count > config_.iteration.stopAtChunk) {
                     break;
+                }
 
                 for (const auto& iparam : config_.request.paramlist) {
                     request.setValue("param", iparam);
 
-                    if (iter_count > config_.iteration.stopAtChunk)
+                    if (iter_count > config_.iteration.stopAtChunk) {
                         break;
-                    if (iter_count++ < config_.iteration.startAtChunk)
+                    }
+                    if (iter_count++ < config_.iteration.startAtChunk) {
                         continue;
+                    }
 
                     if (config_.interface.verbose) {
                         Log::info() << "Member: " << imember << ", step: " << istep << ", level: " << ilevel
@@ -1474,9 +1490,9 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
     // Mutable versions of the config lists, so that we can manipulate them before the run
 
-    auto levelist        = to_stringvec(config_.request.levelist);
+    auto levelist = to_stringvec(config_.request.levelist);
     const size_t nlevels = levelist.size();
-    auto paramlist       = to_stringvec(config_.request.paramlist);
+    auto paramlist = to_stringvec(config_.request.paramlist);
     const size_t nparams = paramlist.size();
 
     // Build the list request(s) matching the whole domain,
@@ -1491,7 +1507,7 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
                                         to_stringvec(config_.request.ensemblelist));
 
         size_t first_level = config_.iteration.startAtChunk / nparams;
-        size_t last_level  = config_.iteration.stopAtChunk / nparams;
+        size_t last_level = config_.iteration.stopAtChunk / nparams;
 
         if (config_.iteration.startAtChunk > 0 && config_.iteration.stopAtChunk < nlevels * nparams - 1 &&
             first_level == last_level) {
@@ -1570,8 +1586,9 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
         }
 
         if (config_.interface.verbose) {
-            for (auto& mars_list_request : mars_list_requests)
+            for (auto& mars_list_request : mars_list_requests) {
                 eckit::Log::info() << "Attempting list of " << mars_list_request << std::endl;
+            }
         }
 
         size_t expected = 0;
@@ -1583,7 +1600,7 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
         std::vector<eckit::URI> uris;
         std::deque<Key> step_expected_keys;
-        bool dataReady  = false;
+        bool dataReady = false;
         size_t attempts = 0;
 
         while (!dataReady) {
@@ -1596,8 +1613,9 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
                 auto listObject = fdb->list(list_request, true);
                 fdb5::ListElement info;
                 while (listObject.next(info)) {
-                    if (config_.interface.verbose)
+                    if (config_.interface.verbose) {
                         Log::info() << info.keys()[2] << std::endl;
+                    }
                     uris.push_back(info.location().fullUri());
                     fdb5::Key key = info.combinedKey();
 
@@ -1617,10 +1635,11 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
                 if (config_.interface.verbose) {
                     eckit::Log::info() << "Expected " << expected << ", found " << count << std::endl;
                 }
-                if (attempts >= config_.timing.pollMaxAttempts)
+                if (attempts >= config_.timing.pollMaxAttempts) {
                     throw eckit::Exception(std::string("List maximum attempts (") +
                                            eckit::Translator<size_t, std::string>()(config_.timing.pollMaxAttempts) +
                                            ") exceeded");
+                }
                 ::sleep(config_.timing.pollPeriod);
                 stats.listTimer.start();
                 fdb.emplace(config_.fdbConfig);

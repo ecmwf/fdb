@@ -28,8 +28,9 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
-    if (path.exists())
+    if (path.exists()) {
         return path.realName();
+    }
 
     return findRealPath(path.dirName()) / path.baseName();
 }
