@@ -34,9 +34,7 @@ namespace fdb5::api::local {
 
 WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
                                            const metkit::mars::MarsRequest& request, bool doit) :
-    QueryVisitor<CatalogueWipeState>(queue, request),
-    doit_(doit) 
-    {}
+    QueryVisitor<CatalogueWipeState>(queue, request), doit_(doit) {}
 
 
 bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {

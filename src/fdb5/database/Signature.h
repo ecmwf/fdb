@@ -11,8 +11,8 @@
 #pragma once
 
 #include <string>
-#include "eckit/filesystem/URI.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 
 // -----------------------------------------------------------------------------------------------
 

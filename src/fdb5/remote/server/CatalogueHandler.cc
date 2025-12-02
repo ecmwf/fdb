@@ -43,22 +43,6 @@ namespace fdb5::remote {
 //
 // ***************************************************************************************
 
-
-// ***************************************************************************************
-// TODO: Put this somewhere else...
-// When wiping, we expect the following to happen:
-// 1. Client sends Wipe request. This server creates a CatalogueWipeState and keeps it in
-//    currentWipe_. The server then sends this state back to the client, who will coordinate
-//    between this server and the stores.
-// If the client is not actually wiping (doit==false), then the process ends here. (?)
-// Otherwise, we expect the client to tell us when to wipe via various DoWipe messages.
-// If it is not a wipe all, then a simple "doit" would be sufficient. However, there are some complications:
-//   - We need to receieve an updated list of unknown URIs from the client, as the stores may have
-//   recognised some of the URIs that the catalogue did not.
-//   - We may be sharing this folder with a store. We cannot delete the directory if the store
-//   is still in the middle of deleting its files. So we need to wait until the store is finished.
-// Since we don't know anything about the stores, we rely on the client to tell us when it is safe to proceed.
-
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
     ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
 
@@ -98,11 +82,11 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 doMaskIndexEntries(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::DoWipe:
+            case Message::DoWipe:  // Do the wipe on our currentWipeState
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::DoWipeEmptyDatabases:
+            case Message::DoWipeEmptyDatabases:  // Finish wipe by deleting empty DBs
                 doWipeEmptyDatabases(clientID, requestID);
                 return Handled::Yes;
 
@@ -159,12 +143,11 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 exists(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
-            case Message::Wipe:  // wipe request.
+            case Message::Wipe:  // Initial wipe request
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
-            case Message::DoWipeUnknowns:
-                std::cout << "CatalogueHandler::handleControl: got DoWipeUnknowns message" << std::endl;
+            case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 

@@ -215,9 +215,6 @@ void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset
 void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
-// std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-//     NOTIMP;
-// }
 void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     NOTIMP;
 }
@@ -265,10 +262,9 @@ bool RemoteCatalogue::uriBelongs(const eckit::URI& uri) const {
     return false;
 }
 bool RemoteCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
-    // send unknown uris to server w/ Message::DoWipeUnknowns
+    // Send unknown uris to server
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
-    eckit::ResizableMemoryStream s(
-        sendBuf);  // Write error on MemoryStream when not resizable? Presumably buffer too small...
+    eckit::ResizableMemoryStream s(sendBuf);
     s << unknownURIs;
 
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), false, sendBuf, s.position());

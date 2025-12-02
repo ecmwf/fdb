@@ -33,9 +33,11 @@ using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 // Class for storing all URIs to be wiped.
 // There are several categories of URIs:
 // 1) URIs to be deleted, because they match against the wipe request.
-// 2) URIs marked as safe (not to be deleted). Typically these will be other URIs in the same DB, but did not match the request.
-// 3) "Unknown URIs" - If we are wiping all an entire DB, any remaining files on disk are "unknown" to the catalogue/store.
-//    Their presence will cause the wipe to abort unless they can be associated with another store, or --unsafe-wipe-all is specified.
+// 2) URIs marked as safe (not to be deleted). Typically these will be other URIs in the same DB, but did not match the
+// request. 3) "Unknown URIs" - If we are wiping all an entire DB, any remaining files on disk are "unknown" to the
+// catalogue/store.
+//    Their presence will cause the wipe to abort unless they can be associated with another store, or --unsafe-wipe-all
+//    is specified.
 class WipeState {
 public:
 
@@ -64,9 +66,7 @@ public:
     bool isMarkedSafe(const eckit::URI& uri) const;
 
 
-    void markAsSafe(const std::set<eckit::URI>& uris) {
-        safeURIs_.insert(uris.begin(), uris.end());
-    }
+    void markAsSafe(const std::set<eckit::URI>& uris) { safeURIs_.insert(uris.begin(), uris.end()); }
 
     void markForDeletion(WipeElementType type, const std::set<eckit::URI>& uris) {
         for (const auto& uri : uris) {
@@ -74,9 +74,7 @@ public:
         }
     }
 
-    void markForDeletion(WipeElementType type, const eckit::URI& uri) {
-        deleteURIs_[type].insert(uri);
-    }
+    void markForDeletion(WipeElementType type, const eckit::URI& uri) { deleteURIs_[type].insert(uri); }
 
     // Ensure there are no overlaps between safe URIs and URIs to be deleted.
     void sanityCheck() const;

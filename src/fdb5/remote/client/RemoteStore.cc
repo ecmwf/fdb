@@ -556,9 +556,6 @@ bool RemoteStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs)
 }
 
 bool RemoteStore::doWipe(StoreWipeState& wipeState) const {
-    // We really should be sending something here(?)
-    // This is telling the remote store to wipe its copy of the wipestate (signed by the cat)
-    // So, presumably we know for a fact this object has not changed?
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
     return true;
 }
