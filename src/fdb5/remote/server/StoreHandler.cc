@@ -28,11 +28,11 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
+#include "eckit/config/Resource.h"
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
 #include <iostream>
-#include <iterator>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -413,7 +413,9 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     inStream >> doit;
 
     // XXX Validate signature.
-    std::string dummy_secret = "These URIs have been approved by the catalogue";
+    const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
+    ASSERT(!dummy_secret.empty());
+
     uint64_t expected_hash   = inState.hash(dummy_secret);
     ASSERT(inState.signature().validSignature(expected_hash));
 

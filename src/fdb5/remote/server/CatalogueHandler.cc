@@ -20,6 +20,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -245,7 +246,9 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
         ResizableMemoryStream s(encodeBuffer);
 
-        const std::string dummy_secret = "These URIs have been approved by the catalogue";
+        const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
+        ASSERT(!dummy_secret.empty());
+
         state.signStoreStates(dummy_secret);
 
         s << state;
