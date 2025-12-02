@@ -146,7 +146,7 @@ public:
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
+    const ControlIdentifiers& controlIdentifiers() const override { return controlIdentifiers_; }
 
 protected:  // methods
 

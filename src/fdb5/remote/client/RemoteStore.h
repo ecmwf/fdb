@@ -152,6 +152,8 @@ public:  // methods
 
     void doWipeEmptyDatabases() const override;
 
+    const Config& config() const { return config_; }
+
 protected:  // methods
 
     std::string type() const override { return typeName(); }
@@ -179,6 +181,8 @@ private:  // methods
 private:  // members
 
     Key dbKey_;
+
+    const Config& config_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
