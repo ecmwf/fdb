@@ -54,7 +54,7 @@ StoreFactory& StoreFactory::instance() {
     return theOne;
 }
 
-void StoreFactory::add(const std::string& name, const std::vector<std::string>& sceme, StoreBuilderBase* builder) {
+void StoreFactory::add(const std::string& name, const std::vector<std::string>& scheme, StoreBuilderBase* builder) {
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -62,7 +62,7 @@ void StoreFactory::add(const std::string& name, const std::vector<std::string>& 
         throw eckit::SeriousBug("Duplicate entry in StoreFactory: " + nameLowercase, Here());
     }
     builders_[nameLowercase] = builder;
-    for (const auto& s : sceme) {
+    for (const auto& s : scheme) {
         fieldLocationStoreMapping_[s] = nameLowercase;
     }
 }

@@ -24,7 +24,7 @@ public:
 
     struct UnknownsBuckets {
         std::map<eckit::URI, std::set<eckit::URI>> store;  // store -> URIs
-        std::set<eckit::URI> catalogue;                    // owned by nobody (no store, not catalogue)
+        std::set<eckit::URI> catalogue;
     };
 
 public:

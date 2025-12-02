@@ -37,13 +37,6 @@ WipeElement::WipeElement(eckit::Stream& s) {
 }
 
 void WipeElement::print(std::ostream& out) const {
-    // out << "Wipe(type=" << type_ << ",msg=" << msg_ << ",uris=[";
-    // std::string sep = "";
-    // for (const auto& uri : uris_) {
-    //     out << sep << uri;
-    //     sep = ",";
-    // }
-    // out << "])";
     out << msg_ << std::endl;
     if (type_ != CATALOGUE_INFO) {
         if (uris_.size() > 0) {

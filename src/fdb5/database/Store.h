@@ -83,15 +83,16 @@ public:
     virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
 
     /// Delete URIs marked in the wipe state
-    virtual bool doWipe(StoreWipeState& wipeState) const { NOTIMP; }  // @TODO
+    virtual bool doWipe(StoreWipeState& wipeState) const = 0;
 
     /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;
 
 protected:
 
-    mutable std::set<eckit::URI>
-        emptyDatabases_;  // Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
+    /// @todo: Why is this a set and not a single URI?
+    /// Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
+    mutable std::set<eckit::URI> emptyDatabases_;
 };
 
 

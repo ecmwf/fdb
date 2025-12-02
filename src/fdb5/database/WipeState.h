@@ -18,6 +18,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Signature.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
 
@@ -28,74 +29,21 @@ class CatalogueWipeState;
 using WipeStateIterator = APIIterator<CatalogueWipeState>;
 using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
 
-class Signature;
-
-/// @todo: Dummy placeholder for signing. We need to work on this later (e.g. use GPG or some standard library) in a
-/// followup PR. The Catalogue Server signs the wipe states before sending them to clients, which the client will
-/// forward to the stores. The stores will verify the signatures before proceeding with the wipe.
-class Signature {
-
-public:
-
-    static uint64_t hashURIs(const std::set<eckit::URI>& uris, const std::string& secret) {
-        uint64_t h = 0;
-        std::vector<std::string> sortedURIs;
-        for (const auto& uri : uris) {
-            sortedURIs.push_back(uri.asRawString());
-        }
-        std::sort(sortedURIs.begin(), sortedURIs.end());
-
-        for (const auto& uri : sortedURIs) {
-            h ^= std::hash<std::string>{}(uri) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        }
-        h ^= std::hash<std::string>{}(secret) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        return h;
-    }
-
-    Signature() {}
-
-    Signature(eckit::Stream& s) {
-        unsigned long long in;
-        s >> in;
-        sig_ = in;
-    }
-
-    void sign(uint64_t sig) {
-        ASSERT(sig != 0);
-        sig_ = sig;
-    }
-
-    bool isSigned() const { return sig_ != 0; }
-
-    friend eckit::Stream& operator<<(eckit::Stream& s, const Signature& sig) {
-        // pending patch in eckit to support uint64_t directly
-        s << static_cast<unsigned long long>(sig.sig_);
-        return s;
-    }
-
-    bool validSignature(uint64_t expected) const { return sig_ == expected; }
-
-public:
-
-    uint64_t sig_{0};
-};
-
 // -----------------------------------------------------------------------------------------------
 // Class for storing all URIs to be wiped.
 // There are several categories of URIs:
 // 1) URIs to be deleted, because they match against the wipe request.
 // 2) URIs marked as safe (not to be deleted). Typically these will be other URIs in the same DB, but did not match the request.
-// 3) "Unknown URIs" - If we are wiping all known URIs in a DB, any remaining files on disk are "unknown" to the catalogue/store.
+// 3) "Unknown URIs" - If we are wiping all an entire DB, any remaining files on disk are "unknown" to the catalogue/store.
 //    Their presence will cause the wipe to abort unless they can be associated with another store, or --unsafe-wipe-all is specified.
 class WipeState {
 public:
 
     WipeState();
 
-    WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs) {
-        safeURIs_   = std::move(safeURIs);
-        deleteURIs_ = std::move(deleteURIs);
-    }
+    WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
+        deleteURIs_(std::move(deleteURIs)), safeURIs_(std::move(safeURIs)) {}
+
 
     virtual ~WipeState() = default;
 
@@ -121,7 +69,7 @@ public:
     }
 
     void markForDeletion(WipeElementType type, const std::set<eckit::URI>& uris) {
-        for (auto& uri : uris) {
+        for (const auto& uri : uris) {
             markForDeletion(type, uri);
         }
     }
@@ -142,21 +90,21 @@ public:
     // Create WipeElements from this Class's contents.
     // Note: this moves the data out of this class and into the WipeElements. The class is not intended to be used after
     // this function call.
-
-    // virtual WipeElements extractWipeElements() && = 0; // <-- This might make it more explicit
-    // that the object will be left in a special state.
+    /// @todo: with that in mind, consider making this an rvalue-qualified method e.g.
+    // virtual WipeElements extractWipeElements() && = 0;
     virtual WipeElements extractWipeElements() = 0;
 
 protected:
 
-    mutable URIMap deleteURIs_;  // why mutable?
+    /// @todo: why mutable? Why protected?
+    mutable URIMap deleteURIs_;
 
 private:
 
     std::set<eckit::URI> unknownURIs_;
 
-    std::set<eckit::URI> safeURIs_;  // files explicitly not to be deleted. // <-- I dont think the store has any reason
-                                     // to mark anything as safe. Just delete and unrecognised.
+    /// @todo: does the store use safe URIs? If not, move to CatalogueWipeState.
+    std::set<eckit::URI> safeURIs_;
 };
 
 // -----------------------------------------------------------------------------------------------
@@ -164,8 +112,8 @@ private:
 class StoreWipeState : public WipeState {
 public:
 
-    explicit StoreWipeState(eckit::URI uri);
-    explicit StoreWipeState(eckit::Stream& s);
+    StoreWipeState(eckit::URI uri);
+    StoreWipeState(eckit::Stream& s);
 
     // Adding and Removing URIs
 
@@ -184,6 +132,7 @@ public:
     }
 
     // Remove URI from list of URIs to be deleted because, for example, it turns out not exist.
+    /// @note: intentionally do not fail if signed, stores are allowed to uninclude URIs.
     void unincludeURI(const eckit::URI& uri) { deleteURIs_[WipeElementType::STORE].erase(uri); }
 
     // Signing
@@ -196,6 +145,7 @@ public:
     Store& store(const Config& config) const;
     const eckit::URI& storeURI() const { return storeURI_; }
     const Signature& signature() const { return signature_; }
+
     const std::set<eckit::URI>& dataAuxiliaryURIs() const { return deleteURIs_[WipeElementType::STORE_AUX]; }
     const std::set<eckit::URI>& includedDataURIs() const { return deleteURIs_[WipeElementType::STORE]; }
     const std::set<eckit::URI>& excludedDataURIs() const { return excludeDataURIs_; }
@@ -228,14 +178,16 @@ class CatalogueWipeState : public WipeState {
 
 public:
 
-    explicit CatalogueWipeState() {}
+    /// @todo: Can we remove some of these constructors?
 
-    explicit CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
+    CatalogueWipeState() : WipeState() {}
+
+    CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
         WipeState(std::move(safeURIs), std::move(deleteURIs)), dbKey_(dbKey) {}
 
-    explicit CatalogueWipeState(eckit::Stream& s);
+    CatalogueWipeState(eckit::Stream& s);
 
     Catalogue& catalogue(const Config& config) const {
         if (!catalogue_) {
@@ -255,10 +207,17 @@ public:
     }
 
     // Insert URIs
+
+    /// Include data URI in the corresponding store wipe state.
     void includeData(const eckit::URI& uri);
+
+    /// Exclude data URI in the corresponding store wipe state.
     void excludeData(const eckit::URI& uri);
+
+    /// Mark an index to be masked as part of the wipe.
     void markForMasking(Index idx) { indexesToMask_.insert(idx); }
-    void info(const std::string& in) { info_ = in; }
+
+    void setInfo(const std::string& in) { info_ = in; }
 
     // Signing
     void signStoreStates(std::string secret) const;

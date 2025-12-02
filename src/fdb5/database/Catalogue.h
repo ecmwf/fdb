@@ -331,8 +331,6 @@ public:
 
     void deselectIndex() override { NOTIMP; }
 
-    // std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }
-
     void hideContents() override { NOTIMP; }
 
     void dump(std::ostream& out, bool simple = false,

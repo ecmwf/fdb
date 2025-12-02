@@ -9,10 +9,11 @@ namespace fdb5 {
 
 // -----------------------------------------------------------------------------------------------
 
-WipeState::WipeState() {}  // rm these entirely?
+WipeState::WipeState() {}
 
 WipeState::WipeState(eckit::Stream& s) {}
 
+/// @todo: implement properly
 std::size_t WipeState::encodeSize() const {
     // approximate... do this better...
     std::size_t size = 0;
@@ -232,8 +233,6 @@ WipeElements StoreWipeState::extractWipeElements() {
 
     addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
     addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
-
-    // store's safe uris?
 
     return wipeElements;
 }

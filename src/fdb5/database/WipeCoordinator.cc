@@ -17,6 +17,39 @@ namespace fdb5 {
 
 // ---------------------------------------------------------------------------------------------------
 
+
+WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
+
+    auto& storeWipeStates = catalogueWipeState.storeStates();
+
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
+
+    // Contact each of the relevant stores.
+    for (const auto& [storeURI, storeState] : storeWipeStates) {
+        storeState->store(config_).prepareWipe(*storeState, doit, unsafeWipeAll);
+    }
+
+    UnknownsBuckets unknownURIs = gatherUnknowns(catalogueWipeState, storeWipeStates);
+
+    bool unclean = !unknownURIs.catalogue.empty() || std::any_of(unknownURIs.store.begin(), unknownURIs.store.end(),
+                                                                 [](const auto& pair) { return !pair.second.empty(); });
+
+    if (doit && unclean && !unsafeWipeAll) {
+        /// @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
+        /// Perhaps in the destructor of the wipe state?
+        catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
+        throw eckit::Exception("Cannot fully wipe unclean FDB database");
+    }
+
+    if (doit && (!unclean || unsafeWipeAll)) {
+        doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
+    }
+
+    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - completed" << std::endl;
+
+    return generateWipeElements(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
+}
+
 WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     const CatalogueWipeState& catalogueWipeState,
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const {
@@ -46,14 +79,12 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
         }
     }
 
-    /// XXX: I suspect we need to do something about lock files, which the stores dont recognise.
+    /// @todo: Test we are handling lock files, which the catalogue will own.
 
     return unknowns;
 }
 
-
-// Create WipeElements to report to the user what is going to be wiped.
-// NB: This copies every URI involved in the wipe.
+/// @todo: reduce URI copying here. We do not need the WipeState after this function call, so could move URIs out of it.
 WipeElements WipeCoordinator::generateWipeElements(
     CatalogueWipeState& catalogueWipeState,
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates, const UnknownsBuckets& unknownURIs,
@@ -94,38 +125,6 @@ WipeElements WipeCoordinator::generateWipeElements(
     return report;
 }
 
-WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
-
-    auto& storeWipeStates = catalogueWipeState.storeStates();
-
-    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
-
-    // Contact each of the relevant stores.
-    for (const auto& [storeURI, storeState] : storeWipeStates) {
-        storeState->store(config_).prepareWipe(*storeState, doit, unsafeWipeAll);
-    }
-
-    UnknownsBuckets unknownURIs = gatherUnknowns(catalogueWipeState, storeWipeStates);
-
-    bool unclean = !unknownURIs.catalogue.empty() || std::any_of(unknownURIs.store.begin(), unknownURIs.store.end(),
-                                                                 [](const auto& pair) { return !pair.second.empty(); });
-
-    if (doit && unclean && !unsafeWipeAll) {
-        // @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
-        // Perhaps in the destructor of the wipe state?
-        catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
-        throw eckit::Exception("Cannot fully wipe unclean FDB database");
-    }
-
-    if (doit && (!unclean || unsafeWipeAll)) {
-        doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
-    }
-
-    LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - completed" << std::endl;
-
-    return generateWipeElements(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
-}
-
 void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
                              const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                              const UnknownsBuckets& unknownBuckets, bool unsafeWipeAll) const {
@@ -135,7 +134,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     std::unique_ptr<Catalogue> catalogue =
         CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config_);
 
-    // 1. Mask indexes XXX: this requires better test coverage...
+    // 1. Mask indexes
+    /// @todo: This requires better test coverage...
     catalogue->maskIndexEntries(catalogueWipeState.indexesToMask());
 
     // 2. Wipe unknown files if unsafeWipeAll is set
@@ -172,6 +172,5 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
         store.doWipeEmptyDatabases();
     }
 }
-
 
 }  // namespace fdb5

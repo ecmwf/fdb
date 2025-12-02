@@ -254,7 +254,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
         controlURIs.emplace("file", lck);
     }
 
-    wipeState.info("FDB Owner: " + owner());
+    wipeState.setInfo("FDB Owner: " + owner());
 
     // ---- MARK FOR DELETION OR AS SAFE ----
 

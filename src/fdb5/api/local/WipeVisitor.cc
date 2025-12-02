@@ -33,12 +33,10 @@ namespace fdb5::api::local {
 //----------------------------------------------------------------------------------------------------------------------
 
 WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
-                                           const metkit::mars::MarsRequest& request, bool doit, bool porcelain,
-                                           bool unsafeWipeAll) :
+                                           const metkit::mars::MarsRequest& request, bool doit) :
     QueryVisitor<CatalogueWipeState>(queue, request),
-    doit_(doit),
-    porcelain_(porcelain),
-    unsafeWipeAll_(unsafeWipeAll) {}
+    doit_(doit) 
+    {}
 
 
 bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {

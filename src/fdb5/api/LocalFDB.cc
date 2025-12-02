@@ -106,7 +106,7 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
 
 WipeStateIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeCatalogueVisitor>(request, doit, porcelain, unsafeWipeAll);
+    return queryInternal<WipeCatalogueVisitor>(request, doit);
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
