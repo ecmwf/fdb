@@ -47,10 +47,10 @@ cleanup
 mkdir -p $catalogue_rootdir $store_rootdir
 
 # --- Start the servers in the background.
-FDB5_CONFIG_FILE=${catalogue_config} timeout $SERVER_LIFETIME $server &
+FDB5_CONFIG_FILE=${catalogue_config} FDB_WIPE_SECRET="123" timeout $SERVER_LIFETIME $server &
 echo $! > $server_pidfile
 
-FDB5_CONFIG_FILE=$store_config timeout $SERVER_LIFETIME $server &
+FDB5_CONFIG_FILE=$store_config FDB_WIPE_SECRET="123" timeout $SERVER_LIFETIME $server &
 echo $! >> $server_pidfile
 
 sleep 0.5
