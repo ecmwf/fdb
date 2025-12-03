@@ -27,7 +27,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
-#include "eckit/testing/filesystem.h"
+#include "eckit/testing/Filesystem.h"
 #include "eckit/types/UUID.h"
 #include "eckit/utils/MD5.h"
 

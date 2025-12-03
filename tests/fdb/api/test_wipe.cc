@@ -15,7 +15,7 @@
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/testing/Test.h"
-#include "eckit/testing/filesystem.h"
+#include "eckit/testing/Filesystem.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
