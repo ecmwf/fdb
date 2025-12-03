@@ -14,6 +14,7 @@
 #include "chunked_data_view/ListIterator.h"
 
 #include "eckit/io/DataHandle.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <memory>
@@ -37,8 +38,15 @@ public:
 
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enought memory allccated for all values to be copied into out.
+    /// @param request that was used to read data from FDB, only used to enhance error messages
+    /// @param list_iterator to read data from
+    /// @param axes of the corresponding view.
+    /// @param layout of the expected field.
     /// @param out pointer to write into.
-    virtual void writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+    /// @param out len of memory pointed to by ptr in floats
+    /// @param expected_msg_count number of GRIB messages expected
+    virtual void writeInto(const metkit::mars::MarsRequest& request,
+                           std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                            const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const = 0;
 };
 
