@@ -60,9 +60,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::DoWipeEmptyDatabases:             // request to delete empty databases and finish the wipe.
-                doWipeEmptyDatabases(clientID, requestID);  // XXX Maybe rename doWipeFinish.
-                std::cout << "StoreHandler::handleControl received DoWipeEmptyDatabases message" << std::endl;
+            case Message::DoWipeFinish: // request to delete empty databases and finish the wipe.
+                doWipeFinish(clientID, requestID);
                 return Handled::Yes;
 
 
@@ -102,7 +101,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 exists(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::Wipe:  // notification that the client is starting to send data location for read
+            case Message::Wipe: // Initial wipe request
                 prepareWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
@@ -350,19 +349,21 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
 }
 
-// As with the catalogue, this is only releveant if unsafeWipeAll is true.
 void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
     // Wipe must be in progress
-    ASSERT(currentWipe_.state != nullptr);
+    ASSERT(wipeInProgress(clientID));
 
     eckit::MemoryStream stream(payload);
     std::set<eckit::URI> uris{stream};
 
-    auto& ss = store(clientID);  // hmm... im not sure about this...
+    // Only proceed if unsafeWipeAll is set.
+    ASSERT(currentWipe_.unsafeWipeAll);
+
+    auto& ss = store(clientID);
 
     // check received URIs are at least a subset of expected unknowns.
-    const auto& expectedUnknowns = currentWipe_.state->unrecognisedURIs();
+    const auto& expectedUnknowns = currentWipe_.state.unrecognisedURIs();
     for (const auto& uri : uris) {
         if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
             std::stringstream ss;
@@ -373,32 +374,37 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
         }
     }
 
-    ASSERT(currentWipe_.unsafeWipeAll);
     ss.doWipeUnknownContents(uris);
 }
 
 void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
-    ASSERT(currentWipe_.state != nullptr);
-    // todo validate clientID/requestID match
+    ASSERT(wipeInProgress(clientID));
 
     auto& ss = store(clientID);
-    ss.doWipe(*currentWipe_.state);
+    ss.doWipe(currentWipe_.state);
 }
 
+void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID) {
+    ASSERT(wipeInProgress(clientID));
 
-// Delete any empty databases identified in the wipe state.
-// and also finalise the wipe operation.
-void StoreHandler::doWipeEmptyDatabases(const uint32_t clientID, const uint32_t requestID) {
-    ASSERT(currentWipe_.state != nullptr);
+    // Delete empty DBs and finish the wipe.
 
     auto& ss = store(clientID);
     ss.doWipeEmptyDatabases();
 
-    // reset wipe state
-    currentWipe_.state.reset();
+    resetWipeState();
+}
+
+bool StoreHandler::wipeInProgress(const uint32_t clientID) const {
+    return currentWipe_.inProgress && currentWipe_.clientID == clientID;
+}
+
+
+void StoreHandler::resetWipeState() {
     currentWipe_.clientID      = 0;
-    currentWipe_.requestID     = 0;
     currentWipe_.unsafeWipeAll = false;
+    currentWipe_.inProgress    = false;
+    currentWipe_.state         = StoreWipeState();
 }
 
 
@@ -422,39 +428,38 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     // -- From here on, we can trust the state came from the catalogue. --
 
     // The URIs need to be converted to internal URIs for this store.
-    auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));
+    StoreWipeState storeState(RemoteFieldLocation::internalURI(inState.storeURI()));
 
     for (const auto& uri : inState.includedDataURIs()) {
-        storeState->includeData(RemoteFieldLocation::internalURI(uri));
+        storeState.includeData(RemoteFieldLocation::internalURI(uri));
     }
     for (const auto& uri : inState.excludedDataURIs()) {
-        storeState->excludeData(RemoteFieldLocation::internalURI(uri));
+        storeState.excludeData(RemoteFieldLocation::internalURI(uri));
     }
 
-    if (storeState->includedDataURIs().empty()) {
+    if (storeState.includedDataURIs().empty()) {
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
-    auto& ss = store(clientID, *(storeState->includedDataURIs().begin()));
-    ss.prepareWipe(*storeState, doit, unsafeAll);
+    auto& ss = store(clientID, *(storeState.includedDataURIs().begin()));
+    ss.prepareWipe(storeState, doit, unsafeAll);
 
     // Write back with the additional URIs to be wiped.
     eckit::Buffer outBuffer(1_MiB);
     eckit::ResizableMemoryStream outStream(outBuffer);
-    outStream << storeState->dataAuxiliaryURIs();
-    outStream << storeState->unrecognisedURIs();
+    outStream << storeState.dataAuxiliaryURIs();
+    outStream << storeState.unrecognisedURIs();
 
     write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipe
     if (doit) {
-        ASSERT(!currentWipe_.state);
         ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
         currentWipe_.clientID      = clientID;
-        currentWipe_.requestID     = requestID;
         currentWipe_.unsafeWipeAll = unsafeAll;
         currentWipe_.state         = std::move(storeState);
+        currentWipe_.inProgress    = true;
     }
 }
 

@@ -86,7 +86,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 doWipe(clientID, requestID);
                 return Handled::Yes;
 
-            case Message::DoWipeEmptyDatabases:  // Finish wipe by deleting empty DBs
+            case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
                 doWipeEmptyDatabases(clientID, requestID);
                 return Handled::Yes;
 
@@ -223,7 +223,7 @@ private:
 struct WipeHelper : public BaseHelper<CatalogueWipeState> {
     virtual size_t encodeBufferSize(const CatalogueWipeState& el) const {
         return el.encodeSize();
-    }  // can possibly avoid entirely
+    }
 
     Encoded encode(const CatalogueWipeState& state, CatalogueHandler& handler) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
@@ -237,7 +237,7 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s << state;
 
         if (doit_) {
-            // Keep a local copy of the (catalogue) wipe state, awaiting an explicit DoWipe command from the client
+            // Keep a local copy of the catalogue wipe state, awaiting an explicit DoWipe command from the client
             handler.currentWipe_.state     = CatalogueWipeState(state.dbKey(), state.safeURIs(), state.deleteMap());
             handler.currentWipe_.catalogue = CatalogueReaderFactory::instance().build(state.dbKey(), handler.config_);
             handler.currentWipe_.unsafeWipeAll = unsafeWipeAll_;
@@ -325,7 +325,7 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
                                    auto iterator = helper.apiCall(*fdb, request);
 
                                    typename decltype(iterator)::value_type elem;
-                                   while (iterator.next(elem)) {  // std::exception!!!
+                                   while (iterator.next(elem)) {
                                        auto encoded(helper.encode(elem, *this));
                                        write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
                                    }
@@ -605,9 +605,6 @@ void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID) {
     currentWipe_.catalogue->doWipe(currentWipe_.state);
 }
 
-// So, this function might be pointless if unsafeWipeAll is not supported.
-// We only delete unknown URIs if unsafeWipeAll is set.
-// Still, here is the logic I'd expect it to have.
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
 
     ASSERT(wipeInProgress(clientID, requestID));
@@ -624,8 +621,8 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
 
     std::set<eckit::URI> expected_unknownURIs = currentWipe_.state.unrecognisedURIs();
 
-    // Verify that the URIs we are being asked to delete were previously identified as unknown.
-    // Note: we are trusting the client to not be sending us anything claimed by the stores.
+    // Verify that the URIs we are being asked to delete is a subset of those previously identified as unknown.
+    // Note: we are trusting the client to not be sending us anything later claimed by the stores.
     for (const auto& uri : rec_unknownURIs) {
         if (expected_unknownURIs.find(uri) == expected_unknownURIs.end()) {
             std::stringstream ss;
@@ -635,19 +632,22 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
         }
     }
 
-    currentWipe_.catalogue->wipeUnknown(rec_unknownURIs);
+    currentWipe_.catalogue->doWipeUnknown(rec_unknownURIs);
 }
 
-// Serves two functions:
-// 1. Cleans up any empty databases after a wipe
-// 2. Resets our internal state to be ready for another wipe
 void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID) {
     ASSERT(wipeInProgress(clientID, requestID));
-
+    
+    // Cleanup empty DBs and reset wipe state
     currentWipe_.catalogue->doWipeEmptyDatabases();
-
-    // We're finished with the wipe for this DB!
     resetWipeState();
+}
+
+void CatalogueHandler::resetWipeState() {
+    currentWipe_.inProgress    = false;
+    currentWipe_.unsafeWipeAll = false;
+    currentWipe_.catalogue.reset();
+    currentWipe_.state         = CatalogueWipeState();
 }
 
 

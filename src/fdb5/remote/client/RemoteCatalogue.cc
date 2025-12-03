@@ -261,7 +261,7 @@ bool RemoteCatalogue::uriBelongs(const eckit::URI& uri) const {
     // This functionality is deliberately not required for RemoteCatalogue, so assume false.
     return false;
 }
-bool RemoteCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+bool RemoteCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
     // Send unknown uris to server
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
     eckit::ResizableMemoryStream s(sendBuf);
@@ -273,7 +273,7 @@ bool RemoteCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const
 }
 void RemoteCatalogue::doWipeEmptyDatabases() const {
     // Tell server it can safely delete the DB if it is empty, and finish the wipe.
-    controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), false);
+    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), false);
     return;
 }
 

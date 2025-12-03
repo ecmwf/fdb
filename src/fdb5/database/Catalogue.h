@@ -63,8 +63,6 @@ public:
     virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex()                = 0;
 
-    // virtual std::vector<eckit::PathName> metadataPaths() const = 0;
-
     virtual void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
     virtual void hideContents() = 0;
@@ -118,7 +116,7 @@ public:
     virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
 
     /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
-    virtual bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const = 0;
 
     /// Delete URIs marked in the wipe state
     virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;

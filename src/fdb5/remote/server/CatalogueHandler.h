@@ -86,12 +86,7 @@ private:  // methods
     const Config& config() const { return config_; }
     bool wipeInProgress(uint32_t clientID, uint32_t requestID) const;
 
-    void resetWipeState() {
-        currentWipe_.inProgress = false;
-        currentWipe_.catalogue.reset();
-        currentWipe_.state         = CatalogueWipeState();
-        currentWipe_.unsafeWipeAll = false;
-    }
+    void resetWipeState();
 
 private:  // member
 

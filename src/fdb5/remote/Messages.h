@@ -71,7 +71,7 @@ enum class Message : uint16_t {
     // Wipe related messages
     DoWipe = 150,
     DoWipeUnknowns,
-    DoWipeEmptyDatabases,
+    DoWipeFinish,
     DoMaskIndexEntries,
 
     // Responses

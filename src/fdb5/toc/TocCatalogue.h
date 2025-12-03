@@ -84,18 +84,14 @@ protected:  // methods
     CatalogueWipeState wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
     void wipeFinalise(CatalogueWipeState& wipeState) const override;
-    bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(const CatalogueWipeState& wipeState) const override;
 
     void doWipeEmptyDatabases() const override;
 
 private:  // methods
 
-    // void addMaskedPaths(std::set<eckit::URI>& maskedDataPath, TocWipeState& wipeState) const;
     void addMaskedPaths(CatalogueWipeState& tocWipeState) const;
-
-    // void ensureSafePaths() const;
-    // void calculateResidualPaths() const;
 
 protected:  // members
 

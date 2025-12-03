@@ -47,7 +47,6 @@ private:
                                       const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                                       const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
-
     /// Delete the data as per the wipe states.
     void doWipe(const CatalogueWipeState& catalogueWipeState,
                 const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,

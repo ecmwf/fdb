@@ -561,7 +561,7 @@ bool RemoteStore::doWipe(StoreWipeState& wipeState) const {
 }
 void RemoteStore::doWipeEmptyDatabases() const {
     // emptyDatabases_ will be accumulated on the server side.
-    controlWriteCheckResponse(Message::DoWipeEmptyDatabases, generateRequestID(), true);
+    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), true);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

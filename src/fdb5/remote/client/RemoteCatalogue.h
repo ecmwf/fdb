@@ -80,13 +80,12 @@ public:  // methods
     void checkUID() const override;
     eckit::URI uri() const override;
 
-    // we only forward the high-level wipe request to the server
     CatalogueWipeState wipeInit() const override;
     bool wipeIndex(const Index&, bool, CatalogueWipeState&) const override { NOTIMP; }
-
     void wipeFinalise(CatalogueWipeState& wipeState) const override { NOTIMP; }
+
     bool doWipe(const CatalogueWipeState& wipeState) const override;
-    bool wipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     void doWipeEmptyDatabases() const override;
 
 protected:

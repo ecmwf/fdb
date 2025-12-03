@@ -70,19 +70,6 @@ const Rule& TocCatalogue::rule() const {
     return *rule_;
 }
 
-// std::vector<PathName> TocCatalogue::metadataPaths() const {
-
-//     std::vector<PathName> paths(subTocPaths());
-
-//     paths.emplace_back(schemaPath());
-//     paths.emplace_back(tocPath());
-
-//     std::vector<PathName>&& lpaths(lockfilePaths());
-//     paths.insert(paths.end(), lpaths.begin(), lpaths.end());
-
-//     return paths;
-// }
-
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
@@ -286,7 +273,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     return;
 }
 
-bool TocCatalogue::wipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+bool TocCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
 
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
@@ -320,10 +307,6 @@ void TocCatalogue::doWipeEmptyDatabases() const {
     for (const auto& uri : emptyDatabases_) {
         eckit::PathName path = uri.path();
         if (path.exists()) {
-            // XXX:
-            // none of this is atomic, and at this stage we've removed the lock file. Someone could have started writing
-            // to the dir again in the interim. Instead of deleting the lock file, maybe we can atomically mv the
-            // directory to a tempdir, and then delete the tempdir?
             remove(path, std::cout, std::cout, true);
         }
     }

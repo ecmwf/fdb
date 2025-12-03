@@ -46,10 +46,14 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
+
+    bool wipeInProgress(const uint32_t clientID) const;
+    void resetWipeState();
+
     void prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipe(const uint32_t clientID, const uint32_t requestID);
-    void doWipeEmptyDatabases(const uint32_t clientID, const uint32_t requestID);
+    void doWipeFinish(const uint32_t clientID, const uint32_t requestID);
 
 
     Store& store(uint32_t clientID);
@@ -65,9 +69,9 @@ private:  // members
 
     struct WipeInProgress {  // I believe this will be identical for the cat and store handlers
         uint32_t clientID  = 0;
-        uint32_t requestID = 0;
         bool unsafeWipeAll = false;
-        std::unique_ptr<StoreWipeState> state;
+        bool inProgress    = false;
+        StoreWipeState state;
     };
 
     WipeInProgress currentWipe_;

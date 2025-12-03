@@ -141,7 +141,7 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     // 2. Wipe unknown files if unsafeWipeAll is set
     if (unsafeWipeAll) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
-        catalogue->wipeUnknown(unknownBuckets.catalogue);
+        catalogue->doWipeUnknown(unknownBuckets.catalogue);
 
         for (const auto& [uri, storeState] : storeWipeStates) {
             const Store& store = storeState->store(config_);
