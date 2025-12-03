@@ -82,12 +82,24 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             }
             return fdb5::Config(eckit::YAMLConfiguration(config));
         }))
-        .def("__str__", [](const fdb5::Config& config) {
+        .def("__str__",
+             [](const fdb5::Config& config) {
+                 std::stringstream buf;
+                 buf << "Configuration: \n";
+                 buf << config;
+                 buf << "\nUser configuration: \n";
+                 buf << config.userConfig();
+                 return buf.str();
+             })
+        .def("__repr__", [](const fdb5::Config& config) {
             std::stringstream buf;
-            buf << "Configuration: \n";
+            buf << "Config(";
+            buf << "Configuration(";
             buf << config;
-            buf << "\nUser configuration: \n";
+            buf << "), (";
+            buf << "Configuration(";
             buf << config.userConfig();
+            buf << "))";
             return buf.str();
         });
 
