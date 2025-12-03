@@ -156,7 +156,7 @@ int dmg_pool_create(const char* dmg_config_file, uid_t uid, gid_t gid, const cha
 
         if (errno == EEXIST) {  // link path already exists due to race condition
 
-            testing::deldir(pool_path);
+            eckit::testing::deldir(pool_path);
             return -1;
         }
         else {  // symlink fails for unknown reason
@@ -199,7 +199,7 @@ int dmg_pool_destroy(const char* dmg_config_file, const uuid_t uuid, const char*
         }
     }
 
-    testing::deldir(pool_path);
+    eckit::testing::deldir(pool_path);
 
     return 0;
 }

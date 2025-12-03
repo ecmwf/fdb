@@ -319,7 +319,7 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
                 uuid_parse(found_uuid.c_str(), *uuid);
             }
 
-            testing::deldir(cont_path);
+            eckit::testing::deldir(cont_path);
 
             return 0;
         }
@@ -383,7 +383,7 @@ int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event
 
     try {
 
-        testing::deldir(realpath);
+        eckit::testing::deldir(realpath);
     }
     catch (eckit::FailedSystemCall& e) {
 
@@ -553,7 +553,7 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
 
     try {
 
-        testing::deldir(oh.impl->path);
+        eckit::testing::deldir(oh.impl->path);
     }
     catch (eckit::FailedSystemCall& e) {
 
