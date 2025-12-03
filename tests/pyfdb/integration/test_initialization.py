@@ -67,5 +67,5 @@ def test_initialization_config_system_and_user(read_only_fdb_setup):
     pyfdb = PyFDB(fdb_sytem_config, fdb_user_config)
     assert pyfdb
 
-    print(pyfdb.config())
-    assert "useSubToc => true" in pyfdb.config()
+    print(pyfdb.print_config())
+    assert "useSubToc => true" in pyfdb.print_config()

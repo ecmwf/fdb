@@ -72,6 +72,10 @@ def test_fdb_config_equality(read_only_fdb_setup):
     elements_path = list(pyfdb_config_path.status(FDBToolRequest(selection)))
     elements_dict = list(pyfdb_config_dict.status(FDBToolRequest(selection)))
 
+    print(elements_str)
+    print(elements_dict)
+    print(elements_str)
+
     assert all(
         [x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict)]
     )
@@ -84,8 +88,7 @@ def test_fdb_user_config(read_only_fdb_setup):
 
     fdb_config_str = Config(fdb_config_path.read_text())
 
-    user_config_str = """
-        ---
+    user_config_str = r"""---
         type: local
         engine: toc
         useSubToc: true
@@ -99,13 +102,13 @@ def test_fdb_user_config(read_only_fdb_setup):
     assert pyfdb
 
     print("Check for user config propagation:")
-    print(pyfdb.config())
-    assert "useSubToc => true" in pyfdb.config()
+    print(pyfdb.print_config())
+    assert "useSubToc => true" in pyfdb.print_config()
 
     pyfdb_no_user_config = PyFDB(fdb_config_str)
-    print(pyfdb_no_user_config.config())
+    print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.config()
+    assert "root={}" in pyfdb_no_user_config.print_config()
 
 
 def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
@@ -115,8 +118,7 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
 
     fdb_config_str = Config(fdb_config_path.read_text())
 
-    user_config_str = """
-        ---
+    user_config_str = r"""---
         type: local
         engine: toc
         useSubToc: true
@@ -128,13 +130,13 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
     assert pyfdb
 
     print("Check for user config propagation:")
-    print(pyfdb.config())
-    assert "useSubToc => true" in pyfdb.config()
+    print(pyfdb.print_config())
+    assert "useSubToc => true" in pyfdb.print_config()
 
     pyfdb_no_user_config = PyFDB(fdb_config_str)
-    print(pyfdb_no_user_config.config())
+    print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.config()
+    assert "root={}" in pyfdb_no_user_config.print_config()
 
 
 def test_fdb_print():
