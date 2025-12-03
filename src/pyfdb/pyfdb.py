@@ -95,10 +95,10 @@ class PyFDB:
             user_config = Config(user_config)
 
         if config is not None and user_config is not None:
-            internal_config = _interal.Config(config.config_str, user_config.config_str)
+            internal_config = _interal.Config(config.to_json(), user_config.to_json())
             self.FDB = _interal.FDB(internal_config)
         elif config is not None:
-            internal_config = _interal.Config(config.config_str, None)
+            internal_config = _interal.Config(config.to_json(), None)
             self.FDB = _interal.FDB(internal_config)
         else:
             self.FDB = _interal.FDB()
@@ -794,7 +794,7 @@ class PyFDB:
         """
         return self.FDB.dirty()
 
-    def config(self) -> str:
+    def print_config(self) -> str:
         return str(self.FDB.config())
 
     def __str__(self) -> str:

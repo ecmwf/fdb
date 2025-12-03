@@ -11,6 +11,8 @@ from enum import IntFlag, auto
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import yaml
+
 import pyfdb._internal as _internal
 from pyfdb._internal import (
     _URI,
@@ -263,6 +265,11 @@ class DataHandle:
 
         return bytes(buffer)
 
+    def __repr__(self) -> str:
+        return (
+            f"[{'Opened' if self.opened else 'Closed'}] Datahandle: {self.dataHandle}"
+        )
+
 
 class Config:
     """
@@ -307,15 +314,21 @@ class Config:
 
     def __init__(self, config: str | dict | Path) -> None:
         if isinstance(config, Path):
-            self.config_str = config.read_text()
+            self.config = yaml.safe_load(config.read_text())
         elif isinstance(config, dict):
-            self.config_str = json.dumps(config)
+            self.config = config
         elif isinstance(config, str):
-            self.config_str = config
+            self.config = yaml.safe_load(config)
         else:
             raise RuntimeError(
                 "Config: Unknown config type, must be str, dict or Path."
             )
+
+    def to_json(self) -> str:
+        return json.dumps(self.config)
+
+    def __repr__(self) -> str:
+        return f"Config({self.config})"
 
 
 # https://github.com/ecmwf/datacube-spec

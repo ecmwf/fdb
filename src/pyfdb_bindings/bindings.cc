@@ -82,15 +82,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             }
             return fdb5::Config(eckit::YAMLConfiguration(config));
         }))
-        .def("__str__",
-             [](const fdb5::Config& config) {
-                 std::stringstream buf;
-                 buf << "Configuration: \n";
-                 buf << config;
-                 buf << "\nUser configuration: \n";
-                 buf << config.userConfig();
-                 return buf.str();
-             })
         .def("__repr__", [](const fdb5::Config& config) {
             std::stringstream buf;
             buf << "Config(";
@@ -112,6 +103,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  py::buffer_info info = buffer.request();
                  return data_handle.read(info.ptr, info.size);
              })
+        .def("__repr__", &eckit::DataHandle::print)
         .def("print", &eckit::DataHandle::print);
 
     py::class_<mars::MarsRequest>(m, "MarsRequest")
