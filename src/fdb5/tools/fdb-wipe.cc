@@ -103,7 +103,9 @@ void FDBWipe::execute(const CmdArgs& args) {
 
         if (count == 0 && !ignoreNoData_ && fail()) {
             std::ostringstream ss;
-            ss << "No FDB entries found matching the provided request, or entries skipped due to the request being too specific: " << request << std::endl;
+            ss << "No FDB entries found matching the provided request, or entries skipped due to the request being too "
+                  "specific: "
+               << request << std::endl;
             throw FDBToolException(ss.str());
         }
     }
