@@ -876,7 +876,7 @@ void barrier_internode(const std::vector<std::string>& nodes, int port, int max_
         /// master node to avoid the overhead of establishing the connection every time.
 
         eckit::net::TCPClient client;
-        eckit::net::TCPSocket socket = client.connect(nodes[0], port, 0, max_wait);
+        eckit::net::TCPSocket socket = client.connect(nodes[0], port, max_wait, 0, 1);
 
         // Wait for barrier end
 
