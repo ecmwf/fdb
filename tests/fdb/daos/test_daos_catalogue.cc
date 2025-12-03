@@ -19,8 +19,8 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/testing/Test.h"
 #include "eckit/testing/Filesystem.h"
+#include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
 
