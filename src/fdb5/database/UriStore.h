@@ -20,7 +20,6 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include <vector>
 
@@ -34,7 +33,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class UriStore : private eckit::NonCopyable {
+class UriStore {
 
 public:  // types
 
@@ -47,6 +46,11 @@ public:  // methods
 
     UriStore(const eckit::PathName& directory);
     UriStore(const eckit::PathName& directory, eckit::Stream&);
+
+    UriStore(const UriStore&)            = delete;
+    UriStore& operator=(const UriStore&) = delete;
+    UriStore(UriStore&&)                 = delete;
+    UriStore& operator=(UriStore&&)      = delete;
 
     ~UriStore();
 

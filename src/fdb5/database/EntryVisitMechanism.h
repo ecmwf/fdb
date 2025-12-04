@@ -14,8 +14,6 @@
 #ifndef fdb5_EntryVisitMechanism_H
 #define fdb5_EntryVisitMechanism_H
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 #include "fdb5/database/Field.h"
@@ -35,11 +33,17 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class EntryVisitor : public eckit::NonCopyable {
+class EntryVisitor {
 
 public:  // methods
 
     EntryVisitor();
+
+    EntryVisitor(const EntryVisitor&)            = delete;
+    EntryVisitor& operator=(const EntryVisitor&) = delete;
+    EntryVisitor(EntryVisitor&&)                 = delete;
+    EntryVisitor& operator=(EntryVisitor&&)      = delete;
+
     virtual ~EntryVisitor();
 
     // defaults
@@ -75,11 +79,16 @@ protected:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class EntryVisitMechanism : public eckit::NonCopyable {
+class EntryVisitMechanism {
 
 public:  // methods
 
     EntryVisitMechanism(const Config& config);
+
+    EntryVisitMechanism(const EntryVisitMechanism&)            = delete;
+    EntryVisitMechanism& operator=(const EntryVisitMechanism&) = delete;
+    EntryVisitMechanism(EntryVisitMechanism&&)                 = delete;
+    EntryVisitMechanism& operator=(EntryVisitMechanism&&)      = delete;
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 

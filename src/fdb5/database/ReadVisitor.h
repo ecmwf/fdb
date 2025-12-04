@@ -18,7 +18,6 @@
 
 #include <iosfwd>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 #include "fdb5/database/Catalogue.h"
 
@@ -35,11 +34,16 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ReadVisitor : public eckit::NonCopyable {
+class ReadVisitor {
 
 public:  // methods
 
     ReadVisitor() : catalogue_(nullptr) {}
+
+    ReadVisitor(const ReadVisitor&)            = delete;
+    ReadVisitor& operator=(const ReadVisitor&) = delete;
+    ReadVisitor(ReadVisitor&&)                 = delete;
+    ReadVisitor& operator=(ReadVisitor&&)      = delete;
 
     virtual ~ReadVisitor() {}
 

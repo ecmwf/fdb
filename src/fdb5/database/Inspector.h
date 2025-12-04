@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "eckit/container/CacheLRU.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/config/Config.h"
@@ -64,11 +63,16 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Inspector : public eckit::NonCopyable {
+class Inspector {
 
 public:  // methods
 
     explicit Inspector(const Config& dbConfig);
+
+    Inspector(const Inspector&)            = delete;
+    Inspector& operator=(const Inspector&) = delete;
+    Inspector(Inspector&&)                 = delete;
+    Inspector& operator=(Inspector&&)      = delete;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
