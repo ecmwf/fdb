@@ -39,7 +39,7 @@ namespace fdb5 {
 using PoolCache = std::deque<fdb5::DaosPool>;
 
 /// @todo: move to a separate file
-class DaosManager : private eckit::NonCopyable {
+class DaosManager {
 
 public:  // methods
 
@@ -47,6 +47,11 @@ public:  // methods
         static DaosManager instance;
         return instance;
     };
+
+    DaosManager(const DaosManager&)            = delete;
+    DaosManager& operator=(const DaosManager&) = delete;
+    DaosManager(DaosManager&&)                 = delete;
+    DaosManager& operator=(DaosManager&&)      = delete;
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
@@ -121,11 +126,17 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 ///   any pool handles obtained within a session are cached in DaosManager beyond DaosSession lifetime,
 ///   and the pool handles may become invalid if daos_fini is called for all sessions
 
-class DaosSession : eckit::NonCopyable {
+class DaosSession {
 
 public:  // methods
 
     DaosSession();
+
+    DaosSession(const DaosSession&)            = delete;
+    DaosSession& operator=(const DaosSession&) = delete;
+    DaosSession(DaosSession&&)                 = delete;
+    DaosSession& operator=(DaosSession&&)      = delete;
+
     ~DaosSession() {};
 
 #ifdef fdb5_HAVE_DAOS_ADMIN

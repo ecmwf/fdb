@@ -18,7 +18,6 @@
 
 #include <string>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
 class Notifier;
@@ -36,11 +35,16 @@ class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Type : private eckit::NonCopyable {
+class Type {
 
 public:  // methods
 
     Type(const std::string& name, const std::string& type, const std::string& alias = "");
+
+    Type(const Type&)            = delete;
+    Type& operator=(const Type&) = delete;
+    Type(Type&&)                 = delete;
+    Type& operator=(Type&&)      = delete;
 
     virtual ~Type() = default;
 

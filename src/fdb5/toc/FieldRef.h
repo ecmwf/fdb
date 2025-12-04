@@ -21,7 +21,6 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/database/FieldDetails.h"
 
