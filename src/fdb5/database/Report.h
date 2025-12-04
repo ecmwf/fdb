@@ -19,8 +19,6 @@
 #include <map>
 #include <set>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/database/DataStats.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
@@ -30,10 +28,17 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class Report : private eckit::NonCopyable {
+class Report {
 public:
 
     typedef std::string dbtype_t;
+
+    Report() = default;
+
+    Report(const Report&)            = delete;
+    Report& operator=(const Report&) = delete;
+    Report(Report&&)                 = delete;
+    Report& operator=(Report&&)      = delete;
 
     ~Report();
 

@@ -21,8 +21,6 @@
 
 #include <memory>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -57,11 +55,16 @@ class FieldLocation;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
+class FDBBase : public CallbackRegistry {
 
 public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
+
+    FDBBase(const FDBBase&)            = delete;
+    FDBBase& operator=(const FDBBase&) = delete;
+    FDBBase(FDBBase&&)                 = delete;
+    FDBBase& operator=(FDBBase&&)      = delete;
 
     virtual ~FDBBase() = default;
 
