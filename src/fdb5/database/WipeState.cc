@@ -11,7 +11,40 @@ namespace fdb5 {
 
 WipeState::WipeState() {}
 
-WipeState::WipeState(eckit::Stream& s) {}
+WipeState::WipeState(eckit::Stream& s) {
+
+    // deleteURIs_
+    size_t n;
+    s >> n;
+    for (size_t i = 0; i < n; ++i) {
+        int typeInt;
+        s >> typeInt;
+        WipeElementType type = static_cast<WipeElementType>(typeInt);
+
+        size_t uriCount;
+        s >> uriCount;
+        std::set<eckit::URI> uris;
+        for (size_t j = 0; j < uriCount; ++j) {
+            eckit::URI uri(s);
+            uris.insert(uri);
+        }
+        deleteURIs_.emplace(type, std::move(uris));
+    }
+
+    // safeURIs_
+    s >> n;
+    for (size_t i = 0; i < n; ++i) {
+        eckit::URI uri(s);
+        safeURIs_.insert(uri);
+    }
+
+    // unknownURIs_
+    s >> n;
+    for (size_t i = 0; i < n; ++i) {
+        eckit::URI uri(s);
+        unknownURIs_.insert(uri);
+    }
+}
 
 /// @todo: implement properly
 std::size_t WipeState::encodeSize() const {
@@ -24,7 +57,32 @@ std::size_t WipeState::encodeSize() const {
     // size += (includeDataURIs_.size() + excludeDataURIs_.size()) * 256;
     return size;
 }
-void WipeState::encode(eckit::Stream& s) const {}
+
+void WipeState::encode(eckit::Stream& s) const {
+
+    // deleteURIs_
+    s << deleteURIs_.size();
+    for (const auto& [type, uris] : deleteURIs_) {
+        s << static_cast<int>(type);
+        s << static_cast<std::size_t>(uris.size());
+        for (const auto& uri : uris) {
+            s << uri;
+        }
+    }
+
+    // safeURIs_
+    s << safeURIs_.size();
+    for (const auto& uri : safeURIs_) {
+        s << uri;
+    }
+
+    // unknownURIs_
+    s << unknownURIs_.size();
+    for (const auto& uri : unknownURIs_) {
+        s << uri;
+    }
+
+}
 
 bool WipeState::isMarkedForDeletion(const eckit::URI& uri) const {
     for (const auto& [type, uris] : deleteURIs_) {
@@ -177,12 +235,6 @@ StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
     s >> n;
     for (std::size_t i = 0; i < n; ++i) {
         eckit::URI uri(s);
-        includeData(uri);
-    }
-
-    s >> n;
-    for (std::size_t i = 0; i < n; ++i) {
-        eckit::URI uri(s);
         excludeDataURIs_.insert(uri);
     }
 
@@ -207,10 +259,6 @@ void StoreWipeState::encode(eckit::Stream& s) const {
     s << signature_;
     s << storeURI_;
 
-    s << static_cast<std::size_t>(includedDataURIs().size());
-    for (const auto& uri : includedDataURIs()) {
-        s << uri;
-    }
 
     s << static_cast<std::size_t>(excludeDataURIs_.size());
     for (const auto& uri : excludeDataURIs_) {
