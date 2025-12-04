@@ -19,8 +19,6 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/database/Key.h"
 
 namespace metkit::mars {
@@ -35,11 +33,16 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WriteVisitor : public eckit::NonCopyable {
+class WriteVisitor {
 
 public:  // methods
 
     WriteVisitor(std::vector<Key>&);
+
+    WriteVisitor(const WriteVisitor&)            = delete;
+    WriteVisitor& operator=(const WriteVisitor&) = delete;
+    WriteVisitor(WriteVisitor&&)                 = delete;
+    WriteVisitor& operator=(WriteVisitor&&)      = delete;
 
     virtual ~WriteVisitor() = default;
 
