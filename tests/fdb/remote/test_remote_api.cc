@@ -199,7 +199,6 @@ CASE("Remote protocol: more wipe testing") {
     std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 2, 0, 3);
     EXPECT_EQUAL(keys.size(), Nfields);
 
-
     auto wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
     WipeElement wipeElem;
     std::map<WipeElementType, size_t> element_counts;
@@ -213,20 +212,70 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
-
     // Wipe both dates
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false); // dont actually delete anything
     element_counts.clear();
+
+    std::vector<eckit::URI> store_uris;
     while (wipeit.next(wipeElem)) {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
+        if (wipeElem.type() == WipeElementType::STORE) {
+            store_uris.insert(store_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
+        }
     }
 
-    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc) x2
+    // Expect: 2x (1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc))
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
 
+
+    // artifically add some auxiliary .gribjump files to the store.
+    for (const auto& store_uri : store_uris) {
+        if (!(store_uri.path().extension() == ".data")) {
+            continue;
+        }
+
+        eckit::PathName p = store_uri.path();
+        p += ".gribjump";
+        eckit::FileHandle fh(p);
+        fh.openForWrite(0);
+        std::string junk = "junk";
+        fh.write(junk.data(), junk.size());
+        fh.close();
+
+    }
+
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true); // doit
+    element_counts.clear();
+
+    while (wipeit.next(wipeElem)) {
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+        eckit::Log::info() << wipeElem;
+    }
+
+    // Expect: 2x (1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc))
+    // and also auxiliary files for each .data file
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+
+    // there should be nothing left.
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false);
+    element_counts.clear();
+
+    while (wipeit.next(wipeElem)) {
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+        eckit::Log::info() << wipeElem;
+    }
+
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
 }
 
 }  // namespace fdb5::test
