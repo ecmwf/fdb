@@ -216,12 +216,17 @@ CASE("Remote protocol: more wipe testing") {
     wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false); // dont actually delete anything
     element_counts.clear();
 
-    std::vector<eckit::URI> store_uris;
+    std::vector<eckit::URI> data_uris;
+    std::vector<eckit::URI> index_uris;
+
     while (wipeit.next(wipeElem)) {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
         if (wipeElem.type() == WipeElementType::STORE) {
-            store_uris.insert(store_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
+            data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
+        }
+        else if (wipeElem.type() == WipeElementType::CATALOGUE_INDEX) {
+            index_uris.insert(index_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
         }
     }
 
@@ -233,7 +238,7 @@ CASE("Remote protocol: more wipe testing") {
 
 
     // artifically add some auxiliary .gribjump files to the store.
-    for (const auto& store_uri : store_uris) {
+    for (const auto& store_uri : data_uris) {
         if (!(store_uri.path().extension() == ".data")) {
             continue;
         }
@@ -276,6 +281,18 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+
+    // Make sure none of the directories are left behind
+    for (const auto& store_uri : data_uris) {
+        eckit::PathName p = store_uri.path().dirName();
+        EXPECT(!p.exists());
+    }
+
+    for (const auto& index_uri : index_uris) {
+        eckit::PathName p = index_uri.path().dirName();
+        EXPECT(!p.exists());
+    }
+
 }
 
 }  // namespace fdb5::test
