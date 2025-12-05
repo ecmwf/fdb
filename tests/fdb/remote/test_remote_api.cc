@@ -193,7 +193,7 @@ CASE("Remote protocol: more wipe testing") {
 
     FDB fdb{};  // Expects the config to be set in the environment
 
-    // -- write a few fields. 2 databases
+    // -- write a few fields. 2 databases. Each with 1 index and 1 data file
     const size_t Nfields          = 6;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 2, 0, 3);
@@ -213,6 +213,11 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
     // Wipe both dates
+
+    // Create another .data and .index in each database, masking out the previous ones
+    FDB fdb2{};
+    write_data(fdb2, data_string, "20000101", 2, 0, 3);
+
     wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false); // dont actually delete anything
     element_counts.clear();
 
@@ -230,10 +235,10 @@ CASE("Remote protocol: more wipe testing") {
         }
     }
 
-    // Expect: 2x (1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc))
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    // Expect: 4 .data files, 4 .index files and 4 catalogue files (2 schema, 2 toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
 
 
@@ -261,11 +266,9 @@ CASE("Remote protocol: more wipe testing") {
         eckit::Log::info() << wipeElem;
     }
 
-    // Expect: 2x (1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc))
-    // and also auxiliary files for each .data file
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
 
     // there should be nothing left.
