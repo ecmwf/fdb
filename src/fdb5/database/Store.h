@@ -83,7 +83,7 @@ public:
     virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
 
     /// Delete URIs marked in the wipe state
-    virtual bool doWipe(StoreWipeState& wipeState) const = 0;
+    virtual bool doWipe(const StoreWipeState& wipeState) const = 0;
 
     /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;

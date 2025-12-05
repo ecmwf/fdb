@@ -177,6 +177,8 @@ CatalogueWipeState::CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
         auto state = std::make_unique<StoreWipeState>(s);
         storeWipeStates_.emplace(uri, std::move(state));
     }
+
+    s >> info_;
 }
 
 void CatalogueWipeState::encode(eckit::Stream& s) const {
@@ -188,6 +190,8 @@ void CatalogueWipeState::encode(eckit::Stream& s) const {
         s << uri;
         s << *state;
     }
+
+    s << info_;
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const CatalogueWipeState& state) {

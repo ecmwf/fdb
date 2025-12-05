@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/database/WipeState.h"
@@ -23,6 +24,9 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection, public CallbackRegistry {
+
+    struct WipeInProgress;
+
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -46,19 +50,16 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
-
-    bool wipeInProgress(const uint32_t clientID) const;
-    void resetWipeState();
-
     void prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
-    void doWipe(const uint32_t clientID, const uint32_t requestID);
-    void doWipeFinish(const uint32_t clientID, const uint32_t requestID);
+    void doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
 
+    const WipeInProgress& cachedWipeState(const Key& uri) const;
 
-    Store& store(uint32_t clientID);
+    Store& getStore(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
-    Store& store(uint32_t clientID, const eckit::URI& uri);
+    Store& getStore(uint32_t clientID, const eckit::URI& uri);
 
 private:  // members
 
@@ -67,14 +68,13 @@ private:  // members
     std::map<uint32_t, StoreHelper> stores_;
 
 
-    struct WipeInProgress {  // I believe this will be identical for the cat and store handlers
-        uint32_t clientID  = 0;
+
+    struct WipeInProgress {
         bool unsafeWipeAll = false;
-        bool inProgress    = false;
         StoreWipeState state;
     };
 
-    WipeInProgress currentWipe_;
+    std::map<Key, WipeInProgress> wipesInProgress_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

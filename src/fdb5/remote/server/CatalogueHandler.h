@@ -47,7 +47,7 @@ struct WipeHelper;
 class CatalogueHandler : public ServerConnection {
 
     friend struct WipeHelper;
-
+    struct WipeInProgress;
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -78,15 +78,14 @@ private:  // methods
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
-    void doMaskIndexEntries(uint32_t clientID, uint32_t requestID);
-    void doWipe(uint32_t clientID, uint32_t requestID);
+    void doMaskIndexEntries(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
-    void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID);
+    void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
     const Config& config() const { return config_; }
-    bool wipeInProgress(uint32_t clientID, uint32_t requestID) const;
 
-    void resetWipeState();
+    const WipeInProgress& cachedWipeState(Key dbKey) const;
 
 private:  // member
 
@@ -100,16 +99,13 @@ private:  // member
     bool fdbControlConnection_;
     bool fdbDataConnection_;
 
-
-    // catalogue currently being wiped
     struct WipeInProgress {
         bool unsafeWipeAll = false;
-        std::unique_ptr<CatalogueReader> catalogue;  // Maybe not needed
+        std::unique_ptr<CatalogueReader> catalogue;
         CatalogueWipeState state;
-        bool inProgress = false;
     };
 
-    WipeInProgress currentWipe_;
+    std::map<Key, WipeInProgress> wipesInProgress_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

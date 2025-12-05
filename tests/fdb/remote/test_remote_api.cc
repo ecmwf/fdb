@@ -137,13 +137,15 @@ CASE("Remote protocol: the basics") {
     auto wipeit = fdb.wipe(make_request(k1));
 
     WipeElement wipeElem;
+    std::map<WipeElementType, size_t> element_counts;
     while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << elem;
-        count++;
+        eckit::Log::info() << wipeElem;
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
-
-    // just in case...
-    ASSERT(count > 0);
+    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
     // -- list all fields
     it = fdb.list(FDBToolRequest{{}, true, {}});
@@ -155,14 +157,18 @@ CASE("Remote protocol: the basics") {
     }
     EXPECT_EQUAL(count, Nfields);
 
+    // Wipe, with doit=true
     wipeit = fdb.wipe(make_request(k1), true);
-    count  = 0;
+    element_counts.clear();
     while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << elem;
-        count++;
+        eckit::Log::info() << wipeElem;
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
 
-    ASSERT(count > 0);
+    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
     // -- list all remaining fields
     it = fdb.list(FDBToolRequest{{}, true, {}});
@@ -173,6 +179,54 @@ CASE("Remote protocol: the basics") {
         count++;
     }
     EXPECT_EQUAL(count, 6);
+
+    // Wipe everything that remains
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);
+    count  = 0;
+    while (wipeit.next(wipeElem)) {
+        eckit::Log::info() << wipeElem;
+        count++;
+    }
+}
+
+CASE("Remote protocol: more wipe testing") {
+
+    FDB fdb{};  // Expects the config to be set in the environment
+
+    // -- write a few fields. 2 databases
+    const size_t Nfields          = 6;
+    const std::string data_string = "It's gonna be a bright, sunshiny day!";
+    std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 2, 0, 3);
+    EXPECT_EQUAL(keys.size(), Nfields);
+
+
+    auto wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
+    WipeElement wipeElem;
+    std::map<WipeElementType, size_t> element_counts;
+    while (wipeit.next(wipeElem)) {
+        eckit::Log::info() << wipeElem;
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+    }
+
+    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+
+
+    // Wipe both dates
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);
+    element_counts.clear();
+    while (wipeit.next(wipeElem)) {
+        eckit::Log::info() << wipeElem;
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+    }
+
+    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc) x2
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+
 }
 
 }  // namespace fdb5::test

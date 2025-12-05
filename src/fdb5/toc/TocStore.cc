@@ -463,7 +463,7 @@ bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) co
     return true;
 }
 
-bool TocStore::doWipe(StoreWipeState& wipeState) const {
+bool TocStore::doWipe(const StoreWipeState& wipeState) const {
 
     bool wipeall = false;  // todo, notimp.
     for (const auto& uri : wipeState.dataAuxiliaryURIs()) {

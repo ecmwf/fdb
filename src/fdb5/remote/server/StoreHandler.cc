@@ -56,15 +56,6 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 archiver();
                 return Handled::YesAddArchiveListener;
 
-            case Message::DoWipe:  // request to delete data marked for wipe
-                doWipe(clientID, requestID);
-                return Handled::Yes;
-
-            case Message::DoWipeFinish: // request to delete empty databases and finish the wipe.
-                doWipeFinish(clientID, requestID);
-                return Handled::Yes;
-
-
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -104,6 +95,14 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
             case Message::Wipe: // Initial wipe request
                 prepareWipe(clientID, requestID, payload);
                 return Handled::Replied;
+
+            case Message::DoWipe:  // request to delete data marked for wipe
+                doWipe(clientID, requestID, payload);
+                return Handled::Yes;
+
+            case Message::DoWipeFinish: // request to delete empty databases and finish the wipe.
+                doWipeFinish(clientID, requestID, payload);
+                return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
                 doWipeUnknown(clientID, requestID, payload);
@@ -282,7 +281,7 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }
 
-Store& StoreHandler::store(uint32_t clientID) {
+Store& StoreHandler::getStore(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
@@ -315,7 +314,7 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
 
-Store& StoreHandler::store(uint32_t clientID, const eckit::URI& uri) {
+Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
@@ -350,20 +349,19 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
 }
 
 void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+    const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    // Wipe must be in progress
-    ASSERT(wipeInProgress(clientID));
-
-    eckit::MemoryStream stream(payload);
-    std::set<eckit::URI> uris{stream};
+    std::set<eckit::URI> uris{s};
 
     // Only proceed if unsafeWipeAll is set.
-    ASSERT(currentWipe_.unsafeWipeAll);
+    ASSERT(currentWipe.unsafeWipeAll);
 
-    auto& ss = store(clientID);
+    auto& ss = getStore(clientID);
 
     // check received URIs are at least a subset of expected unknowns.
-    const auto& expectedUnknowns = currentWipe_.state.unrecognisedURIs();
+    const auto& expectedUnknowns = currentWipe.state.unrecognisedURIs();
     for (const auto& uri : uris) {
         if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
             std::stringstream ss;
@@ -377,36 +375,34 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
     ss.doWipeUnknownContents(uris);
 }
 
-void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID) {
-    ASSERT(wipeInProgress(clientID));
+void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+    const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    auto& ss = store(clientID);
-    ss.doWipe(currentWipe_.state);
+    auto& store = getStore(clientID);
+    store.doWipe(currentWipe.state);
 }
 
-void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID) {
-    ASSERT(wipeInProgress(clientID));
+void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+    const WipeInProgress& currentWipe = cachedWipeState(key);
 
     // Delete empty DBs and finish the wipe.
 
-    auto& ss = store(clientID);
-    ss.doWipeEmptyDatabases();
+    auto& store = getStore(clientID);
+    store.doWipeEmptyDatabases();
 
-    resetWipeState();
+    wipesInProgress_.erase(key);
+
 }
 
-bool StoreHandler::wipeInProgress(const uint32_t clientID) const {
-    return currentWipe_.inProgress && currentWipe_.clientID == clientID;
+const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri) const {
+    auto it = wipesInProgress_.find(uri);
+    ASSERT(it != wipesInProgress_.end());
+    return it->second;
 }
-
-
-void StoreHandler::resetWipeState() {
-    currentWipe_.clientID      = 0;
-    currentWipe_.unsafeWipeAll = false;
-    currentWipe_.inProgress    = false;
-    currentWipe_.state         = StoreWipeState();
-}
-
 
 void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
@@ -414,6 +410,7 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     bool doit      = false;
     eckit::MemoryStream inStream(payload);
 
+    Key dbkey(inStream);
     StoreWipeState inState(inStream);
     inStream >> unsafeAll;
     inStream >> doit;
@@ -442,8 +439,8 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
         return;
     }
 
-    auto& ss = store(clientID, *(storeState.includedDataURIs().begin()));
-    ss.prepareWipe(storeState, doit, unsafeAll);
+    auto& store = getStore(clientID, *(storeState.includedDataURIs().begin()));
+    store.prepareWipe(storeState, doit, unsafeAll);
 
     // Write back with the additional URIs to be wiped.
     eckit::Buffer outBuffer(1_MiB);
@@ -456,10 +453,10 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     // keep state for doWipe
     if (doit) {
         ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
-        currentWipe_.clientID      = clientID;
-        currentWipe_.unsafeWipeAll = unsafeAll;
-        currentWipe_.state         = std::move(storeState);
-        currentWipe_.inProgress    = true;
+        wipesInProgress_[dbkey] = {
+            unsafeAll,
+            std::move(storeState),
+        };
     }
 }
 

@@ -106,9 +106,16 @@ CASE("Wipe with extensions") {
     auto iter              = fdb.wipe(request, doit);
 
     WipeElement elem;
+    std::map<WipeElementType, size_t> element_counts;
     while (iter.next(elem)) {
-        eckit::Log::info() << elem;
+        element_counts[elem.type()] += elem.uris().size();
     }
+    // 3 .index files, 3 .data files and 6 aux files
+    // 2 dbs, each with 1 schema and 1 toc --> 4 CATALOGUE files
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 6);
 
     // Check that the auxiliary files have been removed
     for (const auto& auxPath : auxPaths) {
@@ -170,10 +177,16 @@ CASE("Ensure wipe fails if extensions are unknown") {
     unsafeWipeAll = true;
     auto iter     = fdb.wipe(request, doit, false, unsafeWipeAll);
 
+    std::map<WipeElementType, size_t> element_counts;
     while (iter.next(elem)) {
         eckit::Log::info() << elem;
+        element_counts[elem.type()] += elem.uris().size();
     }
-
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 3);  // The .UNKNOWN aux files
     // Check that the auxiliary files have been removed
     for (const auto& auxPath : auxPaths) {
         EXPECT(!auxPath.exists());

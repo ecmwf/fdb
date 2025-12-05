@@ -525,6 +525,7 @@ void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafe
     // Send StoreWipeState to server
     eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
     eckit::ResizableMemoryStream stream(sendBuf);
+    stream << dbKey_;
     stream << storeState;
     stream << unsafeWipeAll;
     stream << doit;
@@ -550,18 +551,25 @@ void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafe
 bool RemoteStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::ResizableMemoryStream stream(sendBuf);
+    stream << dbKey_;
     stream << unknownURIs;
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
     return true;
 }
 
-bool RemoteStore::doWipe(StoreWipeState& wipeState) const {
-    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true);
+bool RemoteStore::doWipe(const StoreWipeState& wipeState) const {
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true, sendBuf, s.position());
     return true;
 }
 void RemoteStore::doWipeEmptyDatabases() const {
     // emptyDatabases_ will be accumulated on the server side.
-    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), true);
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), true, sendBuf, s.position());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
