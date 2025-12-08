@@ -92,7 +92,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 exists(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::Wipe: // Initial wipe request
+            case Message::Wipe:  // Initial wipe request
                 prepareWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
@@ -100,7 +100,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipe(clientID, requestID, payload);
                 return Handled::Yes;
 
-            case Message::DoWipeFinish: // request to delete empty databases and finish the wipe.
+            case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
                 doWipeFinish(clientID, requestID, payload);
                 return Handled::Yes;
 
@@ -395,7 +395,6 @@ void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestI
     store.doWipeEmptyDatabases();
 
     wipesInProgress_.erase(key);
-
 }
 
 const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri) const {

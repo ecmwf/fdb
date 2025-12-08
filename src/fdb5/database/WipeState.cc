@@ -81,7 +81,6 @@ void WipeState::encode(eckit::Stream& s) const {
     for (const auto& uri : unknownURIs_) {
         s << uri;
     }
-
 }
 
 bool WipeState::isMarkedForDeletion(const eckit::URI& uri) const {

@@ -221,9 +221,7 @@ private:
 };
 
 struct WipeHelper : public BaseHelper<CatalogueWipeState> {
-    virtual size_t encodeBufferSize(const CatalogueWipeState& el) const {
-        return el.encodeSize();
-    }
+    virtual size_t encodeBufferSize(const CatalogueWipeState& el) const { return el.encodeSize(); }
 
     Encoded encode(const CatalogueWipeState& state, CatalogueHandler& handler) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
@@ -237,10 +235,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s << state;
 
         const Key& dbKey = state.dbKey();
-    
+
         if (doit_) {
             // Keep a local copy of the catalogue wipe state, awaiting an explicit DoWipe command from the client
-            
+
             // Expect this dbKey not to already be in progress
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
@@ -623,7 +621,7 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
-    
+
     std::set<eckit::URI> rec_unknownURIs{s};
 
     // The client should not talk to us unless there are unknown URIs to wipe.
@@ -652,7 +650,7 @@ void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestI
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
-    
+
     // Cleanup empty DBs and reset wipe state
     currentWipe.catalogue->doWipeEmptyDatabases();
     wipesInProgress_.erase(dbKey);

@@ -108,6 +108,7 @@ private:
 
 class StoreWipeState : public WipeState {
 public:
+
     StoreWipeState() = default;
     StoreWipeState(eckit::URI uri);
     StoreWipeState(eckit::Stream& s);

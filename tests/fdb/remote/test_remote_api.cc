@@ -25,30 +25,57 @@ namespace fdb5::test {
 // Fairly limited set of tests designed to add some coverage to the client-server comms.
 // Tests added to this file should be for behaviour that is expected to work for all server configurations.
 
-std::vector<Key> write_data(FDB& fdb, const std::string& data, const std::string& start_date, int Ndates,
-                            int start_step, int Nsteps) {
-    // write a few fields
-    std::vector<Key> keys;
+Key keycommon(int level = 3) {
     Key k;
+    // level 1
     k.set("class", "od");
     k.set("expver", "xxxx");
     k.set("stream", "oper");
     k.set("time", "0000");
-    k.set("type", "fc");
     k.set("domain", "g");
-    k.set("levtype", "sfc");
-    k.set("param", "167");
+    // level 2
+    if (level >= 2) {
+        k.set("levtype", "sfc");
+    }
+    // level 3
+    if (level >= 3) {
+        k.set("param", "167");
+    }
+    return k;
+}
 
-    eckit::Date date{start_date};
-    for (int i = 0; i < Ndates; i++) {
-        k.set("date", std::to_string(date.yyyymmdd()));
-        ++date;
-        int step = start_step;
-        for (int j = 0; j < Nsteps; j++) {
-            k.set("step", std::to_string(step++));
-            eckit::Log::info() << " archiving " << k << std::endl;
-            fdb.archive(k, data.data(), data.size());
-            keys.push_back(k);
+std::vector<Key> write_data(FDB& fdb, const std::string& data,
+                            // const std::string& start_date, int Ndates, int start_step, int Nsteps
+                            const std::vector<std::string>& dates = {"20101010", "20111213"},
+                            const std::vector<std::string>& types = {"fc", "pf"},
+                            const std::vector<std::string>& steps = {"1", "2"}) {
+    // write a few fields
+    std::vector<Key> keys;
+    Key k = keycommon();
+
+    // eckit::Date date{start_date};
+    // for (int i = 0; i < Ndates; i++) {
+    //     k.set("date", std::to_string(date.yyyymmdd()));
+    //     ++date;
+    //     int step = start_step;
+    //     for (int j = 0; j < Nsteps; j++) {
+    //         k.set("step", std::to_string(step++));
+    //         eckit::Log::info() << " archiving " << k << std::endl;
+    //         fdb.archive(k, data.data(), data.size());
+    //         keys.push_back(k);
+    //     }
+    // }
+
+    for (const auto& date : dates) {
+        k.set("date", date);
+        for (const auto& type : types) {
+            k.set("type", type);
+            for (const auto& step : steps) {
+                k.set("step", step);
+                eckit::Log::info() << " archiving " << k << std::endl;
+                fdb.archive(k, data.data(), data.size());
+                keys.push_back(k);
+            }
         }
     }
 
@@ -83,19 +110,18 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     }
 
     // combine the dates and steps into a single request
-    std::vector<std::string> dates;
-    std::vector<std::string> steps;
+    std::set<std::string> dates;
+    std::set<std::string> types;
+    std::set<std::string> steps;
     for (const auto& k : keys) {
-        dates.push_back(k.get("date"));
-        auto [_, has_step] = k.find("step");
-        if (has_step)
-            steps.push_back(k.get("step"));
+        dates.insert(k.get("date"));
+        types.insert(k.get("type"));
+        steps.insert(k.get("step"));
     }
 
-    req.values("date", dates);
-    if (!steps.empty()) {
-        req.values("step", steps);
-    }
+    req.values("date", std::vector<std::string>(dates.begin(), dates.end()));
+    req.values("type", std::vector<std::string>(types.begin(), types.end()));
+    req.values("step", std::vector<std::string>(steps.begin(), steps.end()));
 
     return req;
 }
@@ -105,9 +131,9 @@ CASE("Remote protocol: the basics") {
     FDB fdb{};  // Expects the config to be set in the environment
 
     // -- write a few fields
-    const size_t Nfields          = 9;
+    const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 3, 0, 3);
+    std::vector<Key> keys         = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     EXPECT_EQUAL(keys.size(), Nfields);
 
     // -- list all fields
@@ -133,8 +159,8 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(retrieved_string, data_string);
     }
 
-    auto k1     = keys_level_1("20000101", 1);
-    auto wipeit = fdb.wipe(make_request(k1));
+    // auto k1     = keys_level_1("20101010", 1);
+    auto wipeit = fdb.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
 
     WipeElement wipeElem;
     std::map<WipeElementType, size_t> element_counts;
@@ -142,9 +168,9 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
-    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
     // -- list all fields
@@ -158,16 +184,16 @@ CASE("Remote protocol: the basics") {
     EXPECT_EQUAL(count, Nfields);
 
     // Wipe, with doit=true
-    wipeit = fdb.wipe(make_request(k1), true);
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("date=20000101")[0], true);
     element_counts.clear();
     while (wipeit.next(wipeElem)) {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
 
-    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
     // -- list all remaining fields
@@ -178,10 +204,10 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << elem << " " << elem.location() << std::endl;
         count++;
     }
-    EXPECT_EQUAL(count, 6);
+    EXPECT_EQUAL(count, 4);
 
     // Wipe everything that remains
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
     count  = 0;
     while (wipeit.next(wipeElem)) {
         eckit::Log::info() << wipeElem;
@@ -194,11 +220,11 @@ CASE("Remote protocol: more wipe testing") {
     FDB fdb{};  // Expects the config to be set in the environment
 
     // -- write a few fields. 2 databases. Each with 1 index and 1 data file
-    const size_t Nfields          = 6;
+    const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 2, 0, 3);
+    std::vector<Key> keys         = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     EXPECT_EQUAL(keys.size(), Nfields);
-
+    // wipe a single date
     auto wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
     WipeElement wipeElem;
     std::map<WipeElementType, size_t> element_counts;
@@ -207,18 +233,18 @@ CASE("Remote protocol: more wipe testing") {
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
 
-    // Expect: 1 store .data, 1 catalogue .index, 2 catalogue files (schema, toc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
-    // Wipe both dates
-
-    // Create another .data and .index in each database, masking out the previous ones
+    // Duplicate everything
     FDB fdb2{};
-    write_data(fdb2, data_string, "20000101", 2, 0, 3);
+    write_data(fdb2, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
 
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false); // dont actually delete anything
+    // Wipe just one DB (date=20000101)
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
+                      false);  // dont actually delete anything
     element_counts.clear();
 
     std::vector<eckit::URI> data_uris;
@@ -239,10 +265,11 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);  // full db wipe, so none safe
 
 
-    // artifically add some auxiliary .gribjump files to the store.
+    // artifically add some auxiliary .gribjump files to the store for this db.
     for (const auto& store_uri : data_uris) {
         if (!(store_uri.path().extension() == ".data")) {
             continue;
@@ -255,10 +282,26 @@ CASE("Remote protocol: more wipe testing") {
         std::string junk = "junk";
         fh.write(junk.data(), junk.size());
         fh.close();
-
     }
 
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true); // doit
+    // Partial wipe on level 2 (type=fc). Should hit half the index/data files
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0],
+                      false);  // dont actually delete anything
+    element_counts.clear();
+
+    while (wipeit.next(wipeElem)) {
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+        eckit::Log::info() << wipeElem;
+    }
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);            // or maybe 4?
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);        // the .gribjump files
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);  // or maybe 4?
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no DBs are fully wiped
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 8);   // half of the indexes, and the two toc/schemas
+
+
+    // Now actually wipe everything
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);  // doit
     element_counts.clear();
 
     while (wipeit.next(wipeElem)) {
@@ -266,10 +309,12 @@ CASE("Remote protocol: more wipe testing") {
         eckit::Log::info() << wipeElem;
     }
 
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 8);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 8);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);
+
 
     // there should be nothing left.
     wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false);
@@ -295,7 +340,6 @@ CASE("Remote protocol: more wipe testing") {
         eckit::PathName p = index_uri.path().dirName();
         EXPECT(!p.exists());
     }
-
 }
 
 }  // namespace fdb5::test

@@ -48,6 +48,7 @@ class CatalogueHandler : public ServerConnection {
 
     friend struct WipeHelper;
     struct WipeInProgress;
+
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);

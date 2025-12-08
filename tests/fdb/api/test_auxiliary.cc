@@ -1,3 +1,4 @@
+#include <string>
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
@@ -25,7 +26,12 @@ eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::st
     return auxpath;
 }
 
-std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = {"foo", "bar"}) {
+std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = {"foo", "bar"},
+                                const std::vector<std::string>& dates = {"20101010", "20111213"},
+                                const std::vector<std::string>& types = {"fc", "pf"},
+                                const std::vector<std::string>& steps = {"1", "2"}
+
+) {
     // Setup: Write data, generating auxiliary files using the archive callback
     std::set<eckit::PathName> auxPaths;
     fdb.registerArchiveCallback([&auxPaths, auxExtensions](const Key& key, const void* data, size_t length,
@@ -51,14 +57,27 @@ std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = 
     key.set("levtype", "sfc");
     key.set("param", "130");
 
-    key.set("step", "1");
-    fdb.archive(key, data, length);
 
-    key.set("date", "20111213");
-    fdb.archive(key, data, length);
+    // key.set("step", "1");
 
-    key.set("type", "pf");
-    fdb.archive(key, data, length);
+    // fdb.archive(key, data, length);
+
+    // key.set("date", "20111213");
+    // fdb.archive(key, data, length);
+
+    // key.set("type", "pf");
+    // fdb.archive(key, data, length);
+
+    for (const auto& date : dates) {
+        key.set("date", date);
+        for (const auto& type : types) {
+            key.set("type", type);
+            for (const auto& step : steps) {
+                key.set("step", step);
+                fdb.archive(key, data, length);
+            }
+        }
+    }
 
     fdb.flush();
 
@@ -95,14 +114,14 @@ CASE("Wipe with extensions") {
     eckit::testing::SetEnv env_extensions{"FDB_AUX_EXTENSIONS", "foo,bar"};
     FDB fdb;
     std::set<eckit::PathName> auxPaths = setup(fdb);
-    EXPECT(auxPaths.size() == 6);
+    EXPECT_EQUAL(auxPaths.size(), 8);
     for (const auto& auxPath : auxPaths) {
         EXPECT(auxPath.exists());
     }
 
-    // call wipe
+    // call wipe, without doit
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = true;
+    bool doit              = false;
     auto iter              = fdb.wipe(request, doit);
 
     WipeElement elem;
@@ -110,12 +129,38 @@ CASE("Wipe with extensions") {
     while (iter.next(elem)) {
         element_counts[elem.type()] += elem.uris().size();
     }
-    // 3 .index files, 3 .data files and 6 aux files
+    // 4 .index files, 4 .data files and 8 aux files
     // 2 dbs, each with 1 schema and 1 toc --> 4 CATALOGUE files
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 6);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 8);
+
+    // partial wipe on the second level. Hits half the data files
+    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf")[0];
+    doit    = true;
+    iter    = fdb.wipe(request, doit);
+    element_counts.clear();
+    while (iter.next(elem)) {
+        element_counts[elem.type()] += elem.uris().size();
+    }
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);  // no DBs are fully wiped
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
+
+    // call wipe on everything which remains
+    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
+    doit    = true;
+    iter    = fdb.wipe(request, doit);
+    element_counts.clear();
+    while (iter.next(elem)) {
+        element_counts[elem.type()] += elem.uris().size();
+    }
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
 
     // Check that the auxiliary files have been removed
     for (const auto& auxPath : auxPaths) {
@@ -126,7 +171,6 @@ CASE("Wipe with extensions") {
     expectEmpty(auxPaths.begin()->dirName());
 }
 
-
 CASE("Ensure wipe fails if extensions are unknown") {
     eckit::TmpDir tmpdir(eckit::LocalPathName::cwd().c_str());
     eckit::testing::SetEnv env_config{"FDB_ROOT_DIRECTORY", tmpdir.asString().c_str()};
@@ -135,7 +179,7 @@ CASE("Ensure wipe fails if extensions are unknown") {
     FDB fdb;
     std::set<eckit::PathName> auxPaths =
         setup(fdb, {"foo", "UNKNOWN"});  // Write ".UNKNOWN" files, which should prevent wipe.
-    EXPECT(auxPaths.size() == 6);
+    EXPECT_EQUAL(auxPaths.size(), 8);
     for (const auto& auxPath : auxPaths) {
         EXPECT(auxPath.exists());
     }
@@ -164,8 +208,7 @@ CASE("Ensure wipe fails if extensions are unknown") {
 
     // Check we can still list the data (i.e. there isn't a lingering lock)
     auto listObject = fdb.list(request, false);
-    ;
-    size_t count = 0;
+    size_t count    = 0;
     ListElement le;
     while (listObject.next(le)) {
         eckit::Log::info() << le;
@@ -183,10 +226,11 @@ CASE("Ensure wipe fails if extensions are unknown") {
         element_counts[elem.type()] += elem.uris().size();
     }
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 3);  // The .UNKNOWN aux files
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 4);  // The .UNKNOWN aux files
+
     // Check that the auxiliary files have been removed
     for (const auto& auxPath : auxPaths) {
         EXPECT(!auxPath.exists());
@@ -212,8 +256,8 @@ CASE("Purge with extensions") {
     FDB fdb;
     auto auxPathsKeep = setup(fdb);
 
-    EXPECT(auxPathsDelete.size() == 12);
-    EXPECT(auxPathsKeep.size() == 6);
+    EXPECT_EQUAL(auxPathsDelete.size(), 16);
+    EXPECT_EQUAL(auxPathsKeep.size(), 8);
 
     for (const auto& auxPath : auxPathsDelete) {
         EXPECT(auxPath.exists());

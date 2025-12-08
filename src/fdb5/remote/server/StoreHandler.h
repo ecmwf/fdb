@@ -68,7 +68,6 @@ private:  // members
     std::map<uint32_t, StoreHelper> stores_;
 
 
-
     struct WipeInProgress {
         bool unsafeWipeAll = false;
         StoreWipeState state;
