@@ -522,6 +522,11 @@ std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool on
 
 void RemoteStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
+    if (storeState.includedDataURIs().empty()) {
+        // Nothing to do
+        return;
+    }
+
     // Send StoreWipeState to server
     eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
     eckit::ResizableMemoryStream stream(sendBuf);

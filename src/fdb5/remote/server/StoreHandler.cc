@@ -434,6 +434,7 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     }
 
     if (storeState.includedDataURIs().empty()) {
+        // Client should not communicate with the store if there are no data URIs to wipe.
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }

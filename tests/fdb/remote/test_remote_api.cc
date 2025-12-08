@@ -268,7 +268,6 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);  // full db wipe, so none safe
 
-
     // artifically add some auxiliary .gribjump files to the store for this db.
     for (const auto& store_uri : data_uris) {
         if (!(store_uri.path().extension() == ".data")) {
@@ -285,8 +284,7 @@ CASE("Remote protocol: more wipe testing") {
     }
 
     // Partial wipe on level 2 (type=fc). Should hit half the index/data files
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0],
-                      false);  // dont actually delete anything
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0], false);
     element_counts.clear();
 
     while (wipeit.next(wipeElem)) {
@@ -299,6 +297,17 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no DBs are fully wiped
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 8);   // half of the indexes, and the two toc/schemas
 
+    // Over specified wipe on level 3 (step=1). Should hit nothing
+    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,step=1")[0], false);
+    element_counts.clear();
+    while (wipeit.next(wipeElem)) {
+        element_counts[wipeElem.type()] += wipeElem.uris().size();
+        eckit::Log::info() << wipeElem;
+    }
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
 
     // Now actually wipe everything
     wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);  // doit

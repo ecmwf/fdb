@@ -136,6 +136,20 @@ CASE("Wipe with extensions") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 8);
 
+    // over specified wipe: returns nothing
+    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf,step=1")[0];
+    doit    = true;
+    iter    = fdb.wipe(request, doit);
+    element_counts.clear();
+    while (iter.next(elem)) {
+        element_counts[elem.type()] += elem.uris().size();
+    }
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);  // no DBs are fully wiped
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+
+
     // partial wipe on the second level. Hits half the data files
     request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf")[0];
     doit    = true;
