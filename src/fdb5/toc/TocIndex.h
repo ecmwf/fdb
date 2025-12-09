@@ -20,7 +20,6 @@
 #include "eckit/container/BTree.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include "eckit/types/FixedString.h"
 

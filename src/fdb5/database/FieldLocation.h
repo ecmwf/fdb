@@ -149,9 +149,16 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class FieldLocationVisitor : private eckit::NonCopyable {
+class FieldLocationVisitor {
 
 public:  // methods
+
+    FieldLocationVisitor() = default;
+
+    FieldLocationVisitor(const FieldLocationVisitor&)            = delete;
+    FieldLocationVisitor& operator=(const FieldLocationVisitor&) = delete;
+    FieldLocationVisitor(FieldLocationVisitor&&)                 = delete;
+    FieldLocationVisitor& operator=(FieldLocationVisitor&&)      = delete;
 
     virtual ~FieldLocationVisitor();
 

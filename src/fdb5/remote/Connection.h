@@ -50,7 +50,7 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Connection : eckit::NonCopyable {
+class Connection {
 
 public:  // types
 
@@ -59,6 +59,11 @@ public:  // types
 public:  // methods
 
     Connection();
+
+    Connection(const Connection&)            = delete;
+    Connection& operator=(const Connection&) = delete;
+    Connection(Connection&&)                 = delete;
+    Connection& operator=(Connection&&)      = delete;
 
     virtual ~Connection() = default;
 
