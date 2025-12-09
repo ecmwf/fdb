@@ -17,9 +17,8 @@ import httpx
 import numpy
 import zarr
 from dto_types import RequestDTO, RequestsDTO
-from zarr.storage import FsspecStore
-
 from pychunked_data_view import ExtractorType
+from zarr.storage import FsspecStore
 
 request_1 = {
     "type": "an",
@@ -27,7 +26,7 @@ request_1 = {
     "domain": "g",
     "expver": "0001",
     "stream": "oper",
-    "date": "2024-01-01/to/2024-01-31",
+    "date": "2024-01-01/to/2024-01-10",
     "levtype": "sfc",
     "step": "0",
     "param": [
@@ -53,7 +52,7 @@ request_2 = {
     "domain": "g",
     "expver": "0001",
     "stream": "oper",
-    "date": "2024-01-01/to/2024-01-31",
+    "date": "2024-01-01/to/2024-01-10",
     "levtype": "pl",
     "step": 0,
     "param": ["q", "t", "u", "v", "w"],
@@ -73,7 +72,7 @@ r_dto_2 = RequestDTO(
 r_dtos = [r_dto_1, r_dto_2]
 
 
-async def main():
+async def async_main():
     url = "https://localhost:4430/create"
     headers = {"Content-Type": "application/json", "Content-Encoding": "zstd"}
 
@@ -84,7 +83,7 @@ async def main():
 
         if response.is_client_error:
             raise RuntimeError(
-                f"Encountered the following error on the server side: {response.content}"
+                "Encountered the following error on the server side: {response.content}"
             )
 
         hash = response.json()["hash"]
@@ -129,7 +128,7 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     if args.verbose == 0:
         log_level = logging.WARNING
@@ -147,6 +146,6 @@ if __name__ == "__main__":
     asyncio.set_event_loop(loop)
 
     try:
-        asyncio.run(main())
+        asyncio.run(async_main())
     except KeyboardInterrupt:
         pass

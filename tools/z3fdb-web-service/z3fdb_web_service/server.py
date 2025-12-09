@@ -8,30 +8,23 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-
 import argparse
 import json
-import logging
 import os
 import pathlib
 from typing import Collection
 
-import pyfdb
-import pygribjump
-from dto_types import Request, RequestDTOMapper
 from quart import Quart, Response, jsonify, request
+from z3fdb import SimpleStoreBuilder
 
-# import create_certs
+from z3fdb_web_service.dto_types import Request, RequestDTOMapper
+
 app = Quart(__name__)
 view_hashes = {}
 
-from z3fdb import (
-    SimpleStoreBuilder,
-)
 
-
-def open_view(fdb_config_path: pathlib.Path, requests: Collection[Request]):
-    builder = SimpleStoreBuilder(fdb_config_path)
+def open_view(requests: Collection[Request]):
+    builder = SimpleStoreBuilder()
 
     for r in requests:
         builder.add_part(r.request, r.axes, r.extractor)
@@ -50,14 +43,15 @@ async def process_json():
     if hashed_request not in view_hashes:
         try:
             requests = RequestDTOMapper.map_json(data)
-            store = open_view(args.fdb_config, requests)
+            store = open_view(requests)
         except Exception as e:
             app.logger.info(f"Create view failed with exception: {e}")
             return jsonify({"error": f"Invalid Request - {e}"}), 400
 
         view_hashes[hashed_request] = store
         app.logger.debug(
-            f"Created new zfdb view {hashed_request}, {len(view_hashes)} views are now opened"
+            f"Created new zfdb view {hashed_request}, {len(view_hashes)} views"
+            " are now opened"
         )
     else:
         app.logger.debug("Using created request")
@@ -93,7 +87,9 @@ async def retrieve_zarr(hash, zarr_path):
         )
 
     return Response(
-        response=content.to_bytes(), content_type="application/octet-stream", status=200
+        response=content.to_bytes(),
+        content_type="application/octet-stream",
+        status=200,
     )
 
 
@@ -121,19 +117,7 @@ def connect_to_fdb(args):
             raise Exception(f"Cannot find fdb config file {abs_path}")
         os.environ["FDB5_CONFIG_FILE"] = f"{abs_path}"
     os.environ["FDB_ENABLE_GRIBJUMP"] = "1"
-    if args.gribjump_config:
-        abs_path = args.gribjump_config.expanduser().resolve()
-        if not abs_path.is_file():
-            raise Exception(f"Cannot find gribjump config file {abs_path}")
-        os.environ["GRIBJUMP_CONFIG_FILE"] = f"{abs_path}"
-    os.environ["GRIBJUMP_IGNORE_GRID"] = "1"
-
     log_environment()
-
-    global fdb
-    fdb = pyfdb.FDB()
-    global gribjump
-    gribjump = pygribjump.GribJump()
 
 
 def parse_args():
@@ -152,24 +136,17 @@ def parse_args():
         type=pathlib.Path,
         default=None,
     )
-    parser.add_argument(
-        "--gribjump-config",
-        help="path to gribjump config file, if not specified gribjump searchs as usual",
-        type=pathlib.Path,
-        default=None,
-    )
-
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     if args.verbose == 0:
-        log_level = logging.WARNING
+        pass
     elif args.verbose == 1:
-        log_level = logging.INFO
+        pass
     else:
-        log_level = logging.DEBUG
+        pass
 
     connect_to_fdb(args)
 

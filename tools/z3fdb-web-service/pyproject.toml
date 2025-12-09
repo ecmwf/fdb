@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "z3fdb-web-service"
+version = "0.1.0"
+readme = "README.rst"
+requires-python = ">=3.12"
+dependencies = [
+    "quart",
+    "aiohttp",
+    "requests",
+    "build",
+    "zarr",
+    "httpx",
+    "fsspec"
+]
+
+[project.scripts]
+z3fdb-web-service = "z3fdb_web_service.server:main"
+z3fdb-web-service-test-client = "z3fdb_web_service_test_client.client:main"
+
+[project.optional-dependencies]
+dev = ["ruff"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

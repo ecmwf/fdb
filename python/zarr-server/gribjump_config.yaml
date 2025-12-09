@@ -1,2 +1,0 @@
-plugin:
-  select: class=(ea|od),stream=(enfo|oper),expver=(00..)

@@ -5,3 +5,9 @@
 # In applying this licence, ECMWF does not waive the privileges and immunities
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
+
+from z3fdb_web_service.server import main
+
+__all__ = [
+    "main",
+]
