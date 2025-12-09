@@ -429,7 +429,7 @@ void StoreHandler::prepareWipe(const uint32_t clientID, const uint32_t requestID
     for (const auto& uri : inState.includedDataURIs()) {
         storeState.includeData(RemoteFieldLocation::internalURI(uri));
     }
-    for (const auto& uri : inState.excludedDataURIs()) {
+    for (const auto& uri : inState.safeURIs()) {
         storeState.excludeData(RemoteFieldLocation::internalURI(uri));
     }
 

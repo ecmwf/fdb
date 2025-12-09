@@ -404,7 +404,7 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
     const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
-    const std::set<eckit::URI>& safeURIs = storeState.excludedDataURIs();  // excluded according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
 
     std::set<eckit::URI> nonExistingURIs;
     for (auto& uri : dataURIs) {
@@ -465,7 +465,7 @@ bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) co
 
 bool TocStore::doWipe(const StoreWipeState& wipeState) const {
 
-    bool wipeall = wipeState.excludedDataURIs().empty();
+    bool wipeall = wipeState.safeURIs().empty();
 
     for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
         remove(uri, std::cout, std::cout, true);

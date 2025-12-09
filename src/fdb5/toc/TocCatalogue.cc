@@ -199,7 +199,13 @@ void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
     std::set<eckit::URI> maskedDataURIs = {};
     std::set<std::pair<eckit::URI, Offset>> metadata;
 
+
+    /// @note: "allMasked" function interacts unhelpfully with subtocs. If a subtoc is masked, it seems to assume that
+    /// all of its indexes are also masked and can be deleted. This is not generally true. Not a problem since
+    /// wipeState.markForDeletion will skip any URIs that are already marked as safe, but I find this behaviour a bit
+    /// surprising.
     allMasked(metadata, maskedDataURIs);
+
     for (const auto& entry : metadata) {
         eckit::PathName path = entry.first.path();
         if (path.dirName().sameAs(basePath())) {

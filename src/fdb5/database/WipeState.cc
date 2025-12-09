@@ -2,6 +2,8 @@
 #include <memory>
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Store.h"
 
@@ -48,13 +50,7 @@ WipeState::WipeState(eckit::Stream& s) {
 
 /// @todo: implement properly
 std::size_t WipeState::encodeSize() const {
-    // approximate... do this better...
-    std::size_t size = 0;
-    size += sizeof(std::size_t);      // key string size
-    size += 256;                      // dbkey string
-    size += sizeof(std::size_t);      // number of wipe elements
-    size += 2 * sizeof(std::size_t);  // num include + num exclude
-    // size += (includeDataURIs_.size() + excludeDataURIs_.size()) * 256;
+    std::size_t size = 1_MiB;
     return size;
 }
 
@@ -96,21 +92,25 @@ bool WipeState::isMarkedSafe(const eckit::URI& uri) const {
     return safeURIs_.find(uri) != safeURIs_.end();
 }
 
+/// @todo: We may want to extend the sanity check to check the union of all safe URIs
+// and all delete URIs, for the catalogue and all stores involved.
 void WipeState::sanityCheck() const {
 
     for (auto& uri : unknownURIs_) {
-        ASSERT(!isMarkedSafe(uri));
-        ASSERT(!isMarkedForDeletion(uri));
+        ASSERT_MSG(!isMarkedSafe(uri), "Unknown URI marked safe: " + uri.asString());
+        ASSERT_MSG(!isMarkedForDeletion(uri), "Unknown URI marked for deletion: " + uri.asString());
     }
 
     for (auto& uri : safeURIs_) {
-        ASSERT(!isMarkedForDeletion(uri));
+        ASSERT_MSG(!isMarkedForDeletion(uri), "Safe URI marked for deletion: " + uri.asString());
     }
 }
 
 // -----------------------------------------------------------------------------------------------
 
 void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
+
+    LOG_DEBUG_LIB(LibFdb5) << "CatalogueWipeState::includeData: dataURI=" << dataURI << std::endl;
 
     eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
 
@@ -123,6 +123,9 @@ void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
 }
 
 void CatalogueWipeState::excludeData(const eckit::URI& dataURI) {
+
+    LOG_DEBUG_LIB(LibFdb5) << "CatalogueWipeState::excludeData: dataURI=" << dataURI << std::endl;
+
 
     eckit::URI storeURI = StoreFactory::instance().uri(dataURI);
 
@@ -158,7 +161,7 @@ WipeElements CatalogueWipeState::extractWipeElements() {
     if (!safeURIs().empty()) {
         auto safe = safeURIs();  // note: needless copy.
         wipeElements.emplace_back(WipeElementType::CATALOGUE_SAFE,
-                                  "Protected URIs (explicitly untouched):", std::move(safe));
+                                  "Protected catalogue URIs (explicitly untouched):", std::move(safe));
     }
 
     return wipeElements;
@@ -216,7 +219,7 @@ void StoreWipeState::sign(const std::string& secret) const {
 
 std::uint64_t StoreWipeState::hash(const std::string& secret) const {
     std::uint64_t h = Signature::hashURIs(includedDataURIs(), secret + "in");
-    h ^= Signature::hashURIs(excludeDataURIs_, secret + "ex");
+    h ^= Signature::hashURIs(safeURIs(), secret + "ex");
     return h;
 }
 
@@ -234,12 +237,6 @@ StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
     s >> storeURI_;
 
     std::size_t n = 0;
-
-    s >> n;
-    for (std::size_t i = 0; i < n; ++i) {
-        eckit::URI uri(s);
-        excludeDataURIs_.insert(uri);
-    }
 
     signature_ = signature;
 }
@@ -261,12 +258,6 @@ void StoreWipeState::encode(eckit::Stream& s) const {
 
     s << signature_;
     s << storeURI_;
-
-
-    s << static_cast<std::size_t>(excludeDataURIs_.size());
-    for (const auto& uri : excludeDataURIs_) {
-        s << uri;
-    }
 }
 
 WipeElements StoreWipeState::extractWipeElements() {
@@ -284,6 +275,12 @@ WipeElements StoreWipeState::extractWipeElements() {
 
     addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
     addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
+
+    if (!safeURIs().empty()) {
+        auto safe = safeURIs();  // note: needless copy.
+        wipeElements.emplace_back(WipeElementType::STORE_SAFE,
+                                  "Protected store URIs (explicitly untouched):", std::move(safe));
+    }
 
     return wipeElements;
 }

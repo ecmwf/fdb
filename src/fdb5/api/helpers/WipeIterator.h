@@ -51,6 +51,7 @@ enum WipeElementType {
 
     STORE,
     STORE_AUX,
+    STORE_SAFE,
 
     UNKNOWN
 };

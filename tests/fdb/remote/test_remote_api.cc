@@ -53,19 +53,6 @@ std::vector<Key> write_data(FDB& fdb, const std::string& data,
     std::vector<Key> keys;
     Key k = keycommon();
 
-    // eckit::Date date{start_date};
-    // for (int i = 0; i < Ndates; i++) {
-    //     k.set("date", std::to_string(date.yyyymmdd()));
-    //     ++date;
-    //     int step = start_step;
-    //     for (int j = 0; j < Nsteps; j++) {
-    //         k.set("step", std::to_string(step++));
-    //         eckit::Log::info() << " archiving " << k << std::endl;
-    //         fdb.archive(k, data.data(), data.size());
-    //         keys.push_back(k);
-    //     }
-    // }
-
     for (const auto& date : dates) {
         k.set("date", date);
         for (const auto& type : types) {
@@ -168,10 +155,10 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
-    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+    // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
 
     // -- list all fields
     it = fdb.list(FDBToolRequest{{}, true, {}});
@@ -191,10 +178,10 @@ CASE("Remote protocol: the basics") {
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
 
-    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+    // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
 
     // -- list all remaining fields
     it = fdb.list(FDBToolRequest{{}, true, {}});
@@ -236,7 +223,7 @@ CASE("Remote protocol: more wipe testing") {
     // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
 
     // Duplicate everything
     FDB fdb2{};
@@ -265,7 +252,7 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);  // full db wipe, so none safe
 
     // artifically add some auxiliary .gribjump files to the store for this db.
@@ -291,11 +278,11 @@ CASE("Remote protocol: more wipe testing") {
         element_counts[wipeElem.type()] += wipeElem.uris().size();
         eckit::Log::info() << wipeElem;
     }
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);            // or maybe 4?
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);        // the .gribjump files
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);  // or maybe 4?
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no DBs are fully wiped
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 8);   // half of the indexes, and the two toc/schemas
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 12);  // half of the indexes, and the two toc/schemas
 
     // Over specified wipe on level 3 (step=1). Should hit nothing
     wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,step=1")[0], false);
@@ -321,7 +308,7 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 8);
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 8);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 8);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);
 
 

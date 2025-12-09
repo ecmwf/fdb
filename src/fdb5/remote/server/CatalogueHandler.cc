@@ -608,7 +608,6 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
 }
 
 void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    std::cout << "XXX CatalogueHandler::doWipe()" << std::endl;
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);

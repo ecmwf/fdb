@@ -73,7 +73,12 @@ public:
         }
     }
 
-    void markForDeletion(WipeElementType type, const eckit::URI& uri) { deleteURIs_[type].insert(uri); }
+    void markForDeletion(WipeElementType type, const eckit::URI& uri) {
+        if (isMarkedSafe(uri)) {
+            return;
+        }
+        deleteURIs_[type].insert(uri);
+    }
 
     // Ensure there are no overlaps between safe URIs and URIs to be deleted.
     void sanityCheck() const;
@@ -126,7 +131,7 @@ public:
     }
     void excludeData(const eckit::URI& uri) {
         failIfSigned();
-        excludeDataURIs_.insert(uri);
+        markAsSafe({uri});
     }
 
     // Remove URI from list of URIs to be deleted because, for example, it turns out not exist.
@@ -146,7 +151,6 @@ public:
 
     const std::set<eckit::URI>& dataAuxiliaryURIs() const { return deleteURIs_[WipeElementType::STORE_AUX]; }
     const std::set<eckit::URI>& includedDataURIs() const { return deleteURIs_[WipeElementType::STORE]; }
-    const std::set<eckit::URI>& excludedDataURIs() const { return excludeDataURIs_; }
 
     // Overrides
     void encode(eckit::Stream& s) const override;
@@ -159,10 +163,6 @@ private:
 private:
 
     mutable Signature signature_;
-
-    /// @todo: we care whether or not this is empty (for wipe all), but we do not actually use the uris.
-    /// if this is true, then we could just set a bool instead.
-    std::set<eckit::URI> excludeDataURIs_;
 
     eckit::URI storeURI_;
     mutable std::unique_ptr<Store> store_;
