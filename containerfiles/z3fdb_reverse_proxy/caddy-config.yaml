@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+data:
+  Caddyfile: |
+    {
+      log {
+        level DEBUG 
+      }
+    }
+
+    localhost {
+      encode {
+        match {
+          header Content-Type application/octet-stream
+        } 
+        zstd best
+      }
+      reverse_proxy host.containers.internal:5000 {
+        header_down -content-encoding
+      }
+    }
+
