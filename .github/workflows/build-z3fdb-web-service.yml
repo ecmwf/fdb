@@ -6,7 +6,10 @@ on:
     branches:
       - develop
   pull_request:
-
+env:
+  REGISTRY: eccr.ecmwf.int
+  IMAGE_NAME: z3fdb-web-service
+  PROJECT_NAME: kkratz
 jobs:
   build-fdb:
     name: Build Container
@@ -115,7 +118,7 @@ jobs:
           FDB5_HOME=fdb-build python -c "import z3fdb"
       - name: Package minimal FDB
         run: |
-          mkdir stage/fdb/lib
+          mkdir stage-fdb-minimal/fdb/lib
           cp fdb-build/lib/libmetkit.so \
           cp fdb-build/lib/libfdb5.so \
              fdb-build/lib/libeckit_option.so \
@@ -123,22 +126,35 @@ jobs:
              fdb-build/lib/libeckit.so \
              fdb-build/lib/libeccodes_memfs.so \
              depndencies/libaec.so* \
-             ${{ github.workspace }}/stage/fdb/lib
-          tar --zstd -cvf fdb.tar.zst -C ${{ github.workspace }}/stage/ fdb
-      - name: Upload Minimal FDB
-        uses: actions/upload-artifact@v4
+             ${{ github.workspace }}/stage-fdb-minimal/fdb/lib
+          tar --zstd -cvf fdb.tar.zst -C ${{ github.workspace }}/stage-fdb-minimal/ fdb
+      - name: Create z3fdb-web-service whl
+        run: |
+          python -m build --wheel fdb-source/tools/z3fdb-web-service -o .
+      - name: Assemble staging
+        run: |
+          mkdir -p stage
+          cp *.whl fdb.tar.zst stage
+      - name: Log in to ECCR
+        uses: docker/login-action@v3
         with:
-          name: minimal-fdb
-          path: fdb.tar.zst
-          retention-days: 1
-          if-no-files-found: error
-      - name: Upload Z3FDB Wheel
-        uses: actions/upload-artifact@v4
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          name: z3fdb-wheel
-          path: "fdb-build/z3fdb-*.whl"
-          retention-days: 1
-          if-no-files-found: error
-
-
-
+          images: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./stage
+          file: ./containerfiles/z3fdb_web_service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
