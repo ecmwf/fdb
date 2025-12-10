@@ -16,7 +16,7 @@ import sys
 import httpx
 import numpy
 import zarr
-from dto_types import RequestDTO, RequestsDTO
+from z3fdb_web_service.dto_types import RequestDTO, RequestsDTO
 from pychunked_data_view import ExtractorType
 from zarr.storage import FsspecStore
 
@@ -55,8 +55,9 @@ request_2 = {
     "date": "2024-01-01/to/2024-01-10",
     "levtype": "pl",
     "step": 0,
-    "param": ["q", "t", "u", "v", "w"],
-    "levelist": [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000],
+    #"param": ["q", "t", "u", "v", "w"],
+    "param": ["q"],
+    "levelist": [100, 150, 200, 300, 400, 500, 600, 700, 850, 925, 1000],
     "time": "0000/0600/1200/1800",
 }
 
@@ -73,12 +74,13 @@ r_dtos = [r_dto_1, r_dto_2]
 
 
 async def async_main():
-    url = "https://localhost:4430/create"
+    global host
+    url = f"http://{host}"
     headers = {"Content-Type": "application/json", "Content-Encoding": "zstd"}
 
     async with httpx.AsyncClient(verify=False) as client:
         response = await client.post(
-            url, headers=headers, content=RequestsDTO(r_dtos).toJSON().encode("utf-8")
+            f"{url}/create", headers=headers, content=RequestsDTO(r_dtos).toJSON().encode("utf-8")
         )
 
         if response.is_client_error:
@@ -93,7 +95,7 @@ async def async_main():
             "Content-Encoding": "zstd",
         }
         z_grp = FsspecStore.from_url(
-            f"https://localhost:4430/get/zarr/{hash}",
+            f"{url}/get/zarr/{hash}",
             read_only=True,
             storage_options={
                 "ssl": False,
@@ -117,6 +119,11 @@ async def async_main():
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--host",
+        help="Host:Port string to connect to",
+        default="localhost:5000"
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -144,6 +151,9 @@ def main():
     )
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+    global host
+    host = args.host
 
     try:
         asyncio.run(async_main())

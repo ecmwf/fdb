@@ -2,7 +2,10 @@ FROM ubuntu:rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/opt/ecmwf/bin:/opt/venv/bin:$PATH"
-ENV FDB5_HOME=/opt/ecmwf/fdb
+# For z3fdb to find fdb.so
+ENV FDB5_HOME=/opt/ecmwf/fdb/
+# For z3fdb to find externally mounted remote fdb config
+ENV FDB5_CONFIG_FILE=/opt/ecmwf/fdb/config.yaml
 
 RUN apt-get update \
     && apt-get install -y \
@@ -18,7 +21,7 @@ RUN apt-get update \
     && rm -rf /var/tmp/*
 
 # Expect the context to be set to a build path after CPACK ran
-COPY ["fdb-*.tar.zst", "z3fdb-*.whl", "/tmp/"]
+COPY ["fdb-*.tar.zst", "z3fdb*.whl", "/tmp/"]
 
 RUN mkdir -p /opt/venv \
     && python3 -m venv /opt/venv \
@@ -30,6 +33,4 @@ RUN mkdir -p /opt/ecmwf \
     && cd /opt/ecmwf/ \
     && ln -s $(ls /opt/ecmwf | grep fdb) fdb
 
-# CMD ["-c", "\"import z3fdb; print('success')\""]
-
-ENTRYPOINT ["/opt/venv/bin/python"]
+ENTRYPOINT ["z3fdb-web-service"]

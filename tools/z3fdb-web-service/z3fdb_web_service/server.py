@@ -10,6 +10,7 @@
 
 import argparse
 import json
+import logging
 import os
 import pathlib
 from typing import Collection
@@ -110,13 +111,12 @@ def log_environment():
         app.logger.info(f"{var}={val}")
 
 
-def connect_to_fdb(args):
+def set_fdb_environment(args):
     if args.fdb_config:
         abs_path = args.fdb_config.expanduser().resolve()
         if not abs_path.is_file():
             raise Exception(f"Cannot find fdb config file {abs_path}")
         os.environ["FDB5_CONFIG_FILE"] = f"{abs_path}"
-    os.environ["FDB_ENABLE_GRIBJUMP"] = "1"
     log_environment()
 
 
@@ -142,12 +142,12 @@ def parse_args():
 def main():
     args = parse_args()
     if args.verbose == 0:
-        pass
+        app.logger.setLevel(logging.WARNING)
     elif args.verbose == 1:
-        pass
+        app.logger.setLevel(logging.INFO)
     else:
-        pass
+        app.logger.setLevel(logging.DEBUG)
 
-    connect_to_fdb(args)
+    set_fdb_environment(args)
 
     app.run(debug=args.debug, host="0.0.0.0")
