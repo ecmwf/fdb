@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: z3fdb-web-service-config
+  namespace: z3fdb-dev
+data:
+  fdb-config: |
+    type: select
+    fdbs:
+      - select: class=d1,dataset=^climate-dt$,generation=2
+        type: remote
+        host: databridge-prod-catalogue4-ope.ewctest.link
+        port: 10000
+        engine: remote
+        store: remote
+      - select: class=d1,dataset=^climate-dt$,generation=1
+        type: remote
+        host: databridge-prod-catalogue3-ope.ewctest.link
+        port: 10000
+        engine: remote
+        store: remote

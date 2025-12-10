@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: z3fdb-ingress
+  namespace: z3fdb-dev
+  annotations:
+    dns.operators.ecmwf.int/on-transport-server: vs-transport-https
+    cert-manager.io/cluster-issuer: 
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/limit-rps: "500"
+    nginx.ingress.kubernetes.io/limit-req-status-code: "429"
+    
+    nginx.org/redirect-to-https: "True"
+    ingress.kubernetes.io/ssl-redirect: "True"
+    
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "z3fdb-dev.lumi.apps.dte.destination-earth.eu"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: z3fdb-web-service
+            port:
+              number: 80
+  defaultBackend:
+    service:
+      name: z3fdb-web-service
+      port:
+        number: 80
+  tls:
+  - hosts:
+    - "z3fdb-dev.lumi.apps.dte.destination-earth.eu"
+    secretName: z3fdb-wildcard-tls

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: z3fdb-web-service-deployment
+  namespace: z3fdb-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: z3fdb
+  template:
+    metadata:
+      labels:
+        app: z3fdb
+    spec:
+      containers:
+      - name: z3fdb-web-service
+        image: eccr.ecmwf.int/kkratz/z3fdb-web-service:latest
+        args: ["--fdb-config=/etc/fdb/fdb.config"]
+        env:
+          - name: FDB_DEBUG
+            value: "1"
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: z3fdb-web-service-volume
+          mountPath: /etc/fdb/fdb.config
+          subPath: fdb-config # Mounts the ConfigMap data as a single file
+      - name: caddy
+        image: eccr.ecmwf.int/kkratz/caddy:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: caddyfile
+          mountPath: /etc/caddy/Caddyfile
+          subPath: Caddyfile # Mounts the ConfigMap data as a single file
+      volumes:
+      - name: z3fdb-web-service-volume
+        configMap:
+          name: z3fdb-web-service-config
+      - name: caddyfile
+        configMap:
+          name: caddy-config
