@@ -139,8 +139,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
-          password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+          username: ${{ secrets.KKRATZ_ECCR_USER }}
+          password: ${{ secrets.KKRATZ_ECCR_TOKEN }}
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
