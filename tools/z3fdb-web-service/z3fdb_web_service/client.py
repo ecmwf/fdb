@@ -20,67 +20,94 @@ from z3fdb_web_service.dto_types import RequestDTO, RequestsDTO
 from pychunked_data_view import ExtractorType
 from zarr.storage import FsspecStore
 
-request_1 = {
-    "type": "an",
-    "class": "ea",
-    "domain": "g",
-    "expver": "0001",
-    "stream": "oper",
-    "date": "2024-01-01/to/2024-01-10",
-    "levtype": "sfc",
-    "step": "0",
-    "param": [
-        "10u",
-        "10v",
-        "2d",
-        "2t",
-        "lsm",
-        "msl",
-        "sdor",
-        "skt",
-        "slor",
-        "sp",
-        "tcw",
-        "z",
-    ],
-    "time": "0000/0600/1200/1800",
-}
+# request_1 = {
+#     "type": "an",
+#     "class": "ea",
+#     "domain": "g",
+#     "expver": "0001",
+#     "stream": "oper",
+#     "date": "2024-01-01/to/2024-01-10",
+#     "levtype": "sfc",
+#     "step": "0",
+#     "param": [
+#         "10u",
+#         "10v",
+#         "2d",
+#         "2t",
+#         "lsm",
+#         "msl",
+#         "sdor",
+#         "skt",
+#         "slor",
+#         "sp",
+#         "tcw",
+#         "z",
+#     ],
+#     "time": "0000/0600/1200/1800",
+# }
+#
+# request_2 = {
+#     "type": "an",
+#     "class": "ea",
+#     "domain": "g",
+#     "expver": "0001",
+#     "stream": "oper",
+#     "date": "2024-01-01/to/2024-01-10",
+#     "levtype": "pl",
+#     "step": 0,
+#     #"param": ["q", "t", "u", "v", "w"],
+#     "param": ["q"],
+#     "levelist": [100, 150, 200, 300, 400, 500, 600, 700, 850, 925, 1000],
+#     "time": "0000/0600/1200/1800",
+# }
+#
+# r_dto_1 = RequestDTO(
+#     request_1, [(["date", "time"], True), (["param"], True)], ExtractorType.GRIB
+# )
+# r_dto_2 = RequestDTO(
+#     request_2,
+#     [(["date", "time"], True), (["param", "levelist"], True)],
+#     ExtractorType.GRIB,
+# )
 
-request_2 = {
-    "type": "an",
-    "class": "ea",
-    "domain": "g",
+# r_dtos = [r_dto_1, r_dto_2]
+
+request_1 = {
+    "class": "d1",
+    "dataset": "climate-dt",
+    "stream": "clte",
+    "activity": "baseline",
+    "resolution": "high",
     "expver": "0001",
-    "stream": "oper",
-    "date": "2024-01-01/to/2024-01-10",
-    "levtype": "pl",
-    "step": 0,
-    #"param": ["q", "t", "u", "v", "w"],
-    "param": ["q"],
-    "levelist": [100, 150, 200, 300, 400, 500, 600, 700, 850, 925, 1000],
-    "time": "0000/0600/1200/1800",
+    "experiment": "hist",
+    "generation": "2",
+    "model": "IFS-FESOM",
+    "realization": "1",
+    "type": "fc",
+    "date": "2014-12-31",
+    "time": "0000",
+    "levtype": "hl",
+    "levelist": "100",
+    "param": ["131", "132"],
 }
 
 r_dto_1 = RequestDTO(
     request_1, [(["date", "time"], True), (["param"], True)], ExtractorType.GRIB
 )
-r_dto_2 = RequestDTO(
-    request_2,
-    [(["date", "time"], True), (["param", "levelist"], True)],
-    ExtractorType.GRIB,
-)
 
-r_dtos = [r_dto_1, r_dto_2]
+r_dtos = [r_dto_1]
 
 
 async def async_main():
     global host
-    url = f"http://{host}"
+    url = f"{host}"
     headers = {"Content-Type": "application/json", "Content-Encoding": "zstd"}
 
     async with httpx.AsyncClient(verify=False) as client:
         response = await client.post(
-            f"{url}/create", headers=headers, content=RequestsDTO(r_dtos).toJSON().encode("utf-8")
+            f"{url}/create",
+            headers=headers,
+            content=RequestsDTO(r_dtos).toJSON().encode("utf-8"),
         )
 
         if response.is_client_error:
@@ -120,9 +147,7 @@ async def async_main():
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--host",
-        help="Host:Port string to connect to",
-        default="localhost:5000"
+        "--host", help="Host:Port string to connect to", default="localhost:5000"
     )
     parser.add_argument(
         "-v",
