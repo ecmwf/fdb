@@ -11,8 +11,8 @@ env:
   IMAGE_NAME: z3fdb-web-service
   PROJECT_NAME: kkratz
 jobs:
-  build-fdb:
-    name: Build Container
+  build-packages:
+    name: Build Packages
     runs-on: [self-hosted, Linux, platform-builder-docker]
     container:
       image: eccr.ecmwf.int/ci-utils/ubuntu_rolling_fdb_build_env:latest
@@ -114,6 +114,7 @@ jobs:
           ctest -j $(nproc) --output-on-failure
       - name: Run Z3fdb Wheel Installation Test
         run: |
+          ls ./fdb-build
           pip install ./fdb-build/$(ls z3fdb*.whl)
           FDB5_HOME=fdb-build python -c "import z3fdb"
       - name: Package minimal FDB
@@ -135,6 +136,21 @@ jobs:
         run: |
           mkdir -p stage
           cp *.whl fdb.tar.zst stage
+      - name: Upload stage archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage
+          path: stage/
+  build-container:
+    name: Build Image
+    runs-on: [self-hosted, Linux, platform-builder-docker]
+    needs: [build-packages]
+    steps:
+      - name: Download stage archive
+        uses: actions/download-artifact@v4
+        with:
+          name: stage
+          path: stage/
       - name: Log in to ECCR
         uses: docker/login-action@v3
         with:
