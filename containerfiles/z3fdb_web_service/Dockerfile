@@ -15,6 +15,8 @@ RUN apt-get update \
     libqhull8.0 \
     zstd \
     libaec0 \
+    valgrind \
+    gdb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* \
@@ -33,4 +35,4 @@ RUN mkdir -p /opt/ecmwf \
     && cd /opt/ecmwf/ \
     && ln -s $(ls /opt/ecmwf | grep fdb) fdb
 
-ENTRYPOINT ["z3fdb-web-service"]
+ENTRYPOINT ["valgrind"]

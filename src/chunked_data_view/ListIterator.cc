@@ -30,13 +30,13 @@ std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> ListIte
         return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    has_next = listIterator_.next(elem);
-
-    if (has_next) {
-        return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
-    }
+    // has_next = listIterator_.next(elem);
+    //
+    // if (has_next) {
+    //     return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
+    // }
 
     return std::nullopt;
 };
