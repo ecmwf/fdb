@@ -36,7 +36,7 @@ class PyFDB:
         user_config: Config | str | dict | Path | None = None,
     ) -> None:
         """
-        Constructor for the PyFDB object.
+        Constructor for PyFDB object.
 
         Parameters
         ----------
@@ -68,19 +68,19 @@ class PyFDB:
         --------
         >>> pyfdb = pyfdb.PyFDB()
         >>> config = pyfdb.Config(
-                dict(
-                    type="local",
-                    engine="toc",
-                    schema=<schema_path>,
-                    spaces=[
-                        dict(
-                            handler="Default",
-                            roots=[
+                {
+                    "type":"local",
+                    "engine":"toc",
+                    "schema":<schema_path>,
+                    "spaces":[
+                        {
+                            "handler":"Default",
+                            "roots":[
                                 {"path": <db_store_path>},
                             ],
-                        )
+                        }
                     ],
-                ))
+                })
         >>> pyfdb.PyFDB(config)
         """
 

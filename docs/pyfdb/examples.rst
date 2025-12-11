@@ -25,29 +25,24 @@ a ``Dict[str, Any]`` as shown below.
 
 .. code-block:: python
 
-    config = dict(
+    config = {
         type="local",
         engine="toc",
         schema="/path/to/fdb_schema",
         spaces=[
-            dict(
+            {
                 handler="Default",
                 roots=[
                     {"path": "/path/to/root"}
                 ]
-            )
+            }
         ],
-    )
+    }
     fdb = pyfdb.PyFDB(config=config, userconfig={})
 
 .. TODO(TKR): Specify what a user config is and how this can be used here.
 
-
-
-
-
-
-Down below are some of the common examples you want to use `PyFDB` for:
+Below are some of the common examples you want to use `PyFDB` for:
 
 Archive
 ***********
@@ -345,7 +340,7 @@ You can see that the ``ControlIdentifier`` with value ``4`` is active for the gi
 This corresponds to the ``ControlIdentifier.ARCHIVE`` value. 
 
 .. tip::
-   Use the ``control`` functionality of the PyFDB to switch certain properties of ``FDB`` elements.
+   Use the ``control`` functionality of PyFDB to switch certain properties of ``FDB`` elements.
    Refer to the ``control`` section for further information.
 
 Wipe
