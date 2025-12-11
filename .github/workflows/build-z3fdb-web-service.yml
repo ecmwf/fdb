@@ -114,8 +114,7 @@ jobs:
           ctest -j $(nproc) --output-on-failure
       - name: Run Z3fdb Wheel Installation Test
         run: |
-          ls ./fdb-build
-          pip install ./fdb-build/$(ls z3fdb*.whl)
+          pip install $(ls ./fdb-build/z3fdb*.whl)
           FDB5_HOME=fdb-build python -c "import z3fdb"
       - name: Package minimal FDB
         run: |
