@@ -118,7 +118,7 @@ jobs:
           FDB5_HOME=fdb-build python -c "import z3fdb"
       - name: Package minimal FDB
         run: |
-          mkdir stage-fdb-minimal/fdb/lib
+          mkdir -p stage-fdb-minimal/fdb/lib
           cp fdb-build/lib/libmetkit.so \
           cp fdb-build/lib/libfdb5.so \
              fdb-build/lib/libeckit_option.so \
