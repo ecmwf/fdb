@@ -12,9 +12,9 @@ PyFDB documentation
    :maxdepth: 2
    :caption: Contents:
 
-   installation
-   configuration
-   examples
+   Installation
+   Configuration
+   Examples
 
 Indices and tables
 ==================

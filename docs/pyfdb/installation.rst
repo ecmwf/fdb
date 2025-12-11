@@ -19,7 +19,7 @@ Place the following ``CMakeLists.txt`` in it
 
 .. code-block:: cmake
 
-    cmake_minimum_required( VERSION 3.15 FATAL_ERROR )
+    cmake_minimum_required( VERSION 3.18 FATAL_ERROR )
 
     find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} $ENV{HOME}/.local/ecbuild)
 
@@ -59,7 +59,7 @@ Run the following ``cmake`` command to configure the stack with its dependencies
 .. tip::
 
     The ``cmake`` variables can be changed accordingly. Use at least the 
-    ``-DENABLE_PYTHON_FDB_INTERFACE`` to build the PyFDB.
+    ``-DENABLE_PYTHON_FDB_INTERFACE`` to build PyFDB.
 
     You can also switch to make by dropping ``-G Ninja``.
 
@@ -76,7 +76,7 @@ If the command exists successfully, adjust your ``PYTHONPATH`` to:
    export PYTHONPATH=<path-to-build-folder>/pyfdb-python-package-staging:<path-to-stack-folder>/fdb/src
 
 
-Afterwards, verify whether the tests are successfully running, by switching to the test folder of the PyFDB
+Afterwards, verify whether the tests are successfully running, by switching to the test folder of PyFDB
 and execute ``pytest``:
 
 .. code-block:: sh

@@ -283,7 +283,7 @@ class Config:
     Note
     ----
     *In case you want to supply a config to a FDB, hand in the needed arguments to the FDB directly.*
-    For usage examples see the comments of the PyFDB constructor.
+    For usage examples see the comments of PyFDB constructor.
 
     Every config can be a `Config` object, but is converted accordingly if another type is supplied:
         - `str` is used as a yaml representation to parse the config
@@ -297,19 +297,19 @@ class Config:
     Examples
     --------
     >>> config = pyfdb.Config(
-            dict(
-                type="local",
-                engine="toc",
-                schema=<schema_path>,
-                spaces=[
-                    dict(
-                        handler="Default",
-                        roots=[
+            {
+                "type":"local",
+                "engine":"toc",
+                "schema":<schema_path>,
+                "spaces":[
+                    {
+                        "handler":"Default",
+                        "roots":[
                             {"path": <db_store_path>},
                         ],
-                    )
+                    }
                 ],
-            ))
+            })
     """
 
     def __init__(self, config: str | dict | Path) -> None:
@@ -352,20 +352,7 @@ class Identifier:
 
     Examples
     --------
-    >>> config = pyfdb.Config(
-            dict(
-                type="local",
-                engine="toc",
-                schema=<schema_path>,
-                spaces=[
-                    dict(
-                        handler="Default",
-                        roots=[
-                            {"path": <db_store_path>},
-                        ],
-                    )
-                ],
-            ))
+    >>> identifier = Identifier([("a", "ab"), ("b", "bb"), ("c", "bc")])
     """
 
     def __init__(self, key_value_pairs: List[Tuple[str, str]]):
@@ -444,20 +431,7 @@ class URI:
 
     Examples
     --------
-    >>> config = pyfdb.Config(
-            dict(
-                type="local",
-                engine="toc",
-                schema=<schema_path>,
-                spaces=[
-                    dict(
-                        handler="Default",
-                        roots=[
-                            {"path": <db_store_path>},
-                        ],
-                    )
-                ],
-            ))
+    >>> uri = URI.from_str("scheme://netloc/path;parameters?query#fragment")
     """
 
     def __init__(self):

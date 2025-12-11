@@ -102,19 +102,19 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
 
     db_store_path = session_tmp / "db_store"
     db_store_path.mkdir()
-    fdb_config = dict(
-        type="local",
-        engine="toc",
-        schema=str(schema_path),
-        spaces=[
-            dict(
-                handler="Default",
-                roots=[
+    fdb_config = {
+        "type": "local",
+        "engine": "toc",
+        "schema": str(schema_path),
+        "spaces": [
+            {
+                "handler": "Default",
+                "roots": [
                     {"path": str(db_store_path)},
                 ],
-            )
+            }
         ],
-    )
+    }
     fdb_config_str = yaml.dump(fdb_config)
     fdb_config_path = session_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
