@@ -146,6 +146,10 @@ jobs:
     runs-on: [self-hosted, Linux, platform-builder-docker]
     needs: [build-packages]
     steps:
+      - name: Get fdb5
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/fdb
       - name: Download stage archive
         uses: actions/download-artifact@v4
         with:
