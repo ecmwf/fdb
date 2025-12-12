@@ -120,7 +120,9 @@ jobs:
         run: |
           mkdir -p stage-fdb-minimal/fdb/lib
           echo $(pwd)
-          tree .
+          ls -lah
+          ls -lah fdb-build
+          ls -lah fdb-build/lib
           cp fdb-build/lib/libmetkit.so \
              fdb-build/lib/libfdb5.so \
              fdb-build/lib/libeckit_option.so \
