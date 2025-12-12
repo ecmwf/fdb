@@ -168,3 +168,29 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
         data_handle.open()
         print(data_handle.read(4))
         print(data_handle_2.read(4))
+
+
+def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    pyfdb = PyFDB(fdb_config_path.read_text())
+
+    request = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": "167/165/166",
+        "time": "1800",
+    }
+
+    with pyfdb.retrieve(request) as data_handle:
+        # Check the GRIB header
+        assert data_handle
+        assert data_handle.read(4) == b"GRIB"

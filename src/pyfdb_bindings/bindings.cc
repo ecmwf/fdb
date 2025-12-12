@@ -59,6 +59,7 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
                                print,             /* Name of function in C++ (must match Python name) */
         );
     }
+
     long read(void* buf, long length) override {
         PYBIND11_OVERRIDE_PURE(long,              /* Return type */
                                eckit::DataHandle, /* Parent class */
@@ -103,8 +104,11 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  py::buffer_info info = buffer.request();
                  return data_handle.read(info.ptr, info.size);
              })
-        .def("__repr__", &eckit::DataHandle::print)
-        .def("print", &eckit::DataHandle::print);
+        .def("__repr__", [](eckit::DataHandle& data_handle) {
+            std::stringstream buf;
+            buf << data_handle;
+            return buf.str();
+        });
 
     py::class_<mars::MarsRequest>(m, "MarsRequest")
         .def(py::init([]() { return mars::MarsRequest(); }))

@@ -129,6 +129,13 @@ class DataHandle:
         bare_instance = object.__new__(cls)
         return bare_instance
 
+    def __enter__(self) -> "DataHandle":
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.close()
+
     @classmethod
     def _from_raw(cls, data_handle: _DataHandle) -> "DataHandle":
         """
