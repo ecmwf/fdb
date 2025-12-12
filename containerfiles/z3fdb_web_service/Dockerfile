@@ -15,6 +15,7 @@ RUN apt-get update \
     libqhull8.0 \
     zstd \
     libaec0 \
+    libcurl4 \
     valgrind \
     gdb \
     && apt-get clean \
