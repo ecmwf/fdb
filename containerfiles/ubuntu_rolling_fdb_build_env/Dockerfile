@@ -12,6 +12,7 @@ RUN apt-get update \
     git \
     curl \
     wget \
+    patchelf \
     python3-full \
     python3-venv \
     python3-dev \
