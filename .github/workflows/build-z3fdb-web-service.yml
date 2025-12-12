@@ -120,13 +120,13 @@ jobs:
         run: |
           mkdir -p stage-fdb-minimal/fdb/lib
           cp fdb-build/lib/libmetkit.so \
-          cp fdb-build/lib/libfdb5.so \
+             fdb-build/lib/libfdb5.so \
              fdb-build/lib/libeckit_option.so \
              fdb-build/lib/libeccodes.so \
              fdb-build/lib/libeckit.so \
              fdb-build/lib/libeccodes_memfs.so \
              dependencies/lib/libaec.so* \
-             ${{ github.workspace }}/stage-fdb-minimal/fdb/lib
+             stage-fdb-minimal/fdb/lib
           tar --zstd -cvf fdb.tar.zst -C stage-fdb-minimal/ fdb
       - name: Create z3fdb-web-service whl
         run: |
