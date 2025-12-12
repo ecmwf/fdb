@@ -23,7 +23,7 @@ RUN apt-get update \
     && rm -rf /var/tmp/*
 
 # Expect the context to be set to a build path after CPACK ran
-COPY ["fdb-*.tar.zst", "z3fdb*.whl", "/tmp/"]
+COPY ["fdb*.tar.zst", "z3fdb*.whl", "/tmp/"]
 
 RUN mkdir -p /opt/venv \
     && python3 -m venv /opt/venv \
@@ -31,7 +31,7 @@ RUN mkdir -p /opt/venv \
     && pip install --no-cache-dir "zarr>=3,<4" numpy pytest pytest-asyncio eccodes pyfdb build setuptools $(ls /tmp/z3fdb*.whl)
 
 RUN mkdir -p /opt/ecmwf \
-    && tar xvf $(ls /tmp/fdb-*.tar.zst) -C /opt/ecmwf/ \
+    && tar xvf $(ls /tmp/fdb*.tar.zst) -C /opt/ecmwf/ \
     && cd /opt/ecmwf/ \
     && ln -s $(ls /opt/ecmwf | grep fdb) fdb
 

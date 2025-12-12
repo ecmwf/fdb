@@ -135,7 +135,7 @@ jobs:
       - name: Assemble staging
         run: |
           mkdir -p stage
-          cp *.whl fdb.tar.zst stage
+          cp *.whl fdb.tar.zst fdb-build/*.whl stage
       - name: Upload stage archive
         uses: actions/upload-artifact@v4
         with:
