@@ -119,18 +119,15 @@ jobs:
       - name: Package minimal FDB
         run: |
           mkdir -p stage-fdb-minimal/fdb/lib
-          echo $(pwd)
-          ls -lah
-          ls -lah fdb-build
-          ls -lah fdb-build/lib
-          cp fdb-build/lib/libmetkit.so \
-             fdb-build/lib/libfdb5.so \
-             fdb-build/lib/libeckit_option.so \
-             fdb-build/lib/libeccodes.so \
-             fdb-build/lib/libeckit.so \
-             fdb-build/lib/libeccodes_memfs.so \
+          cp fdb-build/lib/libfdb5.so \
+             dependencies/lib/libmetkit.so \
+             dependencies/lib/libeckit_option.so \
+             dependencies/lib/libeccodes.so \
+             dependencies/lib/libeckit.so \
+             dependencies/lib/libeccodes_memfs.so \
              dependencies/lib/libaec.so* \
              stage-fdb-minimal/fdb/lib
+          for lib in stage-fdb-minimal/fdb/lib/*.so*; do patchelf --set-rpath '$ORIGIN' "$lib"; done
           tar --zstd -cvf fdb.tar.zst -C stage-fdb-minimal/ fdb
       - name: Create z3fdb-web-service whl
         run: |
