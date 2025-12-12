@@ -131,7 +131,7 @@ jobs:
           tar --zstd -cvf fdb.tar.zst -C stage-fdb-minimal/ fdb
       - name: Create z3fdb-web-service whl
         run: |
-          python -m build --wheel fdb-source/tools/z3fdb-web-service -o .
+          python -m build --wheel fdb-src/tools/z3fdb-web-service -o .
       - name: Assemble staging
         run: |
           mkdir -p stage

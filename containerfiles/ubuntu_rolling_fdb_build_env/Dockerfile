@@ -20,6 +20,7 @@ RUN apt-get update \
     ninja-build \
     bison \
     flex \
+    zstd \
     libeigen3-dev \
     libncurses-dev \
     libqhull-dev \
