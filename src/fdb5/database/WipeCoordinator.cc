@@ -38,6 +38,18 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
         /// @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
         /// Perhaps in the destructor of the wipe state?
         catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
+
+        eckit::Log::warning() << "Unclean FDB database has the following unknown URIs:" << std::endl;
+        for (const auto& uri : unknownURIs.catalogue) {
+            eckit::Log::warning() << uri << std::endl;
+        }
+        for (const auto& [storeURI, uris] : unknownURIs.store) {
+            for (auto& uri : uris) {
+                eckit::Log::warning() << uri << std::endl;
+            }
+        }
+        eckit::Log::warning() << "Wipe cannot proceed without --unsafe-wipe-all." << std::endl;
+
         throw eckit::Exception("Cannot fully wipe unclean FDB database");
     }
 

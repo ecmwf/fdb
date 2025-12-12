@@ -13,8 +13,6 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/database/WipeState.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit;

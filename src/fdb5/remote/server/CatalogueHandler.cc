@@ -261,24 +261,9 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
     }
 
     WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        using ValueType     = CatalogueWipeState;
-        using QueryIterator = APIIterator<ValueType>;
-        using AsyncIterator = APIAsyncIterator<ValueType>;
-
-        auto async_worker = [request, &fdb, this](Queue<ValueType>& queue) {
-            // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
-            ASSERT(!this->unsafeWipeAll_);
-
-            auto it = fdb.internal_->wipe(request, this->doit_, this->porcelain_, this->unsafeWipeAll_);
-
-            CatalogueWipeState state;
-
-            while (it.next(state)) {
-                queue.emplace(std::move(state));
-            }
-        };
-
-        return QueryIterator(new AsyncIterator((async_worker)));
+        // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
+        ASSERT(!unsafeWipeAll_);
+        return fdb.internal_->wipe(request, doit_, porcelain_, unsafeWipeAll_);
     }
 
 private:

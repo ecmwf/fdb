@@ -268,8 +268,6 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
                 queue.emplace(el);
             }
         }
-
-        queue.close();
     };
 
     return WipeIterator(new APIAsyncIterator<WipeElement>(async));

@@ -52,8 +52,8 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         // Lock the database for everything but wiping.
         // Build the initial control state (is there really not a function for this?)
         ControlIdentifiers id;
-        if (catalogue.enabled(ControlIdentifier::Wipe)) {
-            id |= ControlIdentifier::Wipe;
+        if (catalogue.enabled(ControlIdentifier::Archive)) {
+            id |= ControlIdentifier::Archive;
         }
         if (catalogue.enabled(ControlIdentifier::List)) {
             id |= ControlIdentifier::List;
