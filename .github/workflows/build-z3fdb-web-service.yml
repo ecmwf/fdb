@@ -119,6 +119,8 @@ jobs:
       - name: Package minimal FDB
         run: |
           mkdir -p stage-fdb-minimal/fdb/lib
+          echo $(pwd)
+          tree .
           cp fdb-build/lib/libmetkit.so \
              fdb-build/lib/libfdb5.so \
              fdb-build/lib/libeckit_option.so \
