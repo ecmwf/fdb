@@ -103,6 +103,12 @@ class PyFDB:
         else:
             self.FDB = _interal.FDB()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.flush()
+
     def archive(self, bytes: bytes, identifier: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.
@@ -129,6 +135,7 @@ class PyFDB:
         --------
         >>> pyfdb.archive(bytes=b"binary-data")
         >>> pyfdb.archive(key=Key([("key-1", "value-1")]), bytes=b"binary-data")
+        >>> pyfdb.flush # Sync the archive call
         """
         if identifier is None:
             self.FDB.archive(bytes, len(bytes))
@@ -150,8 +157,8 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb.archive(bytes=b"some-binary-data") // Archive
-        >>> pyfdb.flush() // Data is synced
+        >>> pyfdb.archive(bytes=b"some-binary-data") # Archive
+        >>> pyfdb.flush() # Data is synced
         """
         self.FDB.flush()
 
@@ -174,7 +181,7 @@ class PyFDB:
         >>> mars_selection = {"key-1": "value-1", ...}
         >>> data_handle = pyfdb.retrieve(mars_selection)
         >>> data_handle.open()
-        >>> data_handle.read(4) // == b'GRIB'
+        >>> data_handle.read(4) # == b'GRIB'
         >>> data_handle.close()
         """
         mars_request = _interal.MarsRequest.from_selection(mars_selection)
@@ -223,7 +230,7 @@ class PyFDB:
         >>>         "time": "1800",
         >>>     },
         >>> )
-        >>> list_iterator = pyfdb.list(request) // level == 3
+        >>> list_iterator = pyfdb.list(request) # level == 3
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
@@ -296,7 +303,7 @@ class PyFDB:
         >>>         "time": "1800",
         >>>     }
         >>> list_iterator = pyfdb.inspect(selection)
-        >>> elements = list(list_iterator) // single element in iterator
+        >>> elements = list(list_iterator) # single element in iterator
         >>> elements[0]
 
         ```
@@ -717,7 +724,7 @@ class PyFDB:
         >>>         "time": "1800",
         >>>     },
         >>> )
-        >>> index_axis: IndexAxis = pyfdb.axes(request) // level == 3
+        >>> index_axis: IndexAxis = pyfdb.axes(request) # level == 3
         >>> for k, v in index_axis.items():
         >>>     print(f"k={k} \t| v={v}")
 
@@ -757,12 +764,12 @@ class PyFDB:
         >>> fdb_config["writable"] = False
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
-        >>> pyfdb.enabled(ControlIdentifier.NONE) // == True
-        >>> pyfdb.enabled(ControlIdentifier.LIST) // == True
-        >>> pyfdb.enabled(ControlIdentifier.RETRIEVE) // == True
-        >>> pyfdb.enabled(ControlIdentifier.ARCHIVE) // == False, default True
-        >>> pyfdb.enabled(ControlIdentifier.WIPE) // == False, default True
-        >>> pyfdb.enabled(ControlIdentifier.UNIQUEROOT) // == True
+        >>> pyfdb.enabled(ControlIdentifier.NONE) # == True
+        >>> pyfdb.enabled(ControlIdentifier.LIST) # == True
+        >>> pyfdb.enabled(ControlIdentifier.RETRIEVE) # == True
+        >>> pyfdb.enabled(ControlIdentifier.ARCHIVE) # == False, default True
+        >>> pyfdb.enabled(ControlIdentifier.WIPE) # == False, default True
+        >>> pyfdb.enabled(ControlIdentifier.UNIQUEROOT) # == True
 
         """
         return self.FDB.enabled(control_identifier)
@@ -787,9 +794,9 @@ class PyFDB:
         >>> pyfdb = PyFDB(fdb_config)
         >>> filename = <test_data_path>
         >>> pyfdb.archive(open(filename, "rb").read())
-        >>> pyfdb.needs_flush()                         // == True
+        >>> pyfdb.needs_flush()                         # == True
         >>> pyfdb.flush()
-        >>> pyfdb.needs_flush()                         // == False
+        >>> pyfdb.needs_flush()                         # == False
 
         """
         return self.FDB.dirty()
