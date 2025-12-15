@@ -9,7 +9,7 @@
 import json
 from enum import IntFlag, auto
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Collection, Dict, Iterable, List, Mapping, Self, Tuple
 
 import yaml
 
@@ -25,8 +25,188 @@ from pyfdb._internal import (
 Selection part of a MARS request.
 
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
+Use the SelectionBuilder to create a MarsSelection from a given input.
 """
-MarsSelection = Dict[str, str]
+MarsSelection = Mapping[str, str | int | float | Collection[str] | Collection[int]]
+
+
+class SelectionBuilder:
+    """
+    Selection builder for creating MARS selections.
+
+    This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
+    is activated there will be checks whether keys have been set already
+
+    Parameters
+    ----------
+    `strict_mode`: `bool`
+        If a set key is to be overwritten, raise an KeyException
+
+    Note
+    ----
+    *There are no consistency checks applied.*
+
+    Returns
+    -------
+    `SelectionBuilder` object
+
+    Examples
+    --------
+    >>> builder = SelectionBuilder()
+    >>> mars_selection = (
+    >>>     builder
+    >>>     .value("key-1", "value-1")                  # Single str value
+    >>>     .values("key-2", ["value-3", 214, 213.54])  # Mixed multiple values
+    >>>     .to("key-3", "0.1", 0.2)                    # Mixed to list
+    >>>     .to_by("key-4", "0.1", 0.2, "0.5")          # Mixed to/by range
+    >>>     .build()
+    >>> )
+    """
+
+    def __init__(self, strict_mode: bool = False) -> None:
+        self.strict_mode = strict_mode
+        self.key_values = {}
+
+    def _strict_mode_checking(self, key):
+        if key in self.key_values and self.strict_mode:
+            raise ValueError(
+                f"Key {key} does already exist in the builder and strict_mode is active."
+            )
+
+    def value(self, key, value: int | float | str) -> Self:
+        """Create a key and value pair for a MARS selection.
+
+        Parameters
+        ----------
+        key : `str`
+        value: `int | float | str`
+
+        Returns
+        -------
+        SelectionBuilder
+
+        Examples
+        --------
+        >>> builder = SelectionBuilder()
+        >>> mars_selection = (
+        >>>     builder
+        >>>     .value("key-1", "value-1")              # Single str value
+        >>>     .value("key-2", 0.2)                    # Single float value
+        >>>     .build()
+        >>> )
+
+        """
+        self._strict_mode_checking(key)
+        self.key_values[key] = value
+        return self
+
+    def values(self, key, values: Collection[int | float | str]) -> Self:
+        """Create a key and values pair for a MARS selection.
+
+        Parameters
+        ----------
+        key : `str`
+        value: `Collection[int | float | str]`
+
+        Returns
+        -------
+        SelectionBuilder
+
+        Examples
+        --------
+        >>> builder = SelectionBuilder()
+        >>> mars_selection = (
+        >>>     builder
+        >>>     builder.values("key-1", ["value-2", "value-4"])     # Mixed types
+        >>>     builder.values("key-2", ["value-3", 214, 213.54])   # Mixed types
+        >>>     .build()
+        >>> )
+        """
+        self._strict_mode_checking(key)
+        converted = [
+            str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
+        ]
+        self.key_values[key] = "/".join(converted)
+        return self
+
+    def to(self, key, first: int | float | str, last: int | float | str) -> Self:
+        """Create a key and list pair for a MARS selection.
+
+        Parameters
+        ----------
+        key : `str`
+        first: `int | float | str`
+        last: `int | float | str`
+
+        Returns
+        -------
+        SelectionBuilder
+
+        Examples
+        --------
+        >>> builder = SelectionBuilder()
+        >>> mars_selection = (
+        >>>     builder
+        >>>     builder.to("key-2", "0.1", 0.2)  # Mixed types
+        >>>     .build()
+        >>> )
+        """
+        self._strict_mode_checking(key)
+        self.key_values[key] = "/".join([str(first), "to", str(last)])
+        return self
+
+    def to_by(
+        self,
+        key,
+        first: int | float | str,
+        last: int | float | str,
+        increment: int | float | str,
+    ) -> Self:
+        """Create a key and range pair for a MARS selection.
+
+        Parameters
+        ----------
+        key : `str`
+        first: `int | float | str`
+        last: `int | float | str`
+        increment: `int | float | str`
+
+        Returns
+        -------
+        SelectionBuilder
+
+        Examples
+        --------
+        >>> builder = SelectionBuilder()
+        >>> mars_selection = (
+        >>>     builder
+        >>>     builder.to_by("key-2.1", "0.1", 0.2, 0.5)  # Mixed types
+        >>>     .build()
+        >>> )
+        """
+        self._strict_mode_checking(key)
+        self.key_values[key] = "/".join(
+            [str(first), "to", str(last), "by", str(increment)]
+        )
+        return self
+
+    def build(self) -> MarsSelection:
+        """Create the resulting MARS selection
+
+        Returns
+        -------
+        MarsSelection
+
+        Examples
+        --------
+        >>> builder = SelectionBuilder()
+        >>> mars_selection = (
+        >>>     builder
+        >>>     builder.to_by("key-2.1", "0.1", 0.2, 0.5)  # Mixed types
+        >>>     .build()
+        >>> )
+        """
+        return self.key_values
 
 
 class FDBToolRequest:

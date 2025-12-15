@@ -9,6 +9,7 @@
 # libfdb5.so and dependencies have to be loaded prior to importing
 # pyfdb
 
+from typing import Dict
 from pyfdb_bindings import pyfdb_bindings as bindings
 from pyfdb_bindings.pyfdb_bindings import (
     FDB,
@@ -31,6 +32,8 @@ from pyfdb_bindings.pyfdb_bindings import (
 from .pyfdb_internal import MarsRequest as MarsRequest
 from .pyfdb_internal import _flatten_values
 
+InternalMarsSelection = Dict[str, str]
+
 __all__ = [
     MarsRequest,
     init_bindings,
@@ -47,4 +50,5 @@ __all__ = [
     ControlElement,
     IndexAxis,
     FileCopy,
+    InternalMarsSelection,
 ]
