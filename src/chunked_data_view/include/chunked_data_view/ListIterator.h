@@ -17,7 +17,6 @@
 #include <memory>
 #include <optional>
 #include <tuple>
-#include <utility>
 
 namespace chunked_data_view {
 
@@ -32,11 +31,11 @@ public:
 
 class ListIteratorWrapperImpl : public ListIteratorInterface {
 
-    fdb5::ListIterator listIterator_;
+    std::queue<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> elements_{};
 
 public:
 
-    explicit ListIteratorWrapperImpl(fdb5::ListIterator listIterator) : listIterator_(std::move(listIterator)) {};
+    explicit ListIteratorWrapperImpl(fdb5::ListIterator listIterator);
     std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() override;
 };
 
