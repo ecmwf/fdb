@@ -16,8 +16,6 @@ RUN apt-get update \
     zstd \
     libaec0 \
     libcurl4 \
-    valgrind \
-    gdb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* \
@@ -36,4 +34,4 @@ RUN mkdir -p /opt/ecmwf \
     && cd /opt/ecmwf/ \
     && ln -s $(ls /opt/ecmwf | grep fdb) fdb
 
-ENTRYPOINT ["valgrind"]
+ENTRYPOINT ["z3fdb-web-service"]
