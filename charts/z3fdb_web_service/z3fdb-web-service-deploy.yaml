@@ -16,7 +16,7 @@ spec:
       containers:
       - name: z3fdb-web-service
         image: eccr.ecmwf.int/kkratz/z3fdb-web-service:latest
-        args: ["z3fdb-web-service", "--fdb-config=/etc/fdb/fdb.config"]
+        args: ["-vv", "--fdb-config=/etc/fdb/fdb.config"]
         env:
           - name: FDB_DEBUG
             value: "1"
