@@ -17,15 +17,15 @@ author = "ECMWF"
 extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinxcontrib.mermaid",
-    # "autoapi.extension",
+    "autoapi.extension",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    # "sphinx.ext.autodoc",
-    # "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.inheritance_diagram",
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_internal"]
 
 autoapi_dirs = ["../../src/pyfdb"]
 autoapi_type = "python"

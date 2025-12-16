@@ -9,12 +9,9 @@ PyFDB documentation
 [1](https://github.com/ecmwf/pyfdb/blob/develop/README.md).
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
-   Installation
-   Configuration
-   Examples
+   installation
+   examples
 
 Indices and tables
 ==================

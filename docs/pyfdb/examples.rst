@@ -30,9 +30,7 @@ a ``Dict[str, Any]`` as shown below.
             }
         ],
     }
-    fdb = pyfdb.FDB(config=config, userconfig={})
-
-.. TODO(TKR): Specify what a user config is and how this can be used here.
+    pyfdb = pyfdb.FDB(config=config, userconfig={})
 
 Below are some of the common examples you want to use `PyFDB` for:
 
@@ -103,12 +101,9 @@ To Memory
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(selection)
-
-    data_handle.open()
-    data_handle.read(4) # == b"GRIB"
-    # data_handle.read_all() # As an alternative to read all messages
-    data_handle.close()
+    with pyfdb.retrieve(selection) as data_handle:
+        data_handle.read(4) # == b"GRIB"
+        # data_handle.read_all() # As an alternative to read all messages
 
 The code above shows how to retrieve a MARS selection given as a dictionary. The retrieved ``data_handle``
 has to be opened before being read and closed afterwards. If you are interested in reading the entire
@@ -137,8 +132,6 @@ The following code is showing how to achieve this:
 
     with open(filename, 'wb') as out:
         shutil.copyfileobj(datareader.read_all(), out)
-
-
 
 List
 ****
@@ -539,6 +532,7 @@ the underlying ``FDB``. A potential call of the example above could lead to the 
     Total size                      : 165,544 (161.664 Kbytes)
 
 .. _control_label:
+
 Control
 *******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
