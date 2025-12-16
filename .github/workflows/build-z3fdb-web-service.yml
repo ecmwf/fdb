@@ -31,111 +31,38 @@ jobs:
         with:
           repository: ecmwf/cxx-dependencies
           ref: master
-          path: cxx-dependencies-src
+          path: cxx-dependencies
           token: ${{ secrets.GH_REPO_READ_TOKEN }}
           submodules: recursive
-      - name: Install dependencies
-        run: |
-          mkdir cxx-dependencies-build
-          BUILD_PATH=cxx-dependencies-build INSTALL_PREFIX=dependencies cxx-dependencies-src/build.sh
       - name: Get eccodes
         uses: actions/checkout@v5
         with:
           repository: ecmwf/eccodes
           ref: develop
-          path: eccodes-src
-      - name: Install eccodes
-        run: |
-          mkdir eccodes-build
-          cmake \
-            -B eccodes-build \
-            -S eccodes-src \
-            -GNinja \
-            -DCMAKE_INSTALL_PREFIX=dependencies \
-            -DCMAKE_PREFIX_PATH=dependencies \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DENABLE_MEMFS=ON \
-            -DENABLE_AEC=ON
-          cmake --build eccodes-build -j -t install
+          path: eccodes
       - name: Get eckit
         uses: actions/checkout@v5
         with:
           repository: ecmwf/eckit
           ref: develop
-          path: eckit-src
-      - name: Install eckit
-        run: |
-          mkdir eckit-build
-          cmake \
-            -B eckit-build \
-            -S eckit-src \
-            -GNinja \
-            -DCMAKE_INSTALL_PREFIX=dependencies \
-            -DCMAKE_PREFIX_PATH=dependencies \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          cmake --build eckit-build -j -t install
+          path: eckit
       - name: Get metkit
         uses: actions/checkout@v5
         with:
           repository: ecmwf/metkit
           ref: develop
-          path: metkit-src
-      - name: Install Metkit
-        run: |
-          mkdir metkit-build
-          cmake \
-            -B metkit-build \
-            -S metkit-src \
-            -GNinja \
-            -DCMAKE_INSTALL_PREFIX=dependencies \
-            -DCMAKE_PREFIX_PATH=dependencies \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          cmake --build metkit-build -j -t install
+          path: metkit
       - name: Get fdb5
         uses: actions/checkout@v5
         with:
           repository: ecmwf/fdb
-          path: fdb-src
-      - name: Build Fdb
+          path: fdb
+      - name: Compile, test and pack
         run: |
-          export PATH=$(pwd)/dependencies/bin:$PATH
-          mkdir fdb-build
-          cmake \
-            -B fdb-build \
-            -S fdb-src \
-            -GNinja \
-            -DCMAKE_INSTALL_PREFIX=dependencies \
-            -DCMAKE_PREFIX_PATH=dependencies \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DENABLE_TOOLS=ON \
-            -DENABLE_PYTHON_ZARR_INTERFACE=ON
-          cmake --build fdb-build -j
-          cd fdb-build
-          ctest -j $(nproc) --output-on-failure
-      - name: Run Z3fdb Wheel Installation Test
-        run: |
-          pip install $(ls ./fdb-build/z3fdb*.whl)
-          FDB5_HOME=fdb-build python -c "import z3fdb"
-      - name: Package minimal FDB
-        run: |
-          mkdir -p stage-fdb-minimal/fdb/lib
-          cp fdb-build/lib/libfdb5.so \
-             dependencies/lib/libmetkit.so \
-             dependencies/lib/libeckit_option.so \
-             dependencies/lib/libeccodes.so \
-             dependencies/lib/libeckit.so \
-             dependencies/lib/libeccodes_memfs.so \
-             dependencies/lib/libaec.so* \
-             stage-fdb-minimal/fdb/lib
-          for lib in stage-fdb-minimal/fdb/lib/*.so*; do patchelf --set-rpath '$ORIGIN' "$lib"; done
-          tar --zstd -cvf fdb.tar.zst -C stage-fdb-minimal/ fdb
-      - name: Create z3fdb-web-service whl
-        run: |
-          python -m build --wheel fdb-src/tools/z3fdb-web-service -o .
-      - name: Assemble staging
-        run: |
-          mkdir -p stage
-          cp *.whl fdb.tar.zst fdb-build/*.whl stage
+          ./fdb/containerfiles/z3fdb_web_service/build_contents.sh
+          rm -rf stage
+          mkdir stage
+          mv *.zst *.whl stage
       - name: Upload stage archive
         uses: actions/upload-artifact@v4
         with:
