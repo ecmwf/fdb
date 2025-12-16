@@ -1,7 +1,7 @@
 import pytest
 from pyfdb.pyfdb import PyFDB
 from pyfdb.pyfdb_iterator import IndexAxis
-from pyfdb.pyfdb_type import Config, FDBToolRequest
+from pyfdb.pyfdb_type import Config, WildcardMarsSelection
 
 
 def test_index_axis_initialization():
@@ -18,20 +18,18 @@ def test_index_axis_string(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis = pyfdb.axes(request)
 
@@ -48,20 +46,18 @@ def test_index_axis_get(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -86,20 +82,18 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -124,20 +118,18 @@ def test_index_axis_repr(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -153,20 +145,18 @@ def test_index_axis_keys(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -182,20 +172,18 @@ def test_index_axis_values(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -211,20 +199,18 @@ def test_index_axis_items(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -243,19 +229,17 @@ def test_index_axis_items_levels(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                # "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            # "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -297,20 +281,18 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        request = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
         index_axis: IndexAxis = pyfdb.axes(request)
 
@@ -330,20 +312,7 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                # "type": "an",
-                # "class": "ea",
-                # "domain": "g",
-                # "expver": "0001",
-                # "stream": "oper",
-                # "date": "20200101",
-                # "levtype": "sfc",
-                # "step": "0",
-                # "time": "180",
-            },
-            all=True,
-        )
+        request = WildcardMarsSelection()
 
         index_axis: IndexAxis = pyfdb.axes(request)
 

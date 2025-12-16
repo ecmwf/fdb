@@ -1,8 +1,6 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
-
-MarsSelection = Dict[str, str]
 
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
@@ -20,10 +18,71 @@ def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
     return result
 
 
-class MarsRequest:
+class FDBToolRequest:
+    """
+    FDBToolRequest object
+
+    Parameters
+    ----------
+    `key_values` : `MarsSelection` | None, *optional*, default: `None`
+        Dictionary of key-value pairs which describe the MARS selection
+    `all` : `bool`, *optional*, default: `False`
+        Should a tool request be interpreted as querying all data? True if so, False otherwise.
+    `minimum_key_set` : `List[str]`, *optional*, default: `None`
+        Define the minimum set of keys that must be specified. This prevents inadvertently exploring the entire FDB.
+
+    Returns
+    -------
+    FDBToolRequest object
+
+    Examples
+    --------
+    >>> request = FDBToolRequest(
+    >>>     {
+    >>>         "class": "ea",
+    >>>         "domain": "g",
+    >>>         "expver": "0001",
+    >>>         "stream": "oper",
+    >>>         "date": "20200101",
+    >>>         "time": "1800",
+    >>>     },
+    >>>     # all = False,
+    >>>     # minimum_key_set = None,
+    >>> )
+    """
+
     def __init__(
-        self, verb: str | None = None, key_values: MarsSelection | None = None
+        self,
+        key_values=None,
+        all: bool = False,
+        minimum_key_set: List[str] | None = None,
     ) -> None:
+        if key_values is not None:
+            key_values = _flatten_values(key_values)
+
+        if minimum_key_set is None:
+            minimum_key_set = []
+
+        mars_request = MarsRequest("retrieve", key_values)
+
+        self.tool_request = pyfdb_internal.FDBToolRequest(
+            mars_request.request, all, minimum_key_set
+        )
+
+    @classmethod
+    def from_mars_selection(cls, selection):
+        from pyfdb import WildcardMarsSelection
+
+        return cls(
+            key_values=selection, all=isinstance(selection, WildcardMarsSelection)
+        )
+
+    def __str__(self) -> str:
+        return str(self.tool_request)
+
+
+class MarsRequest:
+    def __init__(self, verb: str | None = None, key_values: None = None) -> None:
         if key_values:
             key_values = _flatten_values(key_values)
 
@@ -39,7 +98,7 @@ class MarsRequest:
             )
 
     @classmethod
-    def from_selection(cls, mars_selection: MarsSelection):
+    def from_selection(cls, mars_selection):
         result = MarsRequest()
         result.request = pyfdb_internal.MarsRequest("retrieve", mars_selection)
         return result

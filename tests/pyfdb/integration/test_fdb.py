@@ -4,7 +4,6 @@ import pytest
 import yaml
 
 from pyfdb import Config, PyFDB
-from pyfdb.pyfdb_type import FDBToolRequest
 
 
 def test_initialization():
@@ -68,9 +67,9 @@ def test_fdb_config_equality(read_only_fdb_setup):
         "domain": "g",
     }
 
-    elements_str = list(pyfdb_config_str.status(FDBToolRequest(selection)))
-    elements_path = list(pyfdb_config_path.status(FDBToolRequest(selection)))
-    elements_dict = list(pyfdb_config_dict.status(FDBToolRequest(selection)))
+    elements_str = list(pyfdb_config_str.status(selection))
+    elements_path = list(pyfdb_config_path.status(selection))
+    elements_dict = list(pyfdb_config_dict.status(selection))
 
     print(elements_str)
     print(elements_dict)

@@ -2,7 +2,6 @@ from pathlib import Path
 import yaml
 from pyfdb import Config
 from pyfdb import PyFDB
-from pyfdb import FDBToolRequest
 from pyfdb_bindings.pyfdb_bindings import ControlAction, ControlIdentifier
 
 import pytest
@@ -61,16 +60,14 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
         print("Locking database for retrieve")
 
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        request = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         control_iterator = pyfdb.control(
             request,
@@ -124,16 +121,14 @@ def test_control_lock_list(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        request = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         print("List without lock")
         list_iterator = pyfdb.list(request)
@@ -197,16 +192,14 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        request = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         print("Lock the database for archiving")
         control_iterator = pyfdb.control(
@@ -272,16 +265,14 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        request = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         print("Lock the database for archiving")
         control_iterator = pyfdb.control(
@@ -356,16 +347,14 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "time": "1800",
-            },
-        )
+        request = {
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "time": "1800",
+        }
 
         print("Archive same data as the FDB was setup with in the Fixture")
         pyfdb.archive(build_grib_messages.read_bytes())

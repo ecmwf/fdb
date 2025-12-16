@@ -1,6 +1,5 @@
 from pyfdb import Config
 from pyfdb import PyFDB
-from pyfdb import FDBToolRequest
 
 
 def test_stats(read_only_fdb_setup):
@@ -12,22 +11,20 @@ def test_stats(read_only_fdb_setup):
         fdb_config = Config(config_file.read())
         pyfdb = PyFDB(fdb_config)
 
-        request = FDBToolRequest(
-            {
-                "type": "an",
-                "class": "ea",
-                "domain": "g",
-                "expver": "0001",
-                "stream": "oper",
-                "date": "20200101",
-                "levtype": "sfc",
-                "step": "0",
-                "param": "167/165/166",
-                "time": "1800",
-            },
-        )
+        selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
 
-        list_iterator = pyfdb.stats(request)
+        list_iterator = pyfdb.stats(selection)
         assert list_iterator
 
         elements = []
