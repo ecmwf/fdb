@@ -1,5 +1,5 @@
 import pytest
-from pyfdb.pyfdb_type import SelectionBuilder
+from pyfdb.pyfdb_type import SelectionBuilder, WildcardMarsSelection
 
 
 def test_single_value():
@@ -125,3 +125,10 @@ def test_overwrite_key_strict_mode():
             .values("key-1", ["value-3", 214, 213.54])
             .build()
         )
+
+
+def test_wildcard_selection():
+    wildcard = SelectionBuilder().build_wildcard()
+
+    assert wildcard == {}
+    assert isinstance(wildcard, WildcardMarsSelection)

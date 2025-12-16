@@ -1,6 +1,6 @@
 from pathlib import Path
 import yaml
-from pyfdb import PyFDB
+from pyfdb import FDB
 from pyfdb_bindings.pyfdb_bindings import ControlAction, ControlIdentifier
 
 import pytest
@@ -26,7 +26,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     print("Retrieve without lock")
     data_handle = pyfdb.retrieve(
@@ -114,7 +114,7 @@ def test_control_lock_list(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     request = {
         "class": "ea",
@@ -183,7 +183,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     request = {
         "class": "ea",
@@ -254,7 +254,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     request = {
         "class": "ea",
@@ -334,7 +334,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     request = {
         "class": "ea",
@@ -413,7 +413,7 @@ def test_enabled_per_default(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path.read_text())
+    pyfdb = FDB(fdb_config_path.read_text())
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is True
@@ -431,7 +431,7 @@ def test_disabled_writabled(read_only_fdb_setup):
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["writable"] = False
 
-    pyfdb = PyFDB(yaml.dump(fdb_config))
+    pyfdb = FDB(yaml.dump(fdb_config))
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is True
@@ -449,7 +449,7 @@ def test_disabled_visitable(read_only_fdb_setup):
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["visitable"] = False
 
-    pyfdb = PyFDB(yaml.dump(fdb_config))
+    pyfdb = FDB(yaml.dump(fdb_config))
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is False
@@ -468,7 +468,7 @@ def test_disabled_visitable_writeable(read_only_fdb_setup):
     fdb_config["visitable"] = False
     fdb_config["writable"] = False
 
-    pyfdb = PyFDB(yaml.dump(fdb_config))
+    pyfdb = FDB(yaml.dump(fdb_config))
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is False
@@ -483,7 +483,7 @@ def test_needs_flush(empty_fdb_setup, test_data_path):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     filename = test_data_path / "x138-300.grib"
 

@@ -1,4 +1,4 @@
-from pyfdb import PyFDB
+from pyfdb import FDB
 from pyfdb.pyfdb import FDBToolRequest
 
 
@@ -7,7 +7,7 @@ def test_list(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -79,6 +79,7 @@ def test_list(read_only_fdb_setup):
 
     for el in list_iterator:
         print(el)
+        print(el.uri())
         elements.append(el)
 
     assert len(elements) == 3
@@ -89,7 +90,7 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -135,7 +136,7 @@ def test_list_read_from_datahandle(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",

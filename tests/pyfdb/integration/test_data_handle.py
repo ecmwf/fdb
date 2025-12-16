@@ -1,5 +1,5 @@
 import pytest
-from pyfdb.pyfdb import PyFDB
+from pyfdb.pyfdb import FDB
 
 
 def test_datahandle_repr(read_only_fdb_setup):
@@ -7,7 +7,7 @@ def test_datahandle_repr(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -34,7 +34,7 @@ def test_datahandle_not_opened_before_read(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -66,7 +66,7 @@ def test_datahandle_consecutive_read(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -96,7 +96,7 @@ def test_datahandle_read_all(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -124,7 +124,7 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -164,7 +164,7 @@ def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",

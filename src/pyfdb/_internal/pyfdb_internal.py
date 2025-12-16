@@ -98,7 +98,7 @@ class ConfigMapper:
         Note
         ----
         *In case you want to supply a config to a FDB, hand in the needed arguments to the FDB directly.*
-        For usage examples see the comments of PyFDB constructor.
+        For usage examples see the comments of FDB constructor.
 
         The config parameter can have different types, depending on the meaning:
             - `str` is used as a yaml representation to parse the config

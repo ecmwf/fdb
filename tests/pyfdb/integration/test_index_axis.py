@@ -1,5 +1,5 @@
 import pytest
-from pyfdb.pyfdb import PyFDB
+from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import IndexAxis
 from pyfdb.pyfdb_type import WildcardMarsSelection
 
@@ -12,7 +12,7 @@ def test_index_axis_initialization():
 def test_index_axis_string(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -38,7 +38,7 @@ def test_index_axis_get(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -72,7 +72,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -106,7 +106,7 @@ def test_index_axis_repr(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -131,7 +131,7 @@ def test_index_axis_keys(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -156,7 +156,7 @@ def test_index_axis_values(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -181,7 +181,7 @@ def test_index_axis_items(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -209,7 +209,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -259,7 +259,7 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = {
         "type": "an",
@@ -288,7 +288,7 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     request = WildcardMarsSelection()
 

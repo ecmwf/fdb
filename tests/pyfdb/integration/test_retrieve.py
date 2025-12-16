@@ -1,4 +1,4 @@
-from pyfdb import PyFDB
+from pyfdb import FDB
 
 
 def test_retrieve(read_only_fdb_setup):
@@ -6,7 +6,7 @@ def test_retrieve(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     selection = {
         "type": "an",
