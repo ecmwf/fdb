@@ -30,7 +30,7 @@ from pyfdb_bindings.pyfdb_bindings import (
 )
 
 from .pyfdb_internal import MarsRequest as MarsRequest
-from .pyfdb_internal import _flatten_values
+from .pyfdb_internal import _flatten_values, ConfigMapper
 
 InternalMarsSelection = Dict[str, str]
 
@@ -42,6 +42,7 @@ __all__ = [
     _URI,
     FDB,
     Config,
+    ConfigMapper,
     FDBToolRequest,
     ControlAction,
     ControlIdentifier,

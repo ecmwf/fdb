@@ -17,7 +17,6 @@ import git
 import eccodes as ec
 
 import pyfdb
-from pyfdb import Config
 
 
 @pytest.fixture(scope="function")
@@ -118,8 +117,7 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     fdb_config_str = yaml.dump(fdb_config)
     fdb_config_path = session_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
-    pyfdb_config = Config(fdb_config_str)
-    fdb = pyfdb.PyFDB(pyfdb_config)
+    fdb = pyfdb.PyFDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
     return fdb_config_path
@@ -188,8 +186,7 @@ def read_write_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib
     fdb_config_str = yaml.dump(fdb_config)
     fdb_config_path = session_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
-    pyfdb_config = Config(fdb_config_str)
-    fdb = pyfdb.PyFDB(pyfdb_config)
+    fdb = pyfdb.PyFDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
     return fdb_config_path

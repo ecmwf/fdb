@@ -1,4 +1,3 @@
-from pyfdb import Config
 from pyfdb import PyFDB
 
 
@@ -7,30 +6,28 @@ def test_stats(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    with fdb_config_path.open("r") as config_file:
-        fdb_config = Config(config_file.read())
-        pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
-        selection = {
-            "type": "an",
-            "class": "ea",
-            "domain": "g",
-            "expver": "0001",
-            "stream": "oper",
-            "date": "20200101",
-            "levtype": "sfc",
-            "step": "0",
-            "param": "167/165/166",
-            "time": "1800",
-        }
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": "167/165/166",
+        "time": "1800",
+    }
 
-        list_iterator = pyfdb.stats(selection)
-        assert list_iterator
+    list_iterator = pyfdb.stats(selection)
+    assert list_iterator
 
-        elements = []
+    elements = []
 
-        for el in list_iterator:
-            print(el)
-            elements.append(el)
+    for el in list_iterator:
+        print(el)
+        elements.append(el)
 
-        assert len(elements) == 1
+    assert len(elements) == 1

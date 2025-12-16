@@ -6,12 +6,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-import json
 from enum import IntFlag, auto
 from pathlib import Path
 from typing import Collection, Dict, List, Mapping, Self, Tuple
-
-import yaml
 
 import pyfdb._internal as _internal
 from pyfdb._internal import (
@@ -408,66 +405,6 @@ class DataHandle:
         return (
             f"[{'Opened' if self.opened else 'Closed'}] Datahandle: {self.dataHandle}"
         )
-
-
-class Config:
-    """
-    Config object of the FDB. This can be used as a system or user configuration.
-
-    Parameters
-    ----------
-    `config`: `str` | `dict` | `Path`
-            System or user configuration
-
-    Note
-    ----
-    *In case you want to supply a config to a FDB, hand in the needed arguments to the FDB directly.*
-    For usage examples see the comments of PyFDB constructor.
-
-    Every config can be a `Config` object, but is converted accordingly if another type is supplied:
-        - `str` is used as a yaml representation to parse the config
-        - `dict` is interpreted as hierarchical format to represent a config, see example
-        - `Path` is interpreted as a location of the config and read as a YAML file
-
-    Returns
-    -------
-    Config object
-
-    Examples
-    --------
-    >>> config = pyfdb.Config(
-            {
-                "type":"local",
-                "engine":"toc",
-                "schema":<schema_path>,
-                "spaces":[
-                    {
-                        "handler":"Default",
-                        "roots":[
-                            {"path": <db_store_path>},
-                        ],
-                    }
-                ],
-            })
-    """
-
-    def __init__(self, config: str | dict | Path) -> None:
-        if isinstance(config, Path):
-            self.config = yaml.safe_load(config.read_text())
-        elif isinstance(config, dict):
-            self.config = config
-        elif isinstance(config, str):
-            self.config = yaml.safe_load(config)
-        else:
-            raise RuntimeError(
-                "Config: Unknown config type, must be str, dict or Path."
-            )
-
-    def to_json(self) -> str:
-        return json.dumps(self.config)
-
-    def __repr__(self) -> str:
-        return f"Config({self.config})"
 
 
 # https://github.com/ecmwf/datacube-spec

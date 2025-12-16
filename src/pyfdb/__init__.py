@@ -14,7 +14,6 @@ findlibs.load("fdb5")
 
 from pyfdb.pyfdb_type import (
     URI,
-    Config,
     DataHandle,
     MarsSelection,
     WildcardMarsSelection,
@@ -30,11 +29,12 @@ from pyfdb.pyfdb_iterator import (
 
 __all__ = [
     PyFDB,
-    Config,
     URI,
     DataHandle,
     ListElement,
     WipeElement,
     StatusElement,
     MoveElement,
+    MarsSelection,
+    WildcardMarsSelection,
 ]
