@@ -6,6 +6,7 @@ Build from sources (recommended way):
 *************************************
 
 To install ``PyFDB`` from the sources you first need to create a directory which will contain our bundle file.
+``Pybind11`` in version 3 is a requirement.
 A bundle file represents a subset of our stack; at least the dependencies we need to build ``PyFDB``.
 
 

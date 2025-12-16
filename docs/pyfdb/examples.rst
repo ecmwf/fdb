@@ -13,9 +13,9 @@ PyFDB Intro
     fdb_config = pyfdb.Config(config_file.read_text())
     pyfdb = pyfdb.PyFDB(fdb_config)
 
-   fdb_config_path = Path("<path-to-fdb-config>")
-   fdb_config = pyfdb.Config(config_file.read_text())
-   pyfdb = pyfdb.PyFDB(fdb_config)
+    fdb_config_path = Path("<path-to-fdb-config>")
+    fdb_config = pyfdb.Config(config_file.read_text())
+    pyfdb = pyfdb.PyFDB(fdb_config)
 
 
 
@@ -60,7 +60,7 @@ Archive
     pyfdb.flush()
 
 In this scenario a ``GRIB`` file is archived to the configured ``FDB``. The FDB reads metadata from
-the given ``GRIB`` file and safes this, if no optional ``identifier`` is supplied. If we set an
+the given ``GRIB`` file and saves this, if no optional ``identifier`` is supplied. If we set an
 ``identifier``, there are no consistency checks taking place and our data is saved with the metadata
 given from the supplied ``identifier``.
 
@@ -69,7 +69,7 @@ The ``flush`` command guarantees that the archived data has been flushed to the 
 Flush
 ***********
 
-**Flush all buffers and closes all data handles of the underlying FDB into a consistent DB state.**
+**Flush all buffers and close all data handles of the underlying FDB into a consistent DB state.**
 
 .. tip::
 
@@ -341,7 +341,7 @@ This corresponds to the ``ControlIdentifier.ARCHIVE`` value.
 
 .. tip::
    Use the ``control`` functionality of PyFDB to switch certain properties of ``FDB`` elements.
-   Refer to the ``control`` section for further information.
+   Refer to the :ref:`control_label` section for further information.
 
 Wipe
 *******
@@ -551,13 +551,14 @@ the underlying ``FDB``. A potential call of the example above could lead to the 
     Total owned size                : 165,544 (161.664 Kbytes)
     Total size                      : 165,544 (161.664 Kbytes)
 
+.. _control_label:
 Control
 *******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
 
 .. tip::
    Consume the iterator, returned by the ``control`` call, completely. Otherwise, the lock file
-   won't be create.
+   won't be created.
 
 .. code-block:: python
 
@@ -620,7 +621,7 @@ Control
 The example given above shows how the activation/deactivation of the wipe functionality of the ``FDB``
 works for a certain selection. 
 
-After specifying the selection we want to target, this has to be an selection which contains keys of 
+After specifying the selection we want to target, this has to be a selection which contains keys of 
 the first and second level of the schema, we can call the ``control`` function and specify the wished action:
 in this case ``ControlIdentifier.WIPE`` and ``ControlAction.DISABLE``, which translate to wanting to disable
 wiping for the specified database. We could specify multiple of the ``ControlIdentifier`` in a single call.
@@ -712,9 +713,9 @@ The example above produces the following output:
    k=stream   | v=['oper']
    k=time     | v=['1800']
 
-For each specified ``level`` we can see, that the keys, which are touched on that level by the MARS selection, are
-returned. Optional keys of the ``FDB`` schema are returned as empty lists. For each missing key in the selection
-the key and all values stored in the ``FDB`` are returned, see the ``date`` key above.
+For each specified ``level``, the keys affected by the MARS selection at that level are returned. 
+Optional keys in the ``FDB`` schema appear as empty lists. If a key is missing from the selection,
+the key and all values stored in the ``FDB`` are returned (see the ``date`` key above).
 
 In case you want to see the 'span' of all elements stored in an ``FDB`` you could use the following code:
 
