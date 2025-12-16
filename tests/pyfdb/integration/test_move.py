@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from pyfdb.pyfdb import URI, Config, FDBToolRequest, PyFDB
+from pyfdb.pyfdb import URI, Config, PyFDB
 
 
 def add_new_root(fdb_config_path: Path, new_root: Path) -> str:
@@ -46,7 +46,7 @@ def test_move(read_only_fdb_setup):
         print(str(new_root))
 
         move_iterator = pyfdb.move(
-            FDBToolRequest(selection),
+            selection,
             URI.from_str(str(new_root)),
         )
 

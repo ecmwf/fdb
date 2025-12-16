@@ -9,13 +9,14 @@
 from pathlib import Path
 from typing import Generator, List
 
+import pyfdb
 import pyfdb._internal as _interal
 from pyfdb import (
     URI,
     Config,
     DataHandle,
-    FDBToolRequest,
 )
+from pyfdb._internal.pyfdb_internal import FDBToolRequest
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -26,7 +27,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-from pyfdb.pyfdb_type import Identifier, MarsSelection
+from pyfdb.pyfdb_type import Identifier, MarsSelection, WildcardMarsSelection
 
 
 class PyFDB:
@@ -162,7 +163,9 @@ class PyFDB:
         """
         self.FDB.flush()
 
-    def retrieve(self, mars_selection: MarsSelection) -> DataHandle:
+    def retrieve(
+        self, mars_selection: MarsSelection | WildcardMarsSelection
+    ) -> DataHandle:
         """
         Retrieve data which is specified by a MARS selection.
 
@@ -189,7 +192,7 @@ class PyFDB:
 
     def list(
         self,
-        fdb_tool_request: FDBToolRequest,
+        selection: MarsSelection | WildcardMarsSelection,
         duplicates: bool = False,
         level: int = 3,
     ) -> Generator[ListElement, None, None]:
@@ -198,8 +201,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which describes the data which can be listed.
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            A MARS selection which describes the data which can be listed.
         `duplicates` : bool, *optional*
             If True, the returned iterator lists duplicates, if False the elements are unique.
         `level` : int, *optional*
@@ -217,7 +220,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> request = FDBToolRequest(
+        >>> selection = MarsSelection(
         >>>     {
         >>>         "type": "an",
         >>>         "class": "ea",
@@ -230,7 +233,7 @@ class PyFDB:
         >>>         "time": "1800",
         >>>     },
         >>> )
-        >>> list_iterator = pyfdb.list(request) # level == 3
+        >>> list_iterator = pyfdb.list(selection) # level == 3
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
@@ -241,7 +244,7 @@ class PyFDB:
         length=10732,
         timestamp=176253515
 
-        >>> list_iterator = pyfdb.list(request, level=2)
+        >>> list_iterator = pyfdb.list(selection, level=2)
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
@@ -251,7 +254,7 @@ class PyFDB:
         timestamp=0
 
 
-        >>> list_iterator = pyfdb.list(request, level=1)
+        >>> list_iterator = pyfdb.list(selection, level=1)
         >>> elements = list(list_iterator)
         >>> print(elements[0])
 
@@ -259,6 +262,7 @@ class PyFDB:
         length=0,
         timestamp=0
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.list(fdb_tool_request.tool_request, not duplicates, level)
         while True:
             try:
@@ -267,7 +271,7 @@ class PyFDB:
                 return
 
     def inspect(
-        self, mars_selection: MarsSelection
+        self, mars_selection: MarsSelection | WildcardMarsSelection
     ) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
@@ -275,7 +279,7 @@ class PyFDB:
 
         Parameters
         ----------
-        `mars_selection` : `MarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             An MARS selection for which the inspect should be executed
 
         Note
@@ -330,7 +334,7 @@ class PyFDB:
                 return
 
     def status(
-        self, fdb_tool_request: FDBToolRequest
+        self, selection: MarsSelection | WildcardMarsSelection
     ) -> Generator[StatusElement, None, None]:
         """
         List the status of all FDB entries with their control identifiers, e.g., whether a certain
@@ -338,8 +342,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which specifies the queried data
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            An MARS selection which specifies the queried data
 
         Returns
         -------
@@ -349,15 +353,13 @@ class PyFDB:
 
         Examples
         --------
-        >>> request = MarsRequest(
-        >>>     "retrieve",
-        >>>     {
+        >>> selection = {
         >>>         "type": "an",
         >>>         "class": "ea",
         >>>         "domain": "g",
         >>>     },
         >>> )
-        >>> status_iterator = pyfdb.status(FDBToolRequest.from_mars_request(request))
+        >>> status_iterator = pyfdb.status(selection)
         >>> elements = list(status_iterator)
         >>> elements[0]
 
@@ -370,6 +372,7 @@ class PyFDB:
         ]
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
             try:
@@ -379,7 +382,7 @@ class PyFDB:
 
     def wipe(
         self,
-        fdb_tool_request: FDBToolRequest,
+        selection: MarsSelection | WildcardMarsSelection,
         doit: bool = False,
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
@@ -393,7 +396,7 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
             An fdb tool request which specifies the affected data
         `doit` : `bool`, *optional*
             If true the wipe command is executed, per default there are only dry-run
@@ -416,7 +419,7 @@ class PyFDB:
         --------
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
-        >>> wipe_iterator = pyfdb.wipe(pyfdb.FDBToolRequest(key_values={"class": "ea"}))
+        >>> wipe_iterator = pyfdb.wipe(pyfdb.MarsSelection({"class": "ea"}))
         >>> wiped_elements = list(wipe_iterator)
 
         ```
@@ -426,6 +429,7 @@ class PyFDB:
         ...
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.wipe(
             fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
         )
@@ -436,7 +440,7 @@ class PyFDB:
                 return
 
     def move(
-        self, fdb_tool_request: FDBToolRequest, destination: URI
+        self, selection: MarsSelection | WildcardMarsSelection, destination: URI
     ) -> Generator[MoveElement, None, None]:
         """
         Move content of one FDB database to a new URI.
@@ -447,8 +451,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which specifies the affected data
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            A MARS selection specifies the affected data
         `destination` : `URI`
             A new FDB root to which a database should be moved
 
@@ -467,9 +471,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> request = MarsRequest(
-        >>>     "retrieve",
-        >>>     {
+        >>> selection = {
         >>>         "class": "ea",
         >>>         "domain": "g",
         >>>         "expver": "0001",
@@ -479,7 +481,7 @@ class PyFDB:
         >>>     },
         >>> )
         >>> move_iterator = pyfdb.move(
-        >>>     FDBToolRequest.from_mars_request(request),
+        >>>     selection,
         >>>     URI.from_str(<new_root>),
         >>> )
         >>> print(list(move_iterator)[0])
@@ -493,6 +495,7 @@ class PyFDB:
         ...
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
         while True:
             try:
@@ -502,7 +505,7 @@ class PyFDB:
 
     def purge(
         self,
-        fdb_tool_request: FDBToolRequest,
+        selection: MarsSelection | WildcardMarsSelection,
         doit: bool = False,
         porcelain: bool = False,
     ) -> Generator[PurgeElement, None, None]:
@@ -518,8 +521,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which describes the data which is purged.
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            A MARS selection which describes the data which is purged.
         `doit` : `bool`, *optional*
             If true the wipe command is executed, per default there are only dry-run
         `porcelain` : `bool`, *optional*
@@ -534,7 +537,7 @@ class PyFDB:
         --------
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
-        >>> purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+        >>> purge_iterator = pyfdb.purge({"class": "ea"}), doit=True)
         >>> purged_elements = list(purge_iterator)
         >>> print(purged_elements[0])
 
@@ -555,6 +558,7 @@ class PyFDB:
         timestamp=176253976
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
             try:
@@ -563,7 +567,7 @@ class PyFDB:
                 return
 
     def stats(
-        self, fdb_tool_request: FDBToolRequest
+        self, selection: MarsSelection | WildcardMarsSelection
     ) -> Generator[StatsElement, None, None]:
         """
         Print information about FDB databases, aggregating the
@@ -571,8 +575,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which specifies the affected data.
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            A MARS selection which specifies the affected data.
 
         Returns
         -------
@@ -609,6 +613,7 @@ class PyFDB:
         Total size                      : 165,544 (161.664 Kbytes)
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
             try:
@@ -618,7 +623,7 @@ class PyFDB:
 
     def control(
         self,
-        fdb_tool_request: FDBToolRequest,
+        selection: MarsSelection | WildcardMarsSelection,
         control_action: _interal.ControlAction,
         control_identifiers: List[_interal.ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
@@ -627,8 +632,8 @@ class PyFDB:
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
-            An fdb tool request which specifies the affected data.
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
+            A MARS selection which specifies the affected data.
         `control_action` : `ControlAction`
             Which action should be modified, e.g., ControlAction.RETRIEVE
         `control_identifier` : `ControlIdentifier`
@@ -652,16 +657,14 @@ class PyFDB:
         --------
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
-        >>> request = FDBToolRequest(
-        >>>     {
+        >>> request = {
         >>>         "class": "ea",
         >>>         "domain": "g",
         >>>         "expver": "0001",
         >>>         "stream": "oper",
         >>>         "date": "20200101",
         >>>         "time": "1800",
-        >>>     },
-        >>> )
+        >>> }
         >>> control_iterator = pyfdb.control(
         >>>     request,
         >>>     ControlAction.DISABLE,
@@ -680,6 +683,7 @@ class PyFDB:
         ]
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.control(
             fdb_tool_request.tool_request, control_action, control_identifiers
         )
@@ -689,16 +693,18 @@ class PyFDB:
             except StopIteration:
                 return
 
-    def axes(self, fdb_tool_request: FDBToolRequest, level: int = 3) -> IndexAxis:
+    def axes(
+        self, selection: MarsSelection | WildcardMarsSelection, level: int = 3
+    ) -> IndexAxis:
         """
-        Return the 'axes' and their extent of an FDBToolRequest for a given level of the schema in
+        Return the 'axes' and their extent of a MARS selection for a given level of the schema in
         an IndexAxis object.
 
         If a key isn't specified the entire extent (all values) are returned.
 
         Parameters
         ----------
-        `fdb_tool_request` : `FDBToolRequest`
+        `selection` : `MarsSelection` | `WildcardMarsSelection`
             An fdb tool request which specifies the affected data. The request can be partial.
         `level` : `int`
             Level of the FDB Schema. Only keys of the given level are returned.
@@ -712,8 +718,7 @@ class PyFDB:
         --------
         >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
-        >>> request = FDBToolRequest(
-        >>>     {
+        >>> request = {
         >>>         "type": "an",
         >>>         "class": "ea",
         >>>         "domain": "g",
@@ -722,8 +727,7 @@ class PyFDB:
         >>>         "levtype": "sfc",
         >>>         "step": "0",
         >>>         "time": "1800",
-        >>>     },
-        >>> )
+        >>> }
         >>> index_axis: IndexAxis = pyfdb.axes(request) # level == 3
         >>> for k, v in index_axis.items():
         >>>     print(f"k={k} \t| v={v}")
@@ -742,6 +746,7 @@ class PyFDB:
         k=type     | v=['an']
         ```
         """
+        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
 
     def enabled(self, control_identifier: _interal.ControlIdentifier) -> bool:

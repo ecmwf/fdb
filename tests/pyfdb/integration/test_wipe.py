@@ -1,5 +1,5 @@
 from pyfdb import PyFDB, Config
-from pyfdb.pyfdb_type import FDBToolRequest, Identifier
+from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
@@ -8,17 +8,17 @@ def test_wipe_dryrun(read_write_fdb_setup):
     fdb_config = Config(fdb_config_path.read_text())
     pyfdb = PyFDB(fdb_config)
 
-    elements = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
 
-    wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"}))
+    wipe_iterator = pyfdb.wipe({"class": "ea"})
     wiped_elements = list(wipe_iterator)
     assert len(wiped_elements) > 0
 
     for el in wiped_elements:
         print(el)
 
-    elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements_after_wipe = list(pyfdb.list({"class": "ea"}))
     assert len(elements) == len(elements_after_wipe)
 
 
@@ -28,14 +28,14 @@ def test_wipe_all_doit(read_write_fdb_setup):
     fdb_config = Config(fdb_config_path.read_text())
     pyfdb = PyFDB(fdb_config)
 
-    elements = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
 
-    wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+    wipe_iterator = pyfdb.wipe({"class": "ea"}, doit=True)
     wiped_elements = list(wipe_iterator)
     assert len(wiped_elements) > 0
 
-    elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements_after_wipe = list(pyfdb.list({"class": "ea"}))
     print(
         f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
     )
@@ -48,16 +48,14 @@ def test_wipe_single_date_doit(read_write_fdb_setup):
     fdb_config = Config(fdb_config_path.read_text())
     pyfdb = PyFDB(fdb_config)
 
-    elements = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
 
-    wipe_iterator = pyfdb.wipe(
-        FDBToolRequest(key_values={"class": "ea", "date": "20200101"}), doit=True
-    )
+    wipe_iterator = pyfdb.wipe({"class": "ea", "date": "20200101"}, doit=True)
     wiped_elements = list(wipe_iterator)
     assert len(wiped_elements) > 0
 
-    elements_after_wipe = list(pyfdb.list(FDBToolRequest(key_values={"class": "ea"})))
+    elements_after_wipe = list(pyfdb.list({"class": "ea"}))
     print(
         f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
     )
@@ -113,27 +111,25 @@ def test_wipe_list(empty_fdb_setup):
         pyfdb = PyFDB(fdb_config)
 
         NFIELDS = populate_fdb(pyfdb)
-        assert len([x for x in pyfdb.list(FDBToolRequest(all=True))]) == NFIELDS
+        assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
 
         # Wipe without doit: Do not actually delete anything.
-        wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "rd"}))
+        wipe_iterator = pyfdb.wipe({"class": "rd"})
 
         # Consume all wipe iterator elements
         for el in wipe_iterator:
             pass
 
-        assert len([x for x in pyfdb.list(FDBToolRequest(all=True))]) == NFIELDS
+        assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
 
         # Wipe, do it
-        wipe_iterator = pyfdb.wipe(
-            FDBToolRequest(key_values={"class": "rd"}), doit=True
-        )
+        wipe_iterator = pyfdb.wipe({"class": "rd"}, doit=True)
 
         # Consume all wipe iterator elements
         for el in wipe_iterator:
             pass
 
-        list_iterator = pyfdb.list(FDBToolRequest(all=True))
+        list_iterator = pyfdb.list(WildcardMarsSelection())
         elements = [x for x in list_iterator]
 
         assert len(elements) == 0

@@ -9,16 +9,14 @@
 import json
 from enum import IntFlag, auto
 from pathlib import Path
-from typing import Collection, Dict, Iterable, List, Mapping, Self, Tuple
+from typing import Collection, Dict, List, Mapping, Self, Tuple
 
 import yaml
 
 import pyfdb._internal as _internal
 from pyfdb._internal import (
     _URI,
-    MarsRequest,
     _DataHandle,
-    _flatten_values,
 )
 
 """
@@ -27,7 +25,12 @@ Selection part of a MARS request.
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 Use the SelectionBuilder to create a MarsSelection from a given input.
 """
-MarsSelection = Mapping[str, str | int | float | Collection[str] | Collection[int]]
+type MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
+
+
+class WildcardMarsSelection(Dict[str, str]):
+    def __init__(self) -> None:
+        return super().__init__()
 
 
 class SelectionBuilder:
@@ -64,7 +67,7 @@ class SelectionBuilder:
     """
 
     def __init__(self, strict_mode: bool = False) -> None:
-        self.strict_mode = strict_mode
+        self.strict_mode: bool = strict_mode
         self.key_values = {}
 
     def _strict_mode_checking(self, key):
@@ -190,6 +193,10 @@ class SelectionBuilder:
         )
         return self
 
+    @classmethod
+    def build_wildcard(cls) -> WildcardMarsSelection:
+        return WildcardMarsSelection()
+
     def build(self) -> MarsSelection:
         """Create the resulting MARS selection
 
@@ -207,61 +214,6 @@ class SelectionBuilder:
         >>> )
         """
         return self.key_values
-
-
-class FDBToolRequest:
-    """
-    FDBToolRequest object
-
-    Parameters
-    ----------
-    `key_values` : `MarsSelection` | None, *optional*, default: `None`
-        Dictionary of key-value pairs which describe the MARS selection
-    `all` : `bool`, *optional*, default: `False`
-        Should a tool request be interpreted as querying all data? True if so, False otherwise.
-    `minimum_key_set` : `List[str]`, *optional*, default: `None`
-        Define the minimum set of keys that must be specified. This prevents inadvertently exploring the entire FDB.
-
-    Returns
-    -------
-    FDBToolRequest object
-
-    Examples
-    --------
-    >>> request = FDBToolRequest(
-    >>>     {
-    >>>         "class": "ea",
-    >>>         "domain": "g",
-    >>>         "expver": "0001",
-    >>>         "stream": "oper",
-    >>>         "date": "20200101",
-    >>>         "time": "1800",
-    >>>     },
-    >>>     # all = False,
-    >>>     # minimum_key_set = None,
-    >>> )
-    """
-
-    def __init__(
-        self,
-        key_values: MarsSelection | None = None,
-        all: bool = False,
-        minimum_key_set: List[str] | None = None,
-    ) -> None:
-        if key_values is not None:
-            key_values = _flatten_values(key_values)
-
-        if minimum_key_set is None:
-            minimum_key_set = []
-
-        mars_request = MarsRequest("retrieve", key_values)
-
-        self.tool_request = _internal.FDBToolRequest(
-            mars_request.request, all, minimum_key_set
-        )
-
-    def __str__(self) -> str:
-        return str(self.tool_request)
 
 
 class DataHandle:

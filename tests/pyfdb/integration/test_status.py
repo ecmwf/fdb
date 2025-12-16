@@ -1,4 +1,4 @@
-from pyfdb.pyfdb import Config, FDBToolRequest, PyFDB
+from pyfdb.pyfdb import Config, PyFDB
 
 
 def test_status(read_only_fdb_setup):
@@ -16,7 +16,7 @@ def test_status(read_only_fdb_setup):
             "domain": "g",
         }
 
-        status_iterator = pyfdb.status(FDBToolRequest(selection))
+        status_iterator = pyfdb.status(selection)
 
         elements = []
 
