@@ -130,7 +130,7 @@ class FDB:
         --------
         >>> pyfdb.archive(bytes=b"binary-data")
         >>> pyfdb.archive(key=Key([("key-1", "value-1")]), bytes=b"binary-data")
-        >>> pyfdb.flush # Sync the archive call
+        >>> pyfdb.flush() # Sync the archive call
         """
         if identifier is None:
             self.FDB.archive(bytes, len(bytes))
@@ -178,8 +178,14 @@ class FDB:
         >>> mars_selection = {"key-1": "value-1", ...}
         >>> data_handle = pyfdb.retrieve(mars_selection)
         >>> data_handle.open()
-        >>> data_handle.read(4) # == b'GRIB'
+        >>> data_handle.read(4)
         >>> data_handle.close()
+
+        Or leveraging the context manager:
+
+        >>> with pyfdb.retrieve(selection) as data_handle:
+        >>>     assert data_handle
+        >>>     assert data_handle.read(4) == b"GRIB"
         """
         mars_request = _interal.MarsRequest.from_selection(mars_selection)
         return DataHandle._from_raw(self.FDB.retrieve(mars_request.request))
@@ -247,7 +253,6 @@ class FDB:
         length=0,
         timestamp=0
 
-
         >>> list_iterator = pyfdb.list(selection, level=1)
         >>> elements = list(list_iterator)
         >>> print(elements[0])
@@ -303,8 +308,6 @@ class FDB:
         >>> list_iterator = pyfdb.inspect(selection)
         >>> elements = list(list_iterator) # single element in iterator
         >>> elements[0]
-
-        ```
         {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
         {type=an,levtype=sfc}
         {param=167,step=0},
@@ -316,7 +319,6 @@ class FDB:
         ],
         length=10732,
         timestamp=1762537447
-        ```
         """
         mars_request = _interal.MarsRequest.from_selection(mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
@@ -356,15 +358,12 @@ class FDB:
         >>> status_iterator = pyfdb.status(selection)
         >>> elements = list(status_iterator)
         >>> elements[0]
-
-        ```
         ControlIdentifiers[],
         {class=ea,expver=0001,stream=oper,date=20200101,time=0000,domain=g},
         URI[
             scheme=toc,
             name=<location>
         ]
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
@@ -414,13 +413,10 @@ class FDB:
         >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> wipe_iterator = pyfdb.wipe(pyfdb.MarsSelection({"class": "ea"}))
         >>> wiped_elements = list(wipe_iterator)
-
-        ```
         ...
         Toc files to delete:
         <path_to_database>/toc
         ...
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.wipe(
@@ -479,15 +475,12 @@ class FDB:
         >>>     URI.from_str(<new_root>),
         >>> )
         >>> print(list(move_iterator)[0])
-
-        ```
         FileCopy(
             src=<db_store>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
             dest=<new_db>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
             sync=0
         )
         ...
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
@@ -533,8 +526,6 @@ class FDB:
         >>> purge_iterator = pyfdb.purge({"class": "ea"}), doit=True)
         >>> purged_elements = list(purge_iterator)
         >>> print(purged_elements[0])
-
-        ```
         {class=ea,expver=0001,stream=oper,date=20200104,time=1800,domain=g}
         {type=an,levtype=sfc}
         {step=0,param=167},
@@ -549,7 +540,6 @@ class FDB:
         ],
         length=10732,
         timestamp=176253976
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
@@ -582,8 +572,6 @@ class FDB:
         >>> stats_iterator = pyfdb.stats(request)
         >>> for el list(stats_iterator):
         >>>     print(el)
-
-        ```
         Index Statistics:
         Fields                          : 3
         Size of fields                  : 32,196 (31.4414 Kbytes)
@@ -603,7 +591,6 @@ class FDB:
         Size of TOC files               : 2,048 (2 Kbytes)
         Total owned size                : 165,544 (161.664 Kbytes)
         Total size                      : 165,544 (161.664 Kbytes)
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
@@ -663,16 +650,12 @@ class FDB:
         >>> )
         >>> elements = list(control_iterator)
         >>> print(elements[0])
-
-
-        ```
         ControlIdentifiers[2],
         {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},
         URI[
             scheme=toc,
             name=<location_fdb_database>
         ]
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         iterator = self.FDB.control(
@@ -721,8 +704,6 @@ class FDB:
         >>> index_axis: IndexAxis = pyfdb.axes(request) # level == 3
         >>> for k, v in index_axis.items():
         >>>     print(f"k={k} \t| v={v}")
-
-        ```
         k=class    | v=['ea']
         k=date     | v=['20200101', '20200102', '20200103', '20200104']
         k=domain   | v=['g']
@@ -734,7 +715,6 @@ class FDB:
         k=stream   | v=['oper']
         k=time     | v=['1800']
         k=type     | v=['an']
-        ```
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))

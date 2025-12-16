@@ -183,3 +183,29 @@ def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
         # Check the GRIB header
         assert data_handle
         assert data_handle.read(4) == b"GRIB"
+
+
+def test_datahandle_not_opened_before_read_all_context_manager(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    pyfdb = FDB(fdb_config_path)
+
+    request = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": "167/165/166",
+        "time": "1800",
+    }
+
+    with pyfdb.retrieve(request) as data_handle:
+        # Check the GRIB header
+        assert data_handle
+        assert data_handle.read_all()

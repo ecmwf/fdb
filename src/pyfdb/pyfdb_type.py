@@ -304,6 +304,8 @@ class DataHandle:
         >>> data_handle.read(4) == b"GRIB"
         >>> data_handle.close()
         """
+        if self.opened is True:
+            return
         self.opened = True
         self.dataHandle.open_for_read()
 
@@ -326,6 +328,8 @@ class DataHandle:
         >>> data_handle.read(4) == b"GRIB"
         >>> data_handle.close()
         """
+        if self.opened is False:
+            return
         self.opened = False
         self.dataHandle.close()
 
