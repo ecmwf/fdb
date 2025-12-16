@@ -1,11 +1,11 @@
-from pyfdb import PyFDB
+from pyfdb import FDB
 from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -24,7 +24,7 @@ def test_wipe_dryrun(read_write_fdb_setup):
 def test_wipe_all_doit(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -43,7 +43,7 @@ def test_wipe_all_doit(read_write_fdb_setup):
 def test_wipe_single_date_doit(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -76,7 +76,7 @@ BASE_REQUEST = {
 }
 
 
-def populate_fdb(fdb: PyFDB):
+def populate_fdb(fdb: FDB):
     # Write 4 fields to the FDB based on BASE_REQUEST
     requests = [BASE_REQUEST.copy() for i in range(4)]
 
@@ -103,7 +103,7 @@ def test_wipe_list(empty_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     NFIELDS = populate_fdb(pyfdb)
     assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS

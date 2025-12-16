@@ -17,7 +17,7 @@ import pytest
 import yaml
 from numpy import repeat
 
-from pyfdb import PyFDB
+from pyfdb import FDB
 
 
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:
@@ -77,7 +77,7 @@ def populate_fdb(config: pathlib.Path, messages: list[pathlib.Path]):
 
     """
     assert config.is_file()
-    fdb = PyFDB(config.read_text())
+    fdb = FDB(config.read_text())
     for message in messages:
         assert message.is_file()
         fdb.archive(message.read_bytes())
@@ -253,7 +253,7 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     fdb_config_str = yaml.dump(fdb_config)
     fdb_config_path = session_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
-    fdb = PyFDB(fdb_config_str)
+    fdb = FDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
     return fdb_config_path
@@ -292,7 +292,7 @@ def read_only_fdb_pattern_setup(
     fdb_config_str = yaml.dump(fdb_config)
     fdb_config_path = session_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
-    fdb = PyFDB(fdb_config_str)
+    fdb = FDB(fdb_config_str)
     fdb.archive(build_pattern_grib_messages.read_bytes())
     fdb.flush()
     return fdb_config_path

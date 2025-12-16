@@ -18,7 +18,7 @@ from pyfdb.pyfdb_type import (
     MarsSelection,
     WildcardMarsSelection,
 )
-from pyfdb.pyfdb import PyFDB
+from pyfdb.pyfdb import FDB
 
 from pyfdb.pyfdb_iterator import (
     ListElement,
@@ -28,7 +28,7 @@ from pyfdb.pyfdb_iterator import (
 )
 
 __all__ = [
-    PyFDB,
+    FDB,
     URI,
     DataHandle,
     ListElement,

@@ -3,23 +3,23 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pyfdb import PyFDB
+from pyfdb import FDB
 
 
 def test_initialization():
-    pyfdb = PyFDB()
+    pyfdb = FDB()
     assert pyfdb
 
 
 def test_fdb_config_default():
-    assert PyFDB()
+    assert FDB()
 
 
 def test_fdb_config_wrong_type():
     with pytest.raises(
         RuntimeError, match="Config: Unknown config type, must be str, dict or Path"
     ):
-        pyfdb = PyFDB(0)
+        pyfdb = FDB(0)
 
         assert pyfdb
 
@@ -29,7 +29,7 @@ def test_fdb_config_fixture(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     assert pyfdb
 
@@ -39,14 +39,14 @@ def test_fdb_config_equality(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb_config_str = PyFDB(fdb_config_path)
+    pyfdb_config_str = FDB(fdb_config_path)
     assert pyfdb_config_str
 
-    pyfdb_config_path = PyFDB(fdb_config_path)
+    pyfdb_config_path = FDB(fdb_config_path)
     assert pyfdb_config_path
 
     config_dict = yaml.safe_load(fdb_config_path.read_bytes())
-    pyfdb_config_dict = PyFDB(config_dict)
+    pyfdb_config_dict = FDB(config_dict)
     assert pyfdb_config_dict
 
     print(pyfdb_config_str)
@@ -86,14 +86,14 @@ def test_fdb_user_config(read_only_fdb_setup):
           - path: "/a/path/is/something"
     """
 
-    pyfdb = PyFDB(fdb_config_path, user_config_str)
+    pyfdb = FDB(fdb_config_path, user_config_str)
     assert pyfdb
 
     print("Check for user config propagation:")
     print(pyfdb.print_config())
     assert "useSubToc => true" in pyfdb.print_config()
 
-    pyfdb_no_user_config = PyFDB(fdb_config_path)
+    pyfdb_no_user_config = FDB(fdb_config_path)
     print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
     assert "root={}" in pyfdb_no_user_config.print_config()
@@ -112,21 +112,27 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
         - roots:
           - path: "/a/path/is/something"
     """
-    pyfdb = PyFDB(fdb_config_path, user_config_str)
+    pyfdb = FDB(fdb_config_path, user_config_str)
     assert pyfdb
 
     print("Check for user config propagation:")
     print(pyfdb.print_config())
     assert "useSubToc => true" in pyfdb.print_config()
 
-    pyfdb_no_user_config = PyFDB(fdb_config_path)
+    pyfdb_no_user_config = FDB(fdb_config_path)
     print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
     assert "root={}" in pyfdb_no_user_config.print_config()
 
 
 def test_fdb_print():
-    pyfdb = PyFDB()
+    pyfdb = FDB()
 
     assert pyfdb
     print(pyfdb)
+
+
+def test_fdb_context():
+    with FDB() as fdb:
+        assert fdb
+        print(fdb)

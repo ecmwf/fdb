@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from pyfdb.pyfdb import URI, PyFDB
+from pyfdb.pyfdb import URI, FDB
 
 
 def add_new_root(fdb_config_path: Path, new_root: Path) -> str:
@@ -29,7 +29,7 @@ def test_move(read_only_fdb_setup):
 
     print(updated_config)
 
-    pyfdb = PyFDB(updated_config)
+    pyfdb = FDB(updated_config)
 
     # Request for the second level of the schema
     selection = {

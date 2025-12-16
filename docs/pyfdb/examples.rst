@@ -8,19 +8,11 @@ PyFDB Intro
 
 .. code-block:: python
 
-    fdb_config_path = Path("<path-to-fdb-config>")
-    
-    fdb_config = pyfdb.Config(config_file.read_text())
-    pyfdb = pyfdb.PyFDB(fdb_config)
-
-    fdb_config_path = Path("<path-to-fdb-config>")
-    fdb_config = pyfdb.Config(config_file.read_text())
-    pyfdb = pyfdb.PyFDB(fdb_config)
-
+    pyfdb = pyfdb.FDB(config_file)
 
 
 You can also pass custom configurations. Those can be supplied as a ``Path`` pointing to the location
-of the configuration file, as a ``str`` which is the yaml representation of the configuration or as
+of the configuration file, as a ``str`` which is the ``yaml`` representation of the configuration or as
 a ``Dict[str, Any]`` as shown below. 
 
 .. code-block:: python
@@ -38,7 +30,7 @@ a ``Dict[str, Any]`` as shown below.
             }
         ],
     }
-    fdb = pyfdb.PyFDB(config=config, userconfig={})
+    fdb = pyfdb.FDB(config=config, userconfig={})
 
 .. TODO(TKR): Specify what a user config is and how this can be used here.
 
@@ -51,8 +43,7 @@ Archive
 
 .. code-block:: python
 
-    fdb_config = pyfdb.Config(config_file.read_text())
-    pyfdb = pyfdb.PyFDB(fdb_config)
+    pyfdb = pyfdb.FDB(config_file)
 
     filename = test_data_path / "x138-300.grib"
 
@@ -78,7 +69,7 @@ Flush
 .. code-block:: python
 
     fdb_config = pyfdb.Config(config_file.read_text())
-    pyfdb = pyfdb.PyFDB(fdb_config)
+    pyfdb = pyfdb.FDB(fdb_config)
 
     filename = test_data_path / "x138-300.grib"
 
@@ -97,8 +88,7 @@ To Memory
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = FDB(config_file)
 
     selection = {
         "type": "an",
@@ -157,8 +147,7 @@ List
 
 .. code-block:: python
 
-    fdb_config = pyfdb.Config(config_file.read())
-    pyfdb = pyfdb.PyFDB(fdb_config)
+    pyfdb = pyfdb.FDB(fdb_config_file)
 
     request = pyfdb.FDBToolRequest(
         {
@@ -263,8 +252,7 @@ describing which field was part of the MARS selection.**
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = FDB(fdb_config_file)
 
     identifier = {
         "type": "an",
@@ -312,8 +300,7 @@ Status
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = FDB(fdb_config_file)
 
     selection = {
         "type": "an",
@@ -340,7 +327,7 @@ You can see that the ``ControlIdentifier`` with value ``4`` is active for the gi
 This corresponds to the ``ControlIdentifier.ARCHIVE`` value. 
 
 .. tip::
-   Use the ``control`` functionality of PyFDB to switch certain properties of ``FDB`` elements.
+   Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
    Refer to the :ref:`control_label` section for further information.
 
 Wipe
@@ -362,7 +349,7 @@ A potential deletion operation could look like this:
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     elements = list(pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"})))
     len(elements) > 0
@@ -422,7 +409,7 @@ Source data is moved.
     new_root: Path = fdb_config_path.parent / "new_db"
     updated_config = add_new_root(fdb_config_path, new_root)
 
-    pyfdb = PyFDB(updated_config)
+    pyfdb = FDB(updated_config)
 
     # Request for the second level of the schema
     selection = {
@@ -480,7 +467,7 @@ existing ``FDB``), this data will not be removed.
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
 
     elements = list(pyfdb.purge(FDBToolRequest(key_values={"class": "ea"})))
     len(elements) > 0
@@ -502,7 +489,7 @@ Stats
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -556,13 +543,15 @@ Control
 *******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
 
+Under certain circumstances
+
 .. tip::
    Consume the iterator, returned by the ``control`` call, completely. Otherwise, the lock file
    won't be created.
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     ## Setup of the FDB with the corresponding data
     request = FDBToolRequest(
@@ -640,7 +629,7 @@ If a key isn't specified the entire extent (all values) are returned.
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -726,7 +715,7 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -751,7 +740,7 @@ Enabled
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is True
@@ -771,7 +760,7 @@ we end up with the following ``ControlIdentifier`` s:
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["writable"] = False
 
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = FDB(fdb_config)
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is True
@@ -788,7 +777,7 @@ Needs Flush
 
 .. code-block:: python
 
-    pyfdb = PyFDB(fdb_config_file)
+    pyfdb = FDB(fdb_config_file)
 
     filename = test_data_path / "x138-300.grib"
 

@@ -1,5 +1,5 @@
 import pytest
-from pyfdb import PyFDB
+from pyfdb import FDB
 
 
 STATIC_DICTIONARY = {
@@ -17,7 +17,7 @@ STATIC_DICTIONARY = {
 }
 
 
-def assert_one_field(pyfdb: PyFDB):
+def assert_one_field(pyfdb: FDB):
     data_handle = pyfdb.retrieve(STATIC_DICTIONARY)
 
     assert data_handle
@@ -41,7 +41,7 @@ def test_archive_none(empty_fdb_setup, test_data_path):
 
     assert fdb_config_path
 
-    pyfdb = PyFDB(fdb_config_path)
+    pyfdb = FDB(fdb_config_path)
     filename = test_data_path / "x138-300.grib"
 
     pyfdb.archive(open(filename, "rb").read())

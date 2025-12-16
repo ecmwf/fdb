@@ -129,7 +129,7 @@ ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
 
 # We need PyFDB in case z3fdb is enabled
 if(HAVE_PYTHON_ZARR_INTERFACE AND NOT HAVE_PYTHON_FDB_INTERFACE)
-    message( WARN "FDB Zarr interface requires PyFDB interface. I enable ENABLE_PYTHON_FDB_INTERFACE to build the PyFDB interface" )
+    message( WARN "FDB Zarr interface requires python FDB interface. I enable ENABLE_PYTHON_FDB_INTERFACE to build the PyFDB interface" )
     set(ENABLE_PYTHON_FDB_INTERFACE "ON")
 endif()
 

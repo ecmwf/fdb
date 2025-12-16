@@ -14,7 +14,6 @@ from pyfdb import (
     URI,
     DataHandle,
 )
-from pyfdb._internal import pyfdb_internal
 from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -29,14 +28,14 @@ from pyfdb.pyfdb_iterator import (
 from pyfdb.pyfdb_type import Identifier, MarsSelection, WildcardMarsSelection
 
 
-class PyFDB:
+class FDB:
     def __init__(
         self,
         config: str | dict | Path | None = None,
         user_config: str | dict | Path | None = None,
     ) -> None:
         """
-        Constructor for PyFDB object.
+        Constructor for FDB object.
 
         Parameters
         ----------
@@ -47,7 +46,7 @@ class PyFDB:
 
         Returns
         -------
-        :returns: PyFDB object
+        :returns: FDB object
 
         Note
         ----
@@ -57,7 +56,7 @@ class PyFDB:
             - `Path` is interpreted as a location of the config and read as a YAML file
             - `None` is the fallback. The default config in `$FDB5_HOME` is loaded
 
-        PyFDB and its methods are thread-safe. However the caller needs to be aware that flush acts on all archive calls,
+        FDB and its methods are thread-safe. However the caller needs to be aware that flush acts on all archive calls,
         including archived messages from other threads. An call to flush will persist all archived messages regardless
         from which thread the message has been archived. In case the caller wants a finer control it is advised to
         instantiate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
@@ -66,7 +65,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB()
+        >>> pyfdb = pyfdb.FDB()
         >>> config = pyfdb.Config(
                 {
                     "type":"local",
@@ -81,15 +80,13 @@ class PyFDB:
                         }
                     ],
                 })
-        >>> pyfdb.PyFDB(config)
+        >>> pyfdb.FDB(config)
         """
 
         _interal.init_bindings()
 
-        # Convert to json if set
+        # Convert to JSON if set
         config = ConfigMapper.to_json(config)
-
-        # Convert to json if set
         user_config = ConfigMapper.to_json(user_config)
 
         if config is not None and user_config is not None:
@@ -142,7 +139,7 @@ class PyFDB:
 
     def flush(self):
         """
-        Flush all buffers and closes all data handles of the underlying FDB into a consistent DB state.
+        Flush all buffers and close all data handles of the underlying FDB into a consistent DB state.
         *Always safe to call*
 
         Parameters
@@ -414,7 +411,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> wipe_iterator = pyfdb.wipe(pyfdb.MarsSelection({"class": "ea"}))
         >>> wiped_elements = list(wipe_iterator)
 
@@ -476,6 +473,7 @@ class PyFDB:
         >>>         "time": "1800",
         >>>     },
         >>> )
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> move_iterator = pyfdb.move(
         >>>     selection,
         >>>     URI.from_str(<new_root>),
@@ -531,7 +529,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> purge_iterator = pyfdb.purge({"class": "ea"}), doit=True)
         >>> purged_elements = list(purge_iterator)
         >>> print(purged_elements[0])
@@ -580,7 +578,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> stats_iterator = pyfdb.stats(request)
         >>> for el list(stats_iterator):
         >>>     print(el)
@@ -649,7 +647,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> request = {
         >>>         "class": "ea",
         >>>         "domain": "g",
@@ -709,7 +707,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
+        >>> pyfdb = pyfdb.FDB(fdb_config_path)
         >>> request = {
         >>>         "type": "an",
         >>>         "class": "ea",
@@ -759,7 +757,7 @@ class PyFDB:
         --------
         >>> fdb_config = yaml.safe_load(fdb_config_path)
         >>> fdb_config["writable"] = False
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.FDB(fdb_config)
         >>> pyfdb.enabled(ControlIdentifier.NONE) # == True
         >>> pyfdb.enabled(ControlIdentifier.LIST) # == True
         >>> pyfdb.enabled(ControlIdentifier.RETRIEVE) # == True
@@ -787,7 +785,7 @@ class PyFDB:
         Examples
         --------
         >>> fdb_config = Config(config_file.read())
-        >>> pyfdb = PyFDB(fdb_config)
+        >>> pyfdb = FDB(fdb_config)
         >>> filename = <test_data_path>
         >>> pyfdb.archive(open(filename, "rb").read())
         >>> pyfdb.needs_flush()                         # == True
