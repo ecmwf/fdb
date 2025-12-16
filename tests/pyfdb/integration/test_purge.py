@@ -1,11 +1,10 @@
-from pyfdb import PyFDB, Config
+from pyfdb import PyFDB
 
 
 def test_purge_dryrun_no_purge(empty_fdb_setup, build_grib_messages):
     fdb_config_path = empty_fdb_setup
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     initial_elements = list(pyfdb.list({"class": "ea"}))
 
@@ -43,8 +42,7 @@ def test_purge_dryrun_no_purge(empty_fdb_setup, build_grib_messages):
 def test_purge(empty_fdb_setup, build_grib_messages):
     fdb_config_path = empty_fdb_setup
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     initial_elements = list(pyfdb.list({"class": "ea"}))
 

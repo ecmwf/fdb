@@ -1,6 +1,9 @@
-from typing import Any, Dict, List
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
+import yaml
 
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
@@ -79,6 +82,68 @@ class FDBToolRequest:
 
     def __str__(self) -> str:
         return str(self.tool_request)
+
+
+class ConfigMapper:
+    @classmethod
+    def to_json(cls, config: str | dict | Path | None) -> Optional[str]:
+        """
+        Mapper for creating a configuration string from given config
+
+        Parameters
+        ----------
+        `config`: `str` | `dict` | `Path`
+                System or user configuration
+
+        Note
+        ----
+        *In case you want to supply a config to a FDB, hand in the needed arguments to the FDB directly.*
+        For usage examples see the comments of PyFDB constructor.
+
+        The config parameter can have different types, depending on the meaning:
+            - `str` is used as a yaml representation to parse the config
+            - `dict` is interpreted as hierarchical format to represent a config, see example
+            - `Path` is interpreted as a location of the config and read as a YAML file
+
+        Returns
+        -------
+        JSON string representing the given FDB configuration.
+
+        Examples
+        --------
+        >>> config = ConfigMapper.to_json(
+                {
+                    "type":"local",
+                    "engine":"toc",
+                    "schema":<schema_path>,
+                    "spaces":[
+                        {
+                            "handler":"Default",
+                            "roots":[
+                                {"path": <db_store_path>},
+                            ],
+                        }
+                    ],
+                })
+        """
+
+        if config is None:
+            return config
+
+        config_result = None
+
+        if isinstance(config, Path):
+            config_result = yaml.safe_load(config.read_text())
+        elif isinstance(config, dict):
+            config_result = config
+        elif isinstance(config, str):
+            config_result = yaml.safe_load(config)
+        else:
+            raise RuntimeError(
+                "Config: Unknown config type, must be str, dict or Path."
+            )
+
+        return json.dumps(config_result)
 
 
 class MarsRequest:

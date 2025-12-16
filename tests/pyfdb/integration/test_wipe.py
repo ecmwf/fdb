@@ -1,12 +1,11 @@
-from pyfdb import PyFDB, Config
+from pyfdb import PyFDB
 from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -25,8 +24,7 @@ def test_wipe_dryrun(read_write_fdb_setup):
 def test_wipe_all_doit(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -45,8 +43,7 @@ def test_wipe_all_doit(read_write_fdb_setup):
 def test_wipe_single_date_doit(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     elements = list(pyfdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -106,30 +103,28 @@ def test_wipe_list(empty_fdb_setup):
 
     assert fdb_config_path
 
-    with fdb_config_path.open("r") as config_file:
-        fdb_config = Config(config_file.read())
-        pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
-        NFIELDS = populate_fdb(pyfdb)
-        assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
+    NFIELDS = populate_fdb(pyfdb)
+    assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
 
-        # Wipe without doit: Do not actually delete anything.
-        wipe_iterator = pyfdb.wipe({"class": "rd"})
+    # Wipe without doit: Do not actually delete anything.
+    wipe_iterator = pyfdb.wipe({"class": "rd"})
 
-        # Consume all wipe iterator elements
-        for el in wipe_iterator:
-            pass
+    # Consume all wipe iterator elements
+    for el in wipe_iterator:
+        pass
 
-        assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
+    assert len([x for x in pyfdb.list(WildcardMarsSelection())]) == NFIELDS
 
-        # Wipe, do it
-        wipe_iterator = pyfdb.wipe({"class": "rd"}, doit=True)
+    # Wipe, do it
+    wipe_iterator = pyfdb.wipe({"class": "rd"}, doit=True)
 
-        # Consume all wipe iterator elements
-        for el in wipe_iterator:
-            pass
+    # Consume all wipe iterator elements
+    for el in wipe_iterator:
+        pass
 
-        list_iterator = pyfdb.list(WildcardMarsSelection())
-        elements = [x for x in list_iterator]
+    list_iterator = pyfdb.list(WildcardMarsSelection())
+    elements = [x for x in list_iterator]
 
-        assert len(elements) == 0
+    assert len(elements) == 0

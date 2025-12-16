@@ -9,14 +9,13 @@
 from pathlib import Path
 from typing import Generator, List
 
-import pyfdb
 import pyfdb._internal as _interal
 from pyfdb import (
     URI,
-    Config,
     DataHandle,
 )
-from pyfdb._internal.pyfdb_internal import FDBToolRequest
+from pyfdb._internal import pyfdb_internal
+from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -33,17 +32,17 @@ from pyfdb.pyfdb_type import Identifier, MarsSelection, WildcardMarsSelection
 class PyFDB:
     def __init__(
         self,
-        config: Config | str | dict | Path | None = None,
-        user_config: Config | str | dict | Path | None = None,
+        config: str | dict | Path | None = None,
+        user_config: str | dict | Path | None = None,
     ) -> None:
         """
         Constructor for PyFDB object.
 
         Parameters
         ----------
-        :`config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+        :`config` : `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up the FDB.
-        :`user_config` : `Config` | `str` | `dict` | `Path` | `None`, *optional*
+        :`user_config` : `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up user specific options, e.g., enabling sub-TOCs.
 
         Returns
@@ -52,7 +51,7 @@ class PyFDB:
 
         Note
         ----
-        Every config can be a `Config` object, but is converted accordingly if another type is supplied:
+        Every config parameter but is converted accordingly depending on its type:
             - `str` is used as a yaml representation to parse the config
             - `dict` is interpreted as hierarchical format to represent a config, see example
             - `Path` is interpreted as a location of the config and read as a YAML file
@@ -87,19 +86,17 @@ class PyFDB:
 
         _interal.init_bindings()
 
-        # Convert to Config if necessary
-        if config is not None and not isinstance(config, Config):
-            config = Config(config)
+        # Convert to json if set
+        config = ConfigMapper.to_json(config)
 
-        # Convert to Config if necessary
-        if user_config is not None and not isinstance(user_config, Config):
-            user_config = Config(user_config)
+        # Convert to json if set
+        user_config = ConfigMapper.to_json(user_config)
 
         if config is not None and user_config is not None:
-            internal_config = _interal.Config(config.to_json(), user_config.to_json())
+            internal_config = _interal.Config(config, user_config)
             self.FDB = _interal.FDB(internal_config)
         elif config is not None:
-            internal_config = _interal.Config(config.to_json(), None)
+            internal_config = _interal.Config(config, None)
             self.FDB = _interal.FDB(internal_config)
         else:
             self.FDB = _interal.FDB()
@@ -417,8 +414,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
         >>> wipe_iterator = pyfdb.wipe(pyfdb.MarsSelection({"class": "ea"}))
         >>> wiped_elements = list(wipe_iterator)
 
@@ -535,8 +531,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
         >>> purge_iterator = pyfdb.purge({"class": "ea"}), doit=True)
         >>> purged_elements = list(purge_iterator)
         >>> print(purged_elements[0])
@@ -585,8 +580,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
         >>> stats_iterator = pyfdb.stats(request)
         >>> for el list(stats_iterator):
         >>>     print(el)
@@ -655,8 +649,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
         >>> request = {
         >>>         "class": "ea",
         >>>         "domain": "g",
@@ -716,8 +709,7 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
-        >>> pyfdb = pyfdb.PyFDB(fdb_config)
+        >>> pyfdb = pyfdb.PyFDB(fdb_config_path)
         >>> request = {
         >>>         "type": "an",
         >>>         "class": "ea",
@@ -765,9 +757,8 @@ class PyFDB:
 
         Examples
         --------
-        >>> fdb_config = yaml.safe_load(fdb_config_path.read_text())
+        >>> fdb_config = yaml.safe_load(fdb_config_path)
         >>> fdb_config["writable"] = False
-        >>> fdb_config = pyfdb.Config(fdb_config_path.read_text())
         >>> pyfdb = pyfdb.PyFDB(fdb_config)
         >>> pyfdb.enabled(ControlIdentifier.NONE) # == True
         >>> pyfdb.enabled(ControlIdentifier.LIST) # == True

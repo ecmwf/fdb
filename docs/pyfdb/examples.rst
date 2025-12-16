@@ -362,8 +362,7 @@ A potential deletion operation could look like this:
 
 .. code-block:: python
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     elements = list(pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"})))
     len(elements) > 0
@@ -423,38 +422,36 @@ Source data is moved.
     new_root: Path = fdb_config_path.parent / "new_db"
     updated_config = add_new_root(fdb_config_path, new_root)
 
-    with fdb_config_path.open("r"):
-        fdb_config = Config(updated_config)
-        pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(updated_config)
 
-        # Request for the second level of the schema
-        selection = {
-            "class": "ea",
-            "domain": "g",
-            "expver": "0001",
-            "stream": "oper",
-            "date": "20200101",
-            "time": "1800",
-        }
+    # Request for the second level of the schema
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
 
-        move_iterator = pyfdb.move(
-            FDBToolRequest(selection),
-            URI.from_str(str(new_root)),
-        )
+    move_iterator = pyfdb.move(
+        FDBToolRequest(selection),
+        URI.from_str(str(new_root)),
+    )
 
-        elements = []
+    elements = []
 
-        for el in move_iterator:
-            print(el)
-            elements.append(el)
+    for el in move_iterator:
+        print(el)
+        elements.append(el)
 
-        # Only iterate of all but the last element.
-        # The last element is used from the fdb-move tool to trigger the deletion of the src folder
-        # This is not what we want in this regard.
-        for el in elements[:-1]:
-            el.execute()
+    # Only iterate of all but the last element.
+    # The last element is used from the fdb-move tool to trigger the deletion of the src folder
+    # This is not what we want in this regard.
+    for el in elements[:-1]:
+        el.execute()
 
-        assert len(list(new_root.iterdir())) == 1
+    assert len(list(new_root.iterdir())) == 1
 
 The example above shows how a database in a pre-existing ``FDB`` can be moved. In this case a
 pre-existing ``FDB`` configuration file is loaded and an additional root path is added. It's important
@@ -483,8 +480,7 @@ existing ``FDB``), this data will not be removed.
 
 .. code-block:: python
 
-    fdb_config = Config(fdb_config_path.read_text())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
     elements = list(pyfdb.purge(FDBToolRequest(key_values={"class": "ea"})))
     len(elements) > 0
@@ -506,8 +502,7 @@ Stats
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -566,8 +561,7 @@ Control
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     ## Setup of the FDB with the corresponding data
     request = FDBToolRequest(
@@ -645,8 +639,7 @@ If a key isn't specified the entire extent (all values) are returned.
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -732,8 +725,7 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     request = FDBToolRequest(
         {
@@ -758,8 +750,7 @@ Enabled
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
     assert pyfdb.enabled(ControlIdentifier.LIST) is True
@@ -779,7 +770,6 @@ we end up with the following ``ControlIdentifier`` s:
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["writable"] = False
 
-    fdb_config = Config(yaml.dump(fdb_config))
     pyfdb = PyFDB(fdb_config)
 
     assert pyfdb.enabled(ControlIdentifier.NONE) is True
@@ -797,8 +787,7 @@ Needs Flush
 
 .. code-block:: python
 
-    fdb_config = Config(config_file.read())
-    pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_file)
 
     filename = test_data_path / "x138-300.grib"
 

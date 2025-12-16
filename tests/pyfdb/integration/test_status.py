@@ -1,4 +1,4 @@
-from pyfdb.pyfdb import Config, PyFDB
+from pyfdb.pyfdb import PyFDB
 
 
 def test_status(read_only_fdb_setup):
@@ -6,22 +6,20 @@ def test_status(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    with fdb_config_path.open("r") as config_file:
-        fdb_config = Config(config_file.read())
-        pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
-        selection = {
-            "type": "an",
-            "class": "ea",
-            "domain": "g",
-        }
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+    }
 
-        status_iterator = pyfdb.status(selection)
+    status_iterator = pyfdb.status(selection)
 
-        elements = []
+    elements = []
 
-        for el in status_iterator:
-            print(el)
-            elements.append(el)
+    for el in status_iterator:
+        print(el)
+        elements.append(el)
 
-        assert len(elements) == 32
+    assert len(elements) == 32

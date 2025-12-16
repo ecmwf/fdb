@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pyfdb import Config, PyFDB
+from pyfdb import PyFDB
 
 
 def test_initialization():
@@ -11,20 +11,15 @@ def test_initialization():
     assert pyfdb
 
 
-def test_fdb_config():
-    with pytest.raises(
-        TypeError,
-        match="missing 1 required positional argument: 'config'",
-    ):
-        config = Config()
+def test_fdb_config_default():
+    assert PyFDB()
 
 
 def test_fdb_config_wrong_type():
     with pytest.raises(
         RuntimeError, match="Config: Unknown config type, must be str, dict or Path"
     ):
-        config = Config(0)
-        pyfdb = PyFDB(config)
+        pyfdb = PyFDB(0)
 
         assert pyfdb
 
@@ -34,11 +29,9 @@ def test_fdb_config_fixture(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    with fdb_config_path.open("r") as config_file:
-        fdb_config = Config(config_file.read())
-        pyfdb = PyFDB(fdb_config)
+    pyfdb = PyFDB(fdb_config_path)
 
-        assert pyfdb
+    assert pyfdb
 
 
 def test_fdb_config_equality(read_only_fdb_setup):
@@ -46,8 +39,7 @@ def test_fdb_config_equality(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    fdb_config_str = Config(fdb_config_path.read_text())
-    pyfdb_config_str = PyFDB(fdb_config_str)
+    pyfdb_config_str = PyFDB(fdb_config_path)
     assert pyfdb_config_str
 
     pyfdb_config_path = PyFDB(fdb_config_path)
@@ -85,8 +77,6 @@ def test_fdb_user_config(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    fdb_config_str = Config(fdb_config_path.read_text())
-
     user_config_str = r"""---
         type: local
         engine: toc
@@ -95,16 +85,15 @@ def test_fdb_user_config(read_only_fdb_setup):
         - roots:
           - path: "/a/path/is/something"
     """
-    user_config = Config(user_config_str)
 
-    pyfdb = PyFDB(fdb_config_str, user_config)
+    pyfdb = PyFDB(fdb_config_path, user_config_str)
     assert pyfdb
 
     print("Check for user config propagation:")
     print(pyfdb.print_config())
     assert "useSubToc => true" in pyfdb.print_config()
 
-    pyfdb_no_user_config = PyFDB(fdb_config_str)
+    pyfdb_no_user_config = PyFDB(fdb_config_path)
     print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
     assert "root={}" in pyfdb_no_user_config.print_config()
@@ -115,8 +104,6 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    fdb_config_str = Config(fdb_config_path.read_text())
-
     user_config_str = r"""---
         type: local
         engine: toc
@@ -125,14 +112,14 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
         - roots:
           - path: "/a/path/is/something"
     """
-    pyfdb = PyFDB(fdb_config_str, user_config_str)
+    pyfdb = PyFDB(fdb_config_path, user_config_str)
     assert pyfdb
 
     print("Check for user config propagation:")
     print(pyfdb.print_config())
     assert "useSubToc => true" in pyfdb.print_config()
 
-    pyfdb_no_user_config = PyFDB(fdb_config_str)
+    pyfdb_no_user_config = PyFDB(fdb_config_path)
     print(pyfdb_no_user_config.print_config())
     print("Check for empty user config:")
     assert "root={}" in pyfdb_no_user_config.print_config()
