@@ -1,0 +1,70 @@
+channel:    Integer;
+date:       Date;
+diagnostic: Integer;
+direction:  Integer;
+expver:     Expver;
+fcmonth:    Integer;
+frequency:  Integer;
+grid:       Grid;
+hdate:      Date;
+ident:      Integer;
+instrument: Integer;
+iteration:  Integer;
+latitude:   Double;
+levelist:   Double;
+longitude:  Double;
+method:     Integer;
+number:     Integer;
+param:      Param;
+refdate:    Date;
+step:       Step;
+system:     Integer;
+time:       Time;
+
+
+########################################################
+# These are the rules for the Climate DT
+# clte/wave
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clte/wave, date: Year
+       [ date: Month, resolution, type, levtype
+               [ date: Date, time, levelist?, param, frequency?, direction? ]]
+]
+# clmn
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clmn, year
+       [ month, resolution, type, levtype
+               [ levelist?, param ]]
+]
+########################################################
+# These are the rules for the Extremes DT
+# oper/wave
+[ class=d1, dataset=extremes-dt, expver, stream=oper/wave, date, time
+        [ type, levtype
+                [ step, levelist?, param, frequency?, direction? ]]
+]
+# enfo/waef
+[ class=d1, dataset=extremes-dt, expver, stream=enfo/waef, date, time
+        [ type, levtype
+                [ step, number?, levelist?, param, frequency?, direction? ]]
+]
+# lwda/lwwv
+[ class=d1, dataset=extremes-dt, expver, stream=lwda/lwwv, date, time
+        [ type, levtype, anoffset
+                [ step, levelist?, param, frequency?, direction? ]]
+]
+########################################################
+# These are the rules for the On-Demand Extremes DT
+# oper
+[ class=d1, dataset=on-demand-extremes-dt, expver, stream=oper, date, time
+ 
+        [ type=ssd, georef
+                [ step, param, ident, instrument, channel ]]
+ 
+        [ type, levtype, georef
+                [ step, levelist?, param ]]
+]
+# enfo
+[ class=d1, dataset=on-demand-extremes-dt, expver, stream=enfo, date, time
+ 
+        [ type, levtype, georef
+                [ step, number?, levelist?, param ]]
+]

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+cleanup() {
+    echo "Shutting down..."
+    kill $PID_STORE $PID_CATALOGUE 2>/dev/null
+    exit 0
+}
+trap cleanup SIGINT SIGTERM
+
+if [ -z "$FDB_HOME" ]; then
+    echo "FDB_HOME needs to be set to find fdb-server executable" >&2
+    exit 1
+fi
+
+FDB_BINS="$FDB_HOME/bin"
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+LOGS_DIR="$SCRIPT_DIR/logs"
+mkdir -p "$LOGS_DIR"
+
+export FDB_DEBUG=1
+export ECKIT_DEBUG=1
+
+echo "Starting Store..."
+STORE_LOG="$LOGS_DIR/store.log"
+FDB5_CONFIG_FILE="$SCRIPT_DIR"/store_config_file.yaml "$FDB_BINS"/fdb-server > "$STORE_LOG" 2>&1 &
+PID_STORE=$!
+
+echo "Starting Catalogue..."
+CATALOGUE_LOG="$LOGS_DIR/catalogue.log"
+FDB5_CONFIG_FILE="$SCRIPT_DIR"/catalogue_config_file.yaml "$FDB_BINS"/fdb-server > "$CATALOGUE_LOG" 2>&1 &
+PID_CATALOGUE=$!
+
+multitail \
+    -ci green --label "[store] " -f "$STORE_LOG" \
+    -ci blue --label "[catalogue] " -f "$CATALOGUE_LOG"
