@@ -36,6 +36,7 @@ autoapi_ignore = [
     "*/_internal/*",
 ]
 add_module_names = False
+autoapi_keep_files = True
 
 # -- Napoleon settings
 napoleon_google = True

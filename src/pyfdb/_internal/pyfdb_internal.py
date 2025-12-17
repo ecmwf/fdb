@@ -139,9 +139,7 @@ class ConfigMapper:
         elif isinstance(config, str):
             config_result = yaml.safe_load(config)
         else:
-            raise RuntimeError(
-                "Config: Unknown config type, must be str, dict or Path."
-            )
+            raise ValueError("Config: Unknown config type, must be str, dict or Path.")
 
         return json.dumps(config_result)
 

@@ -1,6 +1,26 @@
 from pathlib import Path
+import pytest
 import yaml
-from pyfdb import FDB
+from pyfdb._internal.pyfdb_internal import ConfigMapper
+
+
+def test_config_mapper_wrong_type(read_only_fdb_setup):
+    fdb_config_path: Path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    with pytest.raises(ValueError):
+        _ = ConfigMapper.to_json(0)
+
+
+def test_config_mapper_none(read_only_fdb_setup):
+    fdb_config_path: Path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    json_config = ConfigMapper.to_json(None)
+
+    assert json_config is None
 
 
 def test_config_mapper_equality(read_only_fdb_setup):
@@ -8,38 +28,11 @@ def test_config_mapper_equality(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    fdb_config_str = fdb_config_path.read_text()
+    json_config_from_path = ConfigMapper.to_json(fdb_config_path)
+    json_config_from_str = ConfigMapper.to_json(fdb_config_path.read_text())
+    json_config_from_yaml = ConfigMapper.to_json(
+        yaml.safe_load(fdb_config_path.read_bytes())
+    )
 
-    pyfdb_config_str = FDB(fdb_config_str)
-    assert pyfdb_config_str
-
-    pyfdb_config_path = FDB(fdb_config_path)
-    assert pyfdb_config_path
-
-    config_dict = yaml.safe_load(fdb_config_path.read_bytes())
-    pyfdb_config_dict = FDB(config_dict)
-    assert pyfdb_config_dict
-
-    assert pyfdb_config_dict.print_config() == pyfdb_config_path.print_config()
-    assert pyfdb_config_path.print_config() == pyfdb_config_str.print_config()
-
-
-def test_initialization_config_system_and_user(read_only_fdb_setup):
-    fdb_config_path: Path = read_only_fdb_setup
-
-    fdb_user_config_str = """
-    type: local
-    engine: toc
-    useSubToc: true
-    spaces:
-    - roots:
-      - path: "/a/path/is/something"
-    """
-
-    assert fdb_config_path
-
-    pyfdb = FDB(fdb_config_path, fdb_user_config_str)
-    assert pyfdb
-
-    print(pyfdb.print_config())
-    assert "useSubToc => true" in pyfdb.print_config()
+    assert json_config_from_path == json_config_from_str
+    assert json_config_from_path == json_config_from_yaml

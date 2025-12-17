@@ -1,14 +1,56 @@
 Installation
 ############
 
+Requirements
+************
+
+Build Dependencies
+^^^^^^^^^^^^^^^^^^^^
+
++----------+---------------------------------------------+
+|Dependency|Link                                         |
++----------+---------------------------------------------+
+|CMake     |http://www.cmake.org/                        |
++----------+---------------------------------------------+
+|ecbuild   |https://github.com/ecmwf/ecbuild             |
++----------+---------------------------------------------+
+|Pybind11  |https://pybind11.readthedocs.io              |
++----------+---------------------------------------------+
+
+Runtime Dependencies
+^^^^^^^^^^^^^^^^^^^^
+
++----------+---------------------------------------------+
+|Dependency|Link                                         |
++----------+---------------------------------------------+
+|eccodes   |https://github.com/ecmwf/eccodes             |
++----------+---------------------------------------------+
+|eckit     |https://github.com/ecmwf/eckit               |
++----------+---------------------------------------------+
+|metkit    |https://github.com/ecmwf/mekit               |
++----------+---------------------------------------------+
+
+Python Dependencies
+^^^^^^^^^^^^^^^^^^^
+- numpy
+- pytest
+- pytest-asyncio
+- eccodes
+- build
+- setuptools
+- GitPython
+- sphinx
+- sphinxcontrib-mermaid
+- pydata-sphinx-theme
+- Sphinx
+- sphinx-autoapi
+- sphinx-tabs
 
 Build from sources (recommended way):
 *************************************
 
 To install ``PyFDB`` from the sources you first need to create a directory which will contain our bundle file.
-``Pybind11`` in version 3 is a requirement.
 A bundle file represents a subset of our stack; at least the dependencies we need to build ``PyFDB``.
-
 
 Create a folder ``stack`` and switch to it:
 
@@ -64,7 +106,18 @@ Run the following ``cmake`` command to configure the stack with its dependencies
 
     You can also switch to make by dropping ``-G Ninja``.
 
-After configuration with ``cmake`` run ``ninja``:
+For certain functions of the ``PyFDB`` we need an active python venv. If you use ``uv``, you can create
+and activate a ``venv`` in the root of this bundle (where the ``CMakeLists.txt`` is located):
+
+.. code-block:: sh
+
+   uv venv
+   source .venv/bin/activate
+   uv pip install -r fdb/requirements.txt
+   # Add those requirements if you want to build the docs locally
+   uv pip install -r fdb/docs/fdb/requirements.txt
+
+After configuration with ``cmake`` run ``ninja`` in the created ``build`` folder:
 
 .. code-block:: sh
 
