@@ -26,6 +26,10 @@ type MarsSelection = Mapping[str, str | int | float | Collection[str | int | flo
 
 
 class WildcardMarsSelection(Dict[str, str]):
+    """
+    Representing a wildcard MARS selection which selects all items available.
+    """
+
     def __init__(self) -> None:
         return super().__init__()
 
@@ -455,13 +459,13 @@ class ControlIdentifier(IntFlag):
     Specify which functionality of the FDB should be addressed, e.g. RETRIEVE or LIST.
 
     Values
-    ----
-    NONE
-    LIST
-    RETRIEVE
-    ARCHIVE
-    WIPE
-    UNIQUEROOT
+    ------
+    - NONE
+    - LIST
+    - RETRIEVE
+    - ARCHIVE
+    - WIPE
+    - UNIQUEROOT
     """
 
     NONE = 0
@@ -481,10 +485,10 @@ class ControlAction(IntFlag):
     Specify which action should be executed, e.g. `DISABLE` or `ENABLE`.
 
     Values
-    ----
-    NONE
-    DISABLE
-    ENABLE
+    ------
+    - NONE
+    - DISABLE
+    - ENABLE
     """
 
     NONE = 0

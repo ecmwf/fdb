@@ -62,7 +62,6 @@ class FDB:
         instantiate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
         object.
 
-
         Examples
         --------
         >>> pyfdb = pyfdb.FDB()
@@ -288,7 +287,7 @@ class FDB:
         Returns
         -------
         Generator[ListElement, None, None]
-            A generator for `ListElement`s describing FDB entries containing data of the MARS selection
+            A generator for `ListElement` describing FDB entries containing data of the MARS selection
 
 
         Examples
@@ -344,7 +343,7 @@ class FDB:
         Returns
         -------
         Generator[StatusElement, None, None]
-            A generator for `StatusElement`s describing FDB entries and their control identifier
+            A generator for `StatusElement` describing FDB entries and their control identifier
 
 
         Examples
@@ -401,7 +400,7 @@ class FDB:
         Returns
         -------
         Generator[WipeElement, None, None]
-            A generator for `WipeElement`s
+            A generator for `WipeElement`
 
         Note
         ----
@@ -448,7 +447,7 @@ class FDB:
         Returns
         -------
         Generator[MoveElement, None, None]
-            A generator for `MoveElement`s
+            A generator for `MoveElement`
 
         Note
         ----
@@ -518,7 +517,7 @@ class FDB:
         Returns
         -------
         Generator[PurgeElement, None, None]
-            A generator for `PurgeElement`s
+            A generator for `PurgeElement`
 
         Examples
         --------
@@ -564,7 +563,7 @@ class FDB:
         Returns
         -------
         Generator[StatsElement, None, None]
-            A generator for `StatsElement`s
+            A generator for `StatsElement`
 
         Examples
         --------
@@ -621,7 +620,7 @@ class FDB:
         Returns
         -------
         Generator[ControlElement, None, None]
-            A generator for `ControlElement`s
+            A generator for `ControlElement`
 
         Note
         ----
