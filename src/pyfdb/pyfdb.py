@@ -25,7 +25,13 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-from pyfdb.pyfdb_type import Identifier, MarsSelection, WildcardMarsSelection
+from pyfdb.pyfdb_type import (
+    ControlIdentifier,
+    ControlAction,
+    Identifier,
+    MarsSelection,
+    WildcardMarsSelection,
+)
 
 
 class FDB:
@@ -64,22 +70,21 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB()
-        >>> config = pyfdb.Config(
-                {
-                    "type":"local",
-                    "engine":"toc",
-                    "schema":<schema_path>,
-                    "spaces":[
-                        {
-                            "handler":"Default",
-                            "roots":[
-                                {"path": <db_store_path>},
-                            ],
-                        }
-                    ],
-                })
-        >>> pyfdb.FDB(config)
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> config = {
+        ...     "type":"local",
+        ...     "engine":"toc",
+        ...     "schema":"<schema_path>",
+        ...     "spaces":[
+        ...         {
+        ...             "handler":"Default",
+        ...             "roots":[
+        ...                 {"path": "<db_store_path>"},
+        ...             ],
+        ...         }
+        ...     ],
+        ... }
+        >>> fdb = pyfdb.FDB(config)
         """
 
         _interal.init_bindings()
@@ -90,12 +95,12 @@ class FDB:
 
         if config is not None and user_config is not None:
             internal_config = _interal.Config(config, user_config)
-            self.FDB = _interal.FDB(internal_config)
+            self.FDB = _interal._FDB(internal_config)
         elif config is not None:
             internal_config = _interal.Config(config, None)
-            self.FDB = _interal.FDB(internal_config)
+            self.FDB = _interal._FDB(internal_config)
         else:
-            self.FDB = _interal.FDB()
+            self.FDB = _interal._FDB()
 
     def __enter__(self):
         return self
@@ -103,14 +108,14 @@ class FDB:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.flush()
 
-    def archive(self, bytes: bytes, identifier: Identifier | None = None):
+    def archive(self, data: bytes, identifier: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.
         *No constistency checks are applied. The caller needs to ensure the provided identifier matches metadata present in data.*
 
         Parameters
         ----------
-        `bytes`: `bytes`
+        `data`: `bytes`
             The binary data to be archived.
         `identifier` : `Identifier` | None, optional
             A unique identifier for the archived data.
@@ -127,14 +132,16 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb.archive(bytes=b"binary-data")
-        >>> pyfdb.archive(key=Key([("key-1", "value-1")]), bytes=b"binary-data")
-        >>> pyfdb.flush() # Sync the archive call
+        >>> fdb = pyfdb.FDB()
+        >>> filename = data_path / "x138-300.grib"
+        >>> fdb.archive(data=filename.read_bytes()) # Archive
+        >>> fdb.archive(identifier=Key([("key-1", "value-1")]), data=filename.read_bytes())
+        >>> fdb.flush() # Sync the archive call
         """
         if identifier is None:
-            self.FDB.archive(bytes, len(bytes))
+            self.FDB.archive(data, len(data))
         else:
-            self.FDB.archive(str(identifier), bytes, len(bytes))
+            self.FDB.archive(str(identifier), data, len(data))
 
     def flush(self):
         """
@@ -151,8 +158,10 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb.archive(bytes=b"some-binary-data") # Archive
-        >>> pyfdb.flush() # Data is synced
+        >>> fdb = pyfdb.FDB()
+        >>> filename = data_path / "x138-300.grib"
+        >>> fdb.archive(bytes=filename.read_bytes()) # Archive
+        >>> fdb.flush() # Data is synced
         """
         self.FDB.flush()
 
@@ -409,8 +418,8 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> wipe_iterator = pyfdb.wipe(pyfdb.MarsSelection({"class": "ea"}))
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> wipe_iterator = fdb.wipe({"class": "ea"})
         >>> wiped_elements = list(wipe_iterator)
         ...
         Toc files to delete:
@@ -468,8 +477,8 @@ class FDB:
         >>>         "time": "1800",
         >>>     },
         >>> )
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> move_iterator = pyfdb.move(
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> move_iterator = fdb.move(
         >>>     selection,
         >>>     URI.from_str(<new_root>),
         >>> )
@@ -521,8 +530,8 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> purge_iterator = pyfdb.purge({"class": "ea"}), doit=True)
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> purge_iterator = fdb.purge({"class": "ea"}), doit=True)
         >>> purged_elements = list(purge_iterator)
         >>> print(purged_elements[0])
         {class=ea,expver=0001,stream=oper,date=20200104,time=1800,domain=g}
@@ -567,8 +576,8 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> stats_iterator = pyfdb.stats(request)
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> stats_iterator = fdb.stats(request)
         >>> for el list(stats_iterator):
         >>>     print(el)
         Index Statistics:
@@ -602,8 +611,8 @@ class FDB:
     def control(
         self,
         selection: MarsSelection | WildcardMarsSelection,
-        control_action: _interal.ControlAction,
-        control_identifiers: List[_interal.ControlIdentifier],
+        control_action: ControlAction,
+        control_identifiers: List[ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
         """
         Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
@@ -633,8 +642,8 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> request = {
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> selection = {
         >>>         "class": "ea",
         >>>         "domain": "g",
         >>>         "expver": "0001",
@@ -642,8 +651,8 @@ class FDB:
         >>>         "date": "20200101",
         >>>         "time": "1800",
         >>> }
-        >>> control_iterator = pyfdb.control(
-        >>>     request,
+        >>> control_iterator = fdb.control(
+        >>>     selection,
         >>>     ControlAction.DISABLE,
         >>>     [ControlIdentifier.RETRIEVE],
         >>> )
@@ -657,8 +666,13 @@ class FDB:
         ]
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        raw_control_identifiers = [
+            control_identifier._to_raw() for control_identifier in control_identifiers
+        ]
         iterator = self.FDB.control(
-            fdb_tool_request.tool_request, control_action, control_identifiers
+            fdb_tool_request.tool_request,
+            control_action._to_raw(),
+            raw_control_identifiers,
         )
         while True:
             try:
@@ -689,20 +703,20 @@ class FDB:
 
         Examples
         --------
-        >>> pyfdb = pyfdb.FDB(fdb_config_path)
-        >>> request = {
-        >>>         "type": "an",
-        >>>         "class": "ea",
-        >>>         "domain": "g",
-        >>>         "expver": "0001",
-        >>>         "stream": "oper",
-        >>>         "levtype": "sfc",
-        >>>         "step": "0",
-        >>>         "time": "1800",
-        >>> }
-        >>> index_axis: IndexAxis = pyfdb.axes(request) # level == 3
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> selection = {
+        ...         "type": "an",
+        ...         "class": "ea",
+        ...         "domain": "g",
+        ...         "expver": "0001",
+        ...         "stream": "oper",
+        ...         "levtype": "sfc",
+        ...         "step": "0",
+        ...         "time": "1800",
+        ... }
+        >>> index_axis: IndexAxis = fdb.axes(selection) # level == 3
         >>> for k, v in index_axis.items():
-        >>>     print(f"k={k} \t| v={v}")
+        ...     print(f"k={k} \t| v={v}")
         k=class    | v=['ea']
         k=date     | v=['20200101', '20200102', '20200103', '20200104']
         k=domain   | v=['g']
@@ -718,7 +732,7 @@ class FDB:
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
         return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
 
-    def enabled(self, control_identifier: _interal.ControlIdentifier) -> bool:
+    def enabled(self, control_identifier: ControlIdentifier) -> bool:
         """
         Check whether a specific control identifier is enabled
 
@@ -736,16 +750,16 @@ class FDB:
         --------
         >>> fdb_config = yaml.safe_load(fdb_config_path)
         >>> fdb_config["writable"] = False
-        >>> pyfdb = pyfdb.FDB(fdb_config)
-        >>> pyfdb.enabled(ControlIdentifier.NONE) # == True
-        >>> pyfdb.enabled(ControlIdentifier.LIST) # == True
-        >>> pyfdb.enabled(ControlIdentifier.RETRIEVE) # == True
-        >>> pyfdb.enabled(ControlIdentifier.ARCHIVE) # == False, default True
-        >>> pyfdb.enabled(ControlIdentifier.WIPE) # == False, default True
-        >>> pyfdb.enabled(ControlIdentifier.UNIQUEROOT) # == True
+        >>> fdb = pyfdb.FDB(fdb_config)
+        >>> fdb.enabled(ControlIdentifier.NONE) # == True
+        >>> fdb.enabled(ControlIdentifier.LIST) # == True
+        >>> fdb.enabled(ControlIdentifier.RETRIEVE) # == True
+        >>> fdb.enabled(ControlIdentifier.ARCHIVE) # == False, default True
+        >>> fdb.enabled(ControlIdentifier.WIPE) # == False, default True
+        >>> fdb.enabled(ControlIdentifier.UNIQUEROOT) # == True
 
         """
-        return self.FDB.enabled(control_identifier)
+        return self.FDB.enabled(control_identifier._to_raw())
 
     def needs_flush(self):
         """
@@ -764,17 +778,17 @@ class FDB:
         Examples
         --------
         >>> fdb_config = Config(config_file.read())
-        >>> pyfdb = FDB(fdb_config)
-        >>> filename = <test_data_path>
-        >>> pyfdb.archive(open(filename, "rb").read())
-        >>> pyfdb.needs_flush()                         # == True
-        >>> pyfdb.flush()
-        >>> pyfdb.needs_flush()                         # == False
+        >>> fdb = FDB(fdb_config)
+        >>> filename = <data_path>
+        >>> fdb.archive(open(filename, "rb").read())
+        >>> fdb.needs_flush()                         # == True
+        >>> fdb.flush()
+        >>> fdb.needs_flush()                         # == False
 
         """
         return self.FDB.dirty()
 
-    def print_config(self) -> str:
+    def config(self) -> str:
         return str(self.FDB.config())
 
     def __str__(self) -> str:

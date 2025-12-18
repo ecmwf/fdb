@@ -1,52 +1,69 @@
-Example usage
+Examples
 #############
 
-This example demonstrates how to use common functionality of the ``PyFDB``.
+This example demonstrates how to use common functionality of the ``PyFDB``. 
+The terms ``PyFDB`` and ``FDB`` are sometimes used interchangeably.
 
-PyFDB Intro
-***********
+PyFDB Initalisation
+*******************
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 .. code-block:: python
 
-    pyfdb = pyfdb.FDB(config_file)
+    fdb = pyfdb.FDB()
 
+If no configuration is supplied ``FDB`` falls back to derive the configuration location from
+a pre-defined set of locations. You can supply a custom location by specifying the ``FDB_HOME`` environment
+variable. If you want to set the location of the configuration file only, use the ``FDB5_CONFIG_FILE`` environment variable.
+There is a plethora of different configuration options, if in doubt, refer to the
+official ``FDB`` documentation at `ReadTheDocs <https://fields-database.readthedocs.io/en/latest/>`__.
 
-You can also pass custom configurations. Those can be supplied as a ``Path`` pointing to the location
+You can also pass (dynamically) created custom configurations as parameters to the ``FDB`` constructor. 
+Those can be supplied as a ``Path`` pointing to the location
 of the configuration file, as a ``str`` which is the ``yaml`` representation of the configuration or as
 a ``Dict[str, Any]`` as shown below. 
 
 .. code-block:: python
 
     config = {
-        type="local",
-        engine="toc",
-        schema="/path/to/fdb_schema",
-        spaces=[
+        "type":"local",
+        "engine":"toc",
+        "schema":"/path/to/fdb_schema",
+        "spaces":[
             {
-                handler="Default",
-                roots=[
+                "handler":"Default",
+                "roots":[
                     {"path": "/path/to/root"}
                 ]
             }
         ],
     }
-    pyfdb = pyfdb.FDB(config=config, userconfig={})
+    fdb = pyfdb.FDB(config=config, user_config={})
 
-Below are some of the common examples you want to use `PyFDB` for:
+.. clear-namespace
+
+The different method of the ``FDB`` class can be leverage for different use-cases. Below we listed
+examples of the most common method class display different ways of using the Python API.
 
 Archive
 ***********
 
 **Archive binary data into the underlying FDB.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = pyfdb.FDB(config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
+    filename = data_path / "x138-300.grib"
 
-    filename = test_data_path / "x138-300.grib"
-
-    pyfdb.archive(open(filename, "rb").read())
-    pyfdb.flush()
+    fdb.archive(filename.read_bytes())
+    fdb.flush()
 
 In this scenario a ``GRIB`` file is archived to the configured ``FDB``. The FDB reads metadata from
 the given ``GRIB`` file and saves this, if no optional ``identifier`` is supplied. If we set an
@@ -55,10 +72,16 @@ given from the supplied ``identifier``.
 
 The ``flush`` command guarantees that the archived data has been flushed to the ``FDB``.
 
+.. clear-namespace
+
 Flush
 ***********
 
 **Flush all buffers and close all data handles of the underlying FDB into a consistent DB state.**
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 .. tip::
 
@@ -66,27 +89,32 @@ Flush
 
 .. code-block:: python
 
-    fdb_config = pyfdb.Config(config_file.read_text())
-    pyfdb = pyfdb.FDB(fdb_config)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    filename = test_data_path / "x138-300.grib"
+    filename = data_path / "x138-300.grib"
 
-    pyfdb.archive(open(filename, "rb").read())
-    pyfdb.flush()
+    fdb.archive(open(filename, "rb").read())
+    fdb.flush()
 
 The ``flush`` command guarantees that the archived data has been flushed to the ``FDB``.
+
+.. clear-namespace
 
 Retrieving
 ***********
 
 **Retrieve data which is specified by a MARS selection.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 To Memory
 =========
 
 .. code-block:: python
 
-    pyfdb = FDB(config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -101,18 +129,20 @@ To Memory
         "time": "1800",
     }
 
-    with pyfdb.retrieve(selection) as data_handle:
+    with fdb.retrieve(selection) as data_handle:
         data_handle.read(4) # == b"GRIB"
-        # data_handle.read_all() # As an alternative to read all messages
+        # data_handle.readall() # As an alternative to read all messages
 
 The code above shows how to retrieve a MARS selection given as a dictionary. The retrieved ``data_handle``
 has to be opened before being read and closed afterwards. If you are interested in reading the entire
-``data_handle``, you could use the ``read_all`` method. 
+``data_handle``, you could use the ``readall`` method. 
 
 .. tip::
 
-    For the ``read_all`` method there is no need
-    to ``open`` or ``close`` the ``data_handle`` after the call to ``read_all``.
+    For the ``readall`` method there is no need
+    to ``open`` or ``close`` the ``data_handle`` after the call to ``readall``.
+
+.. clear-namespace
 
 To File
 =========
@@ -124,26 +154,45 @@ The following code is showing how to achieve this:
 
     import shutil
 
-    # Specify request here
-    # --------------------
-    data_handle = pyfdb.retrieve(request)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    filename = os.path.join("<directory-name>", '<output-name>.grib')
+    # Specify selection here
+    # --------------------
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": "167/165/166",
+        "time": "1800",
+    }
+
+    filename = test_case_tmp / 'output.grib'
 
     with open(filename, 'wb') as out:
-        shutil.copyfileobj(datareader.read_all(), out)
+        with fdb.retrieve(selection) as data_handle:
+            out.write(data_handle.readall())
+
+.. clear-namespace
 
 List
 ****
 
 **List data present at the underlying fdb archive and which can be retrieved.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = pyfdb.FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    request = pyfdb.FDBToolRequest(
-        {
+    selection = {
             "type": "an",
             "class": "ea",
             "domain": "g",
@@ -154,10 +203,9 @@ List
             "step": "0",
             "param": "167/131/132",
             "time": "1800",
-        },
-    )
+        }
 
-    list_iterator = pyfdb.list(request, level=1)
+    list_iterator = fdb.list(selection, level=1)
     elements = list(list_iterator)
 
     for el in elements:
@@ -165,8 +213,8 @@ List
 
     assert len(elements) == 1
 
-The code above shows an example of listing the contents of the ``FDB`` for a given ``FDBToolRequest``.
-The ``FDBToolRequest`` is class describing a ``MarsSelection`` (A MARS request without the verb).
+The code above shows an example of listing the contents of the ``FDB`` for a given selection.
+The selection is a class describing a ``MarsSelection`` (A MARS request without the verb).
 
 .. note::
 
@@ -177,11 +225,30 @@ The ``FDBToolRequest`` is class describing a ``MarsSelection`` (A MARS request w
 
 Depending on the given ``level`` different outputs are to be expected:
 
-::
+.. invisible-code-block: python
 
-    >>> list_iterator = pyfdb.list(request) // level == 3
-    >>> elements = list(list_iterator)
-    >>> print(elements[0])
+   import pyfdb
+
+.. code-block:: python
+
+    fdb = pyfdb.FDB(fdb_config_path)
+
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "time": "1800",
+    }
+    list_iterator = fdb.list(selection) # level == 3
+    elements = list(list_iterator)
+    print(elements[0])
+
+::
 
     {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
     {type=an,levtype=sfc}
@@ -204,18 +271,50 @@ Depending on the given ``level`` different outputs are to be expected:
     length=10732,
     timestamp=1763479157
 
-    >>> list_iterator = pyfdb.list(request, level=2)
-    >>> elements = list(list_iterator)
-    >>> print(elements[0])
+.. code-block:: python
+
+    fdb = pyfdb.FDB(fdb_config_path)
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "time": "1800",
+    }
+    list_iterator = fdb.list(selection, level=2)
+    elements = list(list_iterator)
+    print(elements[0])
+
+::
 
     {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
     {type=an,levtype=sfc},
     length=0,
     timestamp=0
 
-    >>> list_iterator = pyfdb.list(request, level=1)
-    >>> elements = list(list_iterator)
-    >>> print(elements[0])
+.. code-block:: python
+
+    fdb = pyfdb.FDB(fdb_config_path)
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "time": "1800",
+    }
+    list_iterator = fdb.list(selection, level=1)
+    elements = list(list_iterator)
+    print(elements[0])
+
+:: 
 
     {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},
     length=0,
@@ -225,9 +324,24 @@ For each level the returned iterator of ``ListElement`` is restricting the eleme
 level of the underlying FDB. If you specify ``level=3``, the returned ``ListElement`` contains a valid
 ``DataHandle`` object. You can use this directly to read the message represented by the ``ListElement``, e.g.:
 
+
 .. code-block:: python
 
-    list_iterator = pyfdb.list(request, level=3)
+    fdb = pyfdb.FDB(fdb_config_path)
+
+    list_iterator = fdb.list(selection, level=3)
+    selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/131/132",
+            "time": "1800",
+    }
     elements = list(list_iterator)
 
     for el in elements:
@@ -236,6 +350,7 @@ level of the underlying FDB. If you specify ``level=3``, the returned ``ListElem
         assert data_handle.read(4) == b"GRIB"
         data_handle.close()
 
+.. clear-namespace
 
 Inspect
 *******
@@ -243,9 +358,13 @@ Inspect
 **Inspects the content of the underlying FDB and returns a generator of list elements
 describing which field was part of the MARS selection.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
     identifier = {
         "type": "an",
@@ -260,18 +379,16 @@ describing which field was part of the MARS selection.**
         "time": "1800",
     }
 
-    inspect_iterator = pyfdb.inspect(identifier)
+    inspect_iterator = fdb.inspect(identifier)
     elements = list(inspect_iterator)
 
-    # Because the request needs to be fully specified, there
-    # should be only a single request returned
+    # Because the identifier needs to be fully specified, there
+    # should be only a single element returned
     assert len(elements) == 1
 
     for el in elements:
-        data_handle = el.data_handle()
-        data_handle.open()
-        data_handle.read(4) == b"GRIB"
-        data_handle.close()
+        with el.data_handle() as data_handle:
+            assert data_handle.read(4) == b"GRIB"
 
 The code above shows how to inspect certain elements stored in the ``FDB``. This call is similar to
 a ``list`` call with ``level=3``, although the internals are quite different. The functionality is
@@ -285,15 +402,21 @@ be used to directly access the data associated with the element, see the example
    Due to the internals of the ``FDB`` only a fully specified MARS selection (also called Identifier) is accepted.
    If a range for a key is given, e.g. ``param=131/132``, the second value is silently dropped.
 
+.. clear-namespace
+
 
 Status
 *******
 
 **List the status of all FDB entries with their control identifiers, e.g., whether a certain database was locked for retrieval.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -301,7 +424,7 @@ Status
         "domain": "g",
     }
 
-    status_iterator = pyfdb.status(FDBToolRequest(selection))
+    status_iterator = fdb.status(selection)
     elements = list(status_iterator)
 
     len(elements) # == 32
@@ -328,8 +451,12 @@ Wipe
 
 **Wipe data from the database**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 Delete FDB databases and the data therein contained. Use the passed
-request to identify the database to delete. This is equivalent to a UNIX rm command.
+selection to identify the database to delete. This is equivalent to a UNIX rm command.
 This function deletes either whole databases, or whole indexes within databases
 
 .. tip::
@@ -342,9 +469,9 @@ A potential deletion operation could look like this:
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    elements = list(pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"})))
+    elements = list(fdb.wipe({"class": "ea"}))
     len(elements) > 0
 
     # NOTE: Double check that the returned elements are those you want to delete
@@ -353,17 +480,22 @@ A potential deletion operation could look like this:
     
 
     # Do the actual deletion with the `doit=True` flag
-    wipe_iterator = pyfdb.wipe(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+    wipe_iterator = fdb.wipe({"class": "ea"}, doit=True)
     wiped_elements = list(wipe_iterator)
 
     for element in elements:
         print(element)
 
+.. clear-namespace
 
 Move
 *******
 
 **Move content of one FDB database to a new URI.**
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 This locks the source database, make it possible to create a second
 database in another root, duplicates all data.
@@ -383,8 +515,10 @@ Source data is moved.
 
    Also make sure, that you called the ``execute`` function on each of the returned ``MoveElement`` s.
 
-
 .. code-block:: python
+
+    from pathlib import Path
+    import yaml
 
     def add_new_root(fdb_config_path: Path, new_root: Path) -> str:
         # Manipulate the config of the FDB to contain a new root
@@ -402,11 +536,11 @@ Source data is moved.
     new_root: Path = fdb_config_path.parent / "new_db"
     updated_config = add_new_root(fdb_config_path, new_root)
 
-    pyfdb = FDB(updated_config)
+    fdb = pyfdb.FDB(updated_config)
 
-    # Request for the second level of the schema
+    # Selection for the second level of the schema
     selection = {
-        "class": "ea",
+        "class":"ea",
         "domain": "g",
         "expver": "0001",
         "stream": "oper",
@@ -414,9 +548,9 @@ Source data is moved.
         "time": "1800",
     }
 
-    move_iterator = pyfdb.move(
-        FDBToolRequest(selection),
-        URI.from_str(str(new_root)),
+    move_iterator = fdb.move(
+        selection,
+        pyfdb.URI.from_str(str(new_root)),
     )
 
     elements = []
@@ -433,17 +567,23 @@ Source data is moved.
 
     assert len(list(new_root.iterdir())) == 1
 
-The example above shows how a database in a pre-existing ``FDB`` can be moved. In this case a
-pre-existing ``FDB`` configuration file is loaded and an additional root path is added. It's important
+The example above shows how a database in a preexisting ``FDB`` can be moved. In this case a
+preexisting ``FDB`` configuration file is loaded and an additional root path is added. It's important
 to mention that the move command operates on root folders of ``FDB`` instances.
 
 After specifying the selection we want to move, this has to be an selection which contains keys of 
 the first and second level of the schema, we can call the ``move`` function. The returned elements
 can be iterated and the actual move operation can be triggered by calling ``execute`` on each element.
 
+.. clear-namespace
+
 Purge
 *******
 **Remove duplicate data from the database.**
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 Purge duplicate entries from the database and remove the associated data if the data is owned and not adopted.
 Data in the ``FDB`` is immutable. It is masked, but not removed, when overwritten with new data using the same key.
@@ -460,9 +600,9 @@ existing ``FDB``), this data will not be removed.
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    elements = list(pyfdb.purge(FDBToolRequest(key_values={"class": "ea"})))
+    elements = list(fdb.purge({"class": "ea"}))
     len(elements) > 0
 
     # NOTE: Double check that the returned elements are those you want to delete
@@ -470,22 +610,27 @@ existing ``FDB``), this data will not be removed.
         print(element)
 
     # Do the actual deletion with the `doit=True` flag
-    purge_iterator = pyfdb.purge(FDBToolRequest(key_values={"class": "ea"}), doit=True)
+    purge_iterator = fdb.purge({"class": "ea"}, doit=True)
     purge_elements = list(purge_iterator)
 
     for element in purge_elements:
         print(element)
 
+.. clear-namespace
+
 Stats
 *******
 **Print information about FDB databases, aggregating the information over all the databases visited into a final summary.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    request = FDBToolRequest(
-        {
+    selection = {
             "type": "an",
             "class": "ea",
             "domain": "g",
@@ -496,10 +641,9 @@ Stats
             "step": "0",
             "param": "167/165/166",
             "time": "1800",
-        },
-    )
+        }
 
-    elements = list(pyfdb.stats(request))
+    elements = list(fdb.stats(selection))
 
     for el in elements:
         print(el)
@@ -533,11 +677,17 @@ the underlying ``FDB``. A potential call of the example above could lead to the 
 
 .. _control_label:
 
+.. clear-namespace
+
 Control
 *******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
 
 Under certain circumstances
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 .. tip::
    Consume the iterator, returned by the ``control`` call, completely. Otherwise, the lock file
@@ -545,59 +695,81 @@ Under certain circumstances
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    ## Setup of the FDB with the corresponding data
-    request = FDBToolRequest(
+    print("Retrieve without lock")
+    with fdb.retrieve(
         {
+            "type": "an",
             "class": "ea",
             "domain": "g",
             "expver": "0001",
             "stream": "oper",
             "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
             "time": "1800",
-        },
-    )
+        }
+    ) as data_handle:
+        data_handle.read(4) # == b"GRIB"
 
-    print("Lock the database for wiping")
-    control_iterator = pyfdb.control(
-        request, ControlAction.DISABLE, [ControlIdentifier.WIPE]
-    )
+    assert not (
+        fdb_config_path.parent
+        / "db_store"
+        / "ea:0001:oper:20200101:1800:g"
+        / "retrieve.lock"
+    ).exists()
 
-    elements = list(control_iterator)
+    print("Locking database for retrieve")
+
+    request = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
+
+    control_iterator = fdb.control(
+        request,
+        pyfdb.ControlAction.DISABLE,
+        [pyfdb.ControlIdentifier.RETRIEVE],
+    )
+    assert control_iterator
+
+    elements = []
+
+    for el in control_iterator:
+        print(el)
+        elements.append(el)
+
     assert len(elements) == 1
 
     assert (
         fdb_config_path.parent
         / "db_store"
         / "ea:0001:oper:20200101:1800:g"
-        / "wipe.lock"
+        / "retrieve.lock"
     ).exists()
 
-    print("Try Wipe")
-    wipe_iterator = pyfdb.wipe(request, doit=True)
-
-    elements = list(wipe_iterator)
-    assert len(elements) == 0
-
-    print("Unlock the database for wiping")
-    control_iterator = pyfdb.control(
-        request, ControlAction.ENABLE, [ControlIdentifier.WIPE]
-    )
-
-    elements = list(control_iterator)
-    assert len(elements) > 0
-
-    assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "wipe.lock"
-    ).exists()
-
-    print("Try Wipe")
-    pyfdb.wipe(request, doit=True)
-    pyfdb.flush()
+    print("Retrieve with lock")
+    with fdb.retrieve(
+        {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        },
+    ) as data_handle:
+        data_handle.read(4) # == b"GRIB"
 
     print("Success")
 
@@ -610,23 +782,28 @@ in this case ``ControlIdentifier.WIPE`` and ``ControlAction.DISABLE``, which tra
 wiping for the specified database. We could specify multiple of the ``ControlIdentifier`` in a single call.
 
 For each of the ``ControlIdentifier`` the underlying ``FDB`` will create a ``<control-identifier-name>.lock`` file, 
-which resides inside the database specified by the ``FDBToolRequest``. If we decide to enable the action again, this
+which resides inside the database specified by the MARS selection. If we decide to enable the action again, this
 file gets deleted.
 
 After disabling the action, a call to it results in an empty iterator being returned.
 
+.. clear-namespace
+
 Axes
 *******
-**Return the 'axes' and their extent of an FDBToolRequest for a given level of the schema in an IndexAxis object.**
+**Return the 'axes' and their extent of a selection for a given level of the schema in an IndexAxis object.**
 
-If a key isn't specified the entire extent (all values) are returned.
+If a key is not specified the entire extent (all values) are returned.
+
+.. invisible-code-block: python
+
+   import pyfdb
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    request = FDBToolRequest(
-        {
+    selection = {
             "type": "an",
             "class": "ea",
             "domain": "g",
@@ -636,26 +813,24 @@ If a key isn't specified the entire extent (all values) are returned.
             "levtype": "sfc",
             "step": "0",
             "time": "1800",
-        },
-    )
-
+        }
 
     print("---------- Level 3: ----------")
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis = fdb.axes(selection)
     # len(index_axis.items()) == 11
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
 
     print("---------- Level 2: ----------")
-    index_axis: IndexAxis = pyfdb.axes(request, level=2)
+    index_axis = fdb.axes(selection, level=2)
     #len(index_axis.items()) == 8
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
 
     print("---------- Level 1: ----------")
-    index_axis: IndexAxis = pyfdb.axes(request, level=1)
+    index_axis = fdb.axes(selection, level=1)
     # len(index_axis.items()) == 6
 
     for k, v in index_axis.items():
@@ -709,39 +884,32 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
+    selection = pyfdb.WildcardMarsSelection()
+    index_axis: pyfdb.IndexAxis = fdb.axes(selection)
 
-    request = FDBToolRequest(
-        {
-            # "type": "an",
-            # "class": "ea",
-            # "domain": "g",
-            # "expver": "0001",
-            # "stream": "oper",
-            # "date": "20200101",
-            # "levtype": "sfc",
-            # "step": "0",
-            # "time": "180",
-        },
-        all=True,
-    )
-
-    index_axis: IndexAxis = pyfdb.axes(request)
+.. clear-namespace
 
 Enabled
 *******
 **Check whether a specific control identifier is enabled.**
 
+.. invisible-code-block: python
+
+   import pyfdb
+
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    from pyfdb import ControlIdentifier
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is True
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is True
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is True
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    fdb = pyfdb.FDB(fdb_config_path)
+
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is True
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is True
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is True
+    assert fdb.enabled(ControlIdentifier.WIPE) is True
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 The examples above show how a default ``FDB`` is configured, this is, all possible ``ControlAction`` s
 are enabled by default.
@@ -751,19 +919,24 @@ we end up with the following ``ControlIdentifier`` s:
 
 .. code-block:: python
 
+    import yaml
+    from pyfdb import ControlIdentifier
+
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["writable"] = False
 
-    pyfdb = FDB(fdb_config)
+    fdb = pyfdb.FDB(fdb_config)
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is True
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is False
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is False
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is True
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is True
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is False
+    assert fdb.enabled(ControlIdentifier.WIPE) is False
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 The configuration changes accordingly, if we substitute ``writable = False`` with ``visitable = False``.
+
+.. clear-namespace
 
 Needs Flush
 *************
@@ -771,14 +944,16 @@ Needs Flush
 
 .. code-block:: python
 
-    pyfdb = FDB(fdb_config_file)
+    fdb = pyfdb.FDB(fdb_config_path)
 
-    filename = test_data_path / "x138-300.grib"
+    filename = data_path / "x138-300.grib"
 
-    pyfdb.archive(open(filename, "rb").read())
-    pyfdb.needs_flush() # == True
-    pyfdb.flush()
-    pyfdb.needs_flush() # == False
+    fdb.archive(open(filename, "rb").read())
+    fdb.needs_flush() # == True
+    fdb.flush()
+    fdb.needs_flush() # == False
 
 The example above shows return value of the ``flush`` command after an archive command results in ``True``. 
 Flushing resets the internal status of the ``FDB`` and the call to ``needs_flush`` returns ``False`` afterwards.
+
+.. clear-namespace

@@ -29,9 +29,9 @@ def test_move(read_only_fdb_setup):
 
     print(updated_config)
 
-    pyfdb = FDB(updated_config)
+    fdb = FDB(updated_config)
 
-    # Request for the second level of the schema
+    # Selection for the second level of the schema
     selection = {
         "class": "ea",
         "domain": "g",
@@ -43,7 +43,7 @@ def test_move(read_only_fdb_setup):
 
     print(str(new_root))
 
-    move_iterator = pyfdb.move(
+    move_iterator = fdb.move(
         selection,
         URI.from_str(str(new_root)),
     )

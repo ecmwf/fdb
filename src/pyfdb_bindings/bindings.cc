@@ -350,7 +350,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
 
     py::class_<fdb5::FDB>(m, "FDB")
-        .def(py::init([]() { return fdb5::FDB(fdb5::Config()); }))
+        .def(py::init([]() { return fdb5::FDB(); }))
         .def(py::init([](const fdb5::Config& conf) { return fdb5::FDB(conf); }))
 
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })

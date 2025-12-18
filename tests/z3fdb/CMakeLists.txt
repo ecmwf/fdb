@@ -15,7 +15,6 @@ function(add_py_test test)
         "FINDLIBS_DISABLE_PACKAGE=yes"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
         "ECCODES_PYTHON_USE_FINDLIBS=1"
-        "LD_DEBUG=libs"
     )
     set_tests_properties(pychunked_data_view_${stem}
         PROPERTIES

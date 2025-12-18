@@ -7,9 +7,9 @@ def test_datahandle_repr(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -22,7 +22,7 @@ def test_datahandle_repr(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(request)
+    data_handle = fdb.retrieve(selection)
 
     assert "Closed" in repr(data_handle)
     data_handle.open()
@@ -34,9 +34,9 @@ def test_datahandle_not_opened_before_read(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -49,7 +49,7 @@ def test_datahandle_not_opened_before_read(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(request)
+    data_handle = fdb.retrieve(selection)
 
     # Check the GRIB header
     assert data_handle
@@ -66,9 +66,9 @@ def test_datahandle_consecutive_read(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -81,7 +81,7 @@ def test_datahandle_consecutive_read(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(request)
+    data_handle = fdb.retrieve(selection)
 
     # Check the GRIB header
     assert data_handle
@@ -96,9 +96,9 @@ def test_datahandle_read_all(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -111,11 +111,11 @@ def test_datahandle_read_all(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(request)
+    data_handle = fdb.retrieve(selection)
 
     # Check the GRIB header
     assert data_handle
-    assert data_handle.read_all()[0:4] == b"GRIB"
+    assert data_handle.readall()[0:4] == b"GRIB"
     data_handle.close()
 
 
@@ -124,9 +124,9 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -139,8 +139,8 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(request)
-    data_handle_2 = pyfdb.retrieve(request)
+    data_handle = fdb.retrieve(selection)
+    data_handle_2 = fdb.retrieve(selection)
 
     # Check the GRIB header
     assert data_handle
@@ -149,7 +149,7 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
     data_handle_2.open()
 
     # Read all the data from data_handle
-    data = data_handle.read_all()
+    data = data_handle.readall()
     data_2 = data_handle_2.read(len(data))
 
     assert data == data_2
@@ -164,9 +164,9 @@ def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -179,7 +179,7 @@ def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
         "time": "1800",
     }
 
-    with pyfdb.retrieve(request) as data_handle:
+    with fdb.retrieve(selection) as data_handle:
         # Check the GRIB header
         assert data_handle
         assert data_handle.read(4) == b"GRIB"
@@ -190,9 +190,9 @@ def test_datahandle_not_opened_before_read_all_context_manager(read_only_fdb_set
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -205,7 +205,7 @@ def test_datahandle_not_opened_before_read_all_context_manager(read_only_fdb_set
         "time": "1800",
     }
 
-    with pyfdb.retrieve(request) as data_handle:
+    with fdb.retrieve(selection) as data_handle:
         # Check the GRIB header
         assert data_handle
-        assert data_handle.read_all()
+        assert data_handle.readall()

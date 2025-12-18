@@ -1,5 +1,5 @@
 # (C) Copyright 2025- ECMWF.
-#
+# .
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 # In applying this licence, ECMWF does not waive the privileges and immunities
@@ -12,14 +12,14 @@
 from typing import Dict
 from pyfdb_bindings import pyfdb_bindings as bindings
 from pyfdb_bindings.pyfdb_bindings import (
-    FDB,
+    FDB as _FDB,
     Config,
-    ControlAction,
-    ControlElement,
-    ControlIdentifier,
+    ControlAction as _ControlAction,
+    ControlIdentifier as _ControlIdentifier,
     FDBToolRequest,
     FileCopy,
     IndexAxis,
+    ControlElement,
     ListElement,
     StatsElement,
     init_bindings,
@@ -40,12 +40,12 @@ __all__ = [
     _DataHandle,
     _flatten_values,
     _URI,
-    FDB,
+    _FDB,
     Config,
     ConfigMapper,
     FDBToolRequest,
-    ControlAction,
-    ControlIdentifier,
+    _ControlAction,
+    _ControlIdentifier,
     ListElement,
     StatsElement,
     ControlElement,

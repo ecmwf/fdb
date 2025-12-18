@@ -6,7 +6,7 @@ def test_status(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -14,7 +14,7 @@ def test_status(read_only_fdb_setup):
         "domain": "g",
     }
 
-    status_iterator = pyfdb.status(selection)
+    status_iterator = fdb.status(selection)
 
     elements = []
 

@@ -6,7 +6,7 @@ def test_retrieve(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -21,7 +21,7 @@ def test_retrieve(read_only_fdb_setup):
         "time": "1800",
     }
 
-    data_handle = pyfdb.retrieve(selection)
+    data_handle = fdb.retrieve(selection)
 
     assert data_handle
     data_handle.open()
@@ -34,7 +34,7 @@ def test_retrieve_context_manager(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -49,6 +49,6 @@ def test_retrieve_context_manager(read_only_fdb_setup):
         "time": "1800",
     }
 
-    with pyfdb.retrieve(selection) as data_handle:
+    with fdb.retrieve(selection) as data_handle:
         assert data_handle
         assert data_handle.read(4) == b"GRIB"

@@ -21,6 +21,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
     "sphinx.ext.inheritance_diagram",
 ]
 
@@ -36,7 +37,7 @@ autoapi_ignore = [
     "*/_internal/*",
 ]
 add_module_names = False
-autoapi_keep_files = True
+autoapi_keep_files = False
 
 # -- Napoleon settings
 napoleon_google = True

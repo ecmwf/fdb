@@ -7,8 +7,8 @@ from pyfdb import FDB
 
 
 def test_initialization():
-    pyfdb = FDB()
-    assert pyfdb
+    fdb = FDB()
+    assert fdb
 
 
 def test_fdb_config_default():
@@ -17,11 +17,11 @@ def test_fdb_config_default():
 
 def test_fdb_config_wrong_type():
     with pytest.raises(
-        RuntimeError, match="Config: Unknown config type, must be str, dict or Path"
+        ValueError, match="Config: Unknown config type, must be str, dict or Path"
     ):
-        pyfdb = FDB(0)
+        fdb = FDB(0)
 
-        assert pyfdb
+        assert fdb
 
 
 def test_fdb_config_fixture(read_only_fdb_setup):
@@ -29,9 +29,9 @@ def test_fdb_config_fixture(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    assert pyfdb
+    assert fdb
 
 
 def test_fdb_config_equality(read_only_fdb_setup):
@@ -86,17 +86,17 @@ def test_fdb_user_config(read_only_fdb_setup):
           - path: "/a/path/is/something"
     """
 
-    pyfdb = FDB(fdb_config_path, user_config_str)
-    assert pyfdb
+    fdb = FDB(fdb_config_path, user_config_str)
+    assert fdb
 
     print("Check for user config propagation:")
-    print(pyfdb.print_config())
-    assert "useSubToc => true" in pyfdb.print_config()
+    print(fdb.config())
+    assert "useSubToc => true" in fdb.config()
 
     pyfdb_no_user_config = FDB(fdb_config_path)
-    print(pyfdb_no_user_config.print_config())
+    print(pyfdb_no_user_config.config())
     print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.print_config()
+    assert "root={}" in pyfdb_no_user_config.config()
 
 
 def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
@@ -112,24 +112,24 @@ def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
         - roots:
           - path: "/a/path/is/something"
     """
-    pyfdb = FDB(fdb_config_path, user_config_str)
-    assert pyfdb
+    fdb = FDB(fdb_config_path, user_config_str)
+    assert fdb
 
     print("Check for user config propagation:")
-    print(pyfdb.print_config())
-    assert "useSubToc => true" in pyfdb.print_config()
+    print(fdb.config())
+    assert "useSubToc => true" in fdb.config()
 
     pyfdb_no_user_config = FDB(fdb_config_path)
-    print(pyfdb_no_user_config.print_config())
+    print(pyfdb_no_user_config.config())
     print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.print_config()
+    assert "root={}" in pyfdb_no_user_config.config()
 
 
 def test_fdb_print():
-    pyfdb = FDB()
+    fdb = FDB()
 
-    assert pyfdb
-    print(pyfdb)
+    assert fdb
+    print(fdb)
 
 
 def test_fdb_context():

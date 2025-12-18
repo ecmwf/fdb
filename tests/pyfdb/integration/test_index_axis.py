@@ -12,9 +12,9 @@ def test_index_axis_initialization():
 def test_index_axis_string(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -27,7 +27,7 @@ def test_index_axis_string(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis = pyfdb.axes(request)
+    index_axis = fdb.axes(selection)
 
     assert index_axis
     assert str(index_axis)
@@ -38,9 +38,9 @@ def test_index_axis_get(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -53,7 +53,7 @@ def test_index_axis_get(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert index_axis
     assert index_axis["class"]
@@ -72,9 +72,9 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -87,7 +87,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert index_axis
     assert len(index_axis.keys()) == 6
@@ -106,9 +106,9 @@ def test_index_axis_repr(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -121,7 +121,7 @@ def test_index_axis_repr(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert repr(index_axis)
 
@@ -131,9 +131,9 @@ def test_index_axis_keys(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -146,7 +146,7 @@ def test_index_axis_keys(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert len(index_axis.keys()) == 6
 
@@ -156,9 +156,9 @@ def test_index_axis_values(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -171,7 +171,7 @@ def test_index_axis_values(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert len(index_axis.values()) == 6
 
@@ -181,9 +181,9 @@ def test_index_axis_items(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -196,7 +196,7 @@ def test_index_axis_items(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert len(index_axis.items()) == 6
 
@@ -209,9 +209,9 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -223,7 +223,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert len(index_axis.items()) == 11
 
@@ -235,7 +235,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
     for k, v in index_axis.items():
         assert index_axis.has_key(k)
 
-    index_axis: IndexAxis = pyfdb.axes(request, level=2)
+    index_axis: IndexAxis = fdb.axes(selection, level=2)
 
     assert len(index_axis.items()) == 8
 
@@ -244,7 +244,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
 
-    index_axis: IndexAxis = pyfdb.axes(request, level=1)
+    index_axis: IndexAxis = fdb.axes(selection, level=1)
 
     assert len(index_axis.items()) == 6
 
@@ -259,9 +259,9 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -274,7 +274,7 @@ def test_index_axis_expected_to_fail(read_only_fdb_setup):
         "time": "1800",
     }
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     with pytest.raises(AttributeError):
         index_axis["type"] = "oper"
@@ -288,11 +288,11 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = WildcardMarsSelection()
+    selection = WildcardMarsSelection()
 
-    index_axis: IndexAxis = pyfdb.axes(request)
+    index_axis: IndexAxis = fdb.axes(selection)
 
     assert len(index_axis.items()) == 11
 

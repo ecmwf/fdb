@@ -13,7 +13,8 @@ function(add_py_test test)
         "FDB5_DIR=${CMAKE_BINARY_DIR}"
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
-        "ECCODES_DIR=${CMAKE_BINARY_DIR}"
+        "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
+        "ECCODES_PYTHON_USE_FINDLIBS=1"
     )
     set_tests_properties(pyfdb_${stem}
         PROPERTIES
@@ -25,25 +26,28 @@ endfunction()
 
 
 set(test_files
-    unit/test_archive.py
-    unit/test_control.py
-    unit/test_data_handle.py
-    unit/test_enums.py
-    unit/test_fdb.py
-    unit/test_identifier.py
-    unit/test_index_axis.py
-    unit/test_initialization.py
-    unit/test_inspect.py
-    unit/test_list.py
-    unit/test_mars_request.py
-    unit/test_move.py
-    unit/test_purge.py
-    unit/test_retrieve.py
-    unit/test_stats.py
-    unit/test_status.py
-    unit/test_types.py
-    unit/test_uri.py
-    unit/test_wipe.py
+    integration/test_archive.py
+    integration/test_config.py
+    integration/test_config_mapper.py
+    integration/test_control.py
+    integration/test_data_handle.py
+    integration/test_enums.py
+    integration/test_fdb.py
+    integration/test_fdb_tool_request.py
+    integration/test_identifier.py
+    integration/test_index_axis.py
+    integration/test_inspect.py
+    integration/test_list.py
+    integration/test_mars_request.py
+    integration/test_move.py
+    integration/test_purge.py
+    integration/test_retrieve.py
+    integration/test_selection_build.py
+    integration/test_stats.py
+    integration/test_status.py
+    integration/test_types.py
+    integration/test_uri.py
+    integration/test_wipe.py
 )
 
 foreach(test_file ${test_files})

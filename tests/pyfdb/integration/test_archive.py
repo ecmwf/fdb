@@ -41,10 +41,22 @@ def test_archive_none(empty_fdb_setup, test_data_path):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
     filename = test_data_path / "x138-300.grib"
 
-    pyfdb.archive(open(filename, "rb").read())
-    pyfdb.flush()
+    fdb.archive(open(filename, "rb").read())
+    fdb.flush()
 
-    assert_one_field(pyfdb)
+    assert_one_field(fdb)
+
+
+def test_archive_abitrary_data(empty_fdb_setup):
+    fdb_config_path = empty_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+
+    with pytest.raises(RuntimeError, match="Serious bug"):
+        fdb.archive(data=b"binary-data")
+        fdb.flush()
