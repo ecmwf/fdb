@@ -41,17 +41,17 @@ class FDBToolRequest:
     Examples
     --------
     >>> request = FDBToolRequest(
-    >>>     {
-    >>>         "class": "ea",
-    >>>         "domain": "g",
-    >>>         "expver": "0001",
-    >>>         "stream": "oper",
-    >>>         "date": "20200101",
-    >>>         "time": "1800",
-    >>>     },
-    >>>     # all = False,
-    >>>     # minimum_key_set = None,
-    >>> )
+    ...     {
+    ...         "class": "ea",
+    ...         "domain": "g",
+    ...         "expver": "0001",
+    ...         "stream": "oper",
+    ...         "date": "20200101",
+    ...         "time": "1800",
+    ...     },
+    ...     # all = False,
+    ...     # minimum_key_set = None,
+    ... )
     """
 
     def __init__(
@@ -112,19 +112,19 @@ class ConfigMapper:
         Examples
         --------
         >>> config = ConfigMapper.to_json(
-                {
-                    "type":"local",
-                    "engine":"toc",
-                    "schema":<schema_path>,
-                    "spaces":[
-                        {
-                            "handler":"Default",
-                            "roots":[
-                                {"path": <db_store_path>},
-                            ],
-                        }
-                    ],
-                })
+        ...     {
+        ...         "type":"local",
+        ...         "engine":"toc",
+        ...         "schema": "<schema_path>",
+        ...         "spaces":[
+        ...             {
+        ...                 "handler":"Default",
+        ...                 "roots":[
+        ...                     {"path": "<db_store_path>"},
+        ...                 ],
+        ...             }
+        ...         ],
+        ...     })
         """
 
         if config is None:

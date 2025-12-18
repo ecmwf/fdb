@@ -6,7 +6,7 @@ def test_stats(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
     selection = {
         "type": "an",
@@ -21,7 +21,7 @@ def test_stats(read_only_fdb_setup):
         "time": "1800",
     }
 
-    list_iterator = pyfdb.stats(selection)
+    list_iterator = fdb.stats(selection)
     assert list_iterator
 
     elements = []

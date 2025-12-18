@@ -1,5 +1,4 @@
 from pyfdb import FDB
-from pyfdb.pyfdb import FDBToolRequest
 
 
 def test_list(read_only_fdb_setup):
@@ -7,9 +6,9 @@ def test_list(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -20,9 +19,9 @@ def test_list(read_only_fdb_setup):
         "step": "0",
         "time": "1800",
     }
-    print(f"Stringified tool request:\n  {request}")
+    print(f"Stringified selection:\n  {selection}")
 
-    list_iterator = pyfdb.list(request, level=1)
+    list_iterator = fdb.list(selection, level=1)
     assert list_iterator
 
     elements = []
@@ -35,7 +34,7 @@ def test_list(read_only_fdb_setup):
 
     print("----------------------------------")
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -47,7 +46,7 @@ def test_list(read_only_fdb_setup):
         "time": "1800",
     }
 
-    list_iterator = pyfdb.list(request, level=2)
+    list_iterator = fdb.list(selection, level=2)
     assert list_iterator
 
     elements = []
@@ -60,7 +59,7 @@ def test_list(read_only_fdb_setup):
 
     print("----------------------------------")
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -72,7 +71,7 @@ def test_list(read_only_fdb_setup):
         "time": "1800",
     }
 
-    list_iterator = pyfdb.list(request, level=3)
+    list_iterator = fdb.list(selection, level=3)
     assert list_iterator
 
     elements = []
@@ -90,9 +89,9 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -105,7 +104,7 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
         "time": "1800",
     }
 
-    list_iterator = pyfdb.list(request, duplicates=False, level=3)
+    list_iterator = fdb.list(selection, duplicates=False, level=3)
     assert list_iterator
 
     elements = []
@@ -117,10 +116,10 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     print("Archiving duplicate data")
-    pyfdb.archive(build_grib_messages.read_bytes())
-    pyfdb.flush()
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
 
-    list_iterator = pyfdb.list(request, duplicates=True, level=3)
+    list_iterator = fdb.list(selection, duplicates=True, level=3)
     assert list_iterator
     elements = []
 
@@ -136,9 +135,9 @@ def test_list_read_from_datahandle(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -150,9 +149,9 @@ def test_list_read_from_datahandle(read_only_fdb_setup):
         "param": "167/165/166",
         "time": "1800",
     }
-    print(f"Stringified tool request:\n  {request}")
+    print(f"Stringified selection:\n  {selection}")
 
-    request = {
+    selection = {
         "type": "an",
         "class": "ea",
         "domain": "g",
@@ -164,7 +163,7 @@ def test_list_read_from_datahandle(read_only_fdb_setup):
         "time": "1800",
     }
 
-    list_iterator = pyfdb.list(request, level=3)
+    list_iterator = fdb.list(selection, level=3)
     assert list_iterator
 
     elements = []

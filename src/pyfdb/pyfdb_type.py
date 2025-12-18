@@ -371,7 +371,7 @@ class DataHandle:
 
         return bytes(buffer)
 
-    def read_all(self) -> bytes:
+    def readall(self) -> bytes:
         """
         Read all bytes from the DataHandle.
 
@@ -476,8 +476,11 @@ class ControlIdentifier(IntFlag):
     UNIQUEROOT = auto()
 
     @classmethod
-    def _from_raw(cls, en: _internal.ControlIdentifier):
+    def _from_raw(cls, en: _internal._ControlIdentifier):
         return ControlIdentifier[en.name]
+
+    def _to_raw(self):
+        return _internal._ControlIdentifier[self.name]
 
 
 class ControlAction(IntFlag):
@@ -496,8 +499,11 @@ class ControlAction(IntFlag):
     ENABLE = auto()
 
     @classmethod
-    def _from_raw(cls, en: _internal.ControlAction):
+    def _from_raw(cls, en: _internal._ControlAction):
         return ControlAction[en.name]
+
+    def _to_raw(self):
+        return _internal._ControlAction[self.name]
 
 
 class URI:

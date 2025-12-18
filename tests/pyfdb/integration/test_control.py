@@ -1,7 +1,6 @@
 from pathlib import Path
 import yaml
-from pyfdb import FDB
-from pyfdb_bindings.pyfdb_bindings import ControlAction, ControlIdentifier
+from pyfdb import FDB, ControlAction, ControlIdentifier
 
 import pytest
 
@@ -26,10 +25,10 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
     print("Retrieve without lock")
-    data_handle = pyfdb.retrieve(
+    data_handle = fdb.retrieve(
         {
             "type": "an",
             "class": "ea",
@@ -57,7 +56,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
     print("Locking database for retrieve")
 
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -66,8 +65,8 @@ def test_control_lock_retrieve(read_only_fdb_setup):
         "time": "1800",
     }
 
-    control_iterator = pyfdb.control(
-        request,
+    control_iterator = fdb.control(
+        selection,
         ControlAction.DISABLE,
         [ControlIdentifier.RETRIEVE],
     )
@@ -89,7 +88,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     ).exists()
 
     print("Retrieve with lock")
-    data_handle = pyfdb.retrieve(
+    data_handle = fdb.retrieve(
         {
             "type": "an",
             "class": "ea",
@@ -114,9 +113,9 @@ def test_control_lock_list(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -126,13 +125,13 @@ def test_control_lock_list(read_only_fdb_setup):
     }
 
     print("List without lock")
-    list_iterator = pyfdb.list(request)
+    list_iterator = fdb.list(selection)
     elements = list(list_iterator)
     assert len(elements) == 3
 
     print("Locking database for listing")
-    control_iterator = pyfdb.control(
-        request, ControlAction.DISABLE, [ControlIdentifier.LIST]
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.LIST]
     )
     assert control_iterator
 
@@ -152,13 +151,13 @@ def test_control_lock_list(read_only_fdb_setup):
     ).exists()
 
     print("List with lock. Expecting 0 elements.")
-    list_iterator = pyfdb.list(request)
+    list_iterator = fdb.list(selection)
     elements = list(list_iterator)
     assert len(elements) == 0
 
     print("Unlocking database for listing")
-    control_iterator = pyfdb.control(
-        request, ControlAction.ENABLE, [ControlIdentifier.LIST]
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.LIST]
     )
     assert control_iterator
 
@@ -173,7 +172,7 @@ def test_control_lock_list(read_only_fdb_setup):
         / "list.lock"
     ).exists()
 
-    list_iterator = pyfdb.list(request)
+    list_iterator = fdb.list(selection)
     elements = list(list_iterator)
     assert len(elements) == 3
 
@@ -183,9 +182,9 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -195,8 +194,8 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     }
 
     print("Lock the database for archiving")
-    control_iterator = pyfdb.control(
-        request, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
     )
     assert control_iterator
 
@@ -219,12 +218,12 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     with pytest.raises(
         Exception, match=" matched for archived is LOCKED against archiving"
     ):
-        pyfdb.archive(build_grib_messages.read_bytes())
-        pyfdb.flush()
+        fdb.archive(build_grib_messages.read_bytes())
+        fdb.flush()
 
     print("Unlock the database for archiving")
-    control_iterator = pyfdb.control(
-        request, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
     )
     assert control_iterator
 
@@ -244,8 +243,8 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     ).exists()
 
     print("Try archiving")
-    pyfdb.archive(build_grib_messages.read_bytes())
-    pyfdb.flush()
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
     print("Success")
 
 
@@ -254,9 +253,9 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -266,8 +265,8 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     }
 
     print("Lock the database for archiving")
-    control_iterator = pyfdb.control(
-        request, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
     )
     assert control_iterator
 
@@ -281,7 +280,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
 
     print("--------- OUTPUT STATUS -----------")
 
-    status_iterator = pyfdb.status(request)
+    status_iterator = fdb.status(selection)
 
     elements = list(status_iterator)
 
@@ -299,12 +298,12 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     with pytest.raises(
         Exception, match=" matched for archived is LOCKED against archiving"
     ):
-        pyfdb.archive(build_grib_messages.read_bytes())
-        pyfdb.flush()
+        fdb.archive(build_grib_messages.read_bytes())
+        fdb.flush()
 
     print("Unlock the database for archiving")
-    control_iterator = pyfdb.control(
-        request, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
     )
     assert control_iterator
 
@@ -324,8 +323,8 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     ).exists()
 
     print("Try archiving")
-    pyfdb.archive(build_grib_messages.read_bytes())
-    pyfdb.flush()
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
     print("Success")
 
 
@@ -334,9 +333,9 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -346,12 +345,12 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     }
 
     print("Archive same data as the FDB was setup with in the Fixture")
-    pyfdb.archive(build_grib_messages.read_bytes())
-    pyfdb.flush()
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
 
     print("Lock the database for wiping")
-    control_iterator = pyfdb.control(
-        request, ControlAction.DISABLE, [ControlIdentifier.WIPE]
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.WIPE]
     )
     assert control_iterator
 
@@ -370,7 +369,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     ).exists()
 
     print("Try Wipe")
-    wipe_iterator = pyfdb.wipe(request, doit=True)
+    wipe_iterator = fdb.wipe(selection, doit=True)
 
     elements = []
 
@@ -381,8 +380,8 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 0
 
     print("Unlock the database for wiping")
-    control_iterator = pyfdb.control(
-        request, ControlAction.ENABLE, [ControlIdentifier.WIPE]
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.WIPE]
     )
     assert control_iterator
 
@@ -402,8 +401,8 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     ).exists()
 
     print("Try Wipe")
-    pyfdb.wipe(request, doit=True)
-    pyfdb.flush()
+    fdb.wipe(selection, doit=True)
+    fdb.flush()
 
     print("Success")
 
@@ -413,14 +412,14 @@ def test_enabled_per_default(read_only_fdb_setup):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(fdb_config_path.read_text())
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is True
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is True
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is True
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is True
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is True
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is True
+    assert fdb.enabled(ControlIdentifier.WIPE) is True
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 
 def test_disabled_writabled(read_only_fdb_setup):
@@ -431,14 +430,14 @@ def test_disabled_writabled(read_only_fdb_setup):
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["writable"] = False
 
-    pyfdb = FDB(yaml.dump(fdb_config))
+    fdb = FDB(yaml.dump(fdb_config))
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is True
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is True
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is False
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is False
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is True
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is True
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is False
+    assert fdb.enabled(ControlIdentifier.WIPE) is False
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 
 def test_disabled_visitable(read_only_fdb_setup):
@@ -449,14 +448,14 @@ def test_disabled_visitable(read_only_fdb_setup):
     fdb_config = yaml.safe_load(fdb_config_path.read_text())
     fdb_config["visitable"] = False
 
-    pyfdb = FDB(yaml.dump(fdb_config))
+    fdb = FDB(yaml.dump(fdb_config))
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is False
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is False
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is True
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is True
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is False
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is False
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is True
+    assert fdb.enabled(ControlIdentifier.WIPE) is True
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 
 def test_disabled_visitable_writeable(read_only_fdb_setup):
@@ -468,14 +467,14 @@ def test_disabled_visitable_writeable(read_only_fdb_setup):
     fdb_config["visitable"] = False
     fdb_config["writable"] = False
 
-    pyfdb = FDB(yaml.dump(fdb_config))
+    fdb = FDB(yaml.dump(fdb_config))
 
-    assert pyfdb.enabled(ControlIdentifier.NONE) is True
-    assert pyfdb.enabled(ControlIdentifier.LIST) is False
-    assert pyfdb.enabled(ControlIdentifier.RETRIEVE) is False
-    assert pyfdb.enabled(ControlIdentifier.ARCHIVE) is False
-    assert pyfdb.enabled(ControlIdentifier.WIPE) is False
-    assert pyfdb.enabled(ControlIdentifier.UNIQUEROOT) is True
+    assert fdb.enabled(ControlIdentifier.NONE) is True
+    assert fdb.enabled(ControlIdentifier.LIST) is False
+    assert fdb.enabled(ControlIdentifier.RETRIEVE) is False
+    assert fdb.enabled(ControlIdentifier.ARCHIVE) is False
+    assert fdb.enabled(ControlIdentifier.WIPE) is False
+    assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 
 def test_needs_flush(empty_fdb_setup, test_data_path):
@@ -483,11 +482,11 @@ def test_needs_flush(empty_fdb_setup, test_data_path):
 
     assert fdb_config_path
 
-    pyfdb = FDB(fdb_config_path)
+    fdb = FDB(fdb_config_path)
 
     filename = test_data_path / "x138-300.grib"
 
-    pyfdb.archive(open(filename, "rb").read())
-    assert pyfdb.needs_flush() is True
-    pyfdb.flush()
-    assert pyfdb.needs_flush() is False
+    fdb.archive(open(filename, "rb").read())
+    assert fdb.needs_flush() is True
+    fdb.flush()
+    assert fdb.needs_flush() is False
