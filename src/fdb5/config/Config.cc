@@ -91,14 +91,11 @@ Config Config::expandConfig() const {
     // 'fdb_home' value in config
     if (!found) {
         PathName configDir = expandPath("~fdb/etc/fdb");
-        std::cout << "EXPANDED PATH: " << configDir << std::endl;
         for (const std::string& stem :
              {Main::instance().displayName(), Main::instance().name(), std::string("config")}) {
             for (const char* tail : {".yaml", ".json"}) {
                 actual_path = configDir / (stem + tail);
-                std::cout << "Checking: " << actual_path << std::endl;
                 if (actual_path.exists()) {
-                    std::cout << "FOUND: " << actual_path << std::endl;
                     found = true;
                     break;
                 }
