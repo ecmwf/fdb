@@ -8,7 +8,7 @@
 
 from enum import IntFlag, auto
 from pathlib import Path
-from typing import Collection, Dict, List, Mapping, Self, Tuple
+from typing import Collection, Dict, List, Mapping, Self, Tuple, TypeAlias
 
 import pyfdb._internal as _internal
 from pyfdb._internal import (
@@ -22,7 +22,9 @@ Selection part of a MARS request.
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 Use the SelectionBuilder to create a MarsSelection from a given input.
 """
-type MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
+MarsSelection: TypeAlias = Mapping[
+    str, str | int | float | Collection[str | int | float]
+]
 
 
 class WildcardMarsSelection(Dict[str, str]):
