@@ -41,15 +41,16 @@ UriStore::UriStore(const eckit::PathName& directory, eckit::Stream& s) :
 
         if ((uri.scheme() == "unix") || (uri.scheme() == "file")) {
             eckit::PathName path = uri.path();
-            std::string q        = path.asString();
+            std::string q = path.asString();
 
-            if (!q.empty() && q[0] != '/')
+            if (!q.empty() && q[0] != '/') {
                 path = directory_ / path;
+            }
             uri = eckit::URI("file", path);
         }
 
         paths_[id] = uri;
-        ids_[uri]  = id;
+        ids_[uri] = id;
 
         next_ = std::max(id + 1, next_);
     }
@@ -77,12 +78,13 @@ UriStore::UriID UriStore::insert(const eckit::URI& path) {
 
 
     IdStore::iterator itr = ids_.find(path);
-    if (itr != ids_.end())
+    if (itr != ids_.end()) {
         return itr->second;
+    }
 
     UriStore::UriID current = next_;
     next_++;
-    ids_[path]      = current;
+    ids_[path] = current;
     paths_[current] = path;
 
     return current;

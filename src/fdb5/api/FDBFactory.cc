@@ -30,7 +30,7 @@ namespace fdb5 {
 
 FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config) {
 
-    bool writable  = config.getBool("writable", true);
+    bool writable = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
     if (!config.getBool("list", visitable)) {
         controlIdentifiers_ |= ControlIdentifier::List;

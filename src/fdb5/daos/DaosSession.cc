@@ -45,9 +45,10 @@ DaosManager::~DaosManager() {
 
     int code = daos_fini();
 
-    if (code < 0)
+    if (code < 0) {
         eckit::Log::warning() << "DAOS error in call to daos_fini(), file " << __FILE__ << ", line " << __LINE__
                               << ", function " << __func__ << " [" << code << "] (" << code << ")" << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_fini()" << std::endl;
 }
@@ -64,7 +65,7 @@ void DaosManager::configure(const eckit::LocalConfiguration& config) {
 
     std::lock_guard<std::mutex> lock(mutex_);
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
-    objectCreateCellSize_  = config.getInt64("object_create_cell_size", objectCreateCellSize_);
+    objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
     objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
@@ -85,8 +86,9 @@ std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(const fdb5::UUID
     std::deque<fdb5::DaosPool>::iterator it;
     for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
 
-        if (uuid_compare(uuid.internal, it->uuid().internal) == 0)
+        if (uuid_compare(uuid.internal, it->uuid().internal) == 0) {
             break;
+        }
     }
 
     return it;
@@ -97,8 +99,9 @@ std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(const std::strin
     std::deque<fdb5::DaosPool>::iterator it;
     for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
 
-        if (it->label() == label)
+        if (it->label() == label) {
             break;
+        }
     }
 
     return it;
@@ -132,8 +135,9 @@ fdb5::DaosPool& DaosSession::getPool(const fdb5::UUID& uuid) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
 
-    if (it != pool_cache_.end())
+    if (it != pool_cache_.end()) {
         return *it;
+    }
 
     fdb5::DaosPool p(uuid);
 
@@ -153,8 +157,9 @@ fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(label);
 
-    if (it != pool_cache_.end())
+    if (it != pool_cache_.end()) {
         return *it;
+    }
 
     fdb5::DaosPool p(label);
 
@@ -183,16 +188,18 @@ DaosPool& DaosSession::getPool(const fdb5::UUID& uuid, const std::string& label)
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
     if (it != pool_cache_.end()) {
 
-        if (it->label() == label)
+        if (it->label() == label) {
             return *it;
+        }
 
         pool_cache_.push_front(fdb5::DaosPool(uuid, label));
         return pool_cache_.at(0);
     }
 
     it = getCachedPool(label);
-    if (it != pool_cache_.end())
+    if (it != pool_cache_.end()) {
         return *it;
+    }
 
     fdb5::DaosPool p(uuid, label);
 
@@ -213,7 +220,7 @@ DaosPool& DaosSession::getPool(const fdb5::UUID& uuid, const std::string& label)
 
 void DaosSession::destroyPool(const fdb5::UUID& uuid, const int& force) {
 
-    bool found        = false;
+    bool found = false;
     std::string label = std::string();
 
     std::deque<fdb5::DaosPool>::iterator it = pool_cache_.begin();

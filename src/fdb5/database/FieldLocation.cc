@@ -71,8 +71,9 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
     if (j == builders_.end()) {
         eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
         eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
@@ -90,8 +91,9 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
     if (j == builders_.end()) {
         eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
         eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
@@ -105,8 +107,9 @@ FieldLocationBuilderBase::FieldLocationBuilderBase(const std::string& name) : na
 }
 
 FieldLocationBuilderBase::~FieldLocationBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     FieldLocationFactory::instance().remove(name_);
 }
 

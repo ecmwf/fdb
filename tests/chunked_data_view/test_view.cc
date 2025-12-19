@@ -44,7 +44,7 @@ namespace cdv = chunked_data_view;
 std::unique_ptr<eckit::DataHandle> makeHandle(const std::vector<double>& values) {
     const size_t size = values.size() * sizeof(std::decay_t<decltype(values)>::value_type) + 2 * sizeof(size_t);
     const size_t bytesPerValue = 8;
-    auto handle                = std::make_unique<eckit::MemoryHandle>(size);
+    auto handle = std::make_unique<eckit::MemoryHandle>(size);
     size_t _{};
     handle->openForWrite(_);
 
@@ -119,7 +119,7 @@ struct FakeExtractor : public cdv::Extractor {
                 break;
             }
 
-            const auto& key   = std::get<0>(*res);
+            const auto& key = std::get<0>(*res);
             auto& data_handle = std::get<1>(*res);
             data_handle->openForRead();
 

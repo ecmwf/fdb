@@ -152,7 +152,7 @@ BTREE(64, 65536, FieldRefReduced);
 BTreeIndex::~BTreeIndex() {}
 
 static std::string defaultIndexType = "BTreeIndex";
-static std::string wideIndexType    = "BTreeIndex64";
+static std::string wideIndexType = "BTreeIndex64";
 
 const std::string& BTreeIndex::defaultType(size_t keySize) {
     static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "");

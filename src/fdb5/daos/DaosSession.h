@@ -106,10 +106,12 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 
     if (code < 0) {
         eckit::Log::error() << "DAOS_FAIL !! " << msg << std::endl;
-        if (code == -DER_NONEXIST)
+        if (code == -DER_NONEXIST) {
             throw fdb5::DaosEntityNotFoundException(msg);
-        if (code == -DER_EXIST)
+        }
+        if (code == -DER_EXIST) {
             throw fdb5::DaosEntityAlreadyExistsException(msg);
+        }
         DaosManager::error(code, msg, file, line, func);
     }
 

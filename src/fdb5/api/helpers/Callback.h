@@ -23,13 +23,13 @@ namespace fdb5 {
 class FDB;
 class CallbackRegistry;
 
-using ArchiveCallback     = std::function<void(const Key& key, const void* data, size_t length,
+using ArchiveCallback = std::function<void(const Key& key, const void* data, size_t length,
                                            std::future<std::shared_ptr<const FieldLocation>>)>;
-using FlushCallback       = std::function<void()>;
+using FlushCallback = std::function<void()>;
 using ConstructorCallback = std::function<void(CallbackRegistry&)>;
 
-static const ArchiveCallback CALLBACK_ARCHIVE_NOOP         = [](auto&&...) {};
-static const FlushCallback CALLBACK_FLUSH_NOOP             = []() {};
+static const ArchiveCallback CALLBACK_ARCHIVE_NOOP = [](auto&&...) {};
+static const FlushCallback CALLBACK_FLUSH_NOOP = []() {};
 static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](auto&&...) {};
 
 // -------------------------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ public:
 
 protected:
 
-    FlushCallback flushCallback_     = CALLBACK_FLUSH_NOOP;
+    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
     ArchiveCallback archiveCallback_ = CALLBACK_ARCHIVE_NOOP;
 };
 

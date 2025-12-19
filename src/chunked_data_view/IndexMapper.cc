@@ -32,7 +32,7 @@ size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indi
 
     ASSERT(indices.size() == axes.size());
 
-    size_t prod  = 1;
+    size_t prod = 1;
     size_t index = 0;
 
     for (int i = axes.size() - 1; i >= 0; --i) {
@@ -72,7 +72,7 @@ std::vector<size_t> index_mapping::to_axis_parameter_index(const size_t& index, 
         }
 
         size_t index_in_dim = chunk_index / dim_prod;  // (1)
-        result[i]           = index_in_dim;
+        result[i] = index_in_dim;
         chunk_index -= index_in_dim * dim_prod;  // (2)
     }
 

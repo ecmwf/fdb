@@ -48,8 +48,9 @@ public:
     }
 
     ~StdDir() {
-        if (d_)
+        if (d_) {
             closedir(d_);
+        }
     }
 
     void children(std::vector<eckit::PathName>& paths) {
@@ -61,8 +62,9 @@ public:
         while ((e = readdir(d_)) != nullptr) {
 
             if (e->d_name[0] == '.') {
-                if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0'))
+                if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0')) {
                     continue;
+                }
             }
 
             eckit::PathName p(path_ / e->d_name);
@@ -194,8 +196,9 @@ std::vector<eckit::PathName> TocWipeVisitor::getAuxiliaryPaths(const eckit::URI&
     // todo: in future, we should be using URIs, not paths.
     std::vector<eckit::PathName> paths;
     for (const auto& auxURI : store_.getAuxiliaryURIs(dataURI)) {
-        if (store_.auxiliaryURIExists(auxURI))
+        if (store_.auxiliaryURIExists(auxURI)) {
             paths.push_back(auxURI.path());
+        }
     }
     return paths;
 }
@@ -232,7 +235,7 @@ void TocWipeVisitor::addMetadataPaths() {
     // toc, schema
 
     schemaPath_ = catalogue_.schemaPath().path();
-    tocPath_    = catalogue_.tocPath().path();
+    tocPath_ = catalogue_.tocPath().path();
 
     // subtocs
 
@@ -249,10 +252,12 @@ void TocWipeVisitor::ensureSafePaths() {
 
     // Very explicitly ensure that we cannot delete anything marked as safe
 
-    if (safePaths_.find(tocPath_) != safePaths_.end())
+    if (safePaths_.find(tocPath_) != safePaths_.end()) {
         tocPath_ = "";
-    if (safePaths_.find(schemaPath_) != safePaths_.end())
+    }
+    if (safePaths_.find(schemaPath_) != safePaths_.end()) {
         schemaPath_ = "";
+    }
 
     for (const auto& p : safePaths_) {
         for (std::set<PathName>* s :
@@ -291,11 +296,13 @@ void TocWipeVisitor::calculateResidualPaths() {
         }
     }
 
-    if (tocPath_.asString().size() && !tocPath_.exists())
+    if (tocPath_.asString().size() && !tocPath_.exists()) {
         tocPath_ = "";
+    }
 
-    if (schemaPath_.asString().size() && !schemaPath_.exists())
+    if (schemaPath_.asString().size() && !schemaPath_.exists()) {
         schemaPath_ = "";
+    }
 
     // Consider the total sets of paths
 
@@ -303,12 +310,15 @@ void TocWipeVisitor::calculateResidualPaths() {
     deletePaths.insert(subtocPaths_.begin(), subtocPaths_.end());
     deletePaths.insert(lockfilePaths_.begin(), lockfilePaths_.end());
     deletePaths.insert(indexPaths_.begin(), indexPaths_.end());
-    if (store_.type() == "file")
+    if (store_.type() == "file") {
         deletePaths.insert(dataPaths_.begin(), dataPaths_.end());
-    if (tocPath_.asString().size())
+    }
+    if (tocPath_.asString().size()) {
         deletePaths.insert(tocPath_);
-    if (schemaPath_.asString().size())
+    }
+    if (schemaPath_.asString().size()) {
         deletePaths.insert(schemaPath_);
+    }
 
     deletePaths.insert(auxiliaryDataPaths_.begin(), auxiliaryDataPaths_.end());
     std::vector<eckit::PathName> allPathsVector;
@@ -342,8 +352,9 @@ void TocWipeVisitor::calculateResidualPaths() {
     // if the store uses a backend other than POSIX (file), repeat the algorithm specialized
     // for its store units
 
-    if (store_.type() == "file")
+    if (store_.type() == "file") {
         return;
+    }
 
     std::vector<eckit::URI> allCollocatedDataURIs(store_.collocatedDataURIs());
     std::vector<eckit::PathName> allDataPathsVector;
@@ -391,44 +402,51 @@ void TocWipeVisitor::report(bool wipeAll) {
     out_ << "FDB owner: " << catalogue_.owner() << std::endl << std::endl;
 
     out_ << "Toc files to delete:" << std::endl;
-    if (!tocPath_.asString().size() && subtocPaths_.empty())
+    if (!tocPath_.asString().size() && subtocPaths_.empty()) {
         out_ << " - NONE -" << std::endl;
-    if (tocPath_.asString().size())
+    }
+    if (tocPath_.asString().size()) {
         out_ << "    " << tocPath_ << std::endl;
+    }
     for (const auto& f : subtocPaths_) {
         out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Control files to delete:" << std::endl;
-    if (!schemaPath_.asString().size() && lockfilePaths_.empty())
+    if (!schemaPath_.asString().size() && lockfilePaths_.empty()) {
         out_ << " - NONE -" << std::endl;
-    if (schemaPath_.asString().size())
+    }
+    if (schemaPath_.asString().size()) {
         out_ << "    " << schemaPath_ << std::endl;
+    }
     for (const auto& f : lockfilePaths_) {
         out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Index files to delete: " << std::endl;
-    if (indexPaths_.empty())
+    if (indexPaths_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& f : indexPaths_) {
         out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Data files to delete: " << std::endl;
-    if (dataPaths_.empty())
+    if (dataPaths_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& f : dataPaths_) {
         out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Auxiliary files to delete: " << std::endl;
-    if (auxiliaryDataPaths_.empty())
+    if (auxiliaryDataPaths_.empty()) {
         out_ << " - NONE -" << std::endl;
+    }
     for (const auto& f : auxiliaryDataPaths_) {
         out_ << "    " << f << std::endl;
     }
@@ -446,8 +464,9 @@ void TocWipeVisitor::report(bool wipeAll) {
     }
 
     out_ << "Protected files (explicitly untouched):" << std::endl;
-    if (safePaths_.empty())
+    if (safePaths_.empty()) {
         out_ << " - NONE - " << std::endl;
+    }
     for (const auto& f : safePaths_) {
         out_ << "    " << f << std::endl;
     }
@@ -455,8 +474,9 @@ void TocWipeVisitor::report(bool wipeAll) {
 
     if (!safePaths_.empty()) {
         out_ << "Indexes to mask:" << std::endl;
-        if (indexesToMask_.empty())
+        if (indexesToMask_.empty()) {
             out_ << " - NONE - " << std::endl;
+        }
         for (const auto& i : indexesToMask_) {
             out_ << "    " << i.location() << std::endl;
         }
@@ -498,8 +518,9 @@ void TocWipeVisitor::wipe(bool wipeAll) {
         for (const auto& index : indexesToMask_) {
             logVerbose << "Index to mask: ";
             logAlways << index << std::endl;
-            if (doit_)
+            if (doit_) {
                 catalogue_.maskIndexEntry(index);
+            }
         }
     }
 
@@ -534,10 +555,11 @@ void TocWipeVisitor::wipe(bool wipeAll) {
         }
     }
 
-    if (wipeAll && store_.type() != "file")
+    if (wipeAll && store_.type() != "file") {
         /// @todo: if the store is holding catalogue information (e.g. daos KVs) it
         ///    should not be removed
         store_.remove(store_.uri(), logAlways, logVerbose, doit_);
+    }
 
     for (const std::set<PathName>& pathset :
          {indexPaths_, std::set<PathName>{schemaPath_}, subtocPaths_, std::set<PathName>{tocPath_}, lockfilePaths_,
@@ -568,44 +590,50 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
         // Ensure we _really_ don't delete these if not wiping everything
         subtocPaths_.clear();
         lockfilePaths_.clear();
-        tocPath_    = "";
+        tocPath_ = "";
         schemaPath_ = "";
     }
 
     ensureSafePaths();
 
     if (anythingToWipe()) {
-        if (wipeAll)
+        if (wipeAll) {
             calculateResidualPaths();
+        }
 
-        if (!porcelain_)
+        if (!porcelain_) {
             report(wipeAll);
+        }
 
         // This is here as it needs to run whatever combination of doit/porcelain/...
         if (wipeAll && !residualPaths_.empty()) {
 
             out_ << "Unexpected files present in directory: " << std::endl;
-            for (const auto& p : residualPaths_)
+            for (const auto& p : residualPaths_) {
                 out_ << "    " << p << std::endl;
+            }
             out_ << std::endl;
         }
         if (wipeAll && !residualDataPaths_.empty()) {
 
             out_ << "Unexpected store units present in store: " << std::endl;
-            for (const auto& p : residualDataPaths_)
+            for (const auto& p : residualDataPaths_) {
                 out_ << "    " << store_.type() << "://" << p << std::endl;
+            }
             out_ << std::endl;
         }
         if (wipeAll && (!residualPaths_.empty() || !residualDataPaths_.empty())) {
             if (!unsafeWipeAll_) {
                 out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
-                if (doit_)
+                if (doit_) {
                     throw Exception("Cannot fully wipe unclean TocDB", Here());
+                }
             }
         }
 
-        if (doit_ || porcelain_)
+        if (doit_ || porcelain_) {
             wipe(wipeAll);
+        }
     }
 }
 

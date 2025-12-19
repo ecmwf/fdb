@@ -76,7 +76,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent(false, false);
-        c        = peek();
+        c = peek();
     }
 
     if (c == '?') {
@@ -97,7 +97,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         consume("=");
 
         std::string val = parseIdent(true, false);
-        exclude         = val[0] == '!';
+        exclude = val[0] == '!';
 
         if (exclude) {
             values.insert(val.substr(1));

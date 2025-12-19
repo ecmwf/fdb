@@ -50,7 +50,7 @@ public:  // methods
     virtual ~Engine();
 
     /// @returns the named identifier of this engine
-    virtual std::string name() const   = 0;
+    virtual std::string name() const = 0;
     virtual std::string dbType() const = 0;
 
     /// @returns if an Engine is capable of opening this path
@@ -62,7 +62,7 @@ public:  // methods
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const = 0;
     virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
-                                                       const Config& config) const                 = 0;
+                                                       const Config& config) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s, const Engine& x);
 
@@ -113,7 +113,7 @@ public:
 
     EngineBuilder() {
         Engine* e = new T();
-        name_     = e->name();
+        name_ = e->name();
         EngineRegistry::add(e);
     }
 

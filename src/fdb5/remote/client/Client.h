@@ -39,12 +39,12 @@ public:
 class Client {
 public:  // types
 
-    using PayloadList  = Connection::PayloadList;
+    using PayloadList = Connection::PayloadList;
     using EndpointList = std::vector<std::pair<eckit::net::Endpoint, std::string>>;
 
     static constexpr size_t defaultBufferSizeArchive = 8_KiB;
-    static constexpr size_t defaultBufferSizeFlush   = 1_KiB;
-    static constexpr size_t defaultBufferSizeKey     = 4_KiB;
+    static constexpr size_t defaultBufferSizeFlush = 1_KiB;
+    static constexpr size_t defaultBufferSizeKey = 4_KiB;
 
 public:  // methods
 
@@ -82,7 +82,7 @@ public:  // methods
     virtual const eckit::Configuration& clientConfig() const = 0;
 
     // handlers for incoming messages - to be defined in the client class
-    virtual bool handle(Message message, uint32_t requestID)                          = 0;
+    virtual bool handle(Message message, uint32_t requestID) = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual void closeConnection() {}
 

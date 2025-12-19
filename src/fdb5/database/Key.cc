@@ -175,7 +175,7 @@ Key TypedKey::canonical() const {
     Key key;
     for (const auto& keyword : names()) {
         const auto& value = get(keyword);
-        const Type& type  = registry_.lookupType(keyword);
+        const Type& type = registry_.lookupType(keyword);
         value.empty() ? key.push(type.alias(), value) : key.push(type.alias(), type.toKey(value));
     }
     return key;

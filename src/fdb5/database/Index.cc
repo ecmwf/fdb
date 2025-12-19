@@ -85,10 +85,12 @@ void IndexBase::decodeLegacy(eckit::Stream& s,
 }
 
 IndexBase::IndexBase(eckit::Stream& s, const int version) {
-    if (version >= 3)
+    if (version >= 3) {
         decodeCurrent(s, version);
-    else
+    }
+    else {
         decodeLegacy(s, version);
+    }
 }
 
 IndexBase::~IndexBase() {}
@@ -216,7 +218,7 @@ Index::Index(const Index& s) : content_(s.content_), null_(s.null_) {
 Index& Index::operator=(const Index& s) {
     content_->detach();
     content_ = s.content_;
-    null_    = s.null_;
+    null_ = s.null_;
     content_->attach();
     return *this;
 }

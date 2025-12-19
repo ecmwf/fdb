@@ -25,14 +25,17 @@ namespace fdb5 {
 
 void DaosEngine::configureDaos(const Config& config) const {
 
-    if (daos_config_.has_value())
+    if (daos_config_.has_value()) {
         return;
+    }
 
     daos_config_.emplace(eckit::LocalConfiguration());
-    if (config.has("daos"))
+    if (config.has("daos")) {
         daos_config_.emplace(config.getSubConfiguration("daos"));
-    if (daos_config_->has("client"))
+    }
+    if (daos_config_->has("client")) {
         fdb5::DaosManager::instance().configure(daos_config_->getSubConfiguration("client"));
+    }
 }
 
 std::string DaosEngine::name() const {
@@ -43,18 +46,20 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
     configureDaos(config);
 
-    if (uri.scheme() != "daos")
+    if (uri.scheme() != "daos") {
         return false;
+    }
 
     fdb5::DaosName n{uri};
 
-    if (!n.hasOID())
+    if (!n.hasOID()) {
         return false;
+    }
 
     /// @todo: check containerName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
     // bool is_root_name = (n.containerName().find(root_cont_) != std::string::npos);
-    bool is_root_name  = false;
+    bool is_root_name = false;
     bool is_store_name = (n.containerName().find("_") != std::string::npos);
 
     /// @note: performed RPCs:
@@ -77,15 +82,17 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
     configureDaos(config);
 
-    std::string pool      = "default";
+    std::string pool = "default";
     std::string root_cont = "root";
 
-    if (daos_config_->has("catalogue"))
+    if (daos_config_->has("catalogue")) {
         pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
-    if (daos_config_->has("catalogue"))
+    }
+    if (daos_config_->has("catalogue")) {
         root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
+    }
 
-    pool      = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
+    pool = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
     root_cont = eckit::Resource<std::string>("fdbDaosCatalogueRootCont;$FDB_DAOS_CATALOGUE_ROOT_CONT", root_cont);
 
     fdb5::DaosOID main_kv_oid{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
@@ -169,15 +176,17 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
 
     configureDaos(config);
 
-    std::string pool      = "default";
+    std::string pool = "default";
     std::string root_cont = "root";
 
-    if (daos_config_->has("catalogue"))
+    if (daos_config_->has("catalogue")) {
         pool = daos_config_->getSubConfiguration("catalogue").getString("pool", pool);
-    if (daos_config_->has("catalogue"))
+    }
+    if (daos_config_->has("catalogue")) {
         root_cont = daos_config_->getSubConfiguration("catalogue").getString("root_cont", root_cont);
+    }
 
-    pool      = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
+    pool = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool);
     root_cont = eckit::Resource<std::string>("fdbDaosCatalogueRootCont;$FDB_DAOS_CATALOGUE_ROOT_CONT", root_cont);
 
     fdb5::DaosOID main_kv_oid{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config

@@ -14,8 +14,8 @@ CASE("Archive and flush callback") {
     FDB fdb;
 
     std::string data_str = "Raining cats and dogs";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
 
     Key key;
     key.set("class", "od");
@@ -35,7 +35,7 @@ CASE("Archive and flush callback") {
     fdb.registerArchiveCallback([&map](const Key& key, const void* data, size_t length,
                                        std::future<std::shared_ptr<const FieldLocation>> future) {
         std::shared_ptr<const FieldLocation> location = future.get();
-        map[key]                                      = location->fullUri();
+        map[key] = location->fullUri();
     });
 
     fdb.registerFlushCallback([&flushCalled]() { flushCalled = true; });

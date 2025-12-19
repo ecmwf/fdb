@@ -59,7 +59,7 @@ namespace fdb5::remote {
 namespace {
 
 constexpr const auto defaultRetrieveQueueSize = 10000;
-constexpr const auto defaultArchiveQueueSize  = 320;
+constexpr const auto defaultArchiveQueueSize = 320;
 
 }  // namespace
 
@@ -180,7 +180,7 @@ void ServerConnection::initialiseConnections() {
     RemoteConfiguration serverConf = availableFunctionality();
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
-        single_     = agreedConf_.singleConnection();
+        single_ = agreedConf_.singleConnection();
     }
     catch (const eckit::Exception& e) {
         error(e.what(), hdr.clientID(), hdr.requestID);
@@ -278,7 +278,7 @@ size_t ServerConnection::archiveThreadLoop() {
                 // Handle MultiBlob
 
                 const char* firstData = reinterpret_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
-                const char* charData  = firstData;
+                const char* charData = firstData;
                 while (size_t(charData - firstData) < elem.payload_.size()) {
                     const MessageHeader* hdr = reinterpret_cast<const MessageHeader*>(charData);
                     ASSERT(hdr->message == Message::Blob);
@@ -461,8 +461,9 @@ void ServerConnection::handle() {
 
 void ServerConnection::handleException(std::exception_ptr e) {
     try {
-        if (e)
+        if (e) {
             std::rethrow_exception(e);
+        }
     }
     catch (const std::exception& e) {
         error(e.what(), 0, 0);

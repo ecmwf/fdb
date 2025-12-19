@@ -40,13 +40,15 @@ private:
 
         // Get a list of FDBs to choose between
 
-        if (!config.has("fdbs"))
+        if (!config.has("fdbs")) {
             throw UserError("No FDBs configured for random FDB frontend", Here());
+        }
 
         auto fdbConfigs = config.getSubConfigurations("fdbs");
 
-        if (fdbConfigs.empty())
+        if (fdbConfigs.empty()) {
             throw UserError("No FDBs configured for random FDB frontend", Here());
+        }
 
         // And pick one of them at random to build
 

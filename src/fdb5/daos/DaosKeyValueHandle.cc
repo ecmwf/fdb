@@ -29,8 +29,9 @@ DaosKeyValueHandle::DaosKeyValueHandle(const fdb5::DaosKeyValueName& name, const
 
 DaosKeyValueHandle::~DaosKeyValueHandle() {
 
-    if (open_)
+    if (open_) {
         eckit::Log::error() << "DaosKeyValueHandle not closed before destruction." << std::endl;
+    }
 }
 
 void DaosKeyValueHandle::print(std::ostream& s) const {
@@ -39,13 +40,14 @@ void DaosKeyValueHandle::print(std::ostream& s) const {
 
 void DaosKeyValueHandle::openForWrite(const Length& len) {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug{"Handle already opened."};
+    }
 
     session();
 
     /// @todo: alternatively call name_.create() and the like
-    fdb5::DaosPool& p      = session_->getPool(name_.poolName());
+    fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     /// @note: only way to check kv existence without generating a snapshot is
@@ -63,8 +65,9 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
 
 Length DaosKeyValueHandle::openForRead() {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug{"Handle already opened."};
+    }
 
     session();
 
@@ -103,8 +106,9 @@ long DaosKeyValueHandle::read(void* buf, long len) {
 
 void DaosKeyValueHandle::close() {
 
-    if (!open_)
+    if (!open_) {
         return;
+    }
 
     kv_->close();
 
@@ -146,8 +150,9 @@ std::string DaosKeyValueHandle::title() const {
 
 fdb5::DaosSession& DaosKeyValueHandle::session() {
 
-    if (!session_.has_value())
+    if (!session_.has_value()) {
         session_.emplace();
+    }
     return session_.value();
 }
 

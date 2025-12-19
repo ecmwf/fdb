@@ -26,12 +26,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::Mutex* local_mutex                    = 0;
+static eckit::Mutex* local_mutex = 0;
 static std::map<std::string, BTreeIndexFactory*>* m = 0;
-static pthread_once_t once                          = PTHREAD_ONCE_INIT;
+static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m           = new std::map<std::string, BTreeIndexFactory*>();
+    m = new std::map<std::string, BTreeIndexFactory*>();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -45,8 +45,9 @@ BTreeIndexFactory::BTreeIndexFactory(const std::string& name) : name_(name) {
 }
 
 BTreeIndexFactory::~BTreeIndexFactory() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
@@ -61,8 +62,9 @@ BTreeIndex* BTreeIndexFactory::build(const std::string& name, const eckit::PathN
     if (j == m->end()) {
         eckit::Log::error() << "No IndexFactory for [" << name << "]" << std::endl;
         eckit::Log::error() << "Values are:" << std::endl;
-        for (j = m->begin(); j != m->end(); ++j)
+        for (j = m->begin(); j != m->end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No IndexFactory called ") + name);
     }
 

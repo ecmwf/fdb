@@ -29,7 +29,7 @@ public:  // methods
     using EntryVisitor::EntryVisitor;
 
     virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats dbStatistics() const       = 0;
+    virtual DbStats dbStatistics() const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

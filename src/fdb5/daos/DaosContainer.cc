@@ -43,8 +43,9 @@ DaosContainer::~DaosContainer() {
     ///   objects in the container.
     ///   What happens if we do obj.open() and then cont.close()?
 
-    if (open_)
+    if (open_) {
         close();
+    }
 }
 
 void DaosContainer::create() {
@@ -54,8 +55,9 @@ void DaosContainer::create() {
     //       and return accordingly. But the container may have been destroyed by another
     //       process or DaosContainer instance.
 
-    if (open_)
+    if (open_) {
         return;
+    }
 
     ASSERT(label_.size() > 0);
 
@@ -71,8 +73,9 @@ void DaosContainer::create() {
 
 void DaosContainer::open() {
 
-    if (open_)
+    if (open_) {
         return;
+    }
 
     ASSERT(label_.size() > 0);
 
@@ -94,9 +97,10 @@ void DaosContainer::close() {
 
     int code = daos_cont_close(coh_, NULL);
 
-    if (code < 0)
+    if (code < 0) {
         eckit::Log::warning() << "DAOS error in call to daos_cont_close(), file " << __FILE__ << ", line " << __LINE__
                               << ", function " << __func__ << " [" << code << "] (" << code << ")" << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_cont_close()" << std::endl;
 
@@ -123,8 +127,9 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool 
 
     daos_otype_t otype = DAOS_OT_ARRAY;
 
-    if (!with_attr)
+    if (!with_attr) {
         otype = DAOS_OT_ARRAY_BYTE;
+    }
 
     fdb5::DaosOID new_oid{0, allocateOIDLo(), otype, oclass};
     new_oid.generateReservedBits(*this);

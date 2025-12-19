@@ -49,7 +49,7 @@ public:  // methods
                                                    const std::string& keyword) const;
     virtual const std::string& defaultValue() const;
 
-    virtual bool match(const std::string& value) const                   = 0;
+    virtual bool match(const std::string& value) const = 0;
     virtual bool match(const std::string& keyword, const Key& key) const = 0;
     virtual void fill(Key& key, const std::string& keyword, const std::string& value) const;
 

@@ -64,7 +64,7 @@ private:
     int port_;
     std::thread reaperThread_;
 
-    FdbServerBase(const FdbServerBase&)            = delete;
+    FdbServerBase(const FdbServerBase&) = delete;
     FdbServerBase& operator=(const FdbServerBase&) = delete;
 
     virtual void hookUnique() = 0;

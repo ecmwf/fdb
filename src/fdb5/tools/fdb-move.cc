@@ -53,7 +53,7 @@ public:  // methods
                  const std::vector<fdb5::FDBToolRequest>& requests, const eckit::option::CmdArgs& args) :
         eckit::distributed::Producer(transport), fdb_(config), keep_(false), removeDelay_(0) {
 
-        keep_        = args.getBool("keep", false);
+        keep_ = args.getBool("keep", false);
         removeDelay_ = args.getInt("delay", 0);
 
         eckit::URI destination;
@@ -68,7 +68,7 @@ public:  // methods
         }
 
         fdb5::FDBToolRequest request = metkit::mars::MarsRequest();
-        size_t count                 = 0;
+        size_t count = 0;
         for (const FDBToolRequest& toolReq : requests) {
             if (count) {
                 std::stringstream ss;
@@ -84,7 +84,7 @@ public:  // methods
 
             // check that the request is only referring a single DB - no ranges of values
             const metkit::mars::MarsRequest& marsReq = toolReq.request();
-            std::vector<std::string> params          = marsReq.params();
+            std::vector<std::string> params = marsReq.params();
             for (const std::string& param : params) {
                 const std::vector<std::string>& values = marsReq.values(param);
 

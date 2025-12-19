@@ -33,8 +33,9 @@ public:
 
     std::optional<values_t> get(const std::string& keyword) const override {
         const auto [it, found] = key_.find(keyword);
-        if (!found)
+        if (!found) {
             return std::nullopt;
+        }
         return std::cref(it->second);
     }
 
@@ -70,8 +71,9 @@ bool SelectMatcher::match(const metkit::mars::MarsRequest& request, Matcher::Mat
 
 template <typename T>  // T is either a MarsRequest or KeyAccessor
 bool SelectMatcher::matchInner(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
-    if (!select_.match(vals, matchOnMissing))
+    if (!select_.match(vals, matchOnMissing)) {
         return false;
+    }
 
     bool excluded = std::any_of(excludes_.begin(), excludes_.end(),
                                 [&](const auto& ex) { return ex.match(vals, Matcher::DontMatchOnMissing); });

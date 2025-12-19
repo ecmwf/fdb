@@ -55,8 +55,9 @@ DistFDB::DistFDB(const Config& config, const std::string& name) : FDBBase(config
 
     // Configure the available lanes.
 
-    if (!config.has("lanes"))
+    if (!config.has("lanes")) {
         throw eckit::UserError("No lanes configured for pool", Here());
+    }
 
     for (const auto& laneCfg : config.getSubConfigs("lanes")) {
         lanes_.emplace_back(FDB(laneCfg), true);
@@ -90,7 +91,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
     LOG_DEBUG_LIB(LibFdb5) << "Attempting dist FDB archive" << std::endl;
 
-    decltype(laneIndices)::const_iterator it  = laneIndices.begin();
+    decltype(laneIndices)::const_iterator it = laneIndices.begin();
     decltype(laneIndices)::const_iterator end = laneIndices.end();
     for (; it != end; ++it) {
         size_t idx = *it;
@@ -159,7 +160,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
-    using ValueType     = typename QueryIterator::value_type;
+    using ValueType = typename QueryIterator::value_type;
 
     std::vector<std::future<QueryIterator>> futures;
     std::queue<APIIterator<ValueType>> iterQueue;

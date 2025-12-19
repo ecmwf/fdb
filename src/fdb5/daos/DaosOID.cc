@@ -26,7 +26,7 @@ namespace fdb5 {
 
 void DaosOID::parseReservedBits() {
 
-    otype_  = static_cast<enum daos_otype_t>((oid_.hi & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
+    otype_ = static_cast<enum daos_otype_t>((oid_.hi & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
     oclass_ = OBJ_CLASS_DEF(OR_RP_1, (oid_.hi & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT);
 }
 
@@ -68,8 +68,9 @@ bool DaosOID::operator==(const DaosOID& rhs) const {
 
 void DaosOID::generateReservedBits(fdb5::DaosContainer& cont) {
 
-    if (wasGenerated_)
+    if (wasGenerated_) {
         return;
+    }
 
     DAOS_CALL(daos_obj_generate_oid(cont.getOpenHandle(), &oid_, otype(), oclass(), 0, 0));
 
@@ -80,8 +81,9 @@ void DaosOID::generateReservedBits(fdb5::DaosContainer& cont) {
 
 std::string DaosOID::asString() const {
 
-    if (as_string_.has_value())
+    if (as_string_.has_value()) {
         return as_string_.value();
+    }
 
     ASSERT(wasGenerated_);
 

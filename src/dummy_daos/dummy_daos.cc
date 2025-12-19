@@ -31,7 +31,7 @@ typedef struct daos_handle_internal_t {
 
 const PathName& dummy_daos_root() {
 
-    static PathName tmpdir    = eckit::Resource<PathName>("$TMPDIR", "/tmp");
+    static PathName tmpdir = eckit::Resource<PathName>("$TMPDIR", "/tmp");
     static PathName daos_root = eckit::Resource<PathName>("$DUMMY_DAOS_DATA_ROOT", tmpdir / "fdb5_dummy_daos");
     return daos_root;
 }

@@ -34,7 +34,7 @@ public:  // static methods
 
     static Config make(const eckit::PathName& path,
                        const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
-                       const std::string& fdb_home            = "");
+                       const std::string& fdb_home = "");
 
 public:  // methods
 

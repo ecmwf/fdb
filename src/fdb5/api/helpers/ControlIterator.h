@@ -45,10 +45,10 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
 enum class ControlIdentifier : uint16_t {
     None = 0,
 
-    List       = 1 << 0,
-    Retrieve   = 1 << 1,
-    Archive    = 1 << 2,
-    Wipe       = 1 << 3,
+    List = 1 << 0,
+    Retrieve = 1 << 1,
+    Archive = 1 << 2,
+    Wipe = 1 << 3,
     UniqueRoot = 1 << 4
 };
 

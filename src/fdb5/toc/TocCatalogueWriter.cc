@@ -107,8 +107,8 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
 }
 
 void TocCatalogueWriter::deselectIndex() {
-    current_         = Index();
-    currentFull_     = Index();
+    current_ = Index();
+    currentFull_ = Index();
     currentIndexKey_ = Key();
 }
 
@@ -144,8 +144,9 @@ void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Off
 
     current_.put(key, field);
 
-    if (useSubToc())
+    if (useSubToc()) {
         currentFull_.put(key, field);
+    }
 }
 
 void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
@@ -180,7 +181,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     std::set<std::string> subtocs;
     std::vector<bool> indexInSubtoc;
     std::vector<Index> readIndexes = loadIndexes(false, &subtocs, &indexInSubtoc);
-    size_t maskable_indexes        = 0;
+    size_t maskable_indexes = 0;
 
     ConsolidateIndexVisitor visitor(*this);
 
@@ -194,8 +195,9 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         Log::info() << "Visiting index: " << idx.location().uri() << std::endl;
 
         // We need to explicitly mask indexes in the master TOC
-        if (!indexInSubtoc[i])
+        if (!indexInSubtoc[i]) {
             maskable_indexes += 1;
+        }
     }
 
     // Flush the new indexes and add relevant entries!
@@ -320,15 +322,17 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        if (!selectIndex(currentIndexKey_))
+        if (!selectIndex(currentIndexKey_)) {
             createIndex(currentIndexKey_, datumKey.size());
+        }
     }
     else {
         // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
         // indexKey used for store archival. Reset it
         if (currentIndexKey_ != idxKey) {
-            if (!selectIndex(idxKey))
+            if (!selectIndex(idxKey)) {
                 createIndex(idxKey, datumKey.size());
+            }
         }
     }
 
@@ -336,8 +340,9 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
     current_.put(datumKey, field);
 
-    if (useSubToc())
+    if (useSubToc()) {
         currentFull_.put(datumKey, field);
+    }
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {
@@ -350,8 +355,8 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
     flushIndexes();
 
     archivedLocations_ = 0;
-    current_           = Index();
-    currentFull_       = Index();
+    current_ = Index();
+    currentFull_ = Index();
 }
 
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {

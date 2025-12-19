@@ -79,14 +79,14 @@ void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    location_  = args.getBool("location", location_);
+    location_ = args.getBool("location", location_);
     timestamp_ = args.getBool("timestamp", timestamp_);
-    length_    = args.getBool("length", length_);
-    full_      = args.getBool("full", full_);
+    length_ = args.getBool("length", length_);
+    full_ = args.getBool("full", full_);
     porcelain_ = args.getBool("porcelain", porcelain_);
-    json_      = args.getBool("json", json_);
-    compact_   = args.getBool("compact", compact_);
-    depth_     = args.getInt("depth", depth_);
+    json_ = args.getBool("json", json_);
+    compact_ = args.getBool("compact", compact_);
+    depth_ = args.getInt("depth", depth_);
 
     ASSERT(depth_ > 0 && depth_ < 4);
 

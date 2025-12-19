@@ -18,8 +18,9 @@ namespace fdb5 {
 
 UUID::UUID(const std::string& uuid) {
 
-    if (uuid_parse(uuid.c_str(), internal) != 0)
+    if (uuid_parse(uuid.c_str(), internal) != 0) {
         throw eckit::BadParameter("The provided string is not a uuid.");
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ public:  // methods
     virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
-    virtual bool selectIndex(const Key& idxKey)                       = 0;
+    virtual bool selectIndex(const Key& idxKey) = 0;
     virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     virtual void deselectDatabase() = 0;

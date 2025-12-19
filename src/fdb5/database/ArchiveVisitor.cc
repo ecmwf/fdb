@@ -41,7 +41,7 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     auto p = std::make_shared<std::promise<std::shared_ptr<const FieldLocation>>>();
 
     std::shared_ptr<ArchiveVisitor> self = shared_from_this();
-    auto writer                          = catalogue();
+    auto writer = catalogue();
 
     store()->archiveCb(idxKey, data_, size_,
                        [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {

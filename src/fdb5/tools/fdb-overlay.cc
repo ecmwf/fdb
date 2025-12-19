@@ -65,7 +65,7 @@ void FdbOverlay::init(const CmdArgs& args) {
     FDBTool::init(args);
     args.get("variable-keys", variableKeys_);
     remove_ = args.getBool("remove", remove_);
-    force_  = args.getBool("force", force_);
+    force_ = args.getBool("force", force_);
 }
 
 void FdbOverlay::execute(const CmdArgs& args) {
@@ -77,7 +77,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         return;
     }
 
-    bool injectDomain        = false;
+    bool injectDomain = false;
     std::vector<Key> sources = parse(args(0), conf);
     ASSERT(!sources.empty());
 

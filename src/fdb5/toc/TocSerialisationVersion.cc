@@ -86,8 +86,9 @@ std::string TocSerialisationVersion::supportedStr() {
 bool TocSerialisationVersion::check(unsigned int version, bool throwOnFail) const {
     std::vector<unsigned int> versionsSupported = supported();
     for (auto v : versionsSupported) {
-        if (version == v)
+        if (version == v) {
             return true;
+        }
     }
     if (throwOnFail) {
         std::ostringstream msg;

@@ -76,8 +76,9 @@ void FDBFileHandle::flush() {
         eckit::LibResource<bool, LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
 
     if (file_) {
-        if (::fflush(file_))
+        if (::fflush(file_)) {
             throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))", Here());
+        }
 
         if (fdbDataSyncOnFlush) {
             int ret = eckit::fdatasync(::fileno(file_));
@@ -101,11 +102,11 @@ void FDBFileHandle::close() {
     if (file_) {
         if (::fclose(file_)) {
             file_ = nullptr;
-            pos_  = 0;
+            pos_ = 0;
             throw WriteError(std::string("fclose ") + name());
         }
         file_ = nullptr;
-        pos_  = 0;
+        pos_ = 0;
     }
 }
 

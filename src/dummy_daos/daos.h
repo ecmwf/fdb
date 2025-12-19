@@ -72,8 +72,8 @@
 //----------------------------------------------------------------------------------------------------------------------
 
 enum daos_otype_t {
-    DAOS_OT_KV_HASHED  = 8,
-    DAOS_OT_ARRAY      = 11,
+    DAOS_OT_KV_HASHED = 8,
+    DAOS_OT_ARRAY = 11,
     DAOS_OT_ARRAY_BYTE = 13,
 };
 
@@ -83,7 +83,7 @@ enum daos_pool_props {
 };
 
 enum daos_snapshot_opts {
-    DAOS_SNAP_OPT_CR  = (1 << 0),
+    DAOS_SNAP_OPT_CR = (1 << 0),
     DAOS_SNAP_OPT_OIT = (1 << 1)
 };
 
@@ -194,8 +194,8 @@ typedef struct {
 typedef enum {
     DAOS_ANCHOR_TYPE_ZERO = 0,
     DAOS_ANCHOR_TYPE_HKEY = 1,
-    DAOS_ANCHOR_TYPE_KEY  = 2,
-    DAOS_ANCHOR_TYPE_EOF  = 3,
+    DAOS_ANCHOR_TYPE_KEY = 2,
+    DAOS_ANCHOR_TYPE_EOF = 3,
 } daos_anchor_type_t;
 
 /* cont list oids */

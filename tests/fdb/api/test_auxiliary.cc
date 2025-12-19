@@ -14,8 +14,8 @@ std::set<std::string> extensions = {"foo", "bar"};
 eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::string ext) {
     eckit::PathName auxpath(datapath + "." + ext);
     std::string data_str = "Some extra data";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
     eckit::FileHandle file(auxpath);
     file.openForWrite(0);
     file.write(data, length);
@@ -35,8 +35,8 @@ std::set<eckit::PathName> setup(FDB& fdb) {
     });
 
     std::string data_str = "Raining cats and dogs";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
 
     Key key;
     key.set("class", "od");
@@ -79,8 +79,8 @@ CASE("Wipe with extensions") {
 
     // call wipe
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = true;
-    auto listObject        = fdb.wipe(request, doit);
+    bool doit = true;
+    auto listObject = fdb.wipe(request, doit);
 
     WipeElement elem;
     while (listObject.next(elem)) {
@@ -121,8 +121,8 @@ CASE("Purge with extensions") {
 
     // call purge
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = true;
-    auto listObject        = fdb.purge(request, doit, false);
+    bool doit = true;
+    auto listObject = fdb.purge(request, doit, false);
 
     PurgeElement elem;
     while (listObject.next(elem)) {

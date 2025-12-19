@@ -50,17 +50,18 @@ DaosPool::~DaosPool() {
 
     cont_cache_.clear();
 
-    if (open_)
+    if (open_) {
         close();
+    }
 }
 
 DaosPool& DaosPool::operator=(DaosPool&& other) noexcept {
 
-    uuid_       = std::move(other.uuid_);
+    uuid_ = std::move(other.uuid_);
     known_uuid_ = other.known_uuid_;
-    label_      = std::move(other.label_);
-    poh_        = std::move(other.poh_);
-    open_       = other.open_;
+    label_ = std::move(other.label_);
+    poh_ = std::move(other.poh_);
+    open_ = other.open_;
     cont_cache_ = std::move(other.cont_cache_);
 
     other.open_ = false;
@@ -87,7 +88,7 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
         /// @todo: Ensure freeing. default_delete.
         // Throw exception if that fails.
-        prop                          = daos_prop_alloc(1);
+        prop = daos_prop_alloc(1);
         prop->dpp_entries[0].dpe_type = DAOS_PROP_PO_LABEL;
         D_STRNDUP(prop->dpp_entries[0].dpe_str, label_.c_str(), DAOS_PROP_LABEL_MAX_LEN);
     }
@@ -97,8 +98,9 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     /// @todo: query the pool to ensure it's ready
 
-    if (prop != NULL)
+    if (prop != NULL) {
         daos_prop_free(prop);
+    }
 
     D_FREE(svcl.rl_ranks);
 
@@ -108,8 +110,9 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
 void DaosPool::open() {
 
-    if (open_)
+    if (open_) {
         return;
+    }
 
     ASSERT(known_uuid_ || label_.size() > 0);
 
@@ -138,10 +141,11 @@ void DaosPool::close() {
 
     int code = daos_pool_disconnect(poh_, NULL);
 
-    if (code < 0)
+    if (code < 0) {
         eckit::Log::warning() << "DAOS error in call to daos_pool_disconnect(), file " << __FILE__ << ", line "
                               << __LINE__ << ", function " << __func__ << " [" << code << "] (" << code << ")"
                               << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
 
@@ -157,8 +161,9 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
 
     std::map<std::string, fdb5::DaosContainer>::iterator it = getCachedContainer(label);
 
-    if (it != cont_cache_.end())
+    if (it != cont_cache_.end()) {
         return it->second;
+    }
 
     fdb5::DaosContainer c{*this, label};
 
@@ -191,8 +196,9 @@ fdb5::DaosContainer& DaosPool::ensureContainer(const std::string& label) {
 
     /// @todo: if the container is found in the cache, it can be assumed
     ///   it exists and this check could be skipped
-    if (c.exists())
+    if (c.exists()) {
         return c;
+    }
 
     c.create();
 
@@ -230,8 +236,9 @@ void DaosPool::destroyContainer(const std::string& label) {
 void DaosPool::closeContainers() {
 
     std::map<std::string, fdb5::DaosContainer>::iterator it;
-    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it)
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
         it->second.close();
+    }
 }
 
 std::vector<std::string> DaosPool::listContainers() {
@@ -241,14 +248,16 @@ std::vector<std::string> DaosPool::listContainers() {
     daos_size_t ncont{0};
     DAOS_CALL(daos_pool_list_cont(getOpenHandle(), &ncont, NULL, NULL));
 
-    if (ncont == 0)
+    if (ncont == 0) {
         return res;
+    }
 
     std::vector<struct daos_pool_cont_info> info(ncont);
     DAOS_CALL(daos_pool_list_cont(getOpenHandle(), &ncont, info.data(), NULL));
 
-    for (const auto& c : info)
+    for (const auto& c : info) {
         res.push_back(c.pci_label);
+    }
 
     return res;
 }
@@ -280,8 +289,9 @@ std::string DaosPool::name() const {
     ///   Either create it or provide a label upon construction.
     ASSERT(label_.size() > 0 || known_uuid_);
 
-    if (label_.size() > 0)
+    if (label_.size() > 0) {
         return label_;
+    }
 
     char name_cstr[37];
     uuid_unparse(uuid_.internal, name_cstr);

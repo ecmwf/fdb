@@ -124,8 +124,9 @@ bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
 
-    if (!current_.mayContain(key))
+    if (!current_.mayContain(key)) {
         return false;
+    }
 
     return current_.get(key, fdb5::Key(), field);
 }

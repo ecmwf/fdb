@@ -51,7 +51,7 @@ void FDBRead::usage(const std::string& tool) const {
 void FDBRead::execute(const eckit::option::CmdArgs& args) {
 
     bool extract = args.getBool("extract", false);
-    bool raw     = args.getBool("raw", false);
+    bool raw = args.getBool("raw", false);
 
     std::vector<metkit::mars::MarsRequest> requests;
 
@@ -73,8 +73,9 @@ void FDBRead::execute(const eckit::option::CmdArgs& args) {
         metkit::mars::MarsParser parser(in);
         auto parsedRequests = parser.parse();
         if (raw) {
-            for (auto r : parsedRequests)
+            for (auto r : parsedRequests) {
                 requests.push_back(r);
+            }
         }
         else {
             metkit::mars::MarsExpansion expand(/* inherit */ false);

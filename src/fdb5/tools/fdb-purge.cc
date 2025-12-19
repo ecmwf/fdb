@@ -55,8 +55,8 @@ private:  // methods
 
 void FDBPurge::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
-    doit_         = args.getBool("doit", false);
-    porcelain_    = args.getBool("porcelain", false);
+    doit_ = args.getBool("doit", false);
+    porcelain_ = args.getBool("porcelain", false);
     ignoreNoData_ = args.getBool("ignore-no-data", false);
 }
 

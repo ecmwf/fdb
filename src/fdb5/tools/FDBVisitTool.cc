@@ -67,7 +67,7 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
     args.get("minimum-keys", minimumKeys_);
 
     bool ignore = args.getBool("ignore-errors", false);
-    fail_       = !ignore;
+    fail_ = !ignore;
 
     all_ = args.getBool("all", false);
 

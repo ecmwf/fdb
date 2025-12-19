@@ -57,7 +57,7 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
     while ((dp = readdir(dirp)) != NULL) {
         if (strstr(dp->d_name, ".index")) {
             eckit::PathName src_ = PathName(catalogue_.basePath()) / dp->d_name;
-            int fd               = ::open(src_.asString().c_str(), O_RDWR);
+            int fd = ::open(src_.asString().c_str(), O_RDWR);
             if (::flock(fd, LOCK_EX)) {
                 std::stringstream ss;
                 ss << "Index file " << dp->d_name << " is locked";

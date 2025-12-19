@@ -61,8 +61,9 @@ public:  // methods
 
     /// Get the next element. Return false if at end
     bool next(ValueType& elem) {
-        if (!impl_)
+        if (!impl_) {
             return false;
+        }
         return impl_->next(elem);
     }
 

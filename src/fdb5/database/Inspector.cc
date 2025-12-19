@@ -39,8 +39,9 @@ void InspectIterator::emplace(ListElement&& elem) {
 }
 
 bool InspectIterator::next(ListElement& elem) {
-    if (index_ >= queue_.size())
+    if (index_ >= queue_.size()) {
         return false;
+    }
     elem = queue_[index_];
     index_++;
     return true;
