@@ -30,12 +30,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 class Archiver;
+class RemoteFDBClient;
 
-class RemoteFDB : public LocalFDB, public remote::Client {
-
-public:  // types
-
-    using MessageQueue = eckit::Queue<eckit::Buffer>;
+class RemoteFDB : public LocalFDB {
 
 public:  // method
 
@@ -65,34 +62,14 @@ public:  // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    const eckit::net::Endpoint& storeEndpoint() const;
-    const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
-
 private:  // methods
-
-    template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
-        -> APIIterator<typename HelperClass::ValueType>;
 
     void print(std::ostream& s) const override;
 
-    // Client
-    const eckit::Configuration& clientConfig() const override;
-    bool handle(remote::Message message, uint32_t requestID) override;
-    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private:  // members
 
-    std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
-    std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
-    std::vector<eckit::net::Endpoint> storesLocalFields_;
-
-    // Where do we put received messages
-    // @note This is a map of requestID:MessageQueue. At the point that a request is
-    // complete, errored or otherwise killed, it needs to be removed from the map.
-    // The shared_ptr allows this removal to be asynchronous with the actual task
-    // cleaning up and returning to the client.
-    std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
+    std::shared_ptr<RemoteFDBClient> client_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
