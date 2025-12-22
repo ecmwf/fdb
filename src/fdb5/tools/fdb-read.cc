@@ -85,16 +85,16 @@ void FDBRead::execute(const eckit::option::CmdArgs& args) {
     // Evaluate the requests to obtain data handles
 
     fdb5::HandleGatherer handles(true);
-    {
-        fdb5::FDB fdb(config(args));
 
-        for (const auto& request : requests) {
+    fdb5::FDB fdb(config(args));
 
-            eckit::Log::info() << request << std::endl;
+    for (const auto& request : requests) {
 
-            handles.add(fdb.retrieve(request));
-        }
+        eckit::Log::info() << request << std::endl;
+
+        handles.add(fdb.retrieve(request));
     }
+
     // And get the data
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());

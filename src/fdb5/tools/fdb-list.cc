@@ -121,6 +121,8 @@ void FDBList::init(const CmdArgs& args) {
 
 void FDBList::execute(const CmdArgs& args) {
 
+    FDB fdb(config(args));
+
     std::unique_ptr<JSON> json;
     if (json_) {
         json = std::make_unique<JSON>(Log::info());
@@ -136,7 +138,7 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = FDB{config(args)}.list(request, !full_ && !compact_, depth_);
+        auto listObject = fdb.list(request, !full_ && !compact_, depth_);
 
         if (compact_) {
             auto [fields, total] = listObject.dumpCompact(Log::info());
