@@ -57,7 +57,7 @@ private:  // methods
 
 private:  // members
 
-    const Config& config_;
+    const Config config_;
 
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
     std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
