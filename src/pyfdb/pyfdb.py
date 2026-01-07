@@ -46,9 +46,9 @@ class FDB:
         Parameters
         ----------
         :`config` : `str` | `dict` | `Path` | `None`, *optional*
-            Config object for setting up the FDB.
+            Config object for setting up the FDB. See Notes.
         :`user_config` : `str` | `dict` | `Path` | `None`, *optional*
-            Config object for setting up user specific options, e.g., enabling sub-TOCs.
+            Config object for setting up user specific options, e.g., enabling sub-TOCs. See Notes.
 
         Returns
         -------
@@ -211,7 +211,7 @@ class FDB:
             A MARS selection which describes the data which can be listed.
         `include_masked` : bool, *optional*
             If True, the returned iterator lists masked data, if False the elements are unique.
-        `level` : int, *optional*
+        `level` : int [1-3], *optional*
             Specifies the FDB schema level of the elements which are matching the selection.
             A level of 1 means return a level 1 key which is matching the MARS selection.
 
@@ -288,10 +288,6 @@ class FDB:
         ----------
         `mars_selection` : `MarsSelection`
             An MARS selection for which the inspect should be executed
-
-        Note
-        ----
-        *If multiple values for a key are specified, only the first one is respected and returned.*
 
         Returns
         -------
