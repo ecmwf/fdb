@@ -41,12 +41,16 @@ class SelectionBuilder:
     Selection builder for creating MARS selections.
 
     This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
-    is activated there will be checks whether keys have been set already
+    is activated there will be checks whether keys have been set already. If `wildcard_selection` is
+    set, the resulting request will be a `WildcardMarsSelection`. A `WildcardMarsSelection` represents
+    a requests which
 
     Parameters
     ----------
     `strict_mode`: `bool`
         If a set key is to be overwritten, raise an KeyException
+    `wildcard_selection`: `bool`
+        If `True` a wildcard selection will be generated
 
     Note
     ----
