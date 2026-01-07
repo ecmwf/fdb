@@ -7,9 +7,8 @@
 # does it submit to any jurisdiction.
 
 from collections.abc import Mapping
-from typing import ItemsView, Iterator, KeysView, List, Sequence, Tuple, ValuesView
+from typing import ItemsView, Iterator, KeysView, Sequence, ValuesView
 
-from pyfdb import URI, DataHandle
 from pyfdb._internal import (
     ControlElement as _ControlElement,
 )
@@ -25,6 +24,7 @@ from pyfdb._internal import (
 from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
+from pyfdb.pyfdb_type import URI, DataHandle
 
 
 class ListElement:

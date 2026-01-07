@@ -9,47 +9,55 @@
 # libfdb5.so and dependencies have to be loaded prior to importing
 # pyfdb
 
-from typing import Dict
-from pyfdb_bindings import pyfdb_bindings as bindings
+from pyfdb._internal.pyfdb_internal import (
+    ConfigMapper,
+    InternalMarsSelection,
+    _flatten_values,
+)
+from pyfdb._internal.pyfdb_internal import MarsRequest as MarsRequest
 from pyfdb_bindings.pyfdb_bindings import (
     FDB as _FDB,
-    Config,
-    ControlAction as _ControlAction,
-    ControlIdentifier as _ControlIdentifier,
-    FDBToolRequest,
-    FileCopy,
-    IndexAxis,
-    ControlElement,
-    ListElement,
-    StatsElement,
-    init_bindings,
 )
 from pyfdb_bindings.pyfdb_bindings import (
     URI as _URI,
+)
+from pyfdb_bindings.pyfdb_bindings import (
+    Config,
+    ControlElement,
+    FDBToolRequest,
+    FileCopy,
+    IndexAxis,
+    ListElement,
+    StatsElement,
+    init_bindings,
+)
+from pyfdb_bindings.pyfdb_bindings import (
+    ControlAction as _ControlAction,
+)
+from pyfdb_bindings.pyfdb_bindings import (
+    ControlIdentifier as _ControlIdentifier,
+)
+from pyfdb_bindings.pyfdb_bindings import (
     DataHandle as _DataHandle,
 )
 
-from .pyfdb_internal import MarsRequest as MarsRequest
-from .pyfdb_internal import _flatten_values, ConfigMapper
-
-InternalMarsSelection = Dict[str, str]
-
 __all__ = [
-    MarsRequest,
-    init_bindings,
-    _DataHandle,
-    _flatten_values,
-    _URI,
-    _FDB,
-    Config,
-    ConfigMapper,
-    FDBToolRequest,
-    _ControlAction,
-    _ControlIdentifier,
-    ListElement,
-    StatsElement,
-    ControlElement,
-    IndexAxis,
-    FileCopy,
-    InternalMarsSelection,
+    "MarsRequest",
+    "init_bindings",
+    "_DataHandle",
+    "_flatten_values",
+    "_URI",
+    "_FDB",
+    "Config",
+    "ConfigMapper",
+    "FDBToolRequest",
+    "InternalMarsSelection",
+    "_ControlAction",
+    "_ControlIdentifier",
+    "ListElement",
+    "StatsElement",
+    "ControlElement",
+    "IndexAxis",
+    "FileCopy",
+    "InternalMarsSelection",
 ]

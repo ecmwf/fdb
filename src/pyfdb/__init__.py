@@ -12,7 +12,7 @@ import findlibs
 
 findlibs.load("fdb5")
 
-from .pyfdb_type import (
+from pyfdb.pyfdb_type import (
     URI,
     DataHandle,
     MarsSelection,
@@ -20,9 +20,9 @@ from .pyfdb_type import (
     ControlAction,
     ControlIdentifier,
 )
-from .pyfdb import FDB
+from pyfdb.pyfdb import FDB
 
-from .pyfdb_iterator import (
+from pyfdb.pyfdb_iterator import (
     ListElement,
     MoveElement,
     StatusElement,
@@ -31,16 +31,16 @@ from .pyfdb_iterator import (
 )
 
 __all__ = [
-    FDB,
-    URI,
-    DataHandle,
-    ListElement,
-    WipeElement,
-    StatusElement,
-    MoveElement,
-    MarsSelection,
-    WildcardMarsSelection,
-    ControlAction,
-    ControlIdentifier,
-    IndexAxis,
+    "FDB",
+    "URI",
+    "DataHandle",
+    "ListElement",
+    "WipeElement",
+    "StatusElement",
+    "MoveElement",
+    "MarsSelection",
+    "WildcardMarsSelection",
+    "ControlAction",
+    "ControlIdentifier",
+    "IndexAxis",
 ]
