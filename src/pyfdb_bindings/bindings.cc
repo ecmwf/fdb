@@ -184,6 +184,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::ControlElement>(m, "ControlElement")
         .def(py::init())
+        .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
         .def("__repr__", [](fdb5::ControlElement& control_element) {
             std::stringstream buf{};
             buf << control_element.controlIdentifiers << ", ";

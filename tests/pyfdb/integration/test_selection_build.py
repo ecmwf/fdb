@@ -128,7 +128,7 @@ def test_overwrite_key_strict_mode():
 
 
 def test_wildcard_selection():
-    wildcard = SelectionBuilder().build_wildcard()
+    wildcard = SelectionBuilder(wildcard_selection=True).build()
 
     assert wildcard == {}
     assert isinstance(wildcard, WildcardMarsSelection)
