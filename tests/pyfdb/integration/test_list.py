@@ -104,7 +104,7 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
         "time": "1800",
     }
 
-    list_iterator = fdb.list(selection, duplicates=False, level=3)
+    list_iterator = fdb.list(selection, include_masked=False, level=3)
     assert list_iterator
 
     elements = []
@@ -119,7 +119,7 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
 
-    list_iterator = fdb.list(selection, duplicates=True, level=3)
+    list_iterator = fdb.list(selection, include_masked=True, level=3)
     assert list_iterator
     elements = []
 
