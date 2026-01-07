@@ -69,8 +69,11 @@ class SelectionBuilder:
     >>> )
     """
 
-    def __init__(self, strict_mode: bool = False) -> None:
+    def __init__(
+        self, wildcard_selection: bool = False, strict_mode: bool = False
+    ) -> None:
         self.strict_mode: bool = strict_mode
+        self.build_wildcard_selection: bool = wildcard_selection
         self.key_values = {}
 
     def _strict_mode_checking(self, key):
@@ -196,16 +199,12 @@ class SelectionBuilder:
         )
         return self
 
-    @classmethod
-    def build_wildcard(cls) -> WildcardMarsSelection:
-        return WildcardMarsSelection()
-
     def build(self) -> MarsSelection:
         """Create the resulting MARS selection
 
         Returns
         -------
-        MarsSelection
+        MarsSelection | WildcardMarsSelection
 
         Examples
         --------
@@ -215,8 +214,12 @@ class SelectionBuilder:
         >>>     builder.to_by("key-2.1", "0.1", 0.2, 0.5)  # Mixed types
         >>>     .build()
         >>> )
+        >>> mars_wildcard_selection = SelectionBuilder(wildcard_selection=true).build()
         """
-        return self.key_values
+        if self.build_wildcard_selection:
+            return WildcardMarsSelection()
+        else:
+            return self.key_values
 
 
 class DataHandle:

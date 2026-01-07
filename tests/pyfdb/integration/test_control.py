@@ -422,7 +422,7 @@ def test_enabled_per_default(read_only_fdb_setup):
     assert fdb.enabled(ControlIdentifier.UNIQUEROOT) is True
 
 
-def test_disabled_writabled(read_only_fdb_setup):
+def test_disabled_writable(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path

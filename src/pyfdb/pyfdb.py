@@ -165,9 +165,7 @@ class FDB:
         """
         self.FDB.flush()
 
-    def retrieve(
-        self, mars_selection: MarsSelection | WildcardMarsSelection
-    ) -> DataHandle:
+    def retrieve(self, mars_selection: MarsSelection) -> DataHandle:
         """
         Retrieve data which is specified by a MARS selection.
 
@@ -214,8 +212,8 @@ class FDB:
         `duplicates` : bool, *optional*
             If True, the returned iterator lists duplicates, if False the elements are unique.
         `level` : int, *optional*
-            Specifies the FDB schema level of the elements which are matching the request.
-            A level of 1 means return a level 1 key which is matching the FDB tool request.
+            Specifies the FDB schema level of the elements which are matching the selection.
+            A level of 1 means return a level 1 key which is matching the MARS selection.
 
         Returns
         -------
@@ -278,7 +276,7 @@ class FDB:
                 return
 
     def inspect(
-        self, mars_selection: MarsSelection | WildcardMarsSelection
+        self, mars_selection: MarsSelection
     ) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
@@ -286,7 +284,7 @@ class FDB:
 
         Parameters
         ----------
-        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection`
             An MARS selection for which the inspect should be executed
 
         Note
@@ -392,13 +390,13 @@ class FDB:
         Wipe data from the database.
 
         Delete FDB databases and the data therein contained. Use the passed
-        request to identify the database to delete. This is equivalent to a UNIX rm command.
+        selection to identify the database to delete. This is equivalent to a UNIX rm command.
         This function deletes either whole databases, or whole indexes within databases
 
         Parameters
         ----------
         `selection` : `MarsSelection` | `WildcardMarsSelection`
-            An fdb tool request which specifies the affected data
+            An MARS selection which specifies the affected data
         `doit` : `bool`, *optional*
             If true the wipe command is executed, per default there are only dry-run
         `porcelain` : `bool`, *optional*
@@ -437,7 +435,7 @@ class FDB:
                 return
 
     def move(
-        self, selection: MarsSelection | WildcardMarsSelection, destination: URI
+        self, selection: MarsSelection, destination: URI
     ) -> Generator[MoveElement, None, None]:
         """
         Move content of one FDB database to a new URI.
@@ -448,7 +446,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `selection` : `MarsSelection`
             A MARS selection specifies the affected data
         `destination` : `URI`
             A new FDB root to which a database should be moved
@@ -577,7 +575,7 @@ class FDB:
         Examples
         --------
         >>> fdb = pyfdb.FDB(fdb_config_path)
-        >>> stats_iterator = fdb.stats(request)
+        >>> stats_iterator = fdb.stats(selection)
         >>> for el list(stats_iterator):
         >>>     print(el)
         Index Statistics:
@@ -638,7 +636,8 @@ class FDB:
         The file is removed after the Action has been disabled.
 
         **It's important to consume the iterator, otherwise the lock file isn't deleted which
-        can cause unexpected behavior.**
+        can cause unexpected behavior. Also, due to internal reuse of databases, create a new FDB
+        object before relying on the newly set control_identifier, to propagate the status.**
 
         Examples
         --------
@@ -692,7 +691,7 @@ class FDB:
         Parameters
         ----------
         `selection` : `MarsSelection` | `WildcardMarsSelection`
-            An fdb tool request which specifies the affected data. The request can be partial.
+            A MARS selection which specifies the affected data.
         `level` : `int`
             Level of the FDB Schema. Only keys of the given level are returned.
 

@@ -305,6 +305,9 @@ class ControlElement:
         result.element = control_element
         return result
 
+    def location(self) -> URI:
+        return URI._from_raw(self.element.location())
+
     def __repr__(self) -> str:
         return str(self.element)
 
