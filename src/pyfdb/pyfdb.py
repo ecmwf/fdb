@@ -791,5 +791,5 @@ class FDB:
     def config(self) -> str:
         return str(self.FDB.config())
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.FDB)

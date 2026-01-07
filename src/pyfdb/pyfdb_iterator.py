@@ -92,7 +92,7 @@ class ListElement:
         """
         return URI._from_raw(self._element.uri())
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self._element)
 
 
@@ -126,7 +126,7 @@ class WipeElement:
         result.element = wipe_element
         return result
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -166,7 +166,7 @@ class StatusElement:
 
         return False
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -207,7 +207,7 @@ class MoveElement:
         if self.element is not None:
             self.element.execute()
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -237,7 +237,7 @@ class PurgeElement:
         result.element = purge_element
         return result
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -271,7 +271,7 @@ class StatsElement:
         result.element = stats_element
         return result
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -305,7 +305,7 @@ class ControlElement:
         result.element = control_element
         return result
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.element)
 
 
@@ -346,7 +346,7 @@ class IndexAxis:
         result.index_axis = index_axis
         return result
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.index_axis)
 
     def __setitem__(self, key, item):

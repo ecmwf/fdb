@@ -80,7 +80,7 @@ class FDBToolRequest:
             key_values=selection, all=isinstance(selection, WildcardMarsSelection)
         )
 
-    def __str__(self) -> str:
+    def ____repr__(self) -> str:
         return str(self.tool_request)
 
 
@@ -175,7 +175,7 @@ class MarsRequest:
     def empty(self) -> bool:
         return self.request.empty()
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return str(self.request)
 
     def __len__(self) -> int:

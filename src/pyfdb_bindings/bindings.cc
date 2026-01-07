@@ -131,13 +131,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
              })
         .def("empty", &mars::MarsRequest::empty)
         .def("__len__", [](const mars::MarsRequest& mars_request) { return mars_request.params().size(); })
-        .def("__str__", &mars::MarsRequest::asString);
+        .def("__repr__", &mars::MarsRequest::asString);
 
     py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
         .def(py::init([](const mars::MarsRequest& mars_request, bool all, std::vector<std::string>& minimum_key_set) {
             return fdb5::FDBToolRequest(mars_request, all, minimum_key_set);
         }))
-        .def("__str__",
+        .def("__repr__",
              [](const fdb5::FDBToolRequest& tool_request) {
                  std::stringstream buf;
                  tool_request.print(buf);
@@ -154,7 +154,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(
             "data_handle", [](const fdb5::ListElement& list_element) { return list_element.location().dataHandle(); },
             py::return_value_policy::reference_internal)
-        .def("__str__", [](const fdb5::ListElement& list_element) {
+        .def("__repr__", [](const fdb5::ListElement& list_element) {
             std::stringstream buf;
             list_element.print(buf, true, true, true, ",");
             return buf.str();
@@ -184,7 +184,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::ControlElement>(m, "ControlElement")
         .def(py::init())
-        .def("__str__", [](fdb5::ControlElement& control_element) {
+        .def("__repr__", [](fdb5::ControlElement& control_element) {
             std::stringstream buf{};
             buf << control_element.controlIdentifiers << ", ";
             buf << control_element.key << ", ";
@@ -205,7 +205,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::FileCopy>(m, "FileCopy")
         .def(py::init())
-        .def("__str__",
+        .def("__repr__",
              [](fdb5::FileCopy& file_copy_element) {
                  std::stringstream buf{};
                  buf << file_copy_element;
@@ -226,7 +226,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::StatsElement>(m, "StatsElement")
         .def(py::init())
-        .def("__str__", [](const fdb5::StatsElement& stats_element) {
+        .def("__repr__", [](const fdb5::StatsElement& stats_element) {
             std::stringstream buf{};
             buf << "Index Statistics: \n";
             stats_element.indexStatistics.report(buf);
@@ -263,7 +263,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::IndexAxis>(m, "IndexAxis")
         .def(py::init())
-        .def("__str__",
+        .def("__repr__",
              [](const fdb5::IndexAxis& index_axis) {
                  std::stringstream buf{};
                  buf << index_axis;
@@ -346,7 +346,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("path", [](const eckit::URI& uri) { return uri.path().asString(); })
         .def("fragment", [](const eckit::URI& uri) { return uri.fragment(); })
         .def("rawString", &eckit::URI::asRawString)
-        .def("__str__", &eckit::URI::asString);
+        .def("__repr__", &eckit::URI::asString);
 
 
     py::class_<fdb5::FDB>(m, "FDB")
@@ -383,7 +383,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(
             "config", [](const fdb5::FDB& fdb) -> const fdb5::Config& { return fdb.config(); },
             py::return_value_policy::reference_internal)
-        .def("__str__", [](const fdb5::FDB& fdb) {
+        .def("__repr__", [](const fdb5::FDB& fdb) {
             std::stringstream buf;
             buf << fdb;
             return buf.str();
