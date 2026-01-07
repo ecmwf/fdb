@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 import yaml
 
+InternalMarsSelection = Dict[str, str]
+
 
 def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
     result = {}
@@ -145,7 +147,9 @@ class ConfigMapper:
 
 
 class MarsRequest:
-    def __init__(self, verb: str | None = None, key_values: None = None) -> None:
+    def __init__(
+        self, verb: str | None = None, key_values: None | InternalMarsSelection = None
+    ) -> None:
         if key_values:
             key_values = _flatten_values(key_values)
 

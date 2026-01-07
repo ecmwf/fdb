@@ -10,10 +10,6 @@ from pathlib import Path
 from typing import Generator, List
 
 import pyfdb._internal as _interal
-from pyfdb import (
-    URI,
-    DataHandle,
-)
 from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -26,8 +22,10 @@ from pyfdb.pyfdb_iterator import (
     WipeElement,
 )
 from pyfdb.pyfdb_type import (
-    ControlIdentifier,
+    URI,
     ControlAction,
+    ControlIdentifier,
+    DataHandle,
     Identifier,
     MarsSelection,
     WildcardMarsSelection,
