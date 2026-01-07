@@ -199,7 +199,7 @@ class FDB:
     def list(
         self,
         selection: MarsSelection | WildcardMarsSelection,
-        duplicates: bool = False,
+        include_masked: bool = False,
         level: int = 3,
     ) -> Generator[ListElement, None, None]:
         """
@@ -209,20 +209,20 @@ class FDB:
         ----------
         `selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which describes the data which can be listed.
-        `duplicates` : bool, *optional*
-            If True, the returned iterator lists duplicates, if False the elements are unique.
+        `include_masked` : bool, *optional*
+            If True, the returned iterator lists masked data, if False the elements are unique.
         `level` : int, *optional*
             Specifies the FDB schema level of the elements which are matching the selection.
             A level of 1 means return a level 1 key which is matching the MARS selection.
 
         Returns
         -------
-        datahandle
-            a data handle which can be read like a byteslike object.
+        Generator[ListElement, None, None]
+            A generator for `ListElement` describing FDB entries containing data of the MARS selection
 
         Note
         ----
-        *this call lists duplicate elements.*
+        *this call lists masked elements if `include_masked` is `True`.*
 
         Examples
         --------
@@ -268,7 +268,9 @@ class FDB:
         timestamp=0
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
-        iterator = self.FDB.list(fdb_tool_request.tool_request, not duplicates, level)
+        iterator = self.FDB.list(
+            fdb_tool_request.tool_request, not include_masked, level
+        )
         while True:
             try:
                 yield ListElement._from_raw(next(iterator))
