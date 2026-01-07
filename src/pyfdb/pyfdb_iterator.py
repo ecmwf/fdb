@@ -6,14 +6,23 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from typing import List
+from collections.abc import Mapping
+from typing import ItemsView, Iterator, KeysView, List, Sequence, Tuple, ValuesView
 
 from pyfdb import URI, DataHandle
 from pyfdb._internal import (
     ControlElement as _ControlElement,
+)
+from pyfdb._internal import (
     FileCopy as _FileCopy,
+)
+from pyfdb._internal import (
     IndexAxis as _IndexAxis,
+)
+from pyfdb._internal import (
     ListElement as _ListElement,
+)
+from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
 
@@ -312,9 +321,9 @@ class ControlElement:
         return str(self.element)
 
 
-class IndexAxis:
+class IndexAxis(Mapping[str, Sequence[str]]):
     """
-    `IndexAxis` class respresenting axes and their extent. The class implements all Dictionary
+    `IndexAxis` class representing axes and their extent. The class implements all Dictionary
     functionalities. Key are the corresponding FDB keys (axes) and values are the values defining the extent
     of an axis.
 
@@ -352,29 +361,26 @@ class IndexAxis:
     def __repr__(self) -> str:
         return str(self.index_axis)
 
-    def __setitem__(self, key, item):
-        raise AttributeError("IndexAxis class is read only.")
-
-    def __getitem__(self, key) -> List[str]:
+    def __getitem__(self, key: str) -> str:
         return self.index_axis[key]
 
     def __len__(self) -> int:
         return len(self.index_axis)
 
-    def __delitem__(self, key):
-        raise AttributeError("IndexAxis class is read only.")
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.index_axis.keys())
 
     def has_key(self, k) -> bool:
         return k in self.index_axis
 
-    def keys(self) -> List[str]:
+    def keys(self) -> KeysView[str]:
         return self.index_axis.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[str]:
         return self.index_axis.values()
 
-    def items(self):
+    def items(self) -> ItemsView[str, Sequence[str]]:
         return self.index_axis.items()
 
-    def __contains__(self, item: str):
+    def __contains__(self, item: object):
         return item in self.index_axis

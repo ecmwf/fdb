@@ -264,7 +264,7 @@ def test_index_axis_items_levels_wildcard(read_only_fdb_setup):
     fdb = FDB(read_only_fdb_setup)
     index_axis: IndexAxis = fdb.axes(WildcardMarsSelection())
 
-    assert len(index_axis.items()) == 11
+    assert len(index_axis) == 11
 
     print("---------- Level 3: ----------")
 
@@ -276,7 +276,7 @@ def test_index_axis_items_levels_wildcard(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(WildcardMarsSelection(), level=2)
 
-    assert len(index_axis.items()) == 8
+    assert len(index_axis) == 8
 
     print("---------- Level 2: ----------")
 
@@ -285,7 +285,7 @@ def test_index_axis_items_levels_wildcard(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(WildcardMarsSelection(), level=1)
 
-    assert len(index_axis.items()) == 6
+    assert len(index_axis) == 6
 
     print("---------- Level 1: ----------")
 

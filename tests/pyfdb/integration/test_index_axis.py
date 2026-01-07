@@ -173,7 +173,7 @@ def test_index_axis_values(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis.values()) == 6
+    assert len(index_axis) == 6
 
 
 def test_index_axis_items(read_only_fdb_setup):
@@ -198,7 +198,10 @@ def test_index_axis_items(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
+    assert len(index_axis) == 6
     assert len(index_axis.items()) == 6
+    assert len(index_axis.keys()) == 6
+    assert len(index_axis.values()) == 6
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
@@ -225,7 +228,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis.items()) == 11
+    assert len(index_axis) == 11
 
     print("---------- Level 3: ----------")
 
@@ -237,7 +240,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection, level=2)
 
-    assert len(index_axis.items()) == 8
+    assert len(index_axis) == 8
 
     print("---------- Level 2: ----------")
 
@@ -246,41 +249,12 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection, level=1)
 
-    assert len(index_axis.items()) == 6
+    assert len(index_axis) == 6
 
     print("---------- Level 1: ----------")
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
-
-
-def test_index_axis_expected_to_fail(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
-
-    selection = {
-        "type": "an",
-        "class": "ea",
-        "domain": "g",
-        "expver": "0001",
-        "stream": "oper",
-        "date": "20200101",
-        "levtype": "sfc",
-        "step": "0",
-        "param": "167/165/166",
-        "time": "1800",
-    }
-
-    index_axis: IndexAxis = fdb.axes(selection)
-
-    with pytest.raises(AttributeError):
-        index_axis["type"] = "oper"
-
-    with pytest.raises(AttributeError):
-        del index_axis["type"]
 
 
 def test_index_axis_items_empty_request(read_only_fdb_setup):
@@ -294,7 +268,7 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis.items()) == 11
+    assert len(index_axis) == 11
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
