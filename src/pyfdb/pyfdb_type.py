@@ -452,7 +452,7 @@ class Identifier:
             else:
                 self.key_values[k] = v
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return ",".join([f"{k}={v}" for k, v in self.key_values.items()])
 
 
@@ -701,5 +701,5 @@ class URI:
     def rawStr(self) -> str:
         return self._uri.rawString()
 
-    def __str__(self) -> str:
-        return str(self._uri)
+    def __repr__(self) -> str:
+        return repr(self._uri)
