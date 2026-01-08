@@ -10,11 +10,7 @@ from enum import IntEnum, IntFlag, auto
 from pathlib import Path
 from typing import Collection, Dict, List, Mapping, Self, Tuple, TypeAlias
 
-import pyfdb._internal as _internal
-from pyfdb._internal import (
-    _URI,
-    _DataHandle,
-)
+from pyfdb._internal import _URI, _DataHandle, _ControlAction, _ControlIdentifier
 
 """
 Selection part of a MARS request.
@@ -462,11 +458,11 @@ class ControlIdentifier(IntFlag):
     UNIQUEROOT = auto()
 
     @classmethod
-    def _from_raw(cls, en: _internal._ControlIdentifier):
+    def _from_raw(cls, en: _ControlIdentifier):
         return ControlIdentifier[en.name]
 
     def _to_raw(self):
-        return _internal._ControlIdentifier[self.name]
+        return _ControlIdentifier[self.name]
 
 
 class ControlAction(IntEnum):
@@ -485,11 +481,11 @@ class ControlAction(IntEnum):
     ENABLE = auto()
 
     @classmethod
-    def _from_raw(cls, en: _internal._ControlAction):
+    def _from_raw(cls, en: _ControlAction):
         return ControlAction[en.name]
 
     def _to_raw(self):
-        return _internal._ControlAction[self.name]
+        return _ControlAction[self.name]
 
 
 class URI:
