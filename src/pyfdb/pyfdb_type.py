@@ -6,7 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from enum import IntFlag, auto
+from enum import IntEnum, IntFlag, auto
 from pathlib import Path
 from typing import Collection, Dict, List, Mapping, Self, Tuple, TypeAlias
 
@@ -437,7 +437,7 @@ class Identifier:
 
     Note
     ----
-    *All inserted keys and values will be converted to lower-case*
+    *All inserted keys and values will be converted to lower-case. Doubled keys will be overwritten by the last occurrence.*
 
     Returns
     -------
@@ -492,7 +492,7 @@ class ControlIdentifier(IntFlag):
         return _internal._ControlIdentifier[self.name]
 
 
-class ControlAction(IntFlag):
+class ControlAction(IntEnum):
     """
     Specify which action should be executed, e.g. `DISABLE` or `ENABLE`.
 

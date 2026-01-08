@@ -938,7 +938,7 @@ The configuration changes accordingly, if we substitute ``writable = False`` wit
 
 .. clear-namespace
 
-Needs Flush
+Dirty
 *************
 **Return whether a flush of the FDB is needed.**
 
@@ -949,11 +949,11 @@ Needs Flush
     filename = data_path / "x138-300.grib"
 
     fdb.archive(open(filename, "rb").read())
-    fdb.needs_flush() # == True
+    fdb.dirty() # == True
     fdb.flush()
-    fdb.needs_flush() # == False
+    fdb.dirty() # == False
 
-The example above shows return value of the ``flush`` command after an archive command results in ``True``. 
-Flushing resets the internal status of the ``FDB`` and the call to ``needs_flush`` returns ``False`` afterwards.
+The example above shows return value of the ``dirty`` command after an archive command results in ``True``. 
+Flushing resets the internal status of the ``FDB`` and the call to ``dirty`` returns ``False`` afterwards.
 
 .. clear-namespace

@@ -487,6 +487,6 @@ def test_needs_flush(empty_fdb_setup, test_data_path):
     filename = test_data_path / "x138-300.grib"
 
     fdb.archive(open(filename, "rb").read())
-    assert fdb.needs_flush() is True
+    assert fdb.dirty() is True
     fdb.flush()
-    assert fdb.needs_flush() is False
+    assert fdb.dirty() is False
