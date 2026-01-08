@@ -115,7 +115,7 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     std::vector<int> rflCommon =
         intersection(clientConf.remoteFieldLocationVersions_, serverConf.remoteFieldLocationVersions_);
     if (rflCommon.empty()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "RemoteFieldLocation version not matching." << std::endl
            << "Client supports " << clientConf.remoteFieldLocationVersions_ << ", server supports "
            << serverConf.remoteFieldLocationVersions_;
@@ -137,7 +137,7 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     // agree on a common functionality by intersecting server and client version numbers
     std::vector<int> ncCommon = intersection(clientConf.numberOfConnections_, serverConf.numberOfConnections_);
     if (ncCommon.empty()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Number of remote connections not matching." << std::endl
            << "Client supports " << clientConf.numberOfConnections_ << ", server supports "
            << serverConf.numberOfConnections_;

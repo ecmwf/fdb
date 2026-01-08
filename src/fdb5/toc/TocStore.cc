@@ -275,7 +275,7 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
             }
         }
     }
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "Destination " << dest << " cannot be used to archive a DB with key: " << key << std::endl;
     throw eckit::UserError(ss.str(), Here());
 }

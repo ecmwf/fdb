@@ -65,7 +65,7 @@ void FDBStatus::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }

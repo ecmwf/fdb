@@ -56,10 +56,10 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 
     for (const auto& p : request_.parameters()) {
         if (p.count() > 1 && processedKeywords.count(p.name()) != 1) {
-            std::stringstream buf{};
-            buf << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
+            std::ostringstream ss;
+            ss << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
                 << " values but is not mapped by an axis.";
-            throw eckit::UserError(buf.str());
+            throw eckit::UserError(ss.str());
         }
     }
 

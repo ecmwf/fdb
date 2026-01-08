@@ -59,7 +59,7 @@ public:  // methods
         eckit::URI destination;
         std::string dest = args.getString("dest");
         if (dest.empty()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No destination root specified.";
             throw UserError(ss.str(), Here());
         }
@@ -71,13 +71,13 @@ public:  // methods
         size_t count                 = 0;
         for (const FDBToolRequest& toolReq : requests) {
             if (count) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Multiple requests are not supported" << std::endl;
                 throw eckit::UserError(ss.str());
             }
 
             if (toolReq.all()) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Move ALL not supported. Please specify a single database." << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
@@ -89,7 +89,7 @@ public:  // methods
                 const std::vector<std::string>& values = marsReq.values(param);
 
                 if (values.size() != 1) {
-                    std::stringstream ss;
+                    std::ostringstream ss;
                     ss << "Move requires a single value for each parameter in the request." << std::endl
                        << "Parameter " << param << "=" << values << " not supported." << std::endl;
                     throw eckit::UserError(ss.str(), Here());
@@ -100,13 +100,13 @@ public:  // methods
             StatsIterator it = fdb_.stats(toolReq);
             StatsElement se;
             if (!it.next(se)) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Request " << toolReq
                    << " does not matches with an existing database. Please specify a single database." << std::endl;
                 throw eckit::UserError(ss.str(), Here());
             }
             if (it.next(se)) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Request " << toolReq
                    << " matches with more than one existing database. Please specify a single database." << std::endl;
                 throw eckit::UserError(ss.str(), Here());
@@ -117,7 +117,7 @@ public:  // methods
         }
 
         if (count == 0) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found" << std::endl;
             throw FDBToolException(ss.str());
         }
@@ -313,7 +313,7 @@ void FDBMove::execute(const CmdArgs& args) {
         if (transport->single()) {
             threads_ = args.getInt("threads", 1);
             if (threads_ <= 0 || MAX_THREADS < threads_) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Unsupported number of threads. please specify a value between 1 and " << MAX_THREADS;
                 throw UserError(ss.str(), Here());
             }

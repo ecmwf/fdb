@@ -173,7 +173,7 @@ CASE("dummy_daos_write_then_read") {
     daos_handle_t oh_kv;
     rc = daos_kv_open(coh, oid_kv, DAOS_OO_RW, &oh_kv, NULL);
     EXPECT(rc == 0);
-    std::stringstream os_kv;
+    std::ostringstream os_kv;
     os_kv << std::setw(16) << std::setfill('0') << std::hex << oid_kv.hi;
     os_kv << ".";
     os_kv << std::setw(16) << std::setfill('0') << std::hex << oid_kv.lo;
@@ -259,7 +259,7 @@ CASE("dummy_daos_write_then_read") {
     daos_handle_t oh;
     rc = daos_array_create(coh, oid, DAOS_TX_NONE, 1, 1048576, &oh, NULL);
     EXPECT(rc == 0);
-    std::stringstream os;
+    std::ostringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
     os << ".";
     os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
@@ -328,7 +328,7 @@ CASE("dummy_daos_write_then_read") {
     rc =
         daos_cont_create_snap_opt(coh, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL);
     EXPECT(rc == 0);
-    std::stringstream os_epoch;
+    std::ostringstream os_epoch;
     os_epoch << std::setw(16) << std::setfill('0') << std::hex << e;
     EXPECT((dummy_daos_get_handle_path(coh) / os_epoch.str() + ".snap").exists());
 
