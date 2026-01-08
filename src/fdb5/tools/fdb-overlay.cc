@@ -95,7 +95,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
     }
 
     if (source.keys() != target.keys()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Keys insufficiently matching for mount: " << source << " : " << target << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
@@ -105,7 +105,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         const auto [it, found] = source.find(kv.first);
         ASSERT(found);
         if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
             throw eckit::UserError(ss.str(), Here());
         }
@@ -113,13 +113,13 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     std::unique_ptr<CatalogueReader> dbSource = CatalogueReaderFactory::instance().build(source, conf);
     if (!dbSource->exists()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Source database not found: " << source << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
 
     if (dbSource->type() != TocEngine::typeName()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Only TOC DBs currently supported" << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
@@ -128,14 +128,14 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     if (remove_) {
         if (!dbTarget->exists()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Target database must already exist: " << target << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
     }
     else {
         if (dbTarget->exists() && !force_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Target database already exists: " << target << std::endl;
             eckit::Log::error() << ss.str() << std::endl;
             eckit::Log::error() << "To mount to existing target, rerun with --force" << std::endl;

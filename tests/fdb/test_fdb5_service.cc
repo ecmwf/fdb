@@ -548,7 +548,7 @@ CASE("schemaSerialisation") {
         fdb5::Config config;
         config = config.expandConfig();
 
-        std::stringstream ss;
+        std::ostringstream ss;
         config.schema().dump(ss);
         original = ss.str();
 
@@ -560,7 +560,7 @@ CASE("schemaSerialisation") {
 
         std::unique_ptr<fdb5::Schema> clone(eckit::Reanimator<fdb5::Schema>::reanimate(sin));
 
-        std::stringstream ss;
+        std::ostringstream ss;
         clone->dump(ss);
 
         EXPECT(original == ss.str());

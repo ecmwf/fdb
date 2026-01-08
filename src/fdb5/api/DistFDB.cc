@@ -61,7 +61,7 @@ DistFDB::DistFDB(const Config& config, const std::string& name) : FDBBase(config
     for (const auto& laneCfg : config.getSubConfigs("lanes")) {
         lanes_.emplace_back(FDB(laneCfg), true);
         if (!hash_.addNode(std::get<0>(lanes_.back()).id())) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Failed to add node to hash : " << std::get<0>(lanes_.back()).id() << " -- may have non-unique ID";
             throw eckit::SeriousBug(ss.str(), Here());
         }
@@ -114,7 +114,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
             // TODO: This will be messy and verbose. Reduce output if it has already failed.
 
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Archive failure on lane: " << lane << " (" << idx << ")";
             eckit::Log::error() << ss.str() << std::endl;
             eckit::Log::error() << "with exception: " << e << std::endl;
