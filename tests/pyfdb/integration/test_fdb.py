@@ -91,38 +91,21 @@ def test_fdb_user_config(read_only_fdb_setup):
 
     print("Check for user config propagation:")
     print(fdb.config())
-    assert "useSubToc => true" in fdb.config()
 
-    pyfdb_no_user_config = FDB(fdb_config_path)
-    print(pyfdb_no_user_config.config())
+    system_config, user_config = fdb.config()
+    assert "useSubToc" in user_config
+    assert user_config["useSubToc"] is True
+
+    fdb_no_user_config = FDB(fdb_config_path)
+    print(fdb_no_user_config.config())
     print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.config()
+    system_config_no_user_config, user_config_no_user_config = (
+        fdb_no_user_config.config()
+    )
 
-
-def test_fdb_user_config_no_config_constructor(read_only_fdb_setup):
-    fdb_config_path: Path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    user_config_str = r"""---
-        type: local
-        engine: toc
-        useSubToc: true
-        spaces:
-        - roots:
-          - path: "/a/path/is/something"
-    """
-    fdb = FDB(fdb_config_path, user_config_str)
-    assert fdb
-
-    print("Check for user config propagation:")
-    print(fdb.config())
-    assert "useSubToc => true" in fdb.config()
-
-    pyfdb_no_user_config = FDB(fdb_config_path)
-    print(pyfdb_no_user_config.config())
-    print("Check for empty user config:")
-    assert "root={}" in pyfdb_no_user_config.config()
+    assert system_config == system_config_no_user_config
+    assert user_config
+    assert len(user_config_no_user_config) == 0
 
 
 def test_fdb_print():

@@ -150,24 +150,6 @@ class ConfigMapper:
     def from_json(cls, config: str) -> Dict[str, Any]:
         return json.loads(config)
 
-    @classmethod
-    def merge_config_dicts(
-        cls, system_config: Dict[str, Any], user_config: Dict[str, Any], prefix=[]
-    ):
-        for key in user_config:
-            if key in system_config:
-                if isinstance(system_config[key], dict) and isinstance(
-                    user_config[key], dict
-                ):
-                    cls.merge_config_dicts(
-                        system_config[key], user_config[key], prefix + [str(key)]
-                    )
-                elif system_config[key] != user_config[key]:
-                    raise Exception("Conflict at " + ".".join(prefix + [str(key)]))
-            else:
-                system_config[key] = user_config[key]
-        return system_config
-
 
 class MarsRequest:
     def __init__(

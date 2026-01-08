@@ -6,11 +6,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-import json
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Tuple
 
-import pyfdb._internal as _interal
+import pyfdb._internal as _internal
 from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -87,20 +86,20 @@ class FDB:
         >>> fdb = pyfdb.FDB(config)
         """
 
-        _interal.init_bindings()
+        _internal.init_bindings()
 
         # Convert to JSON if set
         config = ConfigMapper.to_json(config)
         user_config = ConfigMapper.to_json(user_config)
 
         if config is not None and user_config is not None:
-            internal_config = _interal.Config(config, user_config)
-            self.FDB = _interal._FDB(internal_config)
+            internal_config = _internal.Config(config, user_config)
+            self.FDB = _internal._FDB(internal_config)
         elif config is not None:
-            internal_config = _interal.Config(config, None)
-            self.FDB = _interal._FDB(internal_config)
+            internal_config = _internal.Config(config, None)
+            self.FDB = _internal._FDB(internal_config)
         else:
-            self.FDB = _interal._FDB()
+            self.FDB = _internal._FDB()
 
     def __enter__(self):
         return self
@@ -200,8 +199,8 @@ class FDB:
         >>>     assert data_handle
         >>>     assert data_handle.read(4) == b"GRIB"
         """
-        mars_request = _interal.MarsRequest.from_selection(mars_selection)
-        return DataHandle._from_raw(self.FDB.retrieve(mars_request.request))
+        mars_request = _internal.MarsRequest.from_selection(mars_selection)
+        return DataHandle(self.FDB.retrieve(mars_request.request), _internal=True)
 
     def list(
         self,
@@ -280,7 +279,7 @@ class FDB:
         )
         while True:
             try:
-                yield ListElement._from_raw(next(iterator))
+                yield ListElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -331,12 +330,12 @@ class FDB:
         length=10732,
         timestamp=1762537447
         """
-        mars_request = _interal.MarsRequest.from_selection(mars_selection)
+        mars_request = _internal.MarsRequest.from_selection(mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
 
         while iterator is not None:
             try:
-                yield ListElement._from_raw(next(iterator))
+                yield ListElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -380,7 +379,7 @@ class FDB:
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
             try:
-                yield StatusElement._from_raw(next(iterator))
+                yield StatusElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -435,7 +434,7 @@ class FDB:
         )
         while True:
             try:
-                yield WipeElement._from_raw(next(iterator))
+                yield WipeElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -497,7 +496,7 @@ class FDB:
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
         while True:
             try:
-                yield MoveElement._from_raw(next(iterator))
+                yield MoveElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -556,7 +555,7 @@ class FDB:
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
             try:
-                yield PurgeElement._from_raw(next(iterator))
+                yield PurgeElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -607,7 +606,7 @@ class FDB:
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
             try:
-                yield StatsElement._from_raw(next(iterator))
+                yield StatsElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -680,7 +679,7 @@ class FDB:
         )
         while True:
             try:
-                yield ControlElement._from_raw(next(iterator))
+                yield ControlElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
@@ -734,7 +733,9 @@ class FDB:
         k=type     | v=['an']
         """
         fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
-        return IndexAxis._from_raw(self.FDB.axes(fdb_tool_request.tool_request, level))
+        return IndexAxis(
+            self.FDB.axes(fdb_tool_request.tool_request, level), _internal=True
+        )
 
     def enabled(self, control_identifier: ControlIdentifier) -> bool:
         """

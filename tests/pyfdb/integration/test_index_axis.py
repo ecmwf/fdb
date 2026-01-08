@@ -4,11 +4,6 @@ from pyfdb.pyfdb_iterator import IndexAxis
 from pyfdb.pyfdb_type import WildcardMarsSelection
 
 
-def test_index_axis_initialization():
-    with pytest.raises(NotImplementedError):
-        index_axis = IndexAxis()
-
-
 def test_index_axis_string(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
