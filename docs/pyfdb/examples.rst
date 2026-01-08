@@ -940,7 +940,8 @@ The configuration changes accordingly, if we substitute ``writable = False`` wit
 
 Dirty
 *************
-**Return whether a flush of the FDB is needed.**
+**Return whether a flush of the FDB is needed, for example if data was archived since the last flush.**
+
 
 .. code-block:: python
 
