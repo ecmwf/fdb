@@ -86,7 +86,7 @@ void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
 
             while ((msg = reader.next())) {
                 if (const auto size = msg.getSize("values"); size != layout.countValues) {
-                    std::stringstream ss;
+                    std::ostringstream ss;
                     ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
                        << " expected: " << layout.countValues << " found: " << size
                        << ". All fields in your view need to be of equal size.";
@@ -102,13 +102,13 @@ void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
     }
 
     if (iterator_empty) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "GribExtractor: Empty iterator for request: " << request << ". Is the request correctly specified?";
         throw eckit::Exception(ss.str());
     }
 
     if (const auto read_count = std::count(std::begin(bitset), std::end(bitset), true); read_count != bitset.size()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "GribExtractor: retrieved only " << read_count << " of " << bitset.size() << " fields in request "
            << request;
 

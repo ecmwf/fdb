@@ -125,7 +125,7 @@ const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const eckit::net::Endpoint&
     // looking for an alias for the given endpoint
     auto it = storesReadMapping_.find(fieldLocationEndpoint);
     if (it == storesReadMapping_.end()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Unable to find a matching endpoint. Looking for " << fieldLocationEndpoint << std::endl;
         ss << "Available endpoints:" << std::endl;
         for (auto s : storesReadMapping_) {

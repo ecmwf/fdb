@@ -49,7 +49,7 @@ FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), c
 }
 
 std::string FDBBase::id() const {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << config_;
     return ss.str();
 }
@@ -97,7 +97,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     auto it = registry_.find(key);
 
     if (it == registry_.end()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "FDB factory \"" << key << "\" not found";
         throw eckit::SeriousBug(ss.str(), Here());
     }

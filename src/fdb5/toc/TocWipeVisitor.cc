@@ -41,7 +41,7 @@ public:
     StdDir(const eckit::PathName& p) : path_(p), d_(opendir(p.localPath())) {
 
         if (!d_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Failed to open directory " << p << " (" << errno << "): " << strerror(errno);
             throw eckit::SeriousBug(ss.str(), Here());
         }
