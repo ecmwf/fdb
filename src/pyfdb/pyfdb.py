@@ -60,7 +60,8 @@ class FDB:
             - `Path` is interpreted as a location of the config and read as a YAML file
             - `None` is the fallback. The default config in `$FDB5_HOME` is loaded
 
-        FDB and its methods are thread-safe. However the caller needs to be aware that flush acts on all archive calls,
+        Using a single PyFDB instance per individual threads is safe. Sharing the instances across threads isn't supported.
+        However, the underlying FDB and its methods are thread-safe; the caller needs to be aware that flush acts on all archive calls,
         including archived messages from other threads. An call to flush will persist all archived messages regardless
         from which thread the message has been archived. In case the caller wants a finer control it is advised to
         instantiate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
@@ -109,20 +110,27 @@ class FDB:
     def archive(self, data: bytes, identifier: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.
-        *No constistency checks are applied. The caller needs to ensure the provided identifier matches metadata present in data.*
+        In case an identifier is supplied, that identifier is used to archive the data.
+        *No consistency checks are applied. The caller needs to ensure the provided identifier matches metadata present in data.*
+
+        If no identifier is supplied, `data` is interpreted as GRIB data and the metadata is taken from
+        the GRIB messages.
+
+        In any case, the supplied or derived metadata needs to provide values for all required keys of the FDB schema.
 
         Parameters
         ----------
         `data`: `bytes`
-            The binary data to be archived.
+            The binary data to be archived. If no key is provided this is interpreted by `eccodes` and may contain multiple GRIB messages.
         `identifier` : `Identifier` | None, optional
             A unique identifier for the archived data.
             - If provided, the data will be stored under this identifier.
-            - If None, the data will be archived without an explicit identifier.
+            - If None, the data will be archived without an explicit identifier, metadata has to be derivable from the data, which is interpreted as GRIB data.
 
         Note
         ----
         Sometimes an identifier is also referred to as a Key.
+
 
         Returns
         -------
@@ -133,7 +141,7 @@ class FDB:
         >>> fdb = pyfdb.FDB()
         >>> filename = data_path / "x138-300.grib"
         >>> fdb.archive(data=filename.read_bytes()) # Archive
-        >>> fdb.archive(identifier=Key([("key-1", "value-1")]), data=filename.read_bytes())
+        >>> fdb.archive(identifier=Identifier([("key-1", "value-1")]), data=filename.read_bytes())
         >>> fdb.flush() # Sync the archive call
         """
         if identifier is None:
@@ -211,7 +219,7 @@ class FDB:
             If True, the returned iterator lists masked data, if False the elements are unique.
         `level` : int [1-3], *optional*
             Specifies the FDB schema level of the elements which are matching the selection.
-            A level of 1 means return a level 1 key which is matching the MARS selection.
+            A level of 1 means return a level 1 key (of the FDB schema) which is matching the MARS selection.
 
         Returns
         -------
@@ -688,7 +696,7 @@ class FDB:
         ----------
         `selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which specifies the affected data.
-        `level` : `int`
+        `level` : int [1-3], *optional*
             Level of the FDB Schema. Only keys of the given level are returned.
 
         Returns
@@ -756,9 +764,9 @@ class FDB:
         """
         return self.FDB.enabled(control_identifier._to_raw())
 
-    def needs_flush(self):
+    def dirty(self):
         """
-        Return whether a flush of the FDB is needed.
+        Return whether a flush of the FDB is needed, for example if data was archived since the last flush.
 
         Parameters
         ----------
@@ -776,9 +784,9 @@ class FDB:
         >>> fdb = FDB(fdb_config)
         >>> filename = <data_path>
         >>> fdb.archive(open(filename, "rb").read())
-        >>> fdb.needs_flush()                         # == True
+        >>> fdb.dirty()                         # == True
         >>> fdb.flush()
-        >>> fdb.needs_flush()                         # == False
+        >>> fdb.dirty()                         # == False
 
         """
         return self.FDB.dirty()
