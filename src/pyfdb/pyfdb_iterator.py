@@ -30,34 +30,10 @@ from pyfdb.pyfdb_type import URI, DataHandle
 class ListElement:
     """Element returned from a listing command"""
 
-    def __init__(self) -> None:
-        self._element: _ListElement
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "ListElement":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, list_element: _ListElement) -> "ListElement":
-        """
-        Internal method for generating a `ListElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `list_element` : `pyfdb._interal.ListElement`
-            Internal list element
-
-        Returns
-        -------
-        `ListElement`
-            User facing list element
-        """
-        result = cls.__new__(cls)
-        result._element = list_element
-        return result
+    def __init__(self, list_element: _ListElement, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a ListElement from user code is not supported.")
+        self._element: _ListElement = list_element
 
     def data_handle(self) -> DataHandle:
         """
@@ -79,7 +55,7 @@ class ListElement:
         b"GRIB"
         ```
         """
-        return DataHandle._from_raw(self._element.data_handle())
+        return DataHandle(self._element.data_handle(), _internal=True)
 
     def uri(self) -> URI:
         """
@@ -99,75 +75,27 @@ class ListElement:
         <path/to/data_file>
         ```
         """
-        return URI._from_raw(self._element.uri())
+        return URI(self._element.uri(), _internal=True)
 
     def __repr__(self) -> str:
         return str(self._element)
 
 
 class WipeElement:
-    def __init__(self) -> None:
-        self.element: str
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "WipeElement":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, wipe_element: str) -> "WipeElement":
-        """
-        Internal method for generating a `WipeElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `wipe_element` : `pyfdb._interal.WipeElement`
-            Internal wipe element
-
-        Returns
-        -------
-        `WipeElement`
-            User facing wipe element
-        """
-        result = cls.__new__(cls)
-        result.element = wipe_element
-        return result
+    def __init__(self, wipe_element: str, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a WipeElement from user code is not supported.")
+        self.element: str = wipe_element
 
     def __repr__(self) -> str:
         return str(self.element)
 
 
 class StatusElement:
-    def __init__(self) -> None:
-        self.element: _ControlElement
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "StatusElement":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, status_element: _ControlElement) -> "StatusElement":
-        """
-        Internal method for generating a `StatusElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `status_element` : `pyfdb._interal.StatusElement`
-            Internal status element
-
-        Returns
-        -------
-        `StatusElement`
-            User facing status element
-        """
-        result = cls.__new__(cls)
-        result.element = status_element
-        return result
+    def __init__(self, control_element: _ControlElement, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a StatusElement from user code is not supported.")
+        self.element: _ControlElement = control_element
 
     def __eq__(self, other: object, /) -> bool:
         if isinstance(other, StatusElement):
@@ -180,34 +108,10 @@ class StatusElement:
 
 
 class MoveElement:
-    def __init__(self) -> None:
-        self.element: _FileCopy
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "MoveElement":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, move_element: str) -> "MoveElement":
-        """
-        Internal method for generating a `MoveElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `move_element` : `pyfdb._interal.MoveElement`
-            Internal move element
-
-        Returns
-        -------
-        `MoveElement`
-            User facing move element
-        """
-        result = cls.__new__(cls)
-        result.element = move_element
-        return result
+    def __init__(self, file_copy: _FileCopy, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a MoveElement from user code is not supported.")
+        self.element: _FileCopy = file_copy
 
     def execute(self):
         """
@@ -221,101 +125,35 @@ class MoveElement:
 
 
 class PurgeElement:
-    def __init__(self) -> None:
-        self.element: str
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    @classmethod
-    def _from_raw(cls, purge_element: str) -> "PurgeElement":
-        """
-        Internal method for generating a `PurgeElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `purge_element` : `pyfdb._interal.PurgeElement`
-            Internal purge element
-
-        Returns
-        -------
-        `PurgeElement`
-            User facing purge element
-        """
-        result = cls.__new__(cls)
-        result.element = purge_element
-        return result
+    def __init__(self, purge_element: str, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a PurgeElement from user code is not supported.")
+        self.element: str = purge_element
 
     def __repr__(self) -> str:
         return str(self.element)
 
 
 class StatsElement:
-    def __init__(self) -> None:
-        self.element: _StatsElement
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "StatsElement":
-        bare_instance = object.__new__(StatsElement)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, stats_element: _StatsElement) -> "StatsElement":
-        """
-        Internal method for generating a `StatsElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `stats_element` : `pyfdb._interal.StatsElement`
-            Internal stats element
-
-        Returns
-        -------
-        `StatsElement`
-            User facing stats element
-        """
-        result = cls.__new__(cls)
-        result.element = stats_element
-        return result
+    def __init__(self, stats_element: _StatsElement, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a StatsElement from user code is not supported.")
+        self.element: _StatsElement = stats_element
 
     def __repr__(self) -> str:
         return str(self.element)
 
 
 class ControlElement:
-    def __init__(self) -> None:
-        self.element = _ControlElement
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "ControlElement":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, control_element: _ControlElement) -> "ControlElement":
-        """
-        Internal method for generating a `ControlElement` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `control_element` : `pyfdb._interal.ControlElement`
-            Internal control element
-
-        Returns
-        -------
-        `ControlElement`
-            User facing control element
-        """
-        result = cls.__new__(cls)
-        result.element = control_element
-        return result
+    def __init__(self, control_element: _ControlElement, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError(
+                "Creating a ControlElement from user code is not supported."
+            )
+        self.element: _ControlElement = control_element
 
     def location(self) -> URI:
-        return URI._from_raw(self.element.location())
+        return URI(self.element.location(), _internal=True)
 
     def __repr__(self) -> str:
         return str(self.element)
@@ -329,34 +167,10 @@ class IndexAxis(Mapping[str, Sequence[str]]):
 
     """
 
-    def __init__(self) -> None:
-        self.index_axis = _IndexAxis
-        raise NotImplementedError(
-            "Read-only class. Should be construced using the _from_raw method"
-        )
-
-    def __new__(cls) -> "IndexAxis":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, index_axis: _IndexAxis) -> "IndexAxis":
-        """
-        Internal method for generating an `IndexAxis` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `index_axis` : `pyfdb._interal.IndexAxis`
-            Internal IndexAxis element
-
-        Returns
-        -------
-        `IndexAxis`
-            User facing IndexAxis element
-        """
-        result = cls.__new__(cls)
-        result.index_axis = index_axis
-        return result
+    def __init__(self, index_axis: _IndexAxis, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a IndexAxis from user code is not supported.")
+        self.index_axis: _IndexAxis = index_axis
 
     def __repr__(self) -> str:
         return str(self.index_axis)

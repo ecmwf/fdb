@@ -262,14 +262,11 @@ class DataHandle:
     >>> data_handle.close()
     """
 
-    def __init__(self):
-        self.dataHandle: _DataHandle
+    def __init__(self, dataHandle: _DataHandle, *, _internal=False):
+        if not _internal:
+            raise TypeError("Creating a ListElement from user code is not supported.")
+        self.dataHandle: _DataHandle = dataHandle
         self.opened = False
-        raise NotImplementedError
-
-    def __new__(cls) -> "DataHandle":
-        bare_instance = object.__new__(cls)
-        return bare_instance
 
     def __enter__(self) -> "DataHandle":
         self.open()
@@ -277,26 +274,6 @@ class DataHandle:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.close()
-
-    @classmethod
-    def _from_raw(cls, data_handle: _DataHandle) -> "DataHandle":
-        """
-        Internal method for generating a `DataHandle` from the PyBind11 exposed element>
-
-        Parameters
-        ----------
-        `data_handle` : `pyfdb._interal.DataHandle`
-            Internal data handle
-
-        Returns
-        -------
-        `DataHandle`
-            User facing data handle
-        """
-        result = cls.__new__(cls)
-        result.dataHandle = data_handle
-        result.opened = False
-        return result
 
     def open(self) -> None:
         """
@@ -533,32 +510,10 @@ class URI:
     >>> uri = URI.from_str("scheme://netloc/path;parameters?query#fragment")
     """
 
-    def __init__(self):
-        self._uri: _URI
-        raise NotImplementedError
-
-    def __new__(cls) -> "URI":
-        bare_instance = object.__new__(cls)
-        return bare_instance
-
-    @classmethod
-    def _from_raw(cls, uri: _URI) -> "URI":
-        """
-        Internal method for generating a `URI` from the PyBind11 exposed element
-
-        Parameters
-        ----------
-        `uri` : `pyfdb._interal.URI`
-            Internal URI object
-
-        Returns
-        -------
-        `URI`
-            User facing URI
-        """
-        result = cls.__new__(cls)
-        result._uri = uri
-        return result
+    def __init__(self, uri: _URI, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating a URI from user code is not supported.")
+        self._uri: _URI = uri
 
     @classmethod
     def from_str(cls, uri: str):
