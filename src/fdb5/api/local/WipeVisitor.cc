@@ -50,6 +50,13 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
 
     if (doit_) {
         // Lock the database for everything but wiping.
+
+        /// @note: the DAOS backends currently do not implement control identifiers -- actions cannot be disabled.
+        /// @todo: what if the specific catalogue at hand (e.g. daos) does not technically require
+        ///    locking list nor retrieve as there is no room for inconsistency? Must FDB::wipe be transactional
+        ///    (i.e. only make visible the state before or after the operation has fully completed) or
+        ///    are consumers allowed to access intermediate states?
+
         // Build the initial control state (is there really not a function for this?)
         ControlIdentifiers id;
         if (catalogue.enabled(ControlIdentifier::Archive)) {
@@ -66,7 +73,6 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         catalogue.control(ControlAction::Disable,
                           ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
     }
-
 
     // Having selected a DB, construct the residual request. This is the request that is used for
     // matching Index(es) -- which is relevant if there is subselection of the database.
@@ -98,6 +104,7 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
         }
     }
     return true;
+
 }
 
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {

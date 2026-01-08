@@ -64,7 +64,6 @@ public:
                         eckit::Queue<MoveElement>& queue) const {
         NOTIMP;
     }
-    virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const                                                       = 0;
     virtual bool uriBelongs(const eckit::URI&) const                                     = 0;
@@ -87,6 +86,9 @@ public:
 
     /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;
+
+    /// Delete full DB in a single or a few operations
+    virtual bool doUnsafeFullWipe() const = 0;
 
 protected:
 

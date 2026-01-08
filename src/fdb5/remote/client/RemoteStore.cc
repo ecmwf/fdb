@@ -345,10 +345,6 @@ void RemoteStore::remove(const eckit::URI& /*uri*/, std::ostream& /*logAlways*/,
     NOTIMP;
 }
 
-void RemoteStore::remove(const Key& /*key*/) const {
-    NOTIMP;
-}
-
 void RemoteStore::print(std::ostream& out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
@@ -569,12 +565,31 @@ bool RemoteStore::doWipe(const StoreWipeState& wipeState) const {
     controlWriteCheckResponse(Message::DoWipe, generateRequestID(), true, sendBuf, s.position());
     return true;
 }
+
 void RemoteStore::doWipeEmptyDatabases() const {
     // emptyDatabases_ will be accumulated on the server side.
     eckit::Buffer sendBuf(256);
     eckit::ResizableMemoryStream s(sendBuf);
     s << dbKey_;
     controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), true, sendBuf, s.position());
+}
+
+bool RemoteStore::doUnsafeFullWipe() const {
+
+    bool result = false;
+
+    // send dbkey to remote
+    eckit::Buffer keyBuffer(RemoteStore::defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
+    keyStream << dbKey_;
+
+    // receive bool (full wipe supported or not) from remote
+    auto recvBuf = controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

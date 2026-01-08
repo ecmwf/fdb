@@ -151,6 +151,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::DoUnsafeFullWipe:  // wipe a full database including its content
+                doUnsafeFullWipe(clientID, requestID, std::move(payload));
+                return Handled::Replied;
+
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -638,6 +642,23 @@ void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestI
     // Cleanup empty DBs and reset wipe state
     currentWipe.catalogue->doWipeEmptyDatabases();
     wipesInProgress_.erase(dbKey);
+}
+
+void CatalogueHandler::doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    ASSERT(payload.size() > 0);
+    MemoryStream s(payload);
+    Key dbKey(s);
+    const WipeInProgress& currentWipe = cachedWipeState(dbKey);
+
+    bool fullWipeSupported = currentWipe.catalogue->doUnsafeFullWipe();
+
+    eckit::Buffer boolBuf(5);
+    eckit::MemoryStream stream(boolBuf);
+    stream << fullWipeSupported;
+
+    wipesInProgress_.erase(dbKey);
+
+    write(Message::Received, true, clientID, requestID, boolBuf.data(), stream.position());
 }
 
 }  // namespace fdb5::remote

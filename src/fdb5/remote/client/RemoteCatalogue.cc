@@ -281,6 +281,7 @@ bool RemoteCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) con
 
     return true;
 }
+
 void RemoteCatalogue::doWipeEmptyDatabases() const {
     // Tell server it can safely delete the DB if it is empty, and finish the wipe.
     eckit::Buffer sendBuf(256);
@@ -289,6 +290,24 @@ void RemoteCatalogue::doWipeEmptyDatabases() const {
 
     controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), false, sendBuf, s.position());
     return;
+}
+
+bool RemoteCatalogue::doUnsafeFullWipe() const {
+
+    bool result = false;
+
+    // send dbkey to remote
+    eckit::Buffer keyBuffer(RemoteCatalogue::defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
+    keyStream << dbKey_;
+
+    // receive bool (full wipe supported or not) from remote
+    auto recvBuf = controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
 
 void RemoteCatalogue::print(std::ostream& out) const {

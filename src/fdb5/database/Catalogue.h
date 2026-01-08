@@ -124,6 +124,9 @@ public:
     /// Delete empty DBs
     virtual void doWipeEmptyDatabases() const = 0;
 
+    /// Delete full DB in a single or a few operations
+    virtual bool doUnsafeFullWipe() const = 0;
+
     virtual const ControlIdentifiers& controlIdentifiers() const = 0;
 
 protected:  // methods

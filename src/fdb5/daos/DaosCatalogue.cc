@@ -16,12 +16,12 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/WipeState.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-// #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
 
@@ -72,11 +72,11 @@ eckit::URI DaosCatalogue::uri() const {
 }
 
 const Schema& DaosCatalogue::schema() const {
-
     return schema_;
 }
 
 const Rule& DaosCatalogue::rule() const {
+    ASSERT(rule_);
     return *rule_;
 }
 
@@ -101,6 +101,18 @@ void DaosCatalogue::loadSchema() {
 
     rule_ = &schema_.matchingRule(dbKey_);
 }
+
+bool DaosCatalogue::uriBelongs(const eckit::URI& uri) const {
+
+    fdb5::DaosName n{uri};
+
+    bool result = (uri.scheme() == type());
+    result = result && (n.poolName() == pool_);
+    result = result && (n.containerName().rfind(db_str_, 0) == 0);
+    result = result && (n.OID().otype() == DAOS_OT_KV_HASHED);
+
+    return result;
+};
 
 std::vector<Index> DaosCatalogue::indexes(bool) const {
 
@@ -174,20 +186,185 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
         n.destroy();
 }
 
+CatalogueWipeState DaosCatalogue::wipeInit() const {
+    return CatalogueWipeState(dbKey_);
+}
 
-bool DaosCatalogue::wipeInit() const {
+bool DaosCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const {
+
+    fdb5::DaosKeyValueName location{index.location().uri()};
+    const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
+
+    // If we have cross fdb-mounted another DB, ensure we can't delete another DBs data.
+    if (!(location.containerName() == db_kv.containerName() && location.poolName() == db_kv.poolName())) {
+        include = false;
+    }
+
+    // Add the axis and index paths to be removed.
+
+    std::set<fdb5::DaosKeyValueName> axes;
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue index_kv{s, location};  /// @todo: asserts that kv exists
+    uint64_t size = index_kv.size("axes");
+    if (size > 0) {
+        std::vector<char> axes_data(size);
+        index_kv.get("axes", &axes_data[0], size);
+        std::vector<std::string> axis_names;
+        eckit::Tokenizer parse(",");
+        parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
+        std::string idx{index.key().valuesToString()};
+        for (const auto& name : axis_names) {
+            /// @todo: take oclass from config
+            fdb5::DaosKeyValueOID oid(idx + std::string{"."} + name, OC_S1);
+            fdb5::DaosKeyValueName nkv(location.poolName(), location.containerName(), oid);
+            axes.insert(nkv);
+        }
+    }
+
+    if (include) {
+        /// @note: this actually means: mark for deindexing from databse KV
+        wipeState.markForMasking(index);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, index.location().uri());
+        for (const auto& axis_uri : axes) {
+            wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, axis_uri);
+        }
+    }
+    else {
+        wipeState.markAsSafe({index.location().uri()});
+        for (const auto& axis_uri : axes) {
+            wipeState.markAsSafe({axis_uri});
+        }
+    }
+
+    return include;
+}
+
+void DaosCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
+
+    // build database KV URI
+    const fdb5::DaosKeyValueName& db_kv = dbKeyValue();
+    fdb5::DaosName cont{db_kv.poolName(), db_kv.containerName()};
+    eckit::URI db_kv_uri = db_kv.URI();
+
+    /// @todo:
+    // wipeState.setInfo("FDB Owner: " + owner());
+
+    // ---- MARK FOR DELETION OR AS SAFE ----
+
+    // We wipe everything if there is nothing within safeURIs - i.e. there is
+    // no data that wasn't matched by the request
+    bool wipeall = wipeState.safeURIs().empty();
+    if (wipeall) {
+        wipeState.markForDeletion(WipeElementType::CATALOGUE, {db_kv_uri});
+    }
+    else {
+        wipeState.markAsSafe({db_kv_uri});
+    }
+
+    if (!wipeall) {
+        return;
+    }
+
+    // Find any objects unaccounted for.
+    std::vector<fdb5::DaosOID> allOIDs = cont.listOIDs();
+
+    for (const fdb5::DaosOID& oid : allOIDs) {
+        auto uri = fdb5::DaosName{cont.poolName(), cont.containerName(), oid}.URI();
+        if (!(wipeState.isMarkedForDeletion(uri))) {
+            wipeState.insertUnrecognised(uri);
+        }
+    }
+
+    return;
+}
+
+void DaosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+
+    for (cont auto& index : indexes) {
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValue db_kv{s, dbKeyValue()};
+        std::string key = index.key().valuesToString();
+        /// @todo: should this fail if not present?
+        if (db_kv.has(key)) {
+            db_kv.remove(key);
+        }
+    }
+
+}
+
+bool DaosCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+    for (const auto& uri : unknownURIs) {
+        fdb5::DaosName name{uri};
+        ASSERT(name.hasOID());
+        if (name.exists()) {
+            /// @todo: check in latest develop if still printed to stdout
+            remove(name, std::cout, std::cout, true);
+        }
+    }
+
     return true;
 }
-bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
+
+bool DaosCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
+    bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the container
+
+    /// @note: this will remove the index and axis KVs, plus the database KV if wipeAll
+    for (const auto& [type, uris] : wipeState.deleteMap()) {
+        for (auto& uri : uris) {
+            fdb5::DaosName name{uri};
+            ASSERT(name.hasOID());
+            remove(name, std::cout, std::cout, true);
+        }
+    }
+
+    if (wipeAll) {
+        fdb5::DaosName cont{pool_, db_cont_};
+        emptyDatabases_.insert(cont.URI());
+    }
+
     return true;
 }
-std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
-    return {};
+
+void DaosCatalogue::doWipeEmptyDatabases() const {
+
+    ASSERT(emptyDatabases_.size() == 1);
+
+    // remove the database container
+    fdb5::DaosName contName{emptyDatabases_[0]};
+    ASSERT(!contName.hasOID());
+    if (contName.exists()) {
+        ASSERT(contName.listOIDs().size() == 0);
+        remove(contName, std::cout, std::cout, true);
+    }
+    // deindex database container from root KV
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue rootKv{s, rootKeyValue()};
+    std::string key = contName.containerName();
+    /// @todo: should this fail if not present?
+    if (rootKv.has(key)) {
+        rootKv.remove(key);
+    }
+
+    emptyDatabases_.clear();
 }
-bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
-    return true;
-}
-bool DaosCatalogue::doWipe() const {
+
+bool DaosCatalogue::doUnsafeFullWipe() const {
+
+    // remove the database container
+    fdb5::DaosName contName{pool_, db_cont_};
+    ASSERT(!contName.hasOID());
+    if (contName.exists()) {
+        remove(contName.URI(), std::cout, std::cout, true);
+    }
+    // deindex database container from root KV
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue rootKv{s, rootKeyValue()};
+    std::string key = contName.containerName();
+    /// @todo: should this fail if not present?
+    if (rootKv.has(key)) {
+        rootKv.remove(key);
+    }
+
     return true;
 }
 

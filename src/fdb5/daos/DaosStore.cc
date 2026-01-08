@@ -10,6 +10,8 @@
 
 #include "eckit/config/Resource.h"
 
+#include "fdb5/database/WipeState.h"
+
 #include "fdb5/daos/DaosArrayHandle.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosException.h"
@@ -41,9 +43,14 @@ eckit::URI DaosStore::uri(const eckit::URI& dataURI) {
 
 bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
-    /// @todo: avoid building a DaosName as it makes uriBelongs expensive
-    /// @todo: assert uri points to a (not necessarily existing) array object
-    return ((uri.scheme() == type()) && (fdb5::DaosName(uri).containerName().rfind(db_str_, 0) == 0));
+    fdb5::DaosName n{uri};
+
+    bool result = (uri.scheme() == type());
+    result = result && (n.poolName() == pool_);
+    result = result && (n.containerName().rfind(db_str_, 0) == 0);
+    result = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
+
+    return result;
 }
 
 bool DaosStore::uriExists(const eckit::URI& uri) const {
@@ -169,14 +176,116 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
         n.destroy();
 }
 
-bool DaosStore::canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                        bool unsafeAll) {
+void DaosStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+    // Note: doit and unsafeWipeAll do not affect the preparation of a local daos store wipe.
+
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
+
+    std::set<eckit::URI> nonExistingURIs;
+    for (auto& uri : dataURIs) {
+
+        /// @note: uncomment if gribjump on daos is ever implemented
+        // for (const auto& aux : getAuxiliaryURIs(uri, true)) {
+        //     storeState.insertAuxiliaryURI(aux);
+        // }
+
+        // URI may not exist (e.g. due to a prior incomplete wipe.)
+        if (!fdb5::DaosName{uri}.exists()) {
+            nonExistingURIs.insert(uri);
+        }
+    }
+
+    for (const auto& uri : nonExistingURIs) {
+        storeState.unincludeURI(uri);
+    }
+
+    bool all = safeURIs.empty();
+    if (!all) {
+        return;
+    }
+
+    // Plan to erase all objects in this container. Find any unaccounted for.
+    // const auto& auxURIs = storeState.dataAuxiliaryURIs();
+    const fdb5::DaosKeyValueName& db_kv = dbKeyValue();
+
+    fdb5::DaosName cont{db_kv.poolName(), db_kv.containerName()};
+    std::vector<fdb5::DaosOID> allOIDs = cont.listOIDs();
+    for (const fdb5::DaosOID& oid : allOIDs) {
+        auto uri = fdb5::DaosName{cont.poolName(), cont.containerName(), oid}.URI();
+        if (dataURIs.find(uri) == dataURIs.end() && safeURIs.find(uri) == safeURIs.end()) {
+            // auxURIs.find(u) == auxURIs.end() &&
+            storeState.insertUnrecognised(uri);
+        }
+    }
+
+}
+
+bool DaosStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
+    for (const auto& uri : unknownURIs) {
+        fdb5::DaosName name{uri};
+        ASSERT(name.hasOID());
+        if (name.exists()) {
+            /// @todo: DaosCatalogue::remove takes a DaosName as input instead of a URI. Homogenise.
+            /// @todo: check if TocStore still prints to stdout in latest develop
+            remove(uri, std::cout, std::cout, true);
+        }
+    }
+
     return true;
 }
-bool DaosStore::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
+
+bool DaosStore::doWipe(const StoreWipeState& wipeState) const {
+    bool wipeAll = wipeState.safeURIs().empty();
+
+    // for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+    //     remove(uri, std::cout, std::cout, true);
+    // }
+
+    for (const auto& uri : wipeState.includedDataURIs()) {
+        fdb5::DaosName name{uri};
+        ASSERT(name.hasOID());
+        remove(uri, std::cout, std::cout, true);
+    }
+
+    if (wipeAll) {
+        fdb5::DaosName cont{pool_, db_cont_};
+        emptyDatabases_.insert(cont.URI());
+    }
+
     return true;
 }
-bool DaosStore::doWipe() const {
+
+void DaosStore::doWipeEmptyDatabases() const {
+
+    ASSERT(emptyDatabases_.size() == 1);
+
+    // remove the database container
+    fdb5::DaosName contName{emptyDatabases_[0]};
+    ASSERT(!contName.hasOID());
+    if (contName.exists()) {
+        ASSERT(contName.listOIDs().size() == 0);
+        remove(contName.URI(), std::cout, std::cout, true);
+    }
+
+    emptyDatabases_.clear();
+}
+
+bool DaosStore::doUnsafeFullWipe() const {
+
+    /// @note: if the database container also holds a catalogue, the wiping is skipped
+    /// as the catalogue is in charge.
+    /// @note: objects always exist in DAOS. The presence of a 'key' key in the database key-value
+    /// is used to determine whether a catalogue exists in the container.
+    if (!db_kv_->has("key")) {
+        // remove the database container
+        fdb5::DaosName contName{pool_, db_cont_};
+        ASSERT(!contName.hasOID());
+        if (contName.exists()) {
+            remove(contName.URI(), std::cout, std::cout, true);
+        }
+    }
+
     return true;
 }
 

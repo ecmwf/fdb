@@ -25,6 +25,7 @@ namespace fdb5 {
 
 /// DB that implements the FDB on DAOS
 
+class CatalogueWipeState;
 class DaosCatalogue : public CatalogueImpl, public DaosCommon {
 
 public:  // methods
@@ -36,6 +37,8 @@ public:  // methods
     const Key& indexKey() const override { return currentIndexKey_; }
 
     static void remove(const fdb5::DaosNameBase&, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
+
+protected:  // methods
 
     std::string type() const override;
 
@@ -52,8 +55,11 @@ public:  // methods
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
     };
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
 
     void loadSchema() override;
+
+    bool uriBelongs(const eckit::URI& uri) const override;
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
@@ -63,13 +69,18 @@ public:  // methods
     };
 
     // Control access properties of the DB
-    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
+    /// @todo: control identifiers are for now being ignored in DAOS, but must be implemented with
+    ///    entries in the dataset KV
+    bool enabled(const ControlIdentifier& controlIdentifier) const override { return true; };
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override {};
 
-    bool wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include) const override;
-    std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe() const override;
+    CatalogueWipeState wipeInit() const override;
+    bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
+    void wipeFinalise(CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipe(const CatalogueWipeState& wipeState) const override;
+    void doWipeEmptyDatabases() const override;
+    bool doUnsafeFullWipe() const override;
 
 protected:  // members
 
@@ -77,6 +88,7 @@ protected:  // members
 
 private:  // members
 
+    /// @todo: should this be a non-owning pointer, as in the TocCatalogue?
     Schema schema_;
     const RuleDatabase* rule_{nullptr};
 };
