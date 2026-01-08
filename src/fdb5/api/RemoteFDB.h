@@ -69,6 +69,9 @@ private:  // methods
 
 private:  // members
 
+    /// @brief The RemoteFDBClient instance is used to communicate with remote service.
+    /// It is held in a shared_ptr so that it can be kept alive by any Iterator instances (e.g. list, inspect)
+    /// created by this FDB object.
     std::shared_ptr<RemoteFDBClient> client_;
 };
 

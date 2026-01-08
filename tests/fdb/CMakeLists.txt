@@ -40,7 +40,7 @@ list( APPEND _test_data
   "rd.vod.grib"
 )
 
-ecbuild_get_test_multidata( TARGET fdb5_get_test_data NAMES ${_test_data} )
+ecbuild_get_test_multidata( TARGET fdb5_get_test_data NAMES ${_test_data} NOCHECK )
 
 foreach( _tst ${_test_data} )
 

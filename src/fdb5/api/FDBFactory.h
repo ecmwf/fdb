@@ -55,7 +55,7 @@ class FieldLocation;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : public CallbackRegistry {
+class FDBBase : public std::enable_shared_from_this<FDBBase>, public CallbackRegistry {
 
 public:  // methods
 

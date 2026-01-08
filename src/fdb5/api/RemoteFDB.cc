@@ -27,7 +27,7 @@ using namespace eckit::literals;
 
 namespace fdb5 {
 
-class RemoteFDBClient : public remote::Client {
+class RemoteFDBClient : public std::enable_shared_from_this<RemoteFDBClient>, public remote::Client {
 
 public:  // types
 
@@ -241,16 +241,12 @@ bool RemoteFDBClient::handle(remote::Message message, uint32_t requestID) {
         }
         case fdb5::remote::Message::Error: {
 
-            auto it = messageQueues_.find(requestID);
-            if (it == messageQueues_.end()) {
-                return false;
-            }
+            std::ostringstream ss;
+            ss << "RemoteFDBClient ID: " << id() << " - received an error without error description for requestID "
+               << requestID << std::endl;
+            throw RemoteFDBException(ss.str(), controlEndpoint());
 
-            it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
-            messageQueues_.erase(it);
-            return true;
+            return false;
         }
         default:
             return false;

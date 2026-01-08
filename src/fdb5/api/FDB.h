@@ -290,7 +290,7 @@ private:  // methods
 
 private:  // members
 
-    std::unique_ptr<FDBBase> internal_;
+    std::shared_ptr<FDBBase> internal_;
 
     bool dirty_;
     bool reportStats_;

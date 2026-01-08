@@ -33,6 +33,8 @@
 
 namespace fdb5 {
 
+class FDBBase;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename ValueType>
@@ -159,6 +161,25 @@ private:  // members
     eckit::Queue<ValueType> queue_;
 
     std::thread workerThread_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+// the FDBAsyncIterator wraps the usual APIAsyncIterator and holds a shared_ptr<FDBBase>,
+// so if the FDB object goes out-of-scope, the FDBBase implementation is kept alive until the iterator has been fully
+// consumed
+template <typename ValueType>
+class FDBAsyncIterator : public APIAsyncIterator<ValueType> {
+
+public:  // methods
+
+    FDBAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(eckit::Queue<ValueType>&)> workerFn,
+                     size_t queueSize = 100) :
+        APIAsyncIterator<ValueType>(workerFn, queueSize), fdb_(fdb) {}
+
+private:
+
+    std::shared_ptr<FDBBase> fdb_;
 };
 
 
