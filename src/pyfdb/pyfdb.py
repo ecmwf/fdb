@@ -6,8 +6,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+import json
 from pathlib import Path
-from typing import Generator, List
+from typing import Any, Dict, Generator, List, Tuple
 
 import pyfdb._internal as _interal
 from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
@@ -780,8 +781,7 @@ class FDB:
 
         Examples
         --------
-        >>> fdb_config = Config(config_file.read())
-        >>> fdb = FDB(fdb_config)
+        >>> fdb = FDB(fdb_config_file)
         >>> filename = <data_path>
         >>> fdb.archive(open(filename, "rb").read())
         >>> fdb.dirty()                         # == True
@@ -791,8 +791,32 @@ class FDB:
         """
         return self.FDB.dirty()
 
-    def config(self) -> str:
-        return str(self.FDB.config())
+    def config(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Return the system and user configuration of the underlying FDB.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        `Tuple[Dict[str, Any], Dict[str, Any]]`
+            Python dictionaries describing the system and user configuration
+
+
+        Examples
+        --------
+        >>> fdb = FDB(config_file)
+        >>> system_config, user_config = fdb.config()
+        >>> print(system_config)
+        >>> print(user_config)
+
+        """
+        system_config = ConfigMapper.from_json(self.FDB.config().json())
+        user_config = ConfigMapper.from_json(self.FDB.config().userConfig().json())
+
+        return system_config, user_config
 
     def __repr__(self) -> str:
         return str(self.FDB)

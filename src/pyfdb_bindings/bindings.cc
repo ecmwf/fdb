@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <map>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -31,6 +32,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/log/JSON.h"
 #include "eckit/runtime/Main.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -83,15 +85,17 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             }
             return fdb5::Config(eckit::YAMLConfiguration(config));
         }))
+        .def("json",
+             [](const fdb5::Config& config) {
+                 std::stringstream buf;
+                 auto json = eckit::JSON(buf);
+                 json << config;
+                 return buf.str();
+             })
+        .def("userConfig", [](const fdb5::Config& config) { return fdb5::Config(config.userConfig()); })
         .def("__repr__", [](const fdb5::Config& config) {
             std::stringstream buf;
-            buf << "Config(";
-            buf << "Configuration(";
             buf << config;
-            buf << "), (";
-            buf << "Configuration(";
-            buf << config.userConfig();
-            buf << "))";
             return buf.str();
         });
 
@@ -381,9 +385,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("axes", &fdb5::FDB::axes)
         .def("enabled", &fdb5::FDB::enabled)
         .def("dirty", &fdb5::FDB::dirty)
-        .def(
-            "config", [](const fdb5::FDB& fdb) -> const fdb5::Config& { return fdb.config(); },
-            py::return_value_policy::reference_internal)
+        .def("config", [](const fdb5::FDB& fdb) { return fdb.config(); })
         .def("__repr__", [](const fdb5::FDB& fdb) {
             std::stringstream buf;
             buf << fdb;
