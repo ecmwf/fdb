@@ -77,8 +77,6 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
 
 CASE("Remote protocol: the basics") {
 
-    FDB fdb{};  // Expects the config to be set in the environment
-
     // -- write a few fields
     const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";

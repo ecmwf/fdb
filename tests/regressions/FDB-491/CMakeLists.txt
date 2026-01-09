@@ -8,7 +8,6 @@ ecbuild_configure_file( catalogue.yaml.in catalogue.yaml @ONLY )
 ecbuild_configure_file( store.yaml.in store.yaml @ONLY )
 ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
 
-# NOTE(kkratz): Disabled due to race condition that lets test intermittendly fail @ 2025-10-20
 ecbuild_add_test(
     TARGET         FDB-491-remote-single-connection
     TYPE           SCRIPT
