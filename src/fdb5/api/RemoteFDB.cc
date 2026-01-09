@@ -309,8 +309,8 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
         case fdb5::remote::Message::Error: {
 
             std::ostringstream ss;
-            ss << "RemoteFDB - client id: " << clientId() << " - received an error without error description for requestID "
-               << requestID << std::endl;
+            ss << "RemoteFDB - client id: " << clientId()
+               << " - received an error without error description for requestID " << requestID << std::endl;
             throw RemoteFDBException(ss.str(), controlEndpoint());
 
             return false;

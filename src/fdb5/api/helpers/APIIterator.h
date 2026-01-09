@@ -127,7 +127,8 @@ class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
 
-    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(eckit::Queue<ValueType>&)> workerFn, size_t queueSize = 100) :
+    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(eckit::Queue<ValueType>&)> workerFn,
+                     size_t queueSize = 100) :
         fdb_(fdb), queue_(queueSize) {
 
         // Add a call to set_done() on the eckit::Queue.
