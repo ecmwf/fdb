@@ -77,18 +77,19 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
 
 CASE("Remote protocol: the basics") {
 
+    FDB fdb{};  // Expects the config to be set in the environment
+
     // -- write a few fields
     const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys{};
     {
-        FDB fdb{};  // Expects the config to be set in the environment
         keys = write_data(fdb, data_string, "20000101", 3, 0, 3);
     }
     EXPECT_EQUAL(keys.size(), Nfields);
 
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
+    auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, false);
 
     ListElement elem;
     size_t count = 0;
@@ -96,6 +97,7 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << elem << " " << elem.location() << std::endl;
         count++;
     }
+    std::cout << "counted " << count << " fields" << std::endl;
     EXPECT(count >= Nfields);
 
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
