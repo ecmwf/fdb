@@ -24,6 +24,18 @@ variable. If you want to set the location of the configuration file only, use th
 There is a plethora of different configuration options, if in doubt, refer to the
 official ``FDB`` documentation at `ReadTheDocs <https://fields-database.readthedocs.io/en/latest/>`__.
 
+For convenience, the ``FDB`` instance implements the ``Python`` context manager interface:
+
+.. code-block:: python
+
+    with pyfdb.FDB() as fdb:
+        # Use fdb in here
+        pass
+
+On exiting the context, :ref:`flush_label` is called to guarantee any potential :ref:`archive_label` operation has been synced.
+
+.. clear-namespace
+
 You can also pass (dynamically) created custom configurations as parameters to the ``FDB`` constructor. 
 Those can be supplied as a ``Path`` pointing to the location
 of the configuration file, as a ``str`` which is the ``yaml`` representation of the configuration or as
@@ -48,8 +60,10 @@ a ``Dict[str, Any]`` as shown below.
 
 .. clear-namespace
 
-The different method of the ``FDB`` class can be leverage for different use-cases. Below we listed
+The different methods of the ``FDB`` class can be leverage for different use-cases. Below we listed
 examples of the most common method class display different ways of using the Python API.
+
+.. _archive_label:
 
 Archive
 ***********
@@ -77,6 +91,8 @@ The ``flush`` command guarantees that the archived data has been flushed to the 
 
 .. clear-namespace
 
+.. _flush_label:
+
 Flush
 ***********
 
@@ -99,9 +115,11 @@ Flush
     fdb.archive(open(filename, "rb").read())
     fdb.flush()
 
-The ``flush`` command guarantees that the archived data has been flushed to the ``FDB``.
+The ``flush`` command guarantees that the :ref:`archived <archive_label>` data has been flushed to the ``FDB``.
 
 .. clear-namespace
+
+.. _retrieve_label:
 
 Retrieving
 ***********
@@ -181,6 +199,8 @@ The following code is showing how to achieve this:
             out.write(data_handle.readall())
 
 .. clear-namespace
+
+.. _list_label:
 
 List
 ****
@@ -355,6 +375,8 @@ level of the underlying FDB. If you specify ``level=3``, the returned ``ListElem
 
 .. clear-namespace
 
+.. _inspect_label:
+   
 Inspect
 *******
 
@@ -397,7 +419,7 @@ The code above shows how to inspect certain elements stored in the ``FDB``. This
 a ``list`` call with ``level=3``, although the internals are quite different. The functionality is
 designed to list a vast amount of individual fields. 
 
-Similar to the ``list`` command, each ``ListElement`` returned, contains a ``DataHandle`` which can
+Similar to the :ref:`list <list_label>` command, each ``ListElement`` returned, contains a ``DataHandle`` which can
 be used to directly access the data associated with the element, see the example of ``list``.
 
 .. note::
@@ -407,6 +429,7 @@ be used to directly access the data associated with the element, see the example
 
 .. clear-namespace
 
+.. _status_label:
 
 Status
 *******
@@ -433,7 +456,7 @@ Status
     len(elements) # == 32
 
 The output of such a command can look like the above and is the same output you get from the
-call to ``control`` when setting certain ``ControlIdentifiers`` for elements of the ``FDB``.
+call to `control <control_label>` when setting certain ``ControlIdentifiers`` for elements of the ``FDB``.
 
 ::
 
@@ -448,6 +471,8 @@ This corresponds to the ``ControlIdentifier.ARCHIVE`` value.
 .. tip::
    Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
    Refer to the :ref:`control_label` section for further information.
+
+.. _wipe_label:
 
 Wipe
 *******
@@ -490,6 +515,8 @@ A potential deletion operation could look like this:
         print(element)
 
 .. clear-namespace
+
+.. _move_label:
 
 Move
 *******
@@ -580,6 +607,8 @@ can be iterated and the actual move operation can be triggered by calling ``exec
 
 .. clear-namespace
 
+.. _purge_label:
+
 Purge
 *******
 **Remove duplicate data from the database.**
@@ -620,6 +649,8 @@ existing ``FDB``), this data will not be removed.
         print(element)
 
 .. clear-namespace
+
+.. _stats_label:
 
 Stats
 *******
@@ -678,9 +709,9 @@ the underlying ``FDB``. A potential call of the example above could lead to the 
     Total owned size                : 165,544 (161.664 Kbytes)
     Total size                      : 165,544 (161.664 Kbytes)
 
-.. _control_label:
-
 .. clear-namespace
+
+.. _control_label:
 
 Control
 *******
@@ -792,6 +823,8 @@ After disabling the action, a call to it results in an empty iterator being retu
 
 .. clear-namespace
 
+.. _axes_label:
+
 Axes
 *******
 **Return the 'axes' and their extent of a selection for a given level of the schema in an IndexAxis object.**
@@ -893,6 +926,8 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
 
 .. clear-namespace
 
+.. _enabled_label:
+
 Enabled
 *******
 **Check whether a specific control identifier is enabled.**
@@ -941,6 +976,8 @@ The configuration changes accordingly, if we substitute ``writable = False`` wit
 
 .. clear-namespace
 
+.. _dirty_label:
+
 Dirty
 *************
 **Return whether a flush of the FDB is needed, for example if data was archived since the last flush.**
@@ -957,7 +994,7 @@ Dirty
     fdb.flush()
     fdb.dirty() # == False
 
-The example above shows return value of the ``dirty`` command after an archive command results in ``True``. 
+The example above shows return value of the ``dirty`` command after an :ref:`archive <archive_label>` command results in ``True``. 
 Flushing resets the internal status of the ``FDB`` and the call to ``dirty`` returns ``False`` afterwards.
 
 .. clear-namespace

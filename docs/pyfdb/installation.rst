@@ -32,19 +32,21 @@ Runtime Dependencies
 
 Python Dependencies
 ^^^^^^^^^^^^^^^^^^^
-- numpy
-- pytest
-- pytest-asyncio
-- eccodes
-- build
-- setuptools
-- GitPython
-- sphinx
-- sphinxcontrib-mermaid
-- pydata-sphinx-theme
-- Sphinx
-- sphinx-autoapi
-- sphinx-tabs
+.. code-block:: sh
+
+    numpy
+    pytest
+    pytest-asyncio
+    eccodes
+    build
+    setuptools
+    GitPython
+    sphinx
+    sphinxcontrib-mermaid
+    pydata-sphinx-theme
+    Sphinx
+    sphinx-autoapi
+    sphinx-tabs
 
 Build from sources (recommended way):
 *************************************
