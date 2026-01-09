@@ -17,6 +17,7 @@ from pyfdb.pyfdb_type import (
     DataHandle,
     MarsSelection,
     WildcardMarsSelection,
+    SelectionBuilder,
     ControlAction,
     ControlIdentifier,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "ListElement",
     "WipeElement",
     "StatusElement",
+    "SelectionBuilder",
     "MoveElement",
     "MarsSelection",
     "WildcardMarsSelection",

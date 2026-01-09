@@ -7,6 +7,65 @@ The section contains examples for all methods of the ``FDB`` object.
 In general ``PyFDB`` is used to refer to the Python API of the ``FDB``, whereas
 ``FDB`` is used to refer to the underlying C++ class or the created Python instance.
 
+MARS Selections
+***************
+One main concept of interacting with the ``FDB`` is a MARS selection. A selection is a
+dictionary-like object describing the ranges or sets coordinates, which point
+to multiple elements or sub-datacubes within a datacube, see `Datacube Spec <https://github.com/ecmwf/datacube-spec>`__.
+
+The recommended way of interacting with the ``FDB`` is to use the :class:`SelectionBuilder <pyfdb.pyfdb.SelectionBuilder>`.
+The following example shows how to create a MARS selection with it:
+
+.. invisible-code-block: python
+
+   import pyfdb
+
+.. code-block:: python
+
+    builder = pyfdb.SelectionBuilder()
+
+    builder.values("key-1", ["value-1", "value-2", "value-3"]) # values mixed
+    builder.value("key-2", "0.1")                              # value mixed
+    builder.to_by("key-2.1", "0.1", 0.2, 0.5)                  # to-by mixed, no consistency check
+    builder.to("key-3", "0.1", 0.2)                            # to mixed
+    builder.to_by("key-4", 1, 2, 0.5)                          # to-by integer
+
+    mars_selection = builder.build()
+
+.. invisible-code-block: python
+
+    assert len(mars_selection) == 5
+    assert "key-1" in mars_selection
+    assert mars_selection["key-1"] ==  "value-1/value-2/value-3"
+    assert "key-2" in mars_selection
+    assert mars_selection["key-2"] == "0.1"
+    assert "key-2.1" in mars_selection
+    assert mars_selection["key-2.1"] == "0.1/to/0.2/by/0.5"
+    assert "key-3" in mars_selection
+    assert mars_selection["key-3"] == "0.1/to/0.2"
+    assert "key-4" in mars_selection
+    assert mars_selection["key-4"] == "1/to/2/by/0.5"
+
+.. note::
+
+   The builder creates a ``Dict[str, str]`` representation of the selection which can be handed to the underlying FDB.
+   There are no consistency checks, e.g. in the example above ``key-2.1`` has a unwanted increment in the to-by range.
+   It's discouraged to build the selection dictionary by hand.
+
+Some of the methods accepts wildcard selection, e.g. :ref:`listing <list_label>`. For those it's possible to
+set the boolean flag ``wildcard_selection`` to ``True`` in the :class:`SelectionBuilder <pyfdb.pyfdb.SelectionBuilder>` constructor 
+and hand the resulting selection to the method:
+
+.. invisible-code-block: python
+
+   import pyfdb
+
+.. code-block:: python
+
+    builder = pyfdb.SelectionBuilder(wildcard_selection=True)
+    mars_selection = builder.build()
+
+
 PyFDB Initalisation
 *******************
 
@@ -19,7 +78,7 @@ PyFDB Initalisation
     fdb = pyfdb.FDB()
 
 If no configuration is supplied ``FDB`` falls back to derive the configuration location from
-a pre-defined set of locations. You can supply a custom location by specifying the ``FDB_HOME`` environment
+a predefined set of locations. You can supply a custom location by specifying the ``FDB_HOME`` environment
 variable. If you want to set the location of the configuration file only, use the ``FDB5_CONFIG_FILE`` environment variable.
 There is a plethora of different configuration options, if in doubt, refer to the
 official ``FDB`` documentation at `ReadTheDocs <https://fields-database.readthedocs.io/en/latest/>`__.
@@ -466,7 +525,8 @@ call to `control <control_label>` when setting certain ``ControlIdentifiers`` fo
 
 
 You can see that the ``ControlIdentifier`` with value ``4`` is active for the given entry of the ``FDB``.
-This corresponds to the ``ControlIdentifier.ARCHIVE`` value. 
+This is prescribed by the internal representation and the ``ControlIdentifier`` serialization of the value in the ``FDB``.
+On the Python API side this corresponds to the ``ControlIdentifier.ARCHIVE`` value. 
 
 .. tip::
    Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
@@ -489,7 +549,7 @@ This function deletes either whole databases, or whole indexes within databases
 
 .. tip::
 
-   It's always advised to check the elements of a deletion before running it with the ``doit`` flag.
+   You should check the elements of a deletion before running it with the ``doit`` flag.
    Double check that the dry-run, which is active per default, really returns the elements you are
    expecting.
 
@@ -511,7 +571,7 @@ A potential deletion operation could look like this:
     wipe_iterator = fdb.wipe({"class": "ea"}, doit=True)
     wiped_elements = list(wipe_iterator)
 
-    for element in elements:
+    for element in wiped_elements:
         print(element)
 
 .. clear-namespace

@@ -16,7 +16,7 @@ FDB
    :members:
 
 FDB - Auxiliary Objects
--------------
+-----------------------
 .. autoapiclass:: pyfdb.pyfdb.URI 
    :members:
 
@@ -29,6 +29,9 @@ FDB - Auxiliary Objects
 .. autoapiclass:: pyfdb.pyfdb.WildcardMarsSelection 
    :members:
 
+.. autoapiclass:: pyfdb.pyfdb.SelectionBuilder
+   :members:
+
 .. autoapiclass:: pyfdb.pyfdb.ControlAction 
    :members:
 
@@ -36,7 +39,7 @@ FDB - Auxiliary Objects
    :members:
 
 FDB - Iterator Objects
---------------------
+----------------------
 .. autoapiclass:: pyfdb.pyfdb.ControlElement
     :members:
 
