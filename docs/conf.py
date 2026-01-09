@@ -25,6 +25,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.inheritance_diagram",
+    "breathe",
+    "sphinx.ext.autosectionlabel",
 ]
 
 templates_path = ["_templates"]
@@ -54,13 +56,6 @@ exclude_patterns = ["Thumbs.db", ".DS_Store"]
 html_theme = "pydata_sphinx_theme"
 html_context = {"default_mode": "auto"}
 html_theme_options = {
-    "repository_url": "https://github.com/ecmwf/fdb",
-    "repository_branch": "master",
-    "use_source_button": True,
-    "use_issues_button": True,
-    "home_page_in_toc": False,
-    "use_fullscreen_button": False,
-    "use_download_button": False,
     "switcher": {
         "json_url": "https://sites.ecmwf.int/docs/dev-section/fdb/versions.json",
         "version_match": version,
