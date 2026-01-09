@@ -80,7 +80,7 @@ CASE("Remote protocol: the basics") {
     // -- write a few fields
     const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys;
+    std::vector<Key> keys{};
     {
         FDB fdb{};  // Expects the config to be set in the environment
         keys = write_data(fdb, data_string, "20000101", 3, 0, 3);
@@ -88,10 +88,20 @@ CASE("Remote protocol: the basics") {
     EXPECT_EQUAL(keys.size(), Nfields);
 
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    auto it = FDB{}.list(FDBToolRequest{{}, true, {}});
+    auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
 
     ListElement elem;
     size_t count = 0;
+    while (it.next(elem)) {
+        eckit::Log::info() << elem << " " << elem.location() << std::endl;
+        count++;
+    }
+    EXPECT(count >= Nfields);
+
+    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
+    it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+
+    count = 0;
     while (it.next(elem)) {
         eckit::Log::info() << elem << " " << elem.location() << std::endl;
         count++;
