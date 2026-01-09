@@ -1,4 +1,6 @@
-Fields DataBase - FDB Documentation
+.. _FDB_Introduction:
+
+FDB
 ===================================
 
 :Version: |version|

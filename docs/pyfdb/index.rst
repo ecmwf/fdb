@@ -3,7 +3,8 @@
     :date: 2025-11-10
 
 .. _PyFDB_Introduction:
-PyFDB documentation
+
+PyFDB
 ===================
 
 :Version: |version|
@@ -47,11 +48,4 @@ If you’re new to FDB, you may want to skim the FDB documentation for concepts
 proceeding. 
 
 For implementation details and tooling, see the `FDB project pages <https://fields-database.readthedocs.io/en/latest/index.html>`__.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

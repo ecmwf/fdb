@@ -51,8 +51,8 @@ exclude_patterns = ["Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_book_theme"
-html_context = {"default_mode": "default"}
+html_theme = "pydata_sphinx_theme"
+html_context = {"default_mode": "auto"}
 html_theme_options = {
     "repository_url": "https://github.com/ecmwf/fdb",
     "repository_branch": "master",
@@ -65,8 +65,6 @@ html_theme_options = {
         "json_url": "https://sites.ecmwf.int/docs/dev-section/fdb/versions.json",
         "version_match": version,
     },
-    "check_switcher": False,
-    "primary_sidebar_end": ["version-switcher", "copyright"],
     "show_toc_level": 2,
     "icon_links": [
         {
@@ -75,14 +73,20 @@ html_theme_options = {
             "icon": "fa-brands fa-github",
         },
     ],
-    "article_header_end": ["search-button", "toggle-secondary-sidebar"],
+    "navbar_align": "left",
+    "navbar_start": ["navbar-logo"],
+    "navbar_center": ["navbar-nav"],
+    "navbar_end": ["navbar-icon-links", "theme-switcher", "version-switcher"],
     "navbar_persistent": ["search-button"],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+    # On local builds no version.json is present
+    "check_switcher": False,
     "content_footer_items": [],
     "footer_start": ["copyright"],
     "footer_center": [],
     "footer_end": [],
 }
-html_sidebars = {"**": ["icon-links", "search-field", "sbt-sidebar-nav.html"]}
+html_sidebars = {"**": ["sidebar-nav-bs"]}
 html_static_path = ["_static"]
 
 # -- Breathe configuration ---------------------------------------------------
