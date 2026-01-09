@@ -521,7 +521,7 @@ class URI:
         `uri` : `str`
             A URI given as string
 
-        Note:
+        Note
         -----
         *Currently there are only three schemes supported: file, http, https.
         Every other scheme will fall back to scheme `unix` with limited parsing support.*
@@ -565,7 +565,7 @@ class URI:
         `uri`: `URI`
             A existing URI
 
-        Note:
+        Note
         -----
         *Currently there are only three schemes supported: file, http, https.
         Every other scheme will fall back to scheme `unix` with limited parsing support.*
@@ -592,7 +592,7 @@ class URI:
         `port`: `int`
             A port
 
-        Note:
+        Note
         -----
         *Currently there are only three schemes supported: file, http, https.
         Every other scheme will fall back to scheme `unix` with limited parsing support.*
@@ -622,7 +622,7 @@ class URI:
         `port`: `int`
             A port
 
-        Note:
+        Note
         -----
         *Currently there are only three schemes supported: file, http, https.
         Every other scheme will fall back to scheme `unix` with limited parsing support.*

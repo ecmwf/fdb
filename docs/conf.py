@@ -16,7 +16,33 @@ release = "local-dev"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["breathe", "sphinx.ext.autosectionlabel"]
+extensions = [
+    "sphinx.ext.autosectionlabel",
+    "sphinxcontrib.mermaid",
+    "autoapi.extension",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.inheritance_diagram",
+]
+
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_internal"]
+
+autoapi_dirs = ["../src/pyfdb", "../src/z3fdb", "../src/pychunked_data_view"]
+autoapi_type = "python"
+autoapi_generate_api_docs = True
+autoapi_add_toctree_entry = False
+autoapi_python_class_content = "both"
+autoapi_ignore = [
+    "*/_internal/*",
+]
+add_module_names = False
+autoapi_keep_files = False
+
+# -- Napoleon settings
+napoleon_google = True
 
 templates_path = ["_templates"]
 exclude_patterns = ["Thumbs.db", ".DS_Store"]

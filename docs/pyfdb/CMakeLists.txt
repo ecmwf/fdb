@@ -10,12 +10,12 @@ add_custom_command(
     COMMAND
         SPHINX_EXECUTABLE=${SPHINX_EXECUTABLE}
         DOCBUILD_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/build_docs.sh
-    COMMENT "Generating documentation for pyfdb"
+        ${CMAKE_CURRENT_SOURCE_DIR}/../build_docs.sh
+    COMMENT "Generating documentation tests for pyfdb"
     OUTPUT ${SPHINX_INDEX_FILE}
 )
 
-add_custom_target(pyfdb-doc ALL DEPENDS ${SPHINX_INDEX_FILE})
+add_custom_target(pyfdb-doc-tests ALL DEPENDS ${SPHINX_INDEX_FILE})
 
 
 # Testing of docs

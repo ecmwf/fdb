@@ -43,9 +43,9 @@ class FDB:
 
         Parameters
         ----------
-        :`config` : `str` | `dict` | `Path` | `None`, *optional*
+        `config`: `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up the FDB. See Notes.
-        :`user_config` : `str` | `dict` | `Path` | `None`, *optional*
+        `user_config`: `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up user specific options, e.g., enabling sub-TOCs. See Notes.
 
         Returns
@@ -58,11 +58,11 @@ class FDB:
             - `str` is used as a yaml representation to parse the config
             - `dict` is interpreted as hierarchical format to represent a config, see example
             - `Path` is interpreted as a location of the config and read as a YAML file
-            - `None` is the fallback. The default config in `$FDB5_HOME` is loaded
+            - `None` is the fallback. The default config in `$FDB_HOME` is loaded
 
         Using a single PyFDB instance per individual threads is safe. Sharing the instances across threads isn't supported.
         However, the underlying FDB and its methods are thread-safe; the caller needs to be aware that flush acts on all archive calls,
-        including archived messages from other threads. An call to flush will persist all archived messages regardless
+        including archived messages from other threads. A call to flush will persist all archived messages regardless
         from which thread the message has been archived. In case the caller wants a finer control it is advised to
         instantiate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
         object.
