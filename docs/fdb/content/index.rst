@@ -2,20 +2,16 @@
     :author: ECMWF
     :date: 2025-11-10
 
-.. _PyFDB_Introduction:
 PyFDB documentation
 ===================
-
-:Version: |version|
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
    :hidden:
 
-   installation
-   examples
-   api
+   fdb/
+   pyfdb/index
 
 `PyFDB` is the Python interface to ECMWF’s Fields DataBase (`FDB <github.com/ecmwf/fdb>`__), a
 domain‑specific object store designed to efficiently archive, index, list, and

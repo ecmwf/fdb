@@ -2,7 +2,10 @@ Examples
 #############
 
 This example demonstrates how to use common functionality of the ``PyFDB``. 
-The terms ``PyFDB`` and ``FDB`` are sometimes used interchangeably.
+The section contains examples for all methods of the ``FDB`` object.
+
+In general ``PyFDB`` is used to refer to the Python API of the ``FDB``, whereas
+``FDB`` is used to refer to the underlying C++ class or the created Python instance.
 
 PyFDB Initalisation
 *******************

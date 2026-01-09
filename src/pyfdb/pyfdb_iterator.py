@@ -51,9 +51,9 @@ class ListElement:
         >>> data_handle.read(4)
         >>> data_handle.close()
 
-        ```
-        b"GRIB"
-        ```
+        Output:
+
+        ``b"GRIB"``
         """
         return DataHandle(self._element.data_handle(), _internal=True)
 
@@ -71,9 +71,9 @@ class ListElement:
         >>> uri = list_element.uri()
         >>> print(uri)
 
-        ```
-        <path/to/data_file>
-        ```
+        Output:
+
+        ``<path/to/data_file>``
         """
         return URI(self._element.uri(), _internal=True)
 
