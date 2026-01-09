@@ -28,6 +28,9 @@ from pyfdb.pyfdb_iterator import (
     MoveElement,
     StatusElement,
     WipeElement,
+    PurgeElement,
+    StatsElement,
+    ControlElement,
     IndexAxis,
 )
 
@@ -44,5 +47,8 @@ __all__ = [
     "WildcardMarsSelection",
     "ControlAction",
     "ControlIdentifier",
+    "PurgeElement",
+    "StatsElement",
+    "ControlElement",
     "IndexAxis",
 ]
