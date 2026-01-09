@@ -14,7 +14,7 @@ FDB documentation
    pyfdb/index
    z3fdb/index
 
-`FDB <github.com/ecmwf/fdb>`__ itself is part of `ECMWF`’s
+:ref:`FDB <FDB_Introduction>` itself is part of `ECMWF`’s
 high‑performance data infrastructure: it stores each GRIB message as a field,
 indexes it by meteorological metadata (e.g., `parameter`, `level`, `date/time`),
 and serves recent outputs to post‑processing tasks and users. In operational
@@ -33,3 +33,11 @@ It provides a thin, idiomatic Python layer over the `FDB5` client library instal
 on your system, so you can extract Zarr data by creating a virtual Zarr store. The view is described 
 via a MARS request and can be used to create a virtual Zarr store containing the data of the MARS
 request. For further information, see :ref:`Z3FDB <Z3FDB_Introduction>` or visit the `Zarr project <github.com/zarr-developers/zarr-python>`__.
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+

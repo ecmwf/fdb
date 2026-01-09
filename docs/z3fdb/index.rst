@@ -1,6 +1,6 @@
 .. _Z3FDB_Introduction:
 ########################
-Zarr v3 from FDB - Z3FDB
+Z3FDB
 ########################
 
 :Version: |version|
