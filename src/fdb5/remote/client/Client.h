@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"
 #include "eckit/utils/Literals.h"
 
@@ -37,7 +36,7 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Client : eckit::NonCopyable {
+class Client {
 public:  // types
 
     using PayloadList  = Connection::PayloadList;
@@ -53,6 +52,11 @@ public:  // methods
     Client(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
            const std::string& defaultEndpoint);
     Client(const eckit::Configuration& config, const EndpointList& endpoints);
+
+    Client(const Client&)            = delete;
+    Client& operator=(const Client&) = delete;
+    Client(Client&&)                 = delete;
+    Client& operator=(Client&&)      = delete;
 
     virtual ~Client();
 

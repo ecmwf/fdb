@@ -74,7 +74,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::YesAddArchiveListener;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;
@@ -127,7 +127,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;
@@ -437,7 +437,9 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         }
     }
 
-    it->second.catalogue->selectIndex(idxKey);
+    if (!it->second.catalogue->selectIndex(idxKey)) {
+        it->second.catalogue->createIndex(idxKey, datumKey.keys().size());
+    }
     it->second.catalogue->archive(idxKey, datumKey, std::move(location));
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);

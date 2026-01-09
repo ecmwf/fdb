@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbdumptoc="$<TARGET_FILE:fdb-dump-toc>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-533
+
+### cleanup and prepare test
+
+rm -rf $bindir/localroot
+mkdir localroot
+
+for f in config.yaml schema x.grib ok.req fail.req
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$fdbwrite x.grib
+
+! $fdbread fail.req out.grib
+
+$fdbread ok.req out.grib
+
+cmp out.grib x.grib

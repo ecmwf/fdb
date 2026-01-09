@@ -56,10 +56,10 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 
     for (const auto& p : request_.parameters()) {
         if (p.count() > 1 && processedKeywords.count(p.name()) != 1) {
-            std::stringstream buf{};
-            buf << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
-                << " values but is not mapped by an axis.";
-            throw eckit::UserError(buf.str());
+            std::ostringstream ss;
+            ss << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
+               << " values but is not mapped by an axis.";
+            throw eckit::UserError(ss.str());
         }
     }
 
@@ -80,7 +80,7 @@ void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len,
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
+    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {

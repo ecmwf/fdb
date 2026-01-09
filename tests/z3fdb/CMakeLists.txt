@@ -12,8 +12,8 @@ function(add_py_test test)
         #prevent findlibs in pyfdb to pickup any globally installed fdb
         "FDB5_DIR=${CMAKE_BINARY_DIR}"
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
-        "ECCODES_PYTHON_USE_FINDLIBS=1"
-        "ECCODES_DIR=${CMAKE_BINARY_DIR}"
+        "FINDLIBS_DISABLE_PACKAGE=yes"
+        "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
     )
     set_tests_properties(pychunked_data_view_${stem}
         PROPERTIES

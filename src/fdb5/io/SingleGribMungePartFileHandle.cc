@@ -88,7 +88,7 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
 
         off_t off = offset_;
         if (::fseeko(file_, off, SEEK_SET) != 0) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << name_ << ": cannot seek to " << off << " (file=" << fileno(file_) << ")";
             throw ReadError(ss.str());
         }

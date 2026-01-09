@@ -39,7 +39,7 @@ namespace {
 void spawn_reaper(const pid_t child_pid) {
     pid_t pid = fork();
     if (pid == -1) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Failed to fork reaper: " << std::strerror(errno);
         throw std::runtime_error(ss.str());
     }
@@ -70,7 +70,7 @@ PathName get_cwd() {
     std::vector<char> buf(4096);
     const auto cwd = getcwd(buf.data(), buf.size());
     if (cwd == nullptr) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Failed to get current working directory " << std::strerror(errno);
         throw std::runtime_error(ss.str());
     }
@@ -88,7 +88,7 @@ std::vector<const char*> copy_environment() {
 pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
     pid_t pid = fork();
     if (pid == -1) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Fork failed: " << std::strerror(errno);
         throw std::runtime_error(ss.str());
     }

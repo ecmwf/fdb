@@ -24,6 +24,7 @@
 #include <exception>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <vector>
 
 
@@ -57,7 +58,8 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
     return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 }
 
-void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
+                              std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                               const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const {
 
     bool iterator_empty = true;
@@ -78,11 +80,19 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
             eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
-            auto copyInto = ptr + msgIndex * layout.countValues;
+            auto copyInto  = ptr + msgIndex * layout.countValues;
+            const auto end = copyInto + layout.countValues;
+            ASSERT(end - ptr <= len);
 
             while ((msg = reader.next())) {
-                size_t countValues = msg.getSize("values");
-                msg.getFloatArray("values", copyInto, countValues);
+                if (const auto size = msg.getSize("values"); size != layout.countValues) {
+                    std::ostringstream ss;
+                    ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
+                       << " expected: " << layout.countValues << " found: " << size
+                       << ". All fields in your view need to be of equal size.";
+                    throw eckit::Exception(ss.str());
+                }
+                msg.getFloatArray("values", copyInto, layout.countValues);
                 bitset[msgIndex] = true;
             }
         }
@@ -92,15 +102,17 @@ void GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterat
     }
 
     if (iterator_empty) {
-        throw eckit::Exception("GribExtractor: Empty iterator for request. Is the request correctly specified?");
+        std::ostringstream ss;
+        ss << "GribExtractor: Empty iterator for request: " << request << ". Is the request correctly specified?";
+        throw eckit::Exception(ss.str());
     }
 
-    if (!std::all_of(bitset.begin(), bitset.end(), [](bool v) { return v; })) {
-        throw eckit::Exception(
-            "GribExtractor: Buffer not completely filled. Either request is spanning data which is not in the FDB or "
-            "data of the FDB "
-            "is missing.");
+    if (const auto read_count = std::count(std::begin(bitset), std::end(bitset), true); read_count != bitset.size()) {
+        std::ostringstream ss;
+        ss << "GribExtractor: retrieved only " << read_count << " of " << bitset.size() << " fields in request "
+           << request;
+
+        throw eckit::Exception(ss.str());
     }
 }
-
 };  // namespace chunked_data_view

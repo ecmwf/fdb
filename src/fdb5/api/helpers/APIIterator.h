@@ -33,6 +33,8 @@
 
 namespace fdb5 {
 
+class FDBBase;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 template <typename ValueType>
@@ -117,13 +119,17 @@ class AsyncIterationCancellation : public eckit::Exception {};
 // --> Use a (mutex protected) queue.
 // --> Producer/consumer relationship
 
+// the APIAsyncIterator holds a shared_ptr<FDBBase>, so if the FDB object goes out-of-scope,
+// the actual implementation is kept alive until the iterator has been fully consumed
+
 template <typename ValueType>
 class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
 
-    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn, size_t queueSize = 100) :
-        queue_(queueSize) {
+    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(eckit::Queue<ValueType>&)> workerFn,
+                     size_t queueSize = 100) :
+        fdb_(fdb), queue_(queueSize) {
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {
@@ -156,11 +162,12 @@ public:  // methods
 
 private:  // members
 
+    std::shared_ptr<FDBBase> fdb_;
+
     eckit::Queue<ValueType> queue_;
 
     std::thread workerThread_;
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

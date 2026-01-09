@@ -85,10 +85,10 @@ std::string DaosOID::asString() const {
 
     ASSERT(wasGenerated_);
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid_.hi;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid_.lo;
-    as_string_.emplace(os.str());
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid_.hi;
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid_.lo;
+    as_string_.emplace(ss.str());
     return as_string_.value();
 }
 

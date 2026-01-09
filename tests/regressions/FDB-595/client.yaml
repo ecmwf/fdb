@@ -1,0 +1,6 @@
+---
+type: remote
+store: remote
+engine: remote
+host: localhost
+port: 11000

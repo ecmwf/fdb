@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbserver="$<TARGET_FILE:fdb-server>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+rm -f out.*
+rm -rf ${bindir}/catalogue_root
+rm -rf ${bindir}/store_root
+mkdir -p ${bindir}/catalogue_root
+mkdir -p ${bindir}/store_root
+
+for f in catalogue.yaml store.yaml client.yaml levtypes.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+cp $srcdir/schema $bindir
+
+export FDB_HOME=$bindir
+
+FDB5_CONFIG_FILE=$bindir/catalogue.yaml $fdbserver &
+catal_pid=$!
+
+FDB5_CONFIG_FILE=$bindir/store.yaml $fdbserver &
+store_pid=$!
+
+export FDB5_CONFIG_FILE=$bindir/client.yaml
+$fdbwrite levtypes.grib
+
+cat > list <<EOF
+{class=od,expver=0001,stream=oper,date=20251125,time=0000,domain=g}{type=fc,levtype=sfc}{step=0,param=167}
+{class=od,expver=0001,stream=oper,date=20251125,time=0000,domain=g}{type=fc,levtype=pl}{step=0,levelist=1000,param=130}
+EOF
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+
+kill -9 $catal_pid
+kill -9 $store_pid
+
+cmp out list
+
