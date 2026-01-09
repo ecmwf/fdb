@@ -14,7 +14,7 @@ Fields DataBase - FDB documentation
    pyfdb/index
    z3fdb/index
 
-:ref:`FDB <FDB_Introduction>` itself is part of `ECMWF <https://www.ecmwf.int>`’s
+:ref:`FDB <FDB_Introduction>` itself is part of `ECMWF <https://www.ecmwf.int>`__’s
 high‑performance data infrastructure: it stores each GRIB message as a field,
 indexes it by meteorological metadata (e.g., `parameter`, `level`, `date/time`),
 and serves recent outputs to post‑processing tasks and users. In operational

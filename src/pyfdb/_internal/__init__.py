@@ -13,8 +13,9 @@ from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
     InternalMarsSelection,
     _flatten_values,
+    MarsRequest,
+    FDBToolRequest,
 )
-from pyfdb._internal.pyfdb_internal import MarsRequest as MarsRequest
 from pyfdb_bindings.pyfdb_bindings import (
     FDB as _FDB,
 )
@@ -24,7 +25,6 @@ from pyfdb_bindings.pyfdb_bindings import (
 from pyfdb_bindings.pyfdb_bindings import (
     Config,
     ControlElement,
-    FDBToolRequest,
     FileCopy,
     IndexAxis,
     ListElement,

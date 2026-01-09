@@ -9,8 +9,14 @@
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Tuple
 
-import pyfdb._internal as _internal
-from pyfdb._internal.pyfdb_internal import ConfigMapper, FDBToolRequest
+from pyfdb._internal import (
+    ConfigMapper,
+    FDBToolRequest,
+    init_bindings,
+    Config,
+    MarsRequest,
+    _FDB,
+)
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -92,20 +98,20 @@ class FDB:
         ...     pass
         """
 
-        _internal.init_bindings()
+        init_bindings()
 
         # Convert to JSON if set
         config = ConfigMapper.to_json(config)
         user_config = ConfigMapper.to_json(user_config)
 
         if config is not None and user_config is not None:
-            internal_config = _internal.Config(config, user_config)
-            self.FDB = _internal._FDB(internal_config)
+            internal_config = Config(config, user_config)
+            self.FDB = _FDB(internal_config)
         elif config is not None:
-            internal_config = _internal.Config(config, None)
-            self.FDB = _internal._FDB(internal_config)
+            internal_config = Config(config, None)
+            self.FDB = _FDB(internal_config)
         else:
-            self.FDB = _internal._FDB()
+            self.FDB = _FDB()
 
     def __enter__(self):
         return self
@@ -209,7 +215,7 @@ class FDB:
         >>>     assert data_handle
         >>>     assert data_handle.read(4) == b"GRIB"
         """
-        mars_request = _internal.MarsRequest.from_selection(mars_selection)
+        mars_request = MarsRequest.from_selection(mars_selection)
         return DataHandle(self.FDB.retrieve(mars_request.request), _internal=True)
 
     def list(
@@ -340,7 +346,7 @@ class FDB:
         length=10732,
         timestamp=1762537447
         """
-        mars_request = _internal.MarsRequest.from_selection(mars_selection)
+        mars_request = MarsRequest.from_selection(mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
 
         while iterator is not None:
