@@ -20,6 +20,7 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/testing/Test.h"
+#include "eckit/testing/Filesystem.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -27,6 +28,8 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/fdb5_config.h"
+#include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 
 #include "fdb5/toc/TocStore.h"
 
@@ -42,30 +45,9 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
-
 #ifdef fdb5_HAVE_DUMMY_DAOS
-eckit::TmpDir& tmp_dummy_daos_root() {
-    static eckit::TmpDir d{};
+eckit::PathName& tmp_dummy_daos_root() {
+    static eckit::PathName d("./daos_catalogue_tests_dummy_daos_root");
     return d;
 }
 #endif
@@ -87,12 +69,31 @@ eckit::PathName& catalogue_tests_tmp_root() {
     return cd;
 }
 
+size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
+    size_t count = 0;
+    fdb5::WipeElement elem;
+    while (wipeObject.next(elem)) {
+        if (print) std::cout << elem << std::endl;
+        if (elem.type() != fdb5::WipeElementType::ERROR && \
+            elem.type() != fdb5::WipeElementType::CATALOGUE_INFO && \
+            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && \
+            elem.type() != fdb5::WipeElementType::STORE_SAFE) {
+            count += elem.uris().size();
+        }
+    }
+    return count;
+}
+
 namespace fdb {
 namespace test {
 
-CASE("Setup") {
+CASE("DaosCatalogue tests") {
+
+    // setup
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
+    if (tmp_dummy_daos_root().exists())
+        testing::deldir(tmp_dummy_daos_root());
     tmp_dummy_daos_root().mkdir();
     ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
 #endif
@@ -100,7 +101,7 @@ CASE("Setup") {
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Catalogue/Store tests fail.
     if (catalogue_tests_tmp_root().exists())
-        deldir(catalogue_tests_tmp_root());
+        testing::deldir(catalogue_tests_tmp_root());
     catalogue_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", catalogue_tests_tmp_root().path().c_str(), 1);
 
@@ -128,9 +129,6 @@ CASE("Setup") {
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
-}
-
-CASE("DaosCatalogue tests") {
 
     // test parameters
 
@@ -363,11 +361,10 @@ CASE("DaosCatalogue tests") {
         {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-            // std::ostream out(std::cout.rdbuf());
-            eckit::Queue<fdb5::WipeElement> queue(200);
+            eckit::Queue<fdb5::CatalogueWipeState> queue(100);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
-            // cat.visitEntries(*wv, false);
+            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
+            cat.visitEntries(wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -477,11 +474,10 @@ CASE("DaosCatalogue tests") {
         {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-            // std::ostream out(std::cout.rdbuf());
-            eckit::Queue<fdb5::WipeElement> queue(200);
+            eckit::Queue<fdb5::CatalogueWipeState> queue(100);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            // std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(r, queue, /*out,*/ true, false, false));
-            // cat.visitEntries(*wv, false);
+            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
+            cat.visitEntries(wv, false);
         }
 
         /// @todo: again, daos_fini happening before
@@ -596,24 +592,15 @@ CASE("DaosCatalogue tests") {
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        count           = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count == 0);
+        EXPECT(countWipeable(wipeObject) == 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
-        count      = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
 
         // dry run wipe database
         wipeObject = fdb.wipe(db_req);
-        count      = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
 
         // ensure field still exists
         listObject = fdb.list(full_req);
@@ -627,19 +614,13 @@ CASE("DaosCatalogue tests") {
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        count      = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count == 0);
+        EXPECT(countWipeable(wipeObject) == 0);
         /// @todo: really needed?
         fdb.flush();
 
         // wipe index and store unit
         wipeObject = fdb.wipe(index_req, true);
-        count      = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
         /// @todo: really needed?
         fdb.flush();
 
@@ -680,10 +661,7 @@ CASE("DaosCatalogue tests") {
         // wipe full database
 
         wipeObject = fdb2.wipe(db_req, true);
-        count      = 0;
-        while (wipeObject.next(elem))
-            count++;
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
         /// @todo: really needed?
         fdb2.flush();
 
@@ -857,6 +835,17 @@ CASE("DaosCatalogue tests") {
         if (c == root_cont_name || c == "11:22")
             fdb5::DaosSession().getPool(pool_uuid).destroyContainer(c);
 #endif
+
+    // remove root directory
+
+    testing::deldir(catalogue_tests_tmp_root());
+
+    // remove dummy daos root
+
+#ifdef fdb5_HAVE_DUMMY_DAOS
+    testing::deldir(tmp_dummy_daos_root());
+#endif
+
 }
 
 }  // namespace test

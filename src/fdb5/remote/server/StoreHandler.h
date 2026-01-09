@@ -54,6 +54,7 @@ private:  // methods
     void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
 
     const WipeInProgress& cachedWipeState(const Key& uri) const;
 

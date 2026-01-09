@@ -26,19 +26,20 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosStore::DaosStore(const Key& key, const Config& config) :
-    Store(), DaosCommon(config, "store", key), db_str_(db_cont_), archivedFields_(0) {}
+    Store(), DaosCommon(config, "store", key), archivedFields_(0) {}
 
 DaosStore::DaosStore(const eckit::URI& uri, const Config& config) :
-    Store(), DaosCommon(config, "store", uri), db_str_(db_cont_), archivedFields_(0) {}
+    Store(), DaosCommon(config, "store", uri), archivedFields_(0) {}
 
 eckit::URI DaosStore::uri() const {
 
-    return fdb5::DaosName(pool_, db_str_).URI();
+    return fdb5::DaosName(pool_, db_cont_).URI();
 }
 
 eckit::URI DaosStore::uri(const eckit::URI& dataURI) {
     ASSERT(dataURI.scheme() == "daos");
-    return eckit::URI{"daos", fdb5::DaosName(dataURI).containerName()};
+    fdb5::DaosName n(dataURI);
+    return fdb5::DaosName{n.poolName(), n.containerName()}.URI();
 }
 
 bool DaosStore::uriBelongs(const eckit::URI& uri) const {
@@ -47,7 +48,7 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
     bool result = (uri.scheme() == type());
     result = result && (n.poolName() == pool_);
-    result = result && (n.containerName().rfind(db_str_, 0) == 0);
+    result = result && (n.containerName().rfind(db_cont_, 0) == 0);
     result = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
 
     return result;
@@ -61,7 +62,7 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
     fdb5::DaosName n(uri);
     ASSERT(n.hasContainerName());
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.containerName() == db_str_);
+    ASSERT(n.containerName() == db_cont_);
     ASSERT(n.hasOID());
 
     return n.exists();
@@ -71,7 +72,7 @@ std::set<eckit::URI> DaosStore::collocatedDataURIs() const {
 
     std::set<eckit::URI> collocated_data_uris;
 
-    fdb5::DaosName db_cont{pool_, db_str_};
+    fdb5::DaosName db_cont{pool_, db_cont_};
 
     if (!db_cont.exists())
         return collocated_data_uris;
@@ -84,7 +85,7 @@ std::set<eckit::URI> DaosStore::collocatedDataURIs() const {
         if (oid.otype() == DAOS_OT_KV_HASHED)
             continue;
 
-        collocated_data_uris.insert(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
+        collocated_data_uris.insert(fdb5::DaosArrayName(pool_, db_cont_, oid).URI());
     }
 
     return collocated_data_uris;
@@ -122,7 +123,7 @@ std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* 
     ///   If the cat backend is toc, then it is performed but only on first write.
     /// - allocate oid (daos_cont_alloc_oids) -- skipped most of the times as oids per alloc is set to 100
     fdb5::DaosArrayName n =
-        fdb5::DaosName(pool_, db_str_).createArrayName(OC_S1, false);  // TODO: pass oclass from config
+        fdb5::DaosName(pool_, db_cont_).createArrayName(OC_S1, false);  // TODO: pass oclass from config
 
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
 
@@ -161,7 +162,7 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
 
     ASSERT(n.hasContainerName());
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.containerName() == db_str_);
+    ASSERT(n.containerName() == db_cont_);
 
     if (n.hasOID()) {
         ASSERT(n.OID().otype() == DAOS_OT_ARRAY_BYTE);
@@ -258,10 +259,12 @@ bool DaosStore::doWipe(const StoreWipeState& wipeState) const {
 
 void DaosStore::doWipeEmptyDatabases() const {
 
+    if (emptyDatabases_.size() == 0) return;
+
     ASSERT(emptyDatabases_.size() == 1);
 
     // remove the database container
-    fdb5::DaosName contName{emptyDatabases_[0]};
+    fdb5::DaosName contName{*(emptyDatabases_.begin())};
     ASSERT(!contName.hasOID());
     if (contName.exists()) {
         ASSERT(contName.listOIDs().size() == 0);

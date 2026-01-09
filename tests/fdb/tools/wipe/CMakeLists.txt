@@ -17,6 +17,7 @@ foreach( _test ${fdb_tools_wipe_tests} )
         LABELS wipe
         CONDITION HAVE_FDB_BUILD_TOOLS
         TEST_DEPENDS fdb5_get_test_data
-        COMMAND wipe_${_test}.sh )
+        COMMAND wipe_${_test}.sh
+        ENVIRONMENT "${test_environment}" )
 
 endforeach( )

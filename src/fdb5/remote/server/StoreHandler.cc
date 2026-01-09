@@ -401,7 +401,7 @@ void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestI
     wipesInProgress_.erase(key);
 }
 
-void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer&& payload) {
+void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key key(s);

@@ -68,7 +68,6 @@ protected:  // methods
 
 private:  // members
 
-    std::string db_str_;
     size_t archivedFields_;
 };
 
