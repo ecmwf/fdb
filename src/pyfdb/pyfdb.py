@@ -84,6 +84,12 @@ class FDB:
         ...     ],
         ... }
         >>> fdb = pyfdb.FDB(config)
+
+        Or leveraging the context manager:
+
+        >>> with pyfdb.FDB(fdb_config_path) as fdb:
+        ...     # Call methods of fdb
+        ...     pass
         """
 
         _internal.init_bindings()
@@ -180,10 +186,14 @@ class FDB:
         `mars_selection`
             MARS selection which describes the data which should be retrieved
 
+        Note
+        ----
+        The returned data handle doesn't guarantee the order of the GRIB messages.
+
         Returns
         -------
         DataHandle
-            A data handle which can be read like a bytesLike object.
+            A data handle which contains unordered GRIB messages and can be read like a bytesLike object.
 
         Examples
         --------
