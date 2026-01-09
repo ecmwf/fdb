@@ -38,8 +38,6 @@ using WipeIterator = APIIterator<WipeElement>;
 
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
 
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

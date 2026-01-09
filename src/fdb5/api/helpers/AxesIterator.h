@@ -70,8 +70,6 @@ private:  // members
 
 using AxesAggregateIterator = APIAggregateIterator<AxesElement>;
 
-using AxesAsyncIterator = APIAsyncIterator<AxesElement>;
-
 using AxesIterator = APIIterator<AxesElement>;
 
 //----------------------------------------------------------------------------------------------------------------------

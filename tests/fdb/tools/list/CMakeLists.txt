@@ -1,5 +1,5 @@
 # get test data for the list tests
-ecbuild_get_test_multidata( TARGET get_fdb_test_data_list LABELS list NAMES "od.oper.grib" )
+ecbuild_get_test_multidata( TARGET get_fdb_test_data_list LABELS list NAMES "od.oper.grib" NOCHECK )
 
 # list of tests
 list( APPEND fdb_tools_list_tests
