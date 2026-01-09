@@ -388,7 +388,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
         case Message::Error: {
 
             std::ostringstream ss;
-            ss << "RemoteFDBClient ID: " << id() << " - received an error without error description for requestID "
+            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
                << requestID << std::endl;
             throw RemoteFDBException(ss.str(), controlEndpoint());
 

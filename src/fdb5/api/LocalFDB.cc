@@ -77,7 +77,7 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
 
     using ValueType     = typename VisitorType::ValueType;
     using QueryIterator = APIIterator<ValueType>;
-    using AsyncIterator = FDBAsyncIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
 
     auto async_worker = [this, request, args...](Queue<ValueType>& queue) {
         EntryVisitMechanism mechanism(config_);
