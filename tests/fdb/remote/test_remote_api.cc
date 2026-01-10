@@ -83,9 +83,7 @@ CASE("Remote protocol: the basics") {
     const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys{};
-    {
-        keys = write_data(fdb, data_string, "20000101", 3, 0, 3);
-    }
+    { keys = write_data(fdb, data_string, "20000101", 3, 0, 3); }
     EXPECT_EQUAL(keys.size(), Nfields);
 
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
