@@ -19,18 +19,17 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/testing/Test.h"
 #include "eckit/testing/Filesystem.h"
+#include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/fdb5_config.h"
-#include "fdb5/api/local/WipeVisitor.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
@@ -69,11 +68,10 @@ size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
     size_t count = 0;
     fdb5::WipeElement elem;
     while (wipeObject.next(elem)) {
-        if (print) std::cout << elem << std::endl;
-        if (elem.type() != fdb5::WipeElementType::ERROR && \
-            elem.type() != fdb5::WipeElementType::CATALOGUE_INFO && \
-            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && \
-            elem.type() != fdb5::WipeElementType::STORE_SAFE) {
+        if (print)
+            std::cout << elem << std::endl;
+        if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
+            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
             count += elem.uris().size();
         }
     }
@@ -534,7 +532,6 @@ CASE("DaosStore tests") {
             count++;
         }
         EXPECT(count == 0);
-
     }
 
     // teardown daos
@@ -558,7 +555,6 @@ CASE("DaosStore tests") {
 #ifdef fdb5_HAVE_DUMMY_DAOS
     testing::deldir(tmp_dummy_daos_root());
 #endif
-
 }
 
 }  // namespace test

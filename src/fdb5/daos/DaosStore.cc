@@ -47,9 +47,9 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
     fdb5::DaosName n{uri};
 
     bool result = (uri.scheme() == type());
-    result = result && (n.poolName() == pool_);
-    result = result && (n.containerName().rfind(db_cont_, 0) == 0);
-    result = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
+    result      = result && (n.poolName() == pool_);
+    result      = result && (n.containerName().rfind(db_cont_, 0) == 0);
+    result      = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
 
     return result;
 }
@@ -219,7 +219,6 @@ void DaosStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWi
             storeState.insertUnrecognised(uri);
         }
     }
-
 }
 
 bool DaosStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
@@ -259,7 +258,8 @@ bool DaosStore::doWipe(const StoreWipeState& wipeState) const {
 
 void DaosStore::doWipeEmptyDatabases() const {
 
-    if (emptyDatabases_.size() == 0) return;
+    if (emptyDatabases_.size() == 0)
+        return;
 
     ASSERT(emptyDatabases_.size() == 1);
 

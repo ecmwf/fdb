@@ -167,7 +167,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
             const Store& store = storeState->store(config_);
             if (store.doUnsafeFullWipe()) {
                 storeWiped[uri] = true;
-            } else {
+            }
+            else {
                 fullWipeSupported = false;
             }
         }
@@ -187,7 +188,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
         catalogue->doWipeUnknown(unknownBuckets.catalogue);
 
         for (const auto& [uri, storeState] : storeWipeStates) {
-            if (storeWiped[uri]) continue;
+            if (storeWiped[uri])
+                continue;
 
             const Store& store = storeState->store(config_);
 
@@ -201,7 +203,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     // 4. Wipe files known by the stores
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping store known URIs" << std::endl;
     for (const auto& [uri, storeState] : storeWipeStates) {
-        if (storeWiped[uri]) continue;
+        if (storeWiped[uri])
+            continue;
         const Store& store = storeState->store(config_);
         store.doWipe(*storeState);
     }
@@ -214,7 +217,8 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
     catalogue->doWipeEmptyDatabases();
     for (const auto& [uri, storeState] : storeWipeStates) {
-        if (storeWiped[uri]) continue;
+        if (storeWiped[uri])
+            continue;
         const Store& store = storeState->store(config_);
         store.doWipeEmptyDatabases();
     }

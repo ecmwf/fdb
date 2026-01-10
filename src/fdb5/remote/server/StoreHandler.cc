@@ -407,7 +407,7 @@ void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requ
     Key key(s);
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    auto& store = getStore(clientID);
+    auto& store            = getStore(clientID);
     bool fullWipeSupported = store.doUnsafeFullWipe();
 
     eckit::Buffer boolBuf(5);

@@ -107,9 +107,9 @@ bool DaosCatalogue::uriBelongs(const eckit::URI& uri) const {
     fdb5::DaosName n{uri};
 
     bool result = (uri.scheme() == type());
-    result = result && (n.poolName() == pool_);
-    result = result && (n.containerName().rfind(db_cont_, 0) == 0);
-    result = result && (n.OID().otype() == DAOS_OT_KV_HASHED);
+    result      = result && (n.poolName() == pool_);
+    result      = result && (n.containerName().rfind(db_cont_, 0) == 0);
+    result      = result && (n.OID().otype() == DAOS_OT_KV_HASHED);
 
     return result;
 };
@@ -289,7 +289,6 @@ void DaosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
             db_kv.remove(key);
         }
     }
-
 }
 
 bool DaosCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
@@ -327,7 +326,8 @@ bool DaosCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
 void DaosCatalogue::doWipeEmptyDatabases() const {
 
-    if (emptyDatabases_.size() == 0) return;
+    if (emptyDatabases_.size() == 0)
+        return;
 
     ASSERT(emptyDatabases_.size() == 1);
 

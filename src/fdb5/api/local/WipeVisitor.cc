@@ -104,7 +104,6 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
         }
     }
     return true;
-
 }
 
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {

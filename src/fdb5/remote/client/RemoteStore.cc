@@ -584,7 +584,8 @@ bool RemoteStore::doUnsafeFullWipe() const {
     keyStream << dbKey_;
 
     // receive bool (full wipe supported or not) from remote
-    auto recvBuf = controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
+    auto recvBuf =
+        controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
 
     eckit::MemoryStream rms(recvBuf);
     rms >> result;
