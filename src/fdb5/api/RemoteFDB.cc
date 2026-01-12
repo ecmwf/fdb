@@ -250,7 +250,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
             eckit::Buffer msg{0};
             while (true) {
                 if (messageQueue->pop(msg) == -1) {
@@ -308,16 +308,12 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
         }
         case fdb5::remote::Message::Error: {
 
-            auto it = messageQueues_.find(requestID);
-            if (it == messageQueues_.end()) {
-                return false;
-            }
+            std::ostringstream ss;
+            ss << "RemoteFDB - client id: " << clientId()
+               << " - received an error without error description for requestID " << requestID << std::endl;
+            throw RemoteFDBException(ss.str(), controlEndpoint());
 
-            it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
-            messageQueues_.erase(it);
-            return true;
+            return false;
         }
         default:
             return false;

@@ -79,7 +79,7 @@ void FDBFactory::add(const std::string& name, const FDBBuilderBase* b) {
     registry_[name] = b;
 }
 
-std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
+std::shared_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     // Allow expanding of the config to make use of fdb_home supplied in a previous
     // configuration file, or to pick up the default configuration from ~fdb/etc/fdb/...
@@ -102,7 +102,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
         throw eckit::SeriousBug(ss.str(), Here());
     }
 
-    std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
+    std::shared_ptr<FDBBase> ret = it->second->make(actualConfig);
     LOG_DEBUG_LIB(LibFdb5) << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
 }

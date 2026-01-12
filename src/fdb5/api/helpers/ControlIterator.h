@@ -156,8 +156,6 @@ using ControlIterator = APIIterator<ControlElement>;
 
 using ControlAggregateIterator = APIAggregateIterator<ControlElement>;
 
-using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

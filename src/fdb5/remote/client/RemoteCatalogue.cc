@@ -62,6 +62,8 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config
     NOTIMP;
 }
 
+RemoteCatalogue::~RemoteCatalogue() = default;
+
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
 
@@ -214,9 +216,6 @@ void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
 std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-    NOTIMP;
-}
-void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     NOTIMP;
 }
 void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {

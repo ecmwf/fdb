@@ -137,23 +137,6 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     throw DistributionError("No writable lanes available for archive", Here());
 }
 
-/*
- * Exemplar for templated query functionality:
- *
- * ListIterator DistFDB::list(const FDBToolRequest& request) {
- *
- *     std::queue<ListIterator> lists;
- *
- *     for (FDB& lane : lanes_) {
- *         if (lane.visitable()) {
- *             lists.push(lane.list(request));
- *         }
- *     }
- *
- *     return ListIterator(new ListAggregateIterator(std::move(lists)));
- * }
- */
-
 template <typename QueryFN>
 auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     -> decltype(fn(*(FDB*)(nullptr), request)) {
