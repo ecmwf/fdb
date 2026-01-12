@@ -24,5 +24,6 @@ set_tests_properties(test_610
     PROPERTIES
         ENVIRONMENT "${test_environment}"
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        RUN_SERIAL  TRUE
         LABELS remotefdb
         )

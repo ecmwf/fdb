@@ -16,6 +16,7 @@ ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
 #     ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
 #     TEST_DEPENDS   fdb_test_remote_api_bin
 #     RESOURCE_LOCK  fdb_remote_tests  # Prevent concurrent runs of remote tests
+#     RUN_SERIAL  TRUE
 #     LABELS         remotefdb
 #     ENVIRONMENT "${test_environment}"
 # )

@@ -22,6 +22,17 @@
 #include <fstream>
 #include <sstream>
 
+#if __has_include(<libproc.h>)
+    #include <libproc.h>
+    #define has_libproc 1
+// #elif __has_include(<libproc2/pids.h>) // new linux
+//     #include <libproc2/pids.h>
+//     #define has_libproc2 1
+#else
+    #include <stdlib.h>
+#endif
+
+
 using eckit::Log;
 using eckit::PathName;
 using eckit::ResourceMgr;
@@ -44,7 +55,7 @@ void spawn_reaper(const pid_t child_pid) {
         throw std::runtime_error(ss.str());
     }
     if (pid > 0) {
-        Log::info() << "Started reaper process" << pid << std::endl;
+        Log::info() << "Started reaper process " << pid << std::endl;
         return;
     }
     setsid();
@@ -129,15 +140,44 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
     return {};
 }
 
-void kill_server(const pid_t pid) {
-    int rc = kill(pid, SIGKILL);
-    Log::info() << "Killing " << pid << std::endl;
-    if (rc == -1) {
-        Log::error() << "Could not kill fdb-server: " << std::strerror(errno) << std::endl;
+void kill_server(const pid_t ppid) {
+
+#if has_libproc
+    int n = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+    int *buffer = (int *)malloc(sizeof(int)*n);
+
+	int numpids = proc_listpids(PROC_PPID_ONLY, (uint32_t)ppid, buffer, n*sizeof(int));
+	if (numpids != -1) {
+		numpids /= sizeof(int);
+        for (int i=0; i < numpids; i++) {
+            pid_t pid = buffer[i];
+            if (pid == 0 || pid == ppid) continue;
+            int rc = kill(pid, SIGKILL);
+            Log::info() << "Killing child " << pid << std::endl;
+            if (rc == -1) {
+                Log::error() << "Could not kill fdb-server child: " << std::strerror(errno) << std::endl;
+            }
+            EXPECT_EQUAL(rc, 0);
+        }
     }
+    free(buffer);
+#else
+    std::ostringstream ss;
+    ss << "pkill -9 -P " << ppid << " fdb-server"; // << " > /dev/null";
+    const auto rc_system = system(ss.str().c_str());
+    if (rc_system == -1) {
+        Log::error() << "Could not check for fdb-server children: " << std::strerror(errno) << std::endl;
+    }
+#endif
+
+    int rc = kill(ppid, SIGKILL);
+    Log::info() << "Killing parent " << ppid << std::endl;
+    if (rc == -1) {
+        Log::error() << "Could not kill fdb-server parent: " << std::strerror(errno) << std::endl;
+    }
+    EXPECT_EQUAL(rc, 0);
 
     std::this_thread::sleep_for(1s);
-    EXPECT_EQUAL(rc, 0);
 }
 
 size_t count_in_file(const PathName& file, const std::string& text) {
@@ -169,13 +209,13 @@ CASE("FDB-419") {
     const auto req = fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0];
     EXPECT_NO_THROW(fdb_a.list(req));
     EXPECT_NO_THROW(fdb_b.list(req));
-    kill_server(-fdb_server_pid);
+    kill_server(fdb_server_pid);
     EXPECT_THROWS(fdb_a.list(req));
 
     fdb_server_pid = run_server(fdb_server_path, "srv2.log");
     EXPECT_NO_THROW(fdb_a.list(req));
     EXPECT_NO_THROW(fdb_b.list(req));
-    kill_server(-fdb_server_pid);
+    kill_server(fdb_server_pid);
     // Ensure only one connection is established with each server
     EXPECT_EQUAL(count_in_file("srv1.log", "FDB forked pid"), 1);
     EXPECT_EQUAL(count_in_file("srv2.log", "FDB forked pid"), 1);
