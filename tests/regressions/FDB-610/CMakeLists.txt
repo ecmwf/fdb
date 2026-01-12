@@ -17,7 +17,12 @@ file(CREATE_LINK
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/db_store)
 
-ecbuild_add_test(
-    TYPE     SCRIPT
-    COMMAND  FDB-610.sh
-    ENVIRONMENT "${test_environment}" )
+add_test(NAME test_610
+         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/FDB-610.sh)
+
+set_tests_properties(test_610
+    PROPERTIES
+        ENVIRONMENT "${test_environment}"
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+        )

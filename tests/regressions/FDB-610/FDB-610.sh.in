@@ -47,7 +47,7 @@ $fdbwrite --config $TEST_ROOT/fdb-remote.yaml $data
 $fdbread --config $TEST_ROOT/fdb-remote.yaml $TEST_ROOT/test.req out.grib
 actual_size=$(wc -c < out.grib)
 
-if [ "$actual_size" != "$expected_size" ]; then
+if [[ $actual_size -ne $expected_size ]]; then
     echo "Error: Did not read 2 messages!" >&2
     exit 1
 fi
