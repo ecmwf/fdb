@@ -8,21 +8,20 @@ ecbuild_configure_file( catalogue.yaml.in catalogue.yaml @ONLY )
 ecbuild_configure_file( store.yaml.in store.yaml @ONLY )
 ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
 
-# NOTE(kkratz): Disabled due to race condition that lets test intermittendly fail @ 2025-10-20
-# ecbuild_add_test(
-#     TARGET         FDB-491-remote-single-connection
-#     TYPE           SCRIPT
-#     COMMAND        ${FDB_TEST_SERVER_SCRIPT}
-#     ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
-#     TEST_DEPENDS   fdb_test_remote_api_bin
-#     RESOURCE_LOCK  fdb_remote_tests  # Prevent concurrent runs of remote tests
-#     LABELS         remotefdb
-#     ENVIRONMENT "${test_environment}"
-# )
-# 
+ecbuild_add_test(
+    TARGET         FDB-491-remote-single-connection
+    TYPE           SCRIPT
+    COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+    ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
+    TEST_DEPENDS   fdb_test_remote_api_bin
+    ENVIRONMENT    "${test_environment}"
+)
+
 # if (TARGET FDB-491-remote-single-connection)
-#     set_tests_properties(FDB-491-remote-single-connection 
-#         PROPERTIES 
-#         TIMEOUT 300
-#     )
+set_tests_properties(FDB-491-remote-single-connection 
+    PROPERTIES TIMEOUT 300
+    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    RUN_SERIAL  TRUE
+    LABELS remotefdb
+)
 # endif()

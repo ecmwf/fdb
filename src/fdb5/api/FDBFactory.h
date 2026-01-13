@@ -55,7 +55,7 @@ class FieldLocation;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : public CallbackRegistry {
+class FDBBase : public std::enable_shared_from_this<FDBBase>, public CallbackRegistry {
 
 public:  // methods
 
@@ -138,7 +138,7 @@ public:
 
     void add(const std::string& name, const FDBBuilderBase*);
 
-    std::unique_ptr<FDBBase> build(const Config& config);
+    std::shared_ptr<FDBBase> build(const Config& config);
 
 private:
 
@@ -153,7 +153,7 @@ private:
 class FDBBuilderBase {
 public:  // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
+    virtual std::shared_ptr<FDBBase> make(const Config& config) const = 0;
 
 protected:  // methods
 
@@ -179,7 +179,7 @@ public:  // methods
 
 private:  // methods
 
-    std::unique_ptr<FDBBase> make(const Config& config) const override { return std::make_unique<T>(config, name_); }
+    std::shared_ptr<FDBBase> make(const Config& config) const override { return std::make_shared<T>(config, name_); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

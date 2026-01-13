@@ -70,6 +70,8 @@ protected:  // members
 private:  // members
     const Notifier& wind_;
 
+    const Notifier& wind_;
+
     friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);
         return s;
