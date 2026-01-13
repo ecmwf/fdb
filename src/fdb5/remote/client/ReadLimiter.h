@@ -11,7 +11,6 @@
 #pragma once
 
 #include "eckit/io/Buffer.h"
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/database/Key.h"
@@ -38,12 +37,17 @@ struct RequestInfo {
 // Prevents asking the servers for more data until we have consumed the data we have already received.
 /// @note: Does not own any result buffers, just keeps track of their expected sizes.
 /// @todo: In future, we will have more fine-grained memory limits on individual queues.
-class ReadLimiter : eckit::NonCopyable {
+class ReadLimiter {
 public:
 
     static bool isInitialised();
 
     static ReadLimiter& instance();
+
+    ReadLimiter(const ReadLimiter&)            = delete;
+    ReadLimiter& operator=(const ReadLimiter&) = delete;
+    ReadLimiter(ReadLimiter&&)                 = delete;
+    ReadLimiter& operator=(ReadLimiter&&)      = delete;
 
     static void init(size_t memoryLimit);
 
