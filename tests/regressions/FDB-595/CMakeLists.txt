@@ -14,4 +14,4 @@ set_tests_properties(FDB-595
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         RUN_SERIAL  TRUE
         LABELS remotefdb
-        )
+)

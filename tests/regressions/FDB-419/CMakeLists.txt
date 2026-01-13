@@ -20,11 +20,11 @@ ecbuild_add_test(
     ENVIRONMENT "${test_environment}"
 )
 
-if (TARGET FDB-419)
-    set_tests_properties(FDB-419
-        PROPERTIES 
-        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
-        RUN_SERIAL  TRUE
-        LABELS remotefdb
-    )
-endif()
+# if (TARGET FDB-419)
+set_tests_properties(FDB-419
+    PROPERTIES 
+    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    RUN_SERIAL  TRUE
+    LABELS remotefdb
+)
+# endif()
