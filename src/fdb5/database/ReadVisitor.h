@@ -68,7 +68,6 @@ protected:  // members
     CatalogueReader* catalogue_{};
 
 private:  // members
-    const Notifier& wind_;
 
     const Notifier& wind_;
 
