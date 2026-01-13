@@ -398,15 +398,11 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
         }
         case Message::Error: {
 
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
+            std::ostringstream ss;
+            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
+               << requestID << std::endl;
+            throw RemoteFDBException(ss.str(), controlEndpoint());
 
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(it);
-                return true;
-            }
             return false;
         }
         default:

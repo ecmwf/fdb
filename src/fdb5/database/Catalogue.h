@@ -81,15 +81,6 @@ public:
 
     virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
 
-    virtual bool uriBelongs(const eckit::URI& uri) const = 0;
-
-    /// For use by the WipeVisitor
-    virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
-
-    /// For use by purge/wipe
-    virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                           std::set<eckit::URI>& data) const = 0;
-
     friend std::ostream& operator<<(std::ostream& s, const Catalogue& x);
     virtual void print(std::ostream& out) const = 0;
 
@@ -105,6 +96,14 @@ public:
     virtual eckit::URI uri() const = 0;
 
     /// Wipe-related methods
+    virtual bool uriBelongs(const eckit::URI& uri) const = 0;
+
+    /// For use by the WipeVisitor
+    virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
+
+    /// For use by purge/wipe
+    virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                           std::set<eckit::URI>& data) const = 0;
 
     /// Generate the initial wipe state object
     virtual CatalogueWipeState wipeInit() const = 0;

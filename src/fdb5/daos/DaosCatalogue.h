@@ -57,19 +57,20 @@ public:  // methods
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override {
-        NOTIMP;
-    };
-
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
 
-    bool wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include) const override;
-    std::set<eckit::URI> wipeFinish() const override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe() const override;
+    /// Wipe-related methods
+    bool uriBelongs(const eckit::URI& uri) const override { return false; }
+    void maskIndexEntries(const std::set<Index>& indexes) const override {}
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override {}
+
+    CatalogueWipeState wipeInit() const override;
+    bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override { return false; }
+    void wipeFinalise(CatalogueWipeState& wipeState) const override {}
+    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override { return false; }
+    bool doWipe(const CatalogueWipeState& wipeState) const override { return false; }
+    void doWipeEmptyDatabases() const override {}
 
 protected:  // members
 

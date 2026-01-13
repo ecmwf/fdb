@@ -95,7 +95,7 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
                 return Handled::YesRemoveArchiveListener;  // ????
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 eckit::Log::status() << ss.str() << std::endl;
                 eckit::Log::error() << ss.str() << std::endl;
@@ -122,7 +122,7 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
                 return Handled::Replied;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 eckit::Log::status() << ss.str() << std::endl;
                 eckit::Log::error() << ss.str() << std::endl;
@@ -167,7 +167,7 @@ void ServerConnection::initialiseConnections() {
     }
 
     if (!LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
         ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr()
            << std::endl;
@@ -242,13 +242,13 @@ void ServerConnection::initialiseConnections() {
         eckit::SessionID serverSession(s2);
 
         if (clientSession != clientSession2) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Client session IDs do not match: " << clientSession << " != " << clientSession2;
             throw eckit::BadValue(ss.str(), Here());
         }
 
         if (serverSession != sessionID_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
             throw eckit::BadValue(ss.str(), Here());
         }
@@ -358,7 +358,7 @@ void ServerConnection::listeningThreadLoopData() {
                         break;
                     case Handled::No:
                     default:
-                        std::stringstream ss;
+                        std::ostringstream ss;
                         ss << "Unable to handle message " << hdr.message << " received on the data connection";
                         error(ss.str(), hdr.clientID(), hdr.requestID);
                 }
@@ -442,7 +442,7 @@ void ServerConnection::handle() {
                         break;
                     case Handled::No:
                     default:
-                        std::stringstream ss;
+                        std::ostringstream ss;
                         ss << "Unable to handle message " << hdr.message;
                         error(ss.str(), hdr.clientID(), hdr.requestID);
                 }

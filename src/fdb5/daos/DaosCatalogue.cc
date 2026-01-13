@@ -16,12 +16,12 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/WipeState.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
-// #include "fdb5/daos/DaosWipeVisitor.h"
 
 // using namespace eckit;
 
@@ -174,21 +174,8 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
         n.destroy();
 }
 
-
-bool DaosCatalogue::wipeInit() const {
-    return true;
-}
-bool DaosCatalogue::wipeIndex(const Index& index, bool include) const {
-    return true;
-}
-std::set<eckit::URI> DaosCatalogue::wipeFinish() const {
-    return {};
-}
-bool DaosCatalogue::doWipe(const std::vector<eckit::URI>& unknownURIs) const {
-    return true;
-}
-bool DaosCatalogue::doWipe() const {
-    return true;
+CatalogueWipeState DaosCatalogue::wipeInit() const {
+    return CatalogueWipeState{};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
