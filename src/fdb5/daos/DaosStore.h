@@ -48,10 +48,11 @@ public:  // methods
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
     // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
-    bool canWipe(const std::set<eckit::URI>& uris, const std::set<eckit::URI>& safeURIs, bool all,
-                 bool unsafeAll) override;
-    bool doWipe(const std::vector<eckit::URI>& unknownURIs) const override;
-    bool doWipe() const override;
+    /// Wipe-related methods
+    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override {}
+    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override { return false; }
+    bool doWipe(const StoreWipeState& wipeState) const override { return false; }
+    void doWipeEmptyDatabases() const override {}
 
 protected:  // methods
 
