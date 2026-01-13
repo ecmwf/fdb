@@ -45,11 +45,6 @@ public:  // methods
     ReadVisitor(ReadVisitor&&)                 = delete;
     ReadVisitor& operator=(ReadVisitor&&)      = delete;
 
-    ReadVisitor(const ReadVisitor&)            = delete;
-    ReadVisitor& operator=(const ReadVisitor&) = delete;
-    ReadVisitor(ReadVisitor&&)                 = delete;
-    ReadVisitor& operator=(ReadVisitor&&)      = delete;
-
     virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;

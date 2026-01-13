@@ -63,7 +63,8 @@ public:  // methods
     /// Wipe-related methods
     bool uriBelongs(const eckit::URI& uri) const override { return false; }
     void maskIndexEntries(const std::set<Index>& indexes) const override {}
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override {}
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                   std::set<eckit::URI>& data) const override {}
 
     CatalogueWipeState wipeInit() const override;
     bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override { return false; }
