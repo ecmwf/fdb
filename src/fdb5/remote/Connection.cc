@@ -46,13 +46,13 @@ void Connection::writeUnsafe(const eckit::net::TCPSocket& socket, const void* co
     long written = socket.write(data, length);
     if (written < 0) {
         isValid_ = false;
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Write error. Expected " << length << ". Error = " << eckit::Log::syserr;
         throw TCPException(ss.str(), Here());
     }
     if (length != written) {
         isValid_ = false;
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Write error. Expected " << length << " bytes, wrote " << written;
         throw TCPException(ss.str(), Here());
     }
@@ -65,7 +65,7 @@ bool Connection::readUnsafe(const eckit::net::TCPSocket& socket, void* data, siz
         if (closingSocket_) {
             return false;
         }
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Read error. Expected " << length << " bytes";
         if (read > 0) {
             ss << ", read " << read << " bytes";

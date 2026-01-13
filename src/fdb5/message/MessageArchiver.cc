@@ -26,7 +26,6 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/message/MessageArchiver.h"
 
 // For HAVE_FAIL_ON_CCSDS

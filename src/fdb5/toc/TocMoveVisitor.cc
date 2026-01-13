@@ -59,7 +59,7 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
             eckit::PathName src_ = PathName(catalogue_.basePath()) / dp->d_name;
             int fd               = ::open(src_.asString().c_str(), O_RDWR);
             if (::flock(fd, LOCK_EX)) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Index file " << dp->d_name << " is locked";
                 throw eckit::UserError(ss.str(), Here());
             }
@@ -79,7 +79,7 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
                 eckit::PathName dest_db = destPath / catalogue_.basePath().baseName(true);
 
                 if (dest_db.exists()) {
-                    std::stringstream ss;
+                    std::ostringstream ss;
                     ss << "Target folder already exist!" << std::endl;
                     throw UserError(ss.str(), Here());
                 }
@@ -88,14 +88,14 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
             }
         }
         if (!found) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Destination " << dest_ << " cannot be used to archive a DB with key: " << catalogue_.key()
                << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
     }
     else {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Destination " << dest_ << " not supported." << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }

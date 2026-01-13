@@ -39,8 +39,7 @@ public:  // methods
     static void regist(const std::string& name, FileSpaceHandlerInstance* h);
     static void unregist(const std::string& name);
 
-    FileSpaceHandler() = default;
-
+    FileSpaceHandler()                                   = delete;
     FileSpaceHandler(const FileSpaceHandler&)            = delete;
     FileSpaceHandler& operator=(const FileSpaceHandler&) = delete;
     FileSpaceHandler(FileSpaceHandler&&)                 = delete;

@@ -39,7 +39,7 @@ private:  // types
     class FDBLane {
         SelectMatcher matcher_;
         Config config_;
-        std::unique_ptr<FDBBase> fdb_;
+        std::shared_ptr<FDBBase> fdb_;
 
     public:
 
