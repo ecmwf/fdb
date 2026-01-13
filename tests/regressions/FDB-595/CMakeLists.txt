@@ -2,12 +2,15 @@
 
 ecbuild_configure_file( FDB-595.sh.in FDB-595.sh @ONLY )
 
-add_test(NAME test_595
-         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/FDB-595.sh)
+ecbuild_add_test(
+    TARGET         FDB-595
+    TYPE           SCRIPT
+    COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/FDB-595.sh
+    ENVIRONMENT    "${test_environment}"
+)
 
-set_tests_properties(test_595
+set_tests_properties(FDB-595
     PROPERTIES
-        ENVIRONMENT "${test_environment}"
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         RUN_SERIAL  TRUE
         LABELS remotefdb
