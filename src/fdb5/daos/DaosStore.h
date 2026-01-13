@@ -44,6 +44,7 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Wipe-related methods
     void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
     bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(const StoreWipeState& wipeState) const override;
@@ -52,6 +53,7 @@ public:  // methods
 
     // DAOS store does not currently support auxiliary objects
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+    // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
 protected:  // methods
 

@@ -185,7 +185,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
                                    << parentKey << std::endl;
 
             if (parentKey.size() != key.size()) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                 throw UserError(ss.str(), Here());
             }
@@ -194,7 +194,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
                 const auto [it, found] = key.find(kv.first);
 
                 if (!found) {
-                    std::stringstream ss;
+                    std::ostringstream ss;
                     ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                     throw UserError(ss.str(), Here());
                 }

@@ -57,7 +57,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::YesAddArchiveListener;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;
@@ -113,7 +113,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;
@@ -210,7 +210,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     fdb5::Key dbKey(s);
     fdb5::Key idxKey(s);
 
-    std::stringstream ss_key;
+    std::ostringstream ss_key;
     ss_key << dbKey << idxKey;
 
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic

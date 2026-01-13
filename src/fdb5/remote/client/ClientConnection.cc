@@ -313,7 +313,7 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
     }
 
     if (clientSession != sessionID_) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Session ID does not match session received from server: " << sessionID_ << " != " << clientSession;
         throw eckit::BadValue(ss.str(), Here());
     }
@@ -376,7 +376,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
                             auto it = clients_.find(hdr.clientID());
                             if (it == clients_.end()) {
-                                std::stringstream ss;
+                                std::ostringstream ss;
                                 ss << "ERROR: CONTROL connection=" << controlEndpoint_
                                    << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
                                    << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
@@ -397,7 +397,7 @@ void ClientConnection::listeningControlThreadLoop() {
                     }
 
                     if (!handled) {
-                        std::stringstream ss;
+                        std::ostringstream ss;
                         ss << "ERROR: CONTROL connection=" << controlEndpoint_
                            << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
                            << ",requestID=" << hdr.requestID << "]. ABORTING";
@@ -456,7 +456,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
                         auto it = clients_.find(hdr.clientID());
                         if (it == clients_.end()) {
-                            std::stringstream ss;
+                            std::ostringstream ss;
                             ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
                                << ",requestID=" << hdr.requestID << ",message=" << hdr.message
                                << ",payload=" << hdr.payloadSize << "]" << std::endl;
@@ -478,7 +478,7 @@ void ClientConnection::listeningDataThreadLoop() {
                     }
 
                     if (!handled) {
-                        std::stringstream ss;
+                        std::ostringstream ss;
                         ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
                            << hdr.message << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;

@@ -63,11 +63,6 @@ protected:  // methods
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override {
-        NOTIMP;
-    };
-
     // Control access properties of the DB
     /// @todo: control identifiers are for now being ignored in DAOS, but must be implemented with
     ///    entries in the dataset KV

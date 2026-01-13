@@ -78,7 +78,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::YesAddArchiveListener;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;
@@ -156,7 +156,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             default: {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
                 Log::status() << ss.str() << std::endl;
                 Log::error() << ss.str() << std::endl;

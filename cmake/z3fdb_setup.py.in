@@ -3,7 +3,12 @@ from setuptools import setup
 setup(
     name="z3fdb",
     version="@fdb5_VERSION_STR@",
-    packages=["z3fdb", "pychunked_data_view", "chunked_data_view_bindings"],
+    packages=[
+        "z3fdb",
+        "z3fdb._internal",
+        "pychunked_data_view",
+        "chunked_data_view_bindings",
+    ],
     package_data={
         "chunked_data_view_bindings": ["*.so", "*.pyd"],
     },

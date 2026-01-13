@@ -40,7 +40,7 @@ std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const vo
 }
 
 bool Store::canMoveTo(const Key& /*key*/, const Config& /*config*/, const eckit::URI& /*dest*/) const {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
     throw eckit::UserError(ss.str(), Here());
 }

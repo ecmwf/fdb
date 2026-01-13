@@ -35,6 +35,8 @@ public:  // methods
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
+    ~RemoteCatalogue() override;
+
     // From CatalogueWriter
     const Index& currentIndex() override;
     bool createIndex(const Key& idxKey, size_t datumKeySize) override;
@@ -56,7 +58,6 @@ public:  // methods
 
     bool uriBelongs(const eckit::URI& uri) const override;
 
-    void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
     void dump(std::ostream& out, bool simple = false,
               const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;

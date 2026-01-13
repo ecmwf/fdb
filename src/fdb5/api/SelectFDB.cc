@@ -92,7 +92,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
         }
     }
 
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "No matching fdb for key: " << key;
     throw eckit::UserError(ss.str(), Here());
 }
