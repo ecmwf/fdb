@@ -56,6 +56,7 @@ protected:  // methods
         NOTIMP;
     };
     void maskIndexEntries(const std::set<Index>& indexes) const override;
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override {}
 
     void loadSchema() override;
 

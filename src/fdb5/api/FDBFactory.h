@@ -68,6 +68,10 @@ public:  // methods
 
     virtual ~FDBBase() = default;
 
+    std::shared_ptr<FDBBase> shared() {
+        return shared_from_this();
+    }
+    
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
