@@ -36,7 +36,7 @@ public:  // methods
 
 private:
 
-    std::unique_ptr<FDBBase> make(const Config& config) const {
+    std::shared_ptr<FDBBase> make(const Config& config) const {
 
         // Get a list of FDBs to choose between
 

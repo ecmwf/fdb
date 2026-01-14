@@ -9,7 +9,7 @@ on:
     tags:
       - '**'
 jobs:
-  build:
+  build-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     outputs:
@@ -23,39 +23,105 @@ jobs:
           python-version: '3.13'
       - name: Install python dependencies
         run: |
-          python -m pip install -r docs/requirements.txt
+          python -m pip install -r docs/fdb/requirements.txt
       - name: Prepare Doxygen
         uses: ecmwf/reusable-workflows/setup-doxygen@main
         with:
           version: 1.14.0
       - name: Build doc
         run: |
-          DOCBUILD_OUTPUT=docs_out ./docs/build_docs.sh
+          DOCBUILD_OUTPUT=docs_out ./docs/fdb/build_docs.sh
       - name: Archive documentation
         id: upload-doc
         uses: actions/upload-artifact@v4
         with:
-          name: documentation
+          name: documentation-fdb
           path: docs_out/sphinx
-  preview-publish:
+  preview-publish-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-    needs: build
+    needs: build-fdb
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-publish.yml@main
     with:
-      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
       name: dev-section
       path: fdb/pull-requests
-      link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
+      link-tag: PREVIEW-PUBLISH-FDB
+      link-text: 🌈🌦️📖🚧 Documentation FDB 🚧📖🌦️🌈
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
-  preview-unpublish:
+  preview-unpublish-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@main
     with:
       space: docs
       name: dev-section
       path: fdb/pull-requests
+    secrets:
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+  publish-fdb:
+    if: >-
+      ${{ github.event_name == 'push' && (
+        github.ref_name == 'develop' ||
+        github.ref_name == 'master'  ||
+        github.ref_type == 'tag'
+      ) }}
+    needs: build-fdb
+    uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@main
+    with:
+      artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
+      space: docs
+      name: dev-section
+      path: fdb
+      id: ${{ github.ref_name }}
+      softlink: ${{ github.ref_name == 'master'   && 'stable'
+                 || github.ref_name == 'develop' && 'latest' }}
+    secrets:
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+  build-z3fdb:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' || github.event_name == 'push'}}
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload-doc.outputs.artifact-id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install python dependencies
+        run: |
+          python -m pip install -r docs/z3fdb/requirements.txt
+      - name: Build doc
+        run: |
+          DOCBUILD_OUTPUT=docs_out ./docs/z3fdb/build_docs.sh
+      - name: Archive documentation
+        id: upload-doc
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-z3fdb
+          path: docs_out/sphinx
+  preview-publish-z3fdb:
+    if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+    needs: build-z3fdb
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-publish.yml@main
+    with:
+      artifact-id: ${{ needs.build-z3fdb.outputs.artifact-id }}
+      space: docs
+      name: dev-section
+      path: z3fdb/pull-requests
+      link-tag: PREVIEW-PUBLISH-Z3FDB
+      link-text: 🌈🌦️📖🚧 Documentation Z3FDB 🚧📖🌦️🌈
+    secrets:
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+  preview-unpublish-z3fdb:
+    if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
+    uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@main
+    with:
+      space: docs
+      name: dev-section
+      path: z3fdb/pull-requests
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
   publish:
@@ -65,13 +131,13 @@ jobs:
         github.ref_name == 'master'  ||
         github.ref_type == 'tag'
       ) }}
-    needs: build
+    needs: build-z3fdb
     uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@main
     with:
-      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      artifact-id: ${{ needs.build-z3fdb.outputs.artifact-id }}
       space: docs
       name: dev-section
-      path: fdb
+      path: z3fdb
       id: ${{ github.ref_name }}
       softlink: ${{ github.ref_name == 'master'   && 'stable'
                  || github.ref_name == 'develop' && 'latest' }}

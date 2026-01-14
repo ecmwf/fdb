@@ -1,0 +1,17 @@
+from setuptools import setup
+
+setup(
+    name="z3fdb",
+    version="@fdb5_VERSION_STR@",
+    packages=[
+        "z3fdb",
+        "z3fdb._internal",
+        "pychunked_data_view",
+        "chunked_data_view_bindings",
+    ],
+    package_data={
+        "chunked_data_view_bindings": ["*.so", "*.pyd"],
+    },
+    install_requires=["numpy", "zarr>=3,<4", "findlibs"],
+    has_ext_modules=lambda: True,
+)

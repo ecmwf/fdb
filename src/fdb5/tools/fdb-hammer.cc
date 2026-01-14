@@ -1304,7 +1304,6 @@ void FDBHammer::executeWrite() {
                 int remaining = step_end_due_timestamp.tv_sec - current_timestamp.tv_sec;
                 if (remaining > 0) {
                     ::sleep(remaining);
-                    // std::cout << "Waiting " << remaining << " seconds at end of step " << istep << std::endl;
                     total_slept += remaining;
                 }
                 if (remaining < 0) {

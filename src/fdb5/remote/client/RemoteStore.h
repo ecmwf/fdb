@@ -52,6 +52,8 @@ public:
         if (it == locations_.end()) {
             return false;
         }
+
+        // Invoke the callback to archive the location in the catalogue
         it->second(std::move(location));
 
         locations_.erase(it);
@@ -150,7 +152,7 @@ protected:  // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    void archive(
+    void archiveCb(
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
@@ -160,6 +162,7 @@ protected:  // methods
 
 private:  // methods
 
+    const eckit::Configuration& clientConfig() const override;
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;

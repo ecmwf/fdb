@@ -30,6 +30,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 
 namespace fdb5::remote {
 
@@ -96,7 +97,7 @@ public:  // methods
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
-    const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
+    const RemoteConfiguration& agreedConf() const { return agreedConf_; }
 
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -105,7 +106,7 @@ protected:
 
     // socket methods
     int selectDataPort();
-    eckit::LocalConfiguration availableFunctionality() const;
+    RemoteConfiguration availableFunctionality() const;
 
     // Worker functionality
     void tidyWorkers();
@@ -143,7 +144,7 @@ protected:
     eckit::Queue<readLocationElem> readLocationQueue_;
 
     eckit::SessionID sessionID_;
-    eckit::LocalConfiguration agreedConf_;
+    RemoteConfiguration agreedConf_;
     std::mutex readLocationMutex_;
     std::thread readLocationWorker_;
 

@@ -28,9 +28,15 @@
 namespace eckit {
 
 class Buffer;
+class Value;
+
+}  // namespace eckit
+
+namespace fdb5 {
+
+class Config;
 
 }
-
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,7 +50,7 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Connection : eckit::NonCopyable {
+class Connection {
 
 public:  // types
 
@@ -53,6 +59,11 @@ public:  // types
 public:  // methods
 
     Connection();
+
+    Connection(const Connection&)            = delete;
+    Connection& operator=(const Connection&) = delete;
+    Connection(Connection&&)                 = delete;
+    Connection& operator=(Connection&&)      = delete;
 
     virtual ~Connection() = default;
 

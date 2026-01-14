@@ -1,0 +1,12 @@
+type: catalogue
+serverPort: 8000
+engine: toc
+schema: ~fdb/schema
+supportedConnections: [1]
+spaces:
+- handler: Default
+  roots:
+  - path: ~fdb/db_store
+stores:
+  - default: "localhost:8001"
+    serveLocalData: True

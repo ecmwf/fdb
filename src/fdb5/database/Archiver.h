@@ -24,8 +24,6 @@
 #include <mutex>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
@@ -46,14 +44,19 @@ class Schema;
 
 struct Database {
     time_t time_;
-    std::unique_ptr<CatalogueWriter> catalogue_;
+    std::shared_ptr<CatalogueWriter> catalogue_;
     std::unique_ptr<Store> store_;
 };
-class Archiver : public eckit::NonCopyable {
+class Archiver {
 
 public:  // methods
 
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
+
+    Archiver(const Archiver&)            = delete;
+    Archiver& operator=(const Archiver&) = delete;
+    Archiver(Archiver&&)                 = delete;
+    Archiver& operator=(Archiver&&)      = delete;
 
     virtual ~Archiver();
 

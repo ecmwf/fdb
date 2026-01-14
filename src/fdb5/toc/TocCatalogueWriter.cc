@@ -164,14 +164,12 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     private:
 
+        using EntryVisitor::visitDatum;
         void visitDatum(const Field& field, const Key& datumKey) override {
             /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(datumKey, location.uri(), location.offset(), location.length());
-        }
-        void visitDatum(const Field& field, const std::string& keyFingerprint) override {
-            EntryVisitor::visitDatum(field, keyFingerprint);
         }
 
         TocCatalogueWriter& writer_;
@@ -256,7 +254,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
     const Key& otherKey(otherCatalogue.key());
 
     if (otherKey.size() != TocCatalogue::dbKey_.size()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
         throw UserError(ss.str(), Here());
     }
@@ -267,14 +265,14 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
         const auto [it, found] = otherKey.find(kv.first);
         if (!found) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());
         }
 
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : "
                    << otherKey;
                 throw UserError(ss.str(), Here());
@@ -292,7 +290,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
         eckit::PathName stPath(otherCatalogue.tocPath());
         if (subtocs.find(stPath) == subtocs.end()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Cannot unmount DB: " << otherCatalogue << ". Not currently mounted";
             throw UserError(ss.str(), Here());
         }

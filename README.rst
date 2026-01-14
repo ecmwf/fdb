@@ -1,13 +1,32 @@
 ===
-fdb
+FDB
 ===
 
 |Licence|
 
-FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing, indexing and retrieving GRIB data. Each GRIB message is stored as a field and indexed trough semantic metadata (i.e. physical variables such as temperature, pressure, ...).
-A set of fields can be retrieved specifying a request using a specific language developed for accessing MARS_ Archive
+FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for
+storing, indexing and retrieving GRIB data. Each GRIB message is stored as a
+field and indexed trough semantic metadata (i.e. physical variables such as
+temperature, pressure, ...). A set of fields can be retrieved specifying a
+request using a specific language developed for accessing MARS_ Archive
 
-FDB exposes a C++ API as well as CLI tools_. 
+FDB consists of several artefacts:
+
+libfdb.so
+---------
+
+In-process database with C++ API
+
+fdb-tools
+---------
+
+Commandline tools to interact with FDB trough CLI tools_
+
+z3fdb
+-----
+
+A python-zarr v3 store implementation that provides a virtual zarr store from
+FDB.
 
 
 Requirements
@@ -30,7 +49,8 @@ Installation
 
 fdb employs an out-of-source build/install based on CMake.
 
-Make sure ecbuild is installed and the ecbuild executable script is found ( ``which ecbuild`` ).
+Make sure ecbuild is installed and the ecbuild executable script is found (
+``which ecbuild`` ).
 
 Now proceed with installation as follows:
 ::
@@ -54,8 +74,11 @@ Now proceed with installation as follows:
 How to reference FDB5
 ---------------------
 
-Two publications, co-authored by Simon D. Smart, Tiago Quintino, Baudouin Raoult
-describe fdb architecture and have been presented at PASC'17 `A Scalable Object Store for Meteorological and Climate Data`_ and PASC'19 `A High-Performance Distributed Object-Store for Exascale Numerical Weather Prediction and Climate`_
+Two publications, co-authored by Simon D. Smart, Tiago Quintino, Baudouin
+Raoult describe fdb architecture and have been presented at PASC'17 `A Scalable
+Object Store for Meteorological and Climate Data`_ and PASC'19 `A
+High-Performance Distributed Object-Store for Exascale Numerical Weather
+Prediction and Climate`_
 
 In the following the two BibTeX snippets:
 ::
@@ -102,5 +125,4 @@ In the following the two BibTeX snippets:
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE
    :alt: Apache Licence
 
-.. _mars: docs/content/mars.rst
 .. _tools: docs/content/tools.rst

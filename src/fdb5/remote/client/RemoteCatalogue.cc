@@ -54,14 +54,15 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config) :
-    CatalogueImpl(key, {}, config), Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {}
+    CatalogueImpl(key, {}, config), Client(config) {}
 
 // Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB
 // for catalogue traversal this ctor is here only to comply with the factory
-RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) :
-    Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {
+RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) : Client(config) {
     NOTIMP;
 }
+
+RemoteCatalogue::~RemoteCatalogue() = default;
 
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
@@ -188,6 +189,10 @@ void RemoteCatalogue::loadSchema() {
     schema();
 }
 
+const eckit::Configuration& RemoteCatalogue::clientConfig() const {
+    return config();
+}
+
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
     Log::warning() << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID << "]"
                    << std::endl;
@@ -211,9 +216,6 @@ void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
 std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-    NOTIMP;
-}
-void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     NOTIMP;
 }
 void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {

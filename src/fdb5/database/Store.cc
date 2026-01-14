@@ -24,8 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Store::archive(const Key& key, const void* data, eckit::Length length,
-                    std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
+void Store::archiveCb(const Key& key, const void* data, eckit::Length length,
+                      std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
     catalogue_archive(archive(key, data, length));
 }
 
@@ -35,7 +35,7 @@ std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const vo
 }
 
 bool Store::canMoveTo(const Key& /*key*/, const Config& /*config*/, const eckit::URI& /*dest*/) const {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
     throw eckit::UserError(ss.str(), Here());
 }

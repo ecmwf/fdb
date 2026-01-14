@@ -125,7 +125,7 @@ const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const eckit::net::Endpoint&
     // looking for an alias for the given endpoint
     auto it = storesReadMapping_.find(fieldLocationEndpoint);
     if (it == storesReadMapping_.end()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Unable to find a matching endpoint. Looking for " << fieldLocationEndpoint << std::endl;
         ss << "Available endpoints:" << std::endl;
         for (auto s : storesReadMapping_) {
@@ -137,7 +137,7 @@ const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const eckit::net::Endpoint&
 }
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name) :
-    LocalFDB(config, name), Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
+    LocalFDB(config, name), Client(config) {
 
     eckit::Buffer buf = controlWriteReadResponse(remote::Message::Stores, generateRequestID());
     eckit::MemoryStream s(buf);
@@ -250,7 +250,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
             eckit::Buffer msg{0};
             while (true) {
                 if (messageQueue->pop(msg) == -1) {
@@ -286,6 +286,10 @@ void RemoteFDB::print(std::ostream& s) const {
 }
 
 // Client
+const eckit::Configuration& RemoteFDB::clientConfig() const {
+    return config();
+}
+
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
 
     switch (message) {
@@ -304,16 +308,12 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
         }
         case fdb5::remote::Message::Error: {
 
-            auto it = messageQueues_.find(requestID);
-            if (it == messageQueues_.end()) {
-                return false;
-            }
+            std::ostringstream ss;
+            ss << "RemoteFDB - client id: " << clientId()
+               << " - received an error without error description for requestID " << requestID << std::endl;
+            throw RemoteFDBException(ss.str(), controlEndpoint());
 
-            it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
-            messageQueues_.erase(it);
-            return true;
+            return false;
         }
         default:
             return false;

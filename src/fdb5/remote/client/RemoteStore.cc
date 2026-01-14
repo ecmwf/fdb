@@ -220,11 +220,11 @@ Client::EndpointList storeEndpoints(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
+    Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
 }
@@ -265,7 +265,7 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-void RemoteStore::archive(
+void RemoteStore::archiveCb(
     const Key& key, const void* data, eckit::Length length,
     std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
 
@@ -355,6 +355,10 @@ void RemoteStore::closeConnection() {
     }
 }
 
+const eckit::Configuration& RemoteStore::clientConfig() const {
+    return config();
+}
+
 bool RemoteStore::handle(Message message, uint32_t requestID) {
 
     switch (message) {
@@ -383,15 +387,11 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
         }
         case Message::Error: {
 
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
+            std::ostringstream ss;
+            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
+               << requestID << std::endl;
+            throw RemoteFDBException(ss.str(), controlEndpoint());
 
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(it);
-                return true;
-            }
             return false;
         }
         default:

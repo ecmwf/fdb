@@ -51,6 +51,7 @@ public:
 
     bool visitIndex(const Index& index) override;
 
+    using QueryVisitor<AxesElement>::visitDatum;
     void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
 private:  // members

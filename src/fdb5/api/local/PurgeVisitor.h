@@ -46,7 +46,6 @@ public:
     void catalogueComplete(const Catalogue& catalogue) override;
 
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
 private:  // members

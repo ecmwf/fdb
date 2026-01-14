@@ -1,0 +1,12 @@
+type: local
+engine: toc
+schema: ./schema
+spaces:
+- regex: .*
+  handler: Default
+  roots:
+  - path: ./localroot
+    wipe: true
+    archive: true
+    list: true
+    retrieve: true

@@ -1,0 +1,2 @@
+class MarsRequestFormattingError(RuntimeError):
+    pass

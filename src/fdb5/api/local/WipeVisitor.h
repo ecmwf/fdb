@@ -48,7 +48,6 @@ public:  // methods
     void catalogueComplete(const Catalogue& catalogue) override;
 
     void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }

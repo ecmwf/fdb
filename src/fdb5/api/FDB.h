@@ -290,7 +290,9 @@ private:  // methods
 
 private:  // members
 
-    std::unique_ptr<FDBBase> internal_;
+    /// @brief The FDBBase instance is held in a shared_ptr so that it can be kept alive by any Iterator instances
+    /// (e.g. list, inspect) created by this FDB object.
+    std::shared_ptr<FDBBase> internal_;
 
     bool dirty_;
     bool reportStats_;
