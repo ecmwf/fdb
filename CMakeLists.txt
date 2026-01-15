@@ -128,6 +128,7 @@ ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
 if(HAVE_PYTHON_ZARR_INTERFACE)
     find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+    set(Python_INTERPRETER ${Python_EXECUTABLE})
 endif()
 
 
