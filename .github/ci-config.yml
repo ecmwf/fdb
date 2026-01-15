@@ -4,6 +4,7 @@ dependencies: |
   ecmwf/eccodes
   ecmwf/eckit
   ecmwf/metkit
+  pybind/pybind11@v2.13.6
 dependency_branch: develop
 cmake_options: -DENABLE_DUMMY_DAOS=ON -DENABLE_PYTHON_ZARR_INTERFACE=ON
 parallelism_factor: 8
