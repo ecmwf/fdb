@@ -1,5 +1,6 @@
 zarr>=3,<4
 numpy
+pybind11>=2.11
 pytest
 pytest-asyncio
 eccodes
