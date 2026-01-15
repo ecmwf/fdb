@@ -6,7 +6,7 @@ build:
     - ecmwf/eccodes@develop
     - ecmwf/eckit@develop
     - ecmwf/metkit@develop
-    - pybind/pybind11@refs/tags/v2.13.6
+    - pybind/pybind11@refs/tags/v3.0.1
   cmake_options:
     - -DENABLE_LUSTRE=OFF
     - -DENABLE_DUMMY_DAOS=ON
