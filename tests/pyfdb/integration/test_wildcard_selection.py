@@ -15,175 +15,175 @@ from pyfdb.pyfdb_type import ControlAction, ControlIdentifier, WildcardMarsSelec
 
 import pytest
 
-# def test_list_wildcard(read_only_fdb_setup):
-#     fdb_config_path = read_only_fdb_setup
-#
-#     assert fdb_config_path
-#
-#     fdb = FDB(fdb_config_path)
-#     selection = WildcardMarsSelection()
-#     print(f"Stringified selection:\n  {selection}")
-#     list_iterator = fdb.list(selection, level=1)
-#     assert list_iterator
-#
-#     elements = []
-#
-#     for el in list_iterator:
-#         print(el)
-#         elements.append(el)
-#
-#     assert len(elements) == 32
-#
-#     print("----------------------------------")
-#
-#     list_iterator = fdb.list(selection, level=2)
-#     assert list_iterator
-#
-#     elements = []
-#
-#     for el in list_iterator:
-#         print(el)
-#         elements.append(el)
-#
-#     assert len(elements) == 32
-#
-#     print("----------------------------------")
-#
-#     list_iterator = fdb.list(selection, level=3)
-#     assert list_iterator
-#
-#     elements = []
-#
-#     for el in list_iterator:
-#         print(el)
-#         print(el.uri())
-#         elements.append(el)
-#
-#     assert len(elements) == 96
-#
-#
-# def test_status_wildcard(read_only_fdb_setup):
-#     fdb_config_path = read_only_fdb_setup
-#
-#     assert fdb_config_path
-#
-#     fdb = FDB(fdb_config_path)
-#     selection = WildcardMarsSelection()
-#     status_iterator = fdb.status(selection)
-#
-#     elements = []
-#
-#     for el in status_iterator:
-#         print(el)
-#         elements.append(el)
-#
-#     assert len(elements) == 32
-#
-#
-# def test_wipe_dryrun_wildcard(read_write_fdb_setup):
-#     fdb = FDB(read_write_fdb_setup)
-#     elements = list(fdb.list(WildcardMarsSelection()))
-#     initial_len = len(elements)
-#
-#     wipe_iterator = fdb.wipe(WildcardMarsSelection())
-#     wiped_elements = list(wipe_iterator)
-#     assert len(wiped_elements) > initial_len
-#
-#     for el in wiped_elements:
-#         print(el)
-#
-#     elements_after_wipe = list(fdb.list(WildcardMarsSelection()))
-#     assert initial_len == len(elements_after_wipe)
-#
-#
-# def test_wipe_all_doit_wildcard(read_write_fdb_setup):
-#     fdb_config_path = read_write_fdb_setup
-#
-#     fdb = FDB(fdb_config_path)
-#
-#     elements = list(fdb.list(WildcardMarsSelection()))
-#     assert len(elements) > 0
-#
-#     wipe_iterator = fdb.wipe(WildcardMarsSelection(), doit=True)
-#     wiped_elements = list(wipe_iterator)
-#     assert len(wiped_elements) > 0
-#
-#     elements_after_wipe = list(fdb.list(WildcardMarsSelection()))
-#     print(
-#         f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
-#     )
-#     assert len(elements_after_wipe) == 0
-#
-#
-# def test_purge_wildcard(empty_fdb_setup, build_grib_messages):
-#     fdb = FDB(empty_fdb_setup)
-#
-#     initial_elements = list(fdb.list(WildcardMarsSelection()))
-#
-#     assert len(initial_elements) == 0
-#     print(f"Elements initial: {len(initial_elements)}")
-#
-#     fdb.archive(build_grib_messages.read_bytes())
-#     fdb.flush()
-#
-#     archived_elements = list(fdb.list(WildcardMarsSelection()))
-#     assert len(archived_elements) == 96
-#
-#     print(f"Elements after archive: {len(archived_elements)}")
-#
-#     purge_iterator = fdb.purge(WildcardMarsSelection(), doit=True)
-#     purged_output = []
-#
-#     for el in purge_iterator:
-#         print(el)
-#         purged_output.append(el)
-#
-#     assert len(purged_output) > 0
-#
-#     elements_after_first_purge = list(fdb.list(WildcardMarsSelection()))
-#
-#     print(f"Elements after purge: {len(elements_after_first_purge)}")
-#     assert len(archived_elements) == len(elements_after_first_purge)
-#
-#     fdb.archive(build_grib_messages.read_bytes())
-#     fdb.flush()
-#
-#     after_archive_elements = list(fdb.list(WildcardMarsSelection()))
-#
-#     print(
-#         f"Elements after masking archive: {len(after_archive_elements)}, before: {len(initial_elements)}"
-#     )
-#     assert len(after_archive_elements) > len(initial_elements)
-#
-#     purge_iterator = fdb.purge(WildcardMarsSelection(), doit=True)
-#     purged_output = list(purge_iterator)
-#
-#     assert len(purged_output) > 0
-#
-#     elements_after_second_purge = list(fdb.list(WildcardMarsSelection()))
-#
-#     for el in elements_after_second_purge:
-#         print(el)
-#
-#     print(f"Elements after second purge: {len(elements_after_second_purge)}")
-#     assert len(archived_elements) == len(elements_after_second_purge)
-#
-#
-# def test_stats_wildcard(read_only_fdb_setup):
-#     assert read_only_fdb_setup
-#     fdb = FDB(read_only_fdb_setup)
-#
-#     list_iterator = fdb.stats(WildcardMarsSelection())
-#     assert list_iterator
-#
-#     elements = []
-#
-#     for el in list_iterator:
-#         print(el)
-#         elements.append(el)
-#
-#     assert len(elements) == 32
-#
+
+def test_list_wildcard(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+    selection = WildcardMarsSelection()
+    print(f"Stringified selection:\n  {selection}")
+    list_iterator = fdb.list(selection, level=1)
+    assert list_iterator
+
+    elements = []
+
+    for el in list_iterator:
+        print(el)
+        elements.append(el)
+
+    assert len(elements) == 32
+
+    print("----------------------------------")
+
+    list_iterator = fdb.list(selection, level=2)
+    assert list_iterator
+
+    elements = []
+
+    for el in list_iterator:
+        print(el)
+        elements.append(el)
+
+    assert len(elements) == 32
+
+    print("----------------------------------")
+
+    list_iterator = fdb.list(selection, level=3)
+    assert list_iterator
+
+    elements = []
+
+    for el in list_iterator:
+        print(el)
+        print(el.uri())
+        elements.append(el)
+
+    assert len(elements) == 96
+
+
+def test_status_wildcard(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+    selection = WildcardMarsSelection()
+    status_iterator = fdb.status(selection)
+
+    elements = []
+
+    for el in status_iterator:
+        print(el)
+        elements.append(el)
+
+    assert len(elements) == 32
+
+
+def test_wipe_dryrun_wildcard(read_write_fdb_setup):
+    fdb = FDB(read_write_fdb_setup)
+    elements = list(fdb.list(WildcardMarsSelection()))
+    initial_len = len(elements)
+
+    wipe_iterator = fdb.wipe(WildcardMarsSelection())
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > initial_len
+
+    for el in wiped_elements:
+        print(el)
+
+    elements_after_wipe = list(fdb.list(WildcardMarsSelection()))
+    assert initial_len == len(elements_after_wipe)
+
+
+def test_wipe_all_doit_wildcard(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb = FDB(fdb_config_path)
+
+    elements = list(fdb.list(WildcardMarsSelection()))
+    assert len(elements) > 0
+
+    wipe_iterator = fdb.wipe(WildcardMarsSelection(), doit=True)
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    elements_after_wipe = list(fdb.list(WildcardMarsSelection()))
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
+    assert len(elements_after_wipe) == 0
+
+
+def test_purge_wildcard(empty_fdb_setup, build_grib_messages):
+    fdb = FDB(empty_fdb_setup)
+
+    initial_elements = list(fdb.list(WildcardMarsSelection()))
+
+    assert len(initial_elements) == 0
+    print(f"Elements initial: {len(initial_elements)}")
+
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
+
+    archived_elements = list(fdb.list(WildcardMarsSelection()))
+    assert len(archived_elements) == 96
+
+    print(f"Elements after archive: {len(archived_elements)}")
+
+    purge_iterator = fdb.purge(WildcardMarsSelection(), doit=True)
+    purged_output = []
+
+    for el in purge_iterator:
+        print(el)
+        purged_output.append(el)
+
+    assert len(purged_output) > 0
+
+    elements_after_first_purge = list(fdb.list(WildcardMarsSelection()))
+
+    print(f"Elements after purge: {len(elements_after_first_purge)}")
+    assert len(archived_elements) == len(elements_after_first_purge)
+
+    fdb.archive(build_grib_messages.read_bytes())
+    fdb.flush()
+
+    after_archive_elements = list(fdb.list(WildcardMarsSelection()))
+
+    print(
+        f"Elements after masking archive: {len(after_archive_elements)}, before: {len(initial_elements)}"
+    )
+    assert len(after_archive_elements) > len(initial_elements)
+
+    purge_iterator = fdb.purge(WildcardMarsSelection(), doit=True)
+    purged_output = list(purge_iterator)
+
+    assert len(purged_output) > 0
+
+    elements_after_second_purge = list(fdb.list(WildcardMarsSelection()))
+
+    for el in elements_after_second_purge:
+        print(el)
+
+    print(f"Elements after second purge: {len(elements_after_second_purge)}")
+    assert len(archived_elements) == len(elements_after_second_purge)
+
+
+def test_stats_wildcard(read_only_fdb_setup):
+    assert read_only_fdb_setup
+    fdb = FDB(read_only_fdb_setup)
+
+    list_iterator = fdb.stats(WildcardMarsSelection())
+    assert list_iterator
+
+    elements = []
+
+    for el in list_iterator:
+        print(el)
+        elements.append(el)
+
+    assert len(elements) == 32
 
 
 def test_control_lock_retrieve_wildcard(read_only_fdb_setup):
