@@ -15,5 +15,5 @@ build:
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
     - ECCODES_DEFINITION_PATH=$ECCODES_DIR/share/eccodes/definitions
-  python_version: 3.11
-  python_requirements: requirements.txt
+  python: "3.11"
+  requirements: requirements.txt
