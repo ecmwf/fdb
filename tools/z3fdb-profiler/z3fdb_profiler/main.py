@@ -86,24 +86,16 @@ def main():
     register_commands(subparsers)
     args = parser.parse_args()
 
-    
     if not args.verbose < 3:
         be_quiet_stdout_and_stderr()
 
     fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s "
     if args.verbose == 0:
-        logging.basicConfig(
-            format=fmt, stream=sys.stdout, level=logging.WARNING
-        )
+        logging.basicConfig(format=fmt, stream=sys.stdout, level=logging.WARNING)
     elif args.verbose == 1:
-        logging.basicConfig(
-            format=fmt, stream=sys.stdout, level=logging.INFO
-        )
+        logging.basicConfig(format=fmt, stream=sys.stdout, level=logging.INFO)
     else:
-        logging.basicConfig(
-            format=fmt, stream=sys.stdout, level=logging.DEBUG
-        )
-
+        logging.basicConfig(format=fmt, stream=sys.stdout, level=logging.DEBUG)
 
     if hasattr(args, "func"):
         args.func(args)

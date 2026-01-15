@@ -65,6 +65,7 @@ def execute_cmd(args):
     print(val)
     print("Finished")
 
+
 @profile("aggregate-zarr-inner-loop")
 def aggregate(data, limit):
     val = 0
