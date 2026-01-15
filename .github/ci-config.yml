@@ -7,3 +7,5 @@ dependencies: |
 dependency_branch: develop
 cmake_options: -DENABLE_DUMMY_DAOS=ON
 parallelism_factor: 8
+python_version: 3.11
+python_requirements: requirements.txt
