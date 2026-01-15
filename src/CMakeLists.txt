@@ -47,6 +47,7 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
+    add_dependencies(z3fdb-wheel chunked_data_view_bindings)
 endif()
 
 if (HAVE_DUMMY_DAOS)
