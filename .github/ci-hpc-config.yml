@@ -9,6 +9,7 @@ build:
   cmake_options:
     - -DENABLE_LUSTRE=OFF
     - -DENABLE_DUMMY_DAOS=ON
+    - -DENABLE_PYTHON_ZARR_INTERFACE=ON
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
