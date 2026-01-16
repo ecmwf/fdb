@@ -56,11 +56,11 @@ async def copy_store_v3_compressed(
             "dtype": src_arr.dtype,
             "chunks": src_arr.chunks,
             "compressors": [compressor],
-            "fill_value": src_arr.fill_value,
+            "fill_value": src_arr.metadata.fill_value,
         }
 
-        if src_arr.dimension_names is not None:
-            create_kwargs["dimension_names"] = src_arr.dimension_names
+        if src_arr.metadata.dimension_names is not None:
+            create_kwargs["dimension_names"] = src_arr.metadata.dimension_names
 
         if name is None:
             # Root-level array
@@ -122,7 +122,7 @@ async def copy_store_v3_compressed(
         return chunks_copied, bytes_copied
     finally:
         pbar.close()
-        await dest_store.close()
+        dest_store.close()
 
 
 def copy_store(
