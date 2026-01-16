@@ -145,5 +145,5 @@ def register_cmd(subparsers):
 def execute_cmd(args):
     print("Exporting view from fdb to zarr array")
     store = make_store(args.view, args.fdb_config)
-    copy_store(store, args.out, args.progress, args.cname, args.clevel)
+    copy_store(store, args.out, args.progress, args.blosc_cname, args.blosc_clevel)
     print("Finished")
