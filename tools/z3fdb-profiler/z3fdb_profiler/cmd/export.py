@@ -38,9 +38,7 @@ async def copy_store_v3_compressed(
 ):
     dest_store = zarr.storage.LocalStore(dest_path)
 
-    source_group = await zarr.api.asynchronous.open_group(store=source_store, mode="r")
-    dest_group = await zarr.api.asynchronous.open_group(store=dest_store, mode="w")
-    dest_group.attrs.update(source_group.attrs)
+    source_root = await zarr.api.asynchronous.open(store=source_store, mode="r")
 
     compressor = BloscCodec(cname=cname, clevel=clevel)
 
@@ -49,49 +47,78 @@ async def copy_store_v3_compressed(
 
     pbar = tqdm(desc="Copying chunks", unit="chunk", disable=not show_progress)
 
-    async def copy_node(src_group, dst_group):
+    async def copy_array(src_arr: zarr.AsyncArray, dst_parent, name: str | None = None):
+        """Copy a single array. If name is None, creates a root-level array."""
         nonlocal bytes_copied, chunks_copied
+
+        create_kwargs = {
+            "shape": src_arr.shape,
+            "dtype": src_arr.dtype,
+            "chunks": src_arr.chunks,
+            "compressors": [compressor],
+            "fill_value": src_arr.fill_value,
+        }
+
+        if src_arr.dimension_names is not None:
+            create_kwargs["dimension_names"] = src_arr.dimension_names
+
+        if name is None:
+            # Root-level array
+            dst_arr = await zarr.api.asynchronous.create_array(
+                store=dst_parent,
+                zarr_format=3,
+                **create_kwargs,
+            )
+        else:
+            # Array within a group
+            dst_arr = await dst_parent.create_array(name=name, **create_kwargs)
+
+        dst_arr.attrs.update(src_arr.attrs)
+
+        chunk_shape = src_arr.chunks
+        for chunk_coords in itertools.product(
+            *(
+                range((dim + chunk - 1) // chunk)
+                for dim, chunk in zip(src_arr.shape, chunk_shape)
+            )
+        ):
+            slices = tuple(
+                slice(c * s, min((c + 1) * s, dim))
+                for c, s, dim in zip(chunk_coords, chunk_shape, src_arr.shape)
+            )
+
+            chunk_data = await src_arr.getitem(slices)
+            await dst_arr.setitem(slices, chunk_data)
+
+            bytes_copied += chunk_data.nbytes
+            chunks_copied += 1
+            pbar.update(1)
+            pbar.set_postfix(MB=f"{bytes_copied / 1024 / 1024:.1f}")
+
+    async def copy_group(src_group: zarr.AsyncGroup, dst_group: zarr.AsyncGroup):
+        """Recursively copy a group and all its contents."""
+        dst_group.attrs.update(src_group.attrs)
 
         async for name, node in src_group.members():
             if isinstance(node, zarr.AsyncArray):
-                dst_arr = await dst_group.create_array(
-                    name=name,
-                    shape=node.shape,
-                    dtype=node.dtype,
-                    chunks=node.chunks,
-                    compressors=compressor,
-                    fill_value=node.fill_value,
-                    dimension_names=node.dimension_names,
-                )
-                dst_arr.attrs.update(node.attrs)
-
-                chunk_shape = node.chunks
-                for chunk_coords in itertools.product(
-                    *(
-                        range((dim + chunk - 1) // chunk)
-                        for dim, chunk in zip(node.shape, chunk_shape)
-                    )
-                ):
-                    slices = tuple(
-                        slice(c * s, min((c + 1) * s, dim))
-                        for c, s, dim in zip(chunk_coords, chunk_shape, node.shape)
-                    )
-
-                    chunk_data = await node.getitem(slices)
-                    await dst_arr.setitem(slices, chunk_data)
-
-                    bytes_copied += chunk_data.nbytes
-                    chunks_copied += 1
-                    pbar.update(1)
-                    pbar.set_postfix(MB=f"{bytes_copied / 1024 / 1024:.1f}")
-
+                await copy_array(node, dst_group, name)
             elif isinstance(node, zarr.AsyncGroup):
                 new_group = await dst_group.create_group(name)
-                new_group.attrs.update(node.attrs)
-                await copy_node(node, new_group)
+                await copy_group(node, new_group)
 
     try:
-        await copy_node(source_group, dest_group)
+        if isinstance(source_root, zarr.AsyncArray):
+            # Source is a standalone array
+            await copy_array(source_root, dest_store, name=None)
+        elif isinstance(source_root, zarr.AsyncGroup):
+            # Source is a group hierarchy
+            dest_group = await zarr.api.asynchronous.open_group(
+                store=dest_store, mode="w", zarr_format=3
+            )
+            await copy_group(source_root, dest_group)
+        else:
+            raise TypeError(f"Unexpected source type: {type(source_root)}")
+
         return chunks_copied, bytes_copied
     finally:
         pbar.close()
