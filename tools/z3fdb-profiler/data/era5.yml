@@ -7,7 +7,7 @@ parts:
       expver=1,
       levelist=48/60/68/74/79/83/90/96/101/105/114/120/133,
       levtype=ml,
-      param=q/t/u/v/w/vo/d/z,
+      param=q/t/u/v/w/vo/d,
       step=0,
       stream=oper,
       time=0000/to/1800,
