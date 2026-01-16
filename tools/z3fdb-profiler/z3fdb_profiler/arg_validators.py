@@ -27,7 +27,8 @@ def accept_int_range(lower_bound: int, upper_bound: int):
     if lower_bound >= upper_bound:
         raise ValueError("lower_bound must be < upper_bound")
 
-    def validate(value: int) -> int:
+    def validate(str_value) -> int:
+        value = int(str_value)
         if not (lower_bound <= value < upper_bound):
             raise argparse.ArgumentTypeError(
                 f"{value} must be in interval [{lower_bound}, {upper_bound})"
