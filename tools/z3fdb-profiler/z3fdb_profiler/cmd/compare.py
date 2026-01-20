@@ -8,6 +8,7 @@
 import logging
 from itertools import product
 from pathlib import Path
+from tqdm import tqdm
 
 import numpy
 import zarr
@@ -50,8 +51,20 @@ def execute_cmd(args):
     zarr_data = zarr.open_array(
         args.zarr, mode="r", zarr_format=3, use_consolidated=False
     )
-    assert view_data.shape == zarr_data.shape
-    for idx in product(*(range(dim) for dim in zarr_data.shape[:-1])):
+    if view_data.shape != zarr_data.shape:
+        logger.error(f"Shapes not matching! view shape {view_data.shape} != zarr shape {zarr_data.shape}")
+        print("ERROR")
+        return
+
+
+    equal = True
+    for idx in tqdm(product(*(range(dim) for dim in zarr_data.shape[:-1])), disable=not args.progress):
         logger.debug(f"Testing {idx}")
-        assert numpy.array_equal(view_data[idx], zarr_data[idx])
-    print("Finished")
+        if not numpy.array_equal(view_data[idx], zarr_data[idx]):
+            logger.error(f"index {idx} not equal")
+            equal = False
+
+    if equal:
+        print("Stores are equal")
+    else:
+        print("ERROR")
