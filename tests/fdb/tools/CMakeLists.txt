@@ -8,7 +8,7 @@ foreach( _t ${fdb_tools_tests} )
 
     ecbuild_add_test(
         TYPE SCRIPT
-        CONDITION HAVE_FDB_BUILD_TOOLS
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
         ENVIRONMENT ECCODES_BINARY_PATH=$<TARGET_FILE_DIR:grib_set>
         COMMAND ${_t}.sh)
 
