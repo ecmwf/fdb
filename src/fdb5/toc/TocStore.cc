@@ -383,22 +383,6 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     }
 }
 
-void TocStore::remove(const Key& key) const {
-
-    eckit::PathName src_db = directory_;
-
-    DIR* dirp = ::opendir(src_db.asString().c_str());
-    struct dirent* dp;
-    while ((dp = ::readdir(dirp)) != NULL) {
-        if (strstr(dp->d_name, ".data")) {
-            eckit::PathName dataFile = src_db / dp->d_name;
-            LOG_DEBUG_LIB(LibFdb5) << "Removing " << dataFile << std::endl;
-            dataFile.unlink(false);
-        }
-    }
-    closedir(dirp);
-}
-
 void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
@@ -482,6 +466,7 @@ bool TocStore::doWipe(const StoreWipeState& wipeState) const {
 }
 
 void TocStore::doWipeEmptyDatabases() const {
+
     for (const auto& uri : emptyDatabases_) {
         eckit::PathName path = uri.path();
         if (path.exists()) {

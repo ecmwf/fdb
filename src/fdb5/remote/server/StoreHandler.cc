@@ -108,6 +108,10 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 doWipeUnknown(clientID, requestID, payload);
                 return Handled::Yes;
 
+            case Message::DoUnsafeFullWipe:  // request to delete full database and content
+                doUnsafeFullWipe(clientID, requestID, payload);
+                return Handled::Replied;
+
             default: {
                 std::ostringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -351,6 +355,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
 void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
     eckit::MemoryStream s(payload);
     Key key(s);
+
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
     std::set<eckit::URI> uris{s};
@@ -378,6 +383,7 @@ void StoreHandler::doWipeUnknown(const uint32_t clientID, const uint32_t request
 void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
     eckit::MemoryStream s(payload);
     Key key(s);
+
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
     auto& store = getStore(clientID);
@@ -387,6 +393,7 @@ void StoreHandler::doWipe(const uint32_t clientID, const uint32_t requestID, con
 void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
     eckit::MemoryStream s(payload);
     Key key(s);
+
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
     // Delete empty DBs and finish the wipe.
@@ -395,6 +402,23 @@ void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestI
     store.doWipeEmptyDatabases();
 
     wipesInProgress_.erase(key);
+}
+
+void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    ASSERT(payload.size() > 0);
+    MemoryStream s(payload);
+    Key key(s);
+
+    const WipeInProgress& currentWipe = cachedWipeState(key);
+
+    auto& store            = getStore(clientID);
+    bool fullWipeSupported = store.doUnsafeFullWipe();
+
+    eckit::Buffer boolBuf(5);
+    eckit::MemoryStream stream(boolBuf);
+    stream << fullWipeSupported;
+
+    write(Message::Received, true, clientID, requestID, boolBuf.data(), stream.position());
 }
 
 const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri) const {

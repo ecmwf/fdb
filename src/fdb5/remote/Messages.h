@@ -73,6 +73,7 @@ enum class Message : uint16_t {
     DoWipeUnknowns,
     DoWipeFinish,
     DoMaskIndexEntries,
+    DoUnsafeFullWipe,
 
     // Responses
     Received = 200,

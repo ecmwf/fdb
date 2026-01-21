@@ -83,6 +83,7 @@ private:  // methods
     void doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
     void doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
     const Config& config() const { return config_; }
 

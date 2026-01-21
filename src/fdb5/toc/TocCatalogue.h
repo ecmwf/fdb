@@ -86,6 +86,7 @@ protected:  // methods
     void wipeFinalise(CatalogueWipeState& wipeState) const override;
     bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(const CatalogueWipeState& wipeState) const override;
+    bool doUnsafeFullWipe() const override { return false; }
 
     void doWipeEmptyDatabases() const override;
 

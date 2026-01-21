@@ -44,15 +44,16 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Wipe-related methods
+    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipe(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabases() const override;
+    bool doUnsafeFullWipe() const override;
+
     // DAOS store does not currently support auxiliary objects
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
     // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
-
-    /// Wipe-related methods
-    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override {}
-    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override { return false; }
-    bool doWipe(const StoreWipeState& wipeState) const override { return false; }
-    void doWipeEmptyDatabases() const override {}
 
 protected:  // methods
 
@@ -63,14 +64,12 @@ protected:  // methods
     eckit::DataHandle* retrieve(Field& field) const override;
     std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
-    using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
 
-    std::string db_str_;
     size_t archivedFields_;
 };
 

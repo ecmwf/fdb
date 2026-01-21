@@ -88,6 +88,7 @@ public:  // methods
     bool doWipe(const CatalogueWipeState& wipeState) const override;
     bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
     void doWipeEmptyDatabases() const override;
+    bool doUnsafeFullWipe() const override;
 
 protected:
 

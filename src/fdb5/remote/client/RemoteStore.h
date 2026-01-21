@@ -137,7 +137,6 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
     }
-    void remove(const Key& key) const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
     std::set<eckit::URI> collocatedDataURIs() const override;
@@ -148,8 +147,8 @@ public:  // methods
     void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
     bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipe(const StoreWipeState& wipeState) const override;
-
     void doWipeEmptyDatabases() const override;
+    bool doUnsafeFullWipe() const override;
 
     const Config& config() const { return config_; }
 

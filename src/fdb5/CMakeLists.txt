@@ -395,8 +395,6 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        # daos/DaosWipeVisitor.h
-        # daos/DaosWipeVisitor.cc
         daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
         daos/DaosLazyFieldLocation.h
