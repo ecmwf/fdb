@@ -12,10 +12,11 @@ import findlibs
 
 findlibs.load("fdb5")
 
-from pychunked_data_view.chunked_data_view import (
+from pychunked_data_view.chunked_data_view import (  # noqa: E402
     AxisDefinition,
     ChunkedDataView,
     ChunkedDataViewBuilder,
+    Chunking,
     ExtractorType,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "AxisDefinition",
     "ChunkedDataView",
     "ChunkedDataViewBuilder",
+    "Chunking",
     "ExtractorType",
 ]

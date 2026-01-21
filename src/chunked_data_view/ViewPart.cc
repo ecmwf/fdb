@@ -51,7 +51,8 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
             processedKeywords.insert(key);
             parameters.emplace_back(std::make_tuple(key, request_.values(key)));
         }
-        axes_.emplace_back(parameters, axis.chunked);
+        // NOTE(kkratz): Extend here for configurable number of fields per chunk
+        axes_.emplace_back(parameters, std::holds_alternative<AxisDefinition::IndividualChunking>(axis.chunking));
     }
 
     for (const auto& p : request_.parameters()) {

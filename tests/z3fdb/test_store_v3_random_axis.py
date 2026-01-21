@@ -4,6 +4,7 @@ import zarr
 
 from z3fdb import (
     AxisDefinition,
+    Chunking,
     ExtractorType,
     SimpleStoreBuilder,
 )
@@ -35,10 +36,10 @@ def test_random_axis_retrieval(read_only_fdb_pattern_setup) -> None:
         "param=167/165/166,"
         "time=18/0/12/6",
         [
-            AxisDefinition(["date"], True),
-            AxisDefinition(["time"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -101,10 +102,10 @@ def test_random_axis_retrieval_swapped_axis_and_request(
         "step=0,"
         "param=167/165/166",
         [
-            AxisDefinition(["time"], True),
-            AxisDefinition(["step"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["date"], True),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -168,7 +169,7 @@ def test_random_axis_retrieval_swapped_axis_and_request_combined_axis(
         "step=0,"
         "param=167/165/166",
         [
-            AxisDefinition(["time", "step", "param", "date"], False),
+            AxisDefinition(["time", "step", "param", "date"], Chunking.NONE),
         ],
         ExtractorType.GRIB,
     )

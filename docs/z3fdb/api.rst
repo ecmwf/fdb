@@ -1,7 +1,7 @@
 z3FDB - API
 ===========
 
-.. contents:: 
+.. contents::
    :local:
    :depth: 2
 
@@ -24,17 +24,23 @@ Classes
 z3fdb.SimpleStoreBuilder
 ........................
 
-.. autoapiclass:: z3fdb.SimpleStoreBuilder  
+.. autoapiclass:: z3fdb.SimpleStoreBuilder
    :members:
 
 z3fdb.AxisDefinition
 ....................
 
-.. autoapiclass:: pychunked_data_view.AxisDefinition 
+.. autoapiclass:: pychunked_data_view.AxisDefinition
    :members:
 
 Enums
 -----
+
+z3fdb.Chunking
+...................
+
+.. autoapiclass:: pychunked_data_view.Chunking
+   :members:
 
 z3fdb.ExtractorType
 ...................
