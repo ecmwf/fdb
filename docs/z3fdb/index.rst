@@ -59,17 +59,20 @@ Installation
 
 Z3FDB requires libfdb5 to be present on your system during runtime.
 
-During the `cmake` step, set the following variable: `-DENABLE_PYTHON_ZARR_INTERFACE=ON`.
+During the `cmake` step, set the following variable:
+`-DENABLE_PYTHON_ZARR_INTERFACE=ON`.
 
-After building the bundle with `ninja` or `make`, a python project is created in your
-`CMAKE_BINARY_DIR` called '`staging...`'. Change into this directory and install the `Z3FDB` as usual.
+After building the bundle with `ninja` or `make`, a python project is created
+in your `CMAKE_BINARY_DIR` called '`staging...`'. Change into this directory
+and install the `Z3FDB` as usual.
 
 .. code-block:: bash
 
    pip install .
 
 
-To check if the install was successful, run `pytest` in `<FDB_SRC_FOLDER>/tests/z3fdb`.
+To check if the install was successful, run `pytest` in
+`<FDB_SRC_FOLDER>/tests/z3fdb`.
 
 Examples
 ########
@@ -80,9 +83,10 @@ Below are two examples how to create a view
    :caption: Configuring a view from a single MARS request.
 
    from z3fdb import (
-       SimpleStoreBuilder, 
-       AxisDefinition, 
+       AxisDefinition,
+       Chunking,
        ExtractorType
+       SimpleStoreBuilder,
    )
    builder = SimpleStoreBuilder()
    builder.add_part(
@@ -97,24 +101,25 @@ Below are two examples how to create a view
        "time=0000/1200,"
        "type=fc",
        [
-           AxisDefinition(["date", "time"], True),
-           AxisDefinition(["step"], True)
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           AxisDefinition(["step"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
-   
-   # Access full field for date=-1, time=0000, step=3 
+
+   # Access full field for date=-1, time=0000, step=3
    field = data[2][3][:]
 
 .. code-block:: python
    :caption: Configuring a view from multiple MARS request.
 
    from z3fdb import (
-       SimpleStoreBuilder, 
-       AxisDefinition, 
+       AxisDefinition,
+       Chunking,
        ExtractorType
+       SimpleStoreBuilder,
    )
    builder = SimpleStoreBuilder()
    builder.add_part(
@@ -129,8 +134,8 @@ Below are two examples how to create a view
        "param=165/166,"
        "time=0/to/21/by/3",
        [
-           AxisDefinition(["date", "time"], True),
-           AxisDefinition(["param"], True)
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           AxisDefinition(["param"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
@@ -147,18 +152,17 @@ Below are two examples how to create a view
        "levelist=50/100,"
        "time=0/to/21/by/3",
        [
-           AxisDefinition(["date", "time"], True),
-           AxisDefinition(["param", "levelist"], True)
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
    builder.extendOnAxis(1)
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
-   
+
    # Access full field for date=2020-01-01, time=0300, param=166, uses first part
    field = data[1][1][:]
-   
+
    # Access full field for date=2020-01-01, time=0300, param=131, levelist=100, uses second part
    field = data[1][3][:]
-

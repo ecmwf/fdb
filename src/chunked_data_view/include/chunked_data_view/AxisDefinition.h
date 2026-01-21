@@ -10,17 +10,27 @@
 #pragma once
 
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace chunked_data_view {
 
 /// Describes how a axis in the resulting N Dimension data is build.
 struct AxisDefinition {
+    // NOTE(kkratz): Extend here for configurable number of values per chunk
+    // ChunkingType is designed as sum-type so that we can extend this with a type holding
+    // the number of values per chunk. Right now its just all in one chunk or one per chunk.
+
+    /// Indicate no chunking should be applied, the whole axis is accessed in one chunk.
+    struct NoChunking {};
+    /// Indicate each value of this axis is one chunk
+    struct IndividualChunking {};
+    /// Possible typs of chunking
+    using ChunkingType = std::variant<NoChunking, IndividualChunking>;
     /// Which mars keys form the resuling axis.
     std::vector<std::string> keys{};
-    /// If the axis is chunked all vallues can be indexed individualy,
-    /// otherwise
-    bool chunked{};
+    /// Defines how the Axis will be chunked.
+    ChunkingType chunking{};
 };
 
 }  // namespace chunked_data_view

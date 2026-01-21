@@ -28,13 +28,20 @@ namespace cdv = chunked_data_view;
 PYBIND11_MODULE(chunked_data_view_bindings, m) {
     m.def("init_bindings", []() { cdv::init_eckit_main(); });
     // Wrapping struct AxisDefinition
-    py::class_<cdv::AxisDefinition>(m, "AxisDefinition")
-        .def(py::init([](std::vector<std::string> keys, bool chunked) {
-                 return cdv::AxisDefinition{std::move(keys), chunked};
-             }),
-             py::kw_only(), py::arg("keys"), py::arg("chunked"))
-        .def_readwrite("keys", &cdv::AxisDefinition::keys)
-        .def_readwrite("chunked", &cdv::AxisDefinition::chunked);
+    auto axis_definition =
+        py::class_<cdv::AxisDefinition>(m, "AxisDefinition")
+            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::ChunkingType chunking) {
+                     return cdv::AxisDefinition{std::move(keys), chunking};
+                 }),
+                 py::kw_only(), py::arg("keys"), py::arg("chunking"))
+            .def_readwrite("keys", &cdv::AxisDefinition::keys)
+            .def_readwrite("chunking", &cdv::AxisDefinition::chunking);
+
+    // Wrapping AxisDefinition::NoChunking as nested class of Axisdefinition
+    py::class_<cdv::AxisDefinition::NoChunking>(axis_definition, "NoChunking").def(py::init<>());
+
+    // Wrapping AxisDefinition::IndividualChunking as nested class of Axisdefinition
+    py::class_<cdv::AxisDefinition::IndividualChunking>(axis_definition, "IndividualChunking").def(py::init<>());
 
     // Wrapping interface ChunkedDataView
     py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView")

@@ -12,24 +12,25 @@ import itertools
 from pychunked_data_view import (
     AxisDefinition,
     ChunkedDataViewBuilder,
+    Chunking,
     ExtractorType,
 )
 
 
 def test_axis_definition_can_construct():
-    obj = AxisDefinition(["key1", "key0"], False)
+    obj = AxisDefinition(["key1", "key0"], Chunking.SINGLE_VALUE)
     assert obj.keys == ["key1", "key0"]
-    assert obj.chunked is False
+    assert obj.chunking == Chunking.SINGLE_VALUE
 
 
 def test_axis_definition_can_assign():
-    obj = AxisDefinition(["key1", "key0"], False)
+    obj = AxisDefinition(["key1", "key0"], Chunking.SINGLE_VALUE)
     assert obj.keys == ["key1", "key0"]
-    assert obj.chunked is False
+    assert obj.chunking == Chunking.SINGLE_VALUE
     obj.keys = []
     assert obj.keys == []
-    obj.chunked = True
-    assert obj.chunked is True
+    obj.chunking = Chunking.SINGLE_VALUE
+    assert obj.chunking == Chunking.SINGLE_VALUE
 
 
 def test_builder(read_only_fdb_setup):
@@ -45,7 +46,10 @@ def test_builder(read_only_fdb_setup):
         "step=0,"
         "param=167/131/132,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        ],
         ExtractorType.GRIB,
     )
     view = builder.build()
