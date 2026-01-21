@@ -1,0 +1,38 @@
+name: "Era5 data"
+parts:
+  - request: |
+      domain=g,
+      class=ea,
+      date=20170101/to/20191231,
+      expver=1,
+      levelist=48/60/68/74/79/83/90/96/101/105/114/120/133,
+      levtype=ml,
+      param=q/t/u/v/w/vo/d,
+      step=0,
+      stream=oper,
+      time=0000/to/1800,
+      type=an
+    axis:
+      - keywords: ["date", "time"]
+        chunking: true
+      - keywords: ["param", "levelist"]
+        chunking: false
+  - request: |
+      domain=g,
+      class=ea,
+      date=20170101/to/20191231,
+      expver=1,
+      levtype=sfc,
+      param=10u/10v/2d/2t/lsm/msl/sdor/skt/slor/sp/tcw/z,
+      step=0,
+      stream=oper,
+      time=0000/to/1800,
+      type=an
+    axis:
+      - keywords: ["date", "time"]
+        chunking: true
+      - keywords: ["param"]
+        chunking: false
+extension_axis: 1
+
+
