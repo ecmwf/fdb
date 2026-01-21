@@ -45,10 +45,10 @@ public:  // methods
     void checkUID() const override { /* nothing to do */ }
 
     /// Wipe-related methods
-    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
-    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
-    bool doWipe(const StoreWipeState& wipeState) const override;
-    void doWipeEmptyDatabases() const override;
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
     // DAOS store does not currently support auxiliary objects

@@ -82,13 +82,13 @@ protected:  // methods
 
     // wipe
     CatalogueWipeState wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
-    void wipeFinalise(CatalogueWipeState& wipeState) const override;
-    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
-    bool doWipe(const CatalogueWipeState& wipeState) const override;
+    bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
+    void finaliseWipeState(CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const CatalogueWipeState& wipeState) const override;
     bool doUnsafeFullWipe() const override { return false; }
 
-    void doWipeEmptyDatabases() const override;
+    void doWipeEmptyDatabase() const override;
 
 private:  // methods
 

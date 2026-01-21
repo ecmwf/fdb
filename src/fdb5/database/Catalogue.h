@@ -109,19 +109,19 @@ public:
     virtual CatalogueWipeState wipeInit() const = 0;
 
     /// Mark an index as to be wiped (include=true) or preserved (include=false)
-    virtual bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
+    virtual bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
 
     /// Finish populating the wipe state
-    virtual void wipeFinalise(CatalogueWipeState& wipeState) const = 0;
+    virtual void finaliseWipeState(CatalogueWipeState& wipeState) const = 0;
 
     /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
-    virtual bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const = 0;
 
     /// Delete URIs marked in the wipe state
-    virtual bool doWipe(const CatalogueWipeState& wipeState) const = 0;
+    virtual bool doWipeURIs(const CatalogueWipeState& wipeState) const = 0;
 
-    /// Delete empty DBs
-    virtual void doWipeEmptyDatabases() const = 0;
+    /// At the end of a wipe operation, clean up the DB if it is now empty
+    virtual void doWipeEmptyDatabase() const = 0;
 
     /// Delete full DB in a single or a few operations
     virtual bool doUnsafeFullWipe() const = 0;
@@ -134,7 +134,7 @@ protected:  // methods
 
 protected:  // members
 
-    mutable std::set<eckit::URI> emptyDatabases_;
+    mutable bool cleanupEmptyDatabase_ = false;
 };
 
 class CatalogueImpl : virtual public Catalogue {

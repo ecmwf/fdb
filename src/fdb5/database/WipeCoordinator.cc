@@ -26,7 +26,7 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     // Contact each of the relevant stores.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
-        storeState->store(config_).prepareWipe(*storeState, doit, unsafeWipeAll);
+        storeState->store(config_).finaliseWipeState(*storeState, doit, unsafeWipeAll);
     }
 
     UnknownsBuckets unknownURIs = gatherUnknowns(catalogueWipeState, storeWipeStates);
@@ -54,7 +54,7 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
     }
 
     if (doit && (!unclean || unsafeWipeAll)) {
-        doWipe(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
+        doWipeURIs(catalogueWipeState, storeWipeStates, unknownURIs, unsafeWipeAll);
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - completed" << std::endl;
@@ -139,9 +139,9 @@ WipeElements WipeCoordinator::generateWipeElements(
     return report;
 }
 
-void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
-                             const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
-                             const UnknownsBuckets& unknownBuckets, bool unsafeWipeAll) const {
+void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
+                                 const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
+                                 const UnknownsBuckets& unknownBuckets, bool unsafeWipeAll) const {
 
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
 
@@ -185,7 +185,7 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
     // 3. Wipe unknown files if unsafeWipeAll
     if (unsafeWipeAll) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping unknown URIs" << std::endl;
-        catalogue->doWipeUnknown(unknownBuckets.catalogue);
+        catalogue->doWipeUnknowns(unknownBuckets.catalogue);
 
         for (const auto& [uri, storeState] : storeWipeStates) {
             if (storeWiped[uri])
@@ -195,7 +195,7 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
 
             auto it = unknownBuckets.store.find(uri);
             if (it != unknownBuckets.store.end()) {
-                store.doWipeUnknownContents(it->second);
+                store.doWipeUnknowns(it->second);
             }
         }
     }
@@ -206,21 +206,21 @@ void WipeCoordinator::doWipe(const CatalogueWipeState& catalogueWipeState,
         if (storeWiped[uri])
             continue;
         const Store& store = storeState->store(config_);
-        store.doWipe(*storeState);
+        store.doWipeURIs(*storeState);
     }
 
     // 5. Wipe files known by the catalogue
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping catalogue known URIs" << std::endl;
-    catalogue->doWipe(catalogueWipeState);
+    catalogue->doWipeURIs(catalogueWipeState);
 
     // 6. wipe empty databases
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
-    catalogue->doWipeEmptyDatabases();
+    catalogue->doWipeEmptyDatabase();
     for (const auto& [uri, storeState] : storeWipeStates) {
         if (storeWiped[uri])
             continue;
         const Store& store = storeState->store(config_);
-        store.doWipeEmptyDatabases();
+        store.doWipeEmptyDatabase();
     }
 }
 

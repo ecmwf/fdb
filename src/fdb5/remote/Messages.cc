@@ -92,8 +92,8 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Exists:
             s << "Exists";
             break;
-        case Message::DoWipe:
-            s << "DoWipe";
+        case Message::doWipeURIs:
+            s << "doWipeURIs";
             break;
 
             // Responses

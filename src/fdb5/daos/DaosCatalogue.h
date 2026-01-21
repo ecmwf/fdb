@@ -45,7 +45,6 @@ protected:  // methods
     void checkUID() const override { NOTIMP; };
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
-    // std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;
     const Rule& rule() const override;
 
@@ -72,11 +71,11 @@ protected:  // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override {};
 
     CatalogueWipeState wipeInit() const override;
-    bool wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
-    void wipeFinalise(CatalogueWipeState& wipeState) const override;
-    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
-    bool doWipe(const CatalogueWipeState& wipeState) const override;
-    void doWipeEmptyDatabases() const override;
+    bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
+    void finaliseWipeState(CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const CatalogueWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
 protected:  // members

@@ -82,12 +82,12 @@ public:  // methods
     eckit::URI uri() const override;
 
     CatalogueWipeState wipeInit() const override;
-    bool wipeIndex(const Index&, bool, CatalogueWipeState&) const override { NOTIMP; }
-    void wipeFinalise(CatalogueWipeState& wipeState) const override { NOTIMP; }
+    bool markIndexForWipe(const Index&, bool, CatalogueWipeState&) const override { NOTIMP; }
+    void finaliseWipeState(CatalogueWipeState& wipeState) const override { NOTIMP; }
 
-    bool doWipe(const CatalogueWipeState& wipeState) const override;
-    bool doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const override;
-    void doWipeEmptyDatabases() const override;
+    bool doWipeURIs(const CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
 protected:

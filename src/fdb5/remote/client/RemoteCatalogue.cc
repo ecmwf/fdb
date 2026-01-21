@@ -259,17 +259,17 @@ CatalogueWipeState RemoteCatalogue::wipeInit() const {
     NOTIMP;
 }
 
-bool RemoteCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
+bool RemoteCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
     // Just tell the server to do it!
     eckit::Buffer sendBuf(256);
     eckit::ResizableMemoryStream s(sendBuf);
     s << dbKey_;
 
-    controlWriteCheckResponse(Message::DoWipe, generateRequestID(), false, sendBuf, s.position());
+    controlWriteCheckResponse(Message::doWipeURIs, generateRequestID(), false, sendBuf, s.position());
     return true;
 }
 
-bool RemoteCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+bool RemoteCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     // Send unknown uris to server
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
     eckit::ResizableMemoryStream s(sendBuf);
@@ -280,8 +280,7 @@ bool RemoteCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) con
 
     return true;
 }
-
-void RemoteCatalogue::doWipeEmptyDatabases() const {
+void RemoteCatalogue::doWipeEmptyDatabase() const {
     // Tell server it can safely delete the DB if it is empty, and finish the wipe.
     eckit::Buffer sendBuf(256);
     eckit::ResizableMemoryStream s(sendBuf);

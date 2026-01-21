@@ -76,25 +76,23 @@ public:
     /// Wipe-related methods
 
     /// Given a StoreWipeState from the Catalogue, identify URIs to be wiped
-    virtual void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) = 0;
+    virtual void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) = 0;
 
     /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
-    virtual bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const = 0;
+    virtual bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const = 0;
 
     /// Delete URIs marked in the wipe state
-    virtual bool doWipe(const StoreWipeState& wipeState) const = 0;
+    virtual bool doWipeURIs(const StoreWipeState& wipeState) const = 0;
 
     /// Delete empty DBs
-    virtual void doWipeEmptyDatabases() const = 0;
+    virtual void doWipeEmptyDatabase() const = 0;
 
     /// Delete full DB in a single or a few operations
     virtual bool doUnsafeFullWipe() const = 0;
 
 protected:
 
-    /// @todo: Why is this a set and not a single URI?
-    /// Databases that were found to be empty during wipe, to be removed by wipeEmptyDatabases
-    mutable std::set<eckit::URI> emptyDatabases_;
+    mutable bool cleanupEmptyDatabase_ = false;
 };
 
 

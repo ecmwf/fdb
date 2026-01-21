@@ -177,7 +177,7 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
         n.destroy();
 }
 
-void DaosStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+void DaosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
     // Note: doit and unsafeWipeAll do not affect the preparation of a local daos store wipe.
 
     const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
@@ -221,7 +221,7 @@ void DaosStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWi
     }
 }
 
-bool DaosStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
+bool DaosStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         fdb5::DaosName name{uri};
         ASSERT(name.hasOID());
@@ -235,7 +235,7 @@ bool DaosStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) c
     return true;
 }
 
-bool DaosStore::doWipe(const StoreWipeState& wipeState) const {
+bool DaosStore::doWipeURIs(const StoreWipeState& wipeState) const {
     bool wipeAll = wipeState.safeURIs().empty();
 
     // for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
@@ -249,29 +249,25 @@ bool DaosStore::doWipe(const StoreWipeState& wipeState) const {
     }
 
     if (wipeAll) {
-        fdb5::DaosName cont{pool_, db_cont_};
-        emptyDatabases_.insert(cont.URI());
+        cleanupEmptyDatabase_ = true;
     }
 
     return true;
 }
 
-void DaosStore::doWipeEmptyDatabases() const {
+void DaosStore::doWipeEmptyDatabase() const {
 
-    if (emptyDatabases_.size() == 0)
+    if (!cleanupEmptyDatabase_) {
         return;
+    }
 
-    ASSERT(emptyDatabases_.size() == 1);
+    fdb5::DaosName contName{pool_, db_cont_};
 
-    // remove the database container
-    fdb5::DaosName contName{*(emptyDatabases_.begin())};
     ASSERT(!contName.hasOID());
     if (contName.exists()) {
         ASSERT(contName.listOIDs().size() == 0);
         remove(contName.URI(), std::cout, std::cout, true);
     }
-
-    emptyDatabases_.clear();
 }
 
 bool DaosStore::doUnsafeFullWipe() const {

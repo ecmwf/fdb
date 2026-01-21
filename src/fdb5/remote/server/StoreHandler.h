@@ -50,9 +50,9 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
-    void prepareWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
-    void doWipeUnknown(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
-    void doWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeUnknowns(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeURIs(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
 

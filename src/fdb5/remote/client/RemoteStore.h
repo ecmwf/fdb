@@ -144,10 +144,10 @@ public:  // methods
 
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
 
-    void prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
-    bool doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const override;
-    bool doWipe(const StoreWipeState& wipeState) const override;
-    void doWipeEmptyDatabases() const override;
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
     const Config& config() const { return config_; }

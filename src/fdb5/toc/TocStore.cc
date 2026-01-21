@@ -12,14 +12,13 @@
 #include <fcntl.h>
 #include <memory>
 
-#include "eckit/log/Timer.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -27,8 +26,6 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/toc/TocPurgeVisitor.h"
-#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocStore.h"
 
 using namespace eckit;
@@ -383,7 +380,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     }
 }
 
-void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
 
@@ -437,7 +434,7 @@ void TocStore::prepareWipe(StoreWipeState& storeState, bool doit, bool unsafeWip
     }
 }
 
-bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) const {
+bool TocStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
             remove(uri, std::cout, std::cout, true);
@@ -447,7 +444,7 @@ bool TocStore::doWipeUnknownContents(const std::set<eckit::URI>& unknownURIs) co
     return true;
 }
 
-bool TocStore::doWipe(const StoreWipeState& wipeState) const {
+bool TocStore::doWipeURIs(const StoreWipeState& wipeState) const {
 
     bool wipeall = wipeState.safeURIs().empty();
 
@@ -456,25 +453,28 @@ bool TocStore::doWipe(const StoreWipeState& wipeState) const {
     }
 
     for (const auto& uri : wipeState.includedDataURIs()) {
-        if (wipeall) {
-            emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
-        }
         remove(uri, std::cout, std::cout, true);
     }
+
+    if (wipeall) {
+        cleanupEmptyDatabase_ = true;
+    }
+
 
     return true;
 }
 
-void TocStore::doWipeEmptyDatabases() const {
+void TocStore::doWipeEmptyDatabase() const {
 
-    for (const auto& uri : emptyDatabases_) {
-        eckit::PathName path = uri.path();
-        if (path.exists()) {
+    if (cleanupEmptyDatabase_) {
+
+        eckit::URI uri = this->uri();
+
+        if (uri.path().exists()) {
             remove(uri, std::cout, std::cout, true);
         }
+        cleanupEmptyDatabase_ = false;
     }
-
-    emptyDatabases_.clear();
 }
 
 void TocStore::print(std::ostream& out) const {

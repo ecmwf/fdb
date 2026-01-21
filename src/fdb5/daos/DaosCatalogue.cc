@@ -190,7 +190,7 @@ CatalogueWipeState DaosCatalogue::wipeInit() const {
     return CatalogueWipeState(dbKey_);
 }
 
-bool DaosCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const {
+bool DaosCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {
 
     fdb5::DaosKeyValueName location{index.location().uri()};
     const fdb5::DaosKeyValueName& db_kv = dbKeyValue();
@@ -239,7 +239,7 @@ bool DaosCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeSta
     return include;
 }
 
-void DaosCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
+void DaosCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
     // build database KV URI
     const fdb5::DaosKeyValueName& db_kv = dbKeyValue();
@@ -291,7 +291,7 @@ void DaosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
     }
 }
 
-bool DaosCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+bool DaosCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         fdb5::DaosName name{uri};
         ASSERT(name.hasOID());
@@ -304,7 +304,7 @@ bool DaosCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const
     return true;
 }
 
-bool DaosCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
+bool DaosCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
     bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the container
 
     /// @note: this will remove the index and axis KVs, plus the database KV if wipeAll
@@ -317,22 +317,21 @@ bool DaosCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
     }
 
     if (wipeAll) {
-        fdb5::DaosName cont{pool_, db_cont_};
-        emptyDatabases_.insert(cont.URI());
+        cleanupEmptyDatabase_ = true;
     }
 
     return true;
 }
 
-void DaosCatalogue::doWipeEmptyDatabases() const {
+void DaosCatalogue::doWipeEmptyDatabase() const {
 
-    if (emptyDatabases_.size() == 0)
+    if (!cleanupEmptyDatabase_) {
         return;
-
-    ASSERT(emptyDatabases_.size() == 1);
+    }
+    fdb5::DaosName cont{pool_, db_cont_};
 
     // remove the database container
-    fdb5::DaosName contName{*(emptyDatabases_.begin())};
+    fdb5::DaosName contName{pool_, db_cont_};
     ASSERT(!contName.hasOID());
     if (contName.exists()) {
         ASSERT(contName.listOIDs().size() == 0);
@@ -347,7 +346,7 @@ void DaosCatalogue::doWipeEmptyDatabases() const {
         rootKv.remove(key);
     }
 
-    emptyDatabases_.clear();
+    cleanupEmptyDatabase_ = false;
 }
 
 bool DaosCatalogue::doUnsafeFullWipe() const {

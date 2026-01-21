@@ -92,7 +92,7 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
     bool include = index.key().match(indexRequest_);
 
-    include = currentCatalogue_->wipeIndex(index, include, catalogueWipeState_);
+    include = currentCatalogue_->markIndexForWipe(index, include, catalogueWipeState_);
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
@@ -110,7 +110,7 @@ void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     ASSERT(currentCatalogue_ == &catalogue);
 
-    catalogue.wipeFinalise(catalogueWipeState_);
+    catalogue.finaliseWipeState(catalogueWipeState_);
     catalogueWipeState_.sanityCheck();
 
     queue_.emplace(std::move(catalogueWipeState_));

@@ -135,16 +135,16 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
-                // doit! We expect DoMaskIndexEntries, DoWipe, DoWipeUnknowns and DoWipeEmptyDatabases in succession
+                // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
-            case Message::DoWipe:  // Do the wipe on our currentWipeState
-                doWipe(clientID, requestID, std::move(payload));
+            case Message::doWipeURIs:  // Do the wipe on our currentWipeState
+                doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
-                doWipeEmptyDatabases(clientID, requestID, std::move(payload));
+                doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
@@ -241,7 +241,7 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         const Key& dbKey = state.dbKey();
 
         if (doit_) {
-            // Keep a local copy of the catalogue wipe state, awaiting an explicit DoWipe command from the client
+            // Keep a local copy of the catalogue wipe state, awaiting an explicit doWipeURIs command from the client
 
             // Expect this dbKey not to already be in progress
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
@@ -260,20 +260,18 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
-        s >> porcelain_;
         s >> unsafeWipeAll_;
     }
 
     WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
         ASSERT(!unsafeWipeAll_);
-        return fdb.internal_->wipe(request, doit_, porcelain_, unsafeWipeAll_);
+        return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
     }
 
 private:
 
     bool doit_;
-    bool porcelain_;
     bool unsafeWipeAll_;
 };
 
@@ -596,11 +594,11 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
     currentWipe.catalogue->maskIndexEntries(currentWipe.state.indexesToMask());
 }
 
-void CatalogueHandler::doWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
-    currentWipe.catalogue->doWipe(currentWipe.state);
+    currentWipe.catalogue->doWipeURIs(currentWipe.state);
 }
 
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
@@ -631,16 +629,16 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
         }
     }
 
-    currentWipe.catalogue->doWipeUnknown(rec_unknownURIs);
+    currentWipe.catalogue->doWipeUnknowns(rec_unknownURIs);
 }
 
-void CatalogueHandler::doWipeEmptyDatabases(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+void CatalogueHandler::doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     // Cleanup empty DBs and reset wipe state
-    currentWipe.catalogue->doWipeEmptyDatabases();
+    currentWipe.catalogue->doWipeEmptyDatabase();
     wipesInProgress_.erase(dbKey);
 }
 

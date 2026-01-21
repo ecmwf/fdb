@@ -57,17 +57,6 @@ std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = 
     key.set("levtype", "sfc");
     key.set("param", "130");
 
-
-    // key.set("step", "1");
-
-    // fdb.archive(key, data, length);
-
-    // key.set("date", "20111213");
-    // fdb.archive(key, data, length);
-
-    // key.set("type", "pf");
-    // fdb.archive(key, data, length);
-
     for (const auto& date : dates) {
         key.set("date", date);
         for (const auto& type : types) {
@@ -88,17 +77,17 @@ void expectEmpty(eckit::PathName dir) {
 
     // If this directory exists, the wipe did not complete. Print some useful diagnostic info...
     if (dir.exists()) {
-        std::cout << "err -- expected dir to no longer exist: " << dir << std::endl;
+        eckit::Log::error() << "err -- expected dir to no longer exist: " << dir << std::endl;
 
         std::vector<eckit::PathName> allPaths;
         StdDir(dir).children(allPaths);
 
         if (allPaths.empty()) {
-            std::cout << "err -- (directory is empty)" << std::endl;
+            eckit::Log::error() << "err -- (directory is empty)" << std::endl;
         }
 
         for (const eckit::PathName& path : allPaths) {
-            std::cout << "err -- unwiped path: " << path << std::endl;
+            eckit::Log::error() << "err -- unwiped path: " << path << std::endl;
         }
     }
 

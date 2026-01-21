@@ -140,7 +140,7 @@ CatalogueWipeState TocCatalogue::wipeInit() const {
     return CatalogueWipeState(dbKey_);
 }
 
-bool TocCatalogue::wipeIndex(const Index& index, bool include, CatalogueWipeState& wipeState) const {
+bool TocCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {
 
     eckit::URI locationURI{index.location().uri()};
 
@@ -223,7 +223,7 @@ void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
     }
 }
 
-void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
+void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
     // We wipe everything if there is nothing within safePaths - i.e. there is
     // no data that wasn't matched by the request
@@ -279,7 +279,7 @@ void TocCatalogue::wipeFinalise(CatalogueWipeState& wipeState) const {
     return;
 }
 
-bool TocCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const {
+bool TocCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
 
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
@@ -291,7 +291,7 @@ bool TocCatalogue::doWipeUnknown(const std::set<eckit::URI>& unknownURIs) const 
 }
 
 // NB: very little in here is toc specific.
-bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
+bool TocCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
 
     bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the directory.
 
@@ -299,25 +299,28 @@ bool TocCatalogue::doWipe(const CatalogueWipeState& wipeState) const {
 
         for (auto& uri : uris) {
             remove(uri.path(), std::cout, std::cout, true);
-
-            if (wipeAll) {  // XXX There should only be one folder... why are we doing this in the loop?
-                emptyDatabases_.emplace(uri.scheme(), uri.path().dirName());
-            }
         }
+    }
+
+    // Grab the database URI from the first uri in the wipeState
+    if (wipeAll && !wipeState.deleteMap().empty()) {
+        cleanupEmptyDatabase_ = true;
     }
 
     return true;
 }
 
-void TocCatalogue::doWipeEmptyDatabases() const {
-    for (const auto& uri : emptyDatabases_) {
-        eckit::PathName path = uri.path();
-        if (path.exists()) {
-            remove(path, std::cout, std::cout, true);
-        }
+void TocCatalogue::doWipeEmptyDatabase() const {
+
+    if (cleanupEmptyDatabase_ == false) {
+        return;
     }
 
-    emptyDatabases_.clear();
+    eckit::PathName path = uri().path();
+    if (path.exists()) {
+        remove(path, std::cout, std::cout, true);
+    }
+    cleanupEmptyDatabase_ = false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

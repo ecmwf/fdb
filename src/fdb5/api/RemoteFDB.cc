@@ -118,12 +118,10 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
 
 struct WipeHelper : BaseAPIHelper<fdb5::CatalogueWipeState, fdb5::remote::Message::Wipe> {
 
-    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
-        doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) : doit_(doit), unsafeWipeAll_(unsafeWipeAll) {}
 
     void encodeExtra(eckit::Stream& s) const {
         s << doit_;
-        s << porcelain_;
         s << unsafeWipeAll_;
     }
 
@@ -134,7 +132,6 @@ struct WipeHelper : BaseAPIHelper<fdb5::CatalogueWipeState, fdb5::remote::Messag
 private:
 
     bool doit_;
-    bool porcelain_;
     bool unsafeWipeAll_;
 };
 
