@@ -1,0 +1,107 @@
+name: Build Z3FDB Web Service Container
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+  pull_request:
+env:
+  REGISTRY: eccr.ecmwf.int
+  IMAGE_NAME: z3fdb-web-service
+  PROJECT_NAME: kkratz
+jobs:
+  build-packages:
+    name: Build Packages
+    runs-on: [self-hosted, Linux, platform-builder-docker]
+    container:
+      image: eccr.ecmwf.int/ci-utils/ubuntu_rolling_fdb_build_env:latest
+      credentials:
+        username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
+        password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+    steps:
+      - name: Get ecbuild
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/ecbuild
+          ref: develop
+          path: ecbuild
+      - name: Get cxx-dependencies
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/cxx-dependencies
+          ref: master
+          path: cxx-dependencies
+          token: ${{ secrets.GH_REPO_READ_TOKEN }}
+          submodules: recursive
+      - name: Get eccodes
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/eccodes
+          ref: develop
+          path: eccodes
+      - name: Get eckit
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/eckit
+          ref: develop
+          path: eckit
+      - name: Get metkit
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/metkit
+          ref: develop
+          path: metkit
+      - name: Get fdb5
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/fdb
+          path: fdb
+      - name: Compile, test and pack
+        run: |
+          ./fdb/containerfiles/z3fdb_web_service/build_contents.sh
+          rm -rf stage
+          mkdir stage
+          mv *.zst *.whl stage
+      - name: Upload stage archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage
+          path: stage/
+  build-container:
+    name: Build Image
+    runs-on: [self-hosted, Linux, platform-builder-docker]
+    needs: [build-packages]
+    steps:
+      - name: Get fdb5
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/fdb
+      - name: Download stage archive
+        uses: actions/download-artifact@v4
+        with:
+          name: stage
+          path: stage/
+      - name: Log in to ECCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.KKRATZ_ECCR_USER }}
+          password: ${{ secrets.KKRATZ_ECCR_TOKEN }}
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./stage
+          file: ./containerfiles/z3fdb_web_service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}

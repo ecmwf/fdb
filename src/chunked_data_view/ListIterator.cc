@@ -21,16 +21,21 @@
 
 namespace chunked_data_view {
 
-std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> ListIteratorWrapperImpl::next() {
+
+ListIteratorWrapperImpl::ListIteratorWrapperImpl(fdb5::ListIterator listIterator) {
     fdb5::ListElement elem;
-
-    auto has_next = listIterator_.next(elem);
-
-    if (has_next) {
-        return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
+    while (listIterator.next(elem)) {
+        elements_.emplace(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
     }
+}
 
-    return std::nullopt;
+std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> ListIteratorWrapperImpl::next() {
+    if (elements_.empty()) {
+        return std::nullopt;
+    }
+    auto val = std::move(elements_.front());
+    elements_.pop();
+    return val;
 };
 
 std::unique_ptr<ListIteratorInterface> makeListIterator(fdb5::ListIterator listIterator) {
