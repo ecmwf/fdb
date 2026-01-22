@@ -101,11 +101,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
 }
 
 
-bool assert_arrays(
-    const metkit::mars::MarsRequest& request,
-    const chunked_data_view::Axis&
-        axis) {  // chunked_data_view::Axis::Parameter first, chunked_data_view::Axis::Parameter second,
-                 // chunked_data_view::Axis::Parameter third, chunked_data_view::Axis::Parameter fourth) {
+bool assert_arrays(const metkit::mars::MarsRequest& request, const chunked_data_view::Axis& axis) {
 
     EXPECT(axis.parameters().size() == 4);
 
