@@ -6,7 +6,7 @@ set -e -x
 #  - z3fdb wheel
 #  - z3fdb-web-service wheel
 #  - fdb
-# 
+#
 # Expects the following pre-conditions:
 #  - Working directory for this build contains all sources layed out like this
 #  .
@@ -33,7 +33,7 @@ link_dirs() {
     local base_path="${1:?Base path required}"
     shift
     [[ $# -eq 0 ]] && { echo "Error: no directories specified" >&2; exit 1; }
-    
+
     local name
     for name in "$@"; do
         ln -s "${base_path}/${name}" "./${name}" || { echo "Failed to link: $name" >&2; exit 1; }
@@ -100,7 +100,7 @@ cd "$build"
 ctest -j $(nproc) --output-on-failure -E eckit_test_utils_optional
 cd "$root"
 cmake --build "$build" -j -t install
-cp "$deps"/lib/libaec* "$install"/lib 
+cp "$deps"/lib/libaec* "$install"/lib
 for lib in "$install"/lib/*.so*; do patchelf --set-rpath '$ORIGIN' "$lib"; done
 rm -rf $install/include
 tar --zstd -cvf fdb.tar.zst -C "$install" ..
