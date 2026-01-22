@@ -82,14 +82,22 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
+void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
+                  size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
+    size_t written = extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len,
+                                           extensionAxisIdx, combinedExtSize, extensionOffset);
+    if (written != expected_msg_count) {
+        std::ostringstream ss;
+        ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count << " fields in request "
+           << request;
+        throw eckit::UserError(ss.str());
+    }
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
