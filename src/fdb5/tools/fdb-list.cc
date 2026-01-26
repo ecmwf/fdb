@@ -49,6 +49,7 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
+        options_.push_back(new SimpleOption<bool>("only-duplicates", "List only the duplicated (older) entries"));
         options_.push_back(
             new SimpleOption<bool>("porcelain",
                                    "Streamlined and stable output. Useful as input for other tools or scripts."
@@ -67,6 +68,7 @@ private:  // methods
     bool timestamp_{false};
     bool length_{false};
     bool full_{false};
+    bool onlyDuplicates_{false};
     bool porcelain_{false};
     bool json_{false};
     bool compact_{false};
@@ -83,6 +85,7 @@ void FDBList::init(const CmdArgs& args) {
     timestamp_ = args.getBool("timestamp", timestamp_);
     length_    = args.getBool("length", length_);
     full_      = args.getBool("full", full_);
+    onlyDuplicates_ = args.getBool("only-duplicates", onlyDuplicates_);
     porcelain_ = args.getBool("porcelain", porcelain_);
     json_      = args.getBool("json", json_);
     compact_   = args.getBool("compact", compact_);
@@ -114,6 +117,13 @@ void FDBList::init(const CmdArgs& args) {
         if (full_) {
             throw UserError("--compact and --full are not compatible", Here());
         }
+        if (onlyDuplicates_) {
+            throw UserError("--compact and --only-duplicates are not compatible", Here());
+        }
+    }
+
+    if (full_ && onlyDuplicates_) {
+        throw UserError("--full and --only-duplicates are not compatible", Here());
     }
 
     /// @todo option ignore-errors
@@ -138,7 +148,8 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_ && !compact_, depth_);
+        // If --only-duplicates is supplied, then include only the duplicated (masked) entries.
+        auto listObject = fdb.list(request, !full_ && !compact_ && !onlyDuplicates_, depth_, onlyDuplicates_);
 
         if (compact_) {
             auto [fields, total] = listObject.dumpCompact(Log::info());

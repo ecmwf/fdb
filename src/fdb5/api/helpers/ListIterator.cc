@@ -23,9 +23,11 @@ static std::string keySignature(const fdb5::Key& key) {
 bool ListIterator::next(ListElement& elem) {
     ListElement tmp;
     while (APIIterator<ListElement>::next(tmp)) {
-        if (deduplicate_) {
-            if (!seenKeys_.tryInsert(tmp.keys())) {
-                continue;  // already seen this key
+        if (deduplicate_ || onlyDuplicates_) {
+            if (seenKeys_.tryInsert(tmp.keys())) {
+                if (onlyDuplicates_) continue; // haven't seen this key before, skip it
+            } else {
+                if (deduplicate_) continue; // already seen this key, skip it
             }
         }
         std::swap(elem, tmp);

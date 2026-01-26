@@ -237,8 +237,8 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
-ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
-    return {internal_->list(request, level), deduplicate};
+ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level, const bool onlyDuplicates) {
+    return {internal_->list(request, level), deduplicate, onlyDuplicates};
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
