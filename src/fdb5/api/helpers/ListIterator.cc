@@ -25,9 +25,12 @@ bool ListIterator::next(ListElement& elem) {
     while (APIIterator<ListElement>::next(tmp)) {
         if (deduplicate_ || onlyDuplicates_) {
             if (seenKeys_.tryInsert(tmp.keys())) {
-                if (onlyDuplicates_) continue; // haven't seen this key before, skip it
-            } else {
-                if (deduplicate_) continue; // already seen this key, skip it
+                if (onlyDuplicates_)
+                    continue;  // haven't seen this key before, skip it
+            }
+            else {
+                if (deduplicate_)
+                    continue;  // already seen this key, skip it
             }
         }
         std::swap(elem, tmp);

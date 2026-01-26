@@ -76,7 +76,10 @@ class ListIterator : public APIIterator<ListElement> {
 public:
 
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false, bool onlyDuplicates = false) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate), onlyDuplicates_(onlyDuplicates) {}
+        APIIterator<ListElement>(std::move(iter)),
+        seenKeys_({}),
+        deduplicate_(deduplicate),
+        onlyDuplicates_(onlyDuplicates) {}
 
     ListIterator(ListIterator&& iter) = default;
 

@@ -166,7 +166,8 @@ public:  // methods
     /// @param onlyDuplicates bool whether the returned iterator should only return duplicates
     /// @param level maximum level the visitor should respect
     /// @return ListIterator for iterating over the set of found items
-    ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3, bool onlyDuplicates = false);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3,
+                      bool onlyDuplicates = false);
 
     /// Dump the structural content of the FDB
     ///
