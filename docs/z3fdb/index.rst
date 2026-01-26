@@ -1,4 +1,5 @@
 .. _Z3FDB_Introduction:
+
 ########################
 Z3FDB
 ########################
@@ -84,6 +85,7 @@ Below are two examples how to create a view
    :caption: Configuring a view from a single MARS request.
 
    from z3fdb import (
+       SimpleStoreBuilder, 
        AxisDefinition,
        Chunking,
        ExtractorType

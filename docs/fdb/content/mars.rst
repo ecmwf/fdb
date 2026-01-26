@@ -1,7 +1,8 @@
 MARS request
 ============
 
-A **MARS request** is the way to specify an action on a set of fields or observations. The directives specified in a MARS request have the following syntax:
+A **MARS request** is the way to specify an action on a set of fields or observations.
+The directives specified in a MARS request have the following syntax:
 ::
 
    verb,
