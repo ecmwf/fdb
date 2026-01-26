@@ -2,8 +2,8 @@
     :author: ECMWF
     :date: 2025-11-10
 
-FDB documentation
-===================
+Fields DataBase - FDB documentation
+===================================
 
 .. toctree::
    :maxdepth: 2
@@ -14,7 +14,7 @@ FDB documentation
    pyfdb/index
    z3fdb/index
 
-:ref:`FDB <FDB_Introduction>` itself is part of `ECMWF`’s
+:ref:`FDB <FDB_Introduction>` itself is part of `ECMWF <https://www.ecmwf.int>`’s
 high‑performance data infrastructure: it stores each GRIB message as a field,
 indexes it by meteorological metadata (e.g., `parameter`, `level`, `date/time`),
 and serves recent outputs to post‑processing tasks and users. In operational
