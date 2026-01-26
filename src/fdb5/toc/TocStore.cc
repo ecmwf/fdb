@@ -412,7 +412,7 @@ void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool uns
     }
 
     for (const auto& uri : nonExistingURIs) {
-        storeState.unincludeURI(uri);
+        storeState.markAsMissing(uri);
     }
 
     bool all = safeURIs.empty();

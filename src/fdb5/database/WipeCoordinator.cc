@@ -91,8 +91,6 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
         }
     }
 
-    /// @todo: Test we are handling lock files, which the catalogue will own.
-
     return unknowns;
 }
 

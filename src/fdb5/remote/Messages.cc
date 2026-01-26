@@ -92,8 +92,20 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Exists:
             s << "Exists";
             break;
-        case Message::doWipeURIs:
-            s << "doWipeURIs";
+        case Message::DoWipeURIs:
+            s << "DoWipeURIs";
+            break;
+        case Message::DoWipeUnknowns:
+            s << "DoWipeUnknowns";
+            break;
+        case Message::DoWipeFinish:
+            s << "DoWipeFinish";
+            break;
+        case Message::DoMaskIndexEntries:
+            s << "DoMaskIndexEntries";
+            break;
+        case Message::DoUnsafeFullWipe:
+            s << "DoUnsafeFullWipe";
             break;
 
             // Responses

@@ -61,7 +61,7 @@ private:  // methods
 
     // API functionality
     template <typename HelperClass>
-    void forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
     void flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);

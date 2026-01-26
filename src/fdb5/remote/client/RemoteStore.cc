@@ -531,17 +531,23 @@ void RemoteStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool 
 
     // Receieve auxiliary and unknown URIs back from server
     eckit::MemoryStream rstream(recvBuf);
-    std::set<eckit::URI> auxFiles;
-    std::set<eckit::URI> unknownFiles;
-    rstream >> auxFiles;
-    rstream >> unknownFiles;
+    std::set<eckit::URI> auxURIs;
+    std::set<eckit::URI> unknownURIs;
+    std::set<eckit::URI> missingURIs;
+    rstream >> auxURIs;
+    rstream >> unknownURIs;
+    rstream >> missingURIs;
 
-    for (const auto& uri : auxFiles) {
+    for (const auto& uri : auxURIs) {
         storeState.insertAuxiliaryURI(uri);
     }
 
-    for (const auto& uri : unknownFiles) {
+    for (const auto& uri : unknownURIs) {
         storeState.insertUnrecognised(uri);
+    }
+
+    for (const auto& uri : missingURIs) {
+        storeState.markAsMissing(uri);
     }
 }
 
@@ -558,7 +564,7 @@ bool RemoteStore::doWipeURIs(const StoreWipeState& wipeState) const {
     eckit::Buffer sendBuf(256);
     eckit::ResizableMemoryStream s(sendBuf);
     s << dbKey_;
-    controlWriteCheckResponse(Message::doWipeURIs, generateRequestID(), true, sendBuf, s.position());
+    controlWriteCheckResponse(Message::DoWipeURIs, generateRequestID(), true, sendBuf, s.position());
     return true;
 }
 void RemoteStore::doWipeEmptyDatabase() const {

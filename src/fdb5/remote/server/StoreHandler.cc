@@ -96,7 +96,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 finaliseWipeState(clientID, requestID, payload);
                 return Handled::Replied;
 
-            case Message::doWipeURIs:  // request to delete data marked for wipe
+            case Message::DoWipeURIs:  // request to delete data marked for wipe
                 doWipeURIs(clientID, requestID, payload);
                 return Handled::Yes;
 
@@ -472,6 +472,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     eckit::ResizableMemoryStream outStream(outBuffer);
     outStream << storeState.dataAuxiliaryURIs();
     outStream << storeState.unrecognisedURIs();
+    outStream << storeState.missingURIs();
 
     write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
 

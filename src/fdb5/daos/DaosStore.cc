@@ -198,7 +198,7 @@ void DaosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool un
     }
 
     for (const auto& uri : nonExistingURIs) {
-        storeState.unincludeURI(uri);
+        storeState.markAsMissing(uri);
     }
 
     bool all = safeURIs.empty();

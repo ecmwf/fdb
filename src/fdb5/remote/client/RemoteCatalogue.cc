@@ -265,7 +265,7 @@ bool RemoteCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
     eckit::ResizableMemoryStream s(sendBuf);
     s << dbKey_;
 
-    controlWriteCheckResponse(Message::doWipeURIs, generateRequestID(), false, sendBuf, s.position());
+    controlWriteCheckResponse(Message::DoWipeURIs, generateRequestID(), false, sendBuf, s.position());
     return true;
 }
 

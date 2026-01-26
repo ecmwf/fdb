@@ -139,7 +139,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
-            case Message::doWipeURIs:  // Do the wipe on our currentWipeState
+            case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
@@ -284,7 +284,7 @@ struct StatsHelper : public BaseHelper<StatsElement> {
 };
 
 template <typename HelperClass>
-void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     HelperClass helper;
 
     MemoryStream s(payload);
@@ -334,23 +334,23 @@ void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eck
 }
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    forwardApiCall<ListHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<ListHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    forwardApiCall<AxesHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<AxesHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    forwardApiCall<WipeHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<WipeHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    forwardApiCall<InspectHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<InspectHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    forwardApiCall<StatsHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<StatsHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

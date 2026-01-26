@@ -134,9 +134,13 @@ public:
         markAsSafe({uri});
     }
 
-    // Remove URI from list of URIs to be deleted because, for example, it turns out not exist.
+    // Remove URI from list of URIs to be deleted because it turns out not exist.
+    // For remote stores, we must store this information to avoid reporting missing URIs to the client.
     /// @note: intentionally do not fail if signed, stores are allowed to uninclude URIs.
-    void unincludeURI(const eckit::URI& uri) { deleteURIs_[WipeElementType::STORE].erase(uri); }
+    void markAsMissing(const eckit::URI& uri) { 
+        deleteURIs_[WipeElementType::STORE].erase(uri);
+        missingURIs_.insert(uri);
+    }
 
     // Signing
 
@@ -151,6 +155,7 @@ public:
 
     const std::set<eckit::URI>& dataAuxiliaryURIs() const { return deleteURIs_[WipeElementType::STORE_AUX]; }
     const std::set<eckit::URI>& includedDataURIs() const { return deleteURIs_[WipeElementType::STORE]; }
+    const std::set<eckit::URI>& missingURIs() const { return missingURIs_; } 
 
     // Overrides
     void encode(eckit::Stream& s) const override;
@@ -166,6 +171,7 @@ private:
 
     eckit::URI storeURI_;
     mutable std::unique_ptr<Store> store_;
+    std::set<eckit::URI> missingURIs_;
 };
 
 // -----------------------------------------------------------------------------------------------

@@ -69,7 +69,7 @@ enum class Message : uint16_t {
     Exists,
 
     // Wipe related messages
-    doWipeURIs = 150,
+    DoWipeURIs = 150,
     DoWipeUnknowns,
     DoWipeFinish,
     DoMaskIndexEntries,
