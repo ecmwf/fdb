@@ -1,23 +1,22 @@
-# get test data for the wipe tests
-# ecbuild_get_test_multidata( TARGET get_fdb_test_data_wipe LABELS wipe NAMES "od.oper.grib" )
+# Generate tests using different configs:
+# 1. "Classic" case where the catalogue and store share the same root
+# 2. Case where the catalogue and store have separate roots
 
-# list of tests
-list( APPEND fdb_tools_wipe_tests
-    check
+list( APPEND fdb_tools_wipe_configs
+    shared_root
+    separate_cat_store
 )
 
-# add the tests
-foreach( _test ${fdb_tools_wipe_tests} )
+configure_file( wipe.sh.in wipe.sh @ONLY )
 
-    configure_file( wipe_${_test}.sh.in wipe_${_test}.sh @ONLY )
-
+foreach( _test ${fdb_tools_wipe_configs} )
     ecbuild_add_test(
         TARGET test_fdb_tools_wipe_${_test}
         TYPE SCRIPT
         LABELS wipe
         CONDITION HAVE_FDB_BUILD_TOOLS
         TEST_DEPENDS fdb5_get_test_data
-        COMMAND wipe_${_test}.sh
+        COMMAND wipe.sh
+        ARGS ${_test}.yaml
         ENVIRONMENT "${test_environment}" )
-
 endforeach( )
