@@ -27,8 +27,8 @@ class ViewPart {
 public:
 
     ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
-             const std::vector<AxisDefinition>& axes);
-    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const;
+             const std::vector<AxisDefinition>& axes, size_t extensionAxisOffset, size_t extensionAxisIndex);
+    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) const;
     std::vector<size_t> shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
     bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };
@@ -38,6 +38,8 @@ public:
 private:
 
     metkit::mars::MarsRequest requestAt(const std::vector<size_t>& chunkIndex) const;
+
+    bool hasData(const std::vector<size_t>& chunkIndex) const;
 
     // Each keyword defines a potential axis in the resulting view.
     // No axis needs to be created if the cardinality is one.
@@ -49,6 +51,9 @@ private:
     std::shared_ptr<FdbInterface> fdb_{};
     DataLayout layout_{};
     std::vector<size_t> shape_{};
+    /// Offset of this part in the extension axis.
+    size_t extensionAxisOffset_{};
+    size_t extensionAxisIndex_{};
 };
 
 }  // namespace chunked_data_view

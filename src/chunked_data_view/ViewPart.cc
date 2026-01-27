@@ -34,8 +34,13 @@
 namespace chunked_data_view {
 
 ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor,
-                   std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes) :
-    request_(std::move(request)), extractor_(std::move(extractor)), fdb_(std::move(fdb)) {
+                   std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes,
+                   size_t extensionAxisOffset, size_t extensionAxisIndex) :
+    request_(std::move(request)),
+    extractor_(std::move(extractor)),
+    fdb_(std::move(fdb)),
+    extensionAxisOffset_(extensionAxisOffset),
+    extensionAxisIndex_(extensionAxisIndex) {
     ASSERT(fdb_);
     axes_.reserve(axes.size());
 
@@ -73,23 +78,19 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
+void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) const {
+    if (!hasData(chunkIndex)) {
+        return;
+    }
+
+
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
-}
-
-metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
-    ASSERT(chunkIndex.size() == axes_.size());
-    auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
-    }
-    return request;
+    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len);
 }
 
 bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
@@ -110,6 +111,26 @@ bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis
         }
     }
 
+    return true;
+}
+
+metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
+    ASSERT(chunkIndex.size() == axes_.size());
+    auto request = request_;
+    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
+        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+    }
+    return request;
+}
+
+bool ViewPart::hasData(const std::vector<size_t>& chunkIndex) const {
+    const auto& ax = axes_[extensionAxisIndex_];
+    if (ax.isChunked()) {
+        const auto idx = chunkIndex[extensionAxisIndex_];
+        // Requested index within index range provided by this part?
+        return idx >= extensionAxisOffset_ && idx < extensionAxisOffset_ + ax.size();
+    }
+    // The extension axis is not chunked, this means we need the data from all view parts.
     return true;
 }
 

@@ -61,14 +61,27 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
 
     auto idx(chunkIndex);
 
+    // for (const auto& part : parts_) {
+    //     // Skip parts which the index isn't part of
+    //     if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
+    //         idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
+    //         continue;
+    //     }
+    //     part.at(idx, ptr, len, countFields());
+    //     break;
+    // }
+
+    // Ensure ptr, len is large enough to hold output
+    if (const auto expectedLen = countChunkValues(); len != expectedLen) {
+        std::ostringstream out{};
+        out << "Output buffer provided to ChunkedDataViewImpl::at(...) has the wrong size. "
+            << "Expected: 'len = " << expectedLen << ", actual: 'len = " << len;
+        throw eckit::UserError(out.str());
+    }
+
+
     for (const auto& part : parts_) {
-        // Skip parts which the index isn't part of
-        if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
-            idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
-            continue;
-        }
-        part.at(idx, ptr, len, countFields());
-        break;
+        part.at(idx, ptr, len);
     }
 };
 
