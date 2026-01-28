@@ -193,6 +193,18 @@ public:
 
     CatalogueWipeState(eckit::Stream& s);
 
+    // Non-copyable
+    CatalogueWipeState(const CatalogueWipeState&) = delete;
+    CatalogueWipeState& operator=(const CatalogueWipeState&) = delete;
+
+    // Movable
+    CatalogueWipeState(CatalogueWipeState&&) noexcept = default;
+    CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
+
+    virtual ~CatalogueWipeState() override {
+        restoreControlState();
+    }
+
     Catalogue& catalogue(const Config& config) const {
         if (!catalogue_) {
             catalogue_ = CatalogueReaderFactory::instance().build(dbKey_, config);
@@ -202,12 +214,16 @@ public:
 
     void initialControlState(const ControlIdentifiers& ids) { initialControlState_ = ids; }
 
-    // Reset the control state (i.e. locks) of the catalogue to their pre-wipe state.
-    void resetControlState(Catalogue& catalogue) const {
-        if (initialControlState_) {
-            catalogue.control(ControlAction::Enable, *initialControlState_);
-            initialControlState_.reset();
+    // Restore the control state (i.e. locks) of the catalogue to their pre-wipe state.
+    void restoreControlState() {
+        if (catalogue_ && initialControlState_) {
+            catalogue_->control(ControlAction::Enable, *initialControlState_);
+            initialControlState_.reset(); // only restore once
         }
+    }
+
+    void clearControlState() const {
+        initialControlState_.reset();
     }
 
     // Insert URIs

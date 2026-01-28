@@ -57,6 +57,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         ///    (i.e. only make visible the state before or after the operation has fully completed) or
         ///    are consumers allowed to access intermediate states?
 
+        // Bind catalogue to the wipe state so that it can later restore the control state
+        catalogueWipeState_.catalogue(catalogue.config());
+
         // Build the initial control state (is there really not a function for this?)
         ControlIdentifiers id;
         if (catalogue.enabled(ControlIdentifier::Archive)) {

@@ -35,10 +35,6 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
                                                                  [](const auto& pair) { return !pair.second.empty(); });
 
     if (doit && unclean && !unsafeWipeAll) {
-        /// @todo: strictly speaking, we should be resetting the state anywhere we can throw too...
-        /// Perhaps in the destructor of the wipe state?
-        catalogueWipeState.resetControlState(catalogueWipeState.catalogue(config_));
-
         eckit::Log::warning() << "Unclean FDB database has the following unknown URIs:" << std::endl;
         for (const auto& uri : unknownURIs.catalogue) {
             eckit::Log::warning() << uri << std::endl;
@@ -155,10 +151,13 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
     /// @note: at this point we are already certain we can proceed with unsafe operations
     /// @note: this line creates a map which will tell which stores were not possible to wipe in one go
     std::map<eckit::URI, bool> storeWiped;
+
     for (const auto& [uri, storeState] : storeWipeStates) {
         storeWiped[uri] = false;
     }
-    if (catalogueWipeState.safeURIs().empty()) {
+    
+    bool catWipeAll = catalogueWipeState.safeURIs().empty();
+    if (catWipeAll) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - attempting store wipe all" << std::endl;
         bool fullWipeSupported = true;
         for (const auto& [uri, storeState] : storeWipeStates) {
@@ -214,6 +213,12 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
     // 6. wipe empty databases
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
     catalogue->doWipeEmptyDatabase();
+    
+    // If we wiped the entire catalogue, we should not reset its control state.
+    if (catWipeAll) {
+        catalogueWipeState.clearControlState();
+    }
+
     for (const auto& [uri, storeState] : storeWipeStates) {
         if (storeWiped[uri])
             continue;
