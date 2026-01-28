@@ -137,7 +137,7 @@ public:
     // Remove URI from list of URIs to be deleted because it turns out not exist.
     // For remote stores, we must store this information to avoid reporting missing URIs to the client.
     /// @note: intentionally do not fail if signed, stores are allowed to uninclude URIs.
-    void markAsMissing(const eckit::URI& uri) { 
+    void markAsMissing(const eckit::URI& uri) {
         deleteURIs_[WipeElementType::STORE].erase(uri);
         missingURIs_.insert(uri);
     }
@@ -155,7 +155,7 @@ public:
 
     const std::set<eckit::URI>& dataAuxiliaryURIs() const { return deleteURIs_[WipeElementType::STORE_AUX]; }
     const std::set<eckit::URI>& includedDataURIs() const { return deleteURIs_[WipeElementType::STORE]; }
-    const std::set<eckit::URI>& missingURIs() const { return missingURIs_; } 
+    const std::set<eckit::URI>& missingURIs() const { return missingURIs_; }
 
     // Overrides
     void encode(eckit::Stream& s) const override;
@@ -194,16 +194,14 @@ public:
     CatalogueWipeState(eckit::Stream& s);
 
     // Non-copyable
-    CatalogueWipeState(const CatalogueWipeState&) = delete;
+    CatalogueWipeState(const CatalogueWipeState&)            = delete;
     CatalogueWipeState& operator=(const CatalogueWipeState&) = delete;
 
     // Movable
-    CatalogueWipeState(CatalogueWipeState&&) noexcept = default;
+    CatalogueWipeState(CatalogueWipeState&&) noexcept            = default;
     CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
 
-    virtual ~CatalogueWipeState() override {
-        restoreControlState();
-    }
+    virtual ~CatalogueWipeState() override { restoreControlState(); }
 
     Catalogue& catalogue(const Config& config) const {
         if (!catalogue_) {
@@ -218,13 +216,11 @@ public:
     void restoreControlState() {
         if (catalogue_ && initialControlState_) {
             catalogue_->control(ControlAction::Enable, *initialControlState_);
-            initialControlState_.reset(); // only restore once
+            initialControlState_.reset();  // only restore once
         }
     }
 
-    void clearControlState() const {
-        initialControlState_.reset();
-    }
+    void clearControlState() const { initialControlState_.reset(); }
 
     // Insert URIs
 

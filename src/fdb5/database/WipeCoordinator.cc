@@ -155,7 +155,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
     for (const auto& [uri, storeState] : storeWipeStates) {
         storeWiped[uri] = false;
     }
-    
+
     bool catWipeAll = catalogueWipeState.safeURIs().empty();
     if (catWipeAll) {
         LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - attempting store wipe all" << std::endl;
@@ -213,7 +213,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
     // 6. wipe empty databases
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - wiping empty databases" << std::endl;
     catalogue->doWipeEmptyDatabase();
-    
+
     // If we wiped the entire catalogue, we should not reset its control state.
     if (catWipeAll) {
         catalogueWipeState.clearControlState();

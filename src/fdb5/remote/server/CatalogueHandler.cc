@@ -588,6 +588,7 @@ const CatalogueHandler::WipeInProgress& CatalogueHandler::cachedWipeState(Key db
 }
 
 void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
@@ -595,6 +596,7 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
 }
 
 void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
@@ -602,8 +604,7 @@ void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::
 }
 
 void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const {
-
-    // Get the list of URIs from the payload
+    ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
@@ -633,6 +634,7 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
 }
 
 void CatalogueHandler::doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
