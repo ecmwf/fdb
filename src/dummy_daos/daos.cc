@@ -27,6 +27,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/testing/Filesystem.h"
 #include "eckit/types/UUID.h"
 #include "eckit/utils/MD5.h"
 
@@ -34,27 +35,6 @@
 #include "dummy_daos.h"
 
 using eckit::PathName;
-
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
 
 extern "C" {
 
@@ -339,7 +319,7 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
                 uuid_parse(found_uuid.c_str(), *uuid);
             }
 
-            deldir(cont_path);
+            eckit::testing::deldir(cont_path);
 
             return 0;
         }
@@ -403,7 +383,7 @@ int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event
 
     try {
 
-        deldir(realpath);
+        eckit::testing::deldir(realpath);
     }
     catch (eckit::FailedSystemCall& e) {
 
@@ -573,7 +553,7 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
 
     try {
 
-        deldir(oh.impl->path);
+        eckit::testing::deldir(oh.impl->path);
     }
     catch (eckit::FailedSystemCall& e) {
 
