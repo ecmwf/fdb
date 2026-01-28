@@ -390,15 +390,15 @@ void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool uns
     std::set<eckit::URI> nonExistingURIs;
     for (auto& uri : dataURIs) {
 
-        // XXX - this prints an error but never raises? Is this intentional?
         if (!uriBelongs(uri)) {
-            Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store."
-                         << std::endl;
-            Log::error() << "Configured Store URI: " << this->uri().asString() << std::endl;
-            Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
-            Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields."
-                         << std::endl;
-            return;
+            std::stringstream ss;
+            ss << "TocStore::finaliseWipeState: Index to be deleted has pointers to fields that don't belong to the "
+                  "configured store."
+               << std::endl;
+            ss << "Configured Store URI: " << this->uri().asString() << std::endl;
+            ss << "Pointed Store unit URI: " << uri.asString() << std::endl;
+            ss << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << std::endl;
+            throw eckit::SeriousBug(ss.str(), Here());
         }
 
         for (const auto& aux : getAuxiliaryURIs(uri, true)) {
