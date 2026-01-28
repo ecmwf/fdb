@@ -11,24 +11,47 @@ import pathlib
 
 import chunked_data_view_bindings.chunked_data_view_bindings as pdv
 
-from pychunked_data_view.exceptions import MarsRequestFormattingError
+from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalError
 
 pdv.init_bindings()
 
 
+class Chunking(enum.Enum):
+    """Defines how a axis will be chunked
+
+    Attributes:
+        NONE: Axis will not be chunked, accessing any value from this axis will load all values.
+        SINGLE_VALUE: Axis will be chunked. One chunk per value.
+    """
+
+    NONE = enum.auto()
+    SINGLE_VALUE = enum.auto()
+
+
 class AxisDefinition:
-    """
-    Defines which axis from a MARS Request form an axis in the Zarr array.
+    @staticmethod
+    def _translate_chunking(
+        chunking: Chunking,
+    ) -> pdv.AxisDefinition.NoChunking | pdv.AxisDefinition.IndividualChunking:
+        if chunking == Chunking.NONE:
+            return pdv.AxisDefinition.NoChunking()
+        elif chunking == Chunking.SINGLE_VALUE:
+            return pdv.AxisDefinition.IndividualChunking()
+        else:
+            raise InternalError()
 
-    Also defines if the data is to be chunked.
+    def __init__(self, keys: list[str], chunking: Chunking):
+        """Defines which axis from a MARS Request form an axis in the Zarr array.
 
-    Args:
-        keys(list of str): mars keys that for this axis.
-        chunked: Shall this axis be chunked into individual values or retrieved as one.
-    """
+        Also defines if the data is to be chunked.
 
-    def __init__(self, keys: list[str], chunked: bool):
-        self._obj = pdv.AxisDefinition(keys=keys, chunked=chunked)
+        Args:
+            keys(list of str): mars keys that for this axis.
+            chunking ( Chunking): Define how this axis shall be chunked
+        """
+        self._obj = pdv.AxisDefinition(
+            keys=keys, chunking=self._translate_chunking(chunking)
+        )
 
     @property
     def keys(self) -> list[str]:
@@ -39,12 +62,18 @@ class AxisDefinition:
         self._obj.keys = keys
 
     @property
-    def chunked(self) -> bool:
-        return self._obj.chunked
+    def chunking(self) -> Chunking:
+        chunking = self._obj.chunking
+        if isinstance(chunking, pdv.AxisDefinition.NoChunking):
+            return Chunking.NONE
+        elif isinstance(chunking, pdv.AxisDefinition.IndividualChunking):
+            return Chunking.SINGLE_VALUE
+        else:
+            raise InternalError()
 
-    @chunked.setter
-    def chunked(self, chunked: bool) -> None:
-        self._obj.chunked = chunked
+    @chunking.setter
+    def chunking(self, chunking: Chunking) -> None:
+        self._obj.chunking = self._translate_chunking(chunking)
 
 
 class ChunkedDataView:

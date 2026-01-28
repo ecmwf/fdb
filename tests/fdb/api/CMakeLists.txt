@@ -22,6 +22,7 @@ list( APPEND api_tests
     callback
     auxiliary
     select_exclude
+    wipe
 )
 
 foreach( _test ${api_tests} )

@@ -21,31 +21,11 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/testing/Filesystem.h"
 #include "eckit/utils/MD5.h"
 
 #include "../dummy_daos.h"
 #include "tests_lib.h"
-
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -176,7 +156,7 @@ int dmg_pool_create(const char* dmg_config_file, uid_t uid, gid_t gid, const cha
 
         if (errno == EEXIST) {  // link path already exists due to race condition
 
-            deldir(pool_path);
+            eckit::testing::deldir(pool_path);
             return -1;
         }
         else {  // symlink fails for unknown reason
@@ -219,7 +199,7 @@ int dmg_pool_destroy(const char* dmg_config_file, const uuid_t uuid, const char*
         }
     }
 
-    deldir(pool_path);
+    eckit::testing::deldir(pool_path);
 
     return 0;
 }

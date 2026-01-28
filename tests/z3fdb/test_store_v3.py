@@ -13,6 +13,7 @@ import numpy as np
 
 from z3fdb import (
     AxisDefinition,
+    Chunking,
     SimpleStoreBuilder,
     ExtractorType,
 )
@@ -35,7 +36,10 @@ def test_access(read_only_fdb_setup) -> None:
         "step=0,"
         "param=167/131/132,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        ],
         ExtractorType.GRIB,
     )
     store = builder.build()
@@ -62,7 +66,10 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
         "step=0,"
         "param=165/166/167,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        ],
         ExtractorType.GRIB,
     )
     store = builder.build()
