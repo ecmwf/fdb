@@ -51,7 +51,7 @@ html_theme_options = {
     ],
     "article_header_end": ["search-button", "toggle-secondary-sidebar"],
     "navbar_persistent": ["search-button"],
-    "content_footer_items" : [],
+    "content_footer_items": [],
     "footer_start": ["copyright"],
     "footer_center": [],
     "footer_end": [],

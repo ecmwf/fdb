@@ -89,7 +89,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (dbs.size() == 0) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB matches " << dbKey;
             Log::warning() << ss.str() << std::endl;
             if (fail_)
@@ -118,7 +118,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             }
 
             if (dbs.size() == 0) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "No FDB matches " << req.key();
                 Log::warning() << ss.str() << std::endl;
                 if (fail_)

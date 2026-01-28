@@ -78,7 +78,7 @@ void FdbHide::execute(const CmdArgs& args) {
 
         auto db = CatalogueReaderFactory::instance().build(key, conf);
         if (!db->exists()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Database not found: " << key << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }

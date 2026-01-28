@@ -41,8 +41,6 @@ using WhereIterator = APIIterator<WhereElement>;
 
 using WhereAggregateIterator = APIAggregateIterator<WhereElement>;
 
-using WhereAsyncIterator = APIAsyncIterator<WhereElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

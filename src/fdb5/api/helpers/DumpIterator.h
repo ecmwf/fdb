@@ -36,8 +36,6 @@ using DumpIterator = APIIterator<DumpElement>;
 
 using DumpAggregateIterator = APIAggregateIterator<DumpElement>;
 
-using DumpAsyncIterator = APIAsyncIterator<DumpElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

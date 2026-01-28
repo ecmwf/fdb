@@ -26,6 +26,7 @@ endfunction()
 
 set(test_files
   test_store_v3.py
+  test_store_v3_errors.py
   test_store_v3_pattern.py
   test_store_v3_parts.py
   test_store_v3_random_axis.py

@@ -80,7 +80,7 @@ void FDBPurge::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail() && !ignoreNoData_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }

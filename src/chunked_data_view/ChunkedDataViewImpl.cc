@@ -37,10 +37,10 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     }
 
     if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) {  // The implicit dimension must be subtracted
-        std::stringstream buf{};
-        buf << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        buf << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
-        throw eckit::UserError(buf.str());
+        std::ostringstream ss;
+        ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
+        ss << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        throw eckit::UserError(ss.str());
     }
 
     shape_[extensionAxisIndex_] -= parts_[0].shape()[extensionAxisIndex_];

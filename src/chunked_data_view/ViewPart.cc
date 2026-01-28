@@ -51,15 +51,16 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
             processedKeywords.insert(key);
             parameters.emplace_back(std::make_tuple(key, request_.values(key)));
         }
-        axes_.emplace_back(parameters, axis.chunked);
+        // NOTE(kkratz): Extend here for configurable number of fields per chunk
+        axes_.emplace_back(parameters, std::holds_alternative<AxisDefinition::IndividualChunking>(axis.chunking));
     }
 
     for (const auto& p : request_.parameters()) {
         if (p.count() > 1 && processedKeywords.count(p.name()) != 1) {
-            std::stringstream buf{};
-            buf << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
-                << " values but is not mapped by an axis.";
-            throw eckit::UserError(buf.str());
+            std::ostringstream ss;
+            ss << "ViewPart::ViewPart:Keyword " << p.name() << " has " << p.count()
+               << " values but is not mapped by an axis.";
+            throw eckit::UserError(ss.str());
         }
     }
 

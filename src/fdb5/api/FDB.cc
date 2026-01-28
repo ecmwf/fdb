@@ -89,7 +89,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     while ((msg = reader.next())) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
         if (!cube.clear(key.request())) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "FDB archive - found unexpected message" << std::endl;
             ss << "  user request:" << std::endl << "    " << request << std::endl;
             ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
@@ -99,7 +99,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
         archive(key, msg.data(), msg.length());
     }
     if (cube.countVacant()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
         ss << "  user request:" << std::endl << "    " << request << std::endl;
         ss << "  missing messages:" << std::endl;
@@ -202,7 +202,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
             }
 
             if (cube.countVacant() > 0) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "No matching data for requests:" << std::endl;
                 for (auto req : cube.vacantRequests()) {
                     ss << "    " << req << std::endl;

@@ -27,17 +27,23 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         @ONLY
     )
     add_subdirectory(chunked_data_view_bindings)
-    file(GLOB_RECURSE
-        _z3fdb_package_files
-        "z3fdb/*.py"
-        "pychunked_data_view/*.py"
+    set(_z3fdb_package_files
+        "z3fdb/simple_store_builder.py"
+        "z3fdb/z3fdb_error.py"
+        "z3fdb/__init__.py"
+        "z3fdb/_internal/zarr.py"
+        "pychunked_data_view/__init__.py"
+        "pychunked_data_view/chunked_data_view.py"
+        "pychunked_data_view/exceptions.py"
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
         COMMAND ${Python_INTERPRETER} -m build --wheel ${Z3FDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS ${_z3fdb_package_files}
+        DEPENDS 
+            ${_z3fdb_package_files}
+            $<TARGET_FILE:chunked_data_view_bindings>
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)

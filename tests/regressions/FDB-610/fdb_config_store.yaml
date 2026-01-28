@@ -1,0 +1,7 @@
+type: store
+serverPort: 8001
+store: file
+spaces:
+- handler: Default
+  roots:
+  - path: ~fdb/db_store

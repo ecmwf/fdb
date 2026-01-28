@@ -82,11 +82,12 @@ CASE("Remote protocol: the basics") {
     // -- write a few fields
     const size_t Nfields          = 9;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys         = write_data(fdb, data_string, "20000101", 3, 0, 3);
+    std::vector<Key> keys{};
+    { keys = write_data(fdb, data_string, "20000101", 3, 0, 3); }
     EXPECT_EQUAL(keys.size(), Nfields);
 
-    // -- list all fields
-    auto it = fdb.list(FDBToolRequest{{}, true, {}});
+    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
+    auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, false);
 
     ListElement elem;
     size_t count = 0;
@@ -94,10 +95,21 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << elem << " " << elem.location() << std::endl;
         count++;
     }
+    std::cout << "counted " << count << " fields" << std::endl;
+    EXPECT(count >= Nfields);
+
+    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
+    it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+
+    count = 0;
+    while (it.next(elem)) {
+        eckit::Log::info() << elem << " " << elem.location() << std::endl;
+        count++;
+    }
     EXPECT_EQUAL(count, Nfields);
 
-    // -- retrieve all fields
-    std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(make_request(keys)));
+    // -- retrieve all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
+    std::unique_ptr<eckit::DataHandle> dh(FDB{}.retrieve(make_request(keys)));
 
     eckit::AutoClose closer(*dh);
     dh->openForRead();

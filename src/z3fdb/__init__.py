@@ -11,18 +11,18 @@ z3FDB enables to create views into FDB where the view is a Zarr array.
 
 Views are defined by one or more MARS requests. Each keyword in the MARS
 request with more than one value defines an 'Axis'. 'Axis' from MARS requests
-need to be mapped to 'Axis' in the Zarr array. This mapping can be a 1-1 or 
+need to be mapped to 'Axis' in the Zarr array. This mapping can be a 1-1 or
 many-1 mapping, allowing to create a time based axis in the Zarr array that
 is composed from the 'date' and 'time' keyword when dealing with climate data.
 
-For example, the request 
-``"..., date=1970-01-1/to/2020-12-31, time=00/06/12/18, ..."`` spans two axis 
-'date' and 'time'. If you want to work on a unified time axis, then you  can 
+For example, the request
+``"..., date=1970-01-1/to/2020-12-31, time=00/06/12/18, ..."`` spans two axis
+'date' and 'time'. If you want to work on a unified time axis, then you  can
 use the following :class:`AxisDefinition` to map accordingly:
 
 Example::
 
-    AxisDefinition(["date", "time"], True)
+    AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE)
 
 This defines an 'Axis' in the Zarr array that follows 'date' and 'time' from
 the MARS request, where the rightmost references 'Axis' ('time') is varying
@@ -30,11 +30,11 @@ fastest.
 
 You can combine multiple MARS request into one view. This is useful if you
 want to access surface and pressure level data in one view. In this case you
-need to select on which 'Axis' of the Zarr array the requests extend each 
+need to select on which 'Axis' of the Zarr array the requests extend each
 other. The remaining axis have to have the same cardinality.
 
 .. code-block:: python
-   
+
    builder.add_part(
        "type=an,"
        "class=ea,"
@@ -47,8 +47,8 @@ other. The remaining axis have to have the same cardinality.
        "param=165/166,"
        "time=0/to/21/by/3",
        [
-           AxisDefinition(["date", "time"], True),
-           AxisDefinition(["param"], True)
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           AxisDefinition(["param"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
@@ -65,8 +65,8 @@ other. The remaining axis have to have the same cardinality.
        "levelist=50/100,"
        "time=0/to/21/by/3",
        [
-           AxisDefinition(["date", "time"], True),
-           AxisDefinition(["param", "levelist"], True)
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
@@ -89,6 +89,7 @@ the final 'Axis'.
 
 from pychunked_data_view.chunked_data_view import (
     AxisDefinition,
+    Chunking,
     ExtractorType,
 )
 from z3fdb.simple_store_builder import (
@@ -99,6 +100,7 @@ from z3fdb.z3fdb_error import Z3fdbError
 
 __all__ = [
     "AxisDefinition",
+    "Chunking",
     "ExtractorType",
     "SimpleStoreBuilder",
     "Z3fdbError",

@@ -44,8 +44,6 @@ public:
 
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
-using ListAsyncIterator = APIAsyncIterator<ListElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 /// KeyStore is a specialised helper class used for deduplication of return ListElements.
