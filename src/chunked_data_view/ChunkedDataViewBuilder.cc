@@ -64,9 +64,11 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     viewParts.reserve(parts_.size());
 
     std::shared_ptr<FdbInterface> fdb = std::move(fdb_);
+    size_t offset {};
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
-        viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);
+        viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs, extensionAxisIndex_.value_or(0), offset);
+        offset += viewParts.back().shape()[extensionAxisIndex_.value_or(0)];
     }
 
     if (!doPartsAlign(viewParts)) {

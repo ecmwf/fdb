@@ -58,6 +58,33 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
     return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 }
 
+void GribExtractor::writeInto(eckit::DataHandle& dataHandle, float* datumPtr, size_t datumLen) const {
+    eckit::message::Reader reader(dataHandle);
+    const auto msg = reader.next();
+
+    if (!msg) {
+        // TODO(kkratz): Discuss how we handle this
+        // This should not happen
+        throw eckit::Exception("No data returned from FDB");
+    }
+
+    if (const auto size = msg.getSize("values"); size != datumLen) {
+        //TODO(kkratz): Fix error message
+        std::ostringstream ss;
+        ss << "GribExractor: Unexpected field size found in GRIB message for key: " << ""
+           << " expected: " << datumLen << " found: " << size
+           << ". All fields in your view need to be of equal size.";
+        throw eckit::Exception(ss.str());
+    }
+    msg.getFloatArray("values", datumPtr, datumLen);
+
+    if (reader.next()) {
+        // TODO(kkratz): Discuss how we handle this
+        // This should not happen
+        throw eckit::Exception("Unexpected data returned from FDB!");
+    }
+}
+
 void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
                               std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                               const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const {

@@ -30,5 +30,6 @@ public:
     void writeInto(const metkit::mars::MarsRequest& request, std::unique_ptr<ListIteratorInterface> list_iterator,
                    const std::vector<Axis>& axes, const DataLayout& layout, float* ptr, size_t len,
                    size_t expected_msg_count) const override;
+    void writeInto(eckit::DataHandle& dataHandle, float* datumPtr, size_t datumLen) const override;
 };
 }  // namespace chunked_data_view

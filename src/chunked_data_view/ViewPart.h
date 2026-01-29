@@ -14,6 +14,7 @@
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
+#include "chunked_data_view/NDCoord.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -27,13 +28,13 @@ class ViewPart {
 public:
 
     ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
-             const std::vector<AxisDefinition>& axes);
-    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const;
-    std::vector<size_t> shape() const { return shape_; }
+             const std::vector<AxisDefinition>& axes, size_t extensionAxisIndex, size_t extensionAxisOffset);
+    void at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkShape) const;
+    const Shape& shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
     bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };
-
     bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
+    PartIndex toIndex(const fdb5::Key& key) const;
 
 private:
 
@@ -48,7 +49,9 @@ private:
     std::unique_ptr<Extractor> extractor_{};
     std::shared_ptr<FdbInterface> fdb_{};
     DataLayout layout_{};
-    std::vector<size_t> shape_{};
+    Shape shape_{};
+    size_t extensionAxisIndex_{};
+    size_t extensionAxisOffset_{};
 };
 
 }  // namespace chunked_data_view

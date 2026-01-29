@@ -34,8 +34,13 @@
 namespace chunked_data_view {
 
 ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor,
-                   std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes) :
-    request_(std::move(request)), extractor_(std::move(extractor)), fdb_(std::move(fdb)) {
+                   std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes,
+                   size_t extensionAxisIndex, size_t extensionAxisOffset) :
+    request_(std::move(request)),
+    extractor_(std::move(extractor)),
+    fdb_(std::move(fdb)),
+    extensionAxisIndex_(extensionAxisIndex),
+    extensionAxisOffset_(extensionAxisOffset) {
     ASSERT(fdb_);
     axes_.reserve(axes.size());
 
@@ -74,14 +79,56 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
-    ASSERT(chunkIndex.size() - 1 == axes_.size());
+int64_t to_linear_local(const PartIndex& part_idx, const GlobalIndex& part_origin, const GlobalIndex& chunk_origin,
+                        const Shape& chunk_shape) {
+    assert(part_idx.ndim() == chunk_shape.ndim());
+
+    int64_t linear = 0;
+
+    for (size_t d = 0; d < part_idx.ndim(); ++d) {
+        int64_t local = part_idx[d] + part_origin[d] - chunk_origin[d];
+        linear        = linear * chunk_shape[d] + local;
+    }
+    return linear;
+}
+
+void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkeShape) const {
+    ASSERT(index.ndim() == axes_.size());
+
+    // Do we need to querry fdb for this part?
+    const bool chunkedOnExtAxis = axes_[extensionAxisIndex_].isChunked();
+    const bool outsidePart      = [&]() {
+        const auto idx = index[extensionAxisIndex_];
+        return !(idx >= extensionAxisOffset_ && idx < axes_[extensionAxisIndex_].size() + extensionAxisOffset_);
+    }();
+    if (chunkedOnExtAxis && outsidePart) {
+        return;
+    }
+
     auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+    for (size_t dim = 0; dim < index.ndim(); ++dim) {
+        const size_t effectiveIndex = (dim == extensionAxisIndex_) ? index[dim] - extensionAxisOffset_ : index[dim];
+        RequestManipulation::updateRequest(request, axes_[dim], effectiveIndex);
     }
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
+
+
+    auto res = listIterator->next();
+    if (!res) {
+        std::ostringstream ss;
+        ss << "No data found for request: " << request << ". Is the request correctly specified?";
+        throw eckit::Exception(ss.str());
+    }
+
+    do {
+        const auto& key           = std::get<0>(*res);
+        auto& dataHandle          = std::get<1>(*res);
+        const PartIndex partIndex = toIndex(key);
+
+
+        extractor_->writeInto(*dataHandle, ptr, len);
+
+    } while ((res = listIterator->next()));
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
@@ -112,6 +159,14 @@ bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis
     }
 
     return true;
+}
+
+PartIndex ViewPart::toIndex(const fdb5::Key& key) const {
+    PartIndex idx(axes_.size());
+    for (size_t dim = 0; dim < axes_.size(); ++dim) {
+        idx[dim] = axes_[dim].index(key);
+    }
+    return idx;
 }
 
 }  // namespace chunked_data_view

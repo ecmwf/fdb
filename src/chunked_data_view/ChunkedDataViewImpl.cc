@@ -24,7 +24,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
     shape_ = parts_[0].shape();
     for (const auto& part : parts_) {
-        for (size_t idx = 0; idx < shape_.size(); ++idx) {
+        for (size_t idx = 0; idx < shape_.ndim(); ++idx) {
             if (idx == extensionAxisIndex_) {
                 shape_[idx] += part.shape()[idx];
             }
@@ -36,10 +36,10 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
         }
     }
 
-    if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= parts_[0].shape().ndim()) {  // The implicit dimension must be subtracted
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        ss << parts_[0].shape().ndim() - 1 << ". You're selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
@@ -57,18 +57,9 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     chunks_.back() = 1;
 }
 
-void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) {
-
-    auto idx(chunkIndex);
-
+void ChunkedDataViewImpl::at(const ChunkIndex& index, float* ptr, size_t len) {
     for (const auto& part : parts_) {
-        // Skip parts which the index isn't part of
-        if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
-            idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
-            continue;
-        }
-        part.at(idx, ptr, len, countFields());
-        break;
+        part.at(index, ptr, len, chunkShape_);
     }
 };
 

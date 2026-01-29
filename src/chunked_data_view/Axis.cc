@@ -48,8 +48,6 @@ Axis::Axis(std::vector<Parameter> parameters, bool chunked) :
     parameters_(std::move(parameters)), size_(combinedSize(parameters_)), chunked_(chunked) {}
 
 size_t Axis::index(const fdb5::Key& key) const {
-
-
     // Sanity check whether the key is containing information about the axis
     const std::vector<std::string>& keys = key.names();
 
