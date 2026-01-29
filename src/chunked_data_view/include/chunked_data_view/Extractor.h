@@ -48,6 +48,7 @@ public:
     virtual void writeInto(const metkit::mars::MarsRequest& request,
                            std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                            const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const = 0;
+    virtual void writeInto2(eckit::DataHandle& dataHandle, float* datumPtr, size_t datumLen) const {};
 };
 
 enum class ExtractorType {

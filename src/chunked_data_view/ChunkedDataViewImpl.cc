@@ -24,7 +24,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
     shape_ = parts_[0].shape();
     for (const auto& part : parts_) {
-        for (size_t idx = 0; idx < shape_.size(); ++idx) {
+        for (size_t idx = 0; idx < shape_.ndim(); ++idx) {
             if (idx == extensionAxisIndex_) {
                 shape_[idx] += part.shape()[idx];
             }
@@ -36,52 +36,40 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
         }
     }
 
-    if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= parts_[0].shape().ndim() - 1) {  // The implicit dimension must be subtracted
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        ss << parts_[0].shape().ndim() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
     shape_[extensionAxisIndex_] -= parts_[0].shape()[extensionAxisIndex_];
     chunkShape_ = shape_;
-    chunks_.resize(shape_.size());
+    chunks_ = Shape(shape_.ndim());
     // The last dimension is implicitly created for the number of values in a field, i.e. there is no representation in
     // the axes. And the dimension of fields is never chunked I.e. fields are always returned whole.
-    for (size_t index = 0; index < chunkShape_.size() - 1; ++index) {
+    for (size_t index = 0; index < chunkShape_.ndim() - 1; ++index) {
         if (parts_[0].isAxisChunked(index)) {
             chunkShape_[index] = 1;
         }
         chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
     }
-    chunks_.back() = 1;
+    chunks_[chunks_.ndim() - 1] = 1;
 }
 
-void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) {
+void ChunkedDataViewImpl::at(const ChunkIndex& index, float* ptr, size_t len) {
 
-    auto idx(chunkIndex);
-
-    // for (const auto& part : parts_) {
-    //     // Skip parts which the index isn't part of
-    //     if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
-    //         idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
-    //         continue;
-    //     }
-    //     part.at(idx, ptr, len, countFields());
-    //     break;
-    // }
-
-    // Ensure ptr, len is large enough to hold output
-    if (const auto expectedLen = countChunkValues(); len != expectedLen) {
+    const auto roi = make_region(index, chunkShape_);
+    // Ensure received span (ptr + len) can hold requested data.
+    if(const auto countValuesRequested = volume(roi) * parts_[0].layout().countValues; len != countValuesRequested) {
         std::ostringstream out{};
         out << "Output buffer provided to ChunkedDataViewImpl::at(...) has the wrong size. "
-            << "Expected: 'len = " << expectedLen << ", actual: 'len = " << len;
+            << "Expected: 'len = " << countValuesRequested << ", actual: 'len = " << len;
         throw eckit::UserError(out.str());
     }
 
-
     for (const auto& part : parts_) {
-        part.at(idx, ptr, len);
+        part.at(roi, ptr, len);
     }
 };
 

@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <vector>
 
+#include "chunked_data_view/NDCoord.h"
+
 namespace chunked_data_view {
 
 class ChunkedDataView {
@@ -21,13 +23,13 @@ public:
 
     virtual ~ChunkedDataView() = default;
     /// Values in a field
-    virtual void at(const Index& index, float* data_ptr, size_t len) = 0;
+    virtual void at(const ChunkIndex& index, float* data_ptr, size_t len) = 0;
     /// Shape of a chunk
-    virtual const std::vector<size_t>& chunkShape() const = 0;
+    virtual const Shape& chunkShape() const = 0;
     /// Number of chunks in each dimension
-    virtual const std::vector<size_t>& chunks() const = 0;
+    virtual const Shape& chunks() const = 0;
     /// Shape of the dataset / number of values in each dimension
-    virtual const std::vector<size_t>& shape() const = 0;
+    virtual const Shape& shape() const = 0;
 
 
     virtual size_t countChunkValues() const = 0;

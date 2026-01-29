@@ -23,6 +23,8 @@ add_library(chunked_data_view STATIC
     IndexMapper.h
     LibChunkedDataView.cc
     ListIterator.cc
+    NDCoord.cc
+    NDCoord.h
     RequestManipulation.cc
     RequestManipulation.h
     ViewPart.cc

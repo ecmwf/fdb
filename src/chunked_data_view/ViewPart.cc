@@ -36,14 +36,12 @@ namespace chunked_data_view {
 ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor,
                    std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes,
                    size_t extensionAxisOffset, size_t extensionAxisIndex) :
-    request_(std::move(request)),
-    extractor_(std::move(extractor)),
-    fdb_(std::move(fdb)),
-    extensionAxisOffset_(extensionAxisOffset),
-    extensionAxisIndex_(extensionAxisIndex) {
+    request_(std::move(request)), extractor_(std::move(extractor)), fdb_(std::move(fdb)) {
     ASSERT(fdb_);
-    axes_.reserve(axes.size());
 
+    // FIXME(kkratz): This transforms Axis Definitions + a MARS request into Axis -> Refactor to function
+    // --BEGIN--
+    axes_.reserve(axes.size());
     std::set<std::string> processedKeywords{};
     for (const auto& axis : axes) {
 
@@ -58,7 +56,6 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
         }
         axes_.emplace_back(parameters, axis.chunked);
     }
-
     for (const auto& p : request_.parameters()) {
         if (p.count() > 1 && processedKeywords.count(p.name()) != 1) {
             std::ostringstream ss;
@@ -67,39 +64,67 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
             throw eckit::UserError(ss.str());
         }
     }
+    // --END--
 
-    const auto req = requestAt(std::vector<size_t>(axes_.size()));
+    // TODO(kkratz): throw excpetion with contextual information, right now the error is not understandable
+    const auto req = requestAt(ChunkIndex(axes_.size()));
     std::unique_ptr<eckit::DataHandle> result(fdb_->retrieve(req));
     layout_ = extractor_->layout(*result);
-    shape_.reserve(axes_.size() + 1);
-    std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(shape_),
-                   [](const auto& axis) { return axis.size(); });
-    shape_.push_back(layout_.countValues);
+
+    GlobalIndex begin(axes_.size());
+    GlobalIndex end(axes_.size());
+    for (size_t axisIndex = 0; axisIndex < axes_.size(); ++axisIndex) {
+        if (axisIndex == extensionAxisIndex) {
+            begin[axisIndex] = extensionAxisOffset;
+            end[axisIndex]   = extensionAxisOffset + axes_[axisIndex].size();
+        }
+        else {
+            end[axisIndex] = axes_[axisIndex].size();
+        }
+    }
+    region_ = GlobalRegion(begin, end);
 }
 
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) const {
-    if (!hasData(chunkIndex)) {
+void ViewPart::at(const GlobalRegion& requested_region, float* ptr, size_t len) const {
+    ASSERT(requested_region.ndim() - 1 == axes_.size());
+    const auto region = to_local_clipped(requested_region, region_);
+    if (!region) {
         return;
     }
 
-
-    ASSERT(chunkIndex.size() - 1 == axes_.size());
     auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+    for (size_t idx = 0; idx < index.ndim() - 1; ++idx) {
+        RequestManipulation::updateRequest(request, axes_[idx], index[idx]);
     }
+
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len);
+    auto res          = listIterator->next();
+    if (!res) {
+        std::ostringstream ss;
+        ss << "Empty iterator for request: " << request << ". Is the request correctly specified?";
+        throw eckit::Exception(ss.str());
+    }
+
+    do {
+        const auto& key       = std::get<0>(*res);
+        auto& dataHandle      = std::get<1>(*res);
+        const size_t msgIndex = computeBufferIndex(axes, key);
+
+        extractor_->writeInto2(dataHandle, datumPtr, datumLen);
+    } while ((res = listIterator->next()));
+
+    // extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, extensionAxisOffset,
+    //                       extensionAxisIndex_);
 }
 
 bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
 
-    if (other.shape().size() != this->shape().size()) {
+    if (other.shape().ndim() != this->shape().ndim()) {
         return false;
     }
 
-    for (size_t index = 0; index < other.shape().size(); ++index) {
+    for (size_t index = 0; index < other.shape().ndim(); ++index) {
         if (index == extension_axis) {
             continue;
         }
@@ -114,19 +139,19 @@ bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis
     return true;
 }
 
-metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
-    ASSERT(chunkIndex.size() == axes_.size());
+metkit::mars::MarsRequest ViewPart::requestAt(const ChunkIndex& index) const {
+    ASSERT(index.ndim() == axes_.size());
     auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
+    for (size_t idx = 0; idx < index.ndim(); ++idx) {
+        RequestManipulation::updateRequest(request, axes_[idx], index[idx]);
     }
     return request;
 }
 
-bool ViewPart::hasData(const std::vector<size_t>& chunkIndex) const {
+bool ViewPart::hasData(const ChunkIndex& index) const {
     const auto& ax = axes_[extensionAxisIndex_];
     if (ax.isChunked()) {
-        const auto idx = chunkIndex[extensionAxisIndex_];
+        const auto idx = index[extensionAxisIndex_];
         // Requested index within index range provided by this part?
         return idx >= extensionAxisOffset_ && idx < extensionAxisOffset_ + ax.size();
     }

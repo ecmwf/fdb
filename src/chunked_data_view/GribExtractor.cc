@@ -58,60 +58,25 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
     return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes);
 }
 
-void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
-                              std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                              const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const {
+void GribExtractor::writeInto2(eckit::DataHandle& dataHandle, float* datumPtr, size_t datumLen) const {
+    eckit::message::Reader reader(dataHandle);
+    eckit::message::Message msg{};
 
-    bool iterator_empty = true;
-    std::vector<bool> bitset(expected_msg_count);
-
-    while (auto res = list_iterator->next()) {
-
-        if (!res) {
-            break;
-        }
-        iterator_empty = false;
-
-        const auto& key       = std::get<0>(*res);
-        auto& data_handle     = std::get<1>(*res);
-        const size_t msgIndex = computeBufferIndex(axes, key);
-
-        try {
-            eckit::message::Reader reader(*data_handle);
-            eckit::message::Message msg{};
-
-            auto copyInto  = ptr + msgIndex * layout.countValues;
-            const auto end = copyInto + layout.countValues;
-            ASSERT(end - ptr <= len);
-
-            while ((msg = reader.next())) {
-                if (const auto size = msg.getSize("values"); size != layout.countValues) {
-                    std::ostringstream ss;
-                    ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
-                       << " expected: " << layout.countValues << " found: " << size
-                       << ". All fields in your view need to be of equal size.";
-                    throw eckit::Exception(ss.str());
-                }
-                msg.getFloatArray("values", copyInto, layout.countValues);
-                bitset[msgIndex] = true;
-            }
-        }
-        catch (const std::exception& e) {
-            eckit::Log::debug() << e.what() << std::endl;
-        }
-    }
-
-    if (iterator_empty) {
+    msg = reader.next();
+    if (const auto size = msg.getSize("values"); size != datumLen) {
         std::ostringstream ss;
-        ss << "GribExtractor: Empty iterator for request: " << request << ". Is the request correctly specified?";
+        // TODO(kkratz): need to fix error message, key information missing here.
+        ss << "GribExractor: Unexpected field size found in GRIB message for key: " << ""
+           << " expected: " << datumLen << " found: " << size << ". All fields in your view need to be of equal size.";
         throw eckit::Exception(ss.str());
     }
+    msg.getFloatArray("values", datumPtr, datumLen);
 
-    if (const auto read_count = std::count(std::begin(bitset), std::end(bitset), true); read_count != bitset.size()) {
+    msg = reader.next();
+    if (msg) {
         std::ostringstream ss;
-        ss << "GribExtractor: retrieved only " << read_count << " of " << bitset.size() << " fields in request "
-           << request;
-
+        ss << "GribExtractor: One message per DataHandle expected!";
+        // TODO(kkratz): This should be a fatal error
         throw eckit::Exception(ss.str());
     }
 }
