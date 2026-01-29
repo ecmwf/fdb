@@ -75,7 +75,7 @@ class FDBToolRequest:
         )
 
     @classmethod
-    def from_mars_selection(cls, selection):
+    def from_mars_selection(cls, selection: InternalMarsSelection):
         from pyfdb import WildcardMarsSelection
 
         return cls(
@@ -84,6 +84,47 @@ class FDBToolRequest:
 
     def ____repr__(self) -> str:
         return str(self.tool_request)
+
+
+class MarsSelectionMapper:
+    """
+    Selection mapper for creating MARS selections.
+
+    This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
+    is activated there will be checks whether keys have been set already. If `wildcard_selection` is
+    set, the resulting request will be a `WildcardMarsSelection`. A `WildcardMarsSelection` represents
+    a requests which
+
+    Examples
+    --------
+    TODO:
+    """
+
+    @classmethod
+    def map(cls, selection: "MarsSelection") -> InternalMarsSelection:
+        result = {}
+
+        for key, values in selection.items():
+            # Values is a list of values but not a single string
+            if isinstance(values, Collection) and not isinstance(values, str):
+                converted_values = [
+                    str(v) if isinstance(v, float) or isinstance(v, int) else v
+                    for v in values
+                ]
+                result[key] = "/".join(converted_values)
+            # Values is a string or a float or an int
+            elif (
+                isinstance(values, str)
+                or isinstance(values, int)
+                or isinstance(values, float)
+            ):
+                result[key] = str(values)
+            else:
+                raise ValueError(
+                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
+                )
+
+        return result
 
 
 class ConfigMapper:
@@ -169,7 +210,7 @@ class MarsRequest:
             )
 
     @classmethod
-    def from_selection(cls, mars_selection):
+    def from_selection(cls, mars_selection: InternalMarsSelection):
         result = MarsRequest()
         result.request = pyfdb_internal.MarsRequest("retrieve", mars_selection)
         return result

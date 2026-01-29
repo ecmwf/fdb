@@ -13,8 +13,6 @@ from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import ControlElement, IndexAxis
 from pyfdb.pyfdb_type import ControlAction, ControlIdentifier, WildcardMarsSelection
 
-import pytest
-
 
 def test_list_wildcard(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
