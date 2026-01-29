@@ -42,7 +42,7 @@ set(test_files
     integration/test_move.py
     integration/test_purge.py
     integration/test_retrieve.py
-    integration/test_selection_build.py
+    integration/test_selection_mapper.py
     integration/test_stats.py
     integration/test_status.py
     integration/test_types.py

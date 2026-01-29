@@ -1,4 +1,7 @@
 from pyfdb import FDB
+from pyfdb.pyfdb_type import WildcardMarsSelection
+
+import pytest
 
 
 def test_retrieve(read_only_fdb_setup):
@@ -17,7 +20,7 @@ def test_retrieve(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": ["167", "165", "166"],
         "time": "1800",
     }
 
@@ -27,6 +30,17 @@ def test_retrieve(read_only_fdb_setup):
     data_handle.open()
     assert data_handle.read(4) == b"GRIB"
     data_handle.close()
+
+
+def test_retrieve_wildcard(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+
+    with pytest.raises(TypeError):
+        _ = fdb.retrieve(WildcardMarsSelection())
 
 
 def test_retrieve_context_manager(read_only_fdb_setup):
@@ -45,7 +59,7 @@ def test_retrieve_context_manager(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": ["167", "165", "166"],
         "time": "1800",
     }
 

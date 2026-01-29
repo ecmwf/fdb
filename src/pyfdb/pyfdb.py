@@ -33,6 +33,7 @@ from pyfdb.pyfdb_type import (
     ControlIdentifier,
     DataHandle,
     Identifier,
+    MarsSelectionMapper,
     MarsSelection,
     WildcardMarsSelection,
 )
@@ -215,12 +216,15 @@ class FDB:
         >>>     assert data_handle
         >>>     assert data_handle.read(4) == b"GRIB"
         """
-        mars_request = MarsRequest.from_selection(mars_selection)
+        if isinstance(mars_selection, WildcardMarsSelection):
+            raise TypeError("Wildcard selection aren't support for retrieving.")
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        mars_request = MarsRequest.from_selection(internal_mars_selection)
         return DataHandle(self.FDB.retrieve(mars_request.request), _internal=True)
 
     def list(
         self,
-        selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection | WildcardMarsSelection,
         include_masked: bool = False,
         level: int = 3,
     ) -> Generator[ListElement, None, None]:
@@ -229,7 +233,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which describes the data which can be listed.
         `include_masked` : bool, *optional*
             If True, the returned iterator lists masked data, if False the elements are unique.
@@ -289,7 +293,8 @@ class FDB:
         length=0,
         timestamp=0
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.list(
             fdb_tool_request.tool_request, not include_masked, level
         )
@@ -346,7 +351,8 @@ class FDB:
         length=10732,
         timestamp=1762537447
         """
-        mars_request = MarsRequest.from_selection(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        mars_request = MarsRequest.from_selection(internal_mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
 
         while iterator is not None:
@@ -356,7 +362,7 @@ class FDB:
                 return
 
     def status(
-        self, selection: MarsSelection | WildcardMarsSelection
+        self, mars_selection: MarsSelection | WildcardMarsSelection
     ) -> Generator[StatusElement, None, None]:
         """
         List the status of all FDB entries with their control identifiers, e.g., whether a certain
@@ -364,7 +370,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             An MARS selection which specifies the queried data
 
         Returns
@@ -391,7 +397,8 @@ class FDB:
             name=<location>
         ]
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
             try:
@@ -401,7 +408,7 @@ class FDB:
 
     def wipe(
         self,
-        selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection | WildcardMarsSelection,
         doit: bool = False,
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
@@ -415,7 +422,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             An MARS selection which specifies the affected data
         `doit` : `bool`, *optional*
             If true the wipe command is executed, per default there are only dry-run
@@ -444,7 +451,8 @@ class FDB:
         <path_to_database>/toc
         ...
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.wipe(
             fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
         )
@@ -455,7 +463,7 @@ class FDB:
                 return
 
     def move(
-        self, selection: MarsSelection, destination: URI
+        self, mars_selection: MarsSelection, destination: URI
     ) -> Generator[MoveElement, None, None]:
         """
         Move content of one FDB database to a new URI.
@@ -466,7 +474,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection`
+        `mars_selection` : `MarsSelection`
             A MARS selection specifies the affected data
         `destination` : `URI`
             A new FDB root to which a database should be moved
@@ -508,7 +516,8 @@ class FDB:
         )
         ...
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
         while True:
             try:
@@ -518,7 +527,7 @@ class FDB:
 
     def purge(
         self,
-        selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection | WildcardMarsSelection,
         doit: bool = False,
         porcelain: bool = False,
     ) -> Generator[PurgeElement, None, None]:
@@ -534,7 +543,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which describes the data which is purged.
         `doit` : `bool`, *optional*
             If true the wipe command is executed, per default there are only dry-run
@@ -567,7 +576,8 @@ class FDB:
         length=10732,
         timestamp=176253976
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
             try:
@@ -576,7 +586,7 @@ class FDB:
                 return
 
     def stats(
-        self, selection: MarsSelection | WildcardMarsSelection
+        self, mars_selection: MarsSelection | WildcardMarsSelection
     ) -> Generator[StatsElement, None, None]:
         """
         Print information about FDB databases, aggregating the
@@ -584,7 +594,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which specifies the affected data.
 
         Returns
@@ -618,7 +628,8 @@ class FDB:
         Total owned size                : 165,544 (161.664 Kbytes)
         Total size                      : 165,544 (161.664 Kbytes)
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
             try:
@@ -628,7 +639,7 @@ class FDB:
 
     def control(
         self,
-        selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection | WildcardMarsSelection,
         control_action: ControlAction,
         control_identifiers: List[ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
@@ -637,7 +648,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which specifies the affected data.
         `control_action` : `ControlAction`
             Which action should be modified, e.g., ControlAction.RETRIEVE
@@ -684,7 +695,8 @@ class FDB:
             name=<location_fdb_database>
         ]
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         raw_control_identifiers = [
             control_identifier._to_raw() for control_identifier in control_identifiers
         ]
@@ -700,7 +712,7 @@ class FDB:
                 return
 
     def axes(
-        self, selection: MarsSelection | WildcardMarsSelection, level: int = 3
+        self, mars_selection: MarsSelection | WildcardMarsSelection, level: int = 3
     ) -> IndexAxis:
         """
         Return the 'axes' and their extent of a MARS selection for a given level of the schema in
@@ -710,7 +722,7 @@ class FDB:
 
         Parameters
         ----------
-        `selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
             A MARS selection which specifies the affected data.
         `level` : int [1-3], *optional*
             Level of the FDB Schema. Only keys of the given level are returned.
@@ -748,7 +760,8 @@ class FDB:
         k=time     | v=['1800']
         k=type     | v=['an']
         """
-        fdb_tool_request = FDBToolRequest.from_mars_selection(selection)
+        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         return IndexAxis(
             self.FDB.axes(fdb_tool_request.tool_request, level), _internal=True
         )

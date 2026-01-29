@@ -29,7 +29,7 @@ FDB - Auxiliary Objects
 .. autoapiclass:: pyfdb.pyfdb.WildcardMarsSelection 
    :members:
 
-.. autoapiclass:: pyfdb.pyfdb.SelectionBuilder
+.. autoapiclass:: pyfdb.pyfdb.SelectionMapper
    :members:
 
 .. autoapiclass:: pyfdb.pyfdb.ControlAction 

@@ -1,28 +1,28 @@
 import pytest
 from pyfdb import FDB
-
-
-STATIC_DICTIONARY = {
-    "class": "rd",
-    "date": "20191110",
-    "domain": "g",
-    "expver": "xxxx",
-    "levelist": "300",
-    "levtype": "pl",
-    "param": "138",
-    "step": "0",
-    "stream": "oper",
-    "time": "0000",
-    "type": "an",
-}
+from pyfdb.pyfdb_type import WildcardMarsSelection
 
 
 def assert_one_field(pyfdb: FDB):
-    data_handle = pyfdb.retrieve(STATIC_DICTIONARY)
+    selection = {
+        "class": "rd",
+        "expver": "xxxx",
+        "stream": "oper",
+        "date": "20191110",
+        "time": "0000",
+        "domain": "g",
+        "type": "an",
+        "levtype": "pl",
+        "step": "0",
+        "levelist": "300",
+        "param": "138",
+    }
+
+    data_handle = pyfdb.retrieve(selection)
 
     assert data_handle
 
-    list_iterator = pyfdb.list(STATIC_DICTIONARY)
+    list_iterator = pyfdb.list(selection)
 
     elements = []
 
@@ -60,3 +60,38 @@ def test_archive_abitrary_data(empty_fdb_setup):
     with pytest.raises(RuntimeError, match="Serious bug"):
         fdb.archive(data=b"binary-data")
         fdb.flush()
+
+
+def test_archive_round_trip(empty_fdb_setup, test_data_path):
+    fdb_config_path = empty_fdb_setup
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+
+    filename = test_data_path / "x138-300.grib"
+    file_content = open(filename, "rb").read()
+    fdb.archive(file_content)
+    fdb.flush()
+
+    # Those are the FDB keys of the GRIB file given above
+    selection = {
+        "class": "rd",
+        "expver": "xxxx",
+        "stream": "oper",
+        "date": "20191110",
+        "time": "0000",
+        "domain": "g",
+        "type": "an",
+        "levtype": "pl",
+        "step": "0",
+        "levelist": "300",
+        "param": "138",
+    }
+
+    with fdb.retrieve(selection) as data_handle:
+        reread_file_content = data_handle.readall()
+        assert file_content == reread_file_content
+
+    list_iterator = fdb.list(WildcardMarsSelection())
+
+    assert len(list(list_iterator)) == 1
