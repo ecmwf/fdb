@@ -21,14 +21,14 @@ and serves recent outputs to post‑processing tasks and users. In operational
 use, FDB acts as a hot cache in front of the long‑term MARS archive, enabling
 fast access to newly generated data. 
 
-:ref:`PyFDB <PyFDB_Introduction>` is the Python interface to the (`FDB <github.com/ecmwf/fdb>`__), a
+:ref:`PyFDB <PyFDB_Introduction>` is the Python interface to the `FDB <github.com/ecmwf/fdb>`__, a
 domain‑specific object store designed to efficiently archive, index, list, and
 retrieve GRIB fields produced by numerical weather prediction workflows. It
 provides a thin, idiomatic Python layer over the `FDB` client library installed
 on your system, so you can drive FDB operations directly from Python scripts
 and notebooks. 
 
-:ref:`Z3FDB <Z3FDB_Introduction>` is the Python-Zarr interface to the (`FDB <github.com/ecmwf/fdb>`__).
+:ref:`Z3FDB <Z3FDB_Introduction>` is the Python-Zarr interface to the `FDB <github.com/ecmwf/fdb>`__.
 It provides a thin, idiomatic Python layer over the `FDB` client library installed
 on your system, so you can extract Zarr data by creating a virtual Zarr store. The view is described 
 via a MARS request and can be used to create a virtual Zarr store containing the data of the MARS
