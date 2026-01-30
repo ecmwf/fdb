@@ -150,7 +150,7 @@ WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
 
     FDBLane* matchingLane = nullptr;
     for (auto& lane : subFdbs_) {
-        if (lane.matches(request.request(), Matcher::DontMatchOnMissing)) {
+        if (lane.matches(request.request(), Matcher::MatchOnMissing)) {
             if (matchingLane != nullptr) {
                 std::stringstream ss;
                 ss << "Multiple matching lanes for request " << request.request();
