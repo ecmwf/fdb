@@ -69,6 +69,14 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
                                buf,               /* Name of parameter */
                                length);           /* Name of parameter */
     }
+
+    long readinto(py::buffer buf) {
+        PYBIND11_OVERRIDE_PURE(int,               /* Return type */
+                               eckit::DataHandle, /* Parent class */
+                               readinto,          /* Name of function in C++ (must match Python name) */
+                               buf                /* Name of parameter */
+        );                                        /* Name of parameter */
+    }
 };
 
 PYBIND11_MODULE(pyfdb_bindings, m) {
@@ -103,6 +111,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init())
         .def("open_for_read", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); })
         .def("close", [](eckit::DataHandle& data_handle) { data_handle.close(); })
+        .def("size", [](eckit::DataHandle& data_handle) { return static_cast<long long>(data_handle.size()); })
         .def("read",
              [](eckit::DataHandle& data_handle, py::buffer& buffer) {
                  py::buffer_info info = buffer.request();

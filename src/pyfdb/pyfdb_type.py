@@ -110,13 +110,16 @@ class DataHandle:
     >>>     "date": "20200101",
     >>>     "levtype": "sfc",
     >>>     "step": "0",
-    >>>     "param": "167/165/166",
+    >>>     "param": ["167", "165", "166"],
     >>>     "time": "1800",
     >>> }
-    >>> data_handle = pyfdb.retrieve(request)
+    >>> data_handle = fdb.retrieve(request)
     >>> data_handle.open()
     >>> data_handle.read(4) == b"GRIB"
     >>> data_handle.close()
+    >>> # OR
+    >>> with fdb.retrieve(request) as data_handle:
+    >>>     data_handle.read(4) == b"GRIB"
     """
 
     def __init__(self, dataHandle: _DataHandle, *, _internal=False):
@@ -146,7 +149,7 @@ class DataHandle:
 
         Examples
         --------
-        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle = fdb.retrieve(request)
         >>> data_handle.open()
         >>> data_handle.read(4) == b"GRIB"
         >>> data_handle.close()
@@ -170,7 +173,7 @@ class DataHandle:
 
         Examples
         --------
-        >>> data_handle = pyfdb.retrieve(request)
+        >>> data_handle = fdb.retrieve(request)
         >>> data_handle.open()
         >>> data_handle.read(4) == b"GRIB"
         >>> data_handle.close()
@@ -180,14 +183,34 @@ class DataHandle:
         self.opened = False
         self.dataHandle.close()
 
-    def read(self, len: int) -> bytes:
+    def size(self) -> int:
         """
-        Read a given amount of bytes from the DataHandle.
+        Return the size of a data handle in bytes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        `int` describing the size of the datahandle in bytes.
+
+        Examples
+        --------
+        >>> with fdb.retrieve(selection) as data_handle:
+        >>>     data_handle.size() # Returns the size of the datahandle in bytes
+        """
+        return self.dataHandle.size()
+
+    def read(self, len: int = -1) -> bytes:
+        """
+        Read a given amount of bytes from the `DataHandle`.
+        This method copies the data from the underlying memory.
 
         Parameters
         ----------
         `len`: int
-            The amount of bytes to read.
+            The amount of bytes to read. If -1 is entered the whole data handle is read.
 
         Returns
         -------
@@ -199,32 +222,76 @@ class DataHandle:
 
         Examples
         --------
-        >>> data_handle = pyfdb.retrieve(request)
-        >>> data_handle.open()
-        >>> data_handle.read(4) == b"GRIB"
-        >>> data_handle.close()
+        >>> with fdb.retrieve(request) as data_handle
+        >>>     data_handle.read(4) == b"GRIB"
+        >>>     #or
+        >>>     data_handle.read(-1) # Read the entire file
         """
         if self.opened is False:
             raise RuntimeError(
                 "DataHandle: Read occured before the handle was opened. Must be opened first."
             )
 
-        buffer = bytearray(len)
-        self.dataHandle.read(buffer)
+        if len == -1:
+            len = self.dataHandle.size()
+
+        buffer = bytearray(min(len, self.dataHandle.size()))
+        read_bytes = self.dataHandle.read(buffer)
+
+        if read_bytes == 0:
+            return b""
 
         return bytes(buffer)
 
-    def readall(self) -> bytes:
+    def readinto(self, buffer: memoryview) -> int:
         """
-        Read all bytes from the DataHandle.
+        Read a given amount of bytes from the DataHandle into a memoryview.
+        This is a zero-copy method.
 
         Parameters
         ----------
-        None
+        `buffer`: `memoryview`
+            Memory view for the buffer in which the bytes should be read
+
+        Returns
+        -------
+        `int` size of bytes which have been read
+
+        Raises
+        ------
+        `RuntimeError` if the DataHandle wasn't opened before the read.
+
+        Examples
+        --------
+        >>> dst_read_into = io.BytesIO(b"")
+        >>> with fdb.retrieve(selection) as data_handle:
+        >>>     assert data_handle
+        >>>     shutil.copyfileobj(data_handle, dst_read_into)
+        >>>     # Reset position in file
+        >>>     dst_read_into.seek(0)
+        """
+        if self.opened is False:
+            raise RuntimeError(
+                "DataHandle: Read occured before the handle was opened. Must be opened first."
+            )
+
+        # Buffer is a writable buffer (memoryview)
+        return self.dataHandle.read(buffer)
+
+    def readall(self, buffer_size: int = 1024) -> bytes:
+        """
+        Read all bytes from the DataHandle into memory.
+        This method copies the data from the underlying memory.
+
+        Parameters
+        ----------
+        `buffer_size`: `int`
+            The size of the buffer which is used for reading
 
         Note
         ----
-        *There is no need to open the DataHandle before*. This is handled by the function.
+        *There is no need to open the DataHandle before*. This is handled by the function. The
+        default chunk size is 1024 bytes.
 
         Returns
         -------
@@ -232,13 +299,13 @@ class DataHandle:
 
         Examples
         --------
-        >>> data_handle = pyfdb.retrieve(request)
-        >>> data_handle.read_all(4) == b"GRIB"
+        >>> data_handle = fdb.retrieve(request)
+        >>> data_handle.readall() # Returns all content of a datahandle b"GRIB..."
         """
         buffer = bytearray()
         total_bytes_read = 0
 
-        chunk_buf = bytearray(1024)
+        chunk_buf = bytearray(buffer_size)
 
         self.open()
         bytes_read = self.dataHandle.read(chunk_buf)
