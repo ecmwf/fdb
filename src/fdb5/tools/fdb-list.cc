@@ -80,15 +80,15 @@ void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    location_       = args.getBool("location", location_);
-    timestamp_      = args.getBool("timestamp", timestamp_);
-    length_         = args.getBool("length", length_);
+    location_                 = args.getBool("location", location_);
+    timestamp_                = args.getBool("timestamp", timestamp_);
+    length_                   = args.getBool("length", length_);
     const bool full           = args.getBool("full", false);
     const bool onlyDuplicates = args.getBool("only-duplicates", false);
-    porcelain_      = args.getBool("porcelain", porcelain_);
-    json_           = args.getBool("json", json_);
-    compact_        = args.getBool("compact", compact_);
-    depth_          = args.getInt("depth", depth_);
+    porcelain_                = args.getBool("porcelain", porcelain_);
+    json_                     = args.getBool("json", json_);
+    compact_                  = args.getBool("compact", compact_);
+    depth_                    = args.getInt("depth", depth_);
 
     ASSERT(depth_ > 0 && depth_ < 4);
 

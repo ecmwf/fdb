@@ -84,9 +84,7 @@ class ListIterator : public APIIterator<ListElement> {
 public:
 
     ListIterator(APIIterator<ListElement>&& iter, ListMode mode = ListMode::Full) :
-        APIIterator<ListElement>(std::move(iter)),
-        seenKeys_({}),
-        mode_(mode) {}
+        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), mode_(mode) {}
 
     ListIterator(ListIterator&& iter) = default;
 
