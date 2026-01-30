@@ -245,7 +245,7 @@ class DataHandle:
 
     def readinto(self, buffer: memoryview) -> int:
         """
-        Read a given amount of bytes from the DataHandle into a memoryview.
+        Read a given amount of bytes from the `DataHandle` into a `memoryview`.
         This is a zero-copy method.
 
         Parameters

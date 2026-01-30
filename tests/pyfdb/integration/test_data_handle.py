@@ -3,6 +3,7 @@ import pytest
 from pyfdb.pyfdb import FDB
 
 import shutil
+import tempfile
 
 
 def test_datahandle_repr(read_only_fdb_setup):
@@ -329,6 +330,44 @@ def test_datahandle_readinto_shutil_copyfileobj_cmp(read_only_fdb_setup):
 
         assert len(content_read_all) == len(content_read_into)
         assert content_read_all == content_read_into
+
+
+def test_datahandle_readinto_shutil_copyfileobj_tmp_file(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": ["167", "165", "166"],
+        "time": "1800",
+    }
+
+    with tempfile.TemporaryFile() as out:
+        with fdb.retrieve(selection) as data_handle:
+            assert data_handle
+            shutil.copyfileobj(data_handle, out)
+            out.flush()
+
+        out.seek(0)
+        content_read_into = out.read(-1)
+
+        with fdb.retrieve(selection) as data_handle:
+            assert data_handle
+
+            content_read_all = data_handle.readall()
+
+            assert len(content_read_all) == len(content_read_into)
+            assert content_read_all == content_read_into
 
 
 def test_data_handle_readinto_attr(read_only_fdb_setup):

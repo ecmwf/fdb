@@ -9,6 +9,8 @@ set(DOXYGEN_INDEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/index.html)
 set(SPHINX_INDEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/sphinx/index.html)
 set(DOXYFILE ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
 
+file(GLOB_RECURSE PYFDB_DOC_TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../docs/pyfdb/example.rst)
+
 add_custom_command(
     DEPENDS 
         ${FDB_PUBLIC_HEADERS}
@@ -26,7 +28,7 @@ add_custom_command(
     OUTPUT ${SPHINX_INDEX_FILE} ${DOXYGEN_INDEX_FILE}
 )
 
-add_custom_target(fdb-doc ALL DEPENDS ${SPHINX_INDEX_FILE} ${DOXYGEN_INDEX_FILE})
+add_custom_target(fdb-doc ALL DEPENDS ${PYFDB_DOC_TEST_SRCS})
 
 # Testing of pyfdb docs
 
@@ -63,3 +65,4 @@ set(doc_test_files
 foreach(test_file ${doc_test_files})
     add_rst_doc_test(${test_file})
 endforeach()
+
