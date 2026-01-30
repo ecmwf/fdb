@@ -32,6 +32,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+enum class ListMode {
+    Full,
+    Deduplicate,
+    OnlyDuplicates
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
 public:
 
@@ -75,11 +83,10 @@ public:
 class ListIterator : public APIIterator<ListElement> {
 public:
 
-    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false, bool onlyDuplicates = false) :
+    ListIterator(APIIterator<ListElement>&& iter, ListMode mode = ListMode::Full) :
         APIIterator<ListElement>(std::move(iter)),
         seenKeys_({}),
-        deduplicate_(deduplicate),
-        onlyDuplicates_(onlyDuplicates) {}
+        mode_(mode) {}
 
     ListIterator(ListIterator&& iter) = default;
 
@@ -92,8 +99,7 @@ public:
 private:
 
     KeyStore seenKeys_;
-    bool deduplicate_;
-    bool onlyDuplicates_;
+    ListMode mode_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

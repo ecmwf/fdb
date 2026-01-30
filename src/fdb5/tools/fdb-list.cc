@@ -67,8 +67,7 @@ private:  // methods
     bool location_{false};
     bool timestamp_{false};
     bool length_{false};
-    bool full_{false};
-    bool onlyDuplicates_{false};
+    ListMode listMode_{ListMode::Deduplicate};
     bool porcelain_{false};
     bool json_{false};
     bool compact_{false};
@@ -84,8 +83,8 @@ void FDBList::init(const CmdArgs& args) {
     location_       = args.getBool("location", location_);
     timestamp_      = args.getBool("timestamp", timestamp_);
     length_         = args.getBool("length", length_);
-    full_           = args.getBool("full", full_);
-    onlyDuplicates_ = args.getBool("only-duplicates", onlyDuplicates_);
+    const bool full           = args.getBool("full", false);
+    const bool onlyDuplicates = args.getBool("only-duplicates", false);
     porcelain_      = args.getBool("porcelain", porcelain_);
     json_           = args.getBool("json", json_);
     compact_        = args.getBool("compact", compact_);
@@ -114,16 +113,26 @@ void FDBList::init(const CmdArgs& args) {
         if (location_) {
             throw UserError("--compact and --location are not compatible", Here());
         }
-        if (full_) {
+        if (full) {
             throw UserError("--compact and --full are not compatible", Here());
         }
-        if (onlyDuplicates_) {
+        if (onlyDuplicates) {
             throw UserError("--compact and --only-duplicates are not compatible", Here());
         }
     }
 
-    if (full_ && onlyDuplicates_) {
+    if (full && onlyDuplicates) {
         throw UserError("--full and --only-duplicates are not compatible", Here());
+    }
+
+    if (onlyDuplicates) {
+        listMode_ = ListMode::OnlyDuplicates;
+    }
+    else if (!full && !compact_) {
+        listMode_ = ListMode::Deduplicate;
+    }
+    else {
+        listMode_ = ListMode::Full;
     }
 
     /// @todo option ignore-errors
@@ -147,9 +156,7 @@ void FDBList::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        // If --full is supplied, then include all entries including duplicates.
-        // If --only-duplicates is supplied, then include only the duplicated (masked) entries.
-        auto listObject = fdb.list(request, !full_ && !compact_ && !onlyDuplicates_, depth_, onlyDuplicates_);
+        auto listObject = fdb.list(request, listMode_, depth_);
 
         if (compact_) {
             auto [fields, total] = listObject.dumpCompact(Log::info());
