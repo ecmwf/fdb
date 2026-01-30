@@ -39,6 +39,7 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     request_(std::move(request)),
     extractor_(std::move(extractor)),
     fdb_(std::move(fdb)),
+    shape_(axes.size()),
     extensionAxisIndex_(extensionAxisIndex),
     extensionAxisOffset_(extensionAxisOffset) {
     ASSERT(fdb_);
@@ -72,27 +73,11 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     const auto req = requestAt(std::vector<size_t>(axes_.size()));
     std::unique_ptr<eckit::DataHandle> result(fdb_->retrieve(req));
     layout_ = extractor_->layout(*result);
-    shape_.reserve(axes_.size() + 1);
-    std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(shape_),
+    std::transform(std::begin(axes_), std::end(axes_), std::begin(shape_),
                    [](const auto& axis) { return axis.size(); });
-    shape_.push_back(layout_.countValues);
 }
 
-
-int64_t to_linear_local(const PartIndex& part_idx, const GlobalIndex& part_origin, const GlobalIndex& chunk_origin,
-                        const Shape& chunk_shape) {
-    assert(part_idx.ndim() == chunk_shape.ndim());
-
-    int64_t linear = 0;
-
-    for (size_t d = 0; d < part_idx.ndim(); ++d) {
-        int64_t local = part_idx[d] + part_origin[d] - chunk_origin[d];
-        linear        = linear * chunk_shape[d] + local;
-    }
-    return linear;
-}
-
-void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkeShape) const {
+void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkShape) const {
     ASSERT(index.ndim() == axes_.size());
 
     // Do we need to querry fdb for this part?
@@ -121,12 +106,10 @@ void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& 
     }
 
     do {
-        const auto& key           = std::get<0>(*res);
-        auto& dataHandle          = std::get<1>(*res);
-        const PartIndex partIndex = toIndex(key);
-
-
-        extractor_->writeInto(*dataHandle, ptr, len);
+        const auto& key   = std::get<0>(*res);
+        auto& dataHandle  = std::get<1>(*res);
+        const auto offset = toBufferIndex(key, index, chunkShape) * layout_.countValues;
+        extractor_->writeInto(*dataHandle, ptr + offset, layout_.countValues);
 
     } while ((res = listIterator->next()));
 }
@@ -141,12 +124,13 @@ metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIn
 }
 
 bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
+    // TODO(kkratz): Work directly on axes, no need for a shape field, i think...
 
-    if (other.shape().size() != this->shape().size()) {
+    if (other.shape().ndim() != this->shape().ndim()) {
         return false;
     }
 
-    for (size_t index = 0; index < other.shape().size(); ++index) {
+    for (size_t index = 0; index < other.shape().ndim(); ++index) {
         if (index == extension_axis) {
             continue;
         }
@@ -161,12 +145,15 @@ bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis
     return true;
 }
 
-PartIndex ViewPart::toIndex(const fdb5::Key& key) const {
-    PartIndex idx(axes_.size());
+size_t ViewPart::toBufferIndex(const fdb5::Key& key, const ChunkIndex& chunkIndex, const Shape& chunkShape) const {
+    int64_t linear = 0;
     for (size_t dim = 0; dim < axes_.size(); ++dim) {
-        idx[dim] = axes_[dim].index(key);
+        const auto& axis     = axes_[dim];
+        const int64_t offset = (dim == extensionAxisIndex_) ? extensionAxisOffset_ : 0;
+        int64_t idx          = (axis.index(key) + offset) % chunkShape[dim];
+        linear               = linear * chunkShape[dim] + idx;
     }
-    return idx;
+    return linear;
 }
 
 }  // namespace chunked_data_view

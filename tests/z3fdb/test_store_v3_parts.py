@@ -82,7 +82,7 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
         "step=0,"
         "param=165/166,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], False)],
+        [AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE), AxisDefinition(["param"], Chunking.NONE)],
         ExtractorType.GRIB,
     )
     builder.add_part(
@@ -98,8 +98,8 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
         "levelist=50/100,"
         "time=0/to/21/by/3",
         [
-            AxisDefinition(["date", "time"], True),
-            AxisDefinition(["param", "levelist"], False),
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param", "levelist"], Chunking.NONE),
         ],
         ExtractorType.GRIB,
     )

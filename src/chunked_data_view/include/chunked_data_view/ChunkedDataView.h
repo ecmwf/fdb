@@ -27,8 +27,9 @@ public:
     virtual const Shape& chunks() const = 0;
     /// Shape of the dataset / number of values in each dimension
     virtual const Shape& shape() const = 0;
-
-
+    /// Returns the number of values in the 'datum', e.g. number of values in a GRIB message
+    virtual size_t datumSize() const = 0;
+    /// TODO(kkratz): document
     virtual size_t countChunkValues() const = 0;
 };
 

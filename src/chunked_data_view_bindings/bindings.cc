@@ -13,6 +13,7 @@
 #include <chunked_data_view/ChunkedDataViewBuilder.h>
 #include <chunked_data_view/Extractor.h>
 #include <chunked_data_view/LibChunkedDataView.h>
+#include <chunked_data_view/NDCoord.h>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -46,17 +47,17 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
     // Wrapping interface ChunkedDataView
     py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView")
         .def("at",
-             [](cdv::ChunkedDataView* view, const cdv::ChunkedDataView::Index index) {
+             [](cdv::ChunkedDataView* view, const std::vector<int32_t> index) {
                  const auto len = view->countChunkValues();
                  py::array_t<float> arr(len);
                  float* p = arr.mutable_data();
-                 view->at(index, p, len);
-
+                 view->at(cdv::ChunkIndex(std::move(index)), p, len);
                  return arr;
              })
-        .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
-        .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
-        .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); });
+        .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape().data; })
+        .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks().data; })
+        .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape().data; })
+        .def("datum_size", [](const cdv::ChunkedDataView* view){ return view->datumSize();});
 
     py::enum_<cdv::ExtractorType>(m, "ExtractorType").value("GRIB", cdv::ExtractorType::GRIB);
 

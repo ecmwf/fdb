@@ -147,9 +147,14 @@ class FdbSource:
     ) -> None:
         self._chunked_data_view = chunked_data_view
 
-        self._shape = self._chunked_data_view.shape()
-        self._chunks = self._chunked_data_view.chunkShape()
-        self._chunks_per_dimension = self._chunked_data_view.chunks()
+        # Note the underlying ChunkedDataView operates on 'messages', i.e. fields when 
+        # dealing with GRIB. Values contained in messages are exposed as last index 
+        # (1d array) in the zarr nd-array, hence they are added to the shape of the 
+        # underlying ChunkedDataView.
+        datum_size = self._chunked_data_view.datum_size()
+        self._shape = [*self._chunked_data_view.shape(), datum_size]
+        self._chunks = [*self._chunked_data_view.chunkShape(), datum_size]
+        self._chunks_per_dimension = [*self._chunked_data_view.chunks(), 1]
 
     def create_dot_zarr_json(self) -> CpuBuffer:
         return to_cpu_buffer(
@@ -182,7 +187,9 @@ class FdbSource:
             k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)
         ):
             raise KeyError
-        return CpuBuffer.from_bytes(self._chunked_data_view.at(key))
+        # Note the underlying ChunkedDataView operates on 'messages', hence we need to
+        # strip the last dimension.
+        return CpuBuffer.from_bytes(self._chunked_data_view.at(key[:-1]))
 
 
 class FdbZarrArray:

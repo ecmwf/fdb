@@ -76,6 +76,7 @@ class AxisDefinition:
         self._obj.chunking = self._translate_chunking(chunking)
 
 
+
 class ChunkedDataView:
     def __init__(self, obj: pdv.ChunkedDataView):
         self._obj = obj
@@ -91,6 +92,9 @@ class ChunkedDataView:
 
     def shape(self):
         return self._obj.shape()
+    
+    def datum_size(self) -> int:
+        return self._obj.datum_size()
 
 
 class ExtractorType(enum.Enum):

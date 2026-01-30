@@ -32,9 +32,9 @@ public:
     void at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkShape) const;
     const Shape& shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
-    bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };
+    bool isAxisChunked(size_t index) const { return axes_.at(index).isChunked(); };
     bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
-    PartIndex toIndex(const fdb5::Key& key) const;
+    size_t toBufferIndex(const fdb5::Key& key, const ChunkIndex& chunkIndex, const Shape& chunkShape) const;
 
 private:
 

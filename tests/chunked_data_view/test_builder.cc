@@ -303,6 +303,52 @@ CASE("ChunkedDataView | Two parts - extension axis set to 0 | Mismatching parame
                       .build());
 }
 
+CASE("ChunkedDataView | Two parts - extension axis set to 0 | Mismatching chunking on extension axis | Expected FAILURE") {
+    const std::string keys_part_1{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v/u,"
+        "time=0/6/12/18"};
+
+    const std::string keys_part_2{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v/u/w,"
+        "time=0/6/12/18"};
+
+    const auto request = fdb5::FDBToolRequest::requestsFromString(keys_part_1).at(0).request();
+
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(
+                      std::make_unique<MockFdb>(
+                          [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                          [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                              return std::make_unique<MockListIterator>(
+                                  std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                                      std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                  });
+                          }))
+                      .addPart(keys_part_1,
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::NoChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
+                               std::make_unique<FakeExtractor>())
+                      .addPart(keys_part_2,
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
+                               std::make_unique<FakeExtractor>())
+                      .extendOnAxis(0)
+                      .build());
+}
+
 
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);

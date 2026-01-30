@@ -159,10 +159,10 @@ CASE("ChunkedDataView | View from 1 request | Can compute shape") {
                      std::make_unique<FakeExtractor>())
             .build();
     //
-    // Expect to get: 4 dates, 4 times, 2 fields, 10 values per field (implicit axis)
-    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 2, 10}));
-    EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 4, 1, 1}));
-    EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{1, 1, 2, 10}));
+    // Expect to get: 4 dates, 4 times, 2 fields
+    EXPECT_EQUAL(view->shape(), (cdv::Shape{4, 4, 2}));
+    EXPECT_EQUAL(view->chunks(), (cdv::Shape{4, 4, 1}));
+    EXPECT_EQUAL(view->chunkShape(), (cdv::Shape{1, 1, 2}));
 }
 
 CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
@@ -200,7 +200,7 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
             .extendOnAxis(2)
             .build();
     // Expect to get: 4 dates, 4 times, 2*2 fields (2 per request), 10 values per field (implicit axis)
-    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 4, 10}));
+    EXPECT_EQUAL(view->shape(), (cdv::Shape{4, 4, 4}));
 }
 
 CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis") {
@@ -236,7 +236,7 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
             .extendOnAxis(1)
             .build();
     // Expect to get: 16 date/times (4 dates * 4 times), 2*2 fields (2 per request), 10 values per field (implicit axis)
-    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{16, 4, 10}));
+    EXPECT_EQUAL(view->shape(), (cdv::Shape{16, 4}));
 }
 
 CASE("ChunkedDataView - Can build") {

@@ -29,23 +29,22 @@ public:
     const Shape& chunks() const override { return chunks_; }
     const Shape& shape() const override { return shape_; }
 
-    /**
-     * @brief Returns the number of entries in a chunk including the implicit field entries
-     *
-     * @return number of entries
-     */
+    /// Returns the number of entries in a chunk including the implicit field entries.
+    /// @return number of entries
     size_t countChunkValues() const override {
         size_t result = 1;
         for (auto i : chunkShape_) {
             result *= i;
         }
-        return result;
+        return result * datumSize();
     }
+    
+    size_t datumSize() const override;
 
 
     size_t countFields() const {
         size_t result = 1;
-        for (size_t i = 0; i < chunkShape_.ndim() - 1; ++i) {
+        for (size_t i = 0; i < chunkShape_.ndim(); ++i) {
             result *= chunkShape_[i];
         }
         return result;
@@ -53,11 +52,11 @@ public:
 
 private:
 
-    Shape chunkShape_{};
-    Shape shape_{};
-    Shape chunks_{};
     std::vector<ViewPart> parts_{};
     size_t extensionAxisIndex_{};
+    Shape shape_{};
+    Shape chunkShape_{};
+    Shape chunks_{};
 };
 
 }  // namespace chunked_data_view

@@ -10,10 +10,12 @@
 #pragma once
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
-#include <optional>
+#include <string_view>
+#include <iostream>
 
 namespace chunked_data_view {
 /// N-dimensional coordinate with tag-based type safety.
@@ -42,6 +44,10 @@ struct NDCoord {
     /// @param init Brace-enclosed list of coordinate values
     NDCoord(std::initializer_list<int32_t> init) : data(init) {}
 
+    /// Construct from vector.
+    /// @param vector representing index information
+    NDCoord(std::vector<int32_t> vec) : data(std::move(vec)) {}
+
     /// @return Number of dimensions
     size_t ndim() const { return data.size(); }
 
@@ -62,14 +68,38 @@ struct NDCoord {
 };
 
 // --- Tags ---
+template <typename Tag>
+struct tag_name {
+    static constexpr std::string_view value = "Unknown";
+};
 
-struct GlobalTag {};  ///< Tag for global array indices
-struct PartTag {};    ///< Tag for indices within a part
-struct ChunkTag {};   ///< Tag for chunk grid indices
-struct LocalTag {};   ///< Tag for indices within a chunk
-struct ShapeTag {};   ///< Tag for dimensional extents
-struct OffsetTag {};  ///< Tag for displacements
-struct RegionTag {};
+#define DEFINE_COORD_TAG(Tag, Name)                \
+    struct Tag {};                                 \
+    template <>                                    \
+    struct tag_name<Tag> {                         \
+        static constexpr std::string_view value = Name; \
+    }
+
+DEFINE_COORD_TAG(GlobalTag, "Global");  ///< Tag for global array indices
+DEFINE_COORD_TAG(PartTag, "Part");      ///< Tag for indices within a part
+DEFINE_COORD_TAG(ChunkTag, "Chunk");    ///< Tag for chunk grid indices
+DEFINE_COORD_TAG(LocalTag, "Local");    ///< Tag for indices within a chunk
+DEFINE_COORD_TAG(ShapeTag, "Shape");    ///< Tag for dimensional extents
+DEFINE_COORD_TAG(OffsetTag, "Offset");  ///< Tag for displacements
+DEFINE_COORD_TAG(RegionTag, "Region");
+
+template <typename T>
+std::ostream& operator<<(std::ostream& out, const NDCoord<T>& c) {
+    out << "NDCoord<" << tag_name<T>::value << ">[";
+    for (const auto& val : c) {
+        if (&val != &c[0]) {
+            out << ", ";
+        }
+        out << val;
+    }
+    out << "]";
+    return out;
+}
 
 // --- Type aliases ---
 
@@ -77,7 +107,7 @@ using GlobalIndex = NDCoord<GlobalTag>;  ///< Position in the full array
 using PartIndex   = NDCoord<PartTag>;    ///< Position within a part's local space
 using ChunkIndex  = NDCoord<ChunkTag>;   ///< Position in the chunk grid
 using LocalIndex  = NDCoord<LocalTag>;   ///< Position within a single chunk
-using RegionIndex = NDCoord<RegionTag>;                            
+using RegionIndex = NDCoord<RegionTag>;
 using Shape       = NDCoord<ShapeTag>;   ///< Dimensional extents
 using Offset      = NDCoord<OffsetTag>;  ///< Displacement vector
 
@@ -111,7 +141,7 @@ struct Region {
 
 using GlobalRegion = Region<GlobalIndex>;  ///< A Region in the global scope.
 using PartRegion   = Region<PartIndex>;    ///< A Region in a parts scope.
-using LocalRegion = Region<RegionIndex>;                                           
+using LocalRegion  = Region<RegionIndex>;
 
 
 // --- Factory functions ---
@@ -189,19 +219,16 @@ inline int64_t volume(const T& region_like) {
     return result;
 }
 
-inline std::optional<GlobalRegion> intersection(
-    const GlobalRegion& a, 
-    const GlobalRegion& b) 
-{
+inline std::optional<GlobalRegion> intersection(const GlobalRegion& a, const GlobalRegion& b) {
     assert(a.ndim() == b.ndim());
-    
+
     GlobalIndex start(a.ndim());
     GlobalIndex end(a.ndim());
-    
+
     for (size_t d = 0; d < a.ndim(); ++d) {
         start[d] = std::max(a.start[d], b.start[d]);
-        end[d] = std::min(a.end[d], b.end[d]);
-        
+        end[d]   = std::min(a.end[d], b.end[d]);
+
         if (start[d] >= end[d]) {
             return std::nullopt;  // empty intersection
         }
@@ -209,29 +236,24 @@ inline std::optional<GlobalRegion> intersection(
     return GlobalRegion{start, end};
 }
 
-LocalRegion to_local(
-    const GlobalRegion& region, 
-    const GlobalRegion& reference) 
-{
+inline LocalRegion to_local(const GlobalRegion& region, const GlobalRegion& reference) {
     assert(region.ndim() == reference.ndim());
-    
+
     RegionIndex start(region.ndim());
     RegionIndex end(region.ndim());
-    
+
     for (size_t d = 0; d < region.ndim(); ++d) {
         start[d] = region.start[d] - reference.start[d];
-        end[d] = region.end[d] - reference.start[d];
+        end[d]   = region.end[d] - reference.start[d];
     }
     return {start, end};
 }
 
 // Get the part of 'region' that lies within 'reference', in local coords
-std::optional<LocalRegion> to_local_clipped(
-    const GlobalRegion& region,
-    const GlobalRegion& reference)
-{
+inline std::optional<LocalRegion> to_local_clipped(const GlobalRegion& region, const GlobalRegion& reference) {
     auto isect = intersection(region, reference);
-    if (!isect) return std::nullopt;
+    if (!isect)
+        return std::nullopt;
     return to_local(*isect, reference);
 }
 

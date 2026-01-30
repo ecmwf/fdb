@@ -21,40 +21,45 @@
 namespace chunked_data_view {
 
 ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t extensionAxisIndex) :
-    parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
-    shape_ = parts_[0].shape();
-    for (const auto& part : parts_) {
-        for (size_t idx = 0; idx < shape_.ndim(); ++idx) {
-            if (idx == extensionAxisIndex_) {
-                shape_[idx] += part.shape()[idx];
-            }
-            else if (shape_[idx] != part.shape()[idx]) {
-                throw eckit::UserError(
-                    "ChunkedDataViewImpl: Axis size mismatch. All axis besides the extension axis have to match in "
-                    "their extent.");
-            }
-        }
-    }
+    parts_(std::move(parts)),
+    extensionAxisIndex_(extensionAxisIndex),
+    shape_(parts_[0].shape().ndim()),
+    chunkShape_(shape_.ndim()),
+    chunks_(shape_.ndim()) {
 
-    if (extensionAxisIndex_ >= parts_[0].shape().ndim()) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= shape_.ndim()) {
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
         ss << parts_[0].shape().ndim() - 1 << ". You're selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
-    shape_[extensionAxisIndex_] -= parts_[0].shape()[extensionAxisIndex_];
-    chunkShape_ = shape_;
-    chunks_.resize(shape_.size());
-    // The last dimension is implicitly created for the number of values in a field, i.e. there is no representation in
-    // the axes. And the dimension of fields is never chunked I.e. fields are always returned whole.
-    for (size_t index = 0; index < chunkShape_.size() - 1; ++index) {
-        if (parts_[0].isAxisChunked(index)) {
-            chunkShape_[index] = 1;
+    for (size_t dim = 0; dim < shape_.ndim(); ++dim) {
+        if (dim == extensionAxisIndex_) {
+            shape_[dim] =
+                std::accumulate(std::begin(parts_), std::end(parts_), 0,
+                                [&dim](const auto& acc, const auto& item) { return acc + item.shape()[dim]; });
         }
-        chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
+        else {
+            const auto refVal = parts_[0].shape()[dim];
+            if (std::any_of(std::begin(parts_), std::end(parts_),
+                            [&refVal, &dim](const auto& item) { return item.shape()[dim] != refVal; })) {
+                // TODO(kkratz): Add shape information to error message
+                throw eckit::UserError(
+                    "ChunkedDataViewImpl: Axis size mismatch. All axis besides the extension axis have to match in "
+                    "their extent.");
+            }
+            shape_[dim] = refVal;
+        }
+        const auto refChunking = parts_[0].isAxisChunked(dim);
+        if (std::any_of(std::begin(parts_), std::end(parts_),
+                        [&refChunking, &dim](const auto& item) { return item.isAxisChunked(dim) != refChunking; })) {
+            // TODO(kkratz): Add per axis chunking information to error message
+            throw eckit::UserError("All parts must use the same chunking on an extension axis");
+        }
+        chunkShape_[dim] = refChunking ? 1 : shape_[dim];
+        chunks_[dim]     = (shape_[dim] + chunkShape_[dim] - 1) / chunkShape_[dim];
     }
-    chunks_.back() = 1;
 }
 
 void ChunkedDataViewImpl::at(const ChunkIndex& index, float* ptr, size_t len) {
@@ -62,5 +67,9 @@ void ChunkedDataViewImpl::at(const ChunkIndex& index, float* ptr, size_t len) {
         part.at(index, ptr, len, chunkShape_);
     }
 };
+
+size_t ChunkedDataViewImpl::datumSize() const {
+    return parts_[0].layout().countValues;
+}
 
 }  // namespace chunked_data_view
