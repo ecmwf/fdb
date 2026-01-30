@@ -88,6 +88,11 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     ).exists()
 
     print("Retrieve with lock")
+    # Needed because reuse of databases in the retrieve path is using a cached db
+    # object which contains the first (non-locked) status of the db.
+    # This can be removed as soon as https://jira.ecmwf.int/browse/FDB-613 is fixed.
+    fdb = FDB(read_only_fdb_setup)
+
     data_handle = fdb.retrieve(
         {
             "type": "an",
@@ -104,7 +109,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     )
     assert data_handle
     data_handle.open()
-    assert data_handle.read(4) == b"GRIB"
+    assert data_handle.read(4) == b""
     data_handle.close()
 
 

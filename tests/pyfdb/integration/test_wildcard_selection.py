@@ -254,7 +254,7 @@ def test_control_lock_retrieve_wildcard(read_only_fdb_setup):
         },
     ) as data_handle_2:
         assert data_handle_2
-        assert data_handle_2.read(4) == b"\x00\x00\x00\x00"
+        assert data_handle_2.read(4) == b""
 
 
 def test_index_axis_items_levels_wildcard(read_only_fdb_setup):

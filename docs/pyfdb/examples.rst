@@ -242,7 +242,7 @@ The following code is showing how to achieve this:
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": ["167", "165", "166"],
         "time": "1800",
     }
 
