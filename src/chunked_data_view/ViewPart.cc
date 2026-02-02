@@ -70,7 +70,7 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
         }
     }
 
-    const auto req = requestAt(std::vector<size_t>(axes_.size()));
+    const auto req = requestAt(ChunkIndex(axes_.size()));
     std::unique_ptr<eckit::DataHandle> result(fdb_->retrieve(req));
     layout_ = extractor_->layout(*result);
     std::transform(std::begin(axes_), std::end(axes_), std::begin(shape_),
@@ -78,6 +78,7 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& chunkShape) const {
+    std::cout << "index.ndim() " << index.ndim() << " " << index << " axes_.size() " << axes_.size() << std::endl;
     ASSERT(index.ndim() == axes_.size());
 
     // Do we need to querry fdb for this part?
@@ -90,11 +91,7 @@ void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& 
         return;
     }
 
-    auto request = request_;
-    for (size_t dim = 0; dim < index.ndim(); ++dim) {
-        const size_t effectiveIndex = (dim == extensionAxisIndex_) ? index[dim] - extensionAxisOffset_ : index[dim];
-        RequestManipulation::updateRequest(request, axes_[dim], effectiveIndex);
-    }
+    const auto request = requestAt(index);
     auto listIterator = fdb_->inspect(request);
 
 
@@ -114,10 +111,10 @@ void ViewPart::at(const ChunkIndex& index, float* ptr, size_t len, const Shape& 
     } while ((res = listIterator->next()));
 }
 
-metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
-    ASSERT(chunkIndex.size() == axes_.size());
+metkit::mars::MarsRequest ViewPart::requestAt(const ChunkIndex& chunkIndex) const {
+    ASSERT(chunkIndex.ndim() == axes_.size());
     auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
+    for (size_t idx = 0; idx < chunkIndex.ndim(); ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
     return request;

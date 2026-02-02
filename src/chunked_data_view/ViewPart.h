@@ -38,7 +38,7 @@ public:
 
 private:
 
-    metkit::mars::MarsRequest requestAt(const std::vector<size_t>& chunkIndex) const;
+    metkit::mars::MarsRequest requestAt(const ChunkIndex& chunkIndex) const;
 
     // Each keyword defines a potential axis in the resulting view.
     // No axis needs to be created if the cardinality is one.
