@@ -77,7 +77,8 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=dependencies \
             -DCMAKE_PREFIX_PATH=dependencies \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_MARS2GRIB_PYTHON=OFF
           cmake --build metkit-build -j -t install
       - name: Archive with permissions preserved
         run: tar --zstd -cpf files.tar.zst dependencies/ ecbuild/
