@@ -520,7 +520,7 @@ void RemoteStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool 
     }
 
     // Send StoreWipeState to server
-    eckit::Buffer sendBuf(1_KiB * (storeState.encodeSize()));
+    eckit::Buffer sendBuf(1_MiB);
     eckit::ResizableMemoryStream stream(sendBuf);
     stream << dbKey_;
     stream << storeState;

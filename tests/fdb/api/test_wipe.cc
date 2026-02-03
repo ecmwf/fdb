@@ -183,7 +183,6 @@ CASE("Wipe tests") {
         element_counts.clear();
         while (wipeObject.next(elem)) {
             element_counts[elem.type()] += elem.uris().size();
-
         }
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
@@ -202,8 +201,8 @@ CASE("Wipe tests") {
 
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
-        
-        // ensure fields still exist        
+
+        // ensure fields still exist
         EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         std::cout << "Listed 2 fields" << std::endl;
 
@@ -379,11 +378,11 @@ CASE("Wipe tests") {
             element_counts[elem.type()] += elem.uris().size();
         }
 
-        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1); // 1 data file
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1); // 1 index
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0); // no tocs or schemas wiped
-        EXPECT_EQUAL(element_counts[WipeElementType::STORE_SAFE], 1); // 1 data
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 6); // 1 index, schema, toc and the 3 locks
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);            // 1 data file
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);  // 1 index
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no tocs or schemas wiped
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_SAFE], 1);       // 1 data
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 6);   // 1 index, schema, toc and the 3 locks
 
         EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         EXPECT_EQUAL(countAll(fdb, {indexReq2}), 0);

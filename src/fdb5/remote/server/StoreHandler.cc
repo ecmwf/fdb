@@ -468,7 +468,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     store.finaliseWipeState(storeState, doit, unsafeAll);
 
     // Write back with the additional URIs to be wiped.
-    eckit::Buffer outBuffer(1_MiB);
+    eckit::Buffer outBuffer(1_KiB);
     eckit::ResizableMemoryStream outStream(outBuffer);
     outStream << storeState.dataAuxiliaryURIs();
     outStream << storeState.unrecognisedURIs();

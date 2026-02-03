@@ -225,7 +225,9 @@ private:
 };
 
 struct WipeHelper : public BaseHelper<CatalogueWipeState> {
-    virtual size_t encodeBufferSize(const CatalogueWipeState& el) const { return el.encodeSize(); }
+
+    /// @note: We always use a resizeable memory stream, this just sets an initial size.
+    virtual size_t encodeBufferSize(const CatalogueWipeState& el) const { return 1_MiB; }
 
     Encoded encode(const CatalogueWipeState& state, CatalogueHandler& handler) const {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));

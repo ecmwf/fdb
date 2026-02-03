@@ -437,7 +437,7 @@ void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool uns
 bool TocStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
-            remove(uri, std::cout, std::cout, true);
+            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
         }
     }
 
@@ -449,11 +449,11 @@ bool TocStore::doWipeURIs(const StoreWipeState& wipeState) const {
     bool wipeall = wipeState.safeURIs().empty();
 
     for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
-        remove(uri, std::cout, std::cout, true);
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
     }
 
     for (const auto& uri : wipeState.includedDataURIs()) {
-        remove(uri, std::cout, std::cout, true);
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
     }
 
     if (wipeall) {
@@ -471,7 +471,7 @@ void TocStore::doWipeEmptyDatabase() const {
         eckit::URI uri = this->uri();
 
         if (uri.path().exists()) {
-            remove(uri, std::cout, std::cout, true);
+            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
         }
         cleanupEmptyDatabase_ = false;
     }

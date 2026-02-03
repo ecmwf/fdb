@@ -48,12 +48,6 @@ WipeState::WipeState(eckit::Stream& s) {
     }
 }
 
-/// @todo: implement properly
-std::size_t WipeState::encodeSize() const {
-    std::size_t size = 1_MiB;
-    return size;
-}
-
 void WipeState::encode(eckit::Stream& s) const {
 
     // deleteURIs_
@@ -158,10 +152,9 @@ WipeElements CatalogueWipeState::extractWipeElements() {
     addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete:");
     addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete:");
 
-    if (!safeURIs().empty()) {
-        auto safe = safeURIs();  // note: needless copy.
+    if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::CATALOGUE_SAFE,
-                                  "Protected catalogue URIs (explicitly untouched):", std::move(safe));
+                                  "Protected catalogue URIs (explicitly untouched):", std::move(safeURIs_));
     }
 
     return wipeElements;
@@ -276,10 +269,9 @@ WipeElements StoreWipeState::extractWipeElements() {
     addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
     addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
 
-    if (!safeURIs().empty()) {
-        auto safe = safeURIs();  // note: needless copy.
+    if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::STORE_SAFE,
-                                  "Protected store URIs (explicitly untouched):", std::move(safe));
+                                  "Protected store URIs (explicitly untouched):", std::move(safeURIs_));
     }
 
     return wipeElements;

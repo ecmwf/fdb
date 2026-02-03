@@ -475,10 +475,9 @@ CASE("wipe_distributed_according_to_select") {
 
         auto x = fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
         fdb5::WipeElement e;
-        while (x.next(e)) {
-        }
-
-    } catch (eckit::UserError& err) {
+        while (x.next(e)) {}
+    }
+    catch (eckit::UserError& err) {
         caught = true;
     }
 
@@ -490,9 +489,9 @@ CASE("wipe_distributed_according_to_select") {
     try {
         auto x = fdb.wipe(fdb5::FDBToolRequest({}, true));
         fdb5::WipeElement e;
-        while (x.next(e)) {
-        }
-    } catch (eckit::UserError& err) {
+        while (x.next(e)) {}
+    }
+    catch (eckit::UserError& err) {
         caught = true;
     }
     EXPECT(caught);

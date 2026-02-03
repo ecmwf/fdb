@@ -53,8 +53,6 @@ public:
 
     virtual void encode(eckit::Stream& s) const;
 
-    std::size_t encodeSize() const;
-
     friend eckit::Stream& operator<<(eckit::Stream& s, const WipeState& state) {
         state.encode(s);
         return s;
@@ -92,21 +90,16 @@ public:
     // Create WipeElements from this Class's contents.
     // Note: this moves the data out of this class and into the WipeElements. The class is not intended to be used after
     // this function call.
-    /// @todo: with that in mind, consider making this an rvalue-qualified method e.g.
-    // virtual WipeElements extractWipeElements() && = 0;
     virtual WipeElements extractWipeElements() = 0;
 
 protected:
 
-    /// @todo: why mutable? Why protected?
-    mutable URIMap deleteURIs_;
+    URIMap deleteURIs_;
+    std::set<eckit::URI> safeURIs_;
 
 private:
 
     std::set<eckit::URI> unknownURIs_;
-
-    /// @todo: does the store use safe URIs? If not, move to CatalogueWipeState.
-    std::set<eckit::URI> safeURIs_;
 };
 
 // -----------------------------------------------------------------------------------------------
@@ -153,8 +146,18 @@ public:
     const eckit::URI& storeURI() const { return storeURI_; }
     const Signature& signature() const { return signature_; }
 
-    const std::set<eckit::URI>& dataAuxiliaryURIs() const { return deleteURIs_[WipeElementType::STORE_AUX]; }
-    const std::set<eckit::URI>& includedDataURIs() const { return deleteURIs_[WipeElementType::STORE]; }
+    const std::set<eckit::URI>& includedDataURIs() const {
+        static const std::set<eckit::URI> empty{};
+        auto it = deleteURIs_.find(WipeElementType::STORE);
+        return (it != deleteURIs_.end()) ? it->second : empty;
+    }
+
+    const std::set<eckit::URI>& dataAuxiliaryURIs() const {
+        static const std::set<eckit::URI> empty{};
+        auto it = deleteURIs_.find(WipeElementType::STORE_AUX);
+        return (it != deleteURIs_.end()) ? it->second : empty;
+    }
+
     const std::set<eckit::URI>& missingURIs() const { return missingURIs_; }
 
     // Overrides
@@ -201,7 +204,15 @@ public:
     CatalogueWipeState(CatalogueWipeState&&) noexcept            = default;
     CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
 
-    virtual ~CatalogueWipeState() override { restoreControlState(); }
+    virtual ~CatalogueWipeState() override {
+        try {
+            restoreControlState();
+        }
+        catch (...) {
+            eckit::Log::warning() << "Failed to restore control state CatalogueWipeState (db " << dbKey_ << ")"
+                                  << std::endl;
+        }
+    }
 
     Catalogue& catalogue(const Config& config) const {
         if (!catalogue_) {
