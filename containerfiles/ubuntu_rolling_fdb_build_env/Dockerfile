@@ -12,6 +12,7 @@ RUN apt-get update \
     git \
     curl \
     wget \
+    patchelf \
     python3-full \
     python3-venv \
     python3-dev \
@@ -19,6 +20,7 @@ RUN apt-get update \
     ninja-build \
     bison \
     flex \
+    zstd \
     libeigen3-dev \
     libncurses-dev \
     libqhull-dev \
