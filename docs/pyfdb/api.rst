@@ -1,7 +1,7 @@
 
 API
 ===========
-The ``PyFDB`` API provides a Pythonic interface to ECMWF’s Fields DataBase (FDB).
+The ``PyFDB`` API provides a Pythonic interface to the ``FDB``.
 It is designed to give Python users direct access to core ``FDB`` concepts
 such as databases, archives, keys, and retrieval operations, while preserving
 the performance characteristics of the native implementation. The API closely
