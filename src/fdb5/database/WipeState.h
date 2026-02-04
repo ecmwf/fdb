@@ -131,8 +131,16 @@ public:
     // For remote stores, we must store this information to avoid reporting missing URIs to the client.
     /// @note: intentionally do not fail if signed, stores are allowed to uninclude URIs.
     void markAsMissing(const eckit::URI& uri) {
-        deleteURIs_[WipeElementType::STORE].erase(uri);
         missingURIs_.insert(uri);
+        deleteURIs_[WipeElementType::STORE].erase(uri);
+    }
+
+    // Mark all data URIs as missing
+    void markAllMissing() {
+        for (const auto& uri : includedDataURIs()) {
+            missingURIs_.insert(uri);
+        }
+        deleteURIs_.erase(WipeElementType::STORE);
     }
 
     // Signing

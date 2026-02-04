@@ -90,6 +90,9 @@ MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::M
 }
 
 void TocCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+    /// @todo: that this will do an open/append/close for each of these entries. It might be sensible to batch these up
+    /// (see the way we do reconsolidation). But the batches need to be kept fairly small to ensure atomicity.
+
     TocHandler handler(basePath(), config_);
     for (const auto& index : indexes) {
         handler.writeClearRecord(index);
@@ -156,7 +159,7 @@ bool TocCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueW
     else {
         // This will ensure that if only some indexes are to be removed from a file, then
         // they will be masked out but the file not deleted.
-        // @todo: Is the above comment correct? Where does this masking happen?
+        /// @todo: Is the above comment correct? Where does this masking happen?
         wipeState.markAsSafe({locationURI});
     }
 
@@ -275,8 +278,6 @@ void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
             wipeState.insertUnrecognised(uri);
         }
     }
-
-    return;
 }
 
 bool TocCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
@@ -298,7 +299,9 @@ bool TocCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
     for (const auto& [type, uris] : wipeState.deleteMap()) {
 
         for (auto& uri : uris) {
-            remove(uri.path(), std::cout, std::cout, true);
+            if (uri.path().exists()) {
+                remove(uri.path(), eckit::Log::info(), eckit::Log::info(), true);
+            }
         }
     }
 

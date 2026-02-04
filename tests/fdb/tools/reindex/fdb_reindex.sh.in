@@ -5,6 +5,7 @@
 # to a sink database. Check that the sink database contains the same
 # content as the source database.
 # Also make sure masked and unmasked locations are handled correctly.
+# We also test that fdb-wipe works correctly after reindexing.
 
 # -- Environment -------------------------------------------------------------
 set -eux
@@ -12,6 +13,7 @@ set -eux
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 fdbreindex="$<TARGET_FILE:fdb-reindex>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
 gribset="$<TARGET_FILE:grib_set>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
@@ -112,3 +114,16 @@ $fdblist --all --minimum-keys="" --porcelain --config=source_config.yaml > sourc
 $fdblist --all --minimum-keys="" --porcelain --config=sink_config.yaml > sink_list.txt
 diff expected_source source_list.txt
 diff expected_sink sink_list.txt
+
+# -- Test --------------------------------------------------------------------
+# TEST: fdb-wipe works correctly after reindexing
+# The only sensible way to wipe, without using --unsafe-wipe-all, is to first wipe the original FDB catalogue
+# (which is the only one still aware of the masked locations and original .index files)
+# then wipe the reindexed catalogue.
+
+$fdbwipe --all --config=source_config.yaml --minimum-keys="" --doit
+$fdbwipe --all --config=sink_config.yaml --minimum-keys="" --doit
+
+# expect both to be empty now
+test $($fdblist --all --full --minimum-keys="" --porcelain --config=sink_config.yaml | wc -l) -eq 0
+test $($fdblist --all --full --minimum-keys="" --porcelain --config=source_config.yaml | wc -l) -eq 0

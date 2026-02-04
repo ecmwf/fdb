@@ -33,7 +33,7 @@ using namespace eckit;
 namespace {
 
 eckit::PathName directory(const eckit::PathName& dir) {
-    if (dir.isDir()) {
+    if (!dir.exists() || dir.isDir()) {
         return dir;
     }
     return dir.dirName();
@@ -64,7 +64,7 @@ eckit::URI TocStore::uri(const eckit::URI& dataURI) {
 }
 
 bool TocStore::uriBelongs(const eckit::URI& uri) const {
-    if (uri.scheme() != type() || !uri.path().dirName().sameAs(directory_)) {
+    if (uri.scheme() != type() || !(uri.path().dirName() == directory_)) {
         return false;
     }
 
@@ -383,12 +383,17 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
 void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
     // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
-
     const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
     const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
 
+    // If store directory does not exist, mark all files as missing and return.
+    if (!directory_.exists()) {
+        storeState.markAllMissing();
+        return;
+    }
+
     std::set<eckit::URI> nonExistingURIs;
-    for (auto& uri : dataURIs) {
+    for (const auto& uri : dataURIs) {
 
         if (!uriBelongs(uri)) {
             std::stringstream ss;
