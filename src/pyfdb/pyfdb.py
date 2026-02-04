@@ -120,6 +120,7 @@ class FDB:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.flush()
 
+    # TODO(TKR): Think about accepting python objects and do the check in this function
     def archive(self, data: bytes, identifier: Identifier | None = None):
         """
         Archive binary data into the underlying FDB.

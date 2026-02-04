@@ -20,6 +20,31 @@ def test_control_identifier_values():
     assert ControlIdentifier.UNIQUEROOT == 16
 
 
+def test_control_identifier_string():
+    assert str(ControlIdentifier.NONE) == "NONE"
+    assert str(ControlIdentifier.LIST) == "LIST"
+    assert str(ControlIdentifier.RETRIEVE) == "RETRIEVE"
+    assert str(ControlIdentifier.ARCHIVE) == "ARCHIVE"
+    assert str(ControlIdentifier.WIPE) == "WIPE"
+    assert str(ControlIdentifier.UNIQUEROOT) == "UNIQUEROOT"
+
+    assert str(ControlIdentifier.NONE | ControlIdentifier.LIST) == "LIST"
+    assert str(ControlIdentifier.LIST | ControlIdentifier.RETRIEVE) == "LIST|RETRIEVE"
+    assert str(ControlIdentifier.RETRIEVE | ControlIdentifier.NONE) == "RETRIEVE"
+    assert (
+        str(
+            ControlIdentifier.RETRIEVE | ControlIdentifier.NONE | ControlIdentifier.LIST
+        )
+        == "LIST|RETRIEVE"
+    )
+
+
+def test_control_action_string():
+    assert str(ControlAction.NONE) == "NONE"
+    assert str(ControlAction.ENABLE) == "ENABLE"
+    assert str(ControlAction.DISABLE) == "DISABLE"
+
+
 def test_control_lock_retrieve(read_only_fdb_setup):
     fdb_config_path: Path = read_only_fdb_setup
 

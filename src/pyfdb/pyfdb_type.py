@@ -37,6 +37,7 @@ class WildcardMarsSelection(Dict[str, str]):
         return super().__init__()
 
 
+# TODO(TKR): Check the description again and restructure to make clear that this is input sanitizing
 class MarsSelectionMapper:
     """
     Selection mapper for creating MARS selections.
@@ -333,8 +334,9 @@ class Identifier:
 
     Parameters
     ----------
-    `key_value_pairs`: `List[Tuple[str, str]]`
-        A list of key-value-pairs describing the keys of a MARS request and the corresponding values
+    `key_value_pairs`: `List[Tuple[str, str]]` | `Dict[str, str]`
+        A list of key-value-pairs describing the keys of a MARS request and the corresponding values.
+        Can also be a dictionary mapping keys to several singluar values (as per definition of an Identifier).
 
     Note
     ----
@@ -349,13 +351,29 @@ class Identifier:
     >>> identifier = Identifier([("a", "ab"), ("b", "bb"), ("c", "bc")])
     """
 
-    def __init__(self, key_value_pairs: List[Tuple[str, str]]):
+    def __init__(self, key_value_pairs: List[Tuple[str, str]] | Dict[str, str]):
         self.key_values: Dict[str, str] = {}
 
-        for k, v in key_value_pairs:
+        iterator = None
+
+        if isinstance(key_value_pairs, List):
+            iterator = key_value_pairs
+        elif isinstance(key_value_pairs, Dict):
+            iterator = key_value_pairs.items()
+        else:
+            raise ValueError(
+                "Identifier: Unknown type for key_value_pairs. List[Tuple[str, str]] or Dict[str, str] needed"
+            )
+
+        for k, v in iterator:
             if k in self.key_values.keys():
                 raise KeyError(
                     f"Identifier: Key {k} already exists in Identifier: {str(self)}"
+                )
+
+            if isinstance(v, list) or "/" in v:
+                raise ValueError(
+                    "No list of values allowed. An Identifier has to be a mapping from a single key to a single value."
                 )
             else:
                 self.key_values[k] = v
@@ -392,6 +410,18 @@ class ControlIdentifier(IntFlag):
     def _to_raw(self):
         return _ControlIdentifier[self.name]
 
+    def __repr__(self) -> str:
+        active_identifier = "|".join(
+            val.name for val in ControlIdentifier if self.value & val
+        )
+        if len(active_identifier) == 0:
+            return "NONE"
+        else:
+            return active_identifier
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
 
 class ControlAction(IntEnum):
     """
@@ -414,6 +444,12 @@ class ControlAction(IntEnum):
 
     def _to_raw(self):
         return _ControlAction[self.name]
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def __str__(self) -> str:
+        return self.__repr__()
 
 
 class URI:

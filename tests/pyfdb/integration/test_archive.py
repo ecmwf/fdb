@@ -1,6 +1,6 @@
 import pytest
 from pyfdb import FDB
-from pyfdb.pyfdb_type import WildcardMarsSelection
+from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
 
 
 def assert_one_field(pyfdb: FDB):
@@ -55,11 +55,63 @@ def test_archive_abitrary_data(empty_fdb_setup):
 
     assert fdb_config_path
 
-    fdb = FDB(fdb_config_path)
+    selection = {
+        "class": "rd",
+        "expver": "arbi",
+        "stream": "oper",
+        "date": "20191110",
+        "time": "0000",
+        "domain": "g",
+        "type": "an",
+        "levtype": "pl",
+        "step": "0",
+        "levelist": "300",
+        "param": "138",
+    }
 
-    with pytest.raises(RuntimeError, match="Serious bug"):
-        fdb.archive(data=b"binary-data")
-        fdb.flush()
+    with FDB(fdb_config_path) as fdb:
+        fdb.archive(
+            data=b"binary-data",
+            identifier=Identifier(selection),
+        )
+
+    with fdb.retrieve(selection) as data_handle:
+        file_content = data_handle.readall()
+        assert file_content == b"binary-data"
+
+
+key_values = [
+    ("stream", "oper/rd"),
+    ("stream", ["oper", "rd"]),
+]
+
+
+@pytest.mark.parametrize("wrong_key_value", key_values)
+def test_archive_abitrary_data_wrong_identifier(empty_fdb_setup, wrong_key_value):
+    fdb_config_path = empty_fdb_setup
+
+    assert fdb_config_path
+
+    selection = {
+        "class": "rd",
+        "expver": "arbi",
+        wrong_key_value[0]: wrong_key_value[1],
+        "date": "20191110",
+        "time": "0000",
+        "domain": "g",
+        "type": "an",
+        "levtype": "pl",
+        "step": "0",
+        "levelist": "300",
+        "param": "138",
+    }
+
+    with pytest.raises(ValueError):
+        with FDB(fdb_config_path) as fdb:
+            fdb.archive(
+                data=b"binary-data",
+                identifier=Identifier(selection),
+            )
 
 
 def test_archive_round_trip(empty_fdb_setup, test_data_path):

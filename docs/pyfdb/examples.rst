@@ -123,7 +123,6 @@ On exiting the context, :ref:`flush_label` is called to guarantee any potential
 :ref:`archive_label` operation has been synced. This can lead to non-intended
 sync behaviors, see :ref:`archive_label` for further information.
 
-
 The different methods of the ``FDB`` class can be leverage for different
 use-cases. Below we listed examples of the most common method class display
 different ways of using the Python API.
@@ -138,20 +137,42 @@ Archive
 .. invisible-code-block: python
 
    import pyfdb
+   from pyfdb.pyfdb_type import Identifier
 
 .. code-block:: python
 
-    fdb = pyfdb.FDB(fdb_config_path)
-    filename = data_path / "x138-300.grib"
+    with pyfdb.FDB(fdb_config_path) as fdb:
+        filename = data_path / "x138-300.grib"
 
-    fdb.archive(filename.read_bytes())
-    fdb.flush()
+        fdb.archive(filename.read_bytes())
+        # On exit of this scope fdb is flushed
 
 In this scenario a ``GRIB`` file is archived to the configured ``FDB``. The FDB
 reads metadata from the given ``GRIB`` file and saves this, if no optional
 ``identifier`` is supplied. If we set an ``identifier``, there are no
 consistency checks taking place and our data is saved with the metadata given
-from the supplied ``identifier``.
+from the supplied ``identifier``. This enables us to store arbitrary binary data 
+under the given key, as shown below:
+
+.. code-block:: python
+
+   identifier = Identifier({
+        "class": "rd",
+        "expver": "zzzz",
+        "stream": "oper",
+        "date": "20191110",
+        "time": "0000",
+        "domain": "g",
+        "type": "an",
+        "levtype": "pl",
+        "step": "0",
+        "levelist": "300",
+        "param": "138",
+   })
+
+   with pyfdb.FDB(fdb_config_path) as fdb:
+       fdb.archive(b"test-binary-data", identifier=identifier)
+       # On exit of this scope fdb is flushed
 
 The ``flush`` command guarantees that the archived data has been flushed to the
 ``FDB``. In combination with using the context manager of the ``FDB`` object,
@@ -581,9 +602,9 @@ call to `control <control_label>` when setting certain ``ControlIdentifiers`` fo
    URI[scheme=toc,name=/<path-to-db-store>/ea:0001:oper:20200101:1800:g].
 
 
-You can see that the ``ControlIdentifier`` with value ``4`` is active for the given entry of the ``FDB``.
+You can see that the ``ControlIdentifier`` for ``WIPE`` (value ``4`` is exposed by the FDB) is active for the given entry of the ``FDB``.
 This is prescribed by the internal representation and the ``ControlIdentifier`` serialization of the value in the ``FDB``.
-On the Python API side this corresponds to the ``ControlIdentifier.ARCHIVE`` value. 
+On the Python API side this corresponds to the ``ControlIdentifier.WIPE`` value. 
 
 .. tip::
    Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
