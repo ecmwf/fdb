@@ -41,8 +41,16 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.IMAGE_NAME }}
           tags: |
+            # SHA tag for all builds
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+            # latest tag only for semver releases
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            # latest-develop for develop branch
+            type=raw,value=latest-develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            # latest-pr-<number> for pull requests
+            type=raw,value=latest-pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
+            # latest for workflow run from cron
+            type=raw,value=latest,enable=${{ github.event_name == 'schedule' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -51,6 +59,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./containerfiles/ubuntu_rolling_fdb_build_env
+          build-contexts: |
+            ubuntu:rolling=docker-image://eccr.ecmwf.int/docker-hub-proxy/library/ubuntu:rolling
           file: ./containerfiles/ubuntu_rolling_fdb_build_env/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
