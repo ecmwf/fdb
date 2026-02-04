@@ -7,7 +7,7 @@
 # does it submit to any jurisdiction.
 
 from collections.abc import Mapping
-from typing import ItemsView, Iterator, KeysView, Sequence, ValuesView
+from typing import Collection, Dict, ItemsView, Iterator, KeysView, Sequence, ValuesView
 
 from pyfdb._internal import (
     ControlElement as _ControlElement,
@@ -183,6 +183,22 @@ class IndexAxis(Mapping[str, Sequence[str]]):
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.index_axis.keys())
+
+    def __eq__(self, value) -> bool:
+        dict_list_values = {}
+
+        if isinstance(value, Dict) or isinstance(value, IndexAxis):
+            for k, v in value.items():
+                if isinstance(v, str):
+                    dict_list_values[k] = [v]
+                elif not isinstance(v, Collection):
+                    dict_list_values[k] = [v]
+                else:
+                    dict_list_values[k] = v
+
+            return dict(self.items()) == dict(dict_list_values.items())
+        else:
+            return False
 
     def has_key(self, k) -> bool:
         return k in self.index_axis
