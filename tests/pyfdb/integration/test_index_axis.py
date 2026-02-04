@@ -87,11 +87,17 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
     assert index_axis
     assert len(index_axis.keys()) == 6
     assert "class" in index_axis
+    assert index_axis["class"] == ["ea"]
     assert "domain" in index_axis
+    assert index_axis["domain"] == ["g"]
     assert "date" in index_axis
+    assert index_axis["date"] == ["20200101"]
     assert "expver" in index_axis
+    assert index_axis["expver"] == ["0001"]
     assert "stream" in index_axis
+    assert index_axis["stream"] == ["oper"]
     assert "time" in index_axis
+    assert index_axis["time"] == ["1800"]
 
     assert "non-existing-key" not in index_axis
 
@@ -270,3 +276,86 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
 
     for k, v in index_axis.items():
         assert index_axis.has_key(k)
+
+
+def test_index_axis_equality(read_only_fdb_setup):
+    with FDB(read_only_fdb_setup) as fdb:
+        selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
+
+        index_axis_1: IndexAxis = fdb.axes(selection)
+        index_axis_2: IndexAxis = fdb.axes(selection)
+
+        assert index_axis_1 is not index_axis_2
+        assert index_axis_1 == index_axis_2
+
+        # Check for inequality if different axis
+        index_axis_non_existent: IndexAxis = fdb.axes(
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "date": "20200101",
+                "levtype": "sfc",
+                "step": "0",
+                "param": "167/165/166",
+                "time": "1900",  # This differs
+            }
+        )
+
+        assert index_axis_1 is not index_axis_non_existent
+        assert index_axis_1 != index_axis_non_existent
+
+
+def test_index_axis_equality_dict(read_only_fdb_setup):
+    with FDB(read_only_fdb_setup) as fdb:
+        selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": "167/165/166",
+            "time": "1800",
+        }
+
+        index_axis_1: IndexAxis = fdb.axes(selection)
+
+        index_axis_manual = {
+            "class": ["ea"],
+            "domain": ["g"],
+            "expver": "0001",
+            "stream": ["oper"],
+            "date": ["20200101"],
+            "time": ["1800"],
+        }
+
+        assert index_axis_1 is not index_axis_manual
+        assert index_axis_1 == index_axis_manual
+
+        index_axis_manual_non_existing = {
+            "class": ["ea"],
+            "domain": ["g"],
+            "expver": "0001",
+            "stream": ["oper"],
+            "date": ["20200101"],
+            "time": ["1900"],  # This differs
+        }
+
+        assert index_axis_1 is not index_axis_manual_non_existing
+        assert index_axis_1 != index_axis_manual_non_existing
