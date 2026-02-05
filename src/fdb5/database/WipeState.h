@@ -46,10 +46,15 @@ public:
     WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
         deleteURIs_(std::move(deleteURIs)), safeURIs_(std::move(safeURIs)) {}
 
+    explicit WipeState(eckit::Stream& s);
+
+    WipeState(const WipeState&)            = delete;
+    WipeState& operator=(const WipeState&) = delete;
+
+    WipeState(WipeState&&) noexcept            = default;
+    WipeState& operator=(WipeState&&) noexcept = default;
 
     virtual ~WipeState() = default;
-
-    explicit WipeState(eckit::Stream& s);
 
     virtual void encode(eckit::Stream& s) const;
 
@@ -110,6 +115,14 @@ public:
     StoreWipeState() = default;
     StoreWipeState(eckit::URI uri);
     StoreWipeState(eckit::Stream& s);
+
+    // Non-copyable
+    StoreWipeState(const StoreWipeState&)            = delete;
+    StoreWipeState& operator=(const StoreWipeState&) = delete;
+
+    // Movable
+    StoreWipeState(StoreWipeState&&) noexcept            = default;
+    StoreWipeState& operator=(StoreWipeState&&) noexcept = default;
 
     // Adding and Removing URIs
 
