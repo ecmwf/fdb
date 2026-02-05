@@ -1,3 +1,9 @@
+|License| |Static Badge|
+
+   [!IMPORTANT] This software is **Graduated** and subject to ECMWF’s guidelines on `Software
+   Maturity <https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity>`__.
+
+
 ===
 FDB
 ===
@@ -124,5 +130,9 @@ In the following the two BibTeX snippets:
 .. |Licence| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE
    :alt: Apache Licence
+
+.. |Static Badge| image:: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/graduated_badge.svg
+   :target: https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity#graduated
+   :alt: Graduated
 
 .. _tools: docs/content/tools.rst
