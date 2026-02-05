@@ -23,9 +23,14 @@ static std::string keySignature(const fdb5::Key& key) {
 bool ListIterator::next(ListElement& elem) {
     ListElement tmp;
     while (APIIterator<ListElement>::next(tmp)) {
-        if (deduplicate_) {
-            if (!seenKeys_.tryInsert(tmp.keys())) {
-                continue;  // already seen this key
+        if (mode_ != ListMode::Full) {
+            const bool firstTimeSeen = seenKeys_.tryInsert(tmp.keys());
+
+            if (mode_ == ListMode::OnlyDuplicates && firstTimeSeen) {
+                continue;
+            }
+            if (mode_ == ListMode::Deduplicate && !firstTimeSeen) {
+                continue;
             }
         }
         std::swap(elem, tmp);

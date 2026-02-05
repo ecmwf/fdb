@@ -49,6 +49,7 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
         options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
+        options_.push_back(new SimpleOption<bool>("only-duplicates", "List only the duplicated (older) entries"));
         options_.push_back(
             new SimpleOption<bool>("porcelain",
                                    "Streamlined and stable output. Useful as input for other tools or scripts."
@@ -66,7 +67,7 @@ private:  // methods
     bool location_{false};
     bool timestamp_{false};
     bool length_{false};
-    bool full_{false};
+    ListMode listMode_{ListMode::Deduplicate};
     bool porcelain_{false};
     bool json_{false};
     bool compact_{false};
@@ -79,14 +80,15 @@ void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    location_  = args.getBool("location", location_);
-    timestamp_ = args.getBool("timestamp", timestamp_);
-    length_    = args.getBool("length", length_);
-    full_      = args.getBool("full", full_);
-    porcelain_ = args.getBool("porcelain", porcelain_);
-    json_      = args.getBool("json", json_);
-    compact_   = args.getBool("compact", compact_);
-    depth_     = args.getInt("depth", depth_);
+    location_                 = args.getBool("location", location_);
+    timestamp_                = args.getBool("timestamp", timestamp_);
+    length_                   = args.getBool("length", length_);
+    const bool full           = args.getBool("full", false);
+    const bool onlyDuplicates = args.getBool("only-duplicates", false);
+    porcelain_                = args.getBool("porcelain", porcelain_);
+    json_                     = args.getBool("json", json_);
+    compact_                  = args.getBool("compact", compact_);
+    depth_                    = args.getInt("depth", depth_);
 
     ASSERT(depth_ > 0 && depth_ < 4);
 
@@ -111,9 +113,26 @@ void FDBList::init(const CmdArgs& args) {
         if (location_) {
             throw UserError("--compact and --location are not compatible", Here());
         }
-        if (full_) {
+        if (full) {
             throw UserError("--compact and --full are not compatible", Here());
         }
+        if (onlyDuplicates) {
+            throw UserError("--compact and --only-duplicates are not compatible", Here());
+        }
+    }
+
+    if (full && onlyDuplicates) {
+        throw UserError("--full and --only-duplicates are not compatible", Here());
+    }
+
+    if (onlyDuplicates) {
+        listMode_ = ListMode::OnlyDuplicates;
+    }
+    else if (!full && !compact_) {
+        listMode_ = ListMode::Deduplicate;
+    }
+    else {
+        listMode_ = ListMode::Full;
     }
 
     /// @todo option ignore-errors
@@ -137,8 +156,7 @@ void FDBList::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_ && !compact_, depth_);
+        auto listObject = fdb.list(request, listMode_, depth_);
 
         if (compact_) {
             auto [fields, total] = listObject.dumpCompact(Log::info());
