@@ -24,7 +24,7 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-// temporary schema,spaces,root files common to all DAOS Store tests
+// temporary schema and root directories common to all tests
 
 eckit::TmpFile& schema_file() {
     static eckit::TmpFile f{};
@@ -40,6 +40,8 @@ eckit::PathName& wipe_tests_tmp_root_store() {
     static eckit::PathName wipeRootStore("./wipe_tests_fdb_root_store");
     return wipeRootStore;
 }
+
+// helpers
 
 size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::FDBToolRequest>> reqs,
                 bool deduplicate = false) {
@@ -439,11 +441,17 @@ CASE("Wipe tests") {
             ASSERT(dbDirs.size() == 0);
             dbFiles.clear();
             dbDirs.clear();
-            (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            (wipe_tests_tmp_root_store()).children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 0);
         }
     }
+
+    // remove root directory
+
+    testing::deldir(wipe_tests_tmp_root_store());
+    testing::deldir(wipe_tests_tmp_root());
+
 }
 
 }  // namespace test
@@ -491,7 +499,7 @@ store: file)";
 
     std::map<std::string, std::string> configurations{
         {"localSingleRoot", localSingleRootConfig},
-        // {"localSeparateRoots", localSeparateRootsConfig},
+        {"localSeparateRoots", localSeparateRootsConfig},
         // {"localCatalogueRemoteStore", localCatalogueRemoteStoreConfig},
         // ...
     };

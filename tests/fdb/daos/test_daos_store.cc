@@ -536,7 +536,7 @@ CASE("DaosStore tests") {
 
     // teardown daos
 
-#ifdef fdb5_HAVE_DAOS_ADMIN
+#if defined(fdb5_HAVE_DAOS_ADMIN) || defined(fdb5_HAVE_DUMMY_DAOS)
     /// AutoPoolDestroy is not possible here because the pool is
     /// created above with an ephemeral session
     fdb5::DaosSession().destroyPool(pool_uuid);
