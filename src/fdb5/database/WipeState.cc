@@ -226,12 +226,10 @@ StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
 
 StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
 
-    auto signature = Signature(s);
+    signature_ = Signature(s);
     s >> storeURI_;
 
     std::size_t n = 0;
-
-    signature_ = signature;
 }
 
 Store& StoreWipeState::store(const Config& config) const {

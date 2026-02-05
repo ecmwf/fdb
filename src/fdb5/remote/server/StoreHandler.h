@@ -68,10 +68,9 @@ private:  // members
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
 
-
     struct WipeInProgress {
         bool unsafeWipeAll = false;
-        StoreWipeState state;
+        std::unique_ptr<StoreWipeState> state;
     };
 
     std::map<Key, WipeInProgress> wipesInProgress_;

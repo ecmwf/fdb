@@ -451,7 +451,6 @@ CASE("Wipe tests") {
 
     testing::deldir(wipe_tests_tmp_root_store());
     testing::deldir(wipe_tests_tmp_root());
-
 }
 
 }  // namespace test
@@ -498,8 +497,7 @@ store: file)";
     // std::string remoteSeparateServersConfig{};
 
     std::map<std::string, std::string> configurations{
-        {"localSingleRoot", localSingleRootConfig},
-        {"localSeparateRoots", localSeparateRootsConfig},
+        {"localSingleRoot", localSingleRootConfig}, {"localSeparateRoots", localSeparateRootsConfig},
         // {"localCatalogueRemoteStore", localCatalogueRemoteStoreConfig},
         // ...
     };

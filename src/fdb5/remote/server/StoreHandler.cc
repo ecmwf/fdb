@@ -366,7 +366,7 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
     auto& ss = getStore(clientID);
 
     // check received URIs are at least a subset of expected unknowns.
-    const auto& expectedUnknowns = currentWipe.state.unrecognisedURIs();
+    const auto& expectedUnknowns = currentWipe.state->unrecognisedURIs();
     for (const auto& uri : uris) {
         if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
             std::stringstream ss;
@@ -388,7 +388,7 @@ void StoreHandler::doWipeURIs(const uint32_t clientID, const uint32_t requestID,
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
     auto& store = getStore(clientID);
-    store.doWipeURIs(currentWipe.state);
+    store.doWipeURIs(*currentWipe.state);
 }
 
 void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
@@ -449,40 +449,37 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     // -- From here on, we can trust the state came from the catalogue. --
 
     // The URIs need to be converted to internal URIs for this store.
-    StoreWipeState storeState(RemoteFieldLocation::internalURI(inState.storeURI()));
+    auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));
 
     for (const auto& uri : inState.includedDataURIs()) {
-        storeState.includeData(RemoteFieldLocation::internalURI(uri));
+        storeState->includeData(RemoteFieldLocation::internalURI(uri));
     }
     for (const auto& uri : inState.safeURIs()) {
-        storeState.excludeData(RemoteFieldLocation::internalURI(uri));
+        storeState->excludeData(RemoteFieldLocation::internalURI(uri));
     }
 
-    if (storeState.includedDataURIs().empty()) {
+    if (storeState->includedDataURIs().empty()) {
         // Client should not communicate with the store if there are no data URIs to wipe.
         error("Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
-    auto& store = getStore(clientID, *(storeState.includedDataURIs().begin()));
-    store.finaliseWipeState(storeState, doit, unsafeAll);
+    auto& store = getStore(clientID, *(storeState->includedDataURIs().begin()));
+    store.finaliseWipeState(*storeState, doit, unsafeAll);
 
     // Write back with the additional URIs to be wiped.
     eckit::Buffer outBuffer(1_KiB);
     eckit::ResizableMemoryStream outStream(outBuffer);
-    outStream << storeState.dataAuxiliaryURIs();
-    outStream << storeState.unrecognisedURIs();
-    outStream << storeState.missingURIs();
+    outStream << storeState->dataAuxiliaryURIs();
+    outStream << storeState->unrecognisedURIs();
+    outStream << storeState->missingURIs();
 
     write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipeURIs
     if (doit) {
         ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
-        wipesInProgress_[dbkey] = {
-            unsafeAll,
-            std::move(storeState),
-        };
+        wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }
 

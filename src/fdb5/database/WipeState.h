@@ -120,10 +120,6 @@ public:
     StoreWipeState(const StoreWipeState&)            = delete;
     StoreWipeState& operator=(const StoreWipeState&) = delete;
 
-    // Movable
-    StoreWipeState(StoreWipeState&&) noexcept            = default;
-    StoreWipeState& operator=(StoreWipeState&&) noexcept = default;
-
     // Adding and Removing URIs
 
     void insertAuxiliaryURI(const eckit::URI& uri) {
