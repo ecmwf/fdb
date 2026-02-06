@@ -1,6 +1,6 @@
 import pytest
 from pyfdb import FDB
-from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
+from pyfdb.pyfdb_type import Identifier
 
 
 def assert_one_field(pyfdb: FDB):
@@ -144,6 +144,6 @@ def test_archive_round_trip(empty_fdb_setup, test_data_path):
         reread_file_content = data_handle.readall()
         assert file_content == reread_file_content
 
-    list_iterator = fdb.list(WildcardMarsSelection())
+    list_iterator = fdb.list({})
 
     assert len(list(list_iterator)) == 1

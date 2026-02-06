@@ -1,7 +1,6 @@
 import pytest
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import IndexAxis
-from pyfdb.pyfdb_type import WildcardMarsSelection
 
 
 def test_index_axis_string(read_only_fdb_setup):
@@ -265,9 +264,7 @@ def test_index_axis_items_empty_request(read_only_fdb_setup):
 
     fdb = FDB(fdb_config_path)
 
-    selection = WildcardMarsSelection()
-
-    index_axis: IndexAxis = fdb.axes(selection)
+    index_axis: IndexAxis = fdb.axes({})
 
     assert len(index_axis) == 11
 

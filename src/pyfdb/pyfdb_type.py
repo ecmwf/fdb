@@ -8,80 +8,9 @@
 
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
-from typing import Collection, Dict, List, Mapping, Tuple, TypeAlias
+from typing import Dict, List, Tuple
 
-from pyfdb._internal import (
-    _URI,
-    _ControlAction,
-    _ControlIdentifier,
-    _DataHandle,
-    InternalMarsSelection,
-)
-
-"""
-Selection part of a MARS request.
-
-This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
-"""
-MarsSelection: TypeAlias = Mapping[
-    str, str | int | float | Collection[str | int | float]
-]
-
-
-class WildcardMarsSelection(Dict[str, str]):
-    """
-    Representing a wildcard MARS selection which selects all items available.
-    """
-
-    def __init__(self) -> None:
-        return super().__init__()
-
-
-# TODO(TKR): Check the description again and restructure to make clear that this is input sanitizing
-class MarsSelectionMapper:
-    """
-    Selection mapper for creating MARS selections.
-
-    This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
-    is activated there will be checks whether keys have been set already. If `wildcard_selection` is
-    set, the resulting request will be a `WildcardMarsSelection`. A `WildcardMarsSelection` represents
-    a requests which
-
-    Examples
-    --------
-    TODO:
-    """
-
-    @classmethod
-    def map(
-        cls, selection: MarsSelection | WildcardMarsSelection
-    ) -> InternalMarsSelection:
-        if isinstance(selection, WildcardMarsSelection):
-            return selection
-
-        result = {}
-
-        for key, values in selection.items():
-            # Values is a list of values but not a single string
-            if isinstance(values, Collection) and not isinstance(values, str):
-                converted_values = [
-                    str(v) if isinstance(v, float) or isinstance(v, int) else v
-                    for v in values
-                ]
-                result[key] = "/".join(converted_values)
-            # Values is a string or a float or an int
-            elif (
-                isinstance(values, str)
-                or isinstance(values, int)
-                or isinstance(values, float)
-            ):
-                result[key] = str(values)
-            else:
-                raise ValueError(
-                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
-                )
-
-        return result
+from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle, MarsSelection
 
 
 class DataHandle:
@@ -158,7 +87,7 @@ class DataHandle:
         if self.opened is True:
             return
         self.opened = True
-        self.dataHandle.open_for_read()
+        self.dataHandle.open()
 
     def close(self) -> None:
         """
@@ -321,9 +250,7 @@ class DataHandle:
         return bytes(buffer)
 
     def __repr__(self) -> str:
-        return (
-            f"[{'Opened' if self.opened else 'Closed'}] Datahandle: {self.dataHandle}"
-        )
+        return f"[{'Opened' if self.opened else 'Closed'}] Datahandle: {self.dataHandle}"
 
 
 # https://github.com/ecmwf/datacube-spec
@@ -367,9 +294,7 @@ class Identifier:
 
         for k, v in iterator:
             if k in self.key_values.keys():
-                raise KeyError(
-                    f"Identifier: Key {k} already exists in Identifier: {str(self)}"
-                )
+                raise KeyError(f"Identifier: Key {k} already exists in Identifier: {str(self)}")
 
             if isinstance(v, list) or "/" in v:
                 raise ValueError(
@@ -411,9 +336,7 @@ class ControlIdentifier(IntFlag):
         return _ControlIdentifier[self.name]
 
     def __repr__(self) -> str:
-        active_identifier = "|".join(
-            val.name for val in ControlIdentifier if self.value & val
-        )
+        active_identifier = "|".join(val.name for val in ControlIdentifier if self.value & val)
         if len(active_identifier) == 0:
             return "NONE"
         else:

@@ -155,6 +155,8 @@ class ControlElement:
     def location(self) -> URI:
         return URI(self.element.location(), _internal=True)
 
+    # TODO(TKR): Implement Key capabilities in here
+
     def __repr__(self) -> str:
         return str(self.element)
 
@@ -176,7 +178,8 @@ class IndexAxis(Mapping[str, Sequence[str]]):
         return str(self.index_axis)
 
     def __getitem__(self, key: str) -> str:
-        return self.index_axis[key]
+        values = self.index_axis[key]
+        return values
 
     def __len__(self) -> int:
         return len(self.index_axis)

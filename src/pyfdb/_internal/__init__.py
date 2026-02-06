@@ -12,7 +12,8 @@
 from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
     InternalMarsSelection,
-    _flatten_values,
+    MarsSelection,
+    MarsSelectionMapper,
     MarsRequest,
     FDBToolRequest,
 )
@@ -45,7 +46,6 @@ __all__ = [
     "MarsRequest",
     "init_bindings",
     "_DataHandle",
-    "_flatten_values",
     "_URI",
     "_FDB",
     "Config",
@@ -60,4 +60,6 @@ __all__ = [
     "IndexAxis",
     "FileCopy",
     "InternalMarsSelection",
+    "MarsSelection",
+    "MarsSelectionMapper",
 ]

@@ -1,5 +1,5 @@
 from pyfdb import FDB
-from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
+from pyfdb.pyfdb_type import Identifier
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
@@ -34,9 +34,7 @@ def test_wipe_all_doit(read_write_fdb_setup):
     assert len(wiped_elements) > 0
 
     elements_after_wipe = list(fdb.list({"class": "ea"}))
-    print(
-        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
-    )
+    print(f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}")
     assert len(elements) > len(elements_after_wipe)
 
 
@@ -53,9 +51,7 @@ def test_wipe_single_date_doit(read_write_fdb_setup):
     assert len(wiped_elements) > 0
 
     elements_after_wipe = list(fdb.list({"class": "ea"}))
-    print(
-        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
-    )
+    print(f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}")
     assert len(elements) > len(elements_after_wipe)
     assert len(elements) == 96
     assert len(elements_after_wipe) == 72
@@ -106,7 +102,7 @@ def test_wipe_list(empty_fdb_setup):
     fdb = FDB(fdb_config_path)
 
     NFIELDS = populate_fdb(fdb)
-    assert len([x for x in fdb.list(WildcardMarsSelection())]) == NFIELDS
+    assert len([x for x in fdb.list({})]) == NFIELDS
 
     # Wipe without doit: Do not actually delete anything.
     wipe_iterator = fdb.wipe({"class": "rd"})
@@ -115,7 +111,7 @@ def test_wipe_list(empty_fdb_setup):
     for el in wipe_iterator:
         pass
 
-    assert len([x for x in fdb.list(WildcardMarsSelection())]) == NFIELDS
+    assert len([x for x in fdb.list({})]) == NFIELDS
 
     # Wipe, do it
     wipe_iterator = fdb.wipe({"class": "rd"}, doit=True)
@@ -124,7 +120,7 @@ def test_wipe_list(empty_fdb_setup):
     for el in wipe_iterator:
         pass
 
-    list_iterator = fdb.list(WildcardMarsSelection())
+    list_iterator = fdb.list({})
     elements = [x for x in list_iterator]
 
     assert len(elements) == 0

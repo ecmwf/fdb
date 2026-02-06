@@ -34,6 +34,7 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/JSON.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/value/Content.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -109,7 +110,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle")
         .def(py::init())
-        .def("open_for_read", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); })
+        .def("open", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); })
         .def("close", [](eckit::DataHandle& data_handle) { data_handle.close(); })
         .def("size", [](eckit::DataHandle& data_handle) { return static_cast<long long>(data_handle.size()); })
         .def("read",
@@ -126,10 +127,22 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<mars::MarsRequest>(m, "MarsRequest")
         .def(py::init([]() { return mars::MarsRequest(); }))
         .def(py::init([](const std::string& verb) { return mars::MarsRequest(verb); }))
-        .def(py::init([](const std::string& verb, const std::map<std::string, std::string>& key_values) {
-            return mars::MarsRequest(verb, key_values);
+        .def(py::init([](const std::string& verb, const std::map<std::string, std::vector<std::string>>& key_values) {
+            eckit::ValueMap value_map;
+
+            for (const auto& pair : key_values) {
+                eckit::ValueList value_list;
+                for (const auto& value : pair.second) {
+                    value_list.emplace_back(value);
+                }
+                value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
+            }
+
+            return mars::MarsRequest(verb, value_map);
         }))
         .def("verb", [](mars::MarsRequest& mars_request) { return mars_request.verb(); })
+        .def("__getitem__",
+             [](mars::MarsRequest& mars_request, const std::string& value) { return mars_request.get(value); })
         .def("key_values",
              [](mars::MarsRequest& mars_request) {
                  std::map<std::string, std::vector<std::string>> result{};
@@ -198,6 +211,23 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<fdb5::ControlElement>(m, "ControlElement")
         .def(py::init())
         .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
+        .def("key",
+             [](fdb5::ControlElement& control_element) {
+                 std::map<std::string, std::vector<std::string>> key_value_map;
+
+                 for (const auto& key : control_element.key.names()) {
+                     std::vector<std::string> values;
+
+                     for (const auto& value : control_element.key.get(key)) {
+                         values.push_back(std::to_string(value));
+                     }
+
+                     key_value_map.emplace(key, values);
+                 }
+
+                 return key_value_map;
+             })
+        // TODO(TKR): Think about exposing the other fields, as well
         .def("__repr__", [](fdb5::ControlElement& control_element) {
             std::stringstream buf{};
             buf << control_element.controlIdentifiers << ", ";
