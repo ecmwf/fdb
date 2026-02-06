@@ -21,13 +21,15 @@ def test_stats(read_only_fdb_setup):
         "time": "1800",
     }
 
-    list_iterator = fdb.stats(selection)
-    assert list_iterator
+    stats_iterator = fdb.stats(selection)
+    assert stats_iterator
 
     elements = []
 
-    for el in list_iterator:
+    for el in stats_iterator:
         print(el)
         elements.append(el)
 
     assert len(elements) == 1
+    assert "Index Statistics:" in str(elements[0])
+    assert "DB Statistics:" in str(elements[0])

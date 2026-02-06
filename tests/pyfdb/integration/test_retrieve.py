@@ -1,5 +1,4 @@
 from pyfdb import FDB
-from pyfdb.pyfdb_type import WildcardMarsSelection
 
 import pytest
 
@@ -40,7 +39,7 @@ def test_retrieve_wildcard(read_only_fdb_setup):
     fdb = FDB(fdb_config_path)
 
     with pytest.raises(TypeError):
-        _ = fdb.retrieve(WildcardMarsSelection())
+        _ = fdb.retrieve({})
 
 
 def test_retrieve_context_manager(read_only_fdb_setup):

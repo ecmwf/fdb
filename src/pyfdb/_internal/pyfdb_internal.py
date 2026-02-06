@@ -1,26 +1,24 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Collection, Dict, List, Mapping, Optional, TypeAlias
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 import yaml
 
-InternalMarsSelection = Dict[str, str]
+"""
+Selection part of a MARS request.
+
+This is a key-value map, with the data types allowed below
+"""
+MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
 
-def _flatten_values(key_values: Dict[str, Any]) -> Dict[str, str]:
-    result = {}
-    for k in key_values.keys():
-        if isinstance(key_values[k], list):
-            result[k] = "/".join(key_values[k])
-        elif isinstance(key_values[k], str):
-            result[k] = key_values[k]
-        else:
-            raise RuntimeError(
-                f"MarsRequest: Value of unknown type. Expected str or list, found {type(key_values[k])}"
-            )
+"""
+This is the internal representation of a MARS selection
 
-    return result
+This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
+"""
+InternalMarsSelection = Dict[str, Collection[str]]
 
 
 class FDBToolRequest:
@@ -63,7 +61,7 @@ class FDBToolRequest:
         minimum_key_set: List[str] | None = None,
     ) -> None:
         if key_values is not None:
-            key_values = _flatten_values(key_values)
+            key_values = MarsSelectionMapper.map_to_internal(key_values)
 
         if minimum_key_set is None:
             minimum_key_set = []
@@ -75,12 +73,10 @@ class FDBToolRequest:
         )
 
     @classmethod
-    def from_mars_selection(cls, selection: InternalMarsSelection):
-        from pyfdb import WildcardMarsSelection
-
-        return cls(
-            key_values=selection, all=isinstance(selection, WildcardMarsSelection)
-        )
+    def from_mars_selection(cls, selection: InternalMarsSelection) -> "FDBToolRequest":
+        if selection is None or len(selection) == 0:
+            return cls(key_values=None, all=True)
+        return cls(key_values=selection, all=False)
 
     def ____repr__(self) -> str:
         return str(self.tool_request)
@@ -91,9 +87,7 @@ class MarsSelectionMapper:
     Selection mapper for creating MARS selections.
 
     This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
-    is activated there will be checks whether keys have been set already. If `wildcard_selection` is
-    set, the resulting request will be a `WildcardMarsSelection`. A `WildcardMarsSelection` represents
-    a requests which
+    is activated there will be checks whether keys have been set already.
 
     Examples
     --------
@@ -101,23 +95,44 @@ class MarsSelectionMapper:
     """
 
     @classmethod
-    def map(cls, selection: "MarsSelection") -> InternalMarsSelection:
-        result = {}
+    def map_to_internal(cls, selection: MarsSelection) -> InternalMarsSelection:
+        result: Mapping[str, Collection[str]] = {}
+
+        for key, values in selection.items():
+            if not isinstance(values, (int, float, str, Collection)) or isinstance(values, Mapping):
+                raise ValueError(
+                    f"MarsSelectionMapper: The given value for key '{key}' is not valid. A MarsSelection has to have the following type: {MarsSelection}"
+                )
+
+            # Values is a list of values but not a single string
+            if isinstance(values, Collection) and not isinstance(values, str):
+                converted_values = [
+                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
+                ]
+                result[key] = converted_values
+            # Values is a string or a float or an int
+            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+                result[key] = [str(values)]
+            else:
+                raise ValueError(
+                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
+                )
+
+        return result
+
+    @classmethod
+    def map_to_external(cls, selection: InternalMarsSelection) -> MarsSelection:
+        result: MarsSelection = {}
 
         for key, values in selection.items():
             # Values is a list of values but not a single string
             if isinstance(values, Collection) and not isinstance(values, str):
                 converted_values = [
-                    str(v) if isinstance(v, float) or isinstance(v, int) else v
-                    for v in values
+                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
                 ]
-                result[key] = "/".join(converted_values)
+                result[key] = converted_values
             # Values is a string or a float or an int
-            elif (
-                isinstance(values, str)
-                or isinstance(values, int)
-                or isinstance(values, float)
-            ):
+            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
                 result[key] = str(values)
             else:
                 raise ValueError(
@@ -192,11 +207,9 @@ class ConfigMapper:
 
 
 class MarsRequest:
-    def __init__(
-        self, verb: str | None = None, key_values: None | InternalMarsSelection = None
-    ) -> None:
+    def __init__(self, verb: str | None = None, key_values: None | MarsSelection = None) -> None:
         if key_values:
-            key_values = _flatten_values(key_values)
+            key_values = MarsSelectionMapper.map_to_internal(key_values)
 
         if verb is None and key_values is None:
             self.request = pyfdb_internal.MarsRequest("retrieve")
@@ -205,12 +218,12 @@ class MarsRequest:
         elif verb is not None:
             self.request = pyfdb_internal.MarsRequest(verb)
         elif verb or key_values:
-            raise RuntimeError(
-                "MarsRequest: verb and key_values can only be specified together."
-            )
+            raise RuntimeError("MarsRequest: verb and key_values can only be specified together.")
 
     @classmethod
-    def from_selection(cls, mars_selection: InternalMarsSelection):
+    def from_selection(cls, mars_selection: Optional[InternalMarsSelection]):
+        if mars_selection is None:
+            raise TypeError("MarsRequest: None type not allowed for a selection")
         result = MarsRequest()
         result.request = pyfdb_internal.MarsRequest("retrieve", mars_selection)
         return result
@@ -218,11 +231,18 @@ class MarsRequest:
     def verb(self) -> str:
         return self.request.verb()
 
-    def key_values(self) -> dict[str, str]:
-        return _flatten_values(self.request.key_values())
+    # TODO(TKR): Check whether a property has memoized access
+    def items(self) -> dict[str, list[str]]:
+        return self.request.key_values()
 
     def empty(self) -> bool:
         return self.request.empty()
+
+    def __getitem__(self, key: str) -> str:
+        elements = self.request[key]
+        if len(elements) == 1:
+            return elements[0]
+        return elements
 
     def __repr__(self) -> str:
         return str(self.request)

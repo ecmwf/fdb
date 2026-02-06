@@ -602,7 +602,7 @@ call to `control <control_label>` when setting certain ``ControlIdentifiers`` fo
    URI[scheme=toc,name=/<path-to-db-store>/ea:0001:oper:20200101:1800:g].
 
 
-You can see that the ``ControlIdentifier`` for ``WIPE`` (value ``4`` is exposed by the FDB) is active for the given entry of the ``FDB``.
+You can see that the ``ControlIdentifier`` for ``WIPE`` (value ``4`` is exposed by the ``FDB``) is active for the given entry of the ``FDB``.
 This is prescribed by the internal representation and the ``ControlIdentifier`` serialization of the value in the ``FDB``.
 On the Python API side this corresponds to the ``ControlIdentifier.WIPE`` value. 
 
@@ -855,7 +855,8 @@ Control
 *******
 **Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.**
 
-Under certain circumstances
+The example given below shows how the activation/deactivation of the wipe functionality of the ``FDB``
+works for a certain selection. 
 
 .. invisible-code-block: python
 
@@ -945,8 +946,6 @@ Under certain circumstances
 
     print("Success")
 
-The example given above shows how the activation/deactivation of the wipe functionality of the ``FDB``
-works for a certain selection. 
 
 After specifying the selection we want to target, this has to be a selection which contains keys of 
 the first and second level of the schema, we can call the ``control`` function and specify the wished action:
@@ -1059,8 +1058,7 @@ In case you want to see the 'span' of all elements stored in an ``FDB`` you coul
 .. code-block:: python
 
     fdb = pyfdb.FDB(fdb_config_path)
-    selection = pyfdb.WildcardMarsSelection()
-    index_axis: pyfdb.IndexAxis = fdb.axes(selection)
+    index_axis: pyfdb.IndexAxis = fdb.axes({})
 
 .. clear-namespace
 

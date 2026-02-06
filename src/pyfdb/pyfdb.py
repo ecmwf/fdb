@@ -15,6 +15,7 @@ from pyfdb._internal import (
     init_bindings,
     Config,
     MarsRequest,
+    MarsSelectionMapper,
     _FDB,
 )
 from pyfdb.pyfdb_iterator import (
@@ -33,9 +34,7 @@ from pyfdb.pyfdb_type import (
     ControlIdentifier,
     DataHandle,
     Identifier,
-    MarsSelectionMapper,
     MarsSelection,
-    WildcardMarsSelection,
 )
 
 
@@ -201,7 +200,7 @@ class FDB:
         Returns
         -------
         DataHandle
-            A data handle which contains unordered GRIB messages and can be read like a bytesLike object.
+            A data handle which contains unordered GRIB messages and can be read like a `BytesLike` object.
 
         Examples
         --------
@@ -217,15 +216,16 @@ class FDB:
         >>>     assert data_handle
         >>>     assert data_handle.read(4) == b"GRIB"
         """
-        if isinstance(mars_selection, WildcardMarsSelection):
-            raise TypeError("Wildcard selection aren't support for retrieving.")
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        if len(mars_selection) == 0:
+            raise TypeError("FDB.retrieve: Wildcard selection aren't support for retrieving.")
+
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         mars_request = MarsRequest.from_selection(internal_mars_selection)
         return DataHandle(self.FDB.retrieve(mars_request.request), _internal=True)
 
     def list(
         self,
-        mars_selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection,
         include_masked: bool = False,
         level: int = 3,
     ) -> Generator[ListElement, None, None]:
@@ -234,8 +234,8 @@ class FDB:
 
         Parameters
         ----------
-        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
-            A MARS selection which describes the data which can be listed.
+        `mars_selection` : `MarsSelection`
+            A MARS selection which describes the data which can be listed. If `None` is given, all data will be listed.
         `include_masked` : bool, *optional*
             If True, the returned iterator lists masked data, if False the elements are unique.
         `level` : int [1-3], *optional*
@@ -294,20 +294,18 @@ class FDB:
         length=0,
         timestamp=0
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
-        iterator = self.FDB.list(
-            fdb_tool_request.tool_request, not include_masked, level
-        )
+        iterator = self.FDB.list(fdb_tool_request.tool_request, not include_masked, level)
+
         while True:
             try:
                 yield ListElement(next(iterator), _internal=True)
             except StopIteration:
                 return
 
-    def inspect(
-        self, mars_selection: MarsSelection
-    ) -> Generator[ListElement, None, None]:
+    def inspect(self, mars_selection: MarsSelection) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
         describing which field was part of the MARS selection.
@@ -352,7 +350,7 @@ class FDB:
         length=10732,
         timestamp=1762537447
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         mars_request = MarsRequest.from_selection(internal_mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
 
@@ -362,16 +360,14 @@ class FDB:
             except StopIteration:
                 return
 
-    def status(
-        self, mars_selection: MarsSelection | WildcardMarsSelection
-    ) -> Generator[StatusElement, None, None]:
+    def status(self, mars_selection: MarsSelection) -> Generator[StatusElement, None, None]:
         """
         List the status of all FDB entries with their control identifiers, e.g., whether a certain
         database was locked for retrieval.
 
         Parameters
         ----------
-        `mars_selection` : `MarsSelection` | `WildcardMarsSelection`
+        `mars_selection` : `MarsSelection`
             An MARS selection which specifies the queried data
 
         Returns
@@ -398,7 +394,7 @@ class FDB:
             name=<location>
         ]
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
@@ -409,7 +405,7 @@ class FDB:
 
     def wipe(
         self,
-        mars_selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection,
         doit: bool = False,
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
@@ -452,11 +448,9 @@ class FDB:
         <path_to_database>/toc
         ...
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
-        iterator = self.FDB.wipe(
-            fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all
-        )
+        iterator = self.FDB.wipe(fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all)
         while True:
             try:
                 yield WipeElement(next(iterator), _internal=True)
@@ -517,7 +511,7 @@ class FDB:
         )
         ...
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
         while True:
@@ -528,7 +522,7 @@ class FDB:
 
     def purge(
         self,
-        mars_selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection,
         doit: bool = False,
         porcelain: bool = False,
     ) -> Generator[PurgeElement, None, None]:
@@ -577,7 +571,7 @@ class FDB:
         length=10732,
         timestamp=176253976
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
@@ -586,9 +580,7 @@ class FDB:
             except StopIteration:
                 return
 
-    def stats(
-        self, mars_selection: MarsSelection | WildcardMarsSelection
-    ) -> Generator[StatsElement, None, None]:
+    def stats(self, mars_selection: MarsSelection) -> Generator[StatsElement, None, None]:
         """
         Print information about FDB databases, aggregating the
         information over all the databases visited into a final summary.
@@ -629,7 +621,7 @@ class FDB:
         Total owned size                : 165,544 (161.664 Kbytes)
         Total size                      : 165,544 (161.664 Kbytes)
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
@@ -640,7 +632,7 @@ class FDB:
 
     def control(
         self,
-        mars_selection: MarsSelection | WildcardMarsSelection,
+        mars_selection: MarsSelection,
         control_action: ControlAction,
         control_identifiers: List[ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
@@ -696,7 +688,7 @@ class FDB:
             name=<location_fdb_database>
         ]
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         raw_control_identifiers = [
             control_identifier._to_raw() for control_identifier in control_identifiers
@@ -712,9 +704,7 @@ class FDB:
             except StopIteration:
                 return
 
-    def axes(
-        self, mars_selection: MarsSelection | WildcardMarsSelection, level: int = 3
-    ) -> IndexAxis:
+    def axes(self, mars_selection: MarsSelection, level: int = 3) -> IndexAxis:
         """
         Return the 'axes' and their extent of a MARS selection for a given level of the schema in
         an IndexAxis object.
@@ -761,11 +751,9 @@ class FDB:
         k=time     | v=['1800']
         k=type     | v=['an']
         """
-        internal_mars_selection = MarsSelectionMapper.map(mars_selection)
+        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
-        return IndexAxis(
-            self.FDB.axes(fdb_tool_request.tool_request, level), _internal=True
-        )
+        return IndexAxis(self.FDB.axes(fdb_tool_request.tool_request, level), _internal=True)
 
     def enabled(self, control_identifier: ControlIdentifier) -> bool:
         """
