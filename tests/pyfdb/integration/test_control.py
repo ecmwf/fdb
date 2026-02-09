@@ -4,6 +4,8 @@ from pyfdb import FDB, ControlAction, ControlIdentifier
 
 import pytest
 
+from pyfdb._internal.pyfdb_internal import MarsSelectionMapper
+
 
 def test_control_action_values():
     assert ControlAction.NONE == 0
@@ -32,9 +34,7 @@ def test_control_identifier_string():
     assert str(ControlIdentifier.LIST | ControlIdentifier.RETRIEVE) == "LIST|RETRIEVE"
     assert str(ControlIdentifier.RETRIEVE | ControlIdentifier.NONE) == "RETRIEVE"
     assert (
-        str(
-            ControlIdentifier.RETRIEVE | ControlIdentifier.NONE | ControlIdentifier.LIST
-        )
+        str(ControlIdentifier.RETRIEVE | ControlIdentifier.NONE | ControlIdentifier.LIST)
         == "LIST|RETRIEVE"
     )
 
@@ -73,10 +73,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     data_handle.close()
 
     assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "retrieve.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
     ).exists()
 
     print("Locking database for retrieve")
@@ -106,10 +103,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     assert len(elements) == 1
 
     assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "retrieve.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
     ).exists()
 
     print("Retrieve with lock")
@@ -160,9 +154,7 @@ def test_control_lock_list(read_only_fdb_setup):
     assert len(elements) == 3
 
     print("Locking database for listing")
-    control_iterator = fdb.control(
-        selection, ControlAction.DISABLE, [ControlIdentifier.LIST]
-    )
+    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.LIST])
     assert control_iterator
 
     elements = []
@@ -174,10 +166,7 @@ def test_control_lock_list(read_only_fdb_setup):
     assert len(elements) == 1
 
     assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "list.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
     ).exists()
 
     print("List with lock. Expecting 0 elements.")
@@ -186,9 +175,7 @@ def test_control_lock_list(read_only_fdb_setup):
     assert len(elements) == 0
 
     print("Unlocking database for listing")
-    control_iterator = fdb.control(
-        selection, ControlAction.ENABLE, [ControlIdentifier.LIST]
-    )
+    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.LIST])
     assert control_iterator
 
     elements = list(control_iterator)
@@ -196,10 +183,7 @@ def test_control_lock_list(read_only_fdb_setup):
 
     # Correct behaviour is to "not see the data after locking"
     assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "list.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
     ).exists()
 
     list_iterator = fdb.list(selection)
@@ -224,9 +208,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     }
 
     print("Lock the database for archiving")
-    control_iterator = fdb.control(
-        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
@@ -238,23 +220,16 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "archive.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
-    with pytest.raises(
-        Exception, match=" matched for archived is LOCKED against archiving"
-    ):
+    with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
     print("Unlock the database for archiving")
-    control_iterator = fdb.control(
-        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
@@ -266,10 +241,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "archive.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
@@ -295,9 +267,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     }
 
     print("Lock the database for archiving")
-    control_iterator = fdb.control(
-        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
@@ -318,23 +288,16 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
         print(el)
 
     assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "archive.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
-    with pytest.raises(
-        Exception, match=" matched for archived is LOCKED against archiving"
-    ):
+    with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
     print("Unlock the database for archiving")
-    control_iterator = fdb.control(
-        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
@@ -346,10 +309,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "archive.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
@@ -379,9 +339,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     fdb.flush()
 
     print("Lock the database for wiping")
-    control_iterator = fdb.control(
-        selection, ControlAction.DISABLE, [ControlIdentifier.WIPE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.WIPE])
     assert control_iterator
 
     elements = []
@@ -392,10 +350,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
 
     assert len(elements) == 1
     assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "wipe.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
     ).exists()
 
     print("Try Wipe")
@@ -410,9 +365,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 0
 
     print("Unlock the database for wiping")
-    control_iterator = fdb.control(
-        selection, ControlAction.ENABLE, [ControlIdentifier.WIPE]
-    )
+    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.WIPE])
     assert control_iterator
 
     elements = []
@@ -424,10 +377,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
     assert len(elements) > 0
 
     assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "wipe.lock"
+        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
     ).exists()
 
     print("Try Wipe")
@@ -520,3 +470,40 @@ def test_needs_flush(empty_fdb_setup, test_data_path):
     assert fdb.dirty() is True
     fdb.flush()
     assert fdb.dirty() is False
+
+
+def test_control_element_key(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path.read_text())
+
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
+
+    print("List without lock")
+    list_iterator = fdb.list(selection)
+    elements = list(list_iterator)
+    assert len(elements) == 3
+
+    print("Locking database for listing")
+    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.LIST])
+    assert control_iterator
+
+    elements = []
+
+    for el in control_iterator:
+        print(el)
+        elements.append(el.key())
+
+    assert len(elements) == 1
+    print(f"Element key: {elements[0]}")
+    print(f"Element key type: {type(elements[0])}")
+    assert elements[0] == MarsSelectionMapper.map_to_internal(selection)

@@ -141,6 +141,10 @@ class MarsSelectionMapper:
 
         return result
 
+    @classmethod
+    def eq(cls, selection: MarsSelection | InternalMarsSelection):
+        pass
+
 
 class ConfigMapper:
     @classmethod
@@ -239,10 +243,7 @@ class MarsRequest:
         return self.request.empty()
 
     def __getitem__(self, key: str) -> str:
-        elements = self.request[key]
-        if len(elements) == 1:
-            return elements[0]
-        return elements
+        return self.request[key]
 
     def __repr__(self) -> str:
         return str(self.request)
