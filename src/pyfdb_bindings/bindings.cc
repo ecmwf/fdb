@@ -211,23 +211,16 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<fdb5::ControlElement>(m, "ControlElement")
         .def(py::init())
         .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
+        .def("controlIdentifiers",
+             [](fdb5::ControlElement& control_element) { return control_element.controlIdentifiers; })
         .def("key",
              [](fdb5::ControlElement& control_element) {
                  std::map<std::string, std::vector<std::string>> key_value_map;
-
                  for (const auto& key : control_element.key.names()) {
-                     std::vector<std::string> values;
-
-                     for (const auto& value : control_element.key.get(key)) {
-                         values.push_back(std::to_string(value));
-                     }
-
-                     key_value_map.emplace(key, values);
+                     key_value_map.emplace(key, std::vector<std::string>{control_element.key.get(key)});
                  }
-
                  return key_value_map;
              })
-        // TODO(TKR): Think about exposing the other fields, as well
         .def("__repr__", [](fdb5::ControlElement& control_element) {
             std::stringstream buf{};
             buf << control_element.controlIdentifiers << ", ";

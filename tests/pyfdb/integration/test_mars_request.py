@@ -42,8 +42,8 @@ def test_mars_request_verb_keys():
     request = MarsRequest("verb", key_values=key_values)
 
     assert request.verb() == "verb"
-    assert request["key1"] == "value1"
-    assert request["key2"] == "value3"
+    assert request["key1"] == ["value1"]
+    assert request["key2"] == ["value3"]
 
 
 def test_mars_request_verb_items():
@@ -53,8 +53,8 @@ def test_mars_request_verb_items():
 
     assert request.verb() == "verb"
     key_values = request.items()
-    assert request["key1"] == "value1"
-    assert request["key2"] == "value3"
+    assert request["key1"] == ["value1"]
+    assert request["key2"] == ["value3"]
 
 
 def test_mars_request_verb_key_values_flat():
@@ -64,7 +64,7 @@ def test_mars_request_verb_key_values_flat():
 
     assert request.verb() == "verb"
     assert request["key1"] == ["value1", "value2"]
-    assert request["key2"] == "value3"
+    assert request["key2"] == ["value3"]
 
 
 def test_mars_request_empty():
@@ -83,4 +83,4 @@ def test_mars_request_length():
 
     assert len(request) == 2
     assert request["key1"] == ["value1", "value2"]
-    assert request["key2"] == "value3"
+    assert request["key2"] == ["value3"]
