@@ -1,0 +1,5 @@
+[metadata]
+description = "z3fdb"
+long_description = "z3fdb long description" # TODO replace with file: README.md
+long_description_content_type = text/markdown
+author = "ecmwf" # TODO replace with file: AUTHORS
