@@ -43,7 +43,7 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS 
             ${_z3fdb_package_files}
-            $<TARGET_FILE:chunked_data_view_bindings>
+            chunked_data_view_bindings
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
