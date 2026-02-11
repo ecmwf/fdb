@@ -32,8 +32,6 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const {
     ASSERT(cat);
 
-    auto ax = cat->axis(keyword);
-
     eckit::StringList us;
 
     Type::getValues(request, keyword, us, wind, cat);
@@ -42,6 +40,7 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
     std::copy(us.begin(), us.end(), std::back_inserter(user));
 
     std::vector<Param> axis;
+    auto ax = cat->axis(keyword);
     if (ax) {
         std::copy(ax->get().begin(), ax->get().end(), std::back_inserter(axis));
         std::sort(axis.begin(), axis.end());
@@ -61,11 +60,6 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
             values.push_back(*i);
         }
     }
-
-    // Log::info() << "TypeParam before: " << us << std::endl;
-    // Log::info() << "              after: " << values << std::endl;
-    // Log::info() << "               wind: " << (windConversion ? "true" : "false") << std::endl;
-    // Log::info() << "               axis: " << ax << std::endl;
 
     if (windConversion) {
         wind.notifyWind();

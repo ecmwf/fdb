@@ -67,9 +67,7 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::st
     std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
     // If this is before knowing the Catalogue, we are constrained on what we can do.
-
     if (cat) {
-
         // Get the axis
         auto ax = cat->axis("step");
         if (ax) {
@@ -87,7 +85,6 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::st
     }
 
     // Convert the ranges back into strings for the FDB
-
     eckit::Translator<StepRange, std::string> t;
 
     values.reserve(ranges.size());
