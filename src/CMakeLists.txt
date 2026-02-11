@@ -38,7 +38,7 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
-        COMMAND ${Python_INTERPRETER} -m build --wheel ${Z3FDB_STAGING} -o .
+        COMMAND ${Python_EXECUTABLE} -m build --wheel ${Z3FDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS 
