@@ -103,8 +103,9 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
         if (stripeLustre()) {
             fdb5LustreapiFileCreate(consolidatedIndexPath, stripeIndexLustreSettings());
         }
-        currentFull_ = fullIndexes_.emplace(idxKey, new TocIndex(idxKey, consolidatedIndexPath, 0, TocIndex::WRITE, datumKeySize))
-                           .first->second;
+        currentFull_ =
+            fullIndexes_.emplace(idxKey, new TocIndex(idxKey, consolidatedIndexPath, 0, TocIndex::WRITE, datumKeySize))
+                .first->second;
         currentFull_.open();
         currentFull_.flock();
     }
