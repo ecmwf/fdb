@@ -33,7 +33,7 @@ Root::Root(const std::string& path, const std::string& filespace, bool list, boo
         controlIdentifiers_ |= ControlIdentifier::Wipe;
 }
 
-bool Root::exists() const {
+bool Root::exists(bool quiet) const {
     if (!checked_) {
         errno = 0;
         Stat::Struct info;
@@ -42,7 +42,9 @@ bool Root::exists() const {
             exists_ = S_ISDIR(info.st_mode);
         }
         else {
-            Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
+            if (!quiet) {
+                Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
+            }
             exists_ = false;
         }
         LOG_DEBUG_LIB(LibFdb5) << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
