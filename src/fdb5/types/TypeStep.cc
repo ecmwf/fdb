@@ -72,19 +72,18 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::st
 
         // Get the axis
         auto ax = cat->axis("step");
-        ASSERT(ax);
-
-        std::vector<StepRange> axis;
-        for (auto step : ax->get()) {
-            if (!step.empty()) {
-                axis.push_back(StepRange(step));
+        if (ax) {
+            std::vector<StepRange> axis;
+            for (auto step : ax->get()) {
+                if (!step.empty()) {
+                    axis.push_back(StepRange(step));
+                }
             }
+            std::sort(axis.begin(), axis.end());
+
+            // Match the step range to the axis
+            StepRangeNormalise::normalise(ranges, axis);
         }
-        std::sort(axis.begin(), axis.end());
-
-        // Match the step range to the axis
-
-        StepRangeNormalise::normalise(ranges, axis);
     }
 
     // Convert the ranges back into strings for the FDB

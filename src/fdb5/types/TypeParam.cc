@@ -33,7 +33,6 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
     ASSERT(cat);
 
     auto ax = cat->axis(keyword);
-    ASSERT(ax);
 
     eckit::StringList us;
 
@@ -43,8 +42,10 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
     std::copy(us.begin(), us.end(), std::back_inserter(user));
 
     std::vector<Param> axis;
-    std::copy(ax->get().begin(), ax->get().end(), std::back_inserter(axis));
-    std::sort(axis.begin(), axis.end());
+    if (ax) {
+        std::copy(ax->get().begin(), ax->get().end(), std::back_inserter(axis));
+        std::sort(axis.begin(), axis.end());
+    }
 
     bool windConversion = false;
     metkit::ParamID::normalise(request, user, axis, windConversion);
