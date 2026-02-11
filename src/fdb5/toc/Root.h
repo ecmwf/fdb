@@ -43,7 +43,7 @@ public:  // methods
 
     /// Root exists in the filesystem, use this check to avoid errors when accessing
     /// This result is computed with a lazy approach and then memoized
-    bool exists() const;
+    bool exists(bool quiet) const;
 
     bool enabled(const ControlIdentifier& controlIdentifier) const {
         return controlIdentifiers_.enabled(controlIdentifier);
