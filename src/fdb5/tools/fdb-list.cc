@@ -52,7 +52,7 @@ public:  // methods
         options_.push_back(
             new SimpleOption<bool>("porcelain",
                                    "Streamlined and stable output. Useful as input for other tools or scripts."
-                                   "Incompatible with options: location, timestamp, and length"));
+                                   "Incompatible with timestamp"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
         options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [1-3]"));
@@ -96,14 +96,8 @@ void FDBList::init(const CmdArgs& args) {
     }
 
     if (porcelain_) {
-        if (location_) {
-            throw UserError("--porcelain and --location are not compatible", Here());
-        }
         if (timestamp_) {
             throw UserError("--porcelain and --timestamp are not compatible", Here());
-        }
-        if (length_) {
-            throw UserError("--porcelain and --length are not compatible", Here());
         }
     }
 
