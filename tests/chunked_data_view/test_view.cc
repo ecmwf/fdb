@@ -269,6 +269,29 @@ CASE("ChunkedDataView - Can build") {
             .build());
 }
 
+CASE("ChunkedDataView | build | No data in FDB throws user-facing error") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    EXPECT_THROWS(
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) -> std::unique_ptr<eckit::DataHandle> {
+                    throw eckit::Exception("FDB: no data");
+                },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    return nullptr;
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build());
+}
+
 CASE("ChunkedDataView | at | Wrong index dimension throws") {
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
