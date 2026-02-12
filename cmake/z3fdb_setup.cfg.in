@@ -1,0 +1,7 @@
+[metadata]
+description = "z3fdb"
+# TODO replace with file: README.md
+long_description = "Z3FDB is a custom Zarr v3 Store connecting to FDB" 
+long_description_content_type = text/markdown
+# TODO consider replacing with file: AUTHORS, possibly after updating that file
+author = "European Centre for Medium-Range Weather Forecasts"
