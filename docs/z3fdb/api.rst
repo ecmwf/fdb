@@ -30,6 +30,9 @@ z3fdb.SimpleStoreBuilder
 z3fdb.AxisDefinition
 ....................
 
+See :doc:`dimension_mapping` for how axis definitions map MARS keywords
+to Zarr dimensions.
+
 .. autoapiclass:: pychunked_data_view.AxisDefinition
    :members:
 

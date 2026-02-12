@@ -10,6 +10,7 @@ Zarr v3 from FDB - Z3FDB
    :hidden:
 
    architecture
+   dimension_mapping
    api
 
 Introduction
@@ -17,7 +18,9 @@ Introduction
 
 Z3FDB enables FDB to function as a Zarr Store without the need to copy your
 GRIB data. Z3FDB uses the MARS Language to define views that then can be
-accessed as a store.
+accessed as a store. MARS keywords are mapped to Zarr array dimensions
+through :class:`~pychunked_data_view.AxisDefinition` — see
+:doc:`dimension_mapping` for a full explanation.
 
 When a Zarr chunk is accessed, a corresponding retrieve call will be done on
 FDB and the returned GRIB data will be decoded on the fly. Data will be
@@ -77,7 +80,13 @@ To check if the install was successful, run `pytest` in
 Examples
 ########
 
-Below are two examples how to create a view
+Below are two examples how to create a view.
+
+.. seealso::
+
+   :doc:`dimension_mapping` for a detailed explanation of how MARS
+   keywords map to Zarr dimensions, including many-to-one mappings,
+   chunking strategies, and memory considerations.
 
 .. code-block:: python
    :caption: Configuring a view from a single MARS request.
@@ -91,29 +100,32 @@ Below are two examples how to create a view
    builder = SimpleStoreBuilder()
    builder.add_part(
        "class=od,"
-       "domain=g,"
-       "date=-2/-1,"
-       "expver=0001,"
-       "levtype=sfc,"
-       "param=167,"
-       "step=0/1/2/3/4/5/6,"
-       "stream=oper,"
-       "time=0000/1200,"
-       "type=fc",
-       [
-           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
-           AxisDefinition(["step"], Chunking.SINGLE_VALUE)
+       "domain=g,"
+       "date=-2/-1,"            # 2 values
+       "expver=0001,"
+       "levtype=sfc,"
+       "param=167,"
+       "step=0/1/2/3/4/5/6,"    # 7 values
+       "stream=oper,"
+       "time=0000/1200,"        # 2 values
+       "type=fc",
+       [
+           # Dim 0: date and time merged — 2x2 = 4 entries, time varies fastest
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           # Dim 1: step — 7 entries
+           AxisDefinition(["step"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 
-   # Access full field for date=-1, time=0000, step=3
+   # Dim 0: date=-1,time=0000 → index = 1*2 + 0 = 2  (time varies fastest)
+   # Dim 1: step=3 → index 3
    field = data[2][3][:]
 
 .. code-block:: python
-   :caption: Configuring a view from multiple MARS request.
+   :caption: Configuring a view from multiple MARS requests.
 
    from z3fdb import (
        AxisDefinition,
@@ -128,13 +140,15 @@ Below are two examples how to create a view
        "domain=g,"
        "expver=0001,"
        "stream=oper,"
-       "date=2020-01-01/2020-01-02,"
+       "date=2020-01-01/2020-01-02," # 2 values
        "levtype=sfc,"
        "step=0,"
-       "param=165/166,"
-       "time=0/to/21/by/3",
+       "param=165/166,"              # 2 values
+       "time=0/to/21/by/3",          # 8 values
        [
+           # Dim 0: date x time = 2x8 = 16 entries (time varies fastest)
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           # Dim 1: param = 2 entries (surface parameters)
            AxisDefinition(["param"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
@@ -148,21 +162,24 @@ Below are two examples how to create a view
        "date=2020-01-01/2020-01-02,"
        "levtype=pl,"
        "step=0,"
-       "param=131/132,"
-       "levelist=50/100,"
+       "param=131/132,"      # 2 values
+       "levelist=50/100,"    # 2 values
        "time=0/to/21/by/3",
        [
+           # Dim 0: same date x time mapping — must match first part
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+           # Dim 1: param x levelist = 2x2 = 4 entries (pressure level)
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE)
        ],
        ExtractorType.GRIB,
    )
+   # Extend on dim 1: sfc(2) + pl(4) = 6 total entries in the param dimension
    builder.extendOnAxis(1)
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 
-   # Access full field for date=2020-01-01, time=0300, param=166, uses first part
+   # date=2020-01-01, time=0300 → 0*8 + 1 = 1; param=166 → index 1 (sfc part)
    field = data[1][1][:]
 
-   # Access full field for date=2020-01-01, time=0300, param=131, levelist=100, uses second part
+   # date=2020-01-01, time=0300 → 1; param=131,levelist=100 → index 3 (pl part, offset by 2)
    field = data[1][3][:]

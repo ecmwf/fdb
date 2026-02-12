@@ -166,9 +166,12 @@ public:  // methods
 
     /// List data present at the archive and which can be retrieved.
     /// @param request FDBToolRequest stating which data should be queried
-    /// @param deduplicate bool whether the returned iterator should ignore duplicates
-    /// @param length Size of the data to archive with the given @p key
+    /// @param mode select how duplicates should be handled in the returned iterator
+    /// @param level maximum level the visitor should respect
     /// @return ListIterator for iterating over the set of found items
+    ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3);
+
+    /// Backwards-compatible overload using the previous deduplicate flag.
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
     /// Dump the structural content of the FDB

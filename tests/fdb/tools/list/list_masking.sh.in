@@ -51,7 +51,9 @@ try grib_ls -m data.xxxx.d1.grib
 
 try fdb-write data.xxxx.d1.grib
 try fdb-write data.xxxx.d2.grib
-# write the data twice
+# write the data three times
+try fdb-write data.xxxx.d1.grib
+try fdb-write data.xxxx.d2.grib
 try fdb-write data.xxxx.d1.grib
 try fdb-write data.xxxx.d2.grib
 
@@ -61,7 +63,7 @@ line_count 48
 
 echo "Test: Incorrect number of entries written"
 try fdb-list --all --minimum-keys="" --porcelain --full | tee out
-line_count 96
+line_count 144
 
 echo "Test: Entries should be masked without --full"
 try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
@@ -69,7 +71,7 @@ line_count 48
 
 echo "Test: All entries should be visible with --full"
 try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --full | tee out
-line_count 96
+line_count 144
 
 echo "Test: Entries should be masked without full"
 try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain | tee out
@@ -77,7 +79,21 @@ line_count 8
 
 echo "Test: All entries should be visible with --full"
 try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=130/138,levelist=300/123/1000 --porcelain --full | tee out
-line_count 16
+line_count 24
+
+echo "Test: Only duplicated entries should be visible with --only-duplicates"
+try fdb-list --all --minimum-keys="" --porcelain --only-duplicates | tee out
+line_count 96
+
+echo "Test: Only duplicated entries should be visible with --only-duplicates (filtered)"
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --only-duplicates | tee out
+line_count 96
+
+echo "Test: Incompatible options --only-duplicates and --full"
+fdb-list --all --only-duplicates --full && die "fdb-list should have failed with --full and --only-duplicates"
+
+echo "Test: Incompatible options --only-duplicates and --compact"
+fdb-list --all --only-duplicates --compact && die "fdb-list should have failed with --compact and --only-duplicates"
 
 echo "cleanup"
 try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

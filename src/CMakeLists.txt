@@ -38,12 +38,12 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
-        COMMAND ${Python_INTERPRETER} -m build --wheel ${Z3FDB_STAGING} -o .
+        COMMAND ${Python_EXECUTABLE} -m build --wheel ${Z3FDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS 
             ${_z3fdb_package_files}
-            $<TARGET_FILE:chunked_data_view_bindings>
+            chunked_data_view_bindings
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
