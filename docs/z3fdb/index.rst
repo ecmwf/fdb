@@ -173,8 +173,9 @@ Below are two examples how to create a view.
        ],
        ExtractorType.GRIB,
    )
+
    # Extend on dim 1: sfc(2) + pl(4) = 6 total entries in the param dimension
-   builder.extendOnAxis(1)
+   builder.extend_on_axis(1)
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 
