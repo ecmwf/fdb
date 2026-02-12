@@ -9,17 +9,10 @@
  */
 #pragma once
 
-#include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/ListIterator.h"
-
-#include "fdb5/api/FDB.h"
-#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
-#include <memory>
-#include <vector>
 
 namespace chunked_data_view {
 class GribExtractor final : public Extractor {
@@ -27,8 +20,6 @@ public:
 
     DataLayout layout(eckit::DataHandle& handle) const override;
 
-    void writeInto(const metkit::mars::MarsRequest& request, std::unique_ptr<ListIteratorInterface> list_iterator,
-                   const std::vector<Axis>& axes, const DataLayout& layout, float* ptr, size_t len,
-                   size_t expected_msg_count) const override;
+    void extract(eckit::DataHandle& handle, const DataLayout& layout, float* ptr, size_t len) const override;
 };
 }  // namespace chunked_data_view

@@ -10,6 +10,7 @@
 #include "ViewPart.h"
 
 #include "Axis.h"
+#include "IndexMapper.h"
 #include "RequestManipulation.h"
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/Extractor.h"
@@ -81,14 +82,65 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 }
 
 
+static size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key) {
+    std::vector<size_t> result;
+    result.reserve(axes.size());
+
+    for (const Axis& axis : axes) {
+        if (axis.isChunked()) {
+            result.push_back(0);
+            continue;
+        }
+        result.emplace_back(axis.index(key));
+    }
+
+    ASSERT(result.size() == axes.size());
+    return index_mapping::axis_index_to_buffer_index(result, axes);
+}
+
 void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
+
     auto request = request_;
     for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
         RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
     }
+
     auto listIterator = fdb_->inspect(request);
-    extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, expected_msg_count);
+    bool iterator_empty = true;
+    std::vector<bool> bitset(expected_msg_count);
+
+    while (auto res = listIterator->next()) {
+        if (!res) {
+            break;
+        }
+        iterator_empty = false;
+
+        const auto& key = std::get<0>(*res);
+        auto& data_handle = std::get<1>(*res);
+
+        const size_t msgIndex = computeBufferIndex(axes_, key);
+        float* dest = ptr + msgIndex * layout_.countValues;
+        ASSERT(dest + layout_.countValues - ptr <= static_cast<std::ptrdiff_t>(len));
+
+        extractor_->extract(*data_handle, layout_, dest, layout_.countValues);
+        bitset[msgIndex] = true;
+    }
+
+    if (iterator_empty) {
+        std::ostringstream ss;
+        ss << "ViewPart::at: Empty iterator for request: " << request
+           << ". Is the request correctly specified?";
+        throw eckit::Exception(ss.str());
+    }
+
+    if (const auto read_count = std::count(std::begin(bitset), std::end(bitset), true);
+        read_count != static_cast<long>(bitset.size())) {
+        std::ostringstream ss;
+        ss << "ViewPart::at: Retrieved only " << read_count << " of " << bitset.size()
+           << " fields in request " << request;
+        throw eckit::Exception(ss.str());
+    }
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {

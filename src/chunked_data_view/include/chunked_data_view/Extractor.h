@@ -9,16 +9,12 @@
  */
 #pragma once
 
-#include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/ListIterator.h"
 
 #include "eckit/io/DataHandle.h"
-#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <memory>
-#include <vector>
 
 namespace eckit {
 class DataHandle;
@@ -33,21 +29,16 @@ public:
 
     /// Only first message will be read
     /// @param handle to a stream of grib messages
-    /// @return the data
+    /// @return the data layout (field size and bytes per value)
     virtual DataLayout layout(eckit::DataHandle& handle) const = 0;
 
-    /// Writes the extracted data into the out pointer.
-    /// The caller must ensure there is enought memory allccated for all values to be copied into out.
-    /// @param request that was used to read data from FDB, only used to enhance error messages
-    /// @param list_iterator to read data from
-    /// @param axes of the corresponding view.
-    /// @param layout of the expected field.
-    /// @param out pointer to write into.
-    /// @param out len of memory pointed to by ptr in floats
-    /// @param expected_msg_count number of GRIB messages expected
-    virtual void writeInto(const metkit::mars::MarsRequest& request,
-                           std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                           const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const = 0;
+    /// Extract one field's values from a DataHandle into ptr.
+    /// The caller is responsible for computing the correct buffer offset.
+    /// @param handle to a single field's data
+    /// @param layout expected field layout
+    /// @param ptr destination buffer (already offset by caller)
+    /// @param len available buffer size in floats
+    virtual void extract(eckit::DataHandle& handle, const DataLayout& layout, float* ptr, size_t len) const = 0;
 };
 
 enum class ExtractorType {

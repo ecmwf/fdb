@@ -106,28 +106,13 @@ struct FakeExtractor : public cdv::Extractor {
         return layout;
     }
 
-    void writeInto(const metkit::mars::MarsRequest& request,
-                   std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
-                   const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
-                   float* ptr, size_t len, size_t expected_msg_count) const override {
+    void extract(eckit::DataHandle& handle, const cdv::DataLayout& layout, float* ptr, size_t len) const override {
         cdv::DataLayout readLayout{};
-
-
-        while (auto res = list_iterator->next()) {
-
-            if (!res) {
-                break;
-            }
-
-            const auto& key   = std::get<0>(*res);
-            auto& data_handle = std::get<1>(*res);
-            data_handle->openForRead();
-
-            EXPECT_EQUAL(data_handle->read(&readLayout.countValues, sizeof(layout.countValues)), 8l);
-            EXPECT_EQUAL(data_handle->read(&readLayout.bytesPerValue, sizeof(layout.bytesPerValue)), 4l);
-            const size_t totalBytes = layout.countValues * layout.bytesPerValue;
-            EXPECT_EQUAL(data_handle->read(ptr, totalBytes), totalBytes);
-        }
+        handle.openForRead();
+        EXPECT_EQUAL(handle.read(&readLayout.countValues, sizeof(layout.countValues)), 8l);
+        EXPECT_EQUAL(handle.read(&readLayout.bytesPerValue, sizeof(layout.bytesPerValue)), 4l);
+        const size_t totalBytes = layout.countValues * layout.bytesPerValue;
+        EXPECT_EQUAL(handle.read(ptr, totalBytes), totalBytes);
     };
 };
 
