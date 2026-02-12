@@ -113,16 +113,20 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     return req;
 }
 
+// Note: The catalogue server is configured to use subtocs. This means there will be cleared indexes and subtocs.
+
 CASE("Remote protocol: the basics") {
 
-    FDB fdb{};  // Expects the config to be set in the environment
 
     // -- write a few fields
     const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys         = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    std::vector<Key> keys;
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    }
     EXPECT_EQUAL(keys.size(), Nfields);
-
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
     auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
 
@@ -165,10 +169,11 @@ CASE("Remote protocol: the basics") {
         eckit::Log::info() << wipeElem;
         element_counts[wipeElem.type()] += wipeElem.uris().size();
     }
-    // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
+    // Expect: 2 store .data, 4 catalogue .index, 3 catalogue files (schema, toc, subtoc)
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
 
     // -- list all fields
     it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
@@ -200,8 +205,9 @@ CASE("Remote protocol: the basics") {
 
     // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
     EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
     EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
+    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
 
     // -- list all remaining fields
     it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
@@ -225,127 +231,153 @@ CASE("Remote protocol: the basics") {
 
 CASE("Remote protocol: more wipe testing") {
 
-    FDB fdb{};  // Expects the config to be set in the environment
 
     // -- write a few fields. 2 databases. Each with 1 index and 1 data file
     const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
-    std::vector<Key> keys         = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    std::vector<Key> keys;
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    }
     EXPECT_EQUAL(keys.size(), Nfields);
     // wipe a single date
-    auto wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
-    WipeElement wipeElem;
-    std::map<WipeElementType, size_t> element_counts;
-    while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << wipeElem;
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+        while (wipeit.next(wipeElem)) {
+            eckit::Log::info() << wipeElem;
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+        }
+
+        // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
-
-    // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
-
     // Duplicate everything
-    FDB fdb2{};
-    write_data(fdb2, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    {
+        FDB fdb{};
+        write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    }
 
     // Wipe just one DB (date=20000101)
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
-                      false);  // dont actually delete anything
-    element_counts.clear();
-
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
+                                 false);  // dont actually delete anything
 
-    while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << wipeElem;
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-        if (wipeElem.type() == WipeElementType::STORE) {
-            data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-        }
-        else if (wipeElem.type() == WipeElementType::CATALOGUE_INDEX) {
-            index_uris.insert(index_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-        }
-    }
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
 
-    // Expect: 4 .data files, 4 .index files and 4 catalogue files (2 schema, 2 toc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);  // full db wipe, so none safe
-
-    // artifically add some auxiliary .gribjump files to the store for this db.
-    for (const auto& store_uri : data_uris) {
-        if (!(store_uri.path().extension() == ".data")) {
-            continue;
+        while (wipeit.next(wipeElem)) {
+            eckit::Log::info() << wipeElem;
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            if (wipeElem.type() == WipeElementType::STORE) {
+                data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
+            }
+            else if (wipeElem.type() == WipeElementType::CATALOGUE_INDEX) {
+                index_uris.insert(index_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
+            }
         }
 
-        eckit::PathName p = store_uri.path();
-        p += ".gribjump";
-        eckit::FileHandle fh(p);
-        fh.openForWrite(0);
-        std::string junk = "junk";
-        fh.write(junk.data(), junk.size());
-        fh.close();
+        // Expect: 4 .data files, 4 .index files and 4 catalogue files (2 schema, 2 toc)
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 8);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);  // full db wipe, so none safe
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
+
+        // artifically add some auxiliary .gribjump files to the store for this db.
+        for (const auto& store_uri : data_uris) {
+            if (!(store_uri.path().extension() == ".data")) {
+                continue;
+            }
+
+            eckit::PathName p = store_uri.path();
+            p += ".gribjump";
+            eckit::FileHandle fh(p);
+            fh.openForWrite(0);
+            std::string junk = "junk";
+            fh.write(junk.data(), junk.size());
+            fh.close();
+        }
+    }
+    {
+        // Partial wipe on level 2 (type=fc). Should hit half the index/data files
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0], false);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+        while (wipeit.next(wipeElem)) {
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            eckit::Log::info() << wipeElem;
+        }
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);  // no DBs are fully wiped
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE],
+                     8);  // the 4 un-cleared indexes, and the two toc/schemas
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
 
-    // Partial wipe on level 2 (type=fc). Should hit half the index/data files
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0], false);
-    element_counts.clear();
+    // Over specified wipe on level 3 (step=1). Should mark nothing for deletion.
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,step=1")[0], false);
 
-    while (wipeit.next(wipeElem)) {
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-        eckit::Log::info() << wipeElem;
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+        while (wipeit.next(wipeElem)) {
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            eckit::Log::info() << wipeElem;
+        }
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no DBs are fully wiped
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 12);  // half of the indexes, and the two toc/schemas
-
-    // Over specified wipe on level 3 (step=1). Should hit nothing
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,step=1")[0], false);
-    element_counts.clear();
-    while (wipeit.next(wipeElem)) {
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-        eckit::Log::info() << wipeElem;
-    }
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
 
     // Now actually wipe everything
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);  // doit
-    element_counts.clear();
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);  // doit
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
 
-    while (wipeit.next(wipeElem)) {
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-        eckit::Log::info() << wipeElem;
+        while (wipeit.next(wipeElem)) {
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            eckit::Log::info() << wipeElem;
+        }
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 8);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 16);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 8);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
-
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 8);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 8);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 8);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);
-
 
     // there should be nothing left.
-    wipeit = fdb.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false);
-    element_counts.clear();
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
 
-    while (wipeit.next(wipeElem)) {
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-        eckit::Log::info() << wipeElem;
+        while (wipeit.next(wipeElem)) {
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            eckit::Log::info() << wipeElem;
+        }
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
-
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
 
     // Make sure none of the directories are left behind
     for (const auto& store_uri : data_uris) {

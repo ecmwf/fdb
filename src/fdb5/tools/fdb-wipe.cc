@@ -95,7 +95,7 @@ bool isDeletable(const WipeElement& elem) {
     }
 }
 
-} // namespace
+}  // namespace
 
 
 void FDBWipe::execute(const CmdArgs& args) {

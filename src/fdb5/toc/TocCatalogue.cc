@@ -228,12 +228,6 @@ void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
 
 void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
-    // We wipe everything if there is nothing within safePaths - i.e. there is
-    // no data that wasn't matched by the request
-
-    // Gather masked data paths
-    addMaskedPaths(wipeState);
-
     // toc, subtocs
     std::set<eckit::URI> catalogueURIs;
     std::set<eckit::URI> controlURIs;
@@ -254,19 +248,21 @@ void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
     // ---- MARK FOR DELETION OR AS SAFE ----
 
+    // We wipe everything if there is nothing within safePaths - i.e. there is
+    // no data that wasn't matched by the request
     bool wipeall = wipeState.safeURIs().empty();
-    if (wipeall) {
-        wipeState.markForDeletion(WipeElementType::CATALOGUE, catalogueURIs);
-        wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, controlURIs);
-    }
-    else {
-        wipeState.markAsSafe(catalogueURIs);
-        wipeState.markAsSafe(controlURIs);
-    }
 
     if (!wipeall) {
+        wipeState.markAsSafe(catalogueURIs);
+        wipeState.markAsSafe(controlURIs);
         return;
     }
+
+    wipeState.markForDeletion(WipeElementType::CATALOGUE, catalogueURIs);
+    wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, controlURIs);
+
+    // Gather masked data paths
+    addMaskedPaths(wipeState);
 
     // Find any files unaccounted for.
     std::vector<eckit::PathName> allPathsVector;
