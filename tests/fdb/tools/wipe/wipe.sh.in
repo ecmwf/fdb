@@ -5,6 +5,7 @@ set -ux
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+expect_fail() { "$@" && die "Expected failure but command succeeded => '$*'"; }
 
 line_count() {
   [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
@@ -132,10 +133,15 @@ for i in 0 1 2; do
 
 done
 
+# Expect an error on an overspecified wipe request
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g,type=fc,step=0
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g,type=fc,step=0 --doit
+
+# Wiping an unclean DB
 try touch $catroot/rd:xxxy:oper:20240911:0000:g/dummy
 
 try fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g
-!fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g --doit
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g --doit
 
 try fdb-list --all --minimum-keys="" --porcelain --full | tee out
 line_count $((72+(72*2)))
