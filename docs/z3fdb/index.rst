@@ -157,7 +157,7 @@ Below are two examples how to create a view
        ],
        ExtractorType.GRIB,
    )
-   builder.extendOnAxis(1)
+   builder.extend_on_axis(1)
    store = builder.build()
    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
 

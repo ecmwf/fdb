@@ -117,7 +117,7 @@ class ChunkedDataViewBuilder:
             mars_request_key_values, [ax._obj for ax in axes], extractor_type.value
         )
 
-    def extendOnAxis(self, axis: int):
+    def extend_on_axis(self, axis: int):
         self._obj.extend_on_axis(axis)
 
     def build(self):
