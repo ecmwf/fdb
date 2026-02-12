@@ -65,8 +65,16 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     }
 
     const auto req = requestAt(std::vector<size_t>(axes_.size()));
-    std::unique_ptr<eckit::DataHandle> result(fdb_->retrieve(req));
-    layout_ = extractor_->layout(*result);
+    try {
+        std::unique_ptr<eckit::DataHandle> result(fdb_->retrieve(req));
+        layout_ = extractor_->layout(*result);
+    }
+    catch (const std::exception& e) {
+        std::ostringstream ss;
+        ss << "Cannot create view, no data found for request " << req
+           << " to establish field size. Underlying error: " << e.what();
+        throw eckit::UserError(ss.str());
+    }
     shape_.reserve(axes_.size() + 1);
     std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(shape_),
                    [](const auto& axis) { return axis.size(); });
