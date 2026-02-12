@@ -12,6 +12,6 @@
 
 NAME="fdb"
 # TODO no idea why I cant get it to compile with grib=1
-CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 -DENABLE_PYTHON_ZARR_INTERFACE=1 -DPYBIND11_FINDPYTHON=1"
+CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 -DENABLE_PYTHON_ZARR_INTERFACE=1"
 PYPROJECT_DIR="python/fdb5lib"
 DEPENDENCIES='["eckitlib", "eccodeslib", "metkitlib"]'
