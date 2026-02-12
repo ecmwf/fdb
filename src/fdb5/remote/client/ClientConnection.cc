@@ -509,8 +509,6 @@ void ClientConnection::listeningDataThreadLoop() {
                             throw eckit::SeriousBug(ss.str(), Here());
                         }
                     }
-                    if (!handled) {
-                    }
                 }
             }
         }
