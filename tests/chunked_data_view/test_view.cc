@@ -269,6 +269,79 @@ CASE("ChunkedDataView - Can build") {
             .build());
 }
 
+CASE("ChunkedDataView | at | Wrong index dimension throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    return std::make_unique<MockListIterator>(
+                        std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                            std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build();
+
+    // View has 4 dimensions (date, time, param, values) -> chunks has 4 entries
+    std::vector<float> buf(view->countChunkValues());
+
+    // Too few dimensions
+    EXPECT_THROWS(view->at({0, 0}, buf.data(), buf.size()));
+
+    // Too many dimensions
+    EXPECT_THROWS(view->at({0, 0, 0, 0, 0}, buf.data(), buf.size()));
+}
+
+CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    return std::make_unique<MockListIterator>(
+                        std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                            std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build();
+
+    // chunks = {4, 4, 1, 1} (4 dates, 4 times, 1 param-chunk, 1 value-chunk)
+    std::vector<float> buf(view->countChunkValues());
+
+    // Valid index at the boundary — should NOT throw
+    EXPECT_NO_THROW(view->at({3, 3, 0, 0}, buf.data(), buf.size()));
+
+    // Date index out of bounds (4 >= 4)
+    EXPECT_THROWS(view->at({4, 0, 0, 0}, buf.data(), buf.size()));
+
+    // Time index out of bounds (4 >= 4)
+    EXPECT_THROWS(view->at({0, 4, 0, 0}, buf.data(), buf.size()));
+
+    // Param chunk index out of bounds (1 >= 1)
+    EXPECT_THROWS(view->at({0, 0, 1, 0}, buf.data(), buf.size()));
+
+    // Value chunk index out of bounds (1 >= 1)
+    EXPECT_THROWS(view->at({0, 0, 0, 1}, buf.data(), buf.size()));
+}
+
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);
 }
