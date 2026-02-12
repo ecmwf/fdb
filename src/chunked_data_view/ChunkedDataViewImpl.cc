@@ -59,6 +59,22 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
 
 void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) {
 
+    if (chunkIndex.size() != chunks_.size()) {
+        std::ostringstream ss;
+        ss << "ChunkedDataViewImpl::at: Expected chunk index of dimension " << chunks_.size() << ", got dimension "
+           << chunkIndex.size();
+        throw eckit::UserError(ss.str());
+    }
+
+    for (size_t i = 0; i < chunkIndex.size(); ++i) {
+        if (chunkIndex[i] >= chunks_[i]) {
+            std::ostringstream ss;
+            ss << "ChunkedDataViewImpl::at: Chunk index out of bounds at dimension " << i << ". Index is "
+               << chunkIndex[i] << " but number of chunks is " << chunks_[i];
+            throw eckit::UserError(ss.str());
+        }
+    }
+
     auto idx(chunkIndex);
 
     for (const auto& part : parts_) {
@@ -68,8 +84,8 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
             continue;
         }
         part.at(idx, ptr, len, countFields());
-        break;
+        return;
     }
-};
+}
 
 }  // namespace chunked_data_view
