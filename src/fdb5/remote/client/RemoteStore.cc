@@ -495,7 +495,8 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
 
 // low-level methods for wipe/purge
 bool RemoteStore::uriBelongs(const eckit::URI&) const {
-    NOTIMP;
+    // This functionality is deliberately not required for RemoteStore, so assume false.
+    return false;
 }
 bool RemoteStore::uriExists(const eckit::URI&) const {
     NOTIMP;
