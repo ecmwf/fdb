@@ -520,6 +520,30 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
+ecbuild_add_executable( TARGET    fdb-compare
+                        CONDITION HAVE_FDB_BUILD_TOOLS
+                        SOURCES   tools/compare/fdb-compare.cc
+                                  tools/compare/common/Types.cc
+                                  tools/compare/common/Types.h
+                                  tools/compare/common/Util.cc
+                                  tools/compare/common/Util.h
+                                  tools/compare/mars/Compare.cc
+                                  tools/compare/mars/Compare.h
+                                  tools/compare/grib/Compare.cc
+                                  tools/compare/grib/Compare.h
+                                  tools/compare/grib/CompareKeys.cc
+                                  tools/compare/grib/CompareKeys.h
+                                  tools/compare/grib/CompareHash.cc
+                                  tools/compare/grib/CompareHash.h
+                                  tools/compare/grib/CompareDatasection.cc
+                                  tools/compare/grib/CompareDatasection.h
+                                  tools/compare/grib/CompareBitwise.cc
+                                  tools/compare/grib/CompareBitwise.h
+                                  tools/compare/grib/Utils.cc
+                                  tools/compare/grib/Utils.h
+                        INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                        LIBS      fdb5 )
+                        
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )

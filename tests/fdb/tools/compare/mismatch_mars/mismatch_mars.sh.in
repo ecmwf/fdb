@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/mismatch_mars
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+$gribset -s step=9 data2.grib grib/9.grib
+$gribset -s type=an grib/6.grib grib/an6.grib
+$gribset -s type=an grib/9.grib grib/an9.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=ref.yaml grib/9.grib
+$fdbwrite --config=ref.yaml grib/an6.grib
+$fdbwrite --config=ref.yaml grib/an9.grib
+
+
+
+$gribset -s step=3 grib/an6.grib grib/wrongmars6.grib
+
+$fdbwrite --config=test.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/9.grib
+$fdbwrite --config=test.yaml grib/wrongmars6.grib
+$fdbwrite --config=test.yaml grib/an9.grib
+
+
+set +e
+for METHOD in "grib-keys" "hash-keys" "bit-identical"; do
+    ### Test with diverging MARS entries.
+    $fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all  --grib-comparison-type=$METHOD | tee out
+    tool_rc=${PIPESTATUS[0]}
+
+    grep -Fq "[MARS KEYS COMPARE] MISMATCH" out
+    grep_rc=$?
+
+    if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+        die "Mars Key mismatch and this should have been detected (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+    fi
+    
+    
+    ####
+
+
+    ### Test with diverging MARS entries. Should not start comparing the grib messages
+    $fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only --grib-comparison-type=$METHOD | tee out
+    tool_rc=${PIPESTATUS[0]}
+
+    ! grep -Fq "Compare Grib messages" out 
+    grep_rc=$?
+
+    if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+        die "Grib Comparison check failed although grib messages should be identical (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+    fi
+
+    ### Test with diverging MARS entries.  Should not start comparing the grib messages
+    $fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all --grib-comparison-type=$METHOD | tee out
+    tool_rc=${PIPESTATUS[0]}
+
+    ! grep -Fq "Compare Grib messages" out 
+    grep_rc=$?
+
+    if [ $tool_rc -ne ! ] || [ $grep_rc -ne 0 ]; then
+        die "Mars Key check successful although the fdbs should not be identical (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+    fi
+done
+
+
