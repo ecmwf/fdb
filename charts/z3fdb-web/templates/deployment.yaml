@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: z3fdb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: z3fdb
+  template:
+    metadata:
+      labels:
+        app: z3fdb
+    spec:
+      containers:
+      - name: {{ .Values.image.z3fdb.name }}
+        image: {{ .Values.image.z3fdb.repository }}:{{ .Values.image.z3fdb.tag }}
+        args: ["--fdb-config=/etc/fdb/fdb.config"]
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: z3fdb-web-volume
+          mountPath: /etc/fdb/fdb.config
+          subPath: fdb-config # Mounts the ConfigMap data as a single file
+      - name: {{ .Values.image.caddy.name }}
+        image: {{ .Values.image.caddy.repository }}:{{ .Values.image.caddy.tag }}
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: caddyfile
+          mountPath: /etc/caddy/Caddyfile
+          subPath: Caddyfile # Mounts the ConfigMap data as a single file
+      volumes:
+      - name: z3fdb-web-volume
+        configMap:
+          name: fdb-config
+      - name: caddyfile
+        configMap:
+          name: caddy-config
