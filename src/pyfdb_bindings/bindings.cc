@@ -145,7 +145,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
              [](mars::MarsRequest& mars_request, const std::string& value) { return mars_request.get(value); })
         .def("key_values",
              [](mars::MarsRequest& mars_request) {
-                 std::map<std::string, std::vector<std::string>> result{};
+                 std::map<std::string, std::vector<std::string>> result;
 
                  for (const auto& param : mars_request.parameters()) {
                      const std::string& key = param.name();
