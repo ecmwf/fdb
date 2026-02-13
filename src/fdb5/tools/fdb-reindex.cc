@@ -75,9 +75,9 @@ void FDBReindex::execute(const CmdArgs& args) {
     for (const FDBToolRequest& request : requests()) {
 
         if (LibFdb5::instance().debug()) {
-            LOG_DEBUG_LIB(LibFdb5) << "Listing for request" << std::endl;
+            Log::debug<LibFdb5>() << "Listing for request" << std::endl;
             request.print(Log::debug<LibFdb5>());
-            LOG_DEBUG_LIB(LibFdb5) << std::endl;
+            Log::debug<LibFdb5>() << std::endl;
         }
 
         auto it = source.list(request, true);

@@ -79,6 +79,25 @@ void FDBWipe::init(const CmdArgs& args) {
     unsafeWipeAll_ = args.getBool("unsafe-wipe-all", false);
 }
 
+namespace {
+
+// check if this wipe element is something we are going to delete.
+bool isDeletable(const WipeElement& elem) {
+    switch (elem.type()) {
+        case CATALOGUE:
+        case CATALOGUE_INDEX:
+        case STORE:
+        case STORE_AUX:
+        case CATALOGUE_CONTROL:
+            return true;
+        default:
+            return false;
+    }
+}
+
+}  // namespace
+
+
 void FDBWipe::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
@@ -91,13 +110,16 @@ void FDBWipe::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        auto listObject = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
+        auto iter = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
 
         size_t count = 0;
+
         WipeElement elem;
-        while (listObject.next(elem)) {
-            Log::info() << elem << std::endl;
-            count++;
+        while (iter.next(elem)) {
+            Log::info() << elem;
+            if (isDeletable(elem)) {
+                count += elem.uris().size();
+            }
         }
 
         if (count == 0 && !ignoreNoData_ && fail()) {

@@ -8,16 +8,21 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/log/Timer.h"
 
+#include <memory>
+#include <set>
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -65,19 +70,6 @@ const Rule& TocCatalogue::rule() const {
     return *rule_;
 }
 
-std::vector<PathName> TocCatalogue::metadataPaths() const {
-
-    std::vector<PathName> paths(subTocPaths());
-
-    paths.emplace_back(schemaPath());
-    paths.emplace_back(tocPath());
-
-    std::vector<PathName>&& lpaths(lockfilePaths());
-    paths.insert(paths.end(), lpaths.begin(), lpaths.end());
-
-    return paths;
-}
-
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_ = &SchemaRegistry::instance().get(schemaPath());
@@ -92,19 +84,19 @@ PurgeVisitor* TocCatalogue::purgeVisitor(const Store& store) const {
     return new TocPurgeVisitor(*this, store);
 }
 
-WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
-                                       bool doit, bool porcelain, bool unsafeWipeAll) const {
-    return new TocWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
-}
-
 MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                        const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     return new TocMoveVisitor(*this, store, request, dest, queue);
 }
 
-void TocCatalogue::maskIndexEntry(const Index& index) const {
+void TocCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+    /// @todo: that this will do an open/append/close for each of these entries. It might be sensible to batch these up
+    /// (see the way we do reconsolidation). But the batches need to be kept fairly small to ensure atomicity.
+
     TocHandler handler(basePath(), config_);
-    handler.writeClearRecord(index);
+    for (const auto& index : indexes) {
+        handler.writeClearRecord(index);
+    }
 }
 
 std::vector<Index> TocCatalogue::indexes(bool sorted) const {
@@ -144,6 +136,190 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     return CatalogueImpl::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
+}
+
+
+CatalogueWipeState TocCatalogue::wipeInit() const {
+    return CatalogueWipeState(dbKey_);
+}
+
+bool TocCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {
+
+    eckit::URI locationURI{index.location().uri()};
+
+    if (!locationURI.path().dirName().sameAs(basePath())) {  // as in the overlay
+        include = false;
+    }
+
+    // Add the index paths to be removed.
+    if (include) {
+        wipeState.markForMasking(index);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, locationURI);
+    }
+    else {
+        // This will ensure that if only some indexes are to be removed from a file, then
+        // they will be masked out but the file not deleted.
+        /// @todo: Is the above comment correct? Where does this masking happen?
+        wipeState.markAsSafe({locationURI});
+    }
+
+    return include;
+}
+
+bool TocCatalogue::uriBelongs(const eckit::URI& uri) const {
+    if (!uri.path().dirName().sameAs(basePath())) {
+        return false;
+    }
+
+    if (uri.scheme() == "toc") {
+        return true;
+    }
+
+    // Any scheme other than  "toc" or "file" cannot be ours
+    if (uri.scheme() != "file") {
+        return false;
+    }
+
+    // Is it a toc/subtoc, schema or .index file?
+    eckit::PathName basename = uri.path().baseName();
+
+    if (basename.extension() == ".index" || basename.asString().substr(0, 3) == "toc" || basename == "schema") {
+        return true;
+    }
+
+    // Check against lock files
+    for (const auto& lck : lockfilePaths()) {
+        if (basename == lck.baseName()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void TocCatalogue::addMaskedPaths(CatalogueWipeState& wipeState) const {
+
+    std::set<eckit::URI> maskedDataURIs = {};
+    std::set<std::pair<eckit::URI, Offset>> metadata;
+
+
+    /// @note: "allMasked" function interacts unhelpfully with subtocs. If a subtoc is masked, it seems to assume that
+    /// all of its indexes are also masked and can be deleted. This is not generally true. Not a problem since
+    /// wipeState.markForDeletion will skip any URIs that are already marked as safe, but I find this behaviour a bit
+    /// surprising.
+    allMasked(metadata, maskedDataURIs);
+
+    for (const auto& entry : metadata) {
+        eckit::PathName path = entry.first.path();
+        if (path.dirName().sameAs(basePath())) {
+            if (path.baseName().asString().substr(0, 4) == "toc.") {
+                wipeState.markForDeletion(WipeElementType::CATALOGUE, entry.first);
+            }
+            else {
+                wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, entry.first);
+            }
+        }
+    }
+
+    for (const auto& datauri : maskedDataURIs) {
+        wipeState.includeData(datauri);
+    }
+}
+
+void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
+
+    // toc, subtocs
+    std::set<eckit::URI> catalogueURIs;
+    std::set<eckit::URI> controlURIs;
+    catalogueURIs.emplace("file", tocPath().path());
+    for (const auto& sub : subTocPaths()) {
+        catalogueURIs.emplace("file", sub);
+    }
+
+    // schema
+    catalogueURIs.emplace("file", schemaPath().path());
+
+    // lockfiles
+    for (const auto& lck : lockfilePaths()) {
+        controlURIs.emplace("file", lck);
+    }
+
+    wipeState.setInfo("FDB Owner: " + owner());
+
+    // ---- MARK FOR DELETION OR AS SAFE ----
+
+    // We wipe everything if there is nothing within safePaths - i.e. there is
+    // no data that wasn't matched by the request
+    bool wipeall = wipeState.safeURIs().empty();
+
+    if (!wipeall) {
+        wipeState.markAsSafe(catalogueURIs);
+        wipeState.markAsSafe(controlURIs);
+        return;
+    }
+
+    wipeState.markForDeletion(WipeElementType::CATALOGUE, catalogueURIs);
+    wipeState.markForDeletion(WipeElementType::CATALOGUE_CONTROL, controlURIs);
+
+    // Gather masked data paths
+    addMaskedPaths(wipeState);
+
+    // Find any files unaccounted for.
+    std::vector<eckit::PathName> allPathsVector;
+    StdDir(basePath()).children(allPathsVector);
+
+    for (const eckit::PathName& path : allPathsVector) {
+        auto uri = eckit::URI("file", path);
+        if (!(wipeState.isMarkedForDeletion(uri))) {
+            wipeState.insertUnrecognised(uri);
+        }
+    }
+}
+
+bool TocCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+
+    for (const auto& uri : unknownURIs) {
+        if (uri.path().exists()) {
+            remove(uri.path(), std::cout, std::cout, true);
+        }
+    }
+
+    return true;
+}
+
+// NB: very little in here is toc specific.
+bool TocCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
+
+    bool wipeAll = wipeState.safeURIs().empty();  // nothing else in the directory.
+
+    for (const auto& [type, uris] : wipeState.deleteMap()) {
+
+        for (auto& uri : uris) {
+            if (uri.path().exists()) {
+                remove(uri.path(), eckit::Log::info(), eckit::Log::info(), true);
+            }
+        }
+    }
+
+    // Grab the database URI from the first uri in the wipeState
+    if (wipeAll && !wipeState.deleteMap().empty()) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+    return true;
+}
+
+void TocCatalogue::doWipeEmptyDatabase() const {
+
+    if (cleanupEmptyDatabase_ == false) {
+        return;
+    }
+
+    eckit::PathName path = uri().path();
+    if (path.exists()) {
+        remove(path, std::cout, std::cout, true);
+    }
+    cleanupEmptyDatabase_ = false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

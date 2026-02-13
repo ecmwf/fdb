@@ -31,6 +31,7 @@ class RadosStore : public Store {
 public:  // methods
 
     RadosStore(const Schema& schema, const Key& key, const Config& config);
+    RadosStore(const eckit::URI& uri);
 
     ~RadosStore() override {}
 
@@ -45,7 +46,6 @@ public:  // methods
 protected:  // methods
 
     std::string type() const override { return "rados"; }
-
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;

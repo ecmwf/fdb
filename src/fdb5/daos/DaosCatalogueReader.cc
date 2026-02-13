@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/daos/DaosName.h"
@@ -121,8 +123,8 @@ std::optional<Axis> DaosCatalogueReader::computeAxis(const std::string& keyword)
 
 bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
 
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Scanning index " << current_.location() << std::endl;
 
     if (!current_.mayContain(key))
         return false;

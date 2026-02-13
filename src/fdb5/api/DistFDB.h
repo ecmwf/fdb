@@ -53,7 +53,7 @@ public:  // method
 
     StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 

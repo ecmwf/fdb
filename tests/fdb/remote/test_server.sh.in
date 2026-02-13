@@ -40,6 +40,38 @@ cleanup() {
     rm -rf $catalogue_rootdir
     rm -rf $store_rootdir
 }
+
+run_server() {
+  # Usage: run_server LABEL CONFIG SERVER_CMD...
+  # - Starts a catalogue/store server
+  # - Prepends [LABEL] to each line of output
+  # - Appends the server's PID to the pidfile for cleanup.
+  local label="$1"; shift
+  local config="$1"; shift
+  (
+    FDB5_CONFIG_FILE="$config" \
+    FDB5_SUB_TOCS=1 \
+    FDB_DEBUG=1 \
+    FDB_WIPE_SECRET="123" \
+    timeout "$SERVER_LIFETIME" "$@" 2>&1 \
+    | awk -v label="$label" -v pidfile="$server_pidfile" '
+        BEGIN { found=0 }
+        {
+          print "[" label "] " $0
+          fflush()
+          if (!found && $0 ~ /pid is [0-9]+/) {
+            pid = $0
+            sub(/.*pid is /, "", pid)
+            sub(/\..*/, "", pid)
+            print pid >> pidfile
+            close(pidfile)
+            found=1
+          }
+        }
+      '
+  ) &
+}
+
 trap cleanup EXIT # Ensure cleanup is called when the script exits
 
 #  -- Start fresh
@@ -47,11 +79,9 @@ cleanup
 mkdir -p $catalogue_rootdir $store_rootdir
 
 # --- Start the servers in the background.
-FDB5_CONFIG_FILE=${catalogue_config} timeout $SERVER_LIFETIME $server &
-echo $! > $server_pidfile
 
-FDB5_CONFIG_FILE=$store_config timeout $SERVER_LIFETIME $server &
-echo $! >> $server_pidfile
+run_server "CATALOGUE" "$catalogue_config" "$server"
+run_server "STORE" "$store_config" "$server"
 
 sleep 0.5
 

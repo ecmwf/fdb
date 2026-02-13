@@ -118,9 +118,10 @@ public:  // methods
         return fdb5::StatusIterator(0);
     }
 
-    fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose, bool unsafeWipeAll) override {
+    fdb5::WipeStateIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose,
+                                 bool unsafeWipeAll) override {
         counts_.wipe += 1;
-        return fdb5::WipeIterator(0);
+        return fdb5::WipeStateIterator(0);
     }
 
     fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {

@@ -10,8 +10,10 @@
 
 #pragma once
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include <cstdint>
@@ -22,6 +24,9 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection, public CallbackRegistry {
+
+    struct WipeInProgress;
+
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -45,15 +50,30 @@ private:  // methods
 
     bool remove(bool control, uint32_t clientID) override;
 
-    Store& store(uint32_t clientID);
+    void finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeUnknowns(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeURIs(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
+    void doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
 
+    const WipeInProgress& cachedWipeState(const Key& uri) const;
+
+    Store& getStore(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
+    Store& getStore(uint32_t clientID, const eckit::URI& uri);
 
 private:  // members
 
     struct StoreHelper;
     // clientID --> Store
     std::map<uint32_t, StoreHelper> stores_;
+
+    struct WipeInProgress {
+        bool unsafeWipeAll = false;
+        std::unique_ptr<StoreWipeState> state;
+    };
+
+    std::map<Key, WipeInProgress> wipesInProgress_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -61,6 +81,9 @@ private:  // members
 struct StoreHandler::StoreHelper {
     StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
         dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
+
+    StoreHelper(bool dataConnection, const eckit::URI& uri, const Config& config) :
+        dataConnection(dataConnection), store(StoreFactory::instance().build(uri, config)) {}
 
     bool controlConnection{true};
     bool dataConnection{false};

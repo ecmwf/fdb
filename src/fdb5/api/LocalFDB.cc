@@ -31,6 +31,7 @@
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Key.h"
@@ -103,9 +104,9 @@ StatusIterator LocalFDB::status(const FDBToolRequest& request) {
     return queryInternal<StatusVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeStateIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    return queryInternal<WipeCatalogueVisitor>(request, doit);
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {

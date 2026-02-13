@@ -51,6 +51,10 @@ class MarsRequest;
 
 namespace fdb5 {
 
+namespace remote {
+struct WipeHelper;
+}
+
 class FDBBase;
 class FDBToolRequest;
 class Key;
@@ -290,6 +294,10 @@ private:  // methods
     }
 
     bool sorted(const metkit::mars::MarsRequest& request);
+
+private:
+
+    friend struct remote::WipeHelper;
 
 private:  // members
 

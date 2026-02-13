@@ -17,6 +17,7 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/URIManager.h"
 #include "eckit/log/Timer.h"
+#include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/LustreSettings.h"
@@ -79,6 +80,50 @@ std::string TocCommon::userName(uid_t uid) {
     }
     else {
         return eckit::Translator<long, std::string>()(uid);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+StdDir::StdDir(const eckit::PathName& p) : path_(p), d_(opendir(p.localPath())) {
+
+    if (!d_) {
+        std::stringstream ss;
+        ss << "Failed to open directory " << p << " (" << errno << "): " << strerror(errno);
+        throw eckit::SeriousBug(ss.str(), Here());
+    }
+}
+
+StdDir::~StdDir() {
+    if (d_)
+        closedir(d_);
+}
+
+void StdDir::children(std::vector<eckit::PathName>& paths) {
+
+    // Implemented here as PathName::match() does not return hidden files starting with '.'
+
+    struct dirent* e;
+
+    while ((e = readdir(d_)) != nullptr) {
+
+        if (e->d_name[0] == '.') {
+            if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0'))
+                continue;
+        }
+
+        eckit::PathName p(path_ / e->d_name);
+
+        eckit::Stat::Struct info;
+        SYSCALL(eckit::Stat::lstat(p.localPath(), &info));
+
+        if (S_ISDIR(info.st_mode)) {
+            StdDir d(p);
+            d.children(paths);
+        }
+
+        // n.b. added after all children
+        paths.push_back(p);
     }
 }
 

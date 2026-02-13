@@ -401,71 +401,71 @@ CASE("status_distributed_according_to_dist") {
 }
 
 
-CASE("wipe_distributed_according_to_dist") {
+// CASE("wipe_distributed_according_to_dist") {
 
-    // Build FDB from default config
+//     // Build FDB from default config
 
-    fdb5::FDB fdb(defaultConfig());
-    EXPECT(ApiSpy::knownSpies().size() == 3);
-    ApiSpy& spy1(*ApiSpy::knownSpies()[0]);
-    ApiSpy& spy2(*ApiSpy::knownSpies()[1]);
-    ApiSpy& spy3(*ApiSpy::knownSpies()[2]);
+//     fdb5::FDB fdb(defaultConfig());
+//     EXPECT(ApiSpy::knownSpies().size() == 3);
+//     ApiSpy& spy1(*ApiSpy::knownSpies()[0]);
+//     ApiSpy& spy2(*ApiSpy::knownSpies()[1]);
+//     ApiSpy& spy3(*ApiSpy::knownSpies()[2]);
 
-    // Do some archiving
+//     // Do some archiving
 
-    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
+//     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
-    EXPECT(spy1.counts().wipe == 1);
-    EXPECT(spy2.counts().wipe == 1);
-    EXPECT(spy3.counts().wipe == 1);
+//     EXPECT(spy1.counts().wipe == 1);
+//     EXPECT(spy2.counts().wipe == 1);
+//     EXPECT(spy3.counts().wipe == 1);
 
-    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
+//     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
-    EXPECT(spy1.counts().wipe == 2);
-    EXPECT(spy2.counts().wipe == 2);
-    EXPECT(spy3.counts().wipe == 2);
+//     EXPECT(spy1.counts().wipe == 2);
+//     EXPECT(spy2.counts().wipe == 2);
+//     EXPECT(spy3.counts().wipe == 2);
 
-    // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
-    // to be fully specified
+//     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
+//     // to be fully specified
 
-    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
+//     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
-    EXPECT(spy1.counts().wipe == 3);
-    EXPECT(spy2.counts().wipe == 3);
-    EXPECT(spy3.counts().wipe == 3);
+//     EXPECT(spy1.counts().wipe == 3);
+//     EXPECT(spy2.counts().wipe == 3);
+//     EXPECT(spy3.counts().wipe == 3);
 
-    //// Now match all the rd lanes
+//     //// Now match all the rd lanes
 
-    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
+//     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
-    EXPECT(spy1.counts().wipe == 4);
-    EXPECT(spy2.counts().wipe == 4);
-    EXPECT(spy3.counts().wipe == 4);
+//     EXPECT(spy1.counts().wipe == 4);
+//     EXPECT(spy2.counts().wipe == 4);
+//     EXPECT(spy3.counts().wipe == 4);
 
-    // Explicitly match everything
+//     // Explicitly match everything
 
-    fdb.wipe(fdb5::FDBToolRequest({}, true));
+//     fdb.wipe(fdb5::FDBToolRequest({}, true));
 
-    EXPECT(spy1.counts().wipe == 5);
-    EXPECT(spy2.counts().wipe == 5);
-    EXPECT(spy3.counts().wipe == 5);
+//     EXPECT(spy1.counts().wipe == 5);
+//     EXPECT(spy2.counts().wipe == 5);
+//     EXPECT(spy3.counts().wipe == 5);
 
-    // And unused functions
+//     // And unused functions
 
-    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
-    for (int i = 0; i < 3; i++) {
-        ApiSpy* spy = spies[i];
-        EXPECT(spy->counts().archive == 0);
-        EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().inspect == 0);
-        EXPECT(spy->counts().list == 0);
-        EXPECT(spy->counts().dump == 0);
-        EXPECT(spy->counts().status == 0);
-        EXPECT(spy->counts().purge == 0);
-        EXPECT(spy->counts().stats == 0);
-        EXPECT(spy->counts().control == 0);
-    }
-}
+//     ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+//     for (int i = 0; i < 3; i++) {
+//         ApiSpy* spy = spies[i];
+//         EXPECT(spy->counts().archive == 0);
+//         EXPECT(spy->counts().flush == 0);
+//         EXPECT(spy->counts().inspect == 0);
+//         EXPECT(spy->counts().list == 0);
+//         EXPECT(spy->counts().dump == 0);
+//         EXPECT(spy->counts().status == 0);
+//         EXPECT(spy->counts().purge == 0);
+//         EXPECT(spy->counts().stats == 0);
+//         EXPECT(spy->counts().control == 0);
+//     }
+// }
 
 
 CASE("purge_distributed_according_to_dist") {

@@ -15,73 +15,111 @@
  */
 
 #include "fdb5/api/local/WipeVisitor.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Index.h"
-
-#include "eckit/os/Stat.h"
+#include "fdb5/database/WipeState.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <memory>
+
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/WipeState.h"
 
 using namespace eckit;
 
-
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
-                         bool porcelain, bool unsafeWipeAll) :
-    QueryVisitor<WipeElement>(queue, request),
-    out_(new QueueStringLogTarget(queue)),
-    doit_(doit),
-    porcelain_(porcelain),
-    unsafeWipeAll_(unsafeWipeAll) {}
+WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue,
+                                           const metkit::mars::MarsRequest& request, bool doit) :
+    QueryVisitor<CatalogueWipeState>(queue, request), doit_(doit) {}
 
 
-bool WipeVisitor::visitDatabase(const Catalogue& catalogue) {
+bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
+
+    EntryVisitor::visitDatabase(catalogue);
 
     // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
         return false;
     }
 
-    EntryVisitor::visitDatabase(catalogue);
+    catalogueWipeState_ = catalogue.wipeInit();
 
-    ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.wipeVisitor(store(), request_, out_, doit_, porcelain_, unsafeWipeAll_));
-    internalVisitor_->visitDatabase(catalogue);
+    if (doit_) {
+        // Lock the database for everything but wiping.
+
+        /// @note: the DAOS backends currently do not implement control identifiers -- actions cannot be disabled.
+        /// @todo: what if the specific catalogue at hand (e.g. daos) does not technically require
+        ///    locking list nor retrieve as there is no room for inconsistency? Must FDB::wipe be transactional
+        ///    (i.e. only make visible the state before or after the operation has fully completed) or
+        ///    are consumers allowed to access intermediate states?
+
+        // Bind catalogue to the wipe state so that it can later restore the control state
+        catalogueWipeState_.catalogue(catalogue.config());
+
+        // Build the initial control state (is there really not a function for this?)
+        ControlIdentifiers id;
+        if (catalogue.enabled(ControlIdentifier::Archive)) {
+            id |= ControlIdentifier::Archive;
+        }
+        if (catalogue.enabled(ControlIdentifier::List)) {
+            id |= ControlIdentifier::List;
+        }
+        if (catalogue.enabled(ControlIdentifier::Retrieve)) {
+            id |= ControlIdentifier::Retrieve;
+        }
+        catalogueWipeState_.initialControlState(id);
+
+        catalogue.control(ControlAction::Disable,
+                          ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
+    }
+
+    // Having selected a DB, construct the residual request. This is the request that is used for
+    // matching Index(es) -- which is relevant if there is subselection of the database.
+    indexRequest_ = request_;
+    for (const auto& kv : catalogue.key()) {
+        indexRequest_.unsetValues(kv.first);
+    }
 
     return true;  // Explore contained indexes
 }
 
-bool WipeVisitor::visitIndex(const Index& index) {
-    ASSERT(internalVisitor_);
-    internalVisitor_->visitIndex(index);
+bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 
-    return false;  // Do not explore contained entries
+    EntryVisitor::visitIndex(index);
+
+    // Is this index matched by the supplied request?
+    // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
+    bool include = index.key().match(indexRequest_);
+
+    include = currentCatalogue_->markIndexForWipe(index, include, catalogueWipeState_);
+
+    // Enumerate data files
+    for (auto& dataURI : index.dataURIs()) {
+        if (include) {
+            catalogueWipeState_.includeData(dataURI);
+        }
+        else {
+            catalogueWipeState_.excludeData(dataURI);
+        }
+    }
+    return true;
 }
 
-void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
-    ASSERT(internalVisitor_);
-    internalVisitor_->catalogueComplete(catalogue);
+void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
-    // Cleanup
+    ASSERT(currentCatalogue_ == &catalogue);
 
-    internalVisitor_.reset();
+    catalogue.finaliseWipeState(catalogueWipeState_);
+    catalogueWipeState_.sanityCheck();
+
+    queue_.emplace(std::move(catalogueWipeState_));
+    EntryVisitor::catalogueComplete(catalogue);
 }
 
-bool WipeVisitor::visitIndexes() {
-    ASSERT(internalVisitor_);
-    return internalVisitor_->visitIndexes();
-}
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local
