@@ -3,6 +3,7 @@ numpy
 pytest
 pytest-asyncio
 eccodes
-pyfdb
 build
 setuptools
+GitPython
+sphinx

@@ -1,0 +1,158 @@
+.wy-side-nav-search {
+    background-color: #5d89bb;
+}
+
+/*There is a clash between xarray notebook styles and readthedoc*/
+
+.rst-content dl.xr-attrs dt {
+    all: revert;
+    font-size: 95%;
+    white-space: nowrap;
+}
+
+.rst-content dl.xr-attrs dd {
+    font-size: 95%;
+}
+
+.xr-wrap {
+    font-size: 85%;
+}
+
+img.badge {
+    height: 20px;
+}
+
+
+.wy-table-responsive table td,
+.wy-table-responsive table th {
+    white-space: normal !important;
+    vertical-align: top !important;
+}
+
+.wy-table-responsive {
+    margin-bottom: 24px;
+    max-width: 100%;
+    overflow: visible;
+}
+
+/* Hide notebooks warnings */
+.nboutput .stderr {
+    display: none;
+}
+
+/* Code reference */
+
+.rst-content dl:not(.docutils) em.property,
+.rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) em.property {
+    padding-right: 0 !important;
+}
+
+.rst-content dl:not(.docutils) span.pre,
+.rst-content dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) span.pre {
+    padding-right: 3px;
+}
+
+/* Sphinx Tabs */
+
+div.sphinx-tabs > div[role="tablist"] {
+    margin-bottom: 1em;
+    border-bottom: 2px solid #ebecf0;
+}
+
+div.sphinx-tabs button.sphinx-tabs-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid #ebecf0;
+    margin-right: 12px;
+    margin-bottom: -2px;
+    padding-bottom: 5px;
+}
+
+div.sphinx-tabs button.sphinx-tabs-tab[aria-selected="true"] {
+    border-bottom-color: #5d89bb;
+    color: #5d89bb;
+}
+
+div.sphinx-tabs button.sphinx-tabs-tab:hover {
+    color: #5d89bb;
+}
+
+/* Figure text styles */
+
+.figure p.caption {
+    margin: 6px 0;
+}
+
+.figure > div.legend > p {
+    font-size: 14px;
+    line-height: 21px;
+}
+
+/* Copy buttons */
+
+a.copybtn {
+    position: absolute;
+    top: 0.2em;
+    right: 0.2em;
+    width: 1.3em;
+    height: 1.3em;
+	opacity: 0.3;
+    transition: opacity 0.5s;
+    border: none;
+    user-select: none;
+}
+
+div.highlight  {
+    position: relative;
+}
+
+a.copybtn > img {
+    vertical-align: top;
+    margin: 0;
+    top: 0;
+    right: 0;
+    position: absolute;
+}
+
+.highlight:hover .copybtn {
+	opacity: 1;
+}
+
+/**
+ * A minimal CSS-only tooltip copied from:
+ *   https://codepen.io/mildrenben/pen/rVBrpK
+ *
+ * To use, write HTML like the following:
+ *
+ * <p class="o-tooltip--left" data-tooltip="Hey">Short</p>
+ */
+
+.o-tooltip--left {
+    position: relative;
+}
+
+.o-tooltip--left:after {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    content: attr(data-tooltip);
+    padding: 2px;
+    top: 0.1em;
+    left: -0.1em;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #607d8b;
+    white-space: nowrap;
+    z-index: 2;
+    border-radius: 2px;
+    transform: translateX(-102%) translateY(0);
+    transition: opacity 0.5s cubic-bezier(0.64, 0.09, 0.08, 1), transform 0.5s cubic-bezier(0.64, 0.09, 0.08, 1);
+}
+
+.o-tooltip--left:hover:after {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-100%) translateY(0);
+    transition: opacity 0.5s cubic-bezier(0.64, 0.09, 0.08, 1), transform 0.5s cubic-bezier(0.64, 0.09, 0.08, 1);
+}

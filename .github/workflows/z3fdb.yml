@@ -3,6 +3,10 @@ name: Build and Test z3fdb
 on:
   pull_request:
   workflow_dispatch:  # Allows manual trigger
+  workflow_run:
+    workflows: ["Build and Test PyFDB"]
+    types:
+      - completed
 
 jobs:
   prepare-deps:
@@ -118,6 +122,10 @@ jobs:
       - name: Build fdb
         run: |
           export PATH=$(pwd)/dependencies/bin:$PATH
+          export ECCODES_HOME=$(pwd)/dependencies
+          export FINDLIBS_DISABLE_PACKAGE=yes
+          export FINDLIBS_DISABLE_PYTHON=yes
+          export ECCODES_PYTHON_USE_FINDLIBS=1
           mkdir fdb-build
           cmake \
             -B fdb-build \
@@ -127,6 +135,7 @@ jobs:
             -DCMAKE_PREFIX_PATH=dependencies \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DENABLE_TOOLS=ON \
+            -DENABLE_PYTHON_FDB_INTERFACE=ON \
             -DENABLE_PYTHON_ZARR_INTERFACE=ON
           cmake --build fdb-build -j
           cd fdb-build

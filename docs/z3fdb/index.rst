@@ -1,5 +1,7 @@
+.. _Z3FDB_Introduction:
+
 ########################
-Zarr v3 from FDB - Z3FDB
+Z3FDB
 ########################
 
 :Version: |version|
@@ -92,6 +94,7 @@ Below are two examples how to create a view.
    :caption: Configuring a view from a single MARS request.
 
    from z3fdb import (
+       SimpleStoreBuilder, 
        AxisDefinition,
        Chunking,
        ExtractorType

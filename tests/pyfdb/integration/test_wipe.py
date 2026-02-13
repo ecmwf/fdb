@@ -1,0 +1,130 @@
+from pyfdb import FDB
+from pyfdb.pyfdb_type import Identifier, WildcardMarsSelection
+
+
+def test_wipe_dryrun(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb = FDB(fdb_config_path)
+
+    elements = list(fdb.list({"class": "ea"}))
+    assert len(elements) > 0
+
+    wipe_iterator = fdb.wipe({"class": "ea"})
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    for el in wiped_elements:
+        print(el)
+
+    elements_after_wipe = list(fdb.list({"class": "ea"}))
+    assert len(elements) == len(elements_after_wipe)
+
+
+def test_wipe_all_doit(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb = FDB(fdb_config_path)
+
+    elements = list(fdb.list({"class": "ea"}))
+    assert len(elements) > 0
+
+    wipe_iterator = fdb.wipe({"class": "ea"}, doit=True)
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    elements_after_wipe = list(fdb.list({"class": "ea"}))
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
+    assert len(elements) > len(elements_after_wipe)
+
+
+def test_wipe_single_date_doit(read_write_fdb_setup):
+    fdb_config_path = read_write_fdb_setup
+
+    fdb = FDB(fdb_config_path)
+
+    elements = list(fdb.list({"class": "ea"}))
+    assert len(elements) > 0
+
+    wipe_iterator = fdb.wipe({"class": "ea", "date": "20200101"}, doit=True)
+    wiped_elements = list(wipe_iterator)
+    assert len(wiped_elements) > 0
+
+    elements_after_wipe = list(fdb.list({"class": "ea"}))
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
+    assert len(elements) > len(elements_after_wipe)
+    assert len(elements) == 96
+    assert len(elements_after_wipe) == 72
+
+
+BASE_REQUEST = {
+    "class": "rd",
+    "expver": "xxxx",
+    "stream": "oper",
+    "type": "fc",
+    "date": "20000101",
+    "time": "0000",
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": "300",
+    "param": "138",
+    "step": "0",
+}
+
+
+def populate_fdb(fdb: FDB):
+    # Write 4 fields to the FDB based on BASE_REQUEST
+    requests = [BASE_REQUEST.copy() for i in range(4)]
+
+    # Modify on each of the 3 levels of the schema
+    requests[1]["step"] = "1"
+    requests[2]["date"] = "20000102"
+    requests[3]["levtype"] = "sfc"
+    del requests[3]["levelist"]
+
+    NFIELDS = 4
+
+    data = b"-1 Kelvin"
+    for i in range(NFIELDS):
+        key = requests[i]
+        key = Identifier([(k, v) for k, v in key.items()])
+        fdb.archive(identifier=key, data=data)
+    fdb.flush()
+
+    return NFIELDS
+
+
+def test_wipe_list(empty_fdb_setup):
+    fdb_config_path = empty_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path)
+
+    NFIELDS = populate_fdb(fdb)
+    assert len([x for x in fdb.list(WildcardMarsSelection())]) == NFIELDS
+
+    # Wipe without doit: Do not actually delete anything.
+    wipe_iterator = fdb.wipe({"class": "rd"})
+
+    # Consume all wipe iterator elements
+    for el in wipe_iterator:
+        pass
+
+    assert len([x for x in fdb.list(WildcardMarsSelection())]) == NFIELDS
+
+    # Wipe, do it
+    wipe_iterator = fdb.wipe({"class": "rd"}, doit=True)
+
+    # Consume all wipe iterator elements
+    for el in wipe_iterator:
+        pass
+
+    list_iterator = fdb.list(WildcardMarsSelection())
+    elements = [x for x in list_iterator]
+
+    assert len(elements) == 0

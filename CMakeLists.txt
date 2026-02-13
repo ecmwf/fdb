@@ -126,7 +126,19 @@ ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     DESCRIPTION "Build python Zarr interface layer"
                     DEFAULT OFF
                     REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
-if(HAVE_PYTHON_ZARR_INTERFACE)
+
+# We need PyFDB in case z3fdb is enabled
+if(HAVE_PYTHON_ZARR_INTERFACE AND NOT HAVE_PYTHON_FDB_INTERFACE)
+    message( WARN "FDB Zarr interface requires python FDB interface. I enable ENABLE_PYTHON_FDB_INTERFACE to build the PyFDB interface" )
+    set(ENABLE_PYTHON_FDB_INTERFACE "ON")
+endif()
+
+ecbuild_add_option( FEATURE PYTHON_FDB_INTERFACE
+                    DESCRIPTION "Build python FDB interface layer"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
+
+if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
     find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 endif()
 

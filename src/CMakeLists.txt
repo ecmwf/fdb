@@ -54,6 +54,40 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)
 endif()
 
+if (HAVE_PYTHON_FDB_INTERFACE)
+    # We create the complete python package layout at this location.
+    # This allows us to run python wheel creation at this path and 
+    # to put this path on the PYTHONPATH to allow direct use of
+    # pyfdb, e.g. for testing or local exploration.
+    set(PYFDB_STAGING "${CMAKE_BINARY_DIR}/pyfdb-python-package-staging")
+    file(MAKE_DIRECTORY "${PYFDB_STAGING}")
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
+        "${PYFDB_STAGING}/pyfdb" SYMBOLIC
+    )
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/pyfdb_setup.py.in
+        ${PYFDB_STAGING}/setup.py
+        @ONLY
+    )
+    add_subdirectory(pyfdb_bindings)
+    file(GLOB_RECURSE
+        _pyfdb_package_files
+        "pyfdb/*.py"
+        "pyfdb/_internal/*.py"
+    )
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp
+        COMMAND ${Python_INTERPRETER} -m build --wheel ${PYFDB_STAGING} -o .
+        COMMAND ${CMAKE_COMMAND} -E touch pyfdb.wheel.stamp
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS ${_pyfdb_package_files}
+        COMMENT "Building Python wheel for pyfdb..."
+    )
+    add_custom_target(pyfdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp)
+endif()
+
+
 if (HAVE_DUMMY_DAOS)
 	add_subdirectory(dummy_daos)
 endif()

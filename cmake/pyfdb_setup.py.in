@@ -1,0 +1,12 @@
+from setuptools import setup
+
+setup(
+    name="pyfdb",
+    version="@fdb5_VERSION_STR@",
+    packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
+    package_data={
+        "pyfdb_bindings": ["*.so", "*.pyd"],
+    },
+    install_requires=["numpy", "zarr>=3,<4", "findlibs"],
+    has_ext_modules=lambda: True,
+)
