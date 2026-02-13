@@ -146,6 +146,10 @@ class MoveElement:
         if self.element is not None:
             self.element.execute()
 
+    def cleanup(self):
+        if self.element is not None:
+            self.element.cleanup()
+
     def __repr__(self) -> str:
         return str(self.element)
 
