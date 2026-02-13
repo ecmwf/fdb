@@ -507,3 +507,105 @@ def test_control_element_key(read_only_fdb_setup):
     print(f"Element key: {elements[0]}")
     print(f"Element key type: {type(elements[0])}")
     assert elements[0] == MarsSelectionMapper.map_to_internal(selection)
+
+
+def test_control_element_control_identifiers(read_only_fdb_setup):
+    fdb_config_path = read_only_fdb_setup
+
+    assert fdb_config_path
+
+    fdb = FDB(fdb_config_path.read_text())
+
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
+
+    print("List without lock")
+    list_iterator = fdb.list(selection)
+    elements = list(list_iterator)
+    assert len(elements) == 3
+
+    control_identifier_list = [
+        ControlIdentifier.LIST,
+        ControlIdentifier.RETRIEVE,
+        ControlIdentifier.ARCHIVE,
+        ControlIdentifier.WIPE,
+        ControlIdentifier.UNIQUEROOT,
+    ]
+
+    print("Locking database for all control actions")
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, control_identifiers=control_identifier_list
+    )
+    assert control_iterator
+
+    elements = []
+
+    for el in control_iterator:
+        print(el)
+        elements.append(el.controlIdentifiers())
+
+    assert len(elements) == 1
+    assert len(elements[0]) == 5  # There should be 5 control identifiers for the first database
+    assert elements[0] == control_identifier_list
+    print(f"Element control identifiers: {elements[0]}")
+    print(f"Element control identifiers type: {type(elements[0])}")
+
+    print("Unlocking database for all control actions")
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, control_identifiers=control_identifier_list
+    )
+    assert control_iterator
+
+    elements = list([el.controlIdentifiers() for el in control_iterator])
+
+    assert len(elements) == 1
+    assert len(elements[0]) == 0
+    print(f"Element control identifiers: {elements[0]}")
+    print(f"Element control identifiers type: {type(elements[0])}")
+
+
+def test_status_element_eq_control_element(read_only_fdb_setup):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
+
+    print("List without lock")
+    list_iterator = fdb.list(selection)
+    elements = list(list_iterator)
+    assert len(elements) == 3
+
+    control_identifier_list = [
+        ControlIdentifier.LIST,
+        ControlIdentifier.RETRIEVE,
+        ControlIdentifier.ARCHIVE,
+        ControlIdentifier.WIPE,
+        ControlIdentifier.UNIQUEROOT,
+    ]
+
+    print("Locking database for all control actions")
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, control_identifiers=control_identifier_list
+    )
+    assert control_iterator
+
+    control_elements = list(control_iterator)
+
+    stats_iterator = fdb.status(selection)
+    assert stats_iterator
+
+    stats_elements = list(stats_iterator)
+
+    assert control_elements == stats_elements

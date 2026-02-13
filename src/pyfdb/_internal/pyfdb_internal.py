@@ -236,7 +236,7 @@ class MarsRequest:
         return self.request.verb()
 
     # TODO(TKR): Check whether a property has memoized access
-    def items(self) -> dict[str, list[str]]:
+    def items(self) -> InternalMarsSelection:
         return self.request.key_values()
 
     def empty(self) -> bool:

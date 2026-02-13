@@ -7,7 +7,10 @@
 # does it submit to any jurisdiction.
 
 from collections.abc import Mapping
-from typing import Collection, Dict, ItemsView, Iterator, KeysView, Sequence, ValuesView
+import logging
+from typing import Collection, Dict, ItemsView, Iterator, KeysView, List, Sequence, ValuesView
+
+from urllib.parse import ParseResult, urlparse
 
 from pyfdb._internal import (
     ControlElement as _ControlElement,
@@ -24,7 +27,11 @@ from pyfdb._internal import (
 from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
-from pyfdb.pyfdb_type import URI, DataHandle
+from pyfdb._internal.pyfdb_internal import MarsSelection
+from pyfdb.pyfdb_type import URI, DataHandle, ControlIdentifier
+
+
+logger = logging.getLogger(__name__)
 
 
 class ListElement:
@@ -57,7 +64,7 @@ class ListElement:
         """
         return DataHandle(self._element.data_handle(), _internal=True)
 
-    def uri(self) -> URI:
+    def uri(self) -> URI | None:
         """
         Access the URI of the list element
 
@@ -75,7 +82,13 @@ class ListElement:
 
         ``<path/to/data_file>``
         """
-        return URI(self._element.uri(), _internal=True)
+        try:
+            return URI(self._element.uri())
+        except RuntimeError as _:
+            logger.info(
+                "Couldn't find an URI for the given element. Did you specify the `level=3` of the list call correctly?"
+            )
+            return None
 
     def __repr__(self) -> str:
         return str(self._element)
@@ -98,13 +111,26 @@ class StatusElement:
         self.element: _ControlElement = control_element
 
     def __eq__(self, other: object, /) -> bool:
-        if isinstance(other, StatusElement):
-            return str(self.element) == str(other.element)
+        if isinstance(other, (StatusElement, ControlElement)):
+            return (
+                self.location() == other.location()
+                and self.controlIdentifiers() == other.controlIdentifiers()
+                and self.key() == other.key()
+            )
 
         return False
 
+    def location(self) -> URI:
+        return URI(self.element.location())
+
+    def controlIdentifiers(self) -> List[ControlIdentifier]:
+        return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
+
+    def key(self) -> MarsSelection:
+        return self.element.key()
+
     def __repr__(self) -> str:
-        return str(self.element)
+        return f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
 
 
 class MoveElement:
@@ -147,18 +173,30 @@ class StatsElement:
 class ControlElement:
     def __init__(self, control_element: _ControlElement, *, _internal=False) -> None:
         if not _internal:
-            raise TypeError(
-                "Creating a ControlElement from user code is not supported."
-            )
+            raise TypeError("Creating a ControlElement from user code is not supported.")
         self.element: _ControlElement = control_element
 
-    def location(self) -> URI:
-        return URI(self.element.location(), _internal=True)
+    def __eq__(self, other: object, /) -> bool:
+        if isinstance(other, (StatusElement, ControlElement)):
+            return (
+                self.location() == other.location()
+                and self.controlIdentifiers() == other.controlIdentifiers()
+                and self.key() == other.key()
+            )
 
-    # TODO(TKR): Implement Key capabilities in here
+        return False
+
+    def location(self) -> URI:
+        return URI(self.element.location())
+
+    def controlIdentifiers(self) -> List[ControlIdentifier]:
+        return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
+
+    def key(self) -> MarsSelection:
+        return self.element.key()
 
     def __repr__(self) -> str:
-        return str(self.element)
+        return f"ControlElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
 
 
 class IndexAxis(Mapping[str, Sequence[str]]):

@@ -1,4 +1,4 @@
-# Cases where we support wildcard selection on the C++ API
+# Cases where we support all selection on the C++ API
 #
 # list
 # status
@@ -14,7 +14,7 @@ from pyfdb.pyfdb_iterator import ControlElement, IndexAxis
 from pyfdb.pyfdb_type import ControlAction, ControlIdentifier
 
 
-def test_list_wildcard(read_only_fdb_setup):
+def test_list_all(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -59,7 +59,7 @@ def test_list_wildcard(read_only_fdb_setup):
     assert len(elements) == 96
 
 
-def test_status_wildcard(read_only_fdb_setup):
+def test_status_all(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -76,7 +76,7 @@ def test_status_wildcard(read_only_fdb_setup):
     assert len(elements) == 32
 
 
-def test_wipe_dryrun_wildcard(read_write_fdb_setup):
+def test_wipe_dryrun_all(read_write_fdb_setup):
     fdb = FDB(read_write_fdb_setup)
     elements = list(fdb.list({}))
     initial_len = len(elements)
@@ -92,7 +92,7 @@ def test_wipe_dryrun_wildcard(read_write_fdb_setup):
     assert initial_len == len(elements_after_wipe)
 
 
-def test_wipe_all_doit_wildcard(read_write_fdb_setup):
+def test_wipe_all_doit_all(read_write_fdb_setup):
     fdb_config_path = read_write_fdb_setup
 
     fdb = FDB(fdb_config_path)
@@ -109,7 +109,7 @@ def test_wipe_all_doit_wildcard(read_write_fdb_setup):
     assert len(elements_after_wipe) == 0
 
 
-def test_purge_wildcard(empty_fdb_setup, build_grib_messages):
+def test_purge_all(empty_fdb_setup, build_grib_messages):
     fdb = FDB(empty_fdb_setup)
 
     initial_elements = list(fdb.list({}))
@@ -163,7 +163,7 @@ def test_purge_wildcard(empty_fdb_setup, build_grib_messages):
     assert len(archived_elements) == len(elements_after_second_purge)
 
 
-def test_stats_wildcard(read_only_fdb_setup):
+def test_stats_all(read_only_fdb_setup):
     assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
 
@@ -179,7 +179,7 @@ def test_stats_wildcard(read_only_fdb_setup):
     assert len(elements) == 32
 
 
-def test_control_lock_retrieve_wildcard(read_only_fdb_setup):
+def test_control_lock_retrieve_all(read_only_fdb_setup):
     assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
 
@@ -221,7 +221,7 @@ def test_control_lock_retrieve_wildcard(read_only_fdb_setup):
     el: ControlElement
 
     for el in control_iterator:
-        assert (Path(el.location().path()) / "retrieve.lock").exists()
+        assert (Path(str(el.location())) / "retrieve.lock").exists()
         elements.append(el)
 
     assert len(elements) == 32
@@ -249,7 +249,7 @@ def test_control_lock_retrieve_wildcard(read_only_fdb_setup):
         assert data_handle_2.read(4) == b""
 
 
-def test_index_axis_items_levels_wildcard(read_only_fdb_setup):
+def test_index_axis_items_levels_all(read_only_fdb_setup):
     assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
     index_axis: IndexAxis = fdb.axes({})
