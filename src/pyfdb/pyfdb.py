@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Tuple
 
@@ -99,6 +100,7 @@ class FDB:
         """
 
         init_bindings()
+        self.logger = logging.getLogger(__name__ + ".FDB")
 
         # Convert to JSON if set
         config = ConfigMapper.to_json(config)
@@ -513,7 +515,7 @@ class FDB:
         """
         internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
-        iterator = self.FDB.move(fdb_tool_request.tool_request, destination._uri)
+        iterator = self.FDB.move(fdb_tool_request.tool_request, destination._to_internal())
         while True:
             try:
                 yield MoveElement(next(iterator), _internal=True)

@@ -45,7 +45,7 @@ def test_move(read_only_fdb_setup):
 
     move_iterator = fdb.move(
         selection,
-        URI.from_str(str(new_root)),
+        URI(str(new_root)),
     )
 
     elements = []

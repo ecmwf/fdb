@@ -212,7 +212,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init())
         .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
         .def("controlIdentifiers",
-             [](fdb5::ControlElement& control_element) { return control_element.controlIdentifiers; })
+             [](fdb5::ControlElement& control_element) {
+                 std::vector<fdb5::ControlIdentifier> result;
+                 for (const auto& control_identifier : control_element.controlIdentifiers) {
+                     result.emplace_back(control_identifier);
+                 }
+                 return result;
+             })
         .def("key",
              [](fdb5::ControlElement& control_element) {
                  std::map<std::string, std::vector<std::string>> key_value_map;
@@ -283,7 +289,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::native_enum<fdb5::ControlAction>(m, "ControlAction", "enum.IntFlag")
+    py::native_enum<fdb5::ControlAction>(m, "ControlAction", "enum.Enum")
         .value("NONE", fdb5::ControlAction::None)
         .value("DISABLE", fdb5::ControlAction::Disable)
         .value("ENABLE", fdb5::ControlAction::Enable)

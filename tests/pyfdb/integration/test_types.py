@@ -1,5 +1,6 @@
 import pytest
 
+from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -10,7 +11,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-from pyfdb.pyfdb_type import URI, DataHandle
+from pyfdb.pyfdb_type import ControlAction, ControlIdentifier, DataHandle
 
 classes = [
     IndexAxis,
@@ -21,7 +22,6 @@ classes = [
     StatsElement,
     ControlElement,
     WipeElement,
-    URI,
     DataHandle,
 ]
 
@@ -33,12 +33,42 @@ def test_initialization_raises_error(cls):
         cls(None)
 
 
-def test_status_element_eq():
-    control_element_1 = StatusElement("test", _internal=True)
-    control_element_2 = StatusElement("test2", _internal=True)
-    control_element_3 = StatusElement("test", _internal=True)
+def test_status_element_eq(read_only_fdb_setup):
+    fdb = FDB(read_only_fdb_setup)
 
-    assert control_element_1 != control_element_2
-    assert control_element_1 == control_element_3
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
 
-    assert control_element_1 != "test"
+    print("List without lock")
+    list_iterator = fdb.list(selection)
+    elements = list(list_iterator)
+    assert len(elements) == 3
+
+    control_identifier_list = [
+        ControlIdentifier.LIST,
+        ControlIdentifier.RETRIEVE,
+        ControlIdentifier.ARCHIVE,
+        ControlIdentifier.WIPE,
+        ControlIdentifier.UNIQUEROOT,
+    ]
+
+    print("Locking database for all control actions")
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, control_identifiers=control_identifier_list
+    )
+    assert control_iterator
+
+    control_elements = list(control_iterator)
+
+    stats_iterator = fdb.status(selection)
+    assert stats_iterator
+
+    stats_elements = list(stats_iterator)
+
+    assert control_elements == stats_elements

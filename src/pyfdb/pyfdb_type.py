@@ -9,6 +9,7 @@
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
 from typing import Dict, List, Tuple
+from urllib import parse
 
 from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle, MarsSelection
 
@@ -383,168 +384,53 @@ class URI:
     ----------
     None
 
-    Note
-    ----
-    *This class can't be default instantiated / is only returned from the underlying FDB calls*
-    If you want to instantiate, use the static class methods `from_*`.
-
     Examples
     --------
-    >>> uri = URI.from_str("scheme://netloc/path;parameters?query#fragment")
+    >>> uri = URI("scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2")
     """
 
-    def __init__(self, uri: _URI, *, _internal=False) -> None:
-        if not _internal:
-            raise TypeError("Creating a URI from user code is not supported.")
-        self._uri: _URI = uri
+    def __init__(self, uri: str | Path, scheme: str = "", allow_fragments=True) -> None:
+        uri = uri.as_posix() if isinstance(uri, Path) else uri
 
-    @classmethod
-    def from_str(cls, uri: str):
-        """
-        Generate a `URI` from a string
+        self._uri: parse.SplitResult = parse.urlsplit(
+            str(uri), scheme=scheme, allow_fragments=allow_fragments
+        )
 
-        Parameters
-        ----------
-        `uri` : `str`
-            A URI given as string
+    def __eq__(self, value: object, /) -> bool:
+        if isinstance(value, URI):
+            return parse.urlunsplit(self._uri) == parse.urlunsplit(value._uri)
 
-        Note
-        -----
-        *Currently there are only three schemes supported: file, http, https.
-        Every other scheme will fall back to scheme `unix` with limited parsing support.*
+        return False
 
-        Returns
-        -------
-        `URI`
-        """
-        result = cls.__new__(cls)
-        result._uri = _URI(uri)
-        return result
+    def _to_internal(self):
+        return _URI(parse.urlunsplit(self._uri))
 
-    @classmethod
-    def from_path(cls, path: Path):
-        """
-        Generate a `URI` from a file system path
-
-        Parameters
-        ----------
-        `path` : `Path`
-            A path to the file system resource
-
-        Returns
-        -------
-        `URI`
-        """
-        result = cls.__new__(cls)
-        result._uri = _URI("file", path.resolve().as_posix())
-        return result
-
-    @classmethod
-    def from_scheme_uri(cls, scheme: str, uri: "URI"):
-        """
-        Generating a `URI` from a scheme and an existing `URI`.
-        Replaces the elements of the given `URI` with the given scheme.
-
-        Parameters
-        ----------
-        `scheme` : `str`
-            A supported scheme
-        `uri`: `URI`
-            A existing URI
-
-        Note
-        -----
-        *Currently there are only three schemes supported: file, http, https.
-        Every other scheme will fall back to scheme `unix` with limited parsing support.*
-
-        Returns
-        -------
-        `URI`
-        """
-        result = cls.__new__(cls)
-        result._uri = _URI(scheme, uri._uri)
-        return result
-
-    @classmethod
-    def from_scheme_host_port(cls, scheme: str, host: str, port: int):
-        """
-        Generating a `URI` from a scheme, a host and a port.
-
-        Parameters
-        ----------
-        `scheme` : `str`
-            A supported scheme
-        `host`: `str`
-            A host name
-        `port`: `int`
-            A port
-
-        Note
-        -----
-        *Currently there are only three schemes supported: file, http, https.
-        Every other scheme will fall back to scheme `unix` with limited parsing support.*
-
-        Returns
-        -------
-        `URI`
-        """
-        result = cls.__new__(cls)
-        result._uri = _URI(scheme, host, port)
-        return result
-
-    @classmethod
-    def from_scheme_uri_host_port(cls, scheme: str, uri: "URI", host: str, port: int):
-        """
-        Generating a `URI` from a scheme, a host and a port and an existing URI.
-        Replaces the elements of the given `URI` with those specified as parameters.
-
-        Parameters
-        ----------
-        `scheme` : `str`
-            A supported scheme
-        `uri` : `URI`
-            An existing URI
-        `host`: `str`
-            A host name
-        `port`: `int`
-            A port
-
-        Note
-        -----
-        *Currently there are only three schemes supported: file, http, https.
-        Every other scheme will fall back to scheme `unix` with limited parsing support.*
-
-        Returns
-        -------
-        `URI`
-        """
-        result = cls.__new__(cls)
-        result._uri = _URI(scheme, uri._uri, host, port)
-        return result
-
-    def name(self) -> str:
-        return self._uri.name()
+    def netloc(self) -> str:
+        return self._uri.netloc
 
     def scheme(self) -> str:
-        return self._uri.scheme()
+        return self._uri.scheme
 
-    def user(self) -> str:
-        return self._uri.user()
+    def username(self) -> str | None:
+        return self._uri.username
 
-    def host(self) -> str:
-        return self._uri.host()
+    def password(self) -> str | None:
+        return self._uri.password
 
-    def port(self) -> int:
-        return self._uri.port()
+    def hostname(self) -> str | None:
+        return self._uri.hostname
+
+    def port(self) -> int | None:
+        return self._uri.port
 
     def path(self) -> str:
-        return self._uri.path()
+        return self._uri.path
+
+    def query(self) -> str:
+        return self._uri.query
 
     def fragment(self) -> str:
-        return self._uri.fragment()
-
-    def rawStr(self) -> str:
-        return self._uri.rawString()
+        return self._uri.fragment
 
     def __repr__(self) -> str:
-        return repr(self._uri)
+        return parse.urlunsplit(self._uri)
