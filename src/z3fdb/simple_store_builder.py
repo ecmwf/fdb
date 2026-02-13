@@ -62,7 +62,7 @@ class SimpleStoreBuilder:
         """
         self._builder.add_part(mars_request_key_values, axes, extractor_type)
 
-    def extendOnAxis(self, axis: int) -> None:
+    def extend_on_axis(self, axis: int) -> None:
         """Defines the extension axis when multiple parts are added.
 
         Args:
@@ -70,7 +70,7 @@ class SimpleStoreBuilder:
                 have been added.
 
         """
-        self._builder.extendOnAxis(axis)
+        self._builder.extend_on_axis(axis)
 
     def build(self) -> Store:
         """Build the store from the inputs.

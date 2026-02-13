@@ -50,7 +50,7 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         ],
         ExtractorType.GRIB,
     )
-    builder.extendOnAxis(1)
+    builder.extend_on_axis(1)
     store = builder.build()
 
     data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
