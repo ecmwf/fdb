@@ -398,12 +398,24 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     if (!handled) {
                         std::ostringstream ss;
-                        ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                           << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
-                           << ",requestID=" << hdr.requestID << "]. ABORTING";
-                        eckit::Log::status() << ss.str() << std::endl;
-                        eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                        throw eckit::SeriousBug(ss.str(), Here());
+                        if (hdr.message == Message::Error) {
+                            ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID=" << hdr.clientID()
+                               << ",requestID=" << hdr.requestID << "]";
+                            if (hdr.payloadSize) {
+                                std::string msg;
+                                msg.resize(payload.size(), ' ');
+                                payload.copy(msg.data(), payload.size());
+                                ss << ": " << msg;
+                            }
+                            throw RemoteFDBException(ss.str(), controlEndpoint_);
+                        } else {
+                            ss << "ERROR: CONTROL connection=" << controlEndpoint_
+                               << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
+                               << ",requestID=" << hdr.requestID << "]. ABORTING";
+                            eckit::Log::status() << ss.str() << std::endl;
+                            eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                            throw eckit::SeriousBug(ss.str(), Here());
+                        }
                     }
                 }
             }
@@ -479,11 +491,23 @@ void ClientConnection::listeningDataThreadLoop() {
 
                     if (!handled) {
                         std::ostringstream ss;
-                        ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
-                           << hdr.message << "). ABORTING";
-                        eckit::Log::status() << ss.str() << std::endl;
-                        eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                        throw eckit::SeriousBug(ss.str(), Here());
+                        if (hdr.message == Message::Error) {
+                            ss << "RemoteFDB received an unhandled error on DATA connection. [clientID=" << hdr.clientID()
+                               << ",requestID=" << hdr.requestID << "]";
+                            if (hdr.payloadSize) {
+                                std::string msg;
+                                msg.resize(payload.size(), ' ');
+                                payload.copy(msg.data(), payload.size());
+                                ss << ": " << msg;
+                            }
+                            throw RemoteFDBException(ss.str(), dataEndpoint_);
+                        } else {
+                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
+                               << hdr.message << "). ABORTING";
+                            eckit::Log::status() << ss.str() << std::endl;
+                            eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                            throw eckit::SeriousBug(ss.str(), Here());
+                        }
                     }
                 }
             }
