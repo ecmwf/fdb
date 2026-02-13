@@ -218,29 +218,6 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
-void TocHandler::checkUID() const {
-    static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
-    if (!fdbOnlyCreatorCanWrite) {
-        return;
-    }
-
-    static std::vector<std::string> fdbSuperUsers =
-        eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
-
-    if (dbUID() != userUID_) {
-
-        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
-
-            std::ostringstream oss;
-            oss << "Only user '" << userName(dbUID())
-
-                << "' can write to FDB " << directory_ << ", current user is '" << userName(userUID_) << "'";
-
-            throw eckit::UserError(oss.str());
-        }
-    }
-}
-
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead

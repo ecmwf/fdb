@@ -115,7 +115,6 @@ public:  // methods
     ~TocHandler() override;
 
     bool exists() const;
-    void checkUID() const override;
 
     void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index&);
