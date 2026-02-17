@@ -258,12 +258,14 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
 
-    auto async = [this, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
+    auto internal = internal_->shared();
+
+    auto async = [internal, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
-        WipeStateIterator it = internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+        WipeStateIterator it = internal->wipe(request, doit, porcelain, unsafeWipeAll);
 
         // Coordinate the wipe across catalogues and stores
-        WipeCoordinator coordinator{internal_->config()};
+        WipeCoordinator coordinator{internal->config()};
         CatalogueWipeState catalogueWipeState;
         while (it.next(catalogueWipeState)) {
 

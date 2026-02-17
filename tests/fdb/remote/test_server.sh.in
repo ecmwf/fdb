@@ -76,7 +76,7 @@ trap cleanup EXIT # Ensure cleanup is called when the script exits
 
 #  -- Start fresh
 cleanup
-mkdir -p $catalogue_rootdir $store_rootdir
+mkdir $catalogue_rootdir $store_rootdir
 
 # --- Start the servers in the background.
 

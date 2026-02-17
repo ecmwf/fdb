@@ -14,6 +14,7 @@
 #include "eckit/types/Date.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 
 using namespace eckit::testing;
@@ -24,6 +25,9 @@ namespace fdb5::test {
 // Note: the environment for this test is configured by an external script. See tests/remote/test_server.sh.in
 // Fairly limited set of tests designed to add some coverage to the client-server comms.
 // Tests added to this file should be for behaviour that is expected to work for all server configurations.
+
+// Note: I suggest, as a convention, to prepend all logs with [CLIENT] to make it easier to
+// distinguish client and server logs in the test output.
 
 Key keycommon(int level = 3) {
     Key k;
@@ -59,7 +63,7 @@ std::vector<Key> write_data(FDB& fdb, const std::string& data,
             k.set("type", type);
             for (const auto& step : steps) {
                 k.set("step", step);
-                eckit::Log::info() << " archiving " << k << std::endl;
+                eckit::Log::info() << "[CLIENT]" << " archiving " << k << std::endl;
                 fdb.archive(k, data.data(), data.size());
                 keys.push_back(k);
             }
@@ -114,6 +118,7 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
 }
 
 // Note: The catalogue server is configured to use subtocs. This means there will be cleared indexes and subtocs.
+// This means we also must be sure to disconnect between calls inorder to see the consolidated .index file.
 
 CASE("Remote protocol: the basics") {
 
@@ -127,109 +132,149 @@ CASE("Remote protocol: the basics") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
-    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
 
-    ListElement elem;
+    // -- list all fields -
     size_t count = 0;
-    while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
-        count++;
+    {
+        auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
+        ListElement elem;
+        while (it.next(elem)) {
+            eckit::Log::info() << elem << " " << elem.location() << std::endl;
+            count++;
+        }
+        EXPECT_EQUAL(count, Nfields);
     }
-    EXPECT_EQUAL(count, Nfields);
 
     // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+    {
 
-    count = 0;
-    while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
-        count++;
-    }
-    EXPECT_EQUAL(count, Nfields);
-
-    // -- retrieve all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    std::unique_ptr<eckit::DataHandle> dh(FDB{}.retrieve(make_request(keys)));
-
-    eckit::AutoClose closer(*dh);
-    dh->openForRead();
-    for (int i = 0; i < Nfields; ++i) {
-        eckit::Buffer buffer(data_string.size());
-        dh->read(buffer, buffer.size());
-        auto retrieved_string = std::string((char*)buffer, buffer.size());
-        EXPECT_EQUAL(retrieved_string, data_string);
+        count   = 0;
+        auto it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+        ListElement elem;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT]" << elem << " " << elem.location() << std::endl;
+            count++;
+        }
+        EXPECT_EQUAL(count, Nfields);
     }
 
-    // auto k1     = keys_level_1("20101010", 1);
-    auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
+    // -- retrieve all fields -
+    {
+        std::unique_ptr<eckit::DataHandle> dh(FDB{}.retrieve(make_request(keys)));
 
-    WipeElement wipeElem;
-    std::map<WipeElementType, size_t> element_counts;
-    while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << wipeElem;
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
+        eckit::AutoClose closer(*dh);
+        dh->openForRead();
+        for (int i = 0; i < Nfields; ++i) {
+            eckit::Buffer buffer(data_string.size());
+            dh->read(buffer, buffer.size());
+            auto retrieved_string = std::string((char*)buffer, buffer.size());
+            EXPECT_EQUAL(retrieved_string, data_string);
+        }
     }
-    // Expect: 2 store .data, 4 catalogue .index, 3 catalogue files (schema, toc, subtoc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
 
-    // -- list all fields
-    it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
-
-    size_t countPre = 0;
-    while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
-        countPre++;
+    // -- wipe (doit=false) --
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+        while (wipeit.next(wipeElem)) {
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+        }
+        // Expect: 2 store .data, 4 catalogue .index, 3 catalogue files (schema, toc, subtoc)
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
-    EXPECT_EQUAL(countPre, Nfields);
 
-    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
-    it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
-
-    count = 0;
-    while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
-        count++;
+    // -- list all fields again, expect same number as before
+    {
+        count   = 0;
+        auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
+        ListElement elem;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT]" << elem << " " << elem.location() << std::endl;
+            count++;
+        }
+        EXPECT_EQUAL(count, Nfields);
     }
-    EXPECT_EQUAL(count, Nfields);
+
+    // -- list fields, expect same number. --
+    {
+
+        auto it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+        ListElement elem;
+        count = 0;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT]" << elem << " " << elem.location() << std::endl;
+            count++;
+        }
+        EXPECT_EQUAL(count, Nfields);
+    }
 
     // Wipe, with doit=true
-    wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0], true);
-    element_counts.clear();
-    while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << wipeElem;
-        element_counts[wipeElem.type()] += wipeElem.uris().size();
-    }
+    {
 
-    // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
-    EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
-    EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
-    EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0], true);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+        while (wipeit.next(wipeElem)) {
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+        }
+
+        // Expect: 2 store .data, 2 catalogue .index, 3 catalogue files (schema, toc, subtoc)
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 3);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
+    }
 
     // -- list all remaining fields
-    it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
-
-    count = 0;
-    while (it.next(elem)) {
-        eckit::Log::info() << elem << " " << elem.location() << std::endl;
-        count++;
+    {
+        count   = 0;
+        auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
+        ListElement elem;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT]" << elem << " " << elem.location() << std::endl;
+            count++;
+        }
+        EXPECT_EQUAL(count, 4);
     }
-    EXPECT(countPre > count);
-    EXPECT_EQUAL(count, 4);
 
     // Wipe everything that remains
-    wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
-    count  = 0;
-    while (wipeit.next(wipeElem)) {
-        eckit::Log::info() << wipeElem;
-        count++;
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
+        WipeElement wipeElem;
+        count = 0;
+        while (wipeit.next(wipeElem)) {
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
+            count++;
+        }
     }
 }
 
 CASE("Remote protocol: more wipe testing") {
+
+    // Before starting this test, ensure there is no data current in the FDB (e.g. from the previous test...)
+    {
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], false);
+        WipeElement wipeElem;
+        std::map<WipeElementType, size_t> element_counts;
+
+        while (wipeit.next(wipeElem)) {
+            element_counts[wipeElem.type()] += wipeElem.uris().size();
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
+        }
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
+    }
 
 
     // -- write a few fields. 2 databases. Each with 1 index and 1 data file
@@ -241,13 +286,15 @@ CASE("Remote protocol: more wipe testing") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
+
     // wipe a single date
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
         WipeElement wipeElem;
         std::map<WipeElementType, size_t> element_counts;
         while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
             element_counts[wipeElem.type()] += wipeElem.uris().size();
         }
 
@@ -262,6 +309,7 @@ CASE("Remote protocol: more wipe testing") {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
 
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
@@ -274,7 +322,7 @@ CASE("Remote protocol: more wipe testing") {
         std::map<WipeElementType, size_t> element_counts;
 
         while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
             element_counts[wipeElem.type()] += wipeElem.uris().size();
             if (wipeElem.type() == WipeElementType::STORE) {
                 data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
@@ -314,7 +362,7 @@ CASE("Remote protocol: more wipe testing") {
         std::map<WipeElementType, size_t> element_counts;
         while (wipeit.next(wipeElem)) {
             element_counts[wipeElem.type()] += wipeElem.uris().size();
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
         }
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
         EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
@@ -333,7 +381,7 @@ CASE("Remote protocol: more wipe testing") {
         std::map<WipeElementType, size_t> element_counts;
         while (wipeit.next(wipeElem)) {
             element_counts[wipeElem.type()] += wipeElem.uris().size();
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
         }
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
         EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 0);
@@ -350,7 +398,7 @@ CASE("Remote protocol: more wipe testing") {
 
         while (wipeit.next(wipeElem)) {
             element_counts[wipeElem.type()] += wipeElem.uris().size();
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
         }
 
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 8);
@@ -369,7 +417,7 @@ CASE("Remote protocol: more wipe testing") {
 
         while (wipeit.next(wipeElem)) {
             element_counts[wipeElem.type()] += wipeElem.uris().size();
-            eckit::Log::info() << wipeElem;
+            eckit::Log::info() << "[CLIENT]" << wipeElem;
         }
 
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
