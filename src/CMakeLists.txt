@@ -26,6 +26,11 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         ${Z3FDB_STAGING}/setup.py
         @ONLY
     )
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/z3fdb_setup.cfg.in
+        ${Z3FDB_STAGING}/setup.cfg
+        @ONLY
+    )
     add_subdirectory(chunked_data_view_bindings)
     set(_z3fdb_package_files
         "z3fdb/simple_store_builder.py"
