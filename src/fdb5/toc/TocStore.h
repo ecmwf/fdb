@@ -39,7 +39,7 @@ public:  // methods
 
     TocStore(const Key& key, const Config& config);
 
-    ~TocStore() override {}
+    ~TocStore() override { close(); }
 
     eckit::URI uri() const override;
     bool uriBelongs(const eckit::URI&) const override;
