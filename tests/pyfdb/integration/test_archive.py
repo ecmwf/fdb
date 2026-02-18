@@ -53,34 +53,7 @@ def test_archive_none(empty_fdb_setup, test_data_path):
     assert_one_field(fdb)
 
 
-def print_open_files_psutil(pid=None):
-    """
-    Prints open files for a process (default: current).
-    Requires psutil. On some OSes, elevated privileges may be required
-    to inspect other processes.
-    """
-    if pid is None:
-        pid = os.getpid()
-    proc = psutil.Process(pid)
-    try:
-        files = proc.open_files()
-    except psutil.AccessDenied:
-        print(f"Access denied for pid {pid}. Try running with higher privileges.")
-        return
-    except psutil.NoSuchProcess:
-        print(f"No such process: {pid}")
-        return
-
-    if not files:
-        print(f"No open files for pid {pid}.")
-        return
-
-    print(f"Open files for pid {pid}:")
-    for f in files:
-        print(f" - path={f.path}  |  fd={getattr(f, 'fd', '?')}")
-
-
-def test_archive_abitrary_data(empty_fdb_setup):
+def test_archive_abitrary_data(empty_fdb_setup, test_logger):
     fdb_config_path = empty_fdb_setup
 
     assert fdb_config_path
@@ -99,9 +72,7 @@ def test_archive_abitrary_data(empty_fdb_setup):
         "param": "138",
     }
 
-    print_open_files_psutil()
-
-    print("-----------ARCHIVE-------------------")
+    test_logger.debug("-----------ARCHIVE-------------------")
 
     with FDB(fdb_config_path) as fdb:
         fdb.archive(
@@ -109,21 +80,13 @@ def test_archive_abitrary_data(empty_fdb_setup):
             identifier=Identifier(selection),
         )
 
-    print_open_files_psutil()
-
-    print("-----------RETRIEVE-------------------")
+    test_logger.debug("-----------RETRIEVE-------------------")
 
     data_handle = fdb.retrieve(selection)
     file_content = data_handle.readall()
     assert file_content == b"binary-data"
 
-    print_open_files_psutil()
-
-    print("-----------CLOSE-------------------")
-
-    data_handle.close()
-
-    print_open_files_psutil()
+    test_logger.debug("-----------CLOSE-------------------")
 
 
 key_values = [
@@ -160,7 +123,7 @@ def test_archive_abitrary_data_wrong_identifier(empty_fdb_setup, wrong_key_value
             )
 
 
-def test_archive_round_trip(empty_fdb_setup, test_data_path):
+def test_archive_round_trip(empty_fdb_setup, test_data_path, test_logger):
     fdb_config_path = empty_fdb_setup
     assert fdb_config_path
 
@@ -169,14 +132,12 @@ def test_archive_round_trip(empty_fdb_setup, test_data_path):
     filename = test_data_path / "x138-300.grib"
     file_content = filename.read_bytes()
 
-    print("-----------ARCHIVE-------------------")
-    print(f"Read {len(file_content)} bytes")
+    test_logger.debug("-----------ARCHIVE-------------------")
+    test_logger.debug(f"Read {len(file_content)} bytes")
     fdb.archive(file_content)
     fdb.flush()
 
-    print_open_files_psutil()
-
-    print("-----------RETRIEVE-------------------")
+    test_logger.debug("-----------RETRIEVE-------------------")
 
     # Those are the FDB keys of the GRIB file given above
     selection = {
@@ -195,12 +156,10 @@ def test_archive_round_trip(empty_fdb_setup, test_data_path):
 
     with fdb.retrieve(selection) as data_handle:
         reread_file_content = data_handle.readall()
-        print(f"Original size: {len(file_content)}")
-        print(f"Reread size: {len(reread_file_content)}")
+        test_logger.debug(f"Original size: {len(file_content)}")
+        test_logger.debug(f"Reread size: {len(reread_file_content)}")
         assert file_content == reread_file_content
 
     list_iterator = fdb.list({})
-
-    print_open_files_psutil()
 
     assert len(list(list_iterator)) == 1

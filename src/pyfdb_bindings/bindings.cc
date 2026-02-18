@@ -22,7 +22,10 @@
 #include <pybind11/stl/filesystem.h>
 
 #include <cstddef>
+#include <exception>
 #include <map>
+#include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -71,12 +74,11 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
                                length);           /* Name of parameter */
     }
 
-    long readinto(py::buffer buf) {
-        PYBIND11_OVERRIDE_PURE(int,               /* Return type */
-                               eckit::DataHandle, /* Parent class */
-                               readinto,          /* Name of function in C++ (must match Python name) */
-                               buf                /* Name of parameter */
-        );                                        /* Name of parameter */
+    void close() override {
+        PYBIND11_OVERRIDE(void,              /* Return type */
+                          eckit::DataHandle, /* Parent class */
+                          close,             /* Name of function in C++ (must match Python name) */
+        );                                   /* Name of parameter */
     }
 };
 
@@ -176,10 +178,22 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init([](const std::string& key, const std::time_t& timestamp) {
             return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
         }))
-        .def("uri", [](const fdb5::ListElement& list_element) { return list_element.uri(); })
+        .def("uri",
+             [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
+                 try {
+                     return list_element.uri();
+                 }
+                 catch (std::exception& exception) {
+                     return std::nullopt;
+                 };
+             })
         .def(
-            "data_handle", [](const fdb5::ListElement& list_element) { return list_element.location().dataHandle(); },
-            py::return_value_policy::reference_internal)
+            "data_handle",
+            [](const fdb5::ListElement& list_element) {
+                return std::shared_ptr<eckit::DataHandle>(list_element.location().dataHandle());
+            },
+            py::return_value_policy::take_ownership)
+        .def("references", [](const fdb5::ListElement& list_element) { return list_element.location().owners(); })
         .def("__repr__", [](const fdb5::ListElement& list_element) {
             std::stringstream buf;
             list_element.print(buf, true, true, true, ",");
@@ -306,6 +320,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::IndexAxis>(m, "IndexAxis")
         .def(py::init())
+        .def(py::init([](const std::map<std::string, std::vector<std::string>>& map) {
+            fdb5::IndexAxis result{};
+            for (const auto& [key, values] : map) {
+                result.insert(key, values);
+            }
+            return result;
+        }))
         .def("__repr__",
              [](const fdb5::IndexAxis& index_axis) {
                  std::stringstream buf{};
@@ -392,9 +413,9 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("__repr__", &eckit::URI::asString);
 
 
-    py::class_<fdb5::FDB>(m, "FDB")
-        .def(py::init([]() { return fdb5::FDB(); }))
-        .def(py::init([](const fdb5::Config& conf) { return fdb5::FDB(conf); }))
+    py::class_<fdb5::FDB, py::smart_holder>(m, "FDB")
+        .def(py::init())
+        .def(py::init<const fdb5::Config&>())
 
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
         .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
