@@ -53,7 +53,7 @@ def test_list_all(read_only_fdb_setup):
 
     for el in list_iterator:
         print(el)
-        print(el.uri())
+        print(el.uri)
         elements.append(el)
 
     assert len(elements) == 96

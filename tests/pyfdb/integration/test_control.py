@@ -45,7 +45,7 @@ def test_control_action_string():
     assert str(ControlAction.DISABLE) == "DISABLE"
 
 
-def test_control_lock_retrieve(read_only_fdb_setup):
+def test_control_lock_retrieve(read_only_fdb_setup, function_tmp):
     fdb_config_path: Path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -73,7 +73,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     data_handle.close()
 
     assert not (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
     ).exists()
 
     print("Locking database for retrieve")
@@ -102,9 +102,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
 
     assert len(elements) == 1
 
-    assert (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
-    ).exists()
+    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock").exists()
 
     print("Retrieve with lock")
     # Needed because reuse of databases in the retrieve path is using a cached db
@@ -132,7 +130,7 @@ def test_control_lock_retrieve(read_only_fdb_setup):
     data_handle.close()
 
 
-def test_control_lock_list(read_only_fdb_setup):
+def test_control_lock_list(read_only_fdb_setup, function_tmp):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -165,9 +163,7 @@ def test_control_lock_list(read_only_fdb_setup):
 
     assert len(elements) == 1
 
-    assert (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
-    ).exists()
+    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock").exists()
 
     print("List with lock. Expecting 0 elements.")
     list_iterator = fdb.list(selection)
@@ -182,16 +178,14 @@ def test_control_lock_list(read_only_fdb_setup):
     assert len(elements) > 0
 
     # Correct behaviour is to "not see the data after locking"
-    assert not (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
-    ).exists()
+    assert not (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock").exists()
 
     list_iterator = fdb.list(selection)
     elements = list(list_iterator)
     assert len(elements) == 3
 
 
-def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
+def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function_tmp):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -219,9 +213,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
 
     assert len(elements) == 1
 
-    assert (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
-    ).exists()
+    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock").exists()
 
     print("Try archiving")
     with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
@@ -241,7 +233,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     assert not (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
@@ -250,7 +242,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages):
     print("Success")
 
 
-def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
+def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages, function_tmp):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -287,9 +279,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     for el in elements:
         print(el)
 
-    assert (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
-    ).exists()
+    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock").exists()
 
     print("Try archiving")
     with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
@@ -309,7 +299,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     assert len(elements) == 1
 
     assert not (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
     print("Try archiving")
@@ -318,7 +308,7 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages):
     print("Success")
 
 
-def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
+def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_messages):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -349,9 +339,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
         elements.append(el)
 
     assert len(elements) == 1
-    assert (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
-    ).exists()
+    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
 
     print("Try Wipe")
     wipe_iterator = fdb.wipe(selection, doit=True)
@@ -376,9 +364,7 @@ def test_control_lock_wipe(read_only_fdb_setup, build_grib_messages):
 
     assert len(elements) > 0
 
-    assert not (
-        fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
-    ).exists()
+    assert not (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
 
     print("Try Wipe")
     fdb.wipe(selection, doit=True)

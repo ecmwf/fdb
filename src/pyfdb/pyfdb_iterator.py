@@ -42,6 +42,7 @@ class ListElement:
             raise TypeError("Creating a ListElement from user code is not supported.")
         self._element: _ListElement = list_element
 
+    @property
     def data_handle(self) -> DataHandle:
         """
         Access the DataHandle
@@ -64,6 +65,7 @@ class ListElement:
         """
         return DataHandle(self._element.data_handle(), _internal=True)
 
+    @property
     def uri(self) -> URI | None:
         """
         Access the URI of the list element

@@ -25,7 +25,7 @@ def test_list_element_uri(read_only_fdb_setup):
     elements = list(list_iterator)
     assert len(elements) == 1
     print(elements[0])
-    print(elements[0].uri())
+    print(elements[0].uri)
 
     print("----------------------------------")
 
@@ -47,7 +47,7 @@ def test_list_element_uri(read_only_fdb_setup):
     elements = list(list_iterator)
     assert len(elements) == 1
     print(elements[0])
-    print(elements[0].uri())
+    print(elements[0].uri)
 
     print("----------------------------------")
 
@@ -66,7 +66,7 @@ def test_list_element_uri(read_only_fdb_setup):
     list_iterator = fdb.list(selection, level=3)
     assert list_iterator
 
-    elements = [el.uri() for el in list_iterator if el.uri()]
+    elements = [el.uri for el in list_iterator if el.uri]
 
     assert len(elements) == 3
     for el in elements:
