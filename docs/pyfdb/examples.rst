@@ -505,7 +505,7 @@ level of the underlying FDB. If you specify ``level=3``, the returned ``ListElem
     elements = list(list_iterator)
 
     for el in elements:
-        data_handle = el.data_handle()
+        data_handle = el.data_handle
         data_handle.open()
         assert data_handle.read(4) == b"GRIB"
         data_handle.close()
@@ -549,7 +549,7 @@ describing which field was part of the MARS selection.**
     assert len(elements) == 1
 
     for el in elements:
-        with el.data_handle() as data_handle:
+        with el.data_handle as data_handle:
             assert data_handle.read(4) == b"GRIB"
 
 The code above shows how to inspect certain elements stored in the ``FDB``. This call is similar to

@@ -21,12 +21,13 @@ def add_new_root(fdb_config_path: Path, new_root: Path) -> str:
     return fdb_config_string
 
 
-def test_move(read_only_fdb_setup):
+def test_move(read_only_fdb_setup, function_tmp):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
 
-    new_root: Path = fdb_config_path.parent / "new_db"
+    new_root: Path = function_tmp / "new_db"
+
     updated_config = add_new_root(fdb_config_path, new_root)
 
     print(updated_config)
@@ -48,7 +49,7 @@ def test_move(read_only_fdb_setup):
     )
 
     listed_elements = list(fdb.list(selection, level=3))
-    parent_directories = list(set(Path(str(el.uri())).parent for el in listed_elements))
+    parent_directories = list(set(Path(str(el.uri)).parent for el in listed_elements))
 
     # in the read only fdb setup all files share the same directory
     assert len(parent_directories) == 1
@@ -139,7 +140,7 @@ def test_move_cleanup(read_only_fdb_setup):
 
     listed_elements = list(fdb.list(selection, level=3))
     # Collect the directory of all listed elements
-    parent_directories = list(set(Path(str(el.uri())).parent for el in listed_elements))
+    parent_directories = list(set(Path(str(el.uri)).parent for el in listed_elements))
 
     # in the read only fdb setup all files share the same directory
     assert len(parent_directories) == 1

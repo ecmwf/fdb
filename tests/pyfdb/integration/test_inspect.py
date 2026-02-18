@@ -1,4 +1,6 @@
+from typing import List
 from pyfdb import FDB
+from pyfdb.pyfdb_iterator import ListElement
 
 
 def test_inspect(read_only_fdb_setup):
@@ -25,7 +27,7 @@ def test_inspect(read_only_fdb_setup):
 
     assert list_iterator
 
-    elements = []
+    elements: List[ListElement] = []
 
     for el in list_iterator:
         elements.append(el)
@@ -36,7 +38,7 @@ def test_inspect(read_only_fdb_setup):
     assert len(elements) == 1
 
     for el in elements:
-        data_handle = el.data_handle()
+        data_handle = el.data_handle
         assert data_handle
         data_handle.open()
         assert data_handle.read(4) == b"GRIB"
@@ -78,7 +80,7 @@ def test_inspect_multiple_values(read_only_fdb_setup):
     assert len(elements) == 1
 
     for el in elements:
-        data_handle = el.data_handle()
+        data_handle = el.data_handle
         assert data_handle
         data_handle.open()
         assert data_handle.read(4) == b"GRIB"
