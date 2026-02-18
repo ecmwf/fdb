@@ -244,7 +244,9 @@ void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
         controlURIs.emplace("file", lck);
     }
 
-    wipeState.setInfo("FDB Owner: " + owner());
+    std::stringstream ss;
+    ss << "[" << "Database: " << uri().path().baseName() << ", FDB Owner: " << owner() << "]";
+    wipeState.setInfo(ss.str());
 
     // ---- MARK FOR DELETION OR AS SAFE ----
 

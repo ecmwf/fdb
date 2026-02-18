@@ -91,6 +91,14 @@ public:
     const std::set<eckit::URI>& safeURIs() const { return safeURIs_; }
     const URIMap& deleteMap() const { return deleteURIs_; }
 
+    // Count the number of URIs marked for deletion
+    size_t countURIsToDelete() const {
+        size_t count = 0;
+        for (const auto& [type, uris] : deleteURIs_) {
+            count += uris.size();
+        }
+        return count;
+    }
 
     // Create WipeElements from this Class's contents.
     // Note: this moves the data out of this class and into the WipeElements. The class is not intended to be used after
@@ -208,8 +216,11 @@ public:
 
     CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
 
-    CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
-        WipeState(std::move(safeURIs), std::move(deleteURIs)), dbKey_(dbKey) {}
+    CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs,
+                       std::set<Index> indexesToMask) :
+        WipeState(std::move(safeURIs), std::move(deleteURIs)),
+        dbKey_(dbKey),
+        indexesToMask_(std::move(indexesToMask)) {}
 
     CatalogueWipeState(eckit::Stream& s);
 

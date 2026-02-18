@@ -22,6 +22,12 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     auto& storeWipeStates = catalogueWipeState.storeStates();
 
+    size_t totalURIsToDelete = catalogueWipeState.countURIsToDelete();
+    if (totalURIsToDelete == 0) {
+        LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - no URIs to delete" << std::endl;
+        return generateWipeElements(catalogueWipeState, storeWipeStates, {}, unsafeWipeAll);
+    }
+
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
     // Contact each of the relevant stores.

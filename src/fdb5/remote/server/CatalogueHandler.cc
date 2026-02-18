@@ -249,10 +249,8 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
             handler.wipesInProgress_[dbKey] = {
-                unsafeWipeAll_,
-                CatalogueReaderFactory::instance().build(dbKey, handler.config_),
-                CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap()),
-            };
+                unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, handler.config_),
+                CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask())};
         }
         else {
             handler.wipesInProgress_.erase(dbKey);
