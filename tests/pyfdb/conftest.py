@@ -6,8 +6,12 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import logging
+import os
 import pathlib
+from typing import Generator
 
+import psutil
 import pytest
 import itertools
 import shutil
@@ -17,6 +21,50 @@ import git
 import eccodes as ec
 
 import pyfdb
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
+
+@pytest.fixture
+def test_logger():
+    return logger
+
+
+def print_open_files_psutil():
+    """
+    Prints open files for a process (default: current).
+    Requires psutil. On some OSes, elevated privileges may be required
+    to inspect other processes.
+    """
+    pid = os.getpid()
+    proc = psutil.Process(pid)
+    try:
+        files = proc.open_files()
+    except psutil.AccessDenied:
+        logger.debug(f"Access denied for pid {pid}. Try running with higher privileges.")
+        return
+    except psutil.NoSuchProcess:
+        logger.debug(f"No such process: {pid}")
+        return
+
+    if not files:
+        logger.debug(f"No open files for pid {pid}.")
+        return
+
+    logger.debug(f"Open files for pid {pid} | Total={proc.num_fds()}:")
+    for f in files:
+        logger.debug(f" - path={f.path}  |  fd={getattr(f, 'fd', '?')}")
+
+
+@pytest.fixture(autouse=True)
+def run_around_tests():
+    # Code that will run before your test, for example:
+    print_open_files_psutil()
+    yield
+
+    print_open_files_psutil()
+    # Code that will run after your test, for example:
 
 
 @pytest.fixture(scope="function")
@@ -42,9 +90,18 @@ def test_data_path() -> pathlib.Path:
     return path
 
 
+@pytest.fixture(scope="session")
+def session_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
+    tmp_dir = tmp_path_factory.mktemp("session_data")
+    yield tmp_dir
+    shutil.rmtree(str(tmp_dir))
+
+
 @pytest.fixture(scope="function")
-def session_tmp(tmp_path_factory) -> pathlib.Path:
-    return tmp_path_factory.mktemp("session_data")
+def function_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
+    tmp_function_dir = tmp_path_factory.mktemp("test_data", numbered=True)
+    yield tmp_function_dir
+    shutil.rmtree(str(tmp_function_dir))
 
 
 @pytest.fixture(scope="function")
@@ -87,44 +144,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.Path:
-    """
-    Creates a FDB setup in this tests temp directory.
-    Test FDB currently reads all grib files in `tests/data`
-    This setup can be shared between tests as we will only read
-    data from this FDB
-    """
-    schema_path_src = data_path / "schema"
-    assert schema_path_src.is_file()
-    schema_path = session_tmp / "schema"
-    shutil.copy(schema_path_src, schema_path)
-
-    db_store_path = session_tmp / "db_store"
-    db_store_path.mkdir()
-    fdb_config = {
-        "type": "local",
-        "engine": "toc",
-        "schema": str(schema_path),
-        "spaces": [
-            {
-                "handler": "Default",
-                "roots": [
-                    {"path": str(db_store_path)},
-                ],
-            }
-        ],
-    }
-    fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = session_tmp / "fdb_config.yaml"
-    fdb_config_path.write_text(fdb_config_str)
-    fdb = pyfdb.FDB(fdb_config_str)
-    fdb.archive(build_grib_messages.read_bytes())
-    fdb.flush()
-    return fdb_config_path
-
-
-@pytest.fixture(scope="function", autouse=False)
-def empty_fdb_setup(data_path, session_tmp) -> pathlib.Path:
+def empty_fdb_setup(data_path, session_tmp, function_tmp) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     This setup can be shared between tests
@@ -134,7 +154,7 @@ def empty_fdb_setup(data_path, session_tmp) -> pathlib.Path:
     schema_path = session_tmp / "schema"
     shutil.copy(schema_path_src, schema_path)
 
-    db_store_path = session_tmp / "db_store"
+    db_store_path = session_tmp / function_tmp / "db_store"
     db_store_path.mkdir()
     fdb_config = dict(
         type="local",
@@ -156,37 +176,32 @@ def empty_fdb_setup(data_path, session_tmp) -> pathlib.Path:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def read_write_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.Path:
+def read_only_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
     This setup can be shared between tests as we will only read
     data from this FDB
     """
-    schema_path_src = data_path / "schema"
-    assert schema_path_src.is_file()
-    schema_path = session_tmp / "schema"
-    shutil.copy(schema_path_src, schema_path)
 
-    db_store_path = session_tmp / "db_store"
-    db_store_path.mkdir()
-    fdb_config = dict(
-        type="local",
-        engine="toc",
-        schema=str(schema_path),
-        spaces=[
-            dict(
-                handler="Default",
-                roots=[
-                    {"path": str(db_store_path)},
-                ],
-            )
-        ],
-    )
-    fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = session_tmp / "fdb_config.yaml"
-    fdb_config_path.write_text(fdb_config_str)
-    fdb = pyfdb.FDB(fdb_config_str)
-    fdb.archive(build_grib_messages.read_bytes())
-    fdb.flush()
-    return fdb_config_path
+    logger.debug("***********READ ONLY FDB SETUP*******************")
+    with pyfdb.FDB(empty_fdb_setup) as fdb:
+        fdb.archive(build_grib_messages.read_bytes())
+        fdb.flush()
+
+    print_open_files_psutil()
+    return empty_fdb_setup
+
+
+@pytest.fixture(scope="function", autouse=False)
+def read_write_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
+    """
+    Creates a FDB setup in this tests temp directory.
+    Test FDB currently reads all grib files in `tests/data`
+    This setup can be shared between tests as we will only read
+    data from this FDB
+    """
+    with pyfdb.FDB(empty_fdb_setup) as fdb:
+        fdb.archive(build_grib_messages.read_bytes())
+        fdb.flush()
+    return empty_fdb_setup

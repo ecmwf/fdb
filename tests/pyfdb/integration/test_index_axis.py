@@ -3,6 +3,65 @@ from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import IndexAxis
 
 
+def test_index_axis_creation_dict():
+    selection = {
+        "type": ["an"],
+        "class": ["ea"],
+        "domain": ["g"],
+        "expver": ["0001"],
+        "stream": ["oper"],
+        "date": ["20200101"],
+        "levtype": ["sfc"],
+        "step": ["0"],
+        "param": ["167", "131", "132"],
+        "time": ["1800"],
+    }
+
+    index_axis = IndexAxis(selection)
+
+    assert index_axis.items() == selection.items()
+    for value in selection.values():
+        assert value in index_axis.values()
+    assert index_axis.keys() == selection.keys()
+    assert index_axis == selection
+
+
+def test_index_axis_with_dict(read_only_fdb_setup):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {
+        "type": ["an"],
+        "class": ["ea"],
+        "domain": ["g"],
+        "expver": ["0001"],
+        "stream": ["oper"],
+        "date": ["20200101"],
+        "levtype": ["sfc"],
+        "step": ["0"],
+        "param": ["167", "131", "132"],
+        "time": ["1800"],
+    }
+
+    index_axis = fdb.axes(selection)
+
+    expected_index_axis = {
+        "type": ["an"],
+        "class": ["ea"],
+        "domain": ["g"],
+        "expver": ["0001"],
+        "stream": ["oper"],
+        "date": ["20200101"],
+        "levelist": [""],
+        "levtype": ["sfc"],
+        "step": ["0"],
+        "param": ["131", "132", "167"],
+        "time": ["1800"],
+    }
+
+    assert index_axis == expected_index_axis
+    assert expected_index_axis == index_axis
+
+
 def test_index_axis_string(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 
@@ -17,7 +76,7 @@ def test_index_axis_string(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -43,7 +102,7 @@ def test_index_axis_get(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -77,7 +136,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -117,7 +176,7 @@ def test_index_axis_repr(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -142,7 +201,7 @@ def test_index_axis_keys(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -167,7 +226,7 @@ def test_index_axis_values(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -192,7 +251,7 @@ def test_index_axis_items(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": "131/132/167",
         "time": "1800",
     }
 
@@ -286,7 +345,7 @@ def test_index_axis_equality(read_only_fdb_setup):
             "date": "20200101",
             "levtype": "sfc",
             "step": "0",
-            "param": "167/165/166",
+            "param": "131/132/167",
             "time": "1800",
         }
 
@@ -307,7 +366,7 @@ def test_index_axis_equality(read_only_fdb_setup):
                 "date": "20200101",
                 "levtype": "sfc",
                 "step": "0",
-                "param": "167/165/166",
+                "param": "131/132/167",
                 "time": "1900",  # This differs
             }
         )
@@ -327,7 +386,7 @@ def test_index_axis_equality_dict(read_only_fdb_setup):
             "date": "20200101",
             "levtype": "sfc",
             "step": "0",
-            "param": "167/165/166",
+            "param": "131/132/167",
             "time": "1800",
         }
 

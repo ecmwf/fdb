@@ -402,6 +402,10 @@ class URI:
 
         return False
 
+    def __ne__(self, value: object, /) -> bool:
+        # Needs to be implemented because of __eq__
+        return not self.__eq__(value)
+
     def _to_internal(self):
         return _URI(parse.urlunsplit(self._uri))
 

@@ -242,7 +242,9 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function
     print("Success")
 
 
-def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages, function_tmp):
+def test_control_lock_archive_status(
+    read_only_fdb_setup, build_grib_messages, function_tmp, test_logger
+):
     fdb_config_path = read_only_fdb_setup
 
     assert fdb_config_path
@@ -258,42 +260,42 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages, f
         "time": "1800",
     }
 
-    print("Lock the database for archiving")
+    test_logger.info("Lock the database for archiving")
     control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
 
     for el in control_iterator:
-        print(el)
+        test_logger.debug(el)
         elements.append(el)
 
     assert len(elements) == 1
 
-    print("--------- OUTPUT STATUS -----------")
+    test_logger.debug("--------- OUTPUT STATUS -----------")
 
     status_iterator = fdb.status(selection)
 
     elements = list(status_iterator)
 
     for el in elements:
-        print(el)
+        test_logger.debug(el)
 
     assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock").exists()
 
-    print("Try archiving")
+    test_logger.info("Try archiving")
     with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
-    print("Unlock the database for archiving")
+    test_logger.info("Unlock the database for archiving")
     control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE])
     assert control_iterator
 
     elements = []
 
     for el in control_iterator:
-        print(el)
+        test_logger.debug(el)
         elements.append(el)
 
     assert len(elements) == 1
@@ -302,10 +304,10 @@ def test_control_lock_archive_status(read_only_fdb_setup, build_grib_messages, f
         function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
     ).exists()
 
-    print("Try archiving")
+    test_logger.info("Try archiving")
     fdb.archive(build_grib_messages.read_bytes())
     fdb.flush()
-    print("Success")
+    test_logger.info("Success")
 
 
 def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_messages):

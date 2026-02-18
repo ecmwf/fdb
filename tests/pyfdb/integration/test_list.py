@@ -1,5 +1,3 @@
-import os
-import psutil
 import pytest
 from pyfdb import FDB
 
@@ -33,8 +31,7 @@ def test_read_only_attributes_list_element(read_only_fdb_setup):
             elements[i].uri = None
 
 
-@pytest.mark.parametrize("i", range(10))
-def test_list_minimal(read_only_fdb_setup, i):
+def test_list_minimal(read_only_fdb_setup, test_logger):
     with FDB(read_only_fdb_setup) as fdb:
         selection = {
             "type": "an",
@@ -47,7 +44,7 @@ def test_list_minimal(read_only_fdb_setup, i):
             "step": "0",
             "time": "1800",
         }
-        print(f"Stringified selection:\n  {selection}")
+        test_logger.debug(f"Stringified selection:\n  {selection}")
 
         list_iterator = fdb.list(selection, level=1)
         assert list_iterator
@@ -55,12 +52,12 @@ def test_list_minimal(read_only_fdb_setup, i):
         elements = []
 
         for el in list_iterator:
-            print(el)
+            test_logger.debug(el)
             elements.append(el)
 
         assert len(elements) == 1
 
-        print("----------------------------------")
+        test_logger.debug("----------------------------------")
 
         selection = {
             "type": "an",
@@ -80,12 +77,12 @@ def test_list_minimal(read_only_fdb_setup, i):
         elements = []
 
         for el in list_iterator:
-            print(el)
+            test_logger.debug(el)
             elements.append(el)
 
         assert len(elements) == 1
 
-        print("----------------------------------")
+        test_logger.debug("----------------------------------")
 
         selection = {
             "type": "an",
@@ -105,10 +102,8 @@ def test_list_minimal(read_only_fdb_setup, i):
         elements = []
 
         for el in list_iterator:
-            print(el)
-            print(el.uri)
-
-            print(f"still referencing: {el.references()}")
+            test_logger.debug(el)
+            test_logger.debug(el.uri)
             elements.append(el)
 
         assert len(elements) == 3

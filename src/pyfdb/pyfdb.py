@@ -755,7 +755,7 @@ class FDB:
         """
         internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
-        return IndexAxis(self.FDB.axes(fdb_tool_request.tool_request, level), _internal=True)
+        return IndexAxis(self.FDB.axes(fdb_tool_request.tool_request, level))
 
     def enabled(self, control_identifier: ControlIdentifier) -> bool:
         """

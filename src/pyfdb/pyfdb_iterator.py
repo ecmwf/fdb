@@ -8,7 +8,17 @@
 
 from collections.abc import Mapping
 import logging
-from typing import Collection, Dict, ItemsView, Iterator, KeysView, List, Sequence, ValuesView
+from typing import (
+    Collection,
+    Dict,
+    ItemsView,
+    Iterator,
+    KeysView,
+    List,
+    MutableMapping,
+    Sequence,
+    ValuesView,
+)
 
 from urllib.parse import ParseResult, urlparse
 
@@ -27,7 +37,7 @@ from pyfdb._internal import (
 from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
-from pyfdb._internal.pyfdb_internal import MarsSelection
+from pyfdb._internal.pyfdb_internal import InternalMarsSelection, MarsSelection
 from pyfdb.pyfdb_type import URI, DataHandle, ControlIdentifier
 
 
@@ -122,6 +132,10 @@ class StatusElement:
 
         return False
 
+    def __ne__(self, value: object, /) -> bool:
+        # Needs to be implemented because of __eq__
+        return not self.__eq__(value)
+
     def location(self) -> URI:
         return URI(self.element.location())
 
@@ -192,6 +206,10 @@ class ControlElement:
 
         return False
 
+    def __ne__(self, value: object, /) -> bool:
+        # Needs to be implemented because of __eq__
+        return not self.__eq__(value)
+
     def location(self) -> URI:
         return URI(self.element.location())
 
@@ -205,7 +223,7 @@ class ControlElement:
         return f"ControlElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
 
 
-class IndexAxis(Mapping[str, Sequence[str]]):
+class IndexAxis(MutableMapping[str, Collection[str]]):
     """
     `IndexAxis` class representing axes and their extent. The class implements all Dictionary
     functionalities. Key are the corresponding FDB keys (axes) and values are the values defining the extent
@@ -213,17 +231,30 @@ class IndexAxis(Mapping[str, Sequence[str]]):
 
     """
 
-    def __init__(self, index_axis: _IndexAxis, *, _internal=False) -> None:
-        if not _internal:
-            raise TypeError("Creating a IndexAxis from user code is not supported.")
-        self.index_axis: _IndexAxis = index_axis
+    def __init__(self, index_axis: _IndexAxis | InternalMarsSelection) -> None:
+        if isinstance(index_axis, _IndexAxis):
+            self.index_axis = index_axis
+        elif isinstance(index_axis, Dict):
+            self.index_axis = _IndexAxis(index_axis)
+        else:
+            raise TypeError(
+                f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `Dict[str, Collection[str]]` are allowed."
+            )
 
     def __repr__(self) -> str:
-        return str(self.index_axis)
+        return repr(self.index_axis)
 
     def __getitem__(self, key: str) -> str:
-        values = self.index_axis[key]
-        return values
+        return self.index_axis[key]
+
+    def __setitem__(self, key, value):
+        raise TypeError("This mapping is read-only")
+
+    def __delitem__(self, key):
+        raise TypeError("This mapping is read-only")
+
+    def clear(self):
+        raise TypeError("This mapping is read-only")
 
     def __len__(self) -> int:
         return len(self.index_axis)
@@ -247,17 +278,21 @@ class IndexAxis(Mapping[str, Sequence[str]]):
         else:
             return False
 
+    def __ne__(self, value: object, /) -> bool:
+        # Needs to be implemented because of __eq__
+        return not self.__eq__(value)
+
     def has_key(self, k) -> bool:
         return k in self.index_axis
 
     def keys(self) -> KeysView[str]:
-        return self.index_axis.keys()
+        return KeysView(self)
 
-    def values(self) -> ValuesView[str]:
-        return self.index_axis.values()
+    def values(self) -> ValuesView[Collection[str]]:
+        return ValuesView(self)
 
-    def items(self) -> ItemsView[str, Sequence[str]]:
-        return self.index_axis.items()
+    def items(self) -> ItemsView[str, Collection[str]]:
+        return ItemsView(self)
 
     def __contains__(self, item: object):
         return item in self.index_axis
