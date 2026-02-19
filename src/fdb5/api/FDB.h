@@ -23,8 +23,6 @@
 #include <memory>
 #include <string>
 
-#include "eckit/distributed/Transport.h"
-
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
