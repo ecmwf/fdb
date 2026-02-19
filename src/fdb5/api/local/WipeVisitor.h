@@ -23,15 +23,6 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/WipeState.h"
 
-
-template <>
-struct std::hash<eckit::URI> {
-    std::size_t operator()(const eckit::URI& uri) const noexcept {
-        const std::string& e = uri.asRawString();
-        return std::hash<std::string>{}(e);
-    }
-};
-
 namespace fdb5::api::local {
 
 class WipeCatalogueVisitor : public QueryVisitor<CatalogueWipeState> {

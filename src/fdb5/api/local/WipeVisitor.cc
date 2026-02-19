@@ -60,18 +60,15 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         // Bind catalogue to the wipe state so that it can later restore the control state
         catalogueWipeState_.catalogue(catalogue.config());
 
-        // Build the initial control state (is there really not a function for this?)
-        ControlIdentifiers id;
-        if (catalogue.enabled(ControlIdentifier::Archive)) {
-            id |= ControlIdentifier::Archive;
+        // Store the initial control state
+        ControlIdentifiers initialID;
+
+        for (auto id : ControlIdentifierList) {
+            if (catalogue.enabled(id))
+                initialID |= id;
         }
-        if (catalogue.enabled(ControlIdentifier::List)) {
-            id |= ControlIdentifier::List;
-        }
-        if (catalogue.enabled(ControlIdentifier::Retrieve)) {
-            id |= ControlIdentifier::Retrieve;
-        }
-        catalogueWipeState_.initialControlState(id);
+
+        catalogueWipeState_.initialControlState(initialID);
 
         catalogue.control(ControlAction::Disable,
                           ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
