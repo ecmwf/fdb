@@ -10,6 +10,7 @@
 
 #include <string>
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 #include "eckit/types/Date.h"
 #include "fdb5/api/FDB.h"
@@ -127,6 +128,7 @@ CASE("Remote protocol: the basics") {
     const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys;
+    eckit::Log::info() << "[CLIENT]" << "Archiving " << Nfields << " fields." << std::endl;
     {
         FDB fdb{};  // Expects the config to be set in the environment
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
@@ -135,6 +137,7 @@ CASE("Remote protocol: the basics") {
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
 
     // -- list all fields -
+    eckit::Log::info() << "[CLIENT]" << "Listing all fields." << std::endl;
     size_t count = 0;
     {
         auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
@@ -146,7 +149,8 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(count, Nfields);
     }
 
-    // -- list all fields - use a temporary FDB instance to test if the RemoteFDb life is extended
+    // -- list all fields -
+    eckit::Log::info() << "[CLIENT]" << "Listing all fields with request." << std::endl;
     {
 
         count   = 0;
@@ -160,6 +164,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // -- retrieve all fields -
+    eckit::Log::info() << "[CLIENT]" << "Retrieving all fields." << std::endl;
     {
         std::unique_ptr<eckit::DataHandle> dh(FDB{}.retrieve(make_request(keys)));
 
@@ -174,6 +179,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // -- wipe (doit=false) --
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
         WipeElement wipeElem;
@@ -190,6 +196,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // -- list all fields again, expect same number as before
+    eckit::Log::info() << "[CLIENT]" << "Listing all fields." << std::endl;
     {
         count   = 0;
         auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
@@ -202,6 +209,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // -- list fields, expect same number. --
+    eckit::Log::info() << "[CLIENT]" << "Listing all fields with request." << std::endl;
     {
 
         auto it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
@@ -215,6 +223,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // Wipe, with doit=true
+    eckit::Log::info() << "[CLIENT]" << "Wiping with request date=20000101. --doit" << std::endl;
     {
 
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0], true);
@@ -233,6 +242,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // -- list all remaining fields
+    eckit::Log::info() << "[CLIENT]" << "Listing all fields." << std::endl;
     {
         count   = 0;
         auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
@@ -245,6 +255,7 @@ CASE("Remote protocol: the basics") {
     }
 
     // Wipe everything that remains
+    eckit::Log::info() << "[CLIENT]" << "Wiping everything remaining. --doit" << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
         WipeElement wipeElem;
@@ -259,6 +270,7 @@ CASE("Remote protocol: the basics") {
 CASE("Remote protocol: more wipe testing") {
 
     // Before starting this test, ensure there is no data current in the FDB (e.g. from the previous test...)
+    eckit::Log::info() << "[CLIENT]" << "Dry run fdb-wipe to ensure no pre-existing data." << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], false);
         WipeElement wipeElem;
@@ -281,6 +293,7 @@ CASE("Remote protocol: more wipe testing") {
     const size_t Nfields          = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys;
+    eckit::Log::info() << "[CLIENT]" << "Archiving " << Nfields << " fields." << std::endl;
     {
         FDB fdb{};  // Expects the config to be set in the environment
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
@@ -288,7 +301,8 @@ CASE("Remote protocol: more wipe testing") {
     EXPECT_EQUAL(keys.size(), Nfields);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
 
-    // wipe a single date
+    // dry run wipe a single date
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
         WipeElement wipeElem;
@@ -305,6 +319,7 @@ CASE("Remote protocol: more wipe testing") {
         EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
     // Duplicate everything
+    eckit::Log::info() << "[CLIENT]" << "Archiving same fields again to duplicate data." << std::endl;
     {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
@@ -314,6 +329,7 @@ CASE("Remote protocol: more wipe testing") {
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101 (first level)" << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
                                  false);  // dont actually delete anything
@@ -355,6 +371,9 @@ CASE("Remote protocol: more wipe testing") {
             fh.close();
         }
     }
+
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request class=od,expver=xxxx,levtype=sfc (2nd level)."
+                       << std::endl;
     {
         // Partial wipe on level 2 (type=fc). Should hit half the index/data files
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=fc")[0], false);
@@ -374,6 +393,8 @@ CASE("Remote protocol: more wipe testing") {
     }
 
     // Over specified wipe on level 3 (step=1). Should mark nothing for deletion.
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request class=od,expver=xxxx,step=1 (overspecified)."
+                       << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,step=1")[0], false);
 
@@ -391,6 +412,7 @@ CASE("Remote protocol: more wipe testing") {
     }
 
     // Now actually wipe everything
+    eckit::Log::info() << "[CLIENT]" << "Wiping everything remaining. --doit" << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], true);  // doit
         WipeElement wipeElem;
@@ -410,6 +432,8 @@ CASE("Remote protocol: more wipe testing") {
     }
 
     // there should be nothing left.
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request class=od,expver=xxxx (check nothing remains)."
+                       << std::endl;
     {
         auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0], false);
         WipeElement wipeElem;
