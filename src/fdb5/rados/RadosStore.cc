@@ -17,7 +17,6 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rados/RadosStore.h"
 #include "fdb5/rules/Rule.h"
