@@ -58,7 +58,10 @@ Config Config::expandConfig() const {
 
     // If we have explicitly specified a config as an environment variable, use that
 
-    char* config_str = ::getenv("FDB5_CONFIG");
+    char* config_str = ::getenv("FDB_CONFIG");
+    if (!config_str) {
+        config_str = ::getenv("FDB5_CONFIG");  // backwards compatibility
+    }
     if (config_str) {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
@@ -79,7 +82,11 @@ Config Config::expandConfig() const {
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    std::string config_path = eckit::Resource<std::string>("fdbConfigFile;$FDB_CONFIG_FILE", "");
+    if (config_path.empty()) {
+        config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");  // backwards compatibility
+    }
+
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
         if (!actual_path.exists())
