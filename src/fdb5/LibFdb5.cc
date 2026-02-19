@@ -101,28 +101,22 @@ static unsigned getUserEnvRemoteProtocol() {
     return 0;  // no version override
 }
 
-static bool getUserEnvSkipSanityCheck() {
-    return ::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK");
-}
 
 RemoteProtocolVersion::RemoteProtocolVersion() {
-    static unsigned user  = getUserEnvRemoteProtocol();
-    static bool skipcheck = getUserEnvSkipSanityCheck();
+    static unsigned user = getUserEnvRemoteProtocol();
 
     if (not user) {
         used_ = defaulted();
         return;
     }
 
-    if (not skipcheck) {
-        bool valid = check(user, false);
-        if (not valid) {
-            std::ostringstream msg;
-            msg << "Unsupported FDB5 remote protocol version " << user << " - supported: " << supportedStr()
-                << std::endl;
-            throw eckit::BadValue(msg.str(), Here());
-        }
+    bool valid = check(user, false);
+    if (not valid) {
+        std::ostringstream msg;
+        msg << "Unsupported FDB5 remote protocol version " << user << " - supported: " << supportedStr() << std::endl;
+        throw eckit::BadValue(msg.str(), Here());
     }
+
     used_ = user;
 }
 
