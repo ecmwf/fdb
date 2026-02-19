@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
@@ -90,17 +91,22 @@ FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
 void FDBServerThread::run() {
     eckit::Log::info() << "FDB started handler thread" << std::endl;
 
-    if (config_.getString("type", "local") == "catalogue" ||
-        (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
+    std::string type = config_.getString("type", "local");
+    if (type == "catalogue") {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
         CatalogueHandler handler(socket_, config_);
         handler.handle();
     }
-    else if (config_.getString("type", "local") == "store" ||
-             (::getenv("FDB_IS_STORE") && ::getenv("FDB_IS_STORE")[0] == '1')) {
+    else if (type == "store") {
         eckit::Log::info() << "FDB using Store Handler" << std::endl;
         StoreHandler handler(socket_, config_);
         handler.handle();
+    }
+    else {
+        std::ostringstream ss;
+        ss << "ERROR: Could not start fdb server. Unexpected type type (" << type
+           << "). Expected either 'catalogue' or 'store'.";
+        throw UserError(ss.str(), Here());
     }
 }
 
