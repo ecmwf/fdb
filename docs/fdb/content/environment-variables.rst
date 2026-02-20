@@ -18,7 +18,12 @@ variable contains YAML, not a path). For example:
      }]
    }'
 
-This variable takes precedence over both ``FDB_CONFIG_FILE`` and the default config file (``$FDB_HOME/etc/config.yaml``).
+This variable takes precedence over both ``FDB_CONFIG_FILE`` and the default config file (``$FDB_HOME/etc/fdb/config.yaml``).
+
+
+``FDB5_CONFIG``
+---------------
+Deprecated. Equivalent to ``FDB_CONFIG``. If both are specified, ``FDB_CONFIG`` takes precedence over ``FDB5_CONFIG``.
 
 
 ``FDB_CONFIG_FILE``
@@ -30,5 +35,10 @@ If set, FDB parses the value of ``FDB_CONFIG_FILE`` as a path to a YAML configur
 
    export FDB_CONFIG_FILE=/path/to/config.yaml
 
-This takes precedence over the default config file (``$FDB_HOME/etc/config.yaml``), but is
+This takes precedence over the default config file (``$FDB_HOME/etc/fdb/config.yaml``), but is
 overridden by ``FDB_CONFIG``.
+
+
+``FDB5_CONFIG_FILE``
+--------------------
+Deprecated. Equivalent to ``FDB_CONFIG_FILE``. If both are specified, ``FDB_CONFIG_FILE`` takes precedence over ``FDB5_CONFIG_FILE``.
