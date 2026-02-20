@@ -30,7 +30,6 @@
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
@@ -38,12 +37,12 @@
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
-#include "fdb5/database/WipeVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 class Store;
+class CatalogueWipeState;
 
 typedef std::map<Key, Index> IndexStore;
 
@@ -64,8 +63,6 @@ public:
     virtual bool selectIndex(const Key& idxKey) = 0;
     virtual void deselectIndex()                = 0;
 
-    virtual std::vector<eckit::PathName> metadataPaths() const = 0;
-
     virtual void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
     virtual void hideContents() = 0;
@@ -75,8 +72,6 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const                                           = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const                                     = 0;
-    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out,
-                                     bool doit, bool porcelain, bool unsafeWipeAll) const            = 0;
     virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                      const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
@@ -85,13 +80,6 @@ public:
     virtual bool enabled(const ControlIdentifier& controlIdentifier) const = 0;
 
     virtual std::vector<fdb5::Index> indexes(bool sorted = false) const = 0;
-
-    /// For use by the WipeVisitor
-    virtual void maskIndexEntry(const Index& index) const = 0;
-
-    /// For use by purge/wipe
-    virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                           std::set<eckit::URI>& data) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s, const Catalogue& x);
     virtual void print(std::ostream& out) const = 0;
@@ -107,9 +95,46 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
+    /// Wipe-related methods
+    virtual bool uriBelongs(const eckit::URI& uri) const = 0;
+
+    /// For use by the WipeVisitor
+    virtual void maskIndexEntries(const std::set<Index>& indexes) const = 0;
+
+    /// For use by purge/wipe
+    virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                           std::set<eckit::URI>& data) const = 0;
+
+    /// Generate the initial wipe state object
+    virtual CatalogueWipeState wipeInit() const = 0;
+
+    /// Mark an index as to be wiped (include=true) or preserved (include=false)
+    virtual bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const = 0;
+
+    /// Finish populating the wipe state
+    virtual void finaliseWipeState(CatalogueWipeState& wipeState) const = 0;
+
+    /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
+    virtual bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const = 0;
+
+    /// Delete URIs marked in the wipe state
+    virtual bool doWipeURIs(const CatalogueWipeState& wipeState) const = 0;
+
+    /// At the end of a wipe operation, clean up the DB if it is now empty
+    virtual void doWipeEmptyDatabase() const = 0;
+
+    /// Delete full DB in a single or a few operations
+    virtual bool doUnsafeFullWipe() const = 0;
+
+    virtual const ControlIdentifiers& controlIdentifiers() const = 0;
+
 protected:  // methods
 
     virtual void loadSchema() = 0;
+
+protected:  // members
+
+    mutable bool cleanupEmptyDatabase_ = false;
 };
 
 class CatalogueImpl : virtual public Catalogue {
@@ -129,6 +154,8 @@ public:
     void hideContents() override { NOTIMP; }
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
+
+    const ControlIdentifiers& controlIdentifiers() const override { return controlIdentifiers_; }
 
 protected:  // methods
 
@@ -304,8 +331,6 @@ public:
 
     void deselectIndex() override { NOTIMP; }
 
-    std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; }
-
     void hideContents() override { NOTIMP; }
 
     void dump(std::ostream& out, bool simple = false,
@@ -316,10 +341,6 @@ public:
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override {
-        NOTIMP;
-    }
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
@@ -330,7 +351,7 @@ public:
     std::vector<fdb5::Index> indexes(bool sorted = false) const override { NOTIMP; }
 
     /// For use by the WipeVisitor
-    void maskIndexEntry(const Index& index) const override { NOTIMP; }
+    void maskIndexEntries(const std::set<Index>& indexes) const override { NOTIMP; }
 
     /// For use by purge/wipe
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,

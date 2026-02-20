@@ -11,7 +11,9 @@
 #pragma once
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include <memory>
@@ -40,7 +42,13 @@ struct CatalogueArchiver {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+struct WipeHelper;
 class CatalogueHandler : public ServerConnection {
+
+    friend struct WipeHelper;
+    struct WipeInProgress;
+
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -53,12 +61,13 @@ private:  // methods
 
     // API functionality
     template <typename HelperClass>
-    void forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
     void flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stores(uint32_t clientID, uint32_t requestID);
@@ -69,6 +78,16 @@ private:  // methods
     bool remove(bool control, uint32_t clientID) override;
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
+
+    void doMaskIndexEntries(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doWipeUnknowns(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
+    void doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+
+    const Config& config() const { return config_; }
+
+    const WipeInProgress& cachedWipeState(Key dbKey) const;
 
 private:  // member
 
@@ -81,6 +100,14 @@ private:  // member
 
     bool fdbControlConnection_;
     bool fdbDataConnection_;
+
+    struct WipeInProgress {
+        bool unsafeWipeAll = false;
+        std::unique_ptr<CatalogueReader> catalogue;
+        CatalogueWipeState state;
+    };
+
+    std::map<Key, WipeInProgress> wipesInProgress_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

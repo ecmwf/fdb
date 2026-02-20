@@ -1,0 +1,8 @@
+---
+type: local
+engine: toc
+spaces:
+- catalogueRoots:
+  - path: ./catalogueroot
+  storeRoots:
+  - path: ./storeroot

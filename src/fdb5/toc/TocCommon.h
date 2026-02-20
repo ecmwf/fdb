@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <dirent.h>
+
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
@@ -52,6 +54,21 @@ protected:  // members
 
     mutable uid_t dbUID_;
     uid_t userUID_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class StdDir {
+
+    eckit::PathName path_;
+    DIR* d_;
+
+public:
+
+    StdDir(const eckit::PathName& p);
+    ~StdDir();
+
+    void children(std::vector<eckit::PathName>& paths);
 };
 
 }  // namespace fdb5

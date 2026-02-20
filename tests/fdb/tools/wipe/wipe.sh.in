@@ -5,6 +5,7 @@ set -ux
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
 try() { "$@" || die "Errored HERE => '$*'"; }
+expect_fail() { "$@" && die "Expected failure but command succeeded => '$*'"; }
 
 line_count() {
   [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
@@ -17,14 +18,28 @@ grep_count() {
   val=$(grep -cEE "$1" out)
   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
 }
+########################################################################################################################
+# test-specific setup
+configyaml=$1
+
+if [[ "$configyaml" == "shared_root.yaml" ]]; then
+  catroot="localroot"
+  storoot="localroot"
+elif [[ "$configyaml" == "separate_cat_store.yaml" ]]; then
+  catroot="catalogueroot"
+  storoot="storeroot"
+else
+  die "Test not properly setup for configyaml: $configyaml"
+fi
+
 
 ########################################################################################################################
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
-export FDB5_CONFIG_FILE="local.yaml"
+export FDB5_CONFIG_FILE=$configyaml
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
-test_name=all_full
+test_name=check
 src_data="../../../od.oper.grib"
 src_dir=@CMAKE_CURRENT_SOURCE_DIR@
 bin_dir=@CMAKE_CURRENT_BINARY_DIR@
@@ -36,11 +51,12 @@ echo "running test '$test_name' on $(hostname)"
 try cd $bin_dir
 
 try rm -rf $test_name
-try mkdir -p $test_name/localroot
+try mkdir -p $test_name/$catroot
+try mkdir -p $test_name/$storoot
 
 try cd $test_name
 
-try cp "$src_dir/local.yaml" ./
+try cp "$src_dir/$configyaml" ./
 try ln -s "$bin_dir/$src_data" ./
 
 work_dir=$(pwd)
@@ -68,43 +84,80 @@ regex_y1="{class=rd,expver=xxxy,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}
 # We loop over all these tests twice. We should get the same listing results both times
 # as the default behaviour is to only show the data that would be retrieved (i.e. that matches a MARS request.)
 
-for i in 0 1; do
+for i in 0 1 2; do
 
   echo "============ Loop $i ============"
 
   try fdb-write data.xxxx.0.grib
   try fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((24+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((0+(24*i)))
-  grep_count "$regex_y0" $((0+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  line_count $((24+(72*i)))
+  grep_count "$regex_x0" $((24+(12*i)))
+  grep_count "$regex_x1" $(( 0+(12*i)))
+  grep_count "$regex_y0" $(( 0+(24*i)))
+  grep_count "$regex_y1" $(( 0+(24*i)))
 
   try fdb-write data.xxxy.0.grib
   try fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((48+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((0+(24*i)))
+  line_count $((48+(72*i)))
+  grep_count "$regex_x0" $((24+(12*i)))
+  grep_count "$regex_x1" $(( 0+(12*i)))
   grep_count "$regex_y0" $((24+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  grep_count "$regex_y1" $(( 0+(24*i)))
 
   try fdb-write data.xxxx.1.grib
   try fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((72+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((24+(24*i)))
+  line_count $((72+(72*i)))
+  grep_count "$regex_x0" $((24+(12*i)))
+  grep_count "$regex_x1" $((24+(12*i)))
   grep_count "$regex_y0" $((24+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  grep_count "$regex_y1" $(( 0+(24*i)))
 
   try fdb-write data.xxxy.1.grib
   try fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((96+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((24+(24*i)))
+  line_count $((96+(72*i)))
+  grep_count "$regex_x0" $((24+(12*i)))
+  grep_count "$regex_x1" $((24+(12*i)))
+  grep_count "$regex_y0" $((24+(24*i)))
+  grep_count "$regex_y1" $((24+(24*i)))
+
+  try fdb-wipe class=rd,expver=xxxx,stream=oper,date=20240911,time=0000,domain=g
+
+  try fdb-wipe class=rd,expver=xxxx,stream=oper,date=20240911,time=0000,domain=g --doit
+
+  try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+  line_count $((72+(72*i)))
+  grep_count "$regex_x0" $((12+(12*i)))
+  grep_count "$regex_x1" $((12+(12*i)))
   grep_count "$regex_y0" $((24+(24*i)))
   grep_count "$regex_y1" $((24+(24*i)))
 
 done
 
+# Expect an error on an overspecified wipe request
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g,type=fc,step=0
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g,type=fc,step=0 --doit
+
+# Wiping an unclean DB
+try touch $catroot/rd:xxxy:oper:20240911:0000:g/dummy
+
+try fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g
+expect_fail fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g --doit
+
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count $((72+(72*2)))
+grep_count "$regex_x0" $((12+(12*2)))
+grep_count "$regex_x1" $((12+(12*2)))
+grep_count "$regex_y0" $((24+(24*2)))
+grep_count "$regex_y1" $((24+(24*2)))
+
+fdb-wipe class=rd,expver=xxxy,stream=oper,date=20240911,time=0000,domain=g --doit --unsafe-wipe-all
+
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count $((48+(48*2)))
+grep_count "$regex_x0" $((12+(12*2)))
+grep_count "$regex_x1" $((12+(12*2)))
+grep_count "$regex_y0" $((12+(12*2)))
+grep_count "$regex_y1" $((12+(12*2)))
+
 echo "cleanup"
-try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
+try rm -rf "$work_dir/$catroot" "$work_dir/$storoot" "$work_dir"/data.*.grib
