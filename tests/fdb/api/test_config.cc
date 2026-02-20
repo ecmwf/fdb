@@ -60,7 +60,7 @@ CASE("config_expands_from_environment_variable_json") {
 }
 
 
-CASE("config_expands_from_new_environment_variable_json") {
+CASE("config_expands_from_FDB_CONFIG_json") {
 
     const std::string config_str(R"XX(
         {
@@ -87,7 +87,7 @@ CASE("config_expands_from_new_environment_variable_json") {
 }
 
 
-CASE("config_new_env_var_takes_precedence_over_old") {
+CASE("config_FDB_CONFIG_takes_precedence_over_FDB5_CONFIG") {
 
     const std::string old_config_str(R"XX(
         {
@@ -183,7 +183,7 @@ CASE("config_expands_explicit_path") {
            "/a/path/is/different");
 }
 
-CASE("config_expands_from_new_config_file_env_var") {
+CASE("config_expands_from_FDB_CONFIG_FILE") {
 
     const std::string config_str(R"XX(
         ---
@@ -216,7 +216,7 @@ CASE("config_expands_from_new_config_file_env_var") {
            "/new/config/file/path");
 }
 
-CASE("config_file_new_env_var_takes_precedence_over_old") {
+CASE("config_FDB_CONFIG_FILE_takes_precedence_over_FDB5_CONFIG_FILE") {
 
     const std::string old_config_str(R"XX(
         ---
