@@ -60,6 +60,73 @@ CASE("config_expands_from_environment_variable_json") {
 }
 
 
+CASE("config_expands_from_new_environment_variable_json") {
+
+    const std::string config_str(R"XX(
+        {
+            "type": "local",
+            "engine": "toc",
+            "groups": [{
+                "pools": [{
+                    "path": "/a/path/is/new"
+                }]
+            }]
+        }
+    )XX");
+
+    eckit::testing::SetEnv env("FDB_CONFIG", config_str.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("groups").size() == 1);
+    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
+    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") ==
+           "/a/path/is/new");
+}
+
+
+CASE("config_new_env_var_takes_precedence_over_old") {
+
+    const std::string old_config_str(R"XX(
+        {
+            "type": "local",
+            "engine": "toc",
+            "groups": [{
+                "pools": [{
+                    "path": "/old/path"
+                }]
+            }]
+        }
+    )XX");
+
+    const std::string new_config_str(R"XX(
+        {
+            "type": "local",
+            "engine": "toc",
+            "groups": [{
+                "pools": [{
+                    "path": "/new/path"
+                }]
+            }]
+        }
+    )XX");
+
+    eckit::testing::SetEnv env1("FDB5_CONFIG", old_config_str.c_str());
+    eckit::testing::SetEnv env2("FDB_CONFIG", new_config_str.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("groups").size() == 1);
+    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
+    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") ==
+           "/new/path");
+}
+
+
 CASE("config_expands_from_environment_variable_yaml") {
 
     const std::string config_str(R"XX(
@@ -114,6 +181,91 @@ CASE("config_expands_explicit_path") {
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
            "/a/path/is/different");
+}
+
+CASE("config_expands_from_new_config_file_env_var") {
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: "/new/config/file/path"
+    )XX");
+
+    eckit::TmpFile tf;
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str.c_str(), config_str.size());
+    }
+
+    eckit::testing::SetEnv env("FDB_CONFIG_FILE", tf.asString().c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
+           "/new/config/file/path");
+}
+
+CASE("config_file_new_env_var_takes_precedence_over_old") {
+
+    const std::string old_config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: "/old/file/path"
+    )XX");
+
+    const std::string new_config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: "/new/file/path"
+    )XX");
+
+    eckit::TmpFile tf_old;
+    eckit::TmpFile tf_new;
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf_old.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(old_config_str.c_str(), old_config_str.size());
+    }
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf_new.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(new_config_str.c_str(), new_config_str.size());
+    }
+
+    eckit::testing::SetEnv env1("FDB5_CONFIG_FILE", tf_old.asString().c_str());
+    eckit::testing::SetEnv env2("FDB_CONFIG_FILE", tf_new.asString().c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
+           "/new/file/path");
 }
 
 CASE("config_expands_override_fdb_home") {
