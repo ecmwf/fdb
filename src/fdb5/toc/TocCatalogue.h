@@ -28,7 +28,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// DB that implements the FDB on POSIX filesystems
-
+class CatalogueWipeState;
 class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public:  // methods
@@ -59,19 +59,19 @@ protected:  // methods
     void checkUID() const override;
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
-    std::vector<eckit::PathName> metadataPaths() const override;
+    // std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
     const Rule& rule() const override;
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
-    void maskIndexEntry(const Index& index) const override;
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
 
     void loadSchema() override;
+
+    bool uriBelongs(const eckit::URI& uri) const override;
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
@@ -80,13 +80,26 @@ protected:  // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
+    // wipe
+    CatalogueWipeState wipeInit() const override;
+    bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
+    void finaliseWipeState(CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const CatalogueWipeState& wipeState) const override;
+    bool doUnsafeFullWipe() const override { return false; }
+
+    void doWipeEmptyDatabase() const override;
+
+private:  // methods
+
+    void addMaskedPaths(CatalogueWipeState& tocWipeState) const;
+
 protected:  // members
 
     Key currentIndexKey_;
 
 private:  // members
 
-    friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
     // non-owning

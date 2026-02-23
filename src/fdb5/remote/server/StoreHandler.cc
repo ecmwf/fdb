@@ -10,19 +10,29 @@
 
 #include "fdb5/remote/server/StoreHandler.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
+#include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/types/Types.h"
+
+#include "eckit/config/Resource.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
-#include <iterator>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -80,6 +90,26 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
             case Message::Exists:  // given key (payload), check if store exists
                 exists(clientID, requestID, payload);
+                return Handled::Replied;
+
+            case Message::Wipe:  // Initial wipe request
+                finaliseWipeState(clientID, requestID, payload);
+                return Handled::Replied;
+
+            case Message::DoWipeURIs:  // request to delete data marked for wipe
+                doWipeURIs(clientID, requestID, payload);
+                return Handled::Yes;
+
+            case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
+                doWipeFinish(clientID, requestID, payload);
+                return Handled::Yes;
+
+            case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
+                doWipeUnknowns(clientID, requestID, payload);
+                return Handled::Yes;
+
+            case Message::DoUnsafeFullWipe:  // request to delete full database and content
+                doUnsafeFullWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
             default: {
@@ -255,13 +285,17 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }
 
-Store& StoreHandler::store(uint32_t clientID) {
+Store& StoreHandler::getStore(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it == stores_.end()) {
         std::string what("Requested Store has not been loaded id: " + std::to_string(clientID));
         Log::error() << what << std::endl;
+        Log::error() << stores_.size() << " existing stores:" << std::endl;
+        for (const auto& kv : stores_) {
+            Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
+        }
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw;
     }
@@ -284,6 +318,21 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
 }
 
+Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
+
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = stores_.find(clientID);
+    if (it != stores_.end()) {
+        return *(it->second.store);
+    }
+
+    numControlConnection_++;
+    if (!single_) {
+        numDataConnection_++;
+    }
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
+}
+
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
 
     ASSERT(payload.size() > 0);
@@ -301,6 +350,137 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     stream << exists;
 
     write(Message::Received, true, clientID, requestID, existBuf.data(), stream.position());
+}
+
+void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+
+    const WipeInProgress& currentWipe = cachedWipeState(key);
+
+    std::set<eckit::URI> uris{s};
+
+    // Only proceed if unsafeWipeAll is set.
+    ASSERT(currentWipe.unsafeWipeAll);
+
+    auto& ss = getStore(clientID);
+
+    // check received URIs are at least a subset of expected unknowns.
+    const auto& expectedUnknowns = currentWipe.state->unrecognisedURIs();
+    for (const auto& uri : uris) {
+        if (expectedUnknowns.find(uri) == expectedUnknowns.end()) {
+            std::stringstream ss;
+            ss << "StoreHandler::doWipeUnknowns: Received unknown URI " << uri
+               << " which was not expected to be wiped.";
+            Log::status() << ss.str() << std::endl;
+            Log::error() << ss.str() << std::endl;
+            throw SeriousBug(ss.str(), Here());
+        }
+    }
+
+    ss.doWipeUnknowns(uris);
+}
+
+void StoreHandler::doWipeURIs(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+
+    const WipeInProgress& currentWipe = cachedWipeState(key);
+
+    auto& store = getStore(clientID);
+    store.doWipeURIs(*currentWipe.state);
+}
+
+void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    eckit::MemoryStream s(payload);
+    Key key(s);
+
+    const WipeInProgress& currentWipe = cachedWipeState(key);
+
+    // Delete empty DBs and finish the wipe.
+
+    auto& store = getStore(clientID);
+    store.doWipeEmptyDatabase();
+
+    wipesInProgress_.erase(key);
+}
+
+void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+    ASSERT(payload.size() > 0);
+    MemoryStream s(payload);
+    Key key(s);
+
+    const WipeInProgress& currentWipe = cachedWipeState(key);
+
+    auto& store            = getStore(clientID);
+    bool fullWipeSupported = store.doUnsafeFullWipe();
+
+    eckit::Buffer boolBuf(5);
+    eckit::MemoryStream stream(boolBuf);
+    stream << fullWipeSupported;
+
+    write(Message::Received, true, clientID, requestID, boolBuf.data(), stream.position());
+}
+
+const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri) const {
+    auto it = wipesInProgress_.find(uri);
+    ASSERT(it != wipesInProgress_.end());
+    return it->second;
+}
+
+void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
+
+    bool unsafeAll = false;
+    bool doit      = false;
+    eckit::MemoryStream inStream(payload);
+
+    Key dbkey(inStream);
+    StoreWipeState inState(inStream);
+    inStream >> unsafeAll;
+    inStream >> doit;
+
+    // XXX Validate signature.
+    const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
+    ASSERT(!dummy_secret.empty());
+
+    uint64_t expected_hash = inState.hash(dummy_secret);
+    ASSERT(inState.signature().validSignature(expected_hash));
+
+    // -- From here on, we can trust the state came from the catalogue. --
+
+    // The URIs need to be converted to internal URIs for this store.
+    auto storeState = std::make_unique<StoreWipeState>(RemoteFieldLocation::internalURI(inState.storeURI()));
+
+    for (const auto& uri : inState.includedDataURIs()) {
+        storeState->includeData(RemoteFieldLocation::internalURI(uri));
+    }
+    for (const auto& uri : inState.safeURIs()) {
+        storeState->excludeData(RemoteFieldLocation::internalURI(uri));
+    }
+
+    if (storeState->includedDataURIs().empty()) {
+        // Client should not communicate with the store if there are no data URIs to wipe.
+        error("Wipe request has no data URIs", clientID, requestID);
+        return;
+    }
+
+    auto& store = getStore(clientID, *(storeState->includedDataURIs().begin()));
+    store.finaliseWipeState(*storeState, doit, unsafeAll);
+
+    // Write back with the additional URIs to be wiped.
+    eckit::Buffer outBuffer(1_KiB);
+    eckit::ResizableMemoryStream outStream(outBuffer);
+    outStream << storeState->dataAuxiliaryURIs();
+    outStream << storeState->unrecognisedURIs();
+    outStream << storeState->missingURIs();
+
+    write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
+
+    // keep state for doWipeURIs
+    if (doit) {
+        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
+        wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

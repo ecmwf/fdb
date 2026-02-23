@@ -70,7 +70,7 @@ other. The remaining axis have to have the same cardinality.
        ],
        ExtractorType.GRIB,
    )
-   builder.extendOnAxis(1)
+   builder.extend_on_axis(1)
    store = builder.build()
 
 The created Zarr array will always have the actual data points available as

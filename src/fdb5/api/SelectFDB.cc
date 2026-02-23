@@ -14,11 +14,18 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
+#include <sstream>
+#include <vector>
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/SelectMatcher.h"
 
 using namespace eckit;
@@ -138,11 +145,30 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
     return queryInternal(request, [](FDBBase& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
-    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDBBase& fdb, const FDBToolRequest& request) {
-        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    });
+
+    FDBLane* matchingLane = nullptr;
+    for (auto& lane : subFdbs_) {
+        if (lane.matches(request.request(), Matcher::MatchOnMissing)) {
+            if (matchingLane != nullptr) {
+                std::stringstream ss;
+                ss << "Multiple matching lanes for request " << request.request();
+                ss << " - wipe request must not match multiple SelectFDB lanes.";
+                throw eckit::UserError(ss.str(), Here());
+            }
+
+            matchingLane = &lane;
+        }
+    }
+
+    if (matchingLane == nullptr) {
+        std::stringstream ss;
+        ss << "No matching lane for request " << request.request();
+        throw eckit::UserError(ss.str(), Here());
+    }
+
+    return matchingLane->get().wipe(request, doit, porcelain, unsafeWipeAll);
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

@@ -228,7 +228,7 @@ std::vector<eckit::URI> DaosIndex::dataURIs() const {
     ///   in this index (one for each writer process that has written to the index)
     /// @note: in the case where we have a daos store, the current implementation of dataURIs is unnecessarily
     /// inefficient.
-    ///   This method is only called in DaosWipeVisitor, where the uris obtained from this method are processed to
+    ///   This method is only called during wipe, where the uris obtained from this method are processed to
     ///   obtain unique store container paths - will always result in just one container uri! Having a URI store for
     ///   each index in DAOS could make this process more efficient, but it would imply more KV operations and slow down
     ///   field writes.
