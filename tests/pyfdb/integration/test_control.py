@@ -4,7 +4,7 @@ from pyfdb import FDB, ControlAction, ControlIdentifier
 
 import pytest
 
-from pyfdb._internal.pyfdb_internal import MarsSelectionMapper
+from pyfdb._internal.pyfdb_internal import UserInputMapper
 
 
 def test_control_action_values():
@@ -494,7 +494,7 @@ def test_control_element_key(read_only_fdb_setup):
     assert len(elements) == 1
     print(f"Element key: {elements[0]}")
     print(f"Element key type: {type(elements[0])}")
-    assert elements[0] == MarsSelectionMapper.map_to_internal(selection)
+    assert elements[0] == UserInputMapper.map_selection_to_internal(selection)
 
 
 def test_control_element_control_identifiers(read_only_fdb_setup):

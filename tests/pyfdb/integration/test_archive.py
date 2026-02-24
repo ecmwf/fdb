@@ -1,10 +1,6 @@
 from pathlib import Path
 import pytest
 from pyfdb import FDB
-from pyfdb.pyfdb_type import Identifier
-
-import psutil
-import os
 
 
 def assert_one_field(pyfdb: FDB):
@@ -77,7 +73,7 @@ def test_archive_abitrary_data(empty_fdb_setup, test_logger):
     with FDB(fdb_config_path) as fdb:
         fdb.archive(
             data=b"binary-data",
-            identifier=Identifier(selection),
+            identifier=selection,
         )
 
     test_logger.debug("-----------RETRIEVE-------------------")
@@ -119,7 +115,7 @@ def test_archive_abitrary_data_wrong_identifier(empty_fdb_setup, wrong_key_value
         with FDB(fdb_config_path) as fdb:
             fdb.archive(
                 data=b"binary-data",
-                identifier=Identifier(selection),
+                identifier=selection,
             )
 
 

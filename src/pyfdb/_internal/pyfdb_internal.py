@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Collection, Dict, List, Mapping, Optional, TypeAlias
+from typing import Any, Collection, Dict, List, Mapping, Optional, Tuple, TypeAlias
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 import yaml
@@ -12,6 +12,13 @@ This is a key-value map, with the data types allowed below
 """
 MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
+"""
+This is the representation of a MARS identifier
+
+This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
+"""
+MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
+
 
 """
 This is the internal representation of a MARS selection
@@ -19,6 +26,13 @@ This is the internal representation of a MARS selection
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 """
 InternalMarsSelection = Dict[str, Collection[str]]
+
+"""
+This is the internal representation of a MARS identifier
+
+This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
+"""
+InternalMarsIdentifier = List[Tuple[str, str]]
 
 
 class FDBToolRequest:
@@ -61,7 +75,7 @@ class FDBToolRequest:
         minimum_key_set: List[str] | None = None,
     ) -> None:
         if key_values is not None:
-            key_values = MarsSelectionMapper.map_to_internal(key_values)
+            key_values = UserInputMapper.map_selection_to_internal(key_values)
 
         if minimum_key_set is None:
             minimum_key_set = []
@@ -82,7 +96,7 @@ class FDBToolRequest:
         return str(self.tool_request)
 
 
-class MarsSelectionMapper:
+class UserInputMapper:
     """
     Selection mapper for creating MARS selections.
 
@@ -95,7 +109,7 @@ class MarsSelectionMapper:
     """
 
     @classmethod
-    def map_to_internal(cls, selection: MarsSelection) -> InternalMarsSelection:
+    def map_selection_to_internal(cls, selection: MarsSelection) -> InternalMarsSelection:
         result: Mapping[str, Collection[str]] = {}
 
         for key, values in selection.items():
@@ -121,7 +135,7 @@ class MarsSelectionMapper:
         return result
 
     @classmethod
-    def map_to_external(cls, selection: InternalMarsSelection) -> MarsSelection:
+    def map_selection_to_external(cls, selection: InternalMarsSelection) -> MarsSelection:
         result: MarsSelection = {}
 
         for key, values in selection.items():
@@ -142,8 +156,34 @@ class MarsSelectionMapper:
         return result
 
     @classmethod
-    def eq(cls, selection: MarsSelection | InternalMarsSelection):
-        pass
+    def map_identifier_to_internal(cls, identifier: MarsIdentifier) -> InternalMarsIdentifier:
+        key_values: Dict[str, str] = {}
+
+        iterator = None
+
+        if isinstance(identifier, List):
+            iterator = identifier
+        elif isinstance(identifier, Dict):
+            iterator = identifier.items()
+        else:
+            raise ValueError(
+                "Identifier: Unknown type for key_value_pairs. List[Tuple[str, str]] or Dict[str, str] needed"
+            )
+
+        for k, v in iterator:
+            if k in key_values.keys():
+                raise KeyError(
+                    f"Identifier: Key {k} already exists in Identifier: {str(key_values)}"
+                )
+
+            if isinstance(v, list) or "/" in v:
+                raise ValueError(
+                    "No list of values allowed. An Identifier has to be a mapping from a single key to a single value."
+                )
+            else:
+                key_values[k] = v
+
+        return list(key_values.items())
 
 
 class ConfigMapper:
@@ -213,7 +253,7 @@ class ConfigMapper:
 class MarsRequest:
     def __init__(self, verb: str | None = None, key_values: None | MarsSelection = None) -> None:
         if key_values:
-            key_values = MarsSelectionMapper.map_to_internal(key_values)
+            key_values = UserInputMapper.map_selection_to_internal(key_values)
 
         if verb is None and key_values is None:
             self.request = pyfdb_internal.MarsRequest("retrieve")

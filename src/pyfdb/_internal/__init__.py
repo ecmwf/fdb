@@ -13,7 +13,7 @@ from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
     InternalMarsSelection,
     MarsSelection,
-    MarsSelectionMapper,
+    UserInputMapper,
     MarsRequest,
     FDBToolRequest,
 )
@@ -61,5 +61,5 @@ __all__ = [
     "FileCopy",
     "InternalMarsSelection",
     "MarsSelection",
-    "MarsSelectionMapper",
+    "UserInputMapper",
 ]
