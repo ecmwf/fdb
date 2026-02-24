@@ -8,6 +8,9 @@
 
 # libfdb5.so and dependencies have to be loaded prior to importing
 # pyfdb
+import findlibs
+
+findlibs.load("fdb5")
 
 from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
