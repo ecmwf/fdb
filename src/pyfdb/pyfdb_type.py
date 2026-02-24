@@ -8,9 +8,115 @@
 
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
+from typing import Collection, Dict, List, Mapping, Tuple
 from urllib import parse
 
 from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle
+from pyfdb._internal.pyfdb_internal import InternalMarsIdentifier, InternalMarsSelection
+
+MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
+"""
+Selection part of a MARS request.
+
+This is a key-value map, with the data types allowed below
+"""
+
+MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
+"""
+This is the representation of a MARS identifier
+
+This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
+"""
+
+
+class UserInputMapper:
+    """
+    Selection mapper for creating MARS selections.
+
+    This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
+    is activated there will be checks whether keys have been set already.
+
+    Examples
+    --------
+    TODO:
+    """
+
+    @classmethod
+    def map_selection_to_internal(cls, selection: MarsSelection) -> InternalMarsSelection:
+        result: Mapping[str, Collection[str]] = {}
+
+        for key, values in selection.items():
+            if not isinstance(values, (int, float, str, Collection)) or isinstance(values, Mapping):
+                raise ValueError(
+                    f"MarsSelectionMapper: The given value for key '{key}' is not valid. A MarsSelection has to have the following type: {MarsSelection}"
+                )
+
+            # Values is a list of values but not a single string
+            if isinstance(values, Collection) and not isinstance(values, str):
+                converted_values = [
+                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
+                ]
+                result[key] = converted_values
+            # Values is a string or a float or an int
+            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+                result[key] = [str(values)]
+            else:
+                raise ValueError(
+                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
+                )
+
+        return result
+
+    @classmethod
+    def map_selection_to_external(cls, selection: InternalMarsSelection) -> MarsSelection:
+        result: MarsSelection = {}
+
+        for key, values in selection.items():
+            # Values is a list of values but not a single string
+            if isinstance(values, Collection) and not isinstance(values, str):
+                converted_values = [
+                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
+                ]
+                result[key] = converted_values
+            # Values is a string or a float or an int
+            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+                result[key] = str(values)
+            else:
+                raise ValueError(
+                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
+                )
+
+        return result
+
+    @classmethod
+    def map_identifier_to_internal(cls, identifier: MarsIdentifier) -> InternalMarsIdentifier:
+        key_values: Dict[str, str] = {}
+
+        iterator = None
+
+        if isinstance(identifier, List):
+            iterator = identifier
+        elif isinstance(identifier, Dict):
+            iterator = identifier.items()
+        else:
+            raise ValueError(
+                "Identifier: Unknown type for key_value_pairs. List[Tuple[str, str]] or Dict[str, str] needed"
+            )
+
+        for k, v in iterator:
+            if k in key_values.keys():
+                raise KeyError(
+                    f"Identifier: Key {k} already exists in Identifier: {str(key_values)}"
+                )
+
+            if isinstance(v, list) or "/" in v:
+                raise ValueError(
+                    "No list of values allowed. An Identifier has to be a mapping from a single key to a single value."
+                )
+            else:
+                key_values[k] = v
+
+        return list(key_values.items())
 
 
 class DataHandle:

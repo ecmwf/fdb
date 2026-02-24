@@ -82,6 +82,20 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
     }
 };
 
+metkit::mars::MarsRequest mars_requestfrom_map(const std::map<std::string, std::vector<std::string>>& map) {
+    eckit::ValueMap value_map;
+
+    for (const auto& pair : map) {
+        eckit::ValueList value_list;
+        for (const auto& value : pair.second) {
+            value_list.emplace_back(value);
+        }
+        value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
+    }
+
+    return metkit::mars::MarsRequest("retrieve", value_map);
+}
+
 PYBIND11_MODULE(pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
@@ -126,44 +140,10 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return buf.str();
         });
 
-    py::class_<mars::MarsRequest>(m, "MarsRequest")
-        .def(py::init([]() { return mars::MarsRequest(); }))
-        .def(py::init([](const std::string& verb) { return mars::MarsRequest(verb); }))
-        .def(py::init([](const std::string& verb, const std::map<std::string, std::vector<std::string>>& key_values) {
-            eckit::ValueMap value_map;
-
-            for (const auto& pair : key_values) {
-                eckit::ValueList value_list;
-                for (const auto& value : pair.second) {
-                    value_list.emplace_back(value);
-                }
-                value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
-            }
-
-            return mars::MarsRequest(verb, value_map);
-        }))
-        .def("verb", [](mars::MarsRequest& mars_request) { return mars_request.verb(); })
-        .def("__getitem__",
-             [](mars::MarsRequest& mars_request, const std::string& value) { return mars_request.get(value); })
-        .def("key_values",
-             [](mars::MarsRequest& mars_request) {
-                 std::map<std::string, std::vector<std::string>> result;
-
-                 for (const auto& param : mars_request.parameters()) {
-                     const std::string& key = param.name();
-                     const auto& values     = param.values();
-                     result.emplace(key, values);
-                 }
-
-                 return result;
-             })
-        .def("empty", &mars::MarsRequest::empty)
-        .def("__len__", [](const mars::MarsRequest& mars_request) { return mars_request.params().size(); })
-        .def("__repr__", &mars::MarsRequest::asString);
-
     py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
-        .def(py::init([](const mars::MarsRequest& mars_request, bool all, std::vector<std::string>& minimum_key_set) {
-            return fdb5::FDBToolRequest(mars_request, all, minimum_key_set);
+        .def(py::init([](const std::map<std::string, std::vector<std::string>>& selection, bool all,
+                         std::vector<std::string>& minimum_key_set) {
+            return fdb5::FDBToolRequest(mars_requestfrom_map(selection), all, minimum_key_set);
         }))
         .def("__repr__",
              [](const fdb5::FDBToolRequest& tool_request) {
@@ -440,8 +420,14 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  return fdb.archive(mapped_key, data, length);
              })
         .def("flush", &fdb5::FDB::flush)
-        .def("retrieve", &fdb5::FDB::retrieve)
-        .def("inspect", &fdb5::FDB::inspect)
+        .def("retrieve",
+             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
+                 return fdb.retrieve(mars_requestfrom_map(selection));
+             })
+        .def("inspect",
+             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
+                 return fdb.inspect(mars_requestfrom_map(selection));
+             })
         .def("list", &fdb5::FDB::list)
         .def("inspect", &fdb5::FDB::inspect)
         .def("dump", &fdb5::FDB::dump)

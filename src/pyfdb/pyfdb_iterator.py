@@ -32,8 +32,8 @@ from pyfdb._internal import (
 from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
-from pyfdb._internal.pyfdb_internal import InternalMarsSelection, MarsSelection, UserInputMapper
-from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle
+from pyfdb._internal.pyfdb_internal import InternalMarsSelection
+from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle, MarsSelection, UserInputMapper
 
 logger = logging.getLogger(__name__)
 

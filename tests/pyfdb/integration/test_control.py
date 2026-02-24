@@ -4,7 +4,7 @@ from pyfdb import FDB, ControlAction, ControlIdentifier
 
 import pytest
 
-from pyfdb._internal.pyfdb_internal import UserInputMapper
+from pyfdb.pyfdb_type import UserInputMapper
 
 
 def test_control_action_values():
