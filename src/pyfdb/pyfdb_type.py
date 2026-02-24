@@ -8,11 +8,9 @@
 
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
-from typing import Dict, List, Tuple
 from urllib import parse
 
-from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle, MarsSelection
-from pyfdb._internal.pyfdb_internal import InternalMarsIdentifier
+from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle
 
 
 class DataHandle:

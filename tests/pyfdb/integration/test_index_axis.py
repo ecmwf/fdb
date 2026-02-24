@@ -3,6 +3,32 @@ from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import IndexAxis
 
 
+def test_index_axis_not_implemented():
+    selection = {
+        "type": ["an"],
+        "class": ["ea"],
+        "domain": ["g"],
+        "expver": ["0001"],
+        "stream": ["oper"],
+        "date": ["20200101"],
+        "levtype": ["sfc"],
+        "step": ["0"],
+        "param": ["167", "131", "132"],
+        "time": ["1800"],
+    }
+
+    index_axis = IndexAxis(selection)
+
+    with pytest.raises(TypeError):
+        index_axis["date"] = "1999"
+
+    with pytest.raises(TypeError):
+        del index_axis["date"]
+
+    with pytest.raises(TypeError):
+        index_axis.clear()
+
+
 def test_index_axis_creation_dict():
     selection = {
         "type": ["an"],
@@ -24,6 +50,44 @@ def test_index_axis_creation_dict():
         assert value in index_axis.values()
     assert index_axis.keys() == selection.keys()
     assert index_axis == selection
+
+
+def test_index_axis_creation_dict_no_collections():
+    selection = {
+        "type": ["an"],
+        "class": ["ea"],
+        "domain": ["g"],
+        "expver": ["0001"],
+        "stream": ["oper"],
+        "date": ["20200101"],
+        "levtype": ["sfc"],
+        "step": ["0"],
+        "param": ["167", "131", "132"],
+        "time": ["1800"],
+    }
+
+    index_axis = IndexAxis(selection)
+
+    non_collection_selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": ["167", "131", "132"],
+        "time": "1800",
+    }
+
+    expected = IndexAxis(non_collection_selection)
+
+    assert expected.items() == expected.items()
+    for value in expected.values():
+        assert value in index_axis.values()
+    assert expected.keys() == expected.keys()
+    assert index_axis == expected
 
 
 def test_index_axis_with_dict(read_only_fdb_setup):
@@ -87,11 +151,7 @@ def test_index_axis_string(read_only_fdb_setup):
 
 
 def test_index_axis_get(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -121,11 +181,7 @@ def test_index_axis_get(read_only_fdb_setup):
 
 
 def test_fdb_index_axis_in(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -161,11 +217,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
 
 
 def test_index_axis_repr(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -186,11 +238,7 @@ def test_index_axis_repr(read_only_fdb_setup):
 
 
 def test_index_axis_keys(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -211,11 +259,7 @@ def test_index_axis_keys(read_only_fdb_setup):
 
 
 def test_index_axis_values(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -236,11 +280,7 @@ def test_index_axis_values(read_only_fdb_setup):
 
 
 def test_index_axis_items(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -267,11 +307,7 @@ def test_index_axis_items(read_only_fdb_setup):
 
 
 def test_index_axis_items_levels(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -317,11 +353,7 @@ def test_index_axis_items_levels(read_only_fdb_setup):
 
 
 def test_index_axis_items_empty_request(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     index_axis: IndexAxis = fdb.axes({})
 

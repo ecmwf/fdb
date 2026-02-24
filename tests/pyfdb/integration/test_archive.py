@@ -3,7 +3,7 @@ import pytest
 from pyfdb import FDB
 
 
-def assert_one_field(pyfdb: FDB):
+def assert_one_field(pyfdb: FDB, test_logger):
     selection = {
         "class": "rd",
         "expver": "xxxx",
@@ -22,12 +22,10 @@ def assert_one_field(pyfdb: FDB):
         assert data_handle
 
     list_iterator = pyfdb.list(selection)
+    elements = list(list_iterator)
 
-    elements = []
-
-    for el in list_iterator:
-        print(el)
-        elements.append(el)
+    for el in elements:
+        test_logger.info(el)
 
     assert len(elements) == 1
 
@@ -35,7 +33,7 @@ def assert_one_field(pyfdb: FDB):
         next(list_iterator)
 
 
-def test_archive_none(empty_fdb_setup, test_data_path):
+def test_archive_none(empty_fdb_setup, test_data_path, test_logger):
     fdb_config_path = empty_fdb_setup
 
     assert fdb_config_path
@@ -46,7 +44,7 @@ def test_archive_none(empty_fdb_setup, test_data_path):
     fdb.archive(filename.read_bytes())
     fdb.flush()
 
-    assert_one_field(fdb)
+    assert_one_field(fdb, test_logger)
 
 
 def test_archive_abitrary_data(empty_fdb_setup, test_logger):

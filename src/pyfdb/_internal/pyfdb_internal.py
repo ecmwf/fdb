@@ -2,37 +2,38 @@ import json
 from pathlib import Path
 from typing import Any, Collection, Dict, List, Mapping, Optional, Tuple, TypeAlias
 
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 import yaml
 
+from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
+
+MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 """
 Selection part of a MARS request.
 
 This is a key-value map, with the data types allowed below
 """
-MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
+MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
 """
 This is the representation of a MARS identifier
 
 This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
 """
-MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
 
 
+InternalMarsSelection = Dict[str, Collection[str]]
 """
 This is the internal representation of a MARS selection
 
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 """
-InternalMarsSelection = Dict[str, Collection[str]]
 
+InternalMarsIdentifier = List[Tuple[str, str]]
 """
 This is the internal representation of a MARS identifier
 
 This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
 """
-InternalMarsIdentifier = List[Tuple[str, str]]
 
 
 class FDBToolRequest:
@@ -92,8 +93,8 @@ class FDBToolRequest:
             return cls(key_values=None, all=True)
         return cls(key_values=selection, all=False)
 
-    def ____repr__(self) -> str:
-        return str(self.tool_request)
+    def __repr__(self) -> str:
+        return repr(self.tool_request)
 
 
 class UserInputMapper:
@@ -275,7 +276,6 @@ class MarsRequest:
     def verb(self) -> str:
         return self.request.verb()
 
-    # TODO(TKR): Check whether a property has memoized access
     def items(self) -> InternalMarsSelection:
         return self.request.key_values()
 

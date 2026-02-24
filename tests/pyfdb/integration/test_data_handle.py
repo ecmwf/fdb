@@ -125,6 +125,32 @@ def test_datahandle_readinto(read_only_fdb_setup):
         assert data_handle.read(4) != b"GRIB"
 
 
+def test_datahandle_readinto_non_opened(read_only_fdb_setup):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "param": ["167", "165", "166"],
+        "time": "1800",
+    }
+
+    data_handle = fdb.retrieve(selection)
+    assert data_handle
+
+    chunk_buf = bytearray(4)
+    mv = memoryview(chunk_buf)
+
+    with pytest.raises(RuntimeError):
+        data_handle.readinto(mv)
+
+
 def test_datahandle_read_all(read_only_fdb_setup):
     fdb_config_path = read_only_fdb_setup
 

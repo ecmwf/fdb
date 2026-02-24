@@ -1,7 +1,4 @@
-from pathlib import Path
-
 from pyfdb.pyfdb import FDB, URI
-import pytest
 
 
 def test_list_element_uri(read_only_fdb_setup):
@@ -84,6 +81,8 @@ def test_uri_roundtrip():
     assert test_uri.username() == "user"
     assert test_uri.password() == "secretpass"
     assert test_uri.hostname() == "example.com"
+    assert test_uri.hostname() == "example.com"
+    assert test_uri.netloc() == "user:secretpass@example.com:8443"
     assert test_uri.port() == 8443
     assert test_uri.path() == "/path/to/resource"
     assert test_uri.query() == "query=search&sort=asc"
@@ -92,3 +91,19 @@ def test_uri_roundtrip():
     assert str(test_uri) == uri_str
 
     print(test_uri)
+
+
+def test_uri_cmp():
+    uri_str = (
+        "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2"
+    )
+    test_uri = URI(uri_str)
+
+    uri_str_section3 = (
+        "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-3"
+    )
+
+    test_uri_section3 = URI(uri_str_section3)
+
+    assert test_uri != test_uri_section3
+    assert uri_str_section3 != test_uri_section3

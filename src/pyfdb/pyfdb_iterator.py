@@ -6,7 +6,6 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from collections.abc import Mapping
 import logging
 from typing import (
     Collection,
@@ -15,12 +14,8 @@ from typing import (
     Iterator,
     KeysView,
     List,
-    MutableMapping,
-    Sequence,
     ValuesView,
 )
-
-from urllib.parse import ParseResult, urlparse
 
 from pyfdb._internal import (
     ControlElement as _ControlElement,
@@ -37,9 +32,8 @@ from pyfdb._internal import (
 from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
-from pyfdb._internal.pyfdb_internal import InternalMarsSelection, MarsSelection
-from pyfdb.pyfdb_type import URI, DataHandle, ControlIdentifier
-
+from pyfdb._internal.pyfdb_internal import InternalMarsSelection, MarsSelection, UserInputMapper
+from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +223,7 @@ class ControlElement:
         return f"ControlElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
 
 
-class IndexAxis(MutableMapping[str, Collection[str]]):
+class IndexAxis(InternalMarsSelection):
     """
     `IndexAxis` class representing axes and their extent. The class implements all Dictionary
     functionalities. Key are the corresponding FDB keys (axes) and values are the values defining the extent
@@ -237,11 +231,12 @@ class IndexAxis(MutableMapping[str, Collection[str]]):
 
     """
 
-    def __init__(self, index_axis: _IndexAxis | InternalMarsSelection) -> None:
+    def __init__(self, index_axis: _IndexAxis | MarsSelection) -> None:
         if isinstance(index_axis, _IndexAxis):
-            self.index_axis = index_axis
+            self.index_axis: _IndexAxis = index_axis
         elif isinstance(index_axis, Dict):
-            self.index_axis = _IndexAxis(index_axis)
+            internal_mars_selection = UserInputMapper.map_selection_to_internal(index_axis)
+            self.index_axis: _IndexAxis = _IndexAxis(internal_mars_selection)
         else:
             raise TypeError(
                 f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `Dict[str, Collection[str]]` are allowed."
@@ -250,7 +245,7 @@ class IndexAxis(MutableMapping[str, Collection[str]]):
     def __repr__(self) -> str:
         return repr(self.index_axis)
 
-    def __getitem__(self, key: str) -> str:
+    def __getitem__(self, key: str) -> Collection[str]:
         return self.index_axis[key]
 
     def __setitem__(self, key, value):
@@ -276,7 +271,7 @@ class IndexAxis(MutableMapping[str, Collection[str]]):
                 if isinstance(v, str):
                     dict_list_values[k] = [v]
                 elif not isinstance(v, Collection):
-                    dict_list_values[k] = [v]
+                    dict_list_values[k] = [str(v)]
                 else:
                     dict_list_values[k] = v
 

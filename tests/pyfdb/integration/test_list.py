@@ -2,6 +2,38 @@ import pytest
 from pyfdb import FDB
 
 
+def test_list_empty_fdb_list_non_existing(empty_fdb_setup):
+    fdb = FDB(empty_fdb_setup)
+
+    selection = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "levtype": "sfc",
+        "step": "0",
+        "time": "1800",
+    }
+
+    list_iterator = fdb.list(selection, level=3)
+    assert list_iterator
+
+    elements = list(list_iterator)
+    assert len(elements) == 0
+
+
+def test_list_empty_fdb_list_all(empty_fdb_setup):
+    fdb = FDB(empty_fdb_setup)
+
+    list_iterator = fdb.list({}, level=3)
+    assert list_iterator
+
+    elements = list(list_iterator)
+    assert len(elements) == 0
+
+
 def test_read_only_attributes_list_element(read_only_fdb_setup):
     fdb = FDB(read_only_fdb_setup)
 
@@ -171,7 +203,7 @@ def test_list_read_from_datahandle(read_only_fdb_setup):
         "date": "20200101",
         "levtype": "sfc",
         "step": "0",
-        "param": "167/165/166",
+        "param": ["167", "165", "166"],
         "time": "1800",
     }
     print(f"Stringified selection:\n  {selection}")

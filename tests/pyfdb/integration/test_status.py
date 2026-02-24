@@ -1,12 +1,10 @@
+from typing import List
 from pyfdb.pyfdb import FDB
+from pyfdb.pyfdb_iterator import StatusElement
 
 
 def test_status(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -31,10 +29,25 @@ def test_status(read_only_fdb_setup):
         "expver": ["0001"],
         "stream": ["oper"],
     }
-    expected_control_identifiers = []
+    expected_control_identifiers: List[StatusElement] = []
 
     for element in elements:
         assert all(
             [el in element.key() for el in expected_key]
         )  # Check whether the expected key is part of the elements
+
         assert element.controlIdentifiers() == expected_control_identifiers
+
+        date = element.key()["date"]
+        assert date and len(date) == 1
+        time = element.key()["time"]
+        assert time and len(time) == 1
+
+        assert "ea:0001:oper:" in str(element.location())
+        assert f":{date[0]}:" in str(element.location())
+        assert f":{time[0]}:" in str(element.location())
+        assert ":g" in str(element.location())
+
+    # Test compare of status elements
+    assert elements[0] == elements[0]
+    assert elements[1] != elements[0]
