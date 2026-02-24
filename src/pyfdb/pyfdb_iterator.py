@@ -186,6 +186,12 @@ class StatsElement:
             raise TypeError("Creating a StatsElement from user code is not supported.")
         self.element: _StatsElement = stats_element
 
+    def db_statistics(self) -> str:
+        return self.element.db_statistics()
+
+    def index_statistics(self) -> str:
+        return self.element.index_statistics()
+
     def __repr__(self) -> str:
         return str(self.element)
 
