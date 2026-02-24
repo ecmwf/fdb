@@ -6,11 +6,6 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-# libfdb5.so and dependencies have to be loaded prior to importing
-# pyfdb
-import findlibs
-
-findlibs.load("fdb5")
 
 from pyfdb.pyfdb_type import URI, DataHandle, ControlAction, ControlIdentifier, MarsSelection
 from pyfdb.pyfdb import FDB
