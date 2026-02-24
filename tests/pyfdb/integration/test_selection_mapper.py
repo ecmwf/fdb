@@ -1,8 +1,8 @@
-from pyfdb._internal import MarsSelectionMapper
+from pyfdb._internal import UserInputMapper
 
 
 def test_single_value_internal():
-    mars_selection = MarsSelectionMapper.map_to_internal({"key-1": "value-1"})
+    mars_selection = UserInputMapper.map_selection_to_internal({"key-1": "value-1"})
 
     assert len(mars_selection) == 1
     assert "key-1" in mars_selection
@@ -10,7 +10,7 @@ def test_single_value_internal():
 
 
 def test_single_value_external():
-    mars_selection = MarsSelectionMapper.map_to_external({"key-1": "value-1"})
+    mars_selection = UserInputMapper.map_selection_to_external({"key-1": "value-1"})
 
     assert len(mars_selection) == 1
     assert "key-1" in mars_selection
@@ -18,7 +18,7 @@ def test_single_value_external():
 
 
 def test_multi_value_internal():
-    mars_selection = MarsSelectionMapper.map_to_internal(
+    mars_selection = UserInputMapper.map_selection_to_internal(
         {
             "key-1": ["value-1", "value-2", "value-3"],
             "key-2": ["value-2"],
@@ -39,7 +39,7 @@ def test_multi_value_internal():
 
 
 def test_multi_value_external():
-    mars_selection = MarsSelectionMapper.map_to_external(
+    mars_selection = UserInputMapper.map_selection_to_external(
         {
             "key-1": ["value-1", "value-2", "value-3"],
             "key-2": ["value-2"],
@@ -60,7 +60,7 @@ def test_multi_value_external():
 
 
 def test_to_internal():
-    mars_selection = MarsSelectionMapper.map_to_internal(
+    mars_selection = UserInputMapper.map_selection_to_internal(
         {
             "key-1": ["value-2", "value-4"],
             "key-2": ["0.1", 0.2],  # Mixed
@@ -81,7 +81,7 @@ def test_to_internal():
 
 
 def test_to_external():
-    mars_selection = MarsSelectionMapper.map_to_external(
+    mars_selection = UserInputMapper.map_selection_to_external(
         {
             "key-1": ["value-2", "value-4"],
             "key-2": ["0.1", "0.2"],  # Mixed
@@ -102,7 +102,7 @@ def test_to_external():
 
 
 def test_overwrite_key_internal():
-    mars_selection = MarsSelectionMapper.map_to_internal(
+    mars_selection = UserInputMapper.map_selection_to_internal(
         {
             "key-1": "value-1",
             "key-1": ["value-3", "214", "213.54"],
@@ -115,7 +115,7 @@ def test_overwrite_key_internal():
 
 
 def test_overwrite_key_external():
-    mars_selection = MarsSelectionMapper.map_to_external(
+    mars_selection = UserInputMapper.map_selection_to_external(
         {
             "key-1": "value-1",
             "key-1": ["value-3", "214", "213.54"],
@@ -128,7 +128,7 @@ def test_overwrite_key_external():
 
 
 def test_pythonic_interface():
-    mars_selection = MarsSelectionMapper.map_to_internal(
+    mars_selection = UserInputMapper.map_selection_to_internal(
         {
             "key-1": ["value-1", "value-2", "value-3"],
             "key-2": 0.1,

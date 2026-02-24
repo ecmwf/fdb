@@ -12,6 +12,7 @@ from typing import Dict, List, Tuple
 from urllib import parse
 
 from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle, MarsSelection
+from pyfdb._internal.pyfdb_internal import InternalMarsIdentifier
 
 
 class DataHandle:
@@ -252,60 +253,6 @@ class DataHandle:
 
     def __repr__(self) -> str:
         return f"[{'Opened' if self.opened else 'Closed'}] Datahandle: {self.dataHandle}"
-
-
-# https://github.com/ecmwf/datacube-spec
-class Identifier:
-    """
-    A identifier is a dictionary describing the coordinates of a datacube which point to an
-    individual element or sub-datacube. Each entry in the dictionary may only have a single value.
-
-    Parameters
-    ----------
-    `key_value_pairs`: `List[Tuple[str, str]]` | `Dict[str, str]`
-        A list of key-value-pairs describing the keys of a MARS request and the corresponding values.
-        Can also be a dictionary mapping keys to several singluar values (as per definition of an Identifier).
-
-    Note
-    ----
-    *All inserted keys and values will be converted to lower-case. Doubled keys will be overwritten by the last occurrence.*
-
-    Returns
-    -------
-    Identifier object
-
-    Examples
-    --------
-    >>> identifier = Identifier([("a", "ab"), ("b", "bb"), ("c", "bc")])
-    """
-
-    def __init__(self, key_value_pairs: List[Tuple[str, str]] | Dict[str, str]):
-        self.key_values: Dict[str, str] = {}
-
-        iterator = None
-
-        if isinstance(key_value_pairs, List):
-            iterator = key_value_pairs
-        elif isinstance(key_value_pairs, Dict):
-            iterator = key_value_pairs.items()
-        else:
-            raise ValueError(
-                "Identifier: Unknown type for key_value_pairs. List[Tuple[str, str]] or Dict[str, str] needed"
-            )
-
-        for k, v in iterator:
-            if k in self.key_values.keys():
-                raise KeyError(f"Identifier: Key {k} already exists in Identifier: {str(self)}")
-
-            if isinstance(v, list) or "/" in v:
-                raise ValueError(
-                    "No list of values allowed. An Identifier has to be a mapping from a single key to a single value."
-                )
-            else:
-                self.key_values[k] = v
-
-    def __repr__(self) -> str:
-        return ",".join([f"{k}={v}" for k, v in self.key_values.items()])
 
 
 class ControlIdentifier(IntFlag):

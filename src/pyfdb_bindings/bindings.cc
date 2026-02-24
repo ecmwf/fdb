@@ -418,8 +418,15 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init<const fdb5::Config&>())
 
         .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
-        .def("archive", [](fdb5::FDB& fdb, const std::string& key, const char* data,
-                           const size_t length) { return fdb.archive(fdb5::Key::parse(key), data, length); })
+        .def("archive",
+             [](fdb5::FDB& fdb, const std::vector<std::tuple<std::string, std::string>>& key, const char* data,
+                const size_t length) {
+                 fdb5::Key mapped_key{};
+                 for (const auto& [k, v] : key) {
+                     mapped_key.push(k, v);
+                 }
+                 return fdb.archive(mapped_key, data, length);
+             })
         .def("flush", &fdb5::FDB::flush)
         .def("retrieve", &fdb5::FDB::retrieve)
         .def("inspect", &fdb5::FDB::inspect)

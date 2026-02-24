@@ -16,9 +16,10 @@ from pyfdb._internal import (
     init_bindings,
     Config,
     MarsRequest,
-    MarsSelectionMapper,
+    UserInputMapper,
     _FDB,
 )
+from pyfdb._internal.pyfdb_internal import MarsIdentifier
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -34,7 +35,6 @@ from pyfdb.pyfdb_type import (
     ControlAction,
     ControlIdentifier,
     DataHandle,
-    Identifier,
     MarsSelection,
 )
 
@@ -121,8 +121,7 @@ class FDB:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.flush()
 
-    # TODO(TKR): Think about accepting python objects and do the check in this function
-    def archive(self, data: bytes, identifier: Identifier | None = None):
+    def archive(self, data: bytes, identifier: MarsIdentifier | None = None):
         """
         Archive binary data into the underlying FDB.
         In case an identifier is supplied, that identifier is used to archive the data.
@@ -162,7 +161,8 @@ class FDB:
         if identifier is None:
             self.FDB.archive(data, len(data))
         else:
-            self.FDB.archive(str(identifier), data, len(data))
+            mapped_identifier = UserInputMapper.map_identifier_to_internal(identifier)
+            self.FDB.archive(mapped_identifier, data, len(data))
 
     def flush(self):
         """
@@ -221,7 +221,7 @@ class FDB:
         if len(mars_selection) == 0:
             raise TypeError("FDB.retrieve: Wildcard selection aren't support for retrieving.")
 
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         mars_request = MarsRequest.from_selection(internal_mars_selection)
         return DataHandle(self.FDB.retrieve(mars_request.request), _internal=True)
 
@@ -255,19 +255,17 @@ class FDB:
 
         Examples
         --------
-        >>> selection = MarsSelection(
-        >>>     {
-        >>>         "type": "an",
-        >>>         "class": "ea",
-        >>>         "domain": "g",
-        >>>         "expver": "0001",
-        >>>         "stream": "oper",
-        >>>         "date": "20200101",
-        >>>         "levtype": "sfc",
-        >>>         "step": "0",
-        >>>         "time": "1800",
-        >>>     },
-        >>> )
+        >>> selection = {
+        >>>     "type": "an",
+        >>>     "class": "ea",
+        >>>     "domain": "g",
+        >>>     "expver": "0001",
+        >>>     "stream": "oper",
+        >>>     "date": "20200101",
+        >>>     "levtype": "sfc",
+        >>>     "step": "0",
+        >>>     "time": "1800",
+        >>> }
         >>> list_iterator = pyfdb.list(selection) # level == 3
         >>> elements = list(list_iterator)
         >>> print(elements[0])
@@ -297,7 +295,7 @@ class FDB:
         timestamp=0
         """
 
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.list(fdb_tool_request.tool_request, not include_masked, level)
 
@@ -352,7 +350,7 @@ class FDB:
         length=10732,
         timestamp=1762537447
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         mars_request = MarsRequest.from_selection(internal_mars_selection)
         iterator = self.FDB.inspect(mars_request.request)
 
@@ -396,7 +394,7 @@ class FDB:
             name=<location>
         ]
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
         while True:
@@ -450,7 +448,7 @@ class FDB:
         <path_to_database>/toc
         ...
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.wipe(fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all)
         while True:
@@ -513,7 +511,7 @@ class FDB:
         )
         ...
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._to_internal())
         while True:
@@ -573,7 +571,7 @@ class FDB:
         length=10732,
         timestamp=176253976
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
         while True:
@@ -623,7 +621,7 @@ class FDB:
         Total owned size                : 165,544 (161.664 Kbytes)
         Total size                      : 165,544 (161.664 Kbytes)
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
         while True:
@@ -690,7 +688,7 @@ class FDB:
             name=<location_fdb_database>
         ]
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         raw_control_identifiers = [
             control_identifier._to_raw() for control_identifier in control_identifiers
@@ -753,7 +751,7 @@ class FDB:
         k=time     | v=['1800']
         k=type     | v=['an']
         """
-        internal_mars_selection = MarsSelectionMapper.map_to_internal(mars_selection)
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_mars_selection(internal_mars_selection)
         return IndexAxis(self.FDB.axes(fdb_tool_request.tool_request, level))
 
