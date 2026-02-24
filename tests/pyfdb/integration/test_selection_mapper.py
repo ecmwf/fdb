@@ -1,4 +1,4 @@
-from pyfdb._internal import UserInputMapper
+from pyfdb.pyfdb_type import UserInputMapper
 
 
 def test_single_value_internal():

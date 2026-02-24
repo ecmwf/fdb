@@ -14,10 +14,6 @@ findlibs.load("fdb5")
 
 from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
-    InternalMarsSelection,
-    MarsSelection,
-    UserInputMapper,
-    MarsRequest,
     FDBToolRequest,
 )
 from pyfdb_bindings.pyfdb_bindings import (
@@ -46,7 +42,6 @@ from pyfdb_bindings.pyfdb_bindings import (
 )
 
 __all__ = [
-    "MarsRequest",
     "init_bindings",
     "_DataHandle",
     "_URI",
