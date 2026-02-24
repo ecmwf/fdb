@@ -583,17 +583,23 @@ def test_status_element_eq_control_element(read_only_fdb_setup):
         ControlIdentifier.UNIQUEROOT,
     ]
 
-    print("Locking database for all control actions")
+    print("Locking all databases for all control actions")
+
+    # Control results for all databases
     control_iterator = fdb.control(
-        selection, ControlAction.DISABLE, control_identifiers=control_identifier_list
+        {}, ControlAction.DISABLE, control_identifiers=control_identifier_list
     )
     assert control_iterator
 
     control_elements = list(control_iterator)
 
-    stats_iterator = fdb.status(selection)
+    # Status for all databases
+    stats_iterator = fdb.status({})
     assert stats_iterator
 
     stats_elements = list(stats_iterator)
-
     assert control_elements == stats_elements
+
+    # Check (cross-verify) that consecutive elements are different
+    for i in range(len(control_elements) - 1):
+        assert control_elements[i + 1] != stats_elements[i]
