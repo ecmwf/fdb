@@ -283,6 +283,18 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::StatsElement>(m, "StatsElement")
         .def(py::init())
+        .def("index_statistics",
+             [](fdb5::StatsElement& stats_element) {
+                 std::stringstream buf{};
+                 stats_element.indexStatistics.report(buf);
+                 return buf.str();
+             })
+        .def("db_statistics",
+             [](const fdb5::StatsElement& stats_element) {
+                 std::stringstream buf{};
+                 stats_element.dbStatistics.report(buf);
+                 return buf.str();
+             })
         .def("__repr__", [](const fdb5::StatsElement& stats_element) {
             std::stringstream buf{};
             buf << "Index Statistics: \n";
