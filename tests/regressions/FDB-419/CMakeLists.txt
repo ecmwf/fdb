@@ -18,13 +18,7 @@ ecbuild_add_test(
     LIBS fdb5 eckit metkit
     ENVIRONMENT FDB_SERVER_EXECUTABLE=$<TARGET_FILE:fdb-server>
     ENVIRONMENT "${test_environment}"
-)
-
-# if (TARGET FDB-419)
-set_tests_properties(FDB-419
-    PROPERTIES 
+    TEST_PROPERTIES
     RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
-    RUN_SERIAL  TRUE
     LABELS remotefdb
 )
-# endif()

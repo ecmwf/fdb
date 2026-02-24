@@ -18,10 +18,9 @@ foreach( _test ${fdb_tools_wipe_configs} )
         TEST_DEPENDS fdb5_get_test_data
         COMMAND wipe.sh
         ARGS ${_test}.yaml
-        ENVIRONMENT "${test_environment}" )
-
-    if (TARGET test_fdb_tools_wipe_${_test})
-    set_tests_properties(test_fdb_tools_wipe_${_test} PROPERTIES RESOURCE_LOCK fdb_tools_wipe_lock)
-    endif()
+        ENVIRONMENT "${test_environment}"
+        TEST_PROPERTIES
+        RESOURCE_LOCK fdb_tools_wipe_lock
+        )
 
 endforeach( )
