@@ -29,6 +29,9 @@ from pyfdb_bindings.pyfdb_bindings import (
     IndexAxis,
     ListElement,
     StatsElement,
+    WipeElement,
+    WipeElementType,
+    PurgeElement,
     init_bindings,
 )
 from pyfdb_bindings.pyfdb_bindings import (
@@ -55,6 +58,9 @@ __all__ = [
     "ListElement",
     "StatsElement",
     "ControlElement",
+    "WipeElement",
+    "WipeElementType",
+    "PurgeElement",
     "IndexAxis",
     "FileCopy",
     "InternalMarsSelection",

@@ -6,6 +6,10 @@ import yaml
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
+
+# Initial setup of binding via eckit main
+pyfdb_internal.init_bindings()
+
 InternalMarsSelection = Dict[str, Collection[str]]
 """
 This is the internal representation of a MARS selection

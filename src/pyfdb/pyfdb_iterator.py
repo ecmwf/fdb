@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from enum import IntEnum, auto
 import logging
 from typing import (
     Collection,
@@ -32,6 +33,15 @@ from pyfdb._internal import (
 )
 from pyfdb._internal import (
     StatsElement as _StatsElement,
+)
+from pyfdb._internal import (
+    WipeElement as _WipeElement,
+)
+from pyfdb._internal import (
+    WipeElementType as _WipeElementType,
+)
+from pyfdb._internal import (
+    PurgeElement as _PurgeElement,
 )
 from pyfdb._internal.pyfdb_internal import InternalMarsSelection
 from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle, MarsSelection, UserInputMapper
@@ -118,14 +128,65 @@ class ListElement:
         return str(self._element)
 
 
+class WipeElementType(IntEnum):
+    """
+
+    Values
+    ------
+    - ERROR
+    - CATALOGUE_INFO
+    - CATALOGUE
+    - CATALOGUE_INDEX
+    - CATALOGUE_SAFE
+    - CATALOGUE_CONTROL
+    - STORE
+    - STORE_AUX
+    - STORE_SAFE
+    - UNKNOWN
+    """
+
+    ERROR = 0
+    CATALOGUE_INFO = auto()
+    CATALOGUE = auto()
+    CATALOGUE_INDEX = auto()
+    CATALOGUE_SAFE = auto()
+    CATALOGUE_CONTROL = auto()
+    STORE = auto()
+    STORE_AUX = auto()
+    STORE_SAFE = auto()
+    UNKNOWN = auto()
+
+    @classmethod
+    def _from_raw(cls, en: _WipeElementType):
+        return WipeElementType[en.name]
+
+    def _to_raw(self):
+        return _WipeElementType[self.name]
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
 class WipeElement:
     def __init__(self, wipe_element: str, *, _internal=False) -> None:
         if not _internal:
             raise TypeError("Creating a WipeElement from user code is not supported.")
-        self.element: str = wipe_element
+        self._element: _WipeElement = wipe_element
+
+    def type(self) -> WipeElementType:
+        return self._element.type()
+
+    def msg(self) -> str:
+        return self._element.msg()
+
+    def uris(self) -> List[URI]:
+        return [URI(uri) for uri in self._element.uris()]
 
     def __repr__(self) -> str:
-        return str(self.element)
+        return str(self._element)
 
 
 class StatusElement:

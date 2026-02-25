@@ -103,6 +103,30 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         eckit::Main::initialise(1, const_cast<char**>(args));
     });
 
+    //--------------------------------------------------
+    // @brief Enums
+    //--------------------------------------------------
+
+    py::native_enum<fdb5::ControlAction>(m, "ControlAction", "enum.Enum")
+        .value("NONE", fdb5::ControlAction::None)
+        .value("DISABLE", fdb5::ControlAction::Disable)
+        .value("ENABLE", fdb5::ControlAction::Enable)
+        .finalize();
+
+    py::native_enum<fdb5::ControlIdentifier>(m, "ControlIdentifier", "enum.IntFlag")
+        .value("NONE", fdb5::ControlIdentifier::None)
+        .value("LIST", fdb5::ControlIdentifier::List)
+        .value("RETRIEVE", fdb5::ControlIdentifier::Retrieve)
+        .value("ARCHIVE", fdb5::ControlIdentifier::Archive)
+        .value("WIPE", fdb5::ControlIdentifier::Wipe)
+        .value("UNIQUEROOT", fdb5::ControlIdentifier::UniqueRoot)
+        .finalize();
+
+
+    //--------------------------------------------------
+    // @brief Utility classes
+    //--------------------------------------------------
+
     py::class_<fdb5::Config>(m, "Config")
         .def(py::init([]() { return fdb5::Config(); }))
         .def(py::init([](const std::string& config, const std::optional<std::string>& user_config) {
@@ -153,171 +177,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                  return buf.str();
              })
         .def("mars_request", [](const fdb5::FDBToolRequest& tool_request) { return tool_request.request(); });
-
-    py::class_<fdb5::ListElement>(m, "ListElement")
-        .def(py::init())
-        .def(py::init([](const std::string& key, const std::time_t& timestamp) {
-            return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
-        }))
-        .def("has_location", &fdb5::ListElement::hasLocation)
-        .def("offset", [](const fdb5::ListElement& list_element) -> long long { return list_element.offset(); })
-        .def("length", [](const fdb5::ListElement& list_element) -> long long { return list_element.length(); })
-        .def("uri",
-             [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
-                 try {
-                     return list_element.location().uri();
-                 }
-                 catch (std::exception& exception) {
-                     return std::nullopt;
-                 };
-             })
-        .def(
-            "data_handle",
-            [](const fdb5::ListElement& list_element) -> std::optional<std::shared_ptr<eckit::DataHandle>> {
-                try {
-                    return std::shared_ptr<eckit::DataHandle>(list_element.location().dataHandle());
-                }
-                catch (std::exception& exception) {
-                    return std::nullopt;
-                };
-            },
-            py::return_value_policy::reference_internal)
-        .def("__repr__", [](const fdb5::ListElement& list_element) {
-            std::stringstream buf;
-            list_element.print(buf, true, true, true, ",");
-            return buf.str();
-        });
-
-    py::class_<fdb5::ListIterator>(m, "ListIterator")
-        .def("__next__", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
-            fdb5::ListElement result{};
-            bool has_next = list_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
-
-    py::class_<fdb5::APIIterator<std::string>>(m, "StringApiIterator")
-        .def("__iter__", [](fdb5::APIIterator<std::string>& self) -> fdb5::APIIterator<std::string>& { return self; })
-        .def("__next__", [](fdb5::APIIterator<std::string>& string_api_iterator) -> std::string {
-            std::string result{};
-            bool has_next = string_api_iterator.next(result);
-
-            if (has_next) {
-                return result;
-            }
-
-            throw py::stop_iteration();
-        });
-
-    py::class_<fdb5::ControlElement>(m, "ControlElement")
-        .def(py::init())
-        .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
-        .def("controlIdentifiers",
-             [](fdb5::ControlElement& control_element) {
-                 std::vector<fdb5::ControlIdentifier> result;
-                 for (const auto& control_identifier : control_element.controlIdentifiers) {
-                     result.emplace_back(control_identifier);
-                 }
-                 return result;
-             })
-        .def("key",
-             [](fdb5::ControlElement& control_element) {
-                 std::map<std::string, std::vector<std::string>> key_value_map;
-                 for (const auto& key : control_element.key.names()) {
-                     key_value_map.emplace(key, std::vector<std::string>{control_element.key.get(key)});
-                 }
-                 return key_value_map;
-             })
-        .def("__repr__", [](fdb5::ControlElement& control_element) {
-            std::stringstream buf{};
-            buf << control_element.controlIdentifiers << ", ";
-            buf << control_element.key << ", ";
-            buf << control_element.location << ".";
-
-            return buf.str();
-        });
-
-    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
-        .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
-            fdb5::ControlElement result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
-
-    py::class_<fdb5::FileCopy>(m, "FileCopy")
-        .def(py::init())
-        .def("__repr__",
-             [](fdb5::FileCopy& file_copy_element) {
-                 std::stringstream buf{};
-                 buf << file_copy_element;
-                 return buf.str();
-             })
-        .def("execute", &fdb5::FileCopy::execute)
-        .def("cleanup", &fdb5::FileCopy::cleanup);
-
-    py::class_<fdb5::APIIterator<fdb5::FileCopy>>(m, "FileCopyApiIterator")
-        .def("__next__", [](fdb5::APIIterator<fdb5::FileCopy>& status_iterator) -> fdb5::FileCopy {
-            fdb5::FileCopy result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
-
-    py::class_<fdb5::StatsElement>(m, "StatsElement")
-        .def(py::init())
-        .def("index_statistics",
-             [](fdb5::StatsElement& stats_element) {
-                 std::stringstream buf{};
-                 stats_element.indexStatistics.report(buf);
-                 return buf.str();
-             })
-        .def("db_statistics",
-             [](const fdb5::StatsElement& stats_element) {
-                 std::stringstream buf{};
-                 stats_element.dbStatistics.report(buf);
-                 return buf.str();
-             })
-        .def("__repr__", [](const fdb5::StatsElement& stats_element) {
-            std::stringstream buf{};
-            buf << "Index Statistics: \n";
-            stats_element.indexStatistics.report(buf);
-            buf << "\n";
-            buf << "DB Statistics: \n";
-            stats_element.dbStatistics.report(buf);
-            return buf.str();
-        });
-
-    py::class_<fdb5::APIIterator<fdb5::StatsElement>>(m, "StatsElementApiIterator")
-        .def("__next__", [](fdb5::APIIterator<fdb5::StatsElement>& status_iterator) -> fdb5::StatsElement {
-            fdb5::StatsElement result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
-
-    py::native_enum<fdb5::ControlAction>(m, "ControlAction", "enum.Enum")
-        .value("NONE", fdb5::ControlAction::None)
-        .value("DISABLE", fdb5::ControlAction::Disable)
-        .value("ENABLE", fdb5::ControlAction::Enable)
-        .finalize();
-
-    py::native_enum<fdb5::ControlIdentifier>(m, "ControlIdentifier", "enum.IntFlag")
-        .value("NONE", fdb5::ControlIdentifier::None)
-        .value("LIST", fdb5::ControlIdentifier::List)
-        .value("RETRIEVE", fdb5::ControlIdentifier::Retrieve)
-        .value("ARCHIVE", fdb5::ControlIdentifier::Archive)
-        .value("WIPE", fdb5::ControlIdentifier::Wipe)
-        .value("UNIQUEROOT", fdb5::ControlIdentifier::UniqueRoot)
-        .finalize();
 
     py::class_<fdb5::IndexAxis>(m, "IndexAxis")
         .def(py::init())
@@ -413,6 +272,216 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("rawString", &eckit::URI::asRawString)
         .def("__repr__", &eckit::URI::asString);
 
+    //--------------------------------------------------
+    // @brief Element class Enums
+    //--------------------------------------------------
+
+    py::native_enum<fdb5::WipeElementType>(m, "WipeElementType", "enum.Enum")
+        .value("ERROR", fdb5::WipeElementType::ERROR)
+        .value("CATALOGUE_INFO", fdb5::WipeElementType::CATALOGUE_INFO)
+        .value("CATALOGUE", fdb5::WipeElementType::CATALOGUE)
+        .value("CATALOGUE_INDEX", fdb5::WipeElementType::CATALOGUE_INDEX)
+        .value("CATALOGUE_SAFE", fdb5::WipeElementType::CATALOGUE_SAFE)
+        .value("CATALOGUE_CONTROL", fdb5::WipeElementType::CATALOGUE_CONTROL)
+        .value("STORE", fdb5::WipeElementType::STORE)
+        .value("STORE_AUX", fdb5::WipeElementType::STORE_AUX)
+        .value("STORE_SAFE", fdb5::WipeElementType::STORE_SAFE)
+        .value("UNKNOWN", fdb5::WipeElementType::UNKNOWN)
+        .finalize();
+
+    //--------------------------------------------------
+    // @brief Element classes
+    //--------------------------------------------------
+
+    py::class_<fdb5::ListElement>(m, "ListElement")
+        .def(py::init())
+        .def(py::init([](const std::string& key, const std::time_t& timestamp) {
+            return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
+        }))
+        .def("has_location", &fdb5::ListElement::hasLocation)
+        .def("offset", [](const fdb5::ListElement& list_element) -> long long { return list_element.offset(); })
+        .def("length", [](const fdb5::ListElement& list_element) -> long long { return list_element.length(); })
+        .def("uri",
+             [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
+                 try {
+                     return list_element.location().uri();
+                 }
+                 catch (std::exception& exception) {
+                     return std::nullopt;
+                 };
+             })
+        .def(
+            "data_handle",
+            [](const fdb5::ListElement& list_element) -> std::optional<std::shared_ptr<eckit::DataHandle>> {
+                try {
+                    return std::shared_ptr<eckit::DataHandle>(list_element.location().dataHandle());
+                }
+                catch (std::exception& exception) {
+                    return std::nullopt;
+                };
+            },
+            py::return_value_policy::reference_internal)
+        .def("__repr__", [](const fdb5::ListElement& list_element) {
+            std::stringstream buf;
+            list_element.print(buf, true, true, true, ",");
+            return buf.str();
+        });
+
+    py::class_<fdb5::ControlElement>(m, "ControlElement")
+        .def(py::init())
+        .def("location", [](fdb5::ControlElement& control_element) { return control_element.location; })
+        .def("controlIdentifiers",
+             [](fdb5::ControlElement& control_element) {
+                 std::vector<fdb5::ControlIdentifier> result;
+                 for (const auto& control_identifier : control_element.controlIdentifiers) {
+                     result.emplace_back(control_identifier);
+                 }
+                 return result;
+             })
+        .def("key",
+             [](fdb5::ControlElement& control_element) {
+                 std::map<std::string, std::vector<std::string>> key_value_map;
+                 for (const auto& key : control_element.key.names()) {
+                     key_value_map.emplace(key, std::vector<std::string>{control_element.key.get(key)});
+                 }
+                 return key_value_map;
+             })
+        .def("__repr__", [](fdb5::ControlElement& control_element) {
+            std::stringstream buf{};
+            buf << control_element.controlIdentifiers << ", ";
+            buf << control_element.key << ", ";
+            buf << control_element.location << ".";
+
+            return buf.str();
+        });
+
+    py::class_<fdb5::WipeElement>(m, "WipeElement")
+        .def(py::init())
+        .def("type", &fdb5::WipeElement::type)
+        .def("msg", &fdb5::WipeElement::msg)
+        .def("uris", &fdb5::WipeElement::uris)
+        .def("__repr__", [](fdb5::WipeElement& wipe_element) {
+            std::stringstream buf{};
+            buf << wipe_element;
+            return buf.str();
+        });
+
+    py::class_<fdb5::PurgeElement>(m, "PurgeElement")
+        .def(py::init())
+        .def("__repr__", [](fdb5::PurgeElement& purge_element) { return purge_element; });
+
+    py::class_<fdb5::FileCopy>(m, "FileCopy")
+        .def(py::init())
+        .def("__repr__",
+             [](fdb5::FileCopy& file_copy_element) {
+                 std::stringstream buf{};
+                 buf << file_copy_element;
+                 return buf.str();
+             })
+        .def("execute", &fdb5::FileCopy::execute)
+        .def("cleanup", &fdb5::FileCopy::cleanup);
+
+    py::class_<fdb5::StatsElement>(m, "StatsElement")
+        .def(py::init())
+        .def("index_statistics",
+             [](fdb5::StatsElement& stats_element) {
+                 std::stringstream buf{};
+                 stats_element.indexStatistics.report(buf);
+                 return buf.str();
+             })
+        .def("db_statistics",
+             [](const fdb5::StatsElement& stats_element) {
+                 std::stringstream buf{};
+                 stats_element.dbStatistics.report(buf);
+                 return buf.str();
+             })
+        .def("__repr__", [](const fdb5::StatsElement& stats_element) {
+            std::stringstream buf{};
+            buf << "Index Statistics: \n";
+            stats_element.indexStatistics.report(buf);
+            buf << "\n";
+            buf << "DB Statistics: \n";
+            stats_element.dbStatistics.report(buf);
+            return buf.str();
+        });
+
+
+    //--------------------------------------------------
+    // @brief Iterator classes
+    //--------------------------------------------------
+
+    py::class_<fdb5::ListIterator>(m, "ListIterator")
+        .def("__next__", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
+            fdb5::ListElement result{};
+            bool has_next = list_iterator.next(result);
+            if (has_next) {
+                return result;
+            }
+            throw py::stop_iteration();
+        });
+
+    py::class_<fdb5::APIIterator<fdb5::WipeElement>>(m, "WipeIterator")
+        .def("__iter__",
+             [](fdb5::APIIterator<fdb5::WipeElement>& self) -> fdb5::APIIterator<fdb5::WipeElement>& { return self; })
+        .def("__next__", [](fdb5::APIIterator<fdb5::WipeElement>& string_api_iterator) -> fdb5::WipeElement {
+            fdb5::WipeElement result{};
+            bool has_next = string_api_iterator.next(result);
+
+            if (has_next) {
+                return result;
+            }
+
+            throw py::stop_iteration();
+        });
+
+    py::class_<fdb5::APIIterator<fdb5::PurgeElement>>(m, "PurgeIterator")
+        .def("__iter__",
+             [](fdb5::APIIterator<fdb5::PurgeElement>& self) -> fdb5::APIIterator<fdb5::PurgeElement>& { return self; })
+        .def("__next__", [](fdb5::APIIterator<fdb5::PurgeElement>& purgeiterator) -> fdb5::PurgeElement {
+            fdb5::PurgeElement result{};
+            bool has_next = purgeiterator.next(result);
+
+            if (has_next) {
+                return result;
+            }
+
+            throw py::stop_iteration();
+        });
+
+    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
+        .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
+            fdb5::ControlElement result{};
+            bool has_next = status_iterator.next(result);
+            if (has_next) {
+                return result;
+            }
+            throw py::stop_iteration();
+        });
+
+    py::class_<fdb5::APIIterator<fdb5::FileCopy>>(m, "FileCopyApiIterator")
+        .def("__next__", [](fdb5::APIIterator<fdb5::FileCopy>& status_iterator) -> fdb5::FileCopy {
+            fdb5::FileCopy result{};
+            bool has_next = status_iterator.next(result);
+            if (has_next) {
+                return result;
+            }
+            throw py::stop_iteration();
+        });
+
+
+    py::class_<fdb5::APIIterator<fdb5::StatsElement>>(m, "StatsElementApiIterator")
+        .def("__next__", [](fdb5::APIIterator<fdb5::StatsElement>& status_iterator) -> fdb5::StatsElement {
+            fdb5::StatsElement result{};
+            bool has_next = status_iterator.next(result);
+            if (has_next) {
+                return result;
+            }
+            throw py::stop_iteration();
+        });
+
+    //--------------------------------------------------
+    // @brief FDB class
+    //--------------------------------------------------
 
     py::class_<fdb5::FDB, py::smart_holder>(m, "FDB")
         .def(py::init())
