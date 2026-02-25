@@ -18,14 +18,14 @@ PyFDB
    examples
    api
 
-`PyFDB` is the Python interface to ECMWF’s Fields DataBase (`FDB <github.com/ecmwf/fdb>`__), a
+`PyFDB` is the Python interface to the `FDB <github.com/ecmwf/fdb>`__, a
 domain‑specific object store designed to efficiently archive, index, list, and
 retrieve GRIB fields produced by numerical weather prediction workflows. It
 provides a thin, idiomatic Python layer over the `FDB5` client library installed
 on your system, so you can drive FDB operations directly from Python scripts
 and notebooks. 
 
-`FDB <github.com/ecmwf/fdb>`__ itself is part of `ECMWF`’s
+The `FDB <github.com/ecmwf/fdb>`__ itself is part of `ECMWF`’s
 high‑performance data infrastructure: it stores each GRIB message as a field,
 indexes it by meteorological metadata (e.g., `parameter`, `level`, `date/time`),
 and serves recent outputs to post‑processing tasks and users. In operational
@@ -40,10 +40,10 @@ showing examples of the following steps:
 - List what’s available via metadata queries
 - Retrieve matching fields for downstream processing
 
-Prerequisites to run the examples, ensure that FDB5 is installed and available
+Prerequisites to run the examples, ensure that `FDB` is installed and available
 on your system and that required Python packages are present. 
 
-If you’re new to FDB, you may want to skim the FDB documentation for concepts
+If you’re new to `FDB`, you may want to skim the `FDB` documentation for concepts
 (keys, requests, schema, spaces) and the overall architecture before
 proceeding. 
 
