@@ -34,11 +34,9 @@ set(test_files
     integration/test_enums.py
     integration/test_fdb.py
     integration/test_fdb_tool_request.py
-    integration/test_identifier.py
     integration/test_index_axis.py
     integration/test_inspect.py
     integration/test_list.py
-    integration/test_mars_request.py
     integration/test_move.py
     integration/test_purge.py
     integration/test_retrieve.py
@@ -47,6 +45,7 @@ set(test_files
     integration/test_status.py
     integration/test_types.py
     integration/test_uri.py
+    integration/test_wildcard_selection.py
     integration/test_wipe.py
 )
 
