@@ -34,6 +34,18 @@ def test_list_empty_fdb_list_all(empty_fdb_setup):
     assert len(elements) == 0
 
 
+def test_list_partial(read_only_fdb_setup):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {"type": "an"}
+
+    list_iterator = fdb.list(selection, level=1)
+    assert list_iterator
+
+    elements = list(list_iterator)
+    assert len(elements) == 32
+
+
 def test_read_only_attributes_list_element(read_only_fdb_setup):
     fdb = FDB(read_only_fdb_setup)
 
@@ -86,6 +98,7 @@ def test_list_minimal(read_only_fdb_setup, test_logger):
         for el in list_iterator:
             test_logger.debug(el)
             elements.append(el)
+            test_logger.debug(f"Has Location: {el.has_location()}")
 
         assert len(elements) == 1
 
@@ -111,6 +124,7 @@ def test_list_minimal(read_only_fdb_setup, test_logger):
         for el in list_iterator:
             test_logger.debug(el)
             elements.append(el)
+            test_logger.debug(f"Has Location: {el.has_location()}")
 
         assert len(elements) == 1
 
@@ -135,7 +149,10 @@ def test_list_minimal(read_only_fdb_setup, test_logger):
 
         for el in list_iterator:
             test_logger.debug(el)
-            test_logger.debug(el.uri)
+            test_logger.debug(f"Has Location: {el.has_location()}")
+            test_logger.debug(f"Has URI: {el.uri}")
+            test_logger.debug(f"Has Offset: {el.offset}")
+            test_logger.debug(f"Has Length: {el.length}")
             elements.append(el)
 
         assert len(elements) == 3

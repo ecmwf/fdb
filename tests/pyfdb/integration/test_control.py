@@ -186,11 +186,7 @@ def test_control_lock_list(read_only_fdb_setup, function_tmp):
 
 
 def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function_tmp):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -203,7 +199,6 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function
 
     print("Lock the database for archiving")
     control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
-    assert control_iterator
 
     elements = []
 
