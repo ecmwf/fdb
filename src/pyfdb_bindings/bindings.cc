@@ -45,6 +45,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
 #include "fdb5/database/FieldLocation.h"
@@ -198,6 +199,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
     py::class_<fdb5::APIIterator<std::string>>(m, "StringApiIterator")
+        .def("__iter__", [](fdb5::APIIterator<std::string>& self) -> fdb5::APIIterator<std::string>& { return self; })
         .def("__next__", [](fdb5::APIIterator<std::string>& string_api_iterator) -> std::string {
             std::string result{};
             bool has_next = string_api_iterator.next(result);
@@ -435,7 +437,8 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
              [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
                  return fdb.inspect(mars_requestfrom_map(selection));
              })
-        .def("list", &fdb5::FDB::list)
+        .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate,
+                        int level) { return fdb.list(tool_request, deduplicate, level); })
         .def("inspect", &fdb5::FDB::inspect)
         .def("dump", &fdb5::FDB::dump)
         .def("status", &fdb5::FDB::status)

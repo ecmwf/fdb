@@ -7,11 +7,9 @@
 # nor does it submit to any jurisdiction.
 
 import logging
-import os
 import pathlib
 from typing import Generator
 
-import psutil
 import pytest
 import itertools
 import shutil
@@ -29,42 +27,6 @@ logger.addHandler(logging.NullHandler())
 @pytest.fixture
 def test_logger():
     return logger
-
-
-def print_open_files_psutil():
-    """
-    Prints open files for a process (default: current).
-    Requires psutil. On some OSes, elevated privileges may be required
-    to inspect other processes.
-    """
-    pid = os.getpid()
-    proc = psutil.Process(pid)
-    try:
-        files = proc.open_files()
-    except psutil.AccessDenied:
-        logger.debug(f"Access denied for pid {pid}. Try running with higher privileges.")
-        return
-    except psutil.NoSuchProcess:
-        logger.debug(f"No such process: {pid}")
-        return
-
-    if not files:
-        logger.debug(f"No open files for pid {pid}.")
-        return
-
-    logger.debug(f"Open files for pid {pid} | Total={proc.num_fds()}:")
-    for f in files:
-        logger.debug(f" - path={f.path}  |  fd={getattr(f, 'fd', '?')}")
-
-
-@pytest.fixture(autouse=True)
-def run_around_tests():
-    # Code that will run before your test, for example:
-    print_open_files_psutil()
-    yield
-
-    print_open_files_psutil()
-    # Code that will run after your test, for example:
 
 
 @pytest.fixture(scope="function")
@@ -189,7 +151,6 @@ def read_only_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
-    print_open_files_psutil()
     return empty_fdb_setup
 
 

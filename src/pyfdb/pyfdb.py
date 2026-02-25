@@ -448,9 +448,9 @@ class FDB:
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.wipe(fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all)
-        while True:
+        for wipe_element in iterator:
             try:
-                yield WipeElement(next(iterator), _internal=True)
+                yield WipeElement(wipe_element, _internal=True)
             except StopIteration:
                 return
 
