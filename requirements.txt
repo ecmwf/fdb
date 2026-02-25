@@ -7,3 +7,5 @@ build
 setuptools
 GitPython
 sphinx
+
+sybil[pytest]
