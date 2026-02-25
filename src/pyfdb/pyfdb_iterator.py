@@ -284,7 +284,7 @@ class IndexAxis(InternalMarsSelection):
     def __eq__(self, value) -> bool:
         dict_list_values = {}
 
-        if isinstance(value, Dict) or isinstance(value, IndexAxis):
+        if isinstance(value, (Dict, IndexAxis)):
             for k, v in value.items():
                 if isinstance(v, str):
                     dict_list_values[k] = [v]
@@ -294,8 +294,8 @@ class IndexAxis(InternalMarsSelection):
                     dict_list_values[k] = v
 
             return dict(self.items()) == dict(dict_list_values.items())
-        else:
-            return False
+
+        return False
 
     def __ne__(self, value: object, /) -> bool:
         # Needs to be implemented because of __eq__

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Collection, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import yaml
 

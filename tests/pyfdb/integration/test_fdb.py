@@ -16,9 +16,7 @@ def test_fdb_config_default():
 
 
 def test_fdb_config_wrong_type():
-    with pytest.raises(
-        ValueError, match="Config: Unknown config type, must be str, dict or Path"
-    ):
+    with pytest.raises(ValueError, match="Config: Unknown config type, must be str, dict or Path"):
         fdb = FDB(0)
 
         assert fdb
@@ -67,9 +65,7 @@ def test_fdb_config_equality(read_only_fdb_setup):
     print(elements_dict)
     print(elements_str)
 
-    assert all(
-        [x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict)]
-    )
+    assert all([x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict)])
 
 
 def test_fdb_user_config(read_only_fdb_setup):
@@ -99,9 +95,7 @@ def test_fdb_user_config(read_only_fdb_setup):
     fdb_no_user_config = FDB(fdb_config_path)
     print(fdb_no_user_config.config())
     print("Check for empty user config:")
-    system_config_no_user_config, user_config_no_user_config = (
-        fdb_no_user_config.config()
-    )
+    system_config_no_user_config, user_config_no_user_config = fdb_no_user_config.config()
 
     assert system_config == system_config_no_user_config
     assert user_config
