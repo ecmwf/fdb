@@ -28,10 +28,9 @@ add_custom_command(
     OUTPUT ${SPHINX_INDEX_FILE} ${DOXYGEN_INDEX_FILE}
 )
 
-add_custom_target(fdb-doc ALL DEPENDS ${PYFDB_DOC_TEST_SRCS})
+add_custom_target(fdb-doc ALL DEPENDS ${SPHINX_INDEX_FILE} ${DOXYGEN_INDEX_FILE})
 
 # Testing of pyfdb docs
-
 function(add_rst_doc_test test)
     get_filename_component(stem ${test} NAME_WLE)
     add_test(
@@ -65,4 +64,3 @@ set(doc_test_files
 foreach(test_file ${doc_test_files})
     add_rst_doc_test(${test_file})
 endforeach()
-
