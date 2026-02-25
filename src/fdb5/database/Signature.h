@@ -10,7 +10,12 @@
 
 #pragma once
 
+#include <algorithm>
+#include <functional>
+#include <set>
 #include <string>
+#include <vector>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 
