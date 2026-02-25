@@ -14,6 +14,7 @@ from typing import (
     Iterator,
     KeysView,
     List,
+    Optional,
     ValuesView,
 )
 
@@ -46,8 +47,17 @@ class ListElement:
             raise TypeError("Creating a ListElement from user code is not supported.")
         self._element: _ListElement = list_element
 
+    def has_location(self) -> bool:
+        return self._element.has_location()
+
+    def offset(self) -> int:
+        return self._element.offset()
+
+    def length(self) -> int:
+        return self._element.length()
+
     @property
-    def data_handle(self) -> DataHandle:
+    def data_handle(self) -> Optional[DataHandle]:
         """
         Access the DataHandle
 
@@ -67,10 +77,17 @@ class ListElement:
 
         ``b"GRIB"``
         """
-        return DataHandle(self._element.data_handle(), _internal=True)
+        if self.has_location():
+            return DataHandle(self._element.data_handle(), _internal=True)
+
+        logger.info(
+            "Asking for data handle on list element without location. Did you specify `level=3` in a list call?"
+        )
+
+        return None
 
     @property
-    def uri(self) -> URI | None:
+    def uri(self) -> Optional[URI]:
         """
         Access the URI of the list element
 
@@ -88,13 +105,14 @@ class ListElement:
 
         ``<path/to/data_file>``
         """
-        try:
+        if self.has_location():
             return URI(self._element.uri())
-        except RuntimeError as _:
-            logger.info(
-                "Couldn't find an URI for the given element. Did you specify the `level=3` of the list call correctly?"
-            )
-            return None
+
+        logger.info(
+            "Asking for data handle on list element without location. Did you specify `level=3` in a list call?"
+        )
+
+        return None
 
     def __repr__(self) -> str:
         return str(self._element)

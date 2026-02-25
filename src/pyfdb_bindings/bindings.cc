@@ -158,10 +158,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init([](const std::string& key, const std::time_t& timestamp) {
             return fdb5::ListElement(fdb5::Key::parse(key), timestamp);
         }))
+        .def("has_location", &fdb5::ListElement::hasLocation)
+        .def("offset", [](const fdb5::ListElement& list_element) -> long long { return list_element.offset(); })
+        .def("length", [](const fdb5::ListElement& list_element) -> long long { return list_element.length(); })
         .def("uri",
              [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
                  try {
-                     return list_element.uri();
+                     return list_element.location().uri();
                  }
                  catch (std::exception& exception) {
                      return std::nullopt;
@@ -169,11 +172,15 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
              })
         .def(
             "data_handle",
-            [](const fdb5::ListElement& list_element) {
-                return std::shared_ptr<eckit::DataHandle>(list_element.location().dataHandle());
+            [](const fdb5::ListElement& list_element) -> std::optional<std::shared_ptr<eckit::DataHandle>> {
+                try {
+                    return std::shared_ptr<eckit::DataHandle>(list_element.location().dataHandle());
+                }
+                catch (std::exception& exception) {
+                    return std::nullopt;
+                };
             },
-            py::return_value_policy::take_ownership)
-        .def("references", [](const fdb5::ListElement& list_element) { return list_element.location().owners(); })
+            py::return_value_policy::reference_internal)
         .def("__repr__", [](const fdb5::ListElement& list_element) {
             std::stringstream buf;
             list_element.print(buf, true, true, true, ",");
