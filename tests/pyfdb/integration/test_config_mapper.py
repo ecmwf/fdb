@@ -30,9 +30,7 @@ def test_config_mapper_equality(read_only_fdb_setup):
 
     json_config_from_path = ConfigMapper.to_json(fdb_config_path)
     json_config_from_str = ConfigMapper.to_json(fdb_config_path.read_text())
-    json_config_from_yaml = ConfigMapper.to_json(
-        yaml.safe_load(fdb_config_path.read_bytes())
-    )
+    json_config_from_yaml = ConfigMapper.to_json(yaml.safe_load(fdb_config_path.read_bytes()))
 
     assert json_config_from_path == json_config_from_str
     assert json_config_from_path == json_config_from_yaml

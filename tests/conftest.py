@@ -362,9 +362,7 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
             ec.codes_set(gid, "level", level)
-            ec.codes_set_values(
-                gid, list(itertools.repeat(total_values + value, count_values))
-            )
+            ec.codes_set_values(gid, list(itertools.repeat(total_values + value, count_values)))
             ec.codes_write(gid, out)
 
     ec.codes_release(gid)

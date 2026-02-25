@@ -53,12 +53,10 @@ class UserInputMapper:
 
             # Values is a list of values but not a single string
             if isinstance(values, Collection) and not isinstance(values, str):
-                converted_values = [
-                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
-                ]
+                converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+            elif isinstance(values, (str, int, float)):
                 result[key] = [str(values)]
             else:
                 raise ValueError(
@@ -104,7 +102,7 @@ class UserInputMapper:
             )
 
         for k, v in iterator:
-            if k in key_values.keys():
+            if k in key_values:
                 raise KeyError(
                     f"Identifier: Key {k} already exists in Identifier: {str(key_values)}"
                 )
@@ -113,8 +111,8 @@ class UserInputMapper:
                 raise ValueError(
                     "No list of values allowed. An Identifier has to be a mapping from a single key to a single value."
                 )
-            else:
-                key_values[k] = v
+
+            key_values[k] = v
 
         return list(key_values.items())
 
@@ -388,11 +386,11 @@ class ControlIdentifier(IntFlag):
         return _ControlIdentifier[self.name]
 
     def __repr__(self) -> str:
-        active_identifier = "|".join(val.name for val in ControlIdentifier if self.value & val)
+        active_identifier = "|".join([val.name for val in ControlIdentifier if self.value & val])
         if len(active_identifier) == 0:
             return "NONE"
-        else:
-            return active_identifier
+
+        return active_identifier
 
     def __str__(self) -> str:
         return self.__repr__()

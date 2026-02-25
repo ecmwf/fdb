@@ -387,7 +387,7 @@ The selection is describing a ``MarsSelection`` (A MARS request without the verb
 ``level=1`` refers to the schema level of the ``FDB``. A given ``Rule`` in a
 ``FDB`` schema could look like:
 
-.. code-block:: verbatim
+.. code-block::
 
     [ class, expver, stream, date, time, domain?
       ^^^^^^^^^^^^^^^ Level 1 ^^^^^^^^^^^^^^^^^^
@@ -879,6 +879,7 @@ works for a certain selection.
 .. invisible-code-block: python
 
    import pyfdb
+   import pytest
 
 .. tip::
    Consume the iterator, returned by the ``control`` call, completely. Otherwise, the lock file
@@ -888,33 +889,7 @@ works for a certain selection.
 
     fdb = pyfdb.FDB(fdb_config_path)
 
-    print("Retrieve without lock")
-    with fdb.retrieve(
-        {
-            "type": "an",
-            "class": "ea",
-            "domain": "g",
-            "expver": "0001",
-            "stream": "oper",
-            "date": "20200101",
-            "levtype": "sfc",
-            "step": "0",
-            "param": ["167", "165", "166"],
-            "time": "1800",
-        }
-    ) as data_handle:
-        data_handle.read(4) # == b"GRIB"
-
-    assert not (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "retrieve.lock"
-    ).exists()
-
-    print("Locking database for retrieve")
-
-    request = {
+    selection = {
         "class": "ea",
         "domain": "g",
         "expver": "0001",
@@ -923,44 +898,34 @@ works for a certain selection.
         "time": "1800",
     }
 
-    control_iterator = fdb.control(
-        request,
-        pyfdb.ControlAction.DISABLE,
-        [pyfdb.ControlIdentifier.RETRIEVE],
-    )
-    assert control_iterator
+    print("Lock the database for wiping")
+    control_iterator = fdb.control(selection, pyfdb.ControlAction.DISABLE, [pyfdb.ControlIdentifier.WIPE])
+    elements = list(control_iterator)
+
+    assert len(elements) == 1
+    assert (fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
+
+    print("Try Wipe")
+    wipe_iterator = fdb.wipe(selection, doit=True)
 
     elements = []
 
-    for el in control_iterator:
-        print(el)
-        elements.append(el)
+    with pytest.raises(RuntimeError):
+        for el in wipe_iterator:
+            elements.append(el)
 
-    assert len(elements) == 1
+    assert len(elements) == 0
 
-    assert (
-        fdb_config_path.parent
-        / "db_store"
-        / "ea:0001:oper:20200101:1800:g"
-        / "retrieve.lock"
-    ).exists()
+    print("Unlock the database for wiping")
+    control_iterator = fdb.control(selection, pyfdb.ControlAction.ENABLE, [pyfdb.ControlIdentifier.WIPE])
+    elements = list(control_iterator)
 
-    print("Retrieve with lock")
-    with fdb.retrieve(
-        {
-            "type": "an",
-            "class": "ea",
-            "domain": "g",
-            "expver": "0001",
-            "stream": "oper",
-            "date": "20200101",
-            "levtype": "sfc",
-            "step": "0",
-            "param": ["167", "165", "166"],
-            "time": "1800",
-        },
-    ) as data_handle:
-        data_handle.read(4) # == b"GRIB"
+    assert len(elements) > 0
+    assert not (fdb_config_path.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
+
+    print("Wipe")
+    fdb.wipe(selection, doit=True)
+    fdb.flush()
 
     print("Success")
 
