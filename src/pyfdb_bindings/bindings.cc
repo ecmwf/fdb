@@ -44,7 +44,9 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
@@ -411,6 +413,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     //--------------------------------------------------
 
     py::class_<fdb5::ListIterator>(m, "ListIterator")
+        .def("__iter__", [](fdb5::ListIterator& self) -> fdb5::ListIterator& { return self; })
         .def("__next__", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
             fdb5::ListElement result{};
             bool has_next = list_iterator.next(result);
@@ -420,35 +423,30 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::WipeElement>>(m, "WipeIterator")
-        .def("__iter__",
-             [](fdb5::APIIterator<fdb5::WipeElement>& self) -> fdb5::APIIterator<fdb5::WipeElement>& { return self; })
-        .def("__next__", [](fdb5::APIIterator<fdb5::WipeElement>& string_api_iterator) -> fdb5::WipeElement {
+    py::class_<fdb5::WipeIterator>(m, "WipeIterator")
+        .def("__iter__", [](fdb5::WipeIterator& self) -> fdb5::WipeIterator& { return self; })
+        .def("__next__", [](fdb5::WipeIterator& wipe_iterator) -> fdb5::WipeElement {
             fdb5::WipeElement result{};
-            bool has_next = string_api_iterator.next(result);
-
+            bool has_next = wipe_iterator.next(result);
             if (has_next) {
                 return result;
             }
-
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::PurgeElement>>(m, "PurgeIterator")
-        .def("__iter__",
-             [](fdb5::APIIterator<fdb5::PurgeElement>& self) -> fdb5::APIIterator<fdb5::PurgeElement>& { return self; })
-        .def("__next__", [](fdb5::APIIterator<fdb5::PurgeElement>& purgeiterator) -> fdb5::PurgeElement {
+    py::class_<fdb5::PurgeIterator>(m, "PurgeIterator")
+        .def("__iter__", [](fdb5::PurgeIterator& self) -> fdb5::PurgeIterator& { return self; })
+        .def("__next__", [](fdb5::PurgeIterator& purgeiterator) -> fdb5::PurgeElement {
             fdb5::PurgeElement result{};
             bool has_next = purgeiterator.next(result);
-
             if (has_next) {
                 return result;
             }
-
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::ControlElement>>(m, "ControlApiIterator")
+    py::class_<fdb5::ControlIterator>(m, "ControlIterator")
+        .def("__iter__", [](fdb5::ControlIterator& self) -> fdb5::ControlIterator& { return self; })
         .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
             fdb5::ControlElement result{};
             bool has_next = status_iterator.next(result);
@@ -458,8 +456,9 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::APIIterator<fdb5::FileCopy>>(m, "FileCopyApiIterator")
-        .def("__next__", [](fdb5::APIIterator<fdb5::FileCopy>& status_iterator) -> fdb5::FileCopy {
+    py::class_<fdb5::MoveIterator>(m, "MoveIterator")
+        .def("__iter__", [](fdb5::MoveIterator& self) -> fdb5::MoveIterator& { return self; })
+        .def("__next__", [](fdb5::MoveIterator& status_iterator) -> fdb5::FileCopy {
             fdb5::FileCopy result{};
             bool has_next = status_iterator.next(result);
             if (has_next) {
@@ -469,8 +468,9 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         });
 
 
-    py::class_<fdb5::APIIterator<fdb5::StatsElement>>(m, "StatsElementApiIterator")
-        .def("__next__", [](fdb5::APIIterator<fdb5::StatsElement>& status_iterator) -> fdb5::StatsElement {
+    py::class_<fdb5::StatsIterator>(m, "StatsIterator")
+        .def("__iter__", [](fdb5::StatsIterator& self) -> fdb5::StatsIterator& { return self; })
+        .def("__next__", [](fdb5::StatsIterator& status_iterator) -> fdb5::StatsElement {
             fdb5::StatsElement result{};
             bool has_next = status_iterator.next(result);
             if (has_next) {

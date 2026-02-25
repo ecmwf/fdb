@@ -296,10 +296,9 @@ class FDB:
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.list(fdb_tool_request.tool_request, not include_masked, level)
-
-        while True:
+        for list_element in iterator:
             try:
-                yield ListElement(next(iterator), _internal=True)
+                yield ListElement(list_element, _internal=True)
             except StopIteration:
                 return
 
@@ -350,10 +349,9 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         iterator = self.FDB.inspect(internal_mars_selection)
-
-        while iterator is not None:
+        for inspect_element in iterator:
             try:
-                yield ListElement(next(iterator), _internal=True)
+                yield ListElement(inspect_element, _internal=True)
             except StopIteration:
                 return
 
@@ -511,9 +509,9 @@ class FDB:
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.move(fdb_tool_request.tool_request, destination._to_internal())
-        while True:
+        for move_element in iterator:
             try:
-                yield MoveElement(next(iterator), _internal=True)
+                yield MoveElement(move_element, _internal=True)
             except StopIteration:
                 return
 
@@ -571,9 +569,9 @@ class FDB:
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
-        while True:
+        for purge_element in iterator:
             try:
-                yield PurgeElement(next(iterator), _internal=True)
+                yield PurgeElement(purge_element, _internal=True)
             except StopIteration:
                 return
 
@@ -621,9 +619,9 @@ class FDB:
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.stats(fdb_tool_request.tool_request)
-        while True:
+        for stats_element in iterator:
             try:
-                yield StatsElement(next(iterator), _internal=True)
+                yield StatsElement(stats_element, _internal=True)
             except StopIteration:
                 return
 
@@ -695,9 +693,9 @@ class FDB:
             control_action._to_raw(),
             raw_control_identifiers,
         )
-        while True:
+        for control_element in iterator:
             try:
-                yield ControlElement(next(iterator), _internal=True)
+                yield ControlElement(control_element, _internal=True)
             except StopIteration:
                 return
 

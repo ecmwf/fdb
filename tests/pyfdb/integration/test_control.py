@@ -2,24 +2,26 @@ from pathlib import Path
 import yaml
 from pyfdb import FDB, ControlAction, ControlIdentifier
 
+from pyfdb._internal import _ControlIdentifier, _ControlAction
+
 import pytest
 
 from pyfdb.pyfdb_type import UserInputMapper
 
 
 def test_control_action_values():
-    assert ControlAction.NONE == 0
-    assert ControlAction.DISABLE == 1
-    assert ControlAction.ENABLE == 2
+    assert ControlAction.NONE.value == _ControlAction.NONE.value
+    assert ControlAction.DISABLE.value == _ControlAction.DISABLE.value
+    assert ControlAction.ENABLE.value == _ControlAction.ENABLE.value
 
 
 def test_control_identifier_values():
-    assert ControlIdentifier.NONE == 0
-    assert ControlIdentifier.LIST == 1
-    assert ControlIdentifier.RETRIEVE == 2
-    assert ControlIdentifier.ARCHIVE == 4
-    assert ControlIdentifier.WIPE == 8
-    assert ControlIdentifier.UNIQUEROOT == 16
+    assert ControlIdentifier.NONE.value == _ControlIdentifier.NONE.value
+    assert ControlIdentifier.LIST == _ControlIdentifier.LIST.value
+    assert ControlIdentifier.RETRIEVE == _ControlIdentifier.RETRIEVE.value
+    assert ControlIdentifier.ARCHIVE == _ControlIdentifier.ARCHIVE.value
+    assert ControlIdentifier.WIPE == _ControlIdentifier.WIPE.value
+    assert ControlIdentifier.UNIQUEROOT == _ControlIdentifier.UNIQUEROOT.value
 
 
 def test_control_identifier_string():

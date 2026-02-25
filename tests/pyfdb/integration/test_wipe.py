@@ -1,4 +1,18 @@
 from pyfdb import FDB
+from pyfdb.pyfdb_iterator import WipeElementType, _WipeElementType
+
+
+def test_wipe_enum_mapping():
+    assert WipeElementType.ERROR.value == _WipeElementType.ERROR.value
+    assert WipeElementType.CATALOGUE_INFO.value == _WipeElementType.CATALOGUE_INFO.value
+    assert WipeElementType.CATALOGUE.value == _WipeElementType.CATALOGUE.value
+    assert WipeElementType.CATALOGUE_INDEX.value == _WipeElementType.CATALOGUE_INDEX.value
+    assert WipeElementType.CATALOGUE_SAFE.value == _WipeElementType.CATALOGUE_SAFE.value
+    assert WipeElementType.CATALOGUE_CONTROL.value == _WipeElementType.CATALOGUE_CONTROL.value
+    assert WipeElementType.STORE.value == _WipeElementType.STORE.value
+    assert WipeElementType.STORE_AUX.value == _WipeElementType.STORE_AUX.value
+    assert WipeElementType.STORE_SAFE.value == _WipeElementType.STORE_SAFE.value
+    assert WipeElementType.UNKNOWN.value == _WipeElementType.UNKNOWN.value
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
@@ -106,10 +120,6 @@ def test_wipe_list(empty_fdb_setup):
     # Wipe without doit: Do not actually delete anything.
     wipe_iterator = fdb.wipe({"class": "rd"})
 
-    # Consume all wipe iterator elements
-    for el in wipe_iterator:
-        pass
-
     assert len([x for x in fdb.list({})]) == NFIELDS
 
     # Wipe, do it
@@ -117,7 +127,9 @@ def test_wipe_list(empty_fdb_setup):
 
     # Consume all wipe iterator elements
     for el in wipe_iterator:
-        pass
+        print(el.msg())
+        print(el.type())
+        print(el.uris())
 
     list_iterator = fdb.list({})
     elements = [x for x in list_iterator]

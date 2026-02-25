@@ -36,9 +36,6 @@ class UserInputMapper:
     This class helps to create syntactically correctly structured MARS selections. If `strict_mode`
     is activated there will be checks whether keys have been set already.
 
-    Examples
-    --------
-    TODO:
     """
 
     @classmethod
