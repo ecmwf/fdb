@@ -519,9 +519,8 @@ You can use this directly to read the message represented by the ``ListElement``
             "param": ["167", "131", "132"],
             "time": "1800",
     }
-    elements = list(list_iterator)
 
-    for el in elements:
+    for el in list_iterator:
         data_handle = el.data_handle
         data_handle.open()
         assert data_handle.read(4) == b"GRIB"
@@ -615,14 +614,14 @@ call to `control <control_label>` when setting certain ``ControlIdentifiers`` fo
 
 ::
 
-   ControlIdentifiers[4],
-   {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g},
-   URI[scheme=toc,name=/<path-to-db-store>/ea:0001:oper:20200101:1800:g].
+    ControlElement(
+        control_identifiers=[WIPE], 
+        key={'class': ['ea'], 'date': ['20200104'], 'domain': ['g'], 'expver': ['0001'], 'stream': ['oper'], 'time': ['2100']},
+        location=/<some-path>/db_store/ea:0001:oper:20200104:2100:g
+    )
 
 
-You can see that the ``ControlIdentifier`` for ``WIPE`` (value ``4`` is exposed by the ``FDB``) is active for the given entry of the ``FDB``.
-This is prescribed by the internal representation and the ``ControlIdentifier`` serialization of the value in the ``FDB``.
-On the Python API side this corresponds to the ``ControlIdentifier.WIPE`` value. 
+You can see that the ``ControlIdentifier`` for ``WIPE`` is active for the given entry of the ``FDB``.
 
 .. tip::
    Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
