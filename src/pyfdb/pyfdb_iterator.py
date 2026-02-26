@@ -23,9 +23,6 @@ from pyfdb._internal import (
     ControlElement as _ControlElement,
 )
 from pyfdb._internal import (
-    FileCopy as _FileCopy,
-)
-from pyfdb._internal import (
     IndexAxis as _IndexAxis,
 )
 from pyfdb._internal import (
@@ -222,32 +219,11 @@ class StatusElement:
         return f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
 
 
-class MoveElement:
-    def __init__(self, file_copy: _FileCopy, *, _internal=False) -> None:
-        if not _internal:
-            raise TypeError("Creating a MoveElement from user code is not supported.")
-        self.element: _FileCopy = file_copy
-
-    def execute(self):
-        """
-        Method for executing a `MoveElement`. This triggers the move of the associated data.
-        """
-        if self.element is not None:
-            self.element.execute()
-
-    def cleanup(self):
-        if self.element is not None:
-            self.element.cleanup()
-
-    def __repr__(self) -> str:
-        return str(self.element)
-
-
 class PurgeElement:
     def __init__(self, purge_element: str, *, _internal=False) -> None:
         if not _internal:
             raise TypeError("Creating a PurgeElement from user code is not supported.")
-        self.element: str = purge_element
+        self.element: _PurgeElement = purge_element
 
     def __repr__(self) -> str:
         return str(self.element)

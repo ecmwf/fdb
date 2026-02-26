@@ -43,7 +43,6 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
@@ -372,17 +371,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def(py::init())
         .def("__repr__", [](fdb5::PurgeElement& purge_element) { return purge_element; });
 
-    py::class_<fdb5::FileCopy>(m, "FileCopy")
-        .def(py::init())
-        .def("__repr__",
-             [](fdb5::FileCopy& file_copy_element) {
-                 std::stringstream buf{};
-                 buf << file_copy_element;
-                 return buf.str();
-             })
-        .def("execute", &fdb5::FileCopy::execute)
-        .def("cleanup", &fdb5::FileCopy::cleanup);
-
     py::class_<fdb5::StatsElement>(m, "StatsElement")
         .def(py::init())
         .def("index_statistics",
@@ -456,18 +444,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             throw py::stop_iteration();
         });
 
-    py::class_<fdb5::MoveIterator>(m, "MoveIterator")
-        .def("__iter__", [](fdb5::MoveIterator& self) -> fdb5::MoveIterator& { return self; })
-        .def("__next__", [](fdb5::MoveIterator& status_iterator) -> fdb5::FileCopy {
-            fdb5::FileCopy result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
-
-
     py::class_<fdb5::StatsIterator>(m, "StatsIterator")
         .def("__iter__", [](fdb5::StatsIterator& self) -> fdb5::StatsIterator& { return self; })
         .def("__next__", [](fdb5::StatsIterator& status_iterator) -> fdb5::StatsElement {
@@ -512,7 +488,6 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("dump", &fdb5::FDB::dump)
         .def("status", &fdb5::FDB::status)
         .def("wipe", &fdb5::FDB::wipe)
-        .def("move", &fdb5::FDB::move)
         .def("purge", &fdb5::FDB::purge)
         .def("stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); })
         .def("control",

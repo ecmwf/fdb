@@ -21,7 +21,6 @@ from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
     ListElement,
-    MoveElement,
     PurgeElement,
     StatsElement,
     StatusElement,
@@ -449,69 +448,6 @@ class FDB:
         for wipe_element in iterator:
             try:
                 yield WipeElement(wipe_element, _internal=True)
-            except StopIteration:
-                return
-
-    def move(
-        self, mars_selection: MarsSelection, destination: URI
-    ) -> Generator[MoveElement, None, None]:
-        """
-        Move content of one FDB database to a new URI.
-
-        This locks the source database, make it possible to create a second
-        database in another root, duplicates all data.
-        Source data is moved.
-
-        Parameters
-        ----------
-        `mars_selection` : `MarsSelection`
-            A MARS selection specifies the affected data
-        `destination` : `URI`
-            A new FDB root to which a database should be moved
-
-        Returns
-        -------
-        Generator[MoveElement, None, None]
-            A generator for `MoveElement`
-
-        Note
-        ----
-        The destination `URI` must be a known root to the `FDB`, meaning it must be stated in
-        the `FDB` config file.
-
-        **The last element in the move_iterator contains a move element specifying the root of the
-        database entry with a destination of '/'.**
-
-        Examples
-        --------
-        >>> selection = {
-        >>>         "class": "ea",
-        >>>         "domain": "g",
-        >>>         "expver": "0001",
-        >>>         "stream": "oper",
-        >>>         "date": "20200101",
-        >>>         "time": "1800",
-        >>>     },
-        >>> )
-        >>> fdb = pyfdb.FDB(fdb_config_path)
-        >>> move_iterator = fdb.move(
-        >>>     selection,
-        >>>     URI.from_str(<new_root>),
-        >>> )
-        >>> print(list(move_iterator)[0])
-        FileCopy(
-            src=<db_store>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
-            dest=<new_db>/ea:0001:oper:20200101:1800:g/an:sfc.20251107.181626.???.???.309280594984980.data,
-            sync=0
-        )
-        ...
-        """
-        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
-        fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        iterator = self.FDB.move(fdb_tool_request.tool_request, destination._to_internal())
-        for move_element in iterator:
-            try:
-                yield MoveElement(move_element, _internal=True)
             except StopIteration:
                 return
 

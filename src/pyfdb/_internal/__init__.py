@@ -25,7 +25,6 @@ from pyfdb_bindings.pyfdb_bindings import (
 from pyfdb_bindings.pyfdb_bindings import (
     Config,
     ControlElement,
-    FileCopy,
     IndexAxis,
     ListElement,
     StatsElement,
@@ -62,7 +61,6 @@ __all__ = [
     "WipeElementType",
     "PurgeElement",
     "IndexAxis",
-    "FileCopy",
     "InternalMarsSelection",
     "MarsSelection",
     "UserInputMapper",

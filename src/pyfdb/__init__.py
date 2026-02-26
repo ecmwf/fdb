@@ -12,7 +12,6 @@ from pyfdb.pyfdb import FDB
 
 from pyfdb.pyfdb_iterator import (
     ListElement,
-    MoveElement,
     StatusElement,
     WipeElement,
     PurgeElement,
@@ -29,7 +28,6 @@ __all__ = [
     "ListElement",
     "WipeElement",
     "StatusElement",
-    "MoveElement",
     "ControlAction",
     "ControlIdentifier",
     "PurgeElement",

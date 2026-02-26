@@ -23,30 +23,7 @@ function(add_py_test test)
     )
 endfunction()
 
-
-set(test_files
-    integration/test_archive.py
-    integration/test_config.py
-    integration/test_config_mapper.py
-    integration/test_control.py
-    integration/test_data_handle.py
-    integration/test_enums.py
-    integration/test_fdb.py
-    integration/test_fdb_tool_request.py
-    integration/test_index_axis.py
-    integration/test_inspect.py
-    integration/test_list.py
-    integration/test_move.py
-    integration/test_purge.py
-    integration/test_retrieve.py
-    integration/test_selection_mapper.py
-    integration/test_stats.py
-    integration/test_status.py
-    integration/test_types.py
-    integration/test_uri.py
-    integration/test_wildcard_selection.py
-    integration/test_wipe.py
-)
+file(GLOB test_files integration/ *.py)
 
 foreach(test_file ${test_files})
     add_py_test(${test_file})
