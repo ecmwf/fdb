@@ -1,14 +1,10 @@
-from pyfdb import FDB
-
 import pytest
+
+from pyfdb import FDB
 
 
 def test_retrieve(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -32,22 +28,14 @@ def test_retrieve(read_only_fdb_setup):
 
 
 def test_retrieve_wildcard(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     with pytest.raises(TypeError):
         _ = fdb.retrieve({})
 
 
 def test_retrieve_context_manager(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",

@@ -9,17 +9,14 @@
 # axes
 
 from pathlib import Path
+
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import ControlElement, IndexAxis
 from pyfdb.pyfdb_type import ControlAction, ControlIdentifier
 
 
 def test_list_all(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
     list_iterator = fdb.list({}, level=1)
     assert list_iterator
 
@@ -60,11 +57,7 @@ def test_list_all(read_only_fdb_setup):
 
 
 def test_status_all(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
     status_iterator = fdb.status({})
 
     elements = []
@@ -93,9 +86,7 @@ def test_wipe_dryrun_all(read_write_fdb_setup):
 
 
 def test_wipe_all_doit_all(read_write_fdb_setup):
-    fdb_config_path = read_write_fdb_setup
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_write_fdb_setup)
 
     elements = list(fdb.list({}))
     assert len(elements) > 0
@@ -164,7 +155,6 @@ def test_purge_all(empty_fdb_setup, build_grib_messages):
 
 
 def test_stats_all(read_only_fdb_setup):
-    assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
 
     list_iterator = fdb.stats({})
@@ -180,7 +170,6 @@ def test_stats_all(read_only_fdb_setup):
 
 
 def test_control_lock_retrieve_all(read_only_fdb_setup):
-    assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
 
     print("Retrieve without lock")
@@ -250,7 +239,6 @@ def test_control_lock_retrieve_all(read_only_fdb_setup):
 
 
 def test_index_axis_items_levels_all(read_only_fdb_setup):
-    assert read_only_fdb_setup
     fdb = FDB(read_only_fdb_setup)
     index_axis: IndexAxis = fdb.axes({})
 

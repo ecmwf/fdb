@@ -1,6 +1,5 @@
 import pytest
 
-from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import (
     ControlElement,
     IndexAxis,
@@ -10,7 +9,7 @@ from pyfdb.pyfdb_iterator import (
     StatusElement,
     WipeElement,
 )
-from pyfdb.pyfdb_type import ControlAction, ControlIdentifier, DataHandle
+from pyfdb.pyfdb_type import DataHandle
 
 classes = [
     IndexAxis,

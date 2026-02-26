@@ -8,7 +8,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Self, Tuple
 
 from pyfdb._internal import (
     ConfigMapper,
@@ -769,4 +769,4 @@ class FDB:
         return system_config, user_config
 
     def __repr__(self) -> str:
-        return str(self.FDB)
+        return repr(self.FDB)

@@ -1,17 +1,14 @@
 import io
-import pytest
-from pyfdb.pyfdb import FDB
-
 import shutil
 import tempfile
 
+import pytest
+
+from pyfdb.pyfdb import FDB
+
 
 def test_datahandle_repr(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -34,11 +31,7 @@ def test_datahandle_repr(read_only_fdb_setup):
 
 
 def test_datahandle_not_opened_before_read(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -65,11 +58,7 @@ def test_datahandle_not_opened_before_read(read_only_fdb_setup):
 
 
 def test_datahandle_consecutive_read(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -95,11 +84,7 @@ def test_datahandle_consecutive_read(read_only_fdb_setup):
 
 
 def test_datahandle_readinto(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -152,11 +137,7 @@ def test_datahandle_readinto_non_opened(read_only_fdb_setup):
 
 
 def test_datahandle_read_all(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -180,11 +161,7 @@ def test_datahandle_read_all(read_only_fdb_setup):
 
 
 def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -219,11 +196,7 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
 
 
 def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -245,11 +218,7 @@ def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
 
 
 def test_datahandle_not_opened_before_read_all_context_manager(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -270,11 +239,7 @@ def test_datahandle_not_opened_before_read_all_context_manager(read_only_fdb_set
 
 
 def test_datahandle_size(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -294,11 +259,7 @@ def test_datahandle_size(read_only_fdb_setup):
 
 
 def test_datahandle_size_without_open(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -318,11 +279,7 @@ def test_datahandle_size_without_open(read_only_fdb_setup):
 
 
 def test_datahandle_readinto_shutil_copyfileobj_cmp(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -359,11 +316,7 @@ def test_datahandle_readinto_shutil_copyfileobj_cmp(read_only_fdb_setup):
 
 
 def test_datahandle_readinto_shutil_copyfileobj_tmp_file(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -397,11 +350,7 @@ def test_datahandle_readinto_shutil_copyfileobj_tmp_file(read_only_fdb_setup):
 
 
 def test_data_handle_readinto_attr(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",

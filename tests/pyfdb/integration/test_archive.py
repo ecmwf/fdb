@@ -1,5 +1,7 @@
 from pathlib import Path
+
 import pytest
+
 from pyfdb import FDB
 
 
@@ -91,10 +93,6 @@ key_values = [
 
 @pytest.mark.parametrize("wrong_key_value", key_values)
 def test_archive_abitrary_data_wrong_identifier(empty_fdb_setup, wrong_key_value):
-    fdb_config_path = empty_fdb_setup
-
-    assert fdb_config_path
-
     selection = {
         "class": "rd",
         "expver": "arb1",
@@ -109,19 +107,15 @@ def test_archive_abitrary_data_wrong_identifier(empty_fdb_setup, wrong_key_value
         "param": "138",
     }
 
-    with pytest.raises(ValueError):
-        with FDB(fdb_config_path) as fdb:
-            fdb.archive(
-                data=b"binary-data",
-                identifier=selection,
-            )
+    with pytest.raises(ValueError), FDB(empty_fdb_setup) as fdb:
+        fdb.archive(
+            data=b"binary-data",
+            identifier=selection,
+        )
 
 
 def test_archive_round_trip(empty_fdb_setup, test_data_path, test_logger):
-    fdb_config_path = empty_fdb_setup
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(empty_fdb_setup)
 
     filename = test_data_path / "x138-300.grib"
     file_content = filename.read_bytes()

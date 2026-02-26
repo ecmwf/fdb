@@ -132,7 +132,7 @@ def test_pythonic_interface():
         {
             "key-1": ["value-1", "value-2", "value-3"],
             "key-2": 0.1,
-            "key-3": [x for x in range(1, 5)],
+            "key-3": list(range(1, 5)),
             "key-4": [0.1, "0.2"],
             "key-5": [1 + 0.5 * x for x in range(2)],
         }

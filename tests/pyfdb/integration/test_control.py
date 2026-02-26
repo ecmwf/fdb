@@ -1,11 +1,10 @@
 from pathlib import Path
-import yaml
-from pyfdb import FDB, ControlAction, ControlIdentifier
-
-from pyfdb._internal import _ControlIdentifier, _ControlAction
 
 import pytest
+import yaml
 
+from pyfdb import FDB, ControlAction, ControlIdentifier
+from pyfdb._internal import _ControlAction, _ControlIdentifier
 from pyfdb.pyfdb_type import UserInputMapper
 
 
@@ -16,12 +15,12 @@ def test_control_action_values():
 
 
 def test_control_identifier_values():
-    assert ControlIdentifier.NONE.value == _ControlIdentifier.NONE.value
-    assert ControlIdentifier.LIST == _ControlIdentifier.LIST.value
-    assert ControlIdentifier.RETRIEVE == _ControlIdentifier.RETRIEVE.value
-    assert ControlIdentifier.ARCHIVE == _ControlIdentifier.ARCHIVE.value
-    assert ControlIdentifier.WIPE == _ControlIdentifier.WIPE.value
-    assert ControlIdentifier.UNIQUEROOT == _ControlIdentifier.UNIQUEROOT.value
+    assert _ControlIdentifier.NONE.value == ControlIdentifier.NONE.value
+    assert _ControlIdentifier.LIST.value == ControlIdentifier.LIST
+    assert _ControlIdentifier.RETRIEVE.value == ControlIdentifier.RETRIEVE
+    assert _ControlIdentifier.ARCHIVE.value == ControlIdentifier.ARCHIVE
+    assert _ControlIdentifier.WIPE.value == ControlIdentifier.WIPE
+    assert _ControlIdentifier.UNIQUEROOT.value == ControlIdentifier.UNIQUEROOT
 
 
 def test_control_identifier_string():
@@ -48,11 +47,7 @@ def test_control_action_string():
 
 
 def test_control_lock_retrieve(read_only_fdb_setup, function_tmp):
-    fdb_config_path: Path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     print("Retrieve without lock")
     data_handle = fdb.retrieve(
@@ -133,11 +128,7 @@ def test_control_lock_retrieve(read_only_fdb_setup, function_tmp):
 
 
 def test_control_lock_list(read_only_fdb_setup, function_tmp):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -242,11 +233,7 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function
 def test_control_lock_archive_status(
     read_only_fdb_setup, build_grib_messages, function_tmp, test_logger
 ):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -308,11 +295,7 @@ def test_control_lock_archive_status(
 
 
 def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_messages):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -373,11 +356,7 @@ def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_message
 
 
 def test_enabled_per_default(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     assert fdb.enabled(ControlIdentifier.NONE) is True
     assert fdb.enabled(ControlIdentifier.LIST) is True
@@ -406,11 +385,7 @@ def test_disabled_writable(read_only_fdb_setup):
 
 
 def test_disabled_visitable(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb_config = yaml.safe_load(fdb_config_path.read_text())
+    fdb_config = yaml.safe_load(read_only_fdb_setup.read_text())
     fdb_config["visitable"] = False
 
     fdb = FDB(yaml.dump(fdb_config))
@@ -424,11 +399,7 @@ def test_disabled_visitable(read_only_fdb_setup):
 
 
 def test_disabled_visitable_writeable(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb_config = yaml.safe_load(fdb_config_path.read_text())
+    fdb_config = yaml.safe_load(read_only_fdb_setup.read_text())
     fdb_config["visitable"] = False
     fdb_config["writable"] = False
 
@@ -443,26 +414,18 @@ def test_disabled_visitable_writeable(read_only_fdb_setup):
 
 
 def test_needs_flush(empty_fdb_setup, test_data_path):
-    fdb_config_path = empty_fdb_setup
+    fdb = FDB(empty_fdb_setup)
 
-    assert fdb_config_path
+    filename: Path = test_data_path / "x138-300.grib"
 
-    fdb = FDB(fdb_config_path)
-
-    filename = test_data_path / "x138-300.grib"
-
-    fdb.archive(open(filename, "rb").read())
+    fdb.archive(filename.read_bytes())
     assert fdb.dirty() is True
     fdb.flush()
     assert fdb.dirty() is False
 
 
 def test_control_element_key(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -495,11 +458,7 @@ def test_control_element_key(read_only_fdb_setup):
 
 
 def test_control_element_control_identifiers(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path.read_text())
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "class": "ea",
@@ -547,7 +506,7 @@ def test_control_element_control_identifiers(read_only_fdb_setup):
     )
     assert control_iterator
 
-    elements = list([el.controlIdentifiers() for el in control_iterator])
+    elements = [el.controlIdentifiers() for el in control_iterator]
 
     assert len(elements) == 1
     assert len(elements[0]) == 0
@@ -591,12 +550,16 @@ def test_status_element_eq_control_element(read_only_fdb_setup):
     control_elements = list(control_iterator)
 
     # Status for all databases
-    stats_iterator = fdb.status({})
-    assert stats_iterator
+    status_iterator = fdb.status({})
+    assert status_iterator
 
-    stats_elements = list(stats_iterator)
-    assert control_elements == stats_elements
+    status_elements = list(status_iterator)
+    assert control_elements == status_elements
+
+    for i in range(len(control_elements)):
+        print(f"Control Element: \n {control_elements[i]}")
+        print(f"Status Element: \n {status_elements[i]}")
 
     # Check (cross-verify) that consecutive elements are different
     for i in range(len(control_elements) - 1):
-        assert control_elements[i + 1] != stats_elements[i]
+        assert control_elements[i + 1] != status_elements[i]

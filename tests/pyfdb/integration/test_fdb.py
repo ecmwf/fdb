@@ -23,27 +23,18 @@ def test_fdb_config_wrong_type():
 
 
 def test_fdb_config_fixture(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
-
+    fdb = FDB(read_only_fdb_setup)
     assert fdb
 
 
 def test_fdb_config_equality(read_only_fdb_setup):
-    fdb_config_path: Path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    pyfdb_config_str = FDB(fdb_config_path)
+    pyfdb_config_str = FDB(read_only_fdb_setup)
     assert pyfdb_config_str
 
-    pyfdb_config_path = FDB(fdb_config_path)
+    pyfdb_config_path = FDB(read_only_fdb_setup)
     assert pyfdb_config_path
 
-    config_dict = yaml.safe_load(fdb_config_path.read_bytes())
+    config_dict = yaml.safe_load(read_only_fdb_setup.read_bytes())
     pyfdb_config_dict = FDB(config_dict)
     assert pyfdb_config_dict
 
@@ -65,14 +56,10 @@ def test_fdb_config_equality(read_only_fdb_setup):
     print(elements_dict)
     print(elements_str)
 
-    assert all([x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict)])
+    assert all(x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict))
 
 
 def test_fdb_user_config(read_only_fdb_setup):
-    fdb_config_path: Path = read_only_fdb_setup
-
-    assert fdb_config_path
-
     user_config_str = r"""---
         type: local
         engine: toc
@@ -82,7 +69,7 @@ def test_fdb_user_config(read_only_fdb_setup):
           - path: "/a/path/is/something"
     """
 
-    fdb = FDB(fdb_config_path, user_config_str)
+    fdb = FDB(read_only_fdb_setup, user_config_str)
     assert fdb
 
     print("Check for user config propagation:")
@@ -92,7 +79,7 @@ def test_fdb_user_config(read_only_fdb_setup):
     assert "useSubToc" in user_config
     assert user_config["useSubToc"] is True
 
-    fdb_no_user_config = FDB(fdb_config_path)
+    fdb_no_user_config = FDB(read_only_fdb_setup)
     print(fdb_no_user_config.config())
     print("Check for empty user config:")
     system_config_no_user_config, user_config_no_user_config = fdb_no_user_config.config()

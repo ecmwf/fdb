@@ -1,4 +1,5 @@
 import pytest
+
 from pyfdb._internal.pyfdb_internal import FDBToolRequest
 
 
@@ -15,7 +16,7 @@ def test_from_internal_selection():
 def test_from_selection():
     # Internal representation is not respected
     with pytest.raises(ValueError):
-        fdb_tool_request = FDBToolRequest.from_internal_mars_selection({"key-1": "value-1"})
+        _ = FDBToolRequest.from_internal_mars_selection({"key-1": "value-1"})
 
 
 def test_from_selection_all():

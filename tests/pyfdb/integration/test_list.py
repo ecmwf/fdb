@@ -66,13 +66,13 @@ def test_read_only_attributes_list_element(read_only_fdb_setup):
 
     elements = list(list_iterator)
 
-    for i in range(len(elements)):
+    for el in elements:
         with pytest.raises(AttributeError):
-            elements[i].data_handle = None
+            el.data_handle = None
 
-    for i in range(len(elements)):
+    for el in elements:
         with pytest.raises(AttributeError):
-            elements[i].uri = None
+            el.uri = None
 
 
 def test_list_minimal(read_only_fdb_setup, test_logger):
@@ -159,11 +159,7 @@ def test_list_minimal(read_only_fdb_setup, test_logger):
 
 
 def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -205,11 +201,7 @@ def test_list_deduplicate(read_only_fdb_setup, build_grib_messages):
 
 
 def test_list_read_from_datahandle(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",

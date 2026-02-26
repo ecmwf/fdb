@@ -1,4 +1,5 @@
 from typing import List
+
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import StatusElement
 
@@ -33,7 +34,7 @@ def test_status(read_only_fdb_setup):
 
     for element in elements:
         assert all(
-            [el in element.key() for el in expected_key]
+            el in element.key() for el in expected_key
         )  # Check whether the expected key is part of the elements
 
         assert element.controlIdentifiers() == expected_control_identifiers

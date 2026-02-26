@@ -16,9 +16,7 @@ def test_wipe_enum_mapping():
 
 
 def test_wipe_dryrun(read_write_fdb_setup):
-    fdb_config_path = read_write_fdb_setup
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_write_fdb_setup)
 
     elements = list(fdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -35,9 +33,7 @@ def test_wipe_dryrun(read_write_fdb_setup):
 
 
 def test_wipe_all_doit(read_write_fdb_setup):
-    fdb_config_path = read_write_fdb_setup
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_write_fdb_setup)
 
     elements = list(fdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -52,9 +48,7 @@ def test_wipe_all_doit(read_write_fdb_setup):
 
 
 def test_wipe_single_date_doit(read_write_fdb_setup):
-    fdb_config_path = read_write_fdb_setup
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_write_fdb_setup)
 
     elements = list(fdb.list({"class": "ea"}))
     assert len(elements) > 0
@@ -70,24 +64,23 @@ def test_wipe_single_date_doit(read_write_fdb_setup):
     assert len(elements_after_wipe) == 72
 
 
-BASE_REQUEST = {
-    "class": "rd",
-    "expver": "xxxx",
-    "stream": "oper",
-    "type": "fc",
-    "date": "20000101",
-    "time": "0000",
-    "domain": "g",
-    "levtype": "pl",
-    "levelist": "300",
-    "param": "138",
-    "step": "0",
-}
-
-
 def populate_fdb(fdb: FDB):
+    selection = {
+        "class": "rd",
+        "expver": "xxxx",
+        "stream": "oper",
+        "type": "fc",
+        "date": "20000101",
+        "time": "0000",
+        "domain": "g",
+        "levtype": "pl",
+        "levelist": "300",
+        "param": "138",
+        "step": "0",
+    }
+
     # Write 4 fields to the FDB based on BASE_REQUEST
-    requests = [BASE_REQUEST.copy() for i in range(4)]
+    requests = [selection.copy() for _ in range(4)]
 
     # Modify on each of the 3 levels of the schema
     requests[1]["step"] = "1"
@@ -95,32 +88,28 @@ def populate_fdb(fdb: FDB):
     requests[3]["levtype"] = "sfc"
     del requests[3]["levelist"]
 
-    NFIELDS = 4
+    number_of_fields = 4
 
     data = b"-1 Kelvin"
-    for i in range(NFIELDS):
+    for i in range(number_of_fields):
         key = requests[i]
         key = [(k, v) for k, v in key.items()]
         fdb.archive(identifier=key, data=data)
     fdb.flush()
 
-    return NFIELDS
+    return number_of_fields
 
 
 def test_wipe_list(empty_fdb_setup):
-    fdb_config_path = empty_fdb_setup
+    fdb = FDB(empty_fdb_setup)
 
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
-
-    NFIELDS = populate_fdb(fdb)
-    assert len([x for x in fdb.list({})]) == NFIELDS
+    number_of_fields = populate_fdb(fdb)
+    assert len(list(fdb.list({}))) == number_of_fields
 
     # Wipe without doit: Do not actually delete anything.
     wipe_iterator = fdb.wipe({"class": "rd"})
 
-    assert len([x for x in fdb.list({})]) == NFIELDS
+    assert len(list(fdb.list({}))) == number_of_fields
 
     # Wipe, do it
     wipe_iterator = fdb.wipe({"class": "rd"}, doit=True)
@@ -131,7 +120,5 @@ def test_wipe_list(empty_fdb_setup):
         print(el.type())
         print(el.uris())
 
-    list_iterator = fdb.list({})
-    elements = [x for x in list_iterator]
-
+    elements = list(fdb.list({}))
     assert len(elements) == 0

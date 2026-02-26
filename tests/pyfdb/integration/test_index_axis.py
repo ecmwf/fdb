@@ -1,4 +1,5 @@
 import pytest
+
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import IndexAxis
 
@@ -127,9 +128,7 @@ def test_index_axis_with_dict(read_only_fdb_setup):
 
 
 def test_index_axis_string(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",

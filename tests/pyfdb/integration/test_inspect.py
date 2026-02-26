@@ -1,14 +1,11 @@
 from typing import List
+
 from pyfdb import FDB
 from pyfdb.pyfdb_iterator import ListElement
 
 
 def test_inspect(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -46,11 +43,7 @@ def test_inspect(read_only_fdb_setup):
 
 
 def test_inspect_multiple_values(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",

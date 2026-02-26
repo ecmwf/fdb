@@ -2,11 +2,7 @@ from pyfdb import FDB
 
 
 def test_stats(read_only_fdb_setup):
-    fdb_config_path = read_only_fdb_setup
-
-    assert fdb_config_path
-
-    fdb = FDB(fdb_config_path)
+    fdb = FDB(read_only_fdb_setup)
 
     selection = {
         "type": "an",
@@ -45,22 +41,22 @@ def test_stats(read_only_fdb_setup):
     assert "Index files                     : 1" in stats
 
     # Check fields
-    "Fields" in stats
-    "Size of fields" in stats
-    "Reacheable fields" in stats
-    "Reachable size" in stats
-    "Databases" in stats
-    "TOC records" in stats
-    "Size of TOC files" in stats
-    "Size of schemas files" in stats
-    "TOC records" in stats
-    "Owned data files" in stats
-    "Size of owned data files" in stats
-    "Index files" in stats
-    "Size of index files" in stats
-    "Size of TOC files" in stats
-    "Total owned size" in stats
-    "Total size" in stats
+    assert "Fields" in stats
+    assert "Size of fields" in stats
+    assert "Reacheable fields" in stats
+    assert "Reachable size" in stats
+    assert "Databases" in stats
+    assert "TOC records" in stats
+    assert "Size of TOC files" in stats
+    assert "Size of schemas files" in stats
+    assert "TOC records" in stats
+    assert "Owned data files" in stats
+    assert "Size of owned data files" in stats
+    assert "Index files" in stats
+    assert "Size of index files" in stats
+    assert "Size of TOC files" in stats
+    assert "Total owned size" in stats
+    assert "Total size" in stats
 
 
 def test_stats_db_stats(read_only_fdb_setup):
@@ -90,10 +86,10 @@ def test_stats_db_stats(read_only_fdb_setup):
     print(stats)
 
     # Check for database and index statistics
-    assert not "Index Statistics:" in stats
-    assert not "Fields                          : 3" in stats
-    assert not "Reacheable fields               : 3" in stats
-    assert not "DB Statistics:" in stats
+    assert "Index Statistics:" not in stats
+    assert "Fields                          : 3" not in stats
+    assert "Reacheable fields               : 3" not in stats
+    assert "DB Statistics:" not in stats
     assert "Databases                       : 1" in stats
     assert "TOC records                     : 2" in stats
     assert "TOC records                     : 2" in stats
@@ -101,17 +97,17 @@ def test_stats_db_stats(read_only_fdb_setup):
     assert "Index files                     : 1" in stats
 
     # Check fields
-    "TOC records" in stats
-    "Size of TOC files" in stats
-    "Size of schemas files" in stats
-    "TOC records" in stats
-    "Owned data files" in stats
-    "Size of owned data files" in stats
-    "Index files" in stats
-    "Size of index files" in stats
-    "Size of TOC files" in stats
-    "Total owned size" in stats
-    "Total size" in stats
+    assert "TOC records" in stats
+    assert "Size of TOC files" in stats
+    assert "Size of schemas files" in stats
+    assert "TOC records" in stats
+    assert "Owned data files" in stats
+    assert "Size of owned data files" in stats
+    assert "Index files" in stats
+    assert "Size of index files" in stats
+    assert "Size of TOC files" in stats
+    assert "Total owned size" in stats
+    assert "Total size" in stats
 
 
 def test_stats_index_stats(read_only_fdb_setup):
@@ -143,15 +139,15 @@ def test_stats_index_stats(read_only_fdb_setup):
     # Check for database and index statistics
     assert "Fields                          : 3" in stats
     assert "Reacheable fields               : 3" in stats
-    assert not "DB Statistics:" in stats
-    assert not "Databases                       : 1" in stats
-    assert not "TOC records                     : 2" in stats
-    assert not "TOC records                     : 2" in stats
-    assert not "Owned data files                : 1" in stats
-    assert not "Index files                     : 1" in stats
+    assert "DB Statistics:" not in stats
+    assert "Databases                       : 1" not in stats
+    assert "TOC records                     : 2" not in stats
+    assert "TOC records                     : 2" not in stats
+    assert "Owned data files                : 1" not in stats
+    assert "Index files                     : 1" not in stats
 
     # Check fields
-    "Fields" in stats
-    "Size of fields" in stats
-    "Reacheable fields" in stats
-    "Reachable size" in stats
+    assert "Fields" in stats
+    assert "Size of fields" in stats
+    assert "Reacheable fields" in stats
+    assert "Reachable size" in stats
