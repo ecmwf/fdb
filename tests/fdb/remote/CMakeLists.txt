@@ -21,7 +21,7 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         TYPE           SCRIPT
         COMMAND        ${FDB_TEST_SERVER_SCRIPT}
         ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
-        TEST_DEPENDS   fdb_test_remote_api_bin
+        TEST_DEPENDS   "fdb_test_remote_cleanup;fdb_test_remote_api_bin"
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
         TIMEOUT 300

@@ -14,6 +14,19 @@ endif()
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} )
 
+if (HAVE_FDB_REMOTE)
+    ecbuild_configure_file( fdb_remote_cleanup.sh.in fdb_remote_cleanup.sh @ONLY )
+
+    ecbuild_add_test(
+            TARGET         fdb_test_remote_cleanup
+            TYPE           SCRIPT
+            COMMAND        fdb_remote_cleanup.sh
+            TEST_PROPERTIES
+            RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+            LABELS remotefdb
+        )
+endif()
+
 add_subdirectory( fdb )
 add_subdirectory( chunked_data_view )
 add_subdirectory( regressions )

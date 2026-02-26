@@ -21,6 +21,7 @@ ecbuild_add_test(
     TARGET         FDB-610
     TYPE           SCRIPT
     COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/FDB-610.sh
+    TEST_DEPENDS   fdb_test_remote_cleanup
     ENVIRONMENT    "${test_environment}"
     TEST_PROPERTIES
     RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
