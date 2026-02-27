@@ -56,7 +56,7 @@ void FDBLock::init(const CmdArgs& args) {
     args.get("wipe", wipe_);
 
     if (!(list_ || retrieve_ || archive_ || wipe_)) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "No identifier specified to (un)lock.";
         throw UserError(ss.str(), Here());
     }
@@ -104,7 +104,7 @@ void FDBLock::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }

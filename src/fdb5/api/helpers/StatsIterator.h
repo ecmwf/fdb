@@ -54,8 +54,6 @@ using StatsIterator = APIIterator<StatsElement>;
 
 using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
 
-using StatsAsyncIterator = APIAsyncIterator<StatsElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

@@ -38,6 +38,9 @@ RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& con
     NOTIMP;
 }
 
+RadosStore::RadosStore(const eckit::URI& uri) :
+    Store(), directory_("mars:" + uri.path().dirName()), archivedFields_(0) {}
+
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
 }
@@ -65,7 +68,7 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const uint32_t, const K
 
     ASSERT(len == length);
 
-    return std::unique_ptr<const RadosFieldLocation>(new RadosFieldLocation(dataUri, position, length));
+    return std::make_unique<const RadosFieldLocation>(dataUri, position, length);
 }
 
 size_t RadosStore::flush() {

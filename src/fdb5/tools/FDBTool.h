@@ -48,10 +48,11 @@ protected:  // methods
     ~FDBTool() override {}
 
     void run() override;
-    Config config(const eckit::option::CmdArgs& args,
-                  const eckit::Configuration& userConfig = eckit::LocalConfiguration()) const;
 
 public:  // methods
+
+    static Config config(const eckit::option::CmdArgs& args,
+                         const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
     virtual void usage(const std::string& tool) const;
 

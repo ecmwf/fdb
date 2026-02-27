@@ -20,7 +20,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "eckit/utils/Optional.h"
 
 #include "fdb5/daos/DaosOID.h"
 

@@ -93,7 +93,7 @@ private:
 
 //-----------------------------------------------------------------------------
 
-class TocHandler : public TocCommon, private eckit::NonCopyable {
+class TocHandler : public TocCommon {
 
 public:  // typedefs
 
@@ -107,10 +107,14 @@ public:  // methods
     /// For initialising sub tocs or diagnostic interrogation.
     TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr);
 
+    TocHandler(const TocHandler&)            = delete;
+    TocHandler& operator=(const TocHandler&) = delete;
+    TocHandler(TocHandler&&)                 = delete;
+    TocHandler& operator=(TocHandler&&)      = delete;
+
     ~TocHandler() override;
 
     bool exists() const;
-    void checkUID() const override;
 
     void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index&);

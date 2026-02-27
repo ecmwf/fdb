@@ -19,6 +19,7 @@
 #ifndef fdb5_ListIterator_H
 #define fdb5_ListIterator_H
 
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -29,6 +30,14 @@
 #include "fdb5/database/Key.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+enum class ListMode {
+    Full,
+    Deduplicate,
+    OnlyDuplicates
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,8 +52,6 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
-
-using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -77,8 +84,8 @@ public:
 class ListIterator : public APIIterator<ListElement> {
 public:
 
-    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate = false) :
-        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
+    ListIterator(APIIterator<ListElement>&& iter, ListMode mode = ListMode::Full) :
+        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), mode_(mode) {}
 
     ListIterator(ListIterator&& iter) = default;
 
@@ -91,7 +98,7 @@ public:
 private:
 
     KeyStore seenKeys_;
-    bool deduplicate_;
+    ListMode mode_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

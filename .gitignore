@@ -10,3 +10,9 @@ install.sh
 
 # LLVM debug
 launch.json
+
+compile_commands.json
+
+__pycache__/
+
+*.swp

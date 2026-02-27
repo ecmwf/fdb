@@ -39,13 +39,13 @@ private:  // types
     class FDBLane {
         SelectMatcher matcher_;
         Config config_;
-        std::optional<FDB> fdb_;
+        std::shared_ptr<FDBBase> fdb_;
 
     public:
 
         FDBLane(const eckit::LocalConfiguration& config);
 
-        FDB& get();
+        FDBBase& get();
 
         void flush();
 
@@ -70,7 +70,7 @@ public:  // methods
 
     StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
@@ -90,7 +90,7 @@ private:  // methods
     void print(std::ostream& s) const override;
 
     template <typename QueryFN>
-    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
+    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDBBase*)(nullptr), request));
 
 private:  // members
 

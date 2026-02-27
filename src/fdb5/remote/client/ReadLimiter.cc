@@ -20,6 +20,10 @@ namespace {
 ReadLimiter* instance_ = nullptr;
 }  // namespace
 
+bool ReadLimiter::isInitialised() {
+    return instance_ != nullptr;
+}
+
 ReadLimiter& ReadLimiter::instance() {
     ASSERT(instance_);
     return *instance_;
@@ -42,7 +46,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
     size_t resultSize  = fieldLocation.length();
 
     if (resultSize > memoryLimit_) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "ReadLimiter: Requested field size " << resultSize << " exceeds memory limit " << memoryLimit_
            << ". Field: " << fieldLocation.fullUri();
         throw eckit::SeriousBug(ss.str());

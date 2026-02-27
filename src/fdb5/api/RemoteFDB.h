@@ -52,7 +52,7 @@ public:  // method
 
     StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override { NOTIMP; }
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override { NOTIMP; }
 
@@ -77,6 +77,7 @@ private:  // methods
     void print(std::ostream& s) const override;
 
     // Client
+    const eckit::Configuration& clientConfig() const override;
     bool handle(remote::Message message, uint32_t requestID) override;
     bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 

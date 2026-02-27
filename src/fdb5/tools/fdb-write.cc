@@ -89,7 +89,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs& args) {
 
     std::vector<std::unique_ptr<fdb5::MessageArchiver>> archivers;
     for (int i = 0; i < archivers_; i++) {
-        std::unique_ptr<fdb5::MessageArchiver> a(new fdb5::MessageArchiver(fdb5::Key(), false, verbose_, config(args)));
+        auto a = std::make_unique<fdb5::MessageArchiver>(fdb5::Key(), false, verbose_, config(args));
         a->setFilters(filterInclude_, filterExclude_);
         a->setModifiers(modifiers);
         archivers.push_back(std::move(a));

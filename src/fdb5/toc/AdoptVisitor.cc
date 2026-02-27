@@ -33,7 +33,7 @@ AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const Pa
 bool AdoptVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     checkMissingKeys(fullKey);
 
-    CatalogueWriter* cat = catalogue();
+    auto cat = catalogue();
     ASSERT(cat);
 
     if (cat->type() == TocEngine::typeName()) {

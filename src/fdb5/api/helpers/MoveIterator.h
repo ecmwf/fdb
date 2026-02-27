@@ -97,8 +97,6 @@ using MoveIterator = APIIterator<MoveElement>;
 
 using MoveAggregateIterator = APIAggregateIterator<MoveElement>;
 
-using MoveAsyncIterator = APIAsyncIterator<MoveElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

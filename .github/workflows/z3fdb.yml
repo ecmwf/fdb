@@ -1,0 +1,140 @@
+name: Build and Test z3fdb
+
+on:
+  pull_request:
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  prepare-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get ecbuild
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/ecbuild
+          ref: develop
+          path: ecbuild
+      - name: Get cxx-dependencies
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/cxx-dependencies
+          ref: master
+          path: cxx-dependencies-src
+          token: ${{ secrets.GH_REPO_READ_TOKEN }}
+          submodules: recursive
+      - name: Install dependencies
+        run: |
+          mkdir cxx-dependencies-build
+          BUILD_PATH=cxx-dependencies-build INSTALL_PREFIX=dependencies cxx-dependencies-src/build.sh
+      - name: Get eccodes
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/eccodes
+          ref: develop
+          path: eccodes-src
+      - name: Install eccodes
+        run: |
+          mkdir eccodes-build
+          cmake \
+            -B eccodes-build \
+            -S eccodes-src \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=dependencies \
+            -DCMAKE_PREFIX_PATH=dependencies \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_MEMFS=ON \
+            -DENABLE_AEC=ON
+          cmake --build eccodes-build -j -t install
+      - name: Get eckit
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/eckit
+          ref: develop
+          path: eckit-src
+      - name: Install eckit
+        run: |
+          mkdir eckit-build
+          cmake \
+            -B eckit-build \
+            -S eckit-src \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=dependencies \
+            -DCMAKE_PREFIX_PATH=dependencies \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build eckit-build -j -t install
+      - name: Get metkit
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/metkit
+          ref: develop
+          path: metkit-src
+      - name: Install metkit
+        run: |
+          mkdir metkit-build
+          cmake \
+            -B metkit-build \
+            -S metkit-src \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=dependencies \
+            -DCMAKE_PREFIX_PATH=dependencies \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build metkit-build -j -t install
+      - name: Archive with permissions preserved
+        run: tar --zstd -cpf files.tar.zst dependencies/ ecbuild/
+      - name: Upload dependencies
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps
+          path: files.tar.zst
+          retention-days: 1
+  build-wheels:
+    needs: prepare-deps
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
+      fail-fast: false  # Continue running other versions if one fails
+    
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Download dependencies
+        uses: actions/download-artifact@v4
+        with:
+          name: deps
+      - name: Extract with zstd
+        run: tar --zstd -xpf files.tar.zst
+      - name: Get fdb5
+        uses: actions/checkout@v5
+        with:
+          repository: ecmwf/fdb
+          path: fdb-src
+      - name: Display Python version
+        run: python --version
+      - name: Install 'build'
+        run: pip install -r fdb-src/requirements.txt
+      - name: Build fdb
+        run: |
+          export PATH=$(pwd)/dependencies/bin:$PATH
+          mkdir fdb-build
+          cmake \
+            -B fdb-build \
+            -S fdb-src \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=dependencies \
+            -DCMAKE_PREFIX_PATH=dependencies \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_TOOLS=ON \
+            -DENABLE_PYTHON_ZARR_INTERFACE=ON
+          cmake --build fdb-build -j
+          cd fdb-build
+          ctest -j $(nproc) --output-on-failure
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: z3fdb-wheel-py${{ matrix.python-version }}
+          path: "fdb-build/z3fdb-*.whl"
+          retention-days: 10
+          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`

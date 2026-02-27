@@ -45,19 +45,15 @@ protected:  // methods
 
     void deselectDatabase() override;
 
-    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
-                eckit::StringList& values) override;
-
     void print(std::ostream& out) const override;
 
     Store& store();
+
     const Schema& databaseSchema() const override;
 
 private:
 
-    std::unique_ptr<Store> store_;
-
-    const Notifier& wind_;
+    std::unique_ptr<Store> store_{};
 
     HandleGatherer& gatherer_;
 };

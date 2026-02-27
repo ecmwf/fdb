@@ -35,6 +35,7 @@ Config::Config() : schemaPath_(""), schemaPathInitialised_(false) {
 
 Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig, const std::string& fdb_home) {
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB configuration file: " << path << std::endl;
+    ASSERT(!path.realName().isDir());
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
     if (!fdb_home.empty()) {

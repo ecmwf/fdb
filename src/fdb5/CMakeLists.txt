@@ -46,6 +46,7 @@ list( APPEND fdb5_srcs
     api/helpers/LockIterator.h
     api/helpers/MoveIterator.h
     api/helpers/StatusIterator.h
+    api/helpers/WipeIterator.cc
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
@@ -112,14 +113,17 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/Inspector.cc
     database/Inspector.h
+    database/Signature.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
     database/Store.cc
     database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
-    database/WipeVisitor.cc
-    database/WipeVisitor.h
+    database/WipeCoordinator.cc
+    database/WipeCoordinator.h
+    database/WipeState.cc
+    database/WipeState.h
     database/MoveVisitor.cc
     database/MoveVisitor.h
     database/IndexAxis.cc
@@ -242,6 +246,8 @@ if(HAVE_FDB_REMOTE)
         remote/Messages.cc
         remote/FdbServer.h
         remote/FdbServer.cc
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
 
         remote/client/Client.h
         remote/client/Client.cc
@@ -316,8 +322,6 @@ if( HAVE_TOCFDB )
         toc/TocPurgeVisitor.h
         toc/TocSerialisationVersion.cc
         toc/TocSerialisationVersion.h
-        toc/TocWipeVisitor.cc
-        toc/TocWipeVisitor.h
         toc/TocMoveVisitor.cc
         toc/TocMoveVisitor.h
         toc/TocRecord.cc
@@ -385,8 +389,6 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        daos/DaosWipeVisitor.h
-        daos/DaosWipeVisitor.cc
         daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
         daos/DaosLazyFieldLocation.h
@@ -526,6 +528,32 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
+if ( HAVE_GRIB )
+    ecbuild_add_executable( TARGET    fdb-compare
+                            CONDITION HAVE_FDB_BUILD_TOOLS
+                            SOURCES   tools/compare/fdb-compare.cc
+                                      tools/compare/common/Types.cc
+                                      tools/compare/common/Types.h
+                                      tools/compare/common/Util.cc
+                                      tools/compare/common/Util.h
+                                      tools/compare/mars/Compare.cc
+                                      tools/compare/mars/Compare.h
+                                      tools/compare/grib/Compare.cc
+                                      tools/compare/grib/Compare.h
+                                      tools/compare/grib/CompareKeys.cc
+                                      tools/compare/grib/CompareKeys.h
+                                      tools/compare/grib/CompareHash.cc
+                                      tools/compare/grib/CompareHash.h
+                                      tools/compare/grib/CompareDatasection.cc
+                                      tools/compare/grib/CompareDatasection.h
+                                      tools/compare/grib/CompareBitwise.cc
+                                      tools/compare/grib/CompareBitwise.h
+                                      tools/compare/grib/Utils.cc
+                                      tools/compare/grib/Utils.h
+                            INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                            LIBS      fdb5 eckit metkit eccodes)
+endif()
+                        
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )

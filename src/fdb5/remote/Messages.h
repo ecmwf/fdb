@@ -68,6 +68,13 @@ enum class Message : uint16_t {
     Axes,
     Exists,
 
+    // Wipe related messages
+    DoWipeURIs = 150,
+    DoWipeUnknowns,
+    DoWipeFinish,
+    DoMaskIndexEntries,
+    DoUnsafeFullWipe,
+
     // Responses
     Received = 200,
     Complete,

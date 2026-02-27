@@ -23,12 +23,11 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/message/MessageArchiver.h"
 
 // For HAVE_FAIL_ON_CCSDS
@@ -54,21 +53,25 @@ std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
-    LOG_DEBUG_LIB(LibFdb5) << "Parsed requests:" << std::endl;
-    for (auto j = p.begin(); j != p.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
+        for (auto j = p.begin(); j != p.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     // expand requests
 
     bool inherit = true;
-    metkit::mars::MarsExpension expand(inherit);
+    metkit::mars::MarsExpansion expand(inherit);
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Expanded requests:" << std::endl;
-    for (auto j = v.begin(); j != v.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
+        for (auto j = v.begin(); j != v.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     return v;
@@ -151,7 +154,9 @@ bool MessageArchiver::filterOut(const Key& k) const {
 
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
-    eckit::Timer timer("fdb::service::archive");
+    std::optional<eckit::Timer> timer;
+    if (verbose_)
+        timer.emplace("fdb::service::archive");
 
     eckit::message::Reader reader(source);
 
@@ -221,10 +226,12 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
-                       << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
-                       << std::endl;
+    if (verbose_) {
+        eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
+                           << " size " << eckit::Bytes(total_size) << ","
+                           << " in " << eckit::Seconds(timer->elapsed()) << " ("
+                           << eckit::Bytes(total_size, timer.value()) << ")" << std::endl;
+    }
 
     return total_size;
 }

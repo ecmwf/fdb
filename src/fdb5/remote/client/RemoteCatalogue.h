@@ -35,6 +35,8 @@ public:  // methods
     RemoteCatalogue(const Key& key, const Config& config);
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
+    ~RemoteCatalogue() override;
+
     // From CatalogueWriter
     const Index& currentIndex() override;
     bool createIndex(const Key& idxKey, size_t datumKeySize) override;
@@ -54,19 +56,18 @@ public:  // methods
     const Schema& schema() const override;
     const Rule& rule() const override;
 
-    std::vector<eckit::PathName> metadataPaths() const override;
-    void visitEntries(EntryVisitor& visitor, bool sorted = false) override;
+    bool uriBelongs(const eckit::URI& uri) const override;
+
     void dump(std::ostream& out, bool simple = false,
               const eckit::Configuration& conf = eckit::LocalConfiguration()) const override;
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
-                             bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override;
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
     std::vector<fdb5::Index> indexes(bool sorted = false) const override;
-    void maskIndexEntry(const Index& index) const override;
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
+
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
     void print(std::ostream& out) const override;
 
@@ -80,6 +81,15 @@ public:  // methods
     void checkUID() const override;
     eckit::URI uri() const override;
 
+    CatalogueWipeState wipeInit() const override;
+    bool markIndexForWipe(const Index&, bool, CatalogueWipeState&) const override { NOTIMP; }
+    void finaliseWipeState(CatalogueWipeState& wipeState) const override { NOTIMP; }
+
+    bool doWipeURIs(const CatalogueWipeState& wipeState) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
+
 protected:
 
     void loadSchema() override;
@@ -87,6 +97,7 @@ protected:
 private:
 
     // From Client
+    const eckit::Configuration& clientConfig() const override;
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -97,7 +108,6 @@ private:
 
 protected:
 
-    Config config_;
     ControlIdentifiers controlIdentifiers_;
 
 private:

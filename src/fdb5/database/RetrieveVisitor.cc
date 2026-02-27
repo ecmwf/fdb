@@ -10,14 +10,11 @@
 
 #include "fdb5/database/RetrieveVisitor.h"
 
-#include "eckit/config/Resource.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"
-#include "fdb5/types/TypesRegistry.h"
 
 
 namespace fdb5 {
@@ -25,7 +22,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RetrieveVisitor::RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer) :
-    store_(nullptr), wind_(wind), gatherer_(gatherer) {}
+    ReadVisitor(wind), gatherer_(gatherer) {}
 
 // From Visitor
 
@@ -81,24 +78,6 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
 void RetrieveVisitor::deselectDatabase() {
     catalogue_ = nullptr;
     return;
-}
-
-void RetrieveVisitor::values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                             const TypesRegistry& registry, eckit::StringList& values) {
-    eckit::StringList list;
-    registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
-
-    std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> filter;
-    if (catalogue_) {
-        filter = catalogue_->axis(keyword);
-    }
-
-    for (const auto& value : list) {
-        std::string v = registry.lookupType(keyword).toKey(value);
-        if (!filter || filter->get().find(v) != filter->get().end()) {
-            values.push_back(value);
-        }
-    }
 }
 
 Store& RetrieveVisitor::store() {

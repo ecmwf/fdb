@@ -21,8 +21,6 @@
 
 #include <memory>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -32,8 +30,8 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/WipeState.h"
 
 namespace eckit::message {
 
@@ -57,13 +55,20 @@ class FieldLocation;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable, public CallbackRegistry {
+class FDBBase : public std::enable_shared_from_this<FDBBase>, public CallbackRegistry {
 
 public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
 
+    FDBBase(const FDBBase&)            = delete;
+    FDBBase& operator=(const FDBBase&) = delete;
+    FDBBase(FDBBase&&)                 = delete;
+    FDBBase& operator=(FDBBase&&)      = delete;
+
     virtual ~FDBBase() = default;
+
+    std::shared_ptr<FDBBase> shared() { return shared_from_this(); }
 
     // -------------- Primary API functions ----------------------------
 
@@ -81,7 +86,7 @@ public:  // methods
 
     virtual StatusIterator status(const FDBToolRequest& request) = 0;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
+    virtual WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
 
@@ -135,7 +140,7 @@ public:
 
     void add(const std::string& name, const FDBBuilderBase*);
 
-    std::unique_ptr<FDBBase> build(const Config& config);
+    std::shared_ptr<FDBBase> build(const Config& config);
 
 private:
 
@@ -150,7 +155,7 @@ private:
 class FDBBuilderBase {
 public:  // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
+    virtual std::shared_ptr<FDBBase> make(const Config& config) const = 0;
 
 protected:  // methods
 
@@ -176,9 +181,7 @@ public:  // methods
 
 private:  // methods
 
-    std::unique_ptr<FDBBase> make(const Config& config) const override {
-        return std::unique_ptr<T>(new T(config, name_));
-    }
+    std::shared_ptr<FDBBase> make(const Config& config) const override { return std::make_shared<T>(config, name_); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -16,7 +16,6 @@
 #ifndef fdb5_FileSpaceHandler_H
 #define fdb5_FileSpaceHandler_H
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Regex.h"
 
@@ -32,13 +31,19 @@ class Key;
 
 class FileSpaceHandlerInstance;
 
-class FileSpaceHandler : private eckit::NonCopyable {
+class FileSpaceHandler {
 
 public:  // methods
 
     static const FileSpaceHandler& lookup(const std::string& name, const Config& config);
     static void regist(const std::string& name, FileSpaceHandlerInstance* h);
     static void unregist(const std::string& name);
+
+    FileSpaceHandler()                                   = delete;
+    FileSpaceHandler(const FileSpaceHandler&)            = delete;
+    FileSpaceHandler& operator=(const FileSpaceHandler&) = delete;
+    FileSpaceHandler(FileSpaceHandler&&)                 = delete;
+    FileSpaceHandler& operator=(FileSpaceHandler&&)      = delete;
 
     virtual ~FileSpaceHandler();
 

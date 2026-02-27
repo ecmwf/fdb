@@ -24,7 +24,7 @@
 #include "eckit/utils/Literals.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
@@ -89,8 +89,9 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    ArchiveVisitor visitor(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, visitor);
+                    auto visitor =
+                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
+                    fdb.archive(k, *visitor);
                 }
             }
         }
@@ -144,6 +145,11 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(iter.next(el));
         EXPECT(el.combinedKey().get("step") == "2");
         EXPECT(!iter.next(el));
+
+        iter = fdb5::FDB{}.list(r, true);
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(!iter.next(el));
     }
 
     req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2", "60"});
@@ -151,6 +157,13 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::FDBToolRequest r(req);
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT(iter.next(el));
+        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT(!iter.next(el));
+
+        iter = fdb5::FDB{}.list(r, true);
         EXPECT(iter.next(el));
         EXPECT(el.combinedKey().get("step") == "2");
         EXPECT(iter.next(el));
@@ -176,7 +189,7 @@ CASE("test_fdb_stepunit_archive") {
     listReq.values("step", {"0", "to", "2", "by", "30m"});
     listReq.unsetValues("param");
     {
-        metkit::mars::MarsExpension expand{false};
+        metkit::mars::MarsExpansion expand{false};
 
         metkit::mars::MarsRequest expandedRequests = expand.expand(listReq);
         fdb5::FDBToolRequest r(expandedRequests);
@@ -249,6 +262,15 @@ CASE("test_fdb_service") {
                         Log::info() << "Looking for: " << f.p << std::endl;
 
                         metkit::mars::MarsRequest r("retrieve", f.p);
+
+                        auto it = fdb5::FDB{}.inspect(r);
+                        fdb5::ListElement el;
+                        EXPECT(it.next(el));
+                        EXPECT(el.combinedKey().get("param") == *param);
+                        EXPECT(el.combinedKey().get("step") == str(step * 3));
+                        EXPECT(el.combinedKey().get("levelist") == str(level * 100));
+                        EXPECT(!it.next(el));
+
                         std::unique_ptr<DataHandle> dh(retriever.retrieve(r));
                         AutoClose closer1(*dh);
 
@@ -544,7 +566,7 @@ CASE("schemaSerialisation") {
         fdb5::Config config;
         config = config.expandConfig();
 
-        std::stringstream ss;
+        std::ostringstream ss;
         config.schema().dump(ss);
         original = ss.str();
 
@@ -556,7 +578,7 @@ CASE("schemaSerialisation") {
 
         std::unique_ptr<fdb5::Schema> clone(eckit::Reanimator<fdb5::Schema>::reanimate(sin));
 
-        std::stringstream ss;
+        std::ostringstream ss;
         clone->dump(ss);
 
         EXPECT(original == ss.str());

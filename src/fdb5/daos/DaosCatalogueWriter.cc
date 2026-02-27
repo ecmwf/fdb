@@ -13,6 +13,7 @@
 
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/log/Log.h"
 #include "eckit/serialisation/HandleStream.h"
 
 #include "fdb5/LibFdb5.h"
@@ -24,7 +25,7 @@
 #include "fdb5/daos/DaosCatalogueWriter.h"
 #include "fdb5/daos/DaosIndex.h"
 
-// using namespace eckit;
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -60,8 +61,8 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key& key, const fdb5::Config& con
         catalogue_kv_name.create();
 
         /// write schema under "schema"
-        eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
-                                     << catalogue_kv_name.URI().asString() << " at key 'schema'." << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Copy schema from " << config_.schemaPath() << " to "
+                               << catalogue_kv_name.URI().asString() << " at key 'schema'." << std::endl;
 
         eckit::FileHandle in(config_.schemaPath());
         std::unique_ptr<eckit::DataHandle> out(catalogue_kv_name.dataHandle("schema"));

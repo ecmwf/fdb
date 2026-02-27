@@ -11,7 +11,6 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/serialisation/Streamable.h"
 
 #ifndef fdb5_IndexLocation_H
