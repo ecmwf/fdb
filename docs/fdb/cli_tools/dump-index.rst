@@ -4,6 +4,7 @@ fdb dump-index
 Dump the contents of a particular index file for debugging purposes.
 
 Note that one index file can (and likely will) contain multiple indexes, which will be dumped sequentially.
+
 Usage
 -----
 
@@ -11,6 +12,8 @@ Usage
 
 Options
 -------
+
+This tool has no tool-specific options. It accepts only positional path arguments.
 
 Examples
 --------

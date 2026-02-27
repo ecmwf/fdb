@@ -29,13 +29,17 @@ Options
 | ``--ignore-no-data``                   | Do not return error if there is no data to delete.                                                                  |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--raw``                              | | Don't apply (contextual) expansion and checking on requests.                                                      |
-|                                        | | Keys and values passed must match those used internally to the FDB exactly.                                       | 
+|                                        | | Keys and values passed must match those used internally to the FDB exactly.                                       |
 |                                        | | This prevents the use of named parameters (such as t rather than param=130), dates (such as date=-1), or similar. |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--minimum-keys=string,string``       | | Default is class,expver,stream,date,time                                                                          |
 |                                        | | Define the minimum set of keys that must be specified. This is a safety precaution against accidental data removal|
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--all``                              | (Debug and testing only) Visit all FDB databases                                                                    |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--unsafe-wipe-all``                  | Wipe all (unowned) contents of an unclean database                                                                  |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--config=string``                    | FDB configuration filename                                                                                          |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 Example 1

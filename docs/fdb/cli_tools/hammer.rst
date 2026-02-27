@@ -11,7 +11,7 @@ This tool takes a sample GRIB file containing one field, and repeatedly resets t
 Usage
 -----
 
-``fdb hammer [--statistics] [--read] [–nensembles=] [--number=<n>] --nsteps=<nsteps> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> --class=<class> <grib_path>``
+``fdb hammer [--statistics] [--read] [--nensembles=] [--number=<n>] --nsteps=<nsteps> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> --class=<class> <grib_path>``
 
 Options
 -------

@@ -11,4 +11,4 @@ Runtime dependencies:
 Build dependencies:
 
 :CMake: For use and installation see http://www.cmake.org/
-:ecbuild: ECMWF library of CMake macros ()
+:ecbuild: ECMWF library of CMake macros (https://github.com/ecmwf/ecbuild)
