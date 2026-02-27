@@ -1,29 +1,35 @@
-fdb-write
+fdb write
 =========
 
-| Inserts data into the FDB, creating a new databases if needed.  
-| The data is copied into the FDB, and the tool reports the location where it was inserted.  
-| This process is atomic and can be run concurrently to other processes reading or writing to the same FDB databases.
+Inserts data into the FDB, creating a new database if needed.
+The data is copied into the FDB, and the tool reports the location where it was inserted.
+This process is atomic and can be run concurrently to other processes reading or writing to the same FDB databases.
 
 Usage
 -----
 
-``fdb-write [options] <gribfile1> [gribfile2] ...``
+``fdb write [--include-filter=...] [--exclude-filter=...] <path1> [path2] ...``
 
 Options
 -------
 
 +----------------------------------------+-----------------------------------------------------------------------------------------+
-| ``--verbose``	                         | Prints more information, namely the key of each datum and the                           |
+| ``--verbose``                          | Prints more information, namely the key of each datum and the                           |
 |                                        | information of which data was filtered out                                              |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 | ``--statistics``                       | Report timing statistics                                                                |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
-| ``--include-filter=string=string,...`` | | Filter out any data that **does not match** this key-value pairs.                     |
+| ``--include-filter=string,...``        | | Filter out any data that **does not match** this key-value pairs.                     |
 |                                        | | Key-value pairs can be in the form of a MARS request, e.g.: ``step=141/to/240/by/3``  |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
-| ``--exclude-filter=string=string,...`` | | Filter out any data that **does match** this key-value pair.                          | 
+| ``--exclude-filter=string,...``        | | Filter out any data that **does match** this key-value pair.                          |
 |                                        | | Key-value pairs can be in the form of a MARS request, e.g.: ``levelist=850/1000``     |
++----------------------------------------+-----------------------------------------------------------------------------------------+
+| ``--config=string``                    | FDB configuration filename                                                              |
++----------------------------------------+-----------------------------------------------------------------------------------------+
+| ``--modifiers=string``                 | List of comma separated key-values of modifiers to each message in input data           |
++----------------------------------------+-----------------------------------------------------------------------------------------+
+| ``--archivers=integer``                | Number of archivers (default is 1). For testing only.                                   |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 
 Examples
@@ -32,19 +38,19 @@ Examples
 You may pass multiple grib files. The tool will insert them sequentially.
 ::
 
-  % fdb-write data.grib
-  
+  % fdb write data.grib
+
   Processing data.grib
   FDB archive 12 fields, size 37.5412 Mbytes, in 0.088939 second (422.091 Mbytes per second)
   fdb::service::archive: 0.089006 second elapsed, 0.089005 second cpu
 
 
 
-Use ``--include-filter`` you have a large data set of which you want to write a small sub-set easily identifiable from a few keys ...
+Use ``--include-filter`` when you have a large data set of which you want to write a small sub-set easily identifiable from a few keys ...
 ::
 
-  % fdb-write --verbose --include-filter=time=0000 data.grib
- 
+  % fdb write --verbose --include-filter=time=0000 data.grib
+
   Processing data.grib
   Archiving {class=rd,date=20160402,domain=g,expver=xxxx,levelist=1000,levtype=pl,param=138,step=0,stream=oper,time=0000,type=an}
   Archiving {class=rd,date=20160402,domain=g,expver=xxxx,levelist=1000,levtype=pl,param=155,step=0,stream=oper,time=0000,type=an}
@@ -61,11 +67,11 @@ Use ``--include-filter`` you have a large data set of which you want to write a 
 
 
 
-Use ``--exclude-filter`` you have a large data set of which you want to filter out a small sub-set easily identifiable from a few keys ...
+Use ``--exclude-filter`` when you have a large data set of which you want to filter out a small sub-set easily identifiable from a few keys ...
 ::
 
-  % fdb-write --verbose --exclude-filter=time=1200,levelist=1000 data.grib
-  
+  % fdb write --verbose --exclude-filter=time=1200,levelist=1000 data.grib
+
   Processing data.grib
   Archiving {class=rd,date=20160402,domain=g,expver=xxxx,levelist=1000,levtype=pl,param=138,step=0,stream=oper,time=0000,type=an}
   Archiving {class=rd,date=20160402,domain=g,expver=xxxx,levelist=1000,levtype=pl,param=155,step=0,stream=oper,time=0000,type=an}

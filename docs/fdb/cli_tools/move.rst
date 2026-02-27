@@ -1,9 +1,9 @@
 fdb move
 ========
 
-Move the content of one FDB database. This locks the source database, make it possible to create a second database in another root, duplicates all data. Source data are not automatically removed.
+Move the content of one FDB database. This locks the source database, making it possible to create a second database in another root, duplicates all data. Source data are not automatically removed.
 
-This tool is envisaged for migrating data from two different data store (i.e. from a performance to a capacity data store)
+This tool is envisaged for migrating data from two different data stores (i.e. from a performance to a capacity data store)
 
 Usage
 -----
@@ -34,6 +34,8 @@ Database request must match exactly one database.
 | ``--all``                              | Visit all FDB databases                                                                                             |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--config=string``                    | FDB configuration filename                                                                                          |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--transport=string``                 | Distributed data move (MPI based)                                                                                   |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 

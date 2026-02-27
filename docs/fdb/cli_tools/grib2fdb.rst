@@ -1,7 +1,7 @@
 grib2fdb5
 =========
 
-Inserts data into the FDB, creating a new databases if needed.
+Inserts data into the FDB, creating new databases if needed.
 
 Note that the interface is designed to be the same as the older grib2fdb tool for use with fdb4.
 
@@ -14,15 +14,15 @@ Options
 -------
 
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--c``                                | Check that the class of the supplied data matches                                                                   |
+| ``-c``                                 | Check that the class of the supplied data matches                                                                   |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--e``                                | Check that the expver of the supplied data matches                                                                  |
+| ``-e``                                 | Check that the expver of the supplied data matches                                                                  |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--T``                                | Check that the type of the supplied data matches                                                                    |
+| ``-T``                                 | Check that the type of the supplied data matches                                                                    |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--s``                                | Check that the stream of the supplied data matches                                                                  |
+| ``-s``                                 | Check that the stream of the supplied data matches                                                                  |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--f``                                | The grib file to archive                                                                                            |
+| ``-f``                                 | The grib file to archive                                                                                            |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--config=string``                    | FDB configuration filename                                                                                          |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+

@@ -13,22 +13,22 @@ Usage
 Options
 -------
 
-At least one of class or expver is required is required
+At least one of class or expver is required.
 
 
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--expver=string``                    | Specifies the new class to use for the copied data                                                                  |
+| ``--expver=string``                    | Specifies the new experiment version to use for the copied data                                                     |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--class=string``                     | Specifies the new experiment version to use for the copied data                                                     |
+| ``--class=string``                     | Specifies the new class to use for the copied data                                                                  |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--ignore-errors``                    | Ignore errors (report them as warnings) and continue processing wherever possible                                   |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--raw``                              | | Don't apply (contextual) expansion and checking on requests. This prevents the use of named parameters            |
-|                                        | | (such as t rather than param=130), dates (such as date=-1), or similar. Keys and values passed must match those   | 
+|                                        | | (such as t rather than param=130), dates (such as date=-1), or similar. Keys and values passed must match those   |
 |                                        | | used internally to the FDB exactly.                                                                               |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-| ``--minimum-keys``                     | Default is class,expver                                                                                             |
-|                                        | Define the minimum set of keys that must be specified. Prevents inadvertently exploring and copying the entire FDB. |                                                                                                 
+| ``--minimum-keys``                     | | Default is class,expver                                                                                           |
+|                                        | | Define the minimum set of keys that must be specified. Prevents inadvertent exploration of the entire FDB.        |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--all``                              | (Debug and testing only) Visit all FDB databases                                                                    |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
