@@ -22,7 +22,7 @@ Now proceed with installation as follows:
    cd $builddir
 
    # 2. Run CMake
-   ecbuild --prefix=$installdir -- -DCMAKE_INSTALL_PREFIX=</path/to/installations> $srcdir
+   ecbuild --prefix=$installdir -- $srcdir
    
    # 3. Compile / Install
    make -j10

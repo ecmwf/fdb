@@ -48,7 +48,7 @@ You may pass a partial request (as a key) that will print information on all FDB
   Size of fields                  : 3,542,829,840 (3.29952 Gbytes)
   Duplicated fields               : 1,056
   Size of duplicates              : 3,464,100,288 (3.22619 Gbytes)
-  Reacheable fields               : 24
+  Reachable fields               : 24
   Reachable size                  : 78,729,552 (75.0824 Mbytes)
   TOC records                     : 46
   Size of TOC files               : 47,104 (46 Kbytes)
@@ -77,7 +77,7 @@ The --details flag prints a report per database that is visited, as well as the 
   Size of fields                  : 20,784,601,728 (19.3572 Gbytes)
   Duplicated fields               : 6,240
   Size of duplicates              : 20,469,683,520 (19.0639 Gbytes)
-  Reacheable fields               : 96
+  Reachable fields               : 96
   Reachable size                  : 314,918,208 (300.329 Mbytes)
   TOC records                     : 268
   Size of TOC files               : 274,432 (268 Kbytes)

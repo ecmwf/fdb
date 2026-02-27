@@ -60,5 +60,5 @@ Get location of FDB schema file in an easily parsable form:
 Get location of current FDB configuration file in an easily parsable form:
 ::
   
-  % fdb info --config
+  % fdb info --config-file
   <path>/testcases/fdb5/fdb5_simple.yaml
