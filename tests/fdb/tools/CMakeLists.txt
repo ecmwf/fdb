@@ -8,7 +8,6 @@ foreach( _t ${fdb_tools_tests} )
     ecbuild_add_test(
         TARGET fdb_test_tools_${_t}
         TYPE SCRIPT
-        CONDITION HAVE_FDB_BUILD_TOOLS
         COMMAND fdb_${_t}.sh
         ENVIRONMENT "${test_environment}")
 
@@ -18,13 +17,13 @@ list( APPEND fdb_tools_grib_tests
     axes )
 
 foreach( _t ${fdb_tools_grib_tests} )
-    
+
     configure_file( fdb_${_t}.sh.in fdb_${_t}.sh @ONLY )
 
     ecbuild_add_test(
         TARGET fdb_test_tools_${_t}
         TYPE SCRIPT
-        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
+        CONDITION HAVE_GRIB
         ENVIRONMENT ECCODES_BINARY_PATH=$<TARGET_FILE_DIR:grib_set>
         ENVIRONMENT "${test_environment}"
         COMMAND fdb_${_t}.sh)

@@ -14,7 +14,6 @@ foreach( _test ${fdb_tools_wipe_configs} )
         TARGET fdb_test_tools_wipe_${_test}
         TYPE SCRIPT
         LABELS wipe
-        CONDITION HAVE_FDB_BUILD_TOOLS
         TEST_DEPENDS fdb_test_get_data
         COMMAND wipe.sh
         ARGS ${_test}.yaml
