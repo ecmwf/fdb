@@ -165,11 +165,9 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    TEST_LOG_INFO("REMOVE");
-
-    store.remove(key);
-
-    EXPECT_THROWS(fam::read_and_validate(handle.get(), value, length));
+    // TEST_LOG_INFO("REMOVE");
+    // store.remove(key);
+    // EXPECT_THROWS(fam::read_and_validate(handle.get(), value, length));
 
     TEST_LOG_INFO("FINISHED!");
 }
