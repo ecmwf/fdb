@@ -1,6 +1,3 @@
-# get test data for the list tests
-ecbuild_get_test_multidata( TARGET fdb_test_get_data_list LABELS list NAMES "od.oper.grib" NOCHECK )
-
 # list of tests
 list( APPEND fdb_tools_list_tests
     all
@@ -22,8 +19,7 @@ foreach( _test ${fdb_tools_list_tests} )
         TARGET fdb_test_tools_list_${_test}
         TYPE SCRIPT
         LABELS list
-        CONDITION HAVE_FDB_BUILD_TOOLS
-        TEST_DEPENDS fdb_test_get_data_list
+        TEST_DEPENDS fdb_test_get_data
         COMMAND list_${_test}.sh
         ENVIRONMENT "${test_environment}" )
 
