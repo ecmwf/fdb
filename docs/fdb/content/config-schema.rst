@@ -11,14 +11,16 @@ Writing a FDB Configuration
 Config files define a number of parameters for the FDB.
 
 The following is of the form local:
-::
+
+.. code-block:: yaml
+
   type: local
   engine: toc
   schema: ./schema
   spaces:
   - handler: Default
     roots:
-    -path: /path/to/fdb/root
+    - path: /path/to/fdb/root
 
 There a number of different types such as local, remote, distributed, and
 select.
@@ -31,7 +33,9 @@ may not actually be local.
 with the Messages, and can be used to send split requests OD from RD.
 
 Select Type:
-::
+
+.. code-block:: yaml
+
   type: select
   fdbs:
   - select: class=od
@@ -50,7 +54,9 @@ FDB server using an asynchronous protocol. It only handles the transition. not
 the distribution of data.
 
 Remote type:
-::
+
+.. code-block:: yaml
+
   type: remote
   host: fdb-minus
   port: 36604
@@ -59,7 +65,9 @@ The *distributed* type implements the multi-lane access to multiple FDB's. It
 uses rendezvous hashing to avoid synchronisations.
 
 Dist type:
-::
+
+.. code-block:: yaml
+
   type: dist
   lanes:
     -type: remote
@@ -146,11 +154,11 @@ offset in the file storing the data.
             # 'step' and 'param' form the co-location key
             [ step, param ]]]
 
-.. _partition_rule_keyword_datatype
+.. _partition_rule_keyword_datatype:
 
 Each `Dataset Key` has to be unique, if you want to use a `Dataset Key` with
 different `Collocation Keys` and/or `Element Keys` below you will need to use
-:ref:`content/config-schema:Rule Grouping`
+:ref:`rule_grouping_label`.
 
 Per Rule Keyword Datatype
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -200,6 +208,8 @@ This can be defined with: ``keyword=val1/val2/val3``
         [type, levtype
             [step, param]]]
 
+
+.. _rule_grouping_label:
 
 Rule Grouping
 ^^^^^^^^^^^^^

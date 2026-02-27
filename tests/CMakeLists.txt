@@ -23,3 +23,6 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     add_subdirectory( pychunked_data_view )
 endif()
 
+if (HAVE_PYTHON_FDB_INTERFACE)
+    add_subdirectory( pyfdb )
+endif()
