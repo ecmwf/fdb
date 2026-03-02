@@ -12,7 +12,8 @@
 
 NAME="fdb"
 # TODO -DENABLE_GRIB=1 causes build to fail, no idea why, no idea if desired
-# NOTE zarr interface is dependent on python 3.11+ -- but we dont activate the venv at the time this is sourced, thats why we rely on PYVERSION. Remove this whole part around October 2026 when 3.10 goes EoL
+#
+# NOTE zarr interface is dependent on python 3.11+ -- but we dont activate the venv at the time this is sourced, that's why we rely on PYVERSION. Remove this whole part around October 2026 when 3.10 goes EoL
 # if [ "True" = "$(python -c 'import sys; print(sys.version_info[0:2] >= (3, 11))')" ] ; then
 if [ "3.10" != "$PYVERSION" ] ; then
     ZARR_IFACE="-DENABLE_PYTHON_ZARR_INTERFACE=1"
@@ -20,6 +21,18 @@ else
     >&2 echo "Not enabling zarr interface because python version is $PYVERSION"
     ZARR_IFACE=""
 fi
-CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 $ZARR_IFACE"
+
+# NOTE pyfdb interface is dependent on python 3.11+ -- but we don't activate
+# the venv at the time this is sourced, that's why we rely on PYVERSION. Remove
+# this whole part around October 2026 when 3.10 goes EoL
+# if [ "True" = "$(python -c 'import sys; print(sys.version_info[0:2] >= (3, 11))')" ] ; then
+if [ "3.10" != "$PYVERSION" ] ; then
+    PYFDB_IFACE="-DENABLE_PYTHON_FDB_INTERFACE=1"
+else
+    >&2 echo "Not enabling pyfdb interface because python version is $PYVERSION"
+    PYFDB_IFACE=""
+fi
+
+CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 $ZARR_IFACE $PYFDB_IFACE"
 PYPROJECT_DIR="python/fdb5lib"
 DEPENDENCIES='["eckitlib", "eccodeslib", "metkitlib"]'
