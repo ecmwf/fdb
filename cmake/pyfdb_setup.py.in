@@ -21,15 +21,29 @@ ext_kwargs = {
     "linux": {"cmdclass": {"bdist_wheel": bdist_wheel_ext}},
 }
 
-
-setup(
-    name="pyfdb",
-    version=f"@fdb5_VERSION_STR@{version_suffix}",
-    packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
-    package_data={
-        "pyfdb_bindings": ["*.so", "*.pyd"],
-    },
-    install_requires=["findlibs>=0.1.2", f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"],
-    has_ext_modules=lambda: True,
-    **ext_kwargs[sys.platform],
-)
+if os.environ.get("IS_LOCAL_BUILD", "") != "":
+    # Don't pin the version of the fdb for the local install and rely on findlibs to find the
+    # corresponding version
+    setup(
+        name="pyfdb",
+        version=f"@fdb5_VERSION_STR@{version_suffix}",
+        packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
+        package_data={
+            "pyfdb_bindings": ["*.so", "*.pyd"],
+        },
+        install_requires=["findlibs>=0.1.2"],
+        has_ext_modules=lambda: True,
+        **ext_kwargs[sys.platform],
+    )
+else:
+    setup(
+        name="pyfdb",
+        version=f"@fdb5_VERSION_STR@{version_suffix}",
+        packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
+        package_data={
+            "pyfdb_bindings": ["*.so", "*.pyd"],
+        },
+        install_requires=["findlibs>=0.1.2", f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"],
+        has_ext_modules=lambda: True,
+        **ext_kwargs[sys.platform],
+    )
