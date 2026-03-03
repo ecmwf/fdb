@@ -1,3 +1,4 @@
+.. _installation-label:
 Installation
 ############
 
@@ -77,7 +78,7 @@ Place the following ``CMakeLists.txt`` in it
     ecbuild_bundle_initialize()
 
     ecbuild_bundle( PROJECT eckit       GIT "ssh://git@github.com/ecmwf/eckit"        BRANCH develop    MANUAL )
-    ecbuild_bundle( PROJECT eccodes     GIT "ssh://git@github.com/ecmwf/eccodes"      TAG 2.39.2        UPDATE )
+    ecbuild_bundle( PROJECT eccodes     GIT "ssh://git@github.com/ecmwf/eccodes"      TAG 2.46.0        UPDATE )
     ecbuild_bundle( PROJECT metkit      GIT "ssh://git@github.com/ecmwf/metkit"       BRANCH develop    UPDATE )
     ecbuild_bundle( PROJECT fdb         GIT "ssh://git@github.com/ecmwf/fdb"          BRANCH develop    MANUAL )
     ecbuild_bundle( PROJECT gribjump    GIT "ssh://git@github.com/ecmwf/gribjump"     BRANCH develop    MANUAL )
