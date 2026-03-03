@@ -69,7 +69,7 @@ const std::string test_config =
     "  - path: ./root\n"
     "fam_roots:\n"
     "- uri: " +
-    test_fdb_fam_uri +
+    fam::test_fdb_fam_uri +
     "\n"
     "  writable: true\n"
     "  visit: true\n";
@@ -79,7 +79,7 @@ const std::string test_config =
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamStore: create test region") {
-    auto name = eckit::FamRegionName(test_fdb_fam_endpoint, test_fdb_fam_region);
+    auto name = eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region);
     try {
         name.create(test_region_size, test_region_perm);
     }

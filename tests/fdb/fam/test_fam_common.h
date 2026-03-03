@@ -31,7 +31,9 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
@@ -39,12 +41,6 @@
 #include "fdb5/api/helpers/ListIterator.h"
 
 using namespace std::string_literals;
-
-namespace {
-const auto test_fdb_fam_endpoint = "172.30.0.2:8880"s;
-const auto test_fdb_fam_region   = "test_region_fdb"s;
-const auto test_fdb_fam_uri      = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region;
-}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -54,6 +50,12 @@ const auto test_fdb_fam_uri      = "fam://" + test_fdb_fam_endpoint + "/" + test
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace fdb::test::fam {
+
+const auto test_fdb_fam_endpoint = "172.26.0.2:8880"s;
+const auto test_fdb_fam_region   = eckit::FamPath("test_region_fdb");
+const auto test_fdb_fam_uri      = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
+// const auto test_fdb_uri_name     = eckit::URI{fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region};
+
 
 inline void read_and_validate(eckit::DataHandle* dh, const char* data, const long length) {
     TEST_LOG_INFO("READ");
