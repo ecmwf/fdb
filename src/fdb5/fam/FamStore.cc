@@ -150,79 +150,87 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
 
 void FamStore::finaliseWipeState(StoreWipeState& storeState, bool /*doit*/, bool /*unsafeWipeAll*/) {
 
-    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();
+    throw ::eckit::NotImplemented("FamStore::finaliseWipeState is WIP", Here());
 
-    if (dataURIs.empty()) {
-        return;
-    }
-
-    if (!root_.exists()) {
-        storeState.markAllMissing();
-        return;
-    }
-
-    for (const auto& uri : dataURIs) {
-        if (!uriBelongs(uri)) {
-            std::stringstream msg;
-            msg << "FamStore::finaliseWipeState: Index to be deleted has pointers to fields that don't belong to the "
-                   "configured store."
-                << '\n';
-            msg << "Configured Store URI: " << this->uri().asString() << '\n';
-            msg << "Pointed Store unit URI: " << uri.asString() << '\n';
-            msg << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << '\n';
-            throw eckit::SeriousBug(msg.str(), Here());
-        }
-
-        if (!uriExists(uri)) {
-            storeState.markAsMissing(uri);
-        }
-    }
+    // const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();
+    //
+    // if (dataURIs.empty()) {
+    //     return;
+    // }
+    //
+    // if (!root_.exists()) {
+    //     storeState.markAllMissing();
+    //     return;
+    // }
+    //
+    // for (const auto& uri : dataURIs) {
+    //     if (!uriBelongs(uri)) {
+    //         std::stringstream msg;
+    //         msg << "FamStore::finaliseWipeState: Index to be deleted has pointers to fields that don't belong to the
+    //         "
+    //                 "configured store."
+    //             << '\n';
+    //         msg << "Configured Store URI: " << this->uri().asString() << '\n';
+    //         msg << "Pointed Store unit URI: " << uri.asString() << '\n';
+    //         msg << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << '\n';
+    //         throw eckit::SeriousBug(msg.str(), Here());
+    //     }
+    //
+    //     if (!uriExists(uri)) {
+    //         storeState.markAsMissing(uri);
+    //     }
+    // }
 }
 
 bool FamStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
-    // if (!wipeDoit_ || !wipeUnsafeWipeAll_) {
-    //     return true;
+
+    throw ::eckit::NotImplemented("FamStore::doWipeUnknowns is WIP", Here());
+
+    // for (const auto& uri : unknownURIs) {
+    //     if (!uriBelongs(uri)) {
+    //         continue;
+    //     }
+    //     if (uriExists(uri)) {
+    //         remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    //     }
     // }
-
-    for (const auto& uri : unknownURIs) {
-        if (!uriBelongs(uri)) {
-            continue;
-        }
-        if (uriExists(uri)) {
-            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-        }
-    }
-
-    return true;
+    //
+    // return true;
 }
 
 bool FamStore::doWipeURIs(const StoreWipeState& wipeState) const {
-    const bool wipeall = wipeState.safeURIs().empty();
 
-    for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
-        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-    }
+    throw ::eckit::NotImplemented("FamStore::doWipeURIs is WIP", Here());
 
-    for (const auto& uri : wipeState.includedDataURIs()) {
-        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-    }
-
-    if (wipeall) {
-        cleanupEmptyDatabase_ = true;
-    }
-
-    return true;
+    // const bool wipeall = wipeState.safeURIs().empty();
+    //
+    // for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+    //     remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    // }
+    //
+    // for (const auto& uri : wipeState.includedDataURIs()) {
+    //     remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    // }
+    //
+    // if (wipeall) {
+    //     cleanupEmptyDatabase_ = true;
+    // }
+    //
+    // return true;
 }
 
 void FamStore::doWipeEmptyDatabase() const {
-    if (!cleanupEmptyDatabase_) {
-        return;
-    }
 
-    if (root_.exists()) {
-        root_.lookup().destroy();
-    }
-    cleanupEmptyDatabase_ = false;
+    throw ::eckit::NotImplemented("FamStore::doWipeEmptyDatabase is WIP", Here());
+
+    // if (!cleanupEmptyDatabase_) {
+    //     return;
+    // }
+    //
+    // if (root_.exists()) {
+    //     root_.lookup().destroy();
+    // }
+    // cleanupEmptyDatabase_ = false;
 }
 
 void FamStore::print(std::ostream& out) const {
