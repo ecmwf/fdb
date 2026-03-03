@@ -44,8 +44,8 @@ using namespace std::string_literals;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-#define TEST_LOG_INFO(msg) eckit::Log::info() << "INFO  [TEST_FAM] : " << msg << std::endl
-#define TEST_LOG_DEBUG(msg) eckit::Log::debug<fdb5::LibFdb5>() << "DEBUG [TEST_FAM] : " << msg << std::endl
+#define TEST_LOG_INFO(msg) eckit::Log::info() << "INFO  [TEST_FAM] : " << msg << '\n'
+#define TEST_LOG_DEBUG(msg) eckit::Log::debug<fdb5::LibFdb5>() << "DEBUG [TEST_FAM] : " << msg << '\n'
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ inline void read_and_validate(eckit::DataHandle* dh, const char* data, const lon
 
     std::string tmp;
     tmp.resize(length);
-    char* buffer = &tmp[0];
+    char* buffer = tmp.data();
 
     const auto rlen = dh->read(buffer, length);
 
