@@ -81,7 +81,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         COMMAND ${Python_EXECUTABLE} -m build --wheel ${PYFDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch pyfdb.wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS ${_pyfdb_package_files}
+        DEPENDS ${_pyfdb_package_files} pyfdb_bindings
         COMMENT "Building Python wheel for pyfdb..."
     )
     add_custom_target(pyfdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp)
