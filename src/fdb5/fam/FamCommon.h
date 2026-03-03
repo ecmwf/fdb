@@ -36,11 +36,19 @@ struct FamCommon {
 
     static auto toString(const Key& key) -> std::string;
 
-    FamCommon(const eckit::FamRegionName& root);
+    FamCommon(const FamCommon&)            = delete;
+    FamCommon& operator=(const FamCommon&) = delete;
+    FamCommon(FamCommon&&)                 = delete;
+    FamCommon& operator=(FamCommon&&)      = delete;
 
-    FamCommon(const Config& config);
+    explicit FamCommon(eckit::FamRegionName root);
 
-    FamCommon(const Config& config, const Key& key);
+    explicit FamCommon(const eckit::URI& root);
+
+
+    FamCommon(const Key& key, const Config& config);
+
+    FamCommon(const eckit::URI& uri, const Config& config);
 
     virtual ~FamCommon() = default;
 
@@ -49,6 +57,10 @@ struct FamCommon {
     auto uri() const -> eckit::URI;
 
     eckit::FamRegionName root_;
+
+private:
+
+    explicit FamCommon(const Config& config);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
@@ -52,12 +53,17 @@ auto FamCommon::toString(const Key& key) -> std::string {
     return name;
 }
 
-FamCommon::FamCommon(const eckit::FamRegionName& root) : root_{root} {}
+FamCommon::FamCommon(eckit::FamRegionName root) : root_{std::move(root)} {}
+
+FamCommon::FamCommon(const eckit::URI& root) : FamCommon(eckit::FamRegionName(root)) {}
 
 FamCommon::FamCommon(const Config& config) : FamCommon(parseRoot(config)) {}
 
 /// @todo use key once fam root manager is implemented
-FamCommon::FamCommon(const Config& config, const Key& /* key */) : FamCommon(config) {}
+FamCommon::FamCommon(const Key& /*key*/, const Config& config) : FamCommon(config) {}
+
+/// @todo use uri once fam root manager is implemented
+FamCommon::FamCommon(const eckit::URI& /*uri*/, const Config& config) : FamCommon(config) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
