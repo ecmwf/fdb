@@ -27,33 +27,13 @@
 #include "eckit/io/Length.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/testing/Filesystem.h"
 #include "eckit/types/UUID.h"
 #include "eckit/utils/MD5.h"
 
 #include "dummy_daos/dummy_daos.h"
 
 using eckit::PathName;
-
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
 
 extern "C" {
 
@@ -117,7 +97,7 @@ int daos_pool_connect(const char* pool, const char* sys, unsigned int flags, dao
     if (!realpath.exists())
         return -1;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
     poh->impl  = impl.release();
 
@@ -338,7 +318,7 @@ int daos_cont_create_with_label(daos_handle_t poh, const char* label, daos_prop_
                 uuid_parse(found_uuid.c_str(), *uuid);
             }
 
-            deldir(cont_path);
+            eckit::testing::deldir(cont_path);
 
             return 0;
         }
@@ -402,7 +382,7 @@ int daos_cont_destroy(daos_handle_t poh, const char* cont, int force, daos_event
 
     try {
 
-        deldir(realpath);
+        eckit::testing::deldir(realpath);
     }
     catch (eckit::FailedSystemCall& e) {
 
@@ -455,7 +435,7 @@ int daos_cont_open(daos_handle_t poh, const char* cont, unsigned int flags, daos
     if (!realpath.exists())
         return -DER_NONEXIST;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = realpath;
 
     coh->impl = impl.release();
@@ -545,13 +525,13 @@ int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode, daos_h
     if (ev != NULL)
         NOTIMP;
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
-    os << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
+    ss << ".";
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
-    impl->path = coh.impl->path / os.str();
+    auto impl  = std::make_unique<daos_handle_internal_t>();
+    impl->path = coh.impl->path / ss.str();
 
     impl->path.mkdir();
 
@@ -572,7 +552,7 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t* ev) {
 
     try {
 
-        deldir(oh.impl->path);
+        eckit::testing::deldir(oh.impl->path);
     }
     catch (eckit::FailedSystemCall& e) {
 
@@ -810,13 +790,13 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, da
     if (ev != NULL)
         NOTIMP;
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
-    os << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
+    ss << ".";
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
-    impl->path = coh.impl->path / os.str();
+    auto impl  = std::make_unique<daos_handle_internal_t>();
+    impl->path = coh.impl->path / ss.str();
 
     impl->path.touch();
 
@@ -860,13 +840,13 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th, unsi
     *cell_size  = 1;
     *chunk_size = (uint64_t)1048576;
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
-    os << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
+    ss << ".";
+    ss << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
-    impl->path = coh.impl->path / os.str();
+    auto impl  = std::make_unique<daos_handle_internal_t>();
+    impl->path = coh.impl->path / ss.str();
 
     if (!impl->path.exists()) {
         return -DER_NONEXIST;
@@ -1063,10 +1043,10 @@ int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr, daos_event
     if (ev != NULL)
         NOTIMP;
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << epr.epr_hi;
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << epr.epr_hi;
 
-    eckit::PathName snap = coh.impl->path / os.str() + ".snap";
+    eckit::PathName snap = coh.impl->path / ss.str() + ".snap";
 
     if (!snap.exists())
         return -1;
@@ -1082,12 +1062,12 @@ int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch, daos_handle_t* oh, daos
     if (ev != NULL)
         NOTIMP;
 
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << epoch;
+    std::ostringstream ss;
+    ss << std::setw(16) << std::setfill('0') << std::hex << epoch;
 
-    std::string ts = os.str();
+    std::string ts = ss.str();
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    auto impl  = std::make_unique<daos_handle_internal_t>();
     impl->path = coh.impl->path / ts + ".snap";
 
     if (!impl->path.exists()) {

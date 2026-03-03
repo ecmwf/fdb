@@ -1,0 +1,11 @@
+zarr>=3,<4
+numpy
+pytest
+pytest-asyncio
+eccodes
+build
+setuptools
+GitPython
+sphinx
+
+sybil[pytest]

@@ -1,0 +1,8 @@
+---
+type: store
+supportedConnections: [1]
+serverPort: 11001
+spaces:
+- handler: Default
+  roots:
+  - path: ./store_root

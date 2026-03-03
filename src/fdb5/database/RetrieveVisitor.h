@@ -39,25 +39,21 @@ protected:  // methods
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
 
-    bool selectIndex(const Key& idxKey, const Key& fullKey) override;
+    bool selectIndex(const Key& idxKey) override;
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void deselectDatabase() override;
 
-    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
-                eckit::StringList& values) override;
-
     void print(std::ostream& out) const override;
 
     Store& store();
+
     const Schema& databaseSchema() const override;
 
 private:
 
-    std::unique_ptr<Store> store_;
-
-    const Notifier& wind_;
+    std::unique_ptr<Store> store_{};
 
     HandleGatherer& gatherer_;
 };

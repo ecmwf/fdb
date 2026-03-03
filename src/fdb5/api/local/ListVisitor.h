@@ -125,6 +125,7 @@ public:
         return false;  // Skip contained entries
     }
 
+    using QueryVisitor<ListElement>::visitDatum;
     /// Test if entry matches the current request. If so, add to the output queue.
     void visitDatum(const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
@@ -140,10 +141,6 @@ public:
                                field.timestamp());
             }
         }
-    }
-
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
-        EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
 private:  // members

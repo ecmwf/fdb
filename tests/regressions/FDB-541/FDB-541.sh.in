@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+gribcount="$<TARGET_FILE:grib_count>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+for f in config_noslash.yaml config_slash.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+request="class=rd,stream=oper,expver=xxxx,date=20201102,time=0000,step=12,param=166,levtype=sfc,domain=g,type=fc"
+
+# Ensure we can read, write, list, wipe
+for config in config_noslash.yaml config_slash.yaml
+do
+  # cleanup
+  rm -f out.*
+  rm -rf ${bindir}/root
+  mkdir -p ${bindir}/root
+
+  export FDB5_CONFIG_FILE=$bindir/$config
+
+  $fdbwrite x.grib
+
+  nlist=$($fdblist $request --porcelain | wc -l)
+  [[ $nlist -ne 1 ]] && { echo "Error: expected 1 item in list, got $nlist"; exit 1; }
+
+  $fdbread <(echo "retrieve,$request") out.grib
+  diff out.grib x.grib
+
+  $fdbwipe "class=rd,expver=xxxx" --minimum-keys=""  --doit
+
+  nlist=$($fdblist $request --porcelain | wc -l)
+  [[ $nlist -ne 0 ]] && { echo "Error: expected 0 items in list, got $nlist"; exit 1; }
+
+done
+
+echo "done"

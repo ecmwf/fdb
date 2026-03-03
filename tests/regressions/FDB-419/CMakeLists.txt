@@ -11,11 +11,14 @@ ecbuild_configure_file(
     fdb_server_config.yaml
     @ONLY
 )
+
 ecbuild_add_test( 
     TARGET FDB-419
     SOURCES fdb_419_regression_test.cc
     LIBS fdb5 eckit metkit
     ENVIRONMENT FDB_SERVER_EXECUTABLE=$<TARGET_FILE:fdb-server>
-    RESOURCE_LOCK  fdb_remote_tests  # Prevent concurrent runs of remote tests
+    ENVIRONMENT "${test_environment}"
+    TEST_PROPERTIES
+    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
     LABELS remotefdb
 )

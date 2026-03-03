@@ -23,7 +23,6 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "eckit/filesystem/URI.h"
-#include "eckit/memory/NonCopyable.h"
 
 
 namespace fdb5 {
@@ -33,13 +32,20 @@ class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Engine : private eckit::NonCopyable {
+class Engine {
 
 public:  // methods
 
     static Engine& backend(const std::string& name);
 
 public:  // methods
+
+    Engine() = default;
+
+    Engine(const Engine&)            = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine(Engine&&)                 = delete;
+    Engine& operator=(Engine&&)      = delete;
 
     virtual ~Engine();
 
@@ -69,9 +75,18 @@ protected:  // methods
 
 /// A self-registering registry for Engine instances
 
-class EngineRegistry : private eckit::NonCopyable {
+class EngineRegistry {
 
 public:  // methods
+
+    EngineRegistry() = default;  // Necessary, because this is a base class!
+
+    EngineRegistry(const EngineRegistry&)            = delete;
+    EngineRegistry& operator=(const EngineRegistry&) = delete;
+    EngineRegistry(EngineRegistry&&)                 = delete;
+    EngineRegistry& operator=(EngineRegistry&&)      = delete;
+
+    virtual ~EngineRegistry() = default;  // Necessary, because this is a base class!
 
     static bool has(const std::string& name);
 

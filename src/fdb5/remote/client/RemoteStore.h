@@ -52,6 +52,8 @@ public:
         if (it == locations_.end()) {
             return false;
         }
+
+        // Invoke the callback to archive the location in the catalogue
         it->second(std::move(location));
 
         locations_.erase(it);
@@ -108,8 +110,6 @@ public:  // types
     using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue  = eckit::Queue<StoredMessage>;
 
-    static const char* typeName() { return "remote"; }
-
 public:  // methods
 
     RemoteStore(const Key& key, const Config& config);
@@ -119,7 +119,9 @@ public:  // methods
 
     static RemoteStore& get(const eckit::URI& uri);
 
+    static const char* typeName() { return "remote"; }
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
 
     bool open() override;
     size_t flush() override;
@@ -135,11 +137,18 @@ public:  // methods
                 eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
     }
-    void remove(const Key& key) const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override;
+
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
 
     const Config& config() const { return config_; }
 
@@ -150,7 +159,7 @@ protected:  // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    void archive(
+    void archiveCb(
         const Key& key, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
@@ -160,6 +169,7 @@ protected:  // methods
 
 private:  // methods
 
+    const eckit::Configuration& clientConfig() const override;
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;

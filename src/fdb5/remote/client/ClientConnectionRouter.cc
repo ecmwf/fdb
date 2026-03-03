@@ -29,7 +29,8 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint,
+std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::Configuration& config,
+                                                                     const eckit::net::Endpoint& endpoint,
                                                                      const std::string& defaultEndpoint) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
@@ -38,7 +39,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit
         return (it->second);
     }
     auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
-    if (clientConnection->connect()) {
+    if (clientConnection->connect(config)) {
         connections_.emplace(endpoint, clientConnection);
         return clientConnection;
     }
@@ -48,7 +49,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit
 }
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
-    const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
+    const eckit::Configuration& config, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
@@ -67,7 +68,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
         // not yet there, trying to connect
         auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
-        if (clientConnection->connect(true)) {
+        if (clientConnection->connect(config, true)) {
             connections_.emplace(endpoint, clientConnection);
             return clientConnection;
         }
@@ -83,13 +84,14 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     throw ConnectionError();
 }
 
-std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const std::shared_ptr<ClientConnection>& connection) {
+std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::Configuration& config,
+                                                                  const std::shared_ptr<ClientConnection>& connection) {
     std::lock_guard lock(connectionMutex_);
     const auto iter = connections_.find(connection->controlEndpoint());
     if (iter == connections_.end() || !iter->second->valid()) {
         auto newConnection =
             std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
-        if (newConnection->connect()) {
+        if (newConnection->connect(config)) {
             connections_.emplace(newConnection->controlEndpoint(), newConnection);
             return newConnection;
         }

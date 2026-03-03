@@ -35,8 +35,11 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeCoordinator.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
@@ -89,7 +92,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     while ((msg = reader.next())) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
         if (!cube.clear(key.request())) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "FDB archive - found unexpected message" << std::endl;
             ss << "  user request:" << std::endl << "    " << request << std::endl;
             ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
@@ -99,7 +102,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
         archive(key, msg.data(), msg.length());
     }
     if (cube.countVacant()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
         ss << "  user request:" << std::endl << "    " << request << std::endl;
         ss << "  missing messages:" << std::endl;
@@ -202,7 +205,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
             }
 
             if (cube.countVacant() > 0) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "No matching data for requests:" << std::endl;
                 for (auto req : cube.vacantRequests()) {
                     ss << "    " << req << std::endl;
@@ -237,8 +240,12 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
+ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {
+    return {internal_->list(request, level), mode};
+}
+
 ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
-    return {internal_->list(request, level), deduplicate};
+    return list(request, deduplicate ? ListMode::Deduplicate : ListMode::Full, level);
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
@@ -250,7 +257,26 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+
+    auto internal = internal_->shared();
+
+    auto async = [internal, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
+        // Visit the catalogues to determine what they would wipe
+        WipeStateIterator it = internal->wipe(request, doit, porcelain, unsafeWipeAll);
+
+        // Coordinate the wipe across catalogues and stores
+        WipeCoordinator coordinator{internal->config()};
+        CatalogueWipeState catalogueWipeState;
+        while (it.next(catalogueWipeState)) {
+
+            auto elements = coordinator.wipe(catalogueWipeState, doit, unsafeWipeAll);
+            for (auto& el : elements) {
+                queue.emplace(el);
+            }
+        }
+    };
+
+    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

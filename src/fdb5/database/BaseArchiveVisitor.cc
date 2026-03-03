@@ -33,8 +33,12 @@ bool BaseArchiveVisitor::selectDatabase(const Key& dbKey, const Key&) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& idxKey, const Key&) {
+bool BaseArchiveVisitor::selectIndex(const Key& idxKey) {
     return catalogue()->selectIndex(idxKey);
+}
+
+bool BaseArchiveVisitor::createIndex(const Key& idxKey, size_t datumKeySize) {
+    return catalogue()->createIndex(idxKey, datumKeySize);
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key& fullKey) const {
@@ -47,10 +51,10 @@ const Schema& BaseArchiveVisitor::databaseSchema() const {
     return catalogue()->schema();
 }
 
-CatalogueWriter* BaseArchiveVisitor::catalogue() const {
+std::shared_ptr<CatalogueWriter> BaseArchiveVisitor::catalogue() const {
     ASSERT(owner_.db_);
     ASSERT(owner_.db_->catalogue_);
-    return owner_.db_->catalogue_.get();
+    return owner_.db_->catalogue_;
 }
 
 Store* BaseArchiveVisitor::store() const {

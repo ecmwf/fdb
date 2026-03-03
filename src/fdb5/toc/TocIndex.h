@@ -19,7 +19,7 @@
 #include "eckit/eckit.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
+
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
@@ -60,15 +60,15 @@ public:  // types
 
 public:  // methods
 
-    TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode,
-             const std::string& type = defaulType());
+    TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, size_t datumKeySize);
+    TocIndex(const Key& key, const eckit::PathName& path, off_t offset, Mode mode, const std::string& type);
 
     TocIndex(eckit::Stream&, const int version, const eckit::PathName& directory, const eckit::PathName& path,
              off_t offset, bool preloadBTree = false);
 
     ~TocIndex() override;
 
-    static std::string defaulType();
+    static const std::string& defaultType(size_t datumKeySize);
 
     eckit::PathName path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }

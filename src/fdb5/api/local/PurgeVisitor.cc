@@ -50,7 +50,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     // bail out here.
 
     if (!catalogue.key().match(request_)) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Purging not supported for over-specified requests. "
            << "db=" << catalogue.key() << ", request=" << request_;
         throw eckit::UserError(ss.str(), Here());

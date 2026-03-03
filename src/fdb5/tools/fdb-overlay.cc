@@ -77,22 +77,11 @@ void FdbOverlay::execute(const CmdArgs& args) {
         return;
     }
 
-    auto parsedSource = FDBToolRequest::requestsFromString("domain=g," + args(0), {}, false, "read");
-    ASSERT(parsedSource.size() == 1);
-
-    auto parsedTarget = FDBToolRequest::requestsFromString("domain=g," + args(1), {}, false, "read");
-    ASSERT(parsedTarget.size() == 1);
-
-    const auto& sourceRequest = parsedSource.front();
-    ASSERT(!sourceRequest.all());
-
-    const auto& targetRequest = parsedTarget.front();
-    ASSERT(!targetRequest.all());
-
-    const auto sources = conf.schema().expandDatabase(sourceRequest.request());
+    bool injectDomain        = false;
+    std::vector<Key> sources = parse(args(0), conf);
     ASSERT(!sources.empty());
 
-    const auto targets = conf.schema().expandDatabase(targetRequest.request());
+    const auto targets = parse(args(1), conf);
     ASSERT(!targets.empty());
 
     const auto& source = sources.front();
@@ -106,7 +95,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
     }
 
     if (source.keys() != target.keys()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Keys insufficiently matching for mount: " << source << " : " << target << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
@@ -116,7 +105,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
         const auto [it, found] = source.find(kv.first);
         ASSERT(found);
         if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
             throw eckit::UserError(ss.str(), Here());
         }
@@ -124,13 +113,13 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     std::unique_ptr<CatalogueReader> dbSource = CatalogueReaderFactory::instance().build(source, conf);
     if (!dbSource->exists()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Source database not found: " << source << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
 
     if (dbSource->type() != TocEngine::typeName()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Only TOC DBs currently supported" << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
@@ -139,14 +128,14 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     if (remove_) {
         if (!dbTarget->exists()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Target database must already exist: " << target << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
     }
     else {
         if (dbTarget->exists() && !force_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Target database already exists: " << target << std::endl;
             eckit::Log::error() << ss.str() << std::endl;
             eckit::Log::error() << "To mount to existing target, rerun with --force" << std::endl;
@@ -156,7 +145,7 @@ void FdbOverlay::execute(const CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
+    auto newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
     if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName()) {
         newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }

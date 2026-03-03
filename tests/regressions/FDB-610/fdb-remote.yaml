@@ -1,0 +1,5 @@
+type: remote
+host: localhost
+port: 8000
+engine: remote
+store: remote

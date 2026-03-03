@@ -142,7 +142,7 @@ diff out list
 # test grib packingType
 $gribset -s edition=2,step=24 in.grib 24.grib
 
-$fdbwrite --modifiers=packingType=grid_ieee,expver=zzzz,type=an 24.grib
+$fdbwrite --modifiers=expver=zzzz,type=an,packingType=grid_ieee 24.grib
 
 $fdblist --porcelain class=rd,expver=zzzz
 

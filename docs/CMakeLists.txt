@@ -2,14 +2,20 @@ find_package(Doxygen 1.9 REQUIRED)
 find_package(Sphinx REQUIRED)
 
 file(GLOB_RECURSE FDB_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../src/fdb5/api/*.h)
+file(GLOB_RECURSE PYFDB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../src/pyfdb/*.py)
+file(GLOB_RECURSE Z3FDB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../src/z3fdb/*.py)
 file(GLOB_RECURSE SPHINX_INPUT_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.rst)
 set(DOXYGEN_INDEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/index.html)
 set(SPHINX_INDEX_FILE ${CMAKE_CURRENT_BINARY_DIR}/sphinx/index.html)
 set(DOXYFILE ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
 
+file(GLOB_RECURSE PYFDB_DOC_TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../docs/pyfdb/example.rst)
+
 add_custom_command(
     DEPENDS 
         ${FDB_PUBLIC_HEADERS}
+        ${PYFDB_SRCS}
+        ${Z3FDB_SRCS}
         ${SPHINX_INPUT_FILES}
         conf.py
     COMMAND

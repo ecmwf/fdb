@@ -8,12 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Catalogue.h"
-
-#include <cstring>
 #include <map>
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
@@ -88,8 +84,6 @@ std::optional<std::reference_wrapper<const Axis>> CatalogueReader::axis(const st
 
     const auto [it, success] = axisCache_.emplace(keyword, std::move(newAxis.value()));
     ASSERT(success);
-    LOG_DEBUG_LIB(LibFdb5) << "axis(" << keyword << ") cache miss " << std::endl;
-    LOG_DEBUG_LIB(LibFdb5) << it->second << std::endl;
 
     return it->second;
 }

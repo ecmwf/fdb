@@ -10,6 +10,7 @@
 
 #include "fdb5/remote/client/RemoteCatalogue.h"
 
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
@@ -17,6 +18,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/Schema.h"
 
 #include <cstddef>
@@ -54,14 +56,15 @@ Schema* fetchSchema(const Key& dbKey, const RemoteCatalogue& catalogue) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config) :
-    CatalogueImpl(key, {}, config), Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {}
+    CatalogueImpl(key, {}, config), Client(config) {}
 
 // Catalogue(URI, Config) is only used by the Visitors to traverse the catalogue. In the remote, we use the RemoteFDB
 // for catalogue traversal this ctor is here only to comply with the factory
-RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) :
-    Client({config.getString("host"), config.getInt("port")}, ""), config_(config) {
+RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config) : Client(config) {
     NOTIMP;
 }
+
+RemoteCatalogue::~RemoteCatalogue() = default;
 
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
@@ -94,7 +97,11 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
 
 bool RemoteCatalogue::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
-    return true;  // xxx whats the return used for? TOC always returns true
+    return true;
+}
+
+bool RemoteCatalogue::createIndex(const Key& idxKey, size_t datumKeySize) {
+    return true;
 }
 
 const Index& RemoteCatalogue::currentIndex() {
@@ -184,6 +191,10 @@ void RemoteCatalogue::loadSchema() {
     schema();
 }
 
+const eckit::Configuration& RemoteCatalogue::clientConfig() const {
+    return config();
+}
+
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
     Log::warning() << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID << "]"
                    << std::endl;
@@ -206,12 +217,6 @@ void RemoteCatalogue::index(const Key& key, const eckit::URI& uri, eckit::Offset
 void RemoteCatalogue::reconsolidate() {
     NOTIMP;
 }
-std::vector<eckit::PathName> RemoteCatalogue::metadataPaths() const {
-    NOTIMP;
-}
-void RemoteCatalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
-    NOTIMP;
-}
 void RemoteCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
     NOTIMP;
 }
@@ -219,10 +224,6 @@ StatsReportVisitor* RemoteCatalogue::statsReportVisitor() const {
     NOTIMP;
 }
 PurgeVisitor* RemoteCatalogue::purgeVisitor(const Store& store) const {
-    NOTIMP;
-}
-WipeVisitor* RemoteCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
-                                          std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     NOTIMP;
 }
 MoveVisitor* RemoteCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
@@ -235,13 +236,79 @@ void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifi
 std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {
     NOTIMP;
 }
-void RemoteCatalogue::maskIndexEntry(const Index& index) const {
-    NOTIMP;
-}
+
 void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                                 std::set<eckit::URI>& data) const {
     NOTIMP;
 }
+
+bool RemoteCatalogue::uriBelongs(const eckit::URI& uri) const {
+    // This functionality is deliberately not required for RemoteCatalogue, so assume false.
+    return false;
+}
+
+void RemoteCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+    // The server already knows which indexes to mask, just send the command
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    controlWriteCheckResponse(Message::DoMaskIndexEntries, generateRequestID(), false, sendBuf, s.position());
+}
+
+CatalogueWipeState RemoteCatalogue::wipeInit() const {
+    NOTIMP;
+}
+
+bool RemoteCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
+    // Just tell the server to do it!
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+
+    controlWriteCheckResponse(Message::DoWipeURIs, generateRequestID(), false, sendBuf, s.position());
+    return true;
+}
+
+bool RemoteCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    // Send unknown uris to server
+    eckit::Buffer sendBuf(unknownURIs.size() * 256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    s << unknownURIs;
+
+    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), false, sendBuf, s.position());
+
+    return true;
+}
+void RemoteCatalogue::doWipeEmptyDatabase() const {
+    // Tell server it can safely delete the DB if it is empty, and finish the wipe.
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+
+    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), false, sendBuf, s.position());
+    return;
+}
+
+bool RemoteCatalogue::doUnsafeFullWipe() const {
+
+    bool result = false;
+
+    // send dbkey to remote
+    eckit::Buffer keyBuffer(RemoteCatalogue::defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
+    keyStream << dbKey_;
+
+    // receive bool (full wipe supported or not) from remote
+    auto recvBuf =
+        controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
+}
+
 void RemoteCatalogue::print(std::ostream& out) const {
     out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
 }

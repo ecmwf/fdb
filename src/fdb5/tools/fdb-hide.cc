@@ -66,13 +66,7 @@ void FdbHide::execute(const CmdArgs& args) {
         return;
     }
 
-    auto dbrequests = FDBToolRequest::requestsFromString("domain=g," + args(0), {}, false, "read");
-    ASSERT(dbrequests.size() == 1);
-
-    const auto& dbrequest = dbrequests.front();
-    ASSERT(!dbrequest.all());
-
-    const auto& keys = conf.schema().expandDatabase(dbrequest.request());
+    std::vector<Key> keys = parse(args(0), conf);
 
     if (keys.empty()) {
         throw eckit::UserError("Invalid request", Here());
@@ -84,7 +78,7 @@ void FdbHide::execute(const CmdArgs& args) {
 
         auto db = CatalogueReaderFactory::instance().build(key, conf);
         if (!db->exists()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Database not found: " << key << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }

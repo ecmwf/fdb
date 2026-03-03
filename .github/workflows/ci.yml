@@ -29,6 +29,8 @@ jobs:
       fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
       clang_format: true
+      clang_format_ignore: |
+        third_party
     secrets: inherit
 
   # Run CI of private downstream packages on self-hosted runners

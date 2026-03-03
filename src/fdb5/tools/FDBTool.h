@@ -24,6 +24,7 @@
 #include "eckit/runtime/Tool.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
 namespace option {
@@ -47,10 +48,11 @@ protected:  // methods
     ~FDBTool() override {}
 
     void run() override;
-    Config config(const eckit::option::CmdArgs& args,
-                  const eckit::Configuration& userConfig = eckit::LocalConfiguration()) const;
 
 public:  // methods
+
+    static Config config(const eckit::option::CmdArgs& args,
+                         const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
     virtual void usage(const std::string& tool) const;
 
@@ -64,6 +66,7 @@ protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
+    std::vector<Key> parse(const std::string& request, const Config& config);
 
 private:  // methods
 

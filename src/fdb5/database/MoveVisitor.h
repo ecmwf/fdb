@@ -39,7 +39,6 @@ public:  // methods
     bool visitIndex(const Index& /*index*/) override { NOTIMP; }
 
     void visitDatum(const Field& /*field*/, const Key& /**/) override { NOTIMP; }
-
     void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
 
 protected:  // members

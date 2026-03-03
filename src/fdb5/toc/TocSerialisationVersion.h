@@ -32,7 +32,7 @@ public:
     static std::vector<unsigned int> supported();
 
     /// Latest version of serialisation the software is capable to create
-    /// To be used as default
+    /// This may not be the default
     static unsigned int latest();
 
     /// Default version of serialisation the software will use

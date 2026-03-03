@@ -64,4 +64,4 @@ cat > list <<EOF
 EOF
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
-cmp out list
+cmp out list 

@@ -18,7 +18,6 @@
 
 #include <iosfwd>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/Catalogue.h"
@@ -36,16 +35,21 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ReadVisitor : public eckit::NonCopyable {
+class ReadVisitor {
 
 public:  // methods
 
-    ReadVisitor() : catalogue_(nullptr) {}
+    ReadVisitor(const Notifier& wind) : wind_(wind) {}
+
+    ReadVisitor(const ReadVisitor&)            = delete;
+    ReadVisitor& operator=(const ReadVisitor&) = delete;
+    ReadVisitor(ReadVisitor&&)                 = delete;
+    ReadVisitor& operator=(ReadVisitor&&)      = delete;
 
     virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
-    virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
+    virtual bool selectIndex(const Key& idxKey)                       = 0;
     virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     virtual void deselectDatabase() = 0;
@@ -53,8 +57,8 @@ public:  // methods
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
 
-    virtual void values(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                        const TypesRegistry& registry, eckit::StringList& values) = 0;
+    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
+                eckit::StringList& values);
 
 protected:  // methods
 
@@ -62,9 +66,11 @@ protected:  // methods
 
 protected:  // members
 
-    CatalogueReader* catalogue_;
+    CatalogueReader* catalogue_{};
 
 private:  // members
+
+    const Notifier& wind_;
 
     friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);

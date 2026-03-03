@@ -42,8 +42,8 @@ public:  // methods
     MessageArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false,
                     const Config& config = Config().expandConfig());
 
-    void filters(const std::string& include, const std::string& exclude);
-    void modifiers(const std::string& modify);
+    void setFilters(const std::string& include, const std::string& exclude);
+    void setModifiers(const fdb5::Key& modify);
 
     eckit::Length archive(eckit::DataHandle& source);
 
@@ -53,7 +53,7 @@ private:  // protected
 
     bool filterOut(const Key& k) const;
 
-    eckit::message::Message transform(eckit::message::Message&);
+    void transform(eckit::message::Message&);
 
 private:  // members
 
@@ -64,7 +64,7 @@ private:  // members
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;
 
-    eckit::StringDict modifiers_;
+    eckit::OrderedStringDict modifiers_;
 
     bool completeTransfers_;
 

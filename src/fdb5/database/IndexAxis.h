@@ -21,8 +21,6 @@
 #include <memory>
 
 #include "eckit/container/DenseSet.h"
-#include "eckit/memory/NonCopyable.h"
-// #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
 namespace eckit {
@@ -41,14 +39,17 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexAxis : private eckit::NonCopyable {
+class IndexAxis {
 
 public:  // methods
 
     IndexAxis();
     IndexAxis(eckit::Stream& s, const int version);
-    IndexAxis(IndexAxis&& rhs) noexcept;
 
+    IndexAxis(const IndexAxis&)            = delete;
+    IndexAxis& operator=(const IndexAxis&) = delete;
+
+    IndexAxis(IndexAxis&& rhs) noexcept;
     IndexAxis& operator=(IndexAxis&& rhs) noexcept;
 
     ~IndexAxis();

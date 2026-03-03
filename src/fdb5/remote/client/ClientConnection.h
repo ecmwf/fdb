@@ -10,10 +10,9 @@
 
 #pragma once
 
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
+#include <future>
+#include <thread>
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/net/Endpoint.h"
@@ -21,14 +20,21 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include <future>
-#include <thread>
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+
+namespace eckit {
+
+class Configuration;
+
+}
 
 namespace fdb5::remote {
 
 class Client;
 class ClientConnectionRouter;
 class DataWriteRequest;
+class RemoteConfiguration;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -47,7 +53,7 @@ public:  // methods
     void add(Client& client);
     bool remove(uint32_t clientID);
 
-    bool connect(bool singleAttempt = false);
+    bool connect(const eckit::Configuration& config, bool singleAttempt = false);
     void disconnect();
 
     uint32_t generateRequestID();
@@ -63,9 +69,9 @@ private:  // methods
     void dataWrite(DataWriteRequest& request) const;
 
     // construct dictionary for protocol negotiation - to be defined in the client class
-    eckit::LocalConfiguration availableFunctionality() const;
+    RemoteConfiguration availableFunctionality(const eckit::Configuration& config) const;
 
-    void writeControlStartupMessage();
+    void writeControlStartupMessage(const eckit::Configuration& config);
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
 
     eckit::SessionID verifyServerStartupResponse();

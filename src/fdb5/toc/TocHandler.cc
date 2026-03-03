@@ -118,7 +118,7 @@ public:  // methods
         else {
             off_t ret;
             SYSCALL(ret = ::lseek(fd_, pos, SEEK_SET));
-            ASSERT(ret == pos);
+            ASSERT(ret == static_cast<off_t>(pos));
             return pos;
         }
     }
@@ -186,7 +186,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
                                    << parentKey << std::endl;
 
             if (parentKey.size() != key.size()) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                 throw UserError(ss.str(), Here());
             }
@@ -195,7 +195,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
                 const auto [it, found] = key.find(kv.first);
 
                 if (!found) {
-                    std::stringstream ss;
+                    std::ostringstream ss;
                     ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                     throw UserError(ss.str(), Here());
                 }
@@ -217,29 +217,6 @@ TocHandler::~TocHandler() {
 
 bool TocHandler::exists() const {
     return tocPath_.exists();
-}
-
-void TocHandler::checkUID() const {
-    static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
-    if (!fdbOnlyCreatorCanWrite) {
-        return;
-    }
-
-    static std::vector<std::string> fdbSuperUsers =
-        eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
-
-    if (dbUID() != userUID_) {
-
-        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
-
-            std::ostringstream oss;
-            oss << "Only user '" << userName(dbUID())
-
-                << "' can write to FDB " << directory_ << ", current user is '" << userName(userUID_) << "'";
-
-            throw eckit::UserError(oss.str());
-        }
-    }
 }
 
 void TocHandler::openForAppend() {
@@ -1356,13 +1333,11 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
 
             case TocRecord::TOC_SUB_TOC:
                 throw eckit::SeriousBug("TOC_SUB_TOC entry should be handled inside readNext");
-                break;
 
             default:
                 std::ostringstream oss;
                 oss << "Unknown tag in TocRecord " << *r;
                 throw eckit::SeriousBug(oss.str(), Here());
-                break;
         }
     }
 
@@ -1373,8 +1348,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
 
     {
         std::vector<std::future<void>> threads;
-        std::vector<TocIndex*> tocindexes;
-        tocindexes.resize(indexEntries.size());
+        std::vector<TocIndex*> tocindexes(indexEntries.size(), nullptr);
 
         for (int i = 0; i < nthreads; ++i) {
             threads.emplace_back(std::async(std::launch::async, [i, &indexEntries, &tocindexes, debug, this] {

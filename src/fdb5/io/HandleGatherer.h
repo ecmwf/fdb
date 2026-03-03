@@ -20,8 +20,6 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
-
 namespace eckit {
 class DataHandle;
 }
@@ -32,11 +30,16 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class HandleGatherer : public eckit::NonCopyable {
+class HandleGatherer {
 
 public:  // methods
 
     HandleGatherer(bool sorted);
+
+    HandleGatherer(const HandleGatherer&)            = delete;
+    HandleGatherer& operator=(const HandleGatherer&) = delete;
+    HandleGatherer(HandleGatherer&&)                 = delete;
+    HandleGatherer& operator=(HandleGatherer&&)      = delete;
 
     ~HandleGatherer();
 

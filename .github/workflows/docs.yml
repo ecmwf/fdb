@@ -9,7 +9,7 @@ on:
     tags:
       - '**'
 jobs:
-  build:
+  build-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     outputs:
@@ -35,21 +35,22 @@ jobs:
         id: upload-doc
         uses: actions/upload-artifact@v4
         with:
-          name: documentation
+          name: documentation-fdb
           path: docs_out/sphinx
-  preview-publish:
+  preview-publish-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-    needs: build
+    needs: build-fdb
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-publish.yml@main
     with:
-      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
       name: dev-section
       path: fdb/pull-requests
-      link-text: 🌈🌦️📖🚧 Documentation 🚧📖🌦️🌈
+      link-tag: PREVIEW-PUBLISH-FDB
+      link-text: 🌈🌦️📖🚧 Documentation FDB 🚧📖🌦️🌈
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
-  preview-unpublish:
+  preview-unpublish-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@main
     with:
@@ -58,17 +59,17 @@ jobs:
       path: fdb/pull-requests
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
-  publish:
+  publish-fdb:
     if: >-
       ${{ github.event_name == 'push' && (
         github.ref_name == 'develop' ||
         github.ref_name == 'master'  ||
         github.ref_type == 'tag'
       ) }}
-    needs: build
+    needs: build-fdb
     uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@main
     with:
-      artifact-id: ${{ needs.build.outputs.artifact-id }}
+      artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
       name: dev-section
       path: fdb

@@ -48,22 +48,17 @@ private:  // methods
 
     bool selectDatabase(const Key& dbKey, const Key& fullKey) override;
 
-    bool selectIndex(const Key& idxKey, const Key& fullKey) override;
+    bool selectIndex(const Key& idxKey) override;
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
     void deselectDatabase() override;
-
-    void values(const metkit::mars::MarsRequest& request, const std::string& keyword, const TypesRegistry& registry,
-                eckit::StringList& values) override;
 
     void print(std::ostream& out) const override;
 
     const Schema& databaseSchema() const override;
 
 private:
-
-    const Notifier& wind_;
 
     eckit::CacheLRU<Key, CatalogueReader*>& databases_;
 

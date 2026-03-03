@@ -70,6 +70,8 @@ public:  // methods
 
     const TimeStamp& timestamp() const { return timestamp_; }
 
+    bool hasLocation() const { return static_cast<bool>(loc_); };
+
     void print(std::ostream& out, bool location, bool length, bool timestamp, const char* sep) const;
 
 private:  // methods

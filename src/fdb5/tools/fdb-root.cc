@@ -55,8 +55,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        // domain add here as default
-        auto parsed = FDBToolRequest::requestsFromString("domain=g," + args(i), {}, false, "read");
+        auto parsed = FDBToolRequest::requestsFromString(args(i), {}, false, "read");
 
         for (const auto& request : parsed) {
 

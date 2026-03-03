@@ -97,10 +97,7 @@ const RuleDatum& Schema::matchingRule(const Key& dbKey, const Key& idxKey) const
             if (!idxRule->match(idxKey)) {
                 continue;
             }
-            /// @note returning first datum. could there be multiple datum per index ?
-            for (const auto& datumRule : idxRule->rules()) {
-                return *datumRule;
-            }
+            return idxRule->rule();
         }
     }
 

@@ -1,0 +1,11 @@
+retrieve,
+    domain=g,
+    levtype=sfc,
+    date=20201102,
+    time=0000,
+    step=12,
+    param=166.128,
+    class=rd,
+    type=fc,
+    stream=oper,
+    expver=xxxx

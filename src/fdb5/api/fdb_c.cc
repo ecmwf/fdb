@@ -15,7 +15,7 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
@@ -82,7 +82,7 @@ public:
     void expand() {
         bool inherit = false;
         bool strict  = true;
-        metkit::mars::MarsExpension expand(inherit, strict);
+        metkit::mars::MarsExpansion expand(inherit, strict);
         request_ = expand.expand(request_);
     }
     const metkit::mars::MarsRequest request() const { return request_; }
@@ -226,6 +226,7 @@ private:
 };
 
 // Wipe iterator
+// To be removed / replaced by pybind impl.
 struct fdb_wipe_iterator_t {
 
     fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
@@ -241,7 +242,7 @@ struct fdb_wipe_element_t {
 
     fdb_wipe_element_t(WipeElement&& e) : element_(std::move(e)) {}
 
-    const char* c_str() const { return element_.c_str(); }
+    const char* c_str() const { return element_.msg().c_str(); }
 
 private:
 
@@ -341,8 +342,6 @@ int wrapApiFunction(FN f) {
         }
         return FDB_ERROR_UNKNOWN_EXCEPTION;
     }
-
-    ASSERT(false);
 }
 
 }  // namespace

@@ -19,8 +19,6 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
-
 #include "fdb5/database/Key.h"
 
 namespace metkit::mars {
@@ -30,20 +28,27 @@ class MarsRequest;
 namespace fdb5 {
 
 class Rule;
+class RuleDatum;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WriteVisitor : public eckit::NonCopyable {
+class WriteVisitor {
 
 public:  // methods
 
     WriteVisitor(std::vector<Key>&);
 
+    WriteVisitor(const WriteVisitor&)            = delete;
+    WriteVisitor& operator=(const WriteVisitor&) = delete;
+    WriteVisitor(WriteVisitor&&)                 = delete;
+    WriteVisitor& operator=(WriteVisitor&&)      = delete;
+
     virtual ~WriteVisitor() = default;
 
     virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
-    virtual bool selectIndex(const Key& idxKey, const Key& fullKey)   = 0;
+    virtual bool selectIndex(const Key& idxKey)                       = 0;
+    virtual bool createIndex(const Key& idxKey, size_t datumKeySize)  = 0;
     virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.

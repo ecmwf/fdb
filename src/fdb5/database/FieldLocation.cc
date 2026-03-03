@@ -61,7 +61,7 @@ void FieldLocationFactory::list(std::ostream& out) {
 FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri, eckit::Offset offset,
                                            eckit::Length length, const Key& remapKey) {
 
-    ASSERT(length != 0);
+    ASSERT(static_cast<long long>(length) != 0ll);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 

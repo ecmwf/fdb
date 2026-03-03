@@ -58,7 +58,7 @@ FieldHandle::FieldHandle(ListIterator& it) :
             }
 
             if (cube.countVacant() > 0) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "No matching data for requests:" << std::endl;
                 for (auto req : cube.vacantRequests()) {
                     ss << "    " << req << std::endl;
@@ -138,8 +138,8 @@ void FieldHandle::openCurrent() {
                 read += len;
             }
 
-            if (read != currentSize) {
-                std::stringstream ss;
+            if (read != static_cast<long>(currentSize)) {
+                std::ostringstream ss;
                 ss << "Error reading from " << *current_ << " - read " << read << ", expected " << currentSize;
                 throw eckit::ReadError(ss.str());
             }

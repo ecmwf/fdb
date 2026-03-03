@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_BaseArchiveVisitor_H
-#define fdb5_BaseArchiveVisitor_H
+#pragma once
 
 #include "fdb5/database/WriteVisitor.h"
 
@@ -41,14 +40,15 @@ protected:  // methods
 
     bool selectDatabase(const Key& dbKey, const Key&) override;
 
-    bool selectIndex(const Key& idxKey, const Key&) override;
+    bool selectIndex(const Key& idxKey) override;
+    bool createIndex(const Key& idxKey, size_t datumKeySize) override;
 
     virtual void checkMissingKeys(const Key& fullKey) const;
 
     const Schema& databaseSchema() const override;
 
-    fdb5::CatalogueWriter* catalogue() const;
-    fdb5::Store* store() const;
+    std::shared_ptr<CatalogueWriter> catalogue() const;
+    Store* store() const;
 
     const Key& initialFieldKey() const { return initialFieldKey_; }
 
@@ -64,5 +64,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

@@ -18,38 +18,41 @@
 
 #pragma once
 
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "eckit/utils/Regex.h"
+#include "metkit/mars/Matcher.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/rules/SelectMatcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
 class SelectFDB : public FDBBase {
 
 private:  // types
 
-    using SelectMap = std::map<std::string, eckit::Regex>;
 
     class FDBLane {
-        SelectMap select_;
+        SelectMatcher matcher_;
         Config config_;
-        std::optional<FDB> fdb_;
+        std::shared_ptr<FDBBase> fdb_;
 
     public:
 
         FDBLane(const eckit::LocalConfiguration& config);
-        const SelectMap& select() { return select_; }
-        FDB& get();
+
+        FDBBase& get();
+
         void flush();
+
+        template <typename T>  // T is either a mars request or a Key
+        bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
     };
+
 
 public:  // methods
 
@@ -67,7 +70,7 @@ public:  // methods
 
     StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
@@ -86,11 +89,8 @@ private:  // methods
 
     void print(std::ostream& s) const override;
 
-    bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
-    bool matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
-
     template <typename QueryFN>
-    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
+    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDBBase*)(nullptr), request));
 
 private:  // members
 

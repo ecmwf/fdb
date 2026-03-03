@@ -132,10 +132,10 @@ CASE("Step & ClimateDaily - expansion") {
 
     fdb5::Config conf = config.expandConfig();
     fdb5::Archiver archiver(conf);
-    fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
+    config.schema().expand(key, *visitor);
 
-    fdb5::TypedKey tKey(visitor.rule()->registry());
+    fdb5::TypedKey tKey(visitor->rule()->registry());
     tKey.pushFrom(key);
 
     EXPECT_NO_THROW(key = tKey.canonical());
@@ -267,9 +267,9 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-        config.schema().expand(key, visitor);
-        fdb5::TypedKey tKey(visitor.rule()->registry());
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
+        config.schema().expand(key, *visitor);
+        fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
         EXPECT_NO_THROW(key = tKey.canonical());
     }
@@ -296,9 +296,9 @@ CASE("ClimateMonthly - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-        config.schema().expand(key, visitor);
-        fdb5::TypedKey tKey(visitor.rule()->registry());
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
+        config.schema().expand(key, *visitor);
+        fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
         EXPECT_NO_THROW(key = tKey.canonical());
     }
@@ -329,9 +329,9 @@ CASE("Date - string ctor - expansion") {
 
     {
         fdb5::Archiver archiver;
-        fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-        config.schema().expand(key, visitor);
-        fdb5::TypedKey tKey(visitor.rule()->registry());
+        auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
+        config.schema().expand(key, *visitor);
+        fdb5::TypedKey tKey(visitor->rule()->registry());
         tKey.pushFrom(key);
         EXPECT_NO_THROW(key = tKey.canonical());
     }

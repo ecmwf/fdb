@@ -26,6 +26,9 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
+#include "metkit/codes/CodesDataContent.h"
+#include "metkit/codes/api/CodesAPI.h"
+
 using namespace eckit;
 using namespace eckit::option;
 
@@ -50,22 +53,13 @@ private:  // members
 };
 
 eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg) {
+    auto h = metkit::codes::codesHandleFromMessage({reinterpret_cast<const uint8_t*>(msg.data()), msg.length()});
 
-    codes_handle* h = codes_handle_new_from_message(nullptr, msg.data(), msg.length());
-    ASSERT(h);
-
-    try {
-        for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
-            size_t len = j->second.size();
-            ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
-        }
-
-        return eckit::message::Message(new metkit::codes::CodesContent(h, true));
+    for (const auto& [key, value] : key_) {
+        h->set(key, value);
     }
-    catch (...) {
-        grib_handle_delete(h);
-        throw;
-    }
+
+    return eckit::message::Message(new metkit::codes::CodesDataContent(std::move(h), msg.offset()));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -153,7 +147,7 @@ void FDBPatch::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }

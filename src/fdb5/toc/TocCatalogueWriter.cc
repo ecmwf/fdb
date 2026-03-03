@@ -52,46 +52,63 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+
     currentIndexKey_ = idxKey;
 
-    if (indexes_.find(idxKey) == indexes_.end()) {
-        PathName indexPath(generateIndexPath(idxKey));
-
-        // Enforce lustre striping if requested
-        if (stripeLustre()) {
-            fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
-        }
-
-        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
+    auto it = indexes_.find(idxKey);
+    if (it == indexes_.end()) {
+        return false;
     }
 
-    current_ = indexes_[idxKey];
+    current_ = it->second;
     current_.open();
     current_.flock();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
-
     if (useSubToc()) {
 
-        if (fullIndexes_.find(idxKey) == fullIndexes_.end()) {
+        auto it = fullIndexes_.find(idxKey);
+        ASSERT(it != fullIndexes_.end());
 
-            // TODO TODO TODO .master.index
-            PathName indexPath(generateIndexPath(idxKey));
-
-            // Enforce lustre striping if requested
-            if (stripeLustre()) {
-                fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
-            }
-
-            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
-        }
-
-        currentFull_ = fullIndexes_[idxKey];
+        currentFull_ = it->second;
         currentFull_.open();
         currentFull_.flock();
     }
 
+    return true;
+}
+
+bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
+
+    ASSERT(datumKeySize > 0);
+    currentIndexKey_ = idxKey;
+
+    PathName indexPath(generateIndexPath(idxKey));
+    // Enforce lustre striping if requested
+    if (stripeLustre()) {
+        fdb5LustreapiFileCreate(indexPath, stripeIndexLustreSettings());
+    }
+
+    current_ =
+        indexes_.emplace(idxKey, new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE, datumKeySize)).first->second;
+    current_.open();
+    current_.flock();
+
+    // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
+    // each step.
+    if (useSubToc()) {
+        PathName consolidatedIndexPath(generateIndexPath(idxKey));
+        // Enforce lustre striping if requested
+        if (stripeLustre()) {
+            fdb5LustreapiFileCreate(consolidatedIndexPath, stripeIndexLustreSettings());
+        }
+        currentFull_ =
+            fullIndexes_.emplace(idxKey, new TocIndex(idxKey, consolidatedIndexPath, 0, TocIndex::WRITE, datumKeySize))
+                .first->second;
+        currentFull_.open();
+        currentFull_.flock();
+    }
     return true;
 }
 
@@ -153,14 +170,12 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     private:
 
+        using EntryVisitor::visitDatum;
         void visitDatum(const Field& field, const Key& datumKey) override {
             /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(datumKey, location.uri(), location.offset(), location.length());
-        }
-        void visitDatum(const Field& field, const std::string& keyFingerprint) override {
-            EntryVisitor::visitDatum(field, keyFingerprint);
         }
 
         TocCatalogueWriter& writer_;
@@ -245,7 +260,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
     const Key& otherKey(otherCatalogue.key());
 
     if (otherKey.size() != TocCatalogue::dbKey_.size()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
         throw UserError(ss.str(), Here());
     }
@@ -256,14 +271,14 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
         const auto [it, found] = otherKey.find(kv.first);
         if (!found) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());
         }
 
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : "
                    << otherKey;
                 throw UserError(ss.str(), Here());
@@ -281,7 +296,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
         eckit::PathName stPath(otherCatalogue.tocPath());
         if (subtocs.find(stPath) == subtocs.end()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "Cannot unmount DB: " << otherCatalogue << ". Not currently mounted";
             throw UserError(ss.str(), Here());
         }
@@ -306,17 +321,20 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
+
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        if (!selectIndex(currentIndexKey_))
+            createIndex(currentIndexKey_, datumKey.size());
     }
     else {
         // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
         // indexKey used for store archival. Reset it
         if (currentIndexKey_ != idxKey) {
-            selectIndex(idxKey);
+            if (!selectIndex(idxKey))
+                createIndex(idxKey, datumKey.size());
         }
     }
 

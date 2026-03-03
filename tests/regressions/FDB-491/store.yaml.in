@@ -1,7 +1,7 @@
 ---
 type: store
 supportedConnections: [1]
-serverPort: 11001
+serverPort: 12001
 spaces:
 - handler: Default
   roots:
