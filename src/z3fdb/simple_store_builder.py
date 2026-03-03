@@ -40,8 +40,9 @@ class SimpleStoreBuilder:
         """Add a MARS request to the view.
 
         Args:
-            mars_request_key_values(str): A string with fully spefified MARS
-                key:values pairs.
+            mars_request_key_values(str):
+                A string with fully spefified MARS key:values pairs.
+
                 For example:
                     type=an,
                     class=ea,

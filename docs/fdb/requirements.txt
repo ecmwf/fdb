@@ -1,4 +1,0 @@
-Sphinx~=8.1
-breathe~=4.35
-sphinx-book-theme~=1.1
-requests

@@ -11,11 +11,10 @@ configure_file( wipe.sh.in wipe.sh @ONLY )
 
 foreach( _test ${fdb_tools_wipe_configs} )
     ecbuild_add_test(
-        TARGET test_fdb_tools_wipe_${_test}
+        TARGET fdb_test_tools_wipe_${_test}
         TYPE SCRIPT
         LABELS wipe
-        CONDITION HAVE_FDB_BUILD_TOOLS
-        TEST_DEPENDS fdb5_get_test_data
+        TEST_DEPENDS fdb_test_get_data
         COMMAND wipe.sh
         ARGS ${_test}.yaml
         ENVIRONMENT "${test_environment}"
