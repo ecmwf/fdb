@@ -33,6 +33,6 @@ else
     PYFDB_IFACE=""
 fi
 
-CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 $ZARR_IFACE $PYFDB_IFACE"
+CMAKE_PARAMS="-Deckit_ROOT=/tmp/fdb/prereqs/eckitlib -Dmetkit_ROOT=/tmp/fdb/prereqs/metkitlib -Deccodes_ROOT=/tmp/fdb/prereqs/eccodeslib -DENABLE_GRIB=0 $ZARR_IFACE $PYFDB_IFACE -DENABLE_FDB_BUILD_TOOLS=ON"
 PYPROJECT_DIR="python/fdb5lib"
 DEPENDENCIES='["eckitlib", "eccodeslib", "metkitlib"]'
