@@ -38,6 +38,7 @@
 namespace fdb5 {
 
 class Schema;
+class StoreWipeState;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -54,10 +55,18 @@ private:  // types
 public:  // methods
 
     FamStore(const Key& key, const Config& config);
+    FamStore(const eckit::URI& uri, const Config& config);
+
+    FamStore(const FamStore&)            = delete;
+    FamStore& operator=(const FamStore&) = delete;
+    FamStore(FamStore&&)                 = delete;
+    FamStore& operator=(FamStore&&)      = delete;
 
     ~FamStore() override;
 
     auto type() const -> std::string override { return FamCommon::type; }
+
+    static eckit::URI uri(const eckit::URI& dataURI);
 
     auto uri() const -> eckit::URI override;
 
@@ -65,9 +74,11 @@ public:  // methods
 
     auto uriExists(const eckit::URI& uri) const -> bool override;
 
-    auto collocatedDataURIs() const -> std::vector<eckit::URI> override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
 
-    auto asCollocatedDataURIs(const std::vector<eckit::URI>& uriList) const -> std::set<eckit::URI> override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>& uris) const override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
 
     auto open() -> bool override { return true; }
 
@@ -76,6 +87,16 @@ public:  // methods
     void close() override;
 
     void checkUID() const override {}
+
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+
+    void doWipeEmptyDatabase() const override;
+
+    bool doUnsafeFullWipe() const override { return false; }
 
     auto makeObject(const Key& key) const -> eckit::FamObjectName;
 
@@ -88,8 +109,6 @@ protected:  // methods
     auto archive(const Key& key, const void* data, eckit::Length length)
         -> std::unique_ptr<const FieldLocation> override;
 
-    void remove(const Key& key) const override;
-
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
@@ -97,8 +116,6 @@ protected:  // methods
 private:  // members
 
     mutable Stats stats_;
-
-    const Config& config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
