@@ -8,4 +8,4 @@ setuptools
 GitPython
 sphinx
 
-sybil[pytest]
+Sybil[pytest]
