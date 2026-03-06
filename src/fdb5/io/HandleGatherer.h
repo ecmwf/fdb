@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_HandleGatherer_H
-#define fdb5_HandleGatherer_H
+#pragma once
 
 #include <cstdlib>
 #include <iosfwd>
@@ -66,5 +65,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

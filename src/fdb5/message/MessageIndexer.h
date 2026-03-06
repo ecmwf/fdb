@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MessageIndexer_H
-#define fdb5_MessageIndexer_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 
@@ -43,5 +42,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

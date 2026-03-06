@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_FDBFactory_H
-#define fdb5_api_FDBFactory_H
+#pragma once
 
 #include <memory>
 
@@ -187,5 +186,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_FDBFactory_H

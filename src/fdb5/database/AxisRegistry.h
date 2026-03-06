@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Nov 2019
 
-#ifndef fdb5_AxisRegistry_H
-#define fdb5_AxisRegistry_H
+#pragma once
 
 #include <functional>
 #include <map>
@@ -72,5 +71,3 @@ private:  // members
 };
 
 }  // namespace fdb5
-
-#endif

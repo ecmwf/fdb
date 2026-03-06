@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   October 2018
 
-#ifndef fdb5_ListIterator_H
-#define fdb5_ListIterator_H
+#pragma once
 
 #include <unordered_map>
 #include <unordered_set>
@@ -104,5 +103,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TypesRegistry_H
-#define fdb5_TypesRegistry_H
+#pragma once
 
 #include <functional>
 #include <map>
@@ -99,5 +98,3 @@ template <>
 struct std::equal_to<const fdb5::TypesRegistry*> {
     bool operator()(const fdb5::TypesRegistry* left, const fdb5::TypesRegistry* right) const { return *left == *right; }
 };
-
-#endif

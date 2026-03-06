@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Inspector_H
-#define fdb5_Inspector_H
+#pragma once
 
 #include <cstdlib>
 #include <iosfwd>
@@ -111,5 +110,3 @@ private:  // data
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

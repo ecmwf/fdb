@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   Jun 2016
 
-#ifndef fdb5_Indexer_H
-#define fdb5_Indexer_H
+#pragma once
 
 #include <sys/types.h>
 
@@ -42,5 +41,3 @@ struct Indexer {
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

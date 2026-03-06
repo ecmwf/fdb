@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Archiver_H
-#define fdb5_Archiver_H
+#pragma once
 
 #include <cstddef>
 #include <ctime>
@@ -104,5 +103,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_TocIndex_H
-#define fdb5_TocIndex_H
+#pragma once
 
 #include "eckit/eckit.h"
 
@@ -150,5 +149,3 @@ struct TocIndexFileSort {
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

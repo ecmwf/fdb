@@ -45,8 +45,7 @@ bool endsWith(const std::string& str, const std::string& end) {
     return 0 == str.compare(str.length() - end.length(), end.length(), end);
 }
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
 CASE("Setup") {
@@ -705,8 +704,7 @@ CASE("DaosName and DaosHandle workflows") {
     /// @todo: test analogous KeyValue workflows
 }
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

@@ -29,8 +29,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -731,8 +730,7 @@ CASE("control_distributed_according_to_select") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

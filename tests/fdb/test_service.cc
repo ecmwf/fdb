@@ -46,8 +46,7 @@ using namespace eckit::testing;
 using namespace fdb5;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -593,8 +592,7 @@ CASE("schemaSerialisation") {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     eckit::Main::initialise(argc, argv, "FDB_HOME");

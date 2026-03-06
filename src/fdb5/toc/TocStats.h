@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TocDbStats_H
-#define fdb5_TocDbStats_H
+#pragma once
 
 #include <iosfwd>
 #include <map>
@@ -208,5 +207,3 @@ protected:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

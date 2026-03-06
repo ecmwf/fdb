@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_FDBFileHandle_h
-#define fdb5_FDBFileHandle_h
+#pragma once
 
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
@@ -63,5 +62,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

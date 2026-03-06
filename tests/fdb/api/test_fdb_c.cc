@@ -25,8 +25,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
@@ -670,8 +669,7 @@ CASE("fdb_c - expand") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     fdb_initialise();

@@ -19,9 +19,7 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,6 +59,4 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local

@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date   July 2019
 
-#ifndef fdb5_fdb_lock_H
-#define fdb5_fdb_lock_H
+#pragma once
 
 #include "fdb5/tools/FDBVisitTool.h"
 
@@ -20,8 +19,7 @@ using namespace eckit::option;
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +46,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::tools

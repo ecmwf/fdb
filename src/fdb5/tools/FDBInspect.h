@@ -14,8 +14,7 @@
 /// @author Simon Smart
 /// @date   Mar 2016
 
-#ifndef fdb5_FDBInspect_H
-#define fdb5_FDBInspect_H
+#pragma once
 
 #include "fdb5/tools/FDBTool.h"
 
@@ -56,5 +55,3 @@ protected:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

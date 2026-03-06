@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_ListVisitor_H
-#define fdb5_api_local_ListVisitor_H
+#pragma once
 
 #include "eckit/container/Queue.h"
 #include "eckit/exception/Exceptions.h"
@@ -153,5 +152,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::api::local
-
-#endif

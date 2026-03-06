@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_FDB_H
-#define fdb5_api_FDB_H
+#pragma once
 
 #include <iosfwd>
 #include <memory>
@@ -314,5 +313,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_FDB_H

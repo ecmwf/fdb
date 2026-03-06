@@ -22,8 +22,7 @@
 #include "eckit/filesystem/URIManager.h"
 #include "eckit/log/Log.h"
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 ::eckit::ClassSpec RemoteFieldLocation::classSpec_ = {
     &FieldLocation::classSpec(),
@@ -167,5 +166,4 @@ public:
 
 static FdbURIManager manager_fdb_file("fdb");
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote

@@ -29,8 +29,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace test {
+namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 std::string foldername = "fdb-425-root";
@@ -251,8 +250,7 @@ CASE("Check more finer-grained purge behaviour (note no forks)") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb5
+}  // namespace fdb5::test
 
 int main(int argc, char** argv) {
     int err = run_tests(argc, argv);

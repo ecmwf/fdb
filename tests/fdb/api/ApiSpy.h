@@ -15,8 +15,7 @@
 
 /// @date   Mar 2018
 
-#ifndef fdb_testing_ApiSpy_H
-#define fdb_testing_ApiSpy_H
+#pragma once
 
 #include <tuple>
 #include <vector>
@@ -28,8 +27,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -176,7 +174,4 @@ static fdb5::FDBBuilder<ApiSpy> selectFdbBuilder("spy");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
-
-#endif
+}  // namespace fdb::test

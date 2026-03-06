@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Rule_H
-#define fdb5_Rule_H
+#pragma once
 
 #include <cstddef>
 #include <iosfwd>
@@ -266,5 +265,3 @@ using RuleList = std::vector<std::unique_ptr<RuleDatabase>>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

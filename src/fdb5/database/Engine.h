@@ -13,8 +13,7 @@
 /// @author Simon Smart
 /// @date   Jan 2017
 
-#ifndef fdb5_Engine_H
-#define fdb5_Engine_H
+#pragma once
 
 #include <iosfwd>
 #include <string>
@@ -128,5 +127,3 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

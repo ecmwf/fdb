@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   May 2019
 
-#ifndef fdb5_remote_AvailablePortList_H
-#define fdb5_remote_AvailablePortList_H
+#pragma once
 
 #include <sys/types.h>
 #include <ctime>
@@ -25,8 +24,7 @@
 
 #include "eckit/container/SharedMemArray.h"
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -69,7 +67,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
-
-#endif  // fdb5_remote_AvailablePortList_H
+}  // namespace fdb5::remote

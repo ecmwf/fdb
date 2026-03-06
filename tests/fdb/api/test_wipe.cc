@@ -63,8 +63,7 @@ size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::F
 std::string configName;
 fdb5::Config config;
 
-namespace fdb5 {
-namespace test {
+namespace fdb5::test {
 
 CASE("Wipe tests") {
 
@@ -453,8 +452,7 @@ CASE("Wipe tests") {
     testing::deldir(wipe_tests_tmp_root());
 }
 
-}  // namespace test
-}  // namespace fdb5
+}  // namespace fdb5::test
 
 int main(int argc, char** argv) {
     int failures = 0;

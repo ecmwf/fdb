@@ -79,8 +79,7 @@ size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
     return count;
 }
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 CASE("DaosStore tests") {
 
@@ -563,8 +562,7 @@ CASE("DaosStore tests") {
 #endif
 }
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

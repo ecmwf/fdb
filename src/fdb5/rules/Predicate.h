@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Predicate_H
-#define fdb5_Predicate_H
+#pragma once
 
 #include <iosfwd>
 #include <memory>
@@ -94,5 +93,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

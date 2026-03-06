@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Matcher_H
-#define fdb5_Matcher_H
+#pragma once
 
 #include <iosfwd>
 #include <vector>
@@ -78,5 +77,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

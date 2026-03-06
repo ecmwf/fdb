@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_FieldRef_H
-#define fdb5_FieldRef_H
+#pragma once
 
 #include "eckit/eckit.h"
 
@@ -120,5 +119,3 @@ typedef FieldRef FieldRefFull;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

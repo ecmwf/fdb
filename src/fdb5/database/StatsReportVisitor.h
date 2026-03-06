@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date   August 2017
 
-#ifndef fdb5_StatsReportVisitor_H
-#define fdb5_StatsReportVisitor_H
+#pragma once
 
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -35,5 +34,3 @@ public:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_StatsReportVisitor_H

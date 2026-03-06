@@ -11,8 +11,7 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb5_TocRecord_H
-#define fdb5_TocRecord_H
+#pragma once
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -83,5 +82,3 @@ struct TocRecord {
 //-----------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_TocRecord_H

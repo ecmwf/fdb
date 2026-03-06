@@ -11,16 +11,13 @@
 /// @author Simon Smart
 /// @date   July 2019
 
-#ifndef fdb5_api_local_ControlVisitor_H
-#define fdb5_api_local_ControlVisitor_H
+#pragma once
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
 
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -49,8 +46,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

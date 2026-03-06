@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_RetrieveVisitor_H
-#define fdb5_RetrieveVisitor_H
+#pragma once
 
 #include <memory>
 
@@ -61,5 +60,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

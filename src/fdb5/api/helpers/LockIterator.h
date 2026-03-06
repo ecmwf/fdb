@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_WhereIterator_H
-#define fdb5_api_WhereIterator_H
+#pragma once
 
 #include <string>
 
@@ -44,5 +43,3 @@ using WhereAggregateIterator = APIAggregateIterator<WhereElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

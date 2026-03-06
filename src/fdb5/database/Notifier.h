@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Notifier_H
-#define fdb5_Notifier_H
+#pragma once
 
 
 namespace fdb5 {
@@ -36,5 +35,3 @@ public:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

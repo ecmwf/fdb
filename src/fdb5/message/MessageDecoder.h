@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MessageDecoder_H
-#define fdb5_MessageDecoder_H
+#pragma once
 
 
 #include <vector>
@@ -67,5 +66,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

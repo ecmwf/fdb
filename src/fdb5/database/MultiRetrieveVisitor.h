@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   October 2016
 
-#ifndef fdb5_MultiRetrieveVisitor_H
-#define fdb5_MultiRetrieveVisitor_H
+#pragma once
 
 #include <string>
 
@@ -70,5 +69,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

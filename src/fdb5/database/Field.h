@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_Field_H
-#define fdb5_Field_H
+#pragma once
 
 #include "eckit/eckit.h"
 
@@ -76,5 +75,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

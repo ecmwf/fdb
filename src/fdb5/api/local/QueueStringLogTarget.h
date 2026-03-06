@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_QueueStringLogTarget_H
-#define fdb5_api_local_QueueStringLogTarget_H
+#pragma once
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Channel.h"
@@ -25,9 +24,7 @@
 
 #include <string>
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -47,8 +44,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

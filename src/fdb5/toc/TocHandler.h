@@ -11,8 +11,7 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb5_TocHandler_H
-#define fdb5_TocHandler_H
+#pragma once
 
 #include <map>
 #include <memory>
@@ -283,5 +282,3 @@ private:  // members
 //-----------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb_TocHandler_H

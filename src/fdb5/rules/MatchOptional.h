@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MatchOptional_H
-#define fdb5_MatchOptional_H
+#pragma once
 
 #include <iosfwd>
 #include <string>
@@ -65,5 +64,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

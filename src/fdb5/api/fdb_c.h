@@ -13,8 +13,7 @@
 /** @author Tiago Quintino */
 /** @date   Apr 2020 */
 
-#ifndef fdb5_api_fdb_c_H
-#define fdb5_api_fdb_c_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -480,6 +479,3 @@ int fdb_purge_element_string(fdb_purge_element_t* element, const char** str);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#endif
-// fdb5_api_fdb_H

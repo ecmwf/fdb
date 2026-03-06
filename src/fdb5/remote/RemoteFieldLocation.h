@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_RemoteFieldLocation_H
-#define fdb5_RemoteFieldLocation_H
+#pragma once
 
 #include "fdb5/database/FieldLocation.h"
 
@@ -69,5 +68,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote
-
-#endif  // fdb5_RemoteFieldLocation_H

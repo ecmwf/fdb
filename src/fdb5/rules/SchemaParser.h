@@ -11,8 +11,7 @@
 /// @author Baudouin Raoult
 /// @date Jun 2012
 
-#ifndef fdb5_SchemaParser_h
-#define fdb5_SchemaParser_h
+#pragma once
 
 #include <iosfwd>
 #include <memory>
@@ -53,5 +52,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

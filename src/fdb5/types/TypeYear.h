@@ -12,8 +12,7 @@
 /// @author Emanuele Danovaro
 /// @date   January 2025
 
-#ifndef fdb5_TypeYear_H
-#define fdb5_TypeYear_H
+#pragma once
 
 #include "fdb5/types/Type.h"
 
@@ -42,5 +41,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

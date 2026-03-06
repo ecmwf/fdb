@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_DistFDB_H
-#define fdb5_api_DistFDB_H
+#pragma once
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -84,5 +83,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_DistFDB_H
