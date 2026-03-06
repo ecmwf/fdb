@@ -53,8 +53,19 @@ class UserInputMapper:
                 converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, (str, int, float)):
+            elif isinstance(values, (int, float)):
                 result[key] = [str(values)]
+            elif isinstance(values, str):
+                # Note: Even `to`/`to-by` range expressions are split here and treated as plain values.
+                #       UserInputMapper.map_selection_to_internal() is used for all APIs (retrieve,
+                #       inspect, axes, etc.). The semantic expansion of these ranges now happens in
+                #       the bindings layer (see mars_requestfrom_map()), not directly in the FDB
+                #       tool request. We hand a list[str] to the pybind11 layer, matching the C++
+                #       splitting behaviour.
+                if "/" in values:
+                    result[key] = values.split("/")
+                else:
+                    result[key] = [values]
             else:
                 raise ValueError(
                     f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
@@ -85,13 +96,13 @@ class UserInputMapper:
 
     @classmethod
     def map_identifier_to_internal(cls, identifier: MarsIdentifier) -> InternalMarsIdentifier:
-        key_values: Dict[str, str] = {}
+        key_values: dict[str, str] = {}
 
         iterator = None
 
-        if isinstance(identifier, List):
+        if isinstance(identifier, list):
             iterator = identifier
-        elif isinstance(identifier, Dict):
+        elif isinstance(identifier, dict):
             iterator = identifier.items()
         else:
             raise ValueError(

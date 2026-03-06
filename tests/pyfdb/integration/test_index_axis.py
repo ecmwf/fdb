@@ -198,19 +198,33 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
     index_axis: IndexAxis = fdb.axes(selection)
 
     assert index_axis
-    assert len(index_axis.keys()) == 6
-    assert "class" in index_axis
+    assert len(index_axis.keys()) == 11
+
+    for key in [
+        "type",
+        "class",
+        "domain",
+        "expver",
+        "stream",
+        "date",
+        "levtype",
+        "step",
+        "param",
+        "time",
+    ]:
+        assert key in index_axis
+
     assert index_axis["class"] == ["ea"]
-    assert "domain" in index_axis
     assert index_axis["domain"] == ["g"]
-    assert "date" in index_axis
     assert index_axis["date"] == ["20200101"]
-    assert "expver" in index_axis
     assert index_axis["expver"] == ["0001"]
-    assert "stream" in index_axis
     assert index_axis["stream"] == ["oper"]
-    assert "time" in index_axis
     assert index_axis["time"] == ["1800"]
+    assert index_axis["levelist"] == [""]
+    assert index_axis["type"] == ["an"]
+    assert index_axis["param"] == ["131", "132", "167"]
+    assert index_axis["step"] == ["0"]
+    assert index_axis["type"] == ["an"]
 
     assert "non-existing-key" not in index_axis
 
@@ -254,7 +268,7 @@ def test_index_axis_keys(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis.keys()) == 6
+    assert len(index_axis.keys()) == 11
 
 
 def test_index_axis_values(read_only_fdb_setup):
@@ -275,7 +289,7 @@ def test_index_axis_values(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis) == 6
+    assert len(index_axis) == 11
 
 
 def test_index_axis_items(read_only_fdb_setup):
@@ -296,10 +310,10 @@ def test_index_axis_items(read_only_fdb_setup):
 
     index_axis: IndexAxis = fdb.axes(selection)
 
-    assert len(index_axis) == 6
-    assert len(index_axis.items()) == 6
-    assert len(index_axis.keys()) == 6
-    assert len(index_axis.values()) == 6
+    assert len(index_axis) == 11
+    assert len(index_axis.items()) == 11
+    assert len(index_axis.keys()) == 11
+    assert len(index_axis.values()) == 11
 
     for k, v in index_axis.items():
         print(f"k={k} | v={v}")
@@ -430,6 +444,11 @@ def test_index_axis_equality_dict(read_only_fdb_setup):
             "stream": ["oper"],
             "date": ["20200101"],
             "time": ["1800"],
+            "levelist": "",
+            "levtype": ["sfc"],
+            "param": ["131", "132", "167"],
+            "step": "0",
+            "type": "an",
         }
 
         assert index_axis_1 is not index_axis_manual
@@ -442,6 +461,11 @@ def test_index_axis_equality_dict(read_only_fdb_setup):
             "stream": ["oper"],
             "date": ["20200101"],
             "time": ["1900"],  # This differs
+            "levelist": "",
+            "levtype": ["sfc"],
+            "param": ["131", "132", "167"],
+            "step": "0",
+            "type": "an",
         }
 
         assert index_axis_1 is not index_axis_manual_non_existing
