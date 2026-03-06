@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2018
 
-#ifndef fdb5_config_Config_H
-#define fdb5_config_Config_H
+#pragma once
 
 #include <sys/stat.h>  // for mode_t
 
@@ -79,5 +78,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_config_Config_H

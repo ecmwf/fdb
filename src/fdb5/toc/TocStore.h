@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocStore_H
-#define fdb5_TocStore_H
+#pragma once
 
 #include <map>
 #include <memory>
@@ -114,5 +113,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_TocStore_H

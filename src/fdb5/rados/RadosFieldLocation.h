@@ -11,8 +11,7 @@
 /// @author Emanuele Danovaro
 /// @date Jan 2020
 
-#ifndef fdb5_RadosFieldLocation_H
-#define fdb5_RadosFieldLocation_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
@@ -58,5 +57,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_RadosFieldLocation_H

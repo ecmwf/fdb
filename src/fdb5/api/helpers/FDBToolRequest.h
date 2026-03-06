@@ -18,8 +18,7 @@
 /// @author Simon Smart
 /// @date   Mar 2016
 
-#ifndef fdb5_FDBToolRequest_H
-#define fdb5_FDBToolRequest_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -86,5 +85,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_Index_H
-#define fdb5_Index_H
+#pragma once
 
 #include <ctime>
 #include <iosfwd>
@@ -216,5 +215,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

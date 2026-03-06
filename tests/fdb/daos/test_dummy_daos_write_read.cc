@@ -37,8 +37,7 @@ eckit::TmpDir& tmp_dummy_daos_root() {
     return d;
 }
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -412,8 +411,7 @@ CASE("dummy_daos_write_then_read") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

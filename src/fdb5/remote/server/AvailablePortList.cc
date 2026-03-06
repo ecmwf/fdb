@@ -31,8 +31,7 @@
 using namespace eckit;
 using namespace eckit::literals;
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -221,5 +220,4 @@ void AvailablePortList::reap(int deadTime) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote

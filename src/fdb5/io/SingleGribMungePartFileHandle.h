@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date May 2019
 
-#ifndef fdb5_io_SingleGribMungePartFileHandle_h
-#define fdb5_io_SingleGribMungePartFileHandle_h
+#pragma once
 
 #include <memory>
 
@@ -94,5 +93,3 @@ private:  // members
 //-----------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

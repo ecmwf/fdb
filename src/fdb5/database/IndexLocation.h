@@ -13,8 +13,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Streamable.h"
 
-#ifndef fdb5_IndexLocation_H
-#define fdb5_IndexLocation_H
+#pragma once
 
 namespace fdb5 {
 
@@ -65,5 +64,3 @@ public:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_IndexLocation_H

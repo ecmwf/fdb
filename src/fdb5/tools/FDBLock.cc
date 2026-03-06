@@ -22,8 +22,7 @@ using namespace eckit::option;
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -122,5 +121,4 @@ void FDBLock::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools

@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ReadVisitor_H
-#define fdb5_ReadVisitor_H
+#pragma once
 
 #include <iosfwd>
 
@@ -76,5 +75,3 @@ protected:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

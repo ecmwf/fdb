@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_DumpIterator_H
-#define fdb5_api_DumpIterator_H
+#pragma once
 
 #include <string>
 
@@ -39,5 +38,3 @@ using DumpAggregateIterator = APIAggregateIterator<DumpElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

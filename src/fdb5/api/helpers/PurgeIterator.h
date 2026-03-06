@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_PurgeIterator_H
-#define fdb5_api_PurgeIterator_H
+#pragma once
 
 #include <string>
 
@@ -38,5 +37,3 @@ using PurgeAggregateIterator = APIAggregateIterator<PurgeElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

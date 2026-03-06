@@ -19,8 +19,7 @@
 
 using eckit::Log;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -123,8 +122,7 @@ void FDBInfo::execute(const eckit::option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools
 
 int main(int argc, char** argv) {
     fdb5::tools::FDBInfo app(argc, argv);

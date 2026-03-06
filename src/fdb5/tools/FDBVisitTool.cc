@@ -24,8 +24,7 @@
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -131,5 +130,4 @@ void FDBVisitTool::usage(const std::string& tool) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools

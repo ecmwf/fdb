@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocCatalogueWriter_H
-#define fdb5_TocCatalogueWriter_H
+#pragma once
 
 #include "eckit/os/AutoUmask.h"
 
@@ -115,5 +114,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

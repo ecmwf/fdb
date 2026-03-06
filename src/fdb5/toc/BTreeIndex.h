@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_BTreeIndex_H
-#define fdb5_BTreeIndex_H
+#pragma once
 
 #include "eckit/eckit.h"
 
@@ -94,5 +93,3 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

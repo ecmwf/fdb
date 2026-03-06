@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDB_H
-#define fdb5_TocDB_H
+#pragma once
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
@@ -110,5 +109,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

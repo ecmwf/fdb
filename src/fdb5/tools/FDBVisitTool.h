@@ -11,14 +11,12 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_tools_FDBVisitTool_H
-#define fdb5_tools_FDBVisitTool_H
+#pragma once
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -58,7 +56,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::tools

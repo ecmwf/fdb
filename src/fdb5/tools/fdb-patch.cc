@@ -29,8 +29,7 @@
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -177,8 +176,7 @@ void FDBPatch::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools
 
 int main(int argc, char** argv) {
     fdb5::tools::FDBPatch app(argc, argv);

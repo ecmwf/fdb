@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_AdoptVisitor_H
-#define fdb5_AdoptVisitor_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 
@@ -53,5 +52,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

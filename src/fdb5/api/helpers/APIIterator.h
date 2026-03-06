@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_helpers_APIIteratorBase_H
-#define fdb5_helpers_APIIteratorBase_H
+#pragma once
 
 #include "eckit/container/Queue.h"
 
@@ -173,5 +172,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

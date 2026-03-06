@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ArchiveVisitor_H
-#define fdb5_ArchiveVisitor_H
+#pragma once
 
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
@@ -61,5 +60,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

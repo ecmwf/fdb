@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypesFactory_H
-#define fdb5_TypesFactory_H
+#pragma once
 
 #include <iosfwd>
 #include <string>
@@ -60,5 +59,3 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

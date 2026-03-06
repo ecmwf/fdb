@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeDate_H
-#define fdb5_TypeDate_H
+#pragma once
 
 #include "fdb5/types/Type.h"
 
@@ -43,5 +42,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

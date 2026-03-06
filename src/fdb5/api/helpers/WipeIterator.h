@@ -17,8 +17,7 @@
 /// @author Emanuele Danovaro
 /// @date   November 2018
 
-#ifndef fdb5_api_WipeIterator_H
-#define fdb5_api_WipeIterator_H
+#pragma once
 
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/APIIterator.h"
@@ -104,5 +103,3 @@ using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

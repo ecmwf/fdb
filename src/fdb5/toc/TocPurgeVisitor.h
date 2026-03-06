@@ -13,8 +13,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_TocPurgeVisitor_H
-#define fdb5_TocPurgeVisitor_H
+#pragma once
 
 
 #include "fdb5/database/PurgeVisitor.h"
@@ -48,5 +47,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

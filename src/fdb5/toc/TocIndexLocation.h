@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_TocIndexLocation_H
-#define fdb5_TocIndexLocation_H
+#pragma once
 
 #include <sys/types.h>
 
@@ -71,5 +70,3 @@ private:  // friends
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_TocIndexLocation_H

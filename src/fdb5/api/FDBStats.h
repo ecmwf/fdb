@@ -17,8 +17,7 @@
 /// @author Tiago Quintino
 /// @date   June 2018
 
-#ifndef fdb5_FDBStats_H
-#define fdb5_FDBStats_H
+#pragma once
 
 #include <iosfwd>
 
@@ -73,5 +72,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_StatsVisitor_H
-#define fdb5_api_local_StatsVisitor_H
+#pragma once
 
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
@@ -25,9 +24,7 @@
 #include "fdb5/database/Store.h"
 
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -52,8 +49,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

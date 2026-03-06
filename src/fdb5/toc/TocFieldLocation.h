@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_TocFieldLocation_H
-#define fdb5_TocFieldLocation_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
@@ -64,5 +63,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_TocFieldLocation_H

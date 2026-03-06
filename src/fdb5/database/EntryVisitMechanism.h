@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_EntryVisitMechanism_H
-#define fdb5_EntryVisitMechanism_H
+#pragma once
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
@@ -103,5 +102,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

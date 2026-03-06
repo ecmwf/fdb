@@ -13,8 +13,7 @@
 /// @author Simon Smart
 /// @date   Jan 2017
 
-#ifndef fdb5_Manager_H
-#define fdb5_Manager_H
+#pragma once
 
 #include <set>
 #include <string>
@@ -63,5 +62,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

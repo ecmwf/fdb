@@ -16,8 +16,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#ifndef fdb5_api_StatsIterator_H
-#define fdb5_api_StatsIterator_H
+#pragma once
 
 #include <string>
 
@@ -57,5 +56,3 @@ using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

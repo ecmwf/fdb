@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_RootManager_H
-#define fdb5_RootManager_H
+#pragma once
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
@@ -104,5 +103,3 @@ protected:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

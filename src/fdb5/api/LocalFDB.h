@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_LocalFDB_H
-#define fdb5_api_LocalFDB_H
+#pragma once
 
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Inspector.h"
@@ -85,5 +84,3 @@ protected:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_LocalFDB_H

@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_FDBTool_H
-#define fdb5_FDBTool_H
+#pragma once
 
 #include <vector>
 
@@ -90,5 +89,3 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

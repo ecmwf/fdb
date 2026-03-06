@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_FileStore_H
-#define fdb5_FileStore_H
+#pragma once
 
 
 #include "eckit/filesystem/PathName.h"
@@ -93,5 +92,3 @@ private:  // members
 
 
 }  // namespace fdb5
-
-#endif

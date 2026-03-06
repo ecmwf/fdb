@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Report_H
-#define fdb5_Report_H
+#pragma once
 
 #include <map>
 #include <set>
@@ -70,5 +69,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

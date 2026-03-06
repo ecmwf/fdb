@@ -12,8 +12,7 @@
 /// @author Emanuele Danovaro
 /// @date   Jan 2020
 
-#ifndef fdb5_RadosStore_H
-#define fdb5_RadosStore_H
+#pragma once
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
@@ -85,5 +84,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_RadosStore_H

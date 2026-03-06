@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   Nov 2018
 
-#ifndef fdb5_EnvVarFileSpaceHandler_H
-#define fdb5_EnvVarFileSpaceHandler_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -56,5 +55,3 @@ protected:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

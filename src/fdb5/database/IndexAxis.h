@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_IndexAxis_H
-#define fdb5_IndexAxis_H
+#pragma once
 
 #include <iosfwd>
 #include <map>
@@ -124,5 +123,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

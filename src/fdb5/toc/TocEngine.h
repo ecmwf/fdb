@@ -13,8 +13,7 @@
 /// @author Simon Smart
 /// @date   Jan 2017
 
-#ifndef fdb5_toc_TocEngine_H
-#define fdb5_toc_TocEngine_H
+#pragma once
 
 #include "fdb5/database/Engine.h"
 
@@ -65,5 +64,3 @@ protected:  // methods
 
 
 }  // namespace fdb5
-
-#endif

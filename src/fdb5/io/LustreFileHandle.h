@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   October 2016
 
-#ifndef fdb5_io_LustreFileHandle_h
-#define fdb5_io_LustreFileHandle_h
+#pragma once
 
 #include "fdb5/fdb5_config.h"
 
@@ -84,5 +83,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

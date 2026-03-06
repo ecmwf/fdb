@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Oct 2016
 
-#ifndef fdb5_ExpverFileSpaceHandler_H
-#define fdb5_ExpverFileSpaceHandler_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -59,5 +58,3 @@ protected:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

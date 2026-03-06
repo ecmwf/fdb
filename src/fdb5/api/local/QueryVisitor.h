@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_QueryVisitor_H
-#define fdb5_api_local_QueryVisitor_H
+#pragma once
 
 #include <tuple>
 #include <unordered_map>
@@ -73,5 +72,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::api::local
-
-#endif

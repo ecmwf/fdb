@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Jun 2016
 
-#ifndef fdb5_FileSpaceHandler_H
-#define fdb5_FileSpaceHandler_H
+#pragma once
 
 #include "eckit/types/Types.h"
 #include "eckit/utils/Regex.h"
@@ -91,5 +90,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

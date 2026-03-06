@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_FieldDetails_H
-#define fdb5_FieldDetails_H
+#pragma once
 
 #include "eckit/eckit.h"
 
@@ -68,5 +67,3 @@ struct FieldDetails {
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

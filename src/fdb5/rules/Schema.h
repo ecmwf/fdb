@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Schema_H
-#define fdb5_Schema_H
+#pragma once
 
 #include <iosfwd>
 #include <map>
@@ -150,5 +149,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
