@@ -60,10 +60,10 @@ int fdb_vcs_version(const char** sha1);
 
 /** Return codes */
 enum FdbErrorValues {
-    FDB_SUCCESS                 = 0,
+    FDB_SUCCESS = 0,
     FDB_ERROR_GENERAL_EXCEPTION = 1,
     FDB_ERROR_UNKNOWN_EXCEPTION = 2,
-    FDB_ITERATION_COMPLETE      = 3
+    FDB_ITERATION_COMPLETE = 3
 };
 
 /** Returns a human-readable error message for the last error given an error code

@@ -18,8 +18,9 @@ Result compareMarsKeys(const DataIndex& i1, const DataIndex& i2, const Options& 
 
     auto printMismatch = [&](const std::map<std::string, std::string>& keymap, const std::string& logDir) {
         eckit::Log::info() << "[MARS KEYS COMPARE] MISMATCH (" << logDir << "): ";
-        for (const auto& kv : keymap)
+        for (const auto& kv : keymap) {
             eckit::Log::info() << kv.first << "=" << kv.second << " ";
+        }
         eckit::Log::info() << "\n";
         return true;
     };
@@ -32,7 +33,7 @@ Result compareMarsKeys(const DataIndex& i1, const DataIndex& i2, const Options& 
     }
     for (const auto& it : i2) {
         const auto& keymap = it.first;
-        bool found         = false;
+        bool found = false;
 
         if (opts.marsReqDiff.empty()) {
             found = i1.find(keymap) != i1.end();
@@ -43,7 +44,7 @@ Result compareMarsKeys(const DataIndex& i1, const DataIndex& i2, const Options& 
         }
         else {
             auto expected = applyKeyDiff(keymap, opts.marsReqDiff, true);
-            found         = i1.find(expected) != i1.end();
+            found = i1.find(expected) != i1.end();
             if (found) {
                 i1Remaining.erase(expected);
             }
@@ -52,8 +53,9 @@ Result compareMarsKeys(const DataIndex& i1, const DataIndex& i2, const Options& 
         if (!found) {
             ++mismatches;
             eckit::Log::info() << "[MARS KEYS COMPARE] MISMATCH (Test->Reference): ";
-            for (const auto& kv : keymap)
+            for (const auto& kv : keymap) {
                 eckit::Log::info() << kv.first << "=" << kv.second << " ";
+            }
             eckit::Log::info() << "\n";
         }
     }

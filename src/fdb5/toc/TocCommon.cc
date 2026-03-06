@@ -29,8 +29,9 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
-    if (path.exists())
+    if (path.exists()) {
         return path.realName();
+    }
 
     return findRealPath(path.dirName()) / path.baseName();
 }
@@ -95,8 +96,9 @@ StdDir::StdDir(const eckit::PathName& p) : path_(p), d_(opendir(p.localPath())) 
 }
 
 StdDir::~StdDir() {
-    if (d_)
+    if (d_) {
         closedir(d_);
+    }
 }
 
 void StdDir::children(std::vector<eckit::PathName>& paths) {
@@ -108,8 +110,9 @@ void StdDir::children(std::vector<eckit::PathName>& paths) {
     while ((e = readdir(d_)) != nullptr) {
 
         if (e->d_name[0] == '.') {
-            if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0'))
+            if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0')) {
                 continue;
+            }
         }
 
         eckit::PathName p(path_ / e->d_name);

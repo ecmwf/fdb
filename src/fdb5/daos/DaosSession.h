@@ -48,10 +48,10 @@ public:  // methods
         return instance;
     };
 
-    DaosManager(const DaosManager&)            = delete;
+    DaosManager(const DaosManager&) = delete;
     DaosManager& operator=(const DaosManager&) = delete;
-    DaosManager(DaosManager&&)                 = delete;
-    DaosManager& operator=(DaosManager&&)      = delete;
+    DaosManager(DaosManager&&) = delete;
+    DaosManager& operator=(DaosManager&&) = delete;
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
@@ -106,10 +106,12 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 
     if (code < 0) {
         eckit::Log::error() << "DAOS_FAIL !! " << msg << std::endl;
-        if (code == -DER_NONEXIST)
+        if (code == -DER_NONEXIST) {
             throw fdb5::DaosEntityNotFoundException(msg);
-        if (code == -DER_EXIST)
+        }
+        if (code == -DER_EXIST) {
             throw fdb5::DaosEntityAlreadyExistsException(msg);
+        }
         DaosManager::error(code, msg, file, line, func);
     }
 
@@ -132,10 +134,10 @@ public:  // methods
 
     DaosSession();
 
-    DaosSession(const DaosSession&)            = delete;
+    DaosSession(const DaosSession&) = delete;
     DaosSession& operator=(const DaosSession&) = delete;
-    DaosSession(DaosSession&&)                 = delete;
-    DaosSession& operator=(DaosSession&&)      = delete;
+    DaosSession(DaosSession&&) = delete;
+    DaosSession& operator=(DaosSession&&) = delete;
 
     ~DaosSession() {};
 

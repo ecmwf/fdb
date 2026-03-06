@@ -113,7 +113,7 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
         switch (s.size()) {
             case 2: {
-                const std::string& regex  = s[0];
+                const std::string& regex = s[0];
                 const std::string& engine = s[1];
 
                 table.push_back(EngineType(engine, regex));
@@ -146,8 +146,9 @@ Manager::~Manager() {}
 
 std::string Manager::engine(const Key& key) {
     // If we have set the engine in the config, use that
-    if (!explicitEngine_.empty())
+    if (!explicitEngine_.empty()) {
         return explicitEngine_;
+    }
 
     std::string expanded(key.valuesToString());
 
@@ -217,8 +218,9 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
         const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
         if (all) {
-            for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e)
+            for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) {
                 s.insert(e->engine());
+            }
         }
         else {
 
@@ -233,8 +235,9 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
 
             for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) {
                 for (auto expanded = expandedKeys.begin(); expanded != expandedKeys.end(); ++expanded) {
-                    if (e->match(*expanded))
+                    if (e->match(*expanded)) {
                         s.insert(e->engine());
+                    }
                 }
             }
         }
@@ -251,8 +254,9 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
 
 std::string Manager::engine(const URI& uri) {
     // If we have set the engine in the config, use that
-    if (!explicitEngine_.empty())
+    if (!explicitEngine_.empty()) {
         return explicitEngine_;
+    }
 
     // Otherwise, check which engines can handle the given path.
 

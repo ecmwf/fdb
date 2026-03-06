@@ -55,7 +55,7 @@
 #include "fdb5/database/Key.h"
 #include "metkit/mars/MarsRequest.h"
 
-namespace py   = pybind11;
+namespace py = pybind11;
 namespace mars = metkit::mars;
 
 class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_support {
@@ -239,7 +239,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("__contains__",
              [](const fdb5::IndexAxis& index_axis, const std::string& key) {
                  const auto& map = index_axis.map();
-                 const auto it   = map.find(key);
+                 const auto it = map.find(key);
 
                  if (it == map.end()) {
                      return false;

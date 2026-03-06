@@ -40,15 +40,15 @@ public:  // methods
 
     ReadVisitor(const Notifier& wind) : wind_(wind) {}
 
-    ReadVisitor(const ReadVisitor&)            = delete;
+    ReadVisitor(const ReadVisitor&) = delete;
     ReadVisitor& operator=(const ReadVisitor&) = delete;
-    ReadVisitor(ReadVisitor&&)                 = delete;
-    ReadVisitor& operator=(ReadVisitor&&)      = delete;
+    ReadVisitor(ReadVisitor&&) = delete;
+    ReadVisitor& operator=(ReadVisitor&&) = delete;
 
     virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key& dbKey, const Key& fullKey) = 0;
-    virtual bool selectIndex(const Key& idxKey)                       = 0;
+    virtual bool selectIndex(const Key& idxKey) = 0;
     virtual bool selectDatum(const Key& datumKey, const Key& fullKey) = 0;
 
     virtual void deselectDatabase() = 0;

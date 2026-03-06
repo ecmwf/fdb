@@ -32,7 +32,7 @@ void MessageIndexer::index(const eckit::PathName& path) {
 
     eckit::message::Reader reader(path);
 
-    size_t count             = 0;
+    size_t count = 0;
     eckit::Length total_size = 0;
 
     eckit::Length totalFileSize = path.size();

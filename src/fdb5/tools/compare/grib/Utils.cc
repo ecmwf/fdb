@@ -67,7 +67,7 @@ std::vector<std::string> translateFromMARS(const std::string& marsKey) {
 }
 
 std::unique_ptr<uint8_t[]> extractGribMessage(const fdb5::ListElement& gribLoc) {
-    const auto length                 = gribLoc.length();
+    const auto length = gribLoc.length();
     std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(length);
 
     auto dh = std::unique_ptr<eckit::DataHandle>(gribLoc.location().dataHandle());

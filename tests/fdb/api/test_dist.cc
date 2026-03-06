@@ -84,7 +84,7 @@ CASE("archives_distributed_according_to_dist") {
     std::vector<int> data = {1, 2, 3, 4, 5};
 
     const int nflush = 5;
-    const int narch  = 5;
+    const int narch = 5;
 
     int flush_count = 0;
 

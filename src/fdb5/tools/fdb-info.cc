@@ -75,11 +75,11 @@ void FDBInfo::usage(const std::string& tool) const {
 }
 
 void FDBInfo::init(const eckit::option::CmdArgs& args) {
-    all_       = args.getBool("all", false);
-    version_   = args.getBool("version", false);
-    home_      = args.getBool("home", false);
-    schema_    = args.getBool("schema", false);
-    config_    = args.getBool("config-file", false);
+    all_ = args.getBool("all", false);
+    version_ = args.getBool("version", false);
+    home_ = args.getBool("home", false);
+    schema_ = args.getBool("schema", false);
+    config_ = args.getBool("config-file", false);
     lustreApi_ = args.getBool("lustre-api", false);
 }
 
@@ -87,29 +87,33 @@ void FDBInfo::execute(const eckit::option::CmdArgs& args) {
 
     if (all_ || version_) {
         Log::info() << (all_ ? "Version: " : "") << fdb5_version_str() << std::endl;
-        if (!all_)
+        if (!all_) {
             return;
+        }
     }
 
     if (all_ || home_) {
         // print FDB_HOME and exit -- note that is used in the bin/fdb wrapper script
         Log::info() << (all_ ? "Home: " : "") << eckit::PathName("~fdb/") << std::endl;
-        if (!all_)
+        if (!all_) {
             return;
+        }
     }
 
     Config conf = config(args);
 
     if (all_ || schema_) {
         Log::info() << (all_ ? "Schema: " : "") << conf.schemaPath() << std::endl;
-        if (!all_)
+        if (!all_) {
             return;
+        }
     }
 
     if (all_ || config_) {
         Log::info() << (all_ ? "Config: " : "") << conf.configPath() << std::endl;
-        if (!all_)
+        if (!all_) {
             return;
+        }
     }
 
     if (all_ || lustreApi_) {

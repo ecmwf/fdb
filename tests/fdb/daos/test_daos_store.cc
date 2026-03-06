@@ -68,8 +68,9 @@ size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
     size_t count = 0;
     fdb5::WipeElement elem;
     while (wipeObject.next(elem)) {
-        if (print)
+        if (print) {
             std::cout << elem << std::endl;
+        }
         if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
             elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
             count += elem.uris().size();
@@ -86,16 +87,18 @@ CASE("DaosStore tests") {
     // setup
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
-    if (tmp_dummy_daos_root().exists())
+    if (tmp_dummy_daos_root().exists()) {
         testing::deldir(tmp_dummy_daos_root());
+    }
     tmp_dummy_daos_root().mkdir();
     ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
 #endif
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Store tests fail.
-    if (store_tests_tmp_root().exists())
+    if (store_tests_tmp_root().exists()) {
         testing::deldir(store_tests_tmp_root());
+    }
     store_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", store_tests_tmp_root().path().c_str(), 1);
 
@@ -312,7 +315,7 @@ CASE("DaosStore tests") {
 
         {
             fdb5::TocCatalogueWriter tcat{db_key, config};
-            fdb5::Catalogue& cat        = static_cast<fdb5::Catalogue&>(tcat);
+            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             eckit::Queue<fdb5::CatalogueWipeState> queue(100);
             fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
@@ -426,7 +429,7 @@ CASE("DaosStore tests") {
 
         // ensure field still exists
         listObject = fdb.list(full_req);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -451,9 +454,10 @@ CASE("DaosStore tests") {
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
-        count      = 0;
-        while (listObject.next(info))
+        count = 0;
+        while (listObject.next(info)) {
             count++;
+        }
         EXPECT(count == 0);
         std::cout << "Listed 0 fields" << std::endl;
 
@@ -525,7 +529,7 @@ CASE("DaosStore tests") {
 
         fdb5::ListElement info;
         auto listObject = fdb.list(full_req);
-        count           = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -541,9 +545,11 @@ CASE("DaosStore tests") {
     /// created above with an ephemeral session
     fdb5::DaosSession().destroyPool(pool_uuid);
 #else
-    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers())
-        if (c == "1:2")
+    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers()) {
+        if (c == "1:2") {
             fdb5::DaosSession().getPool(pool_uuid).destroyContainer(c);
+        }
+    }
 #endif
 
     // remove root directory

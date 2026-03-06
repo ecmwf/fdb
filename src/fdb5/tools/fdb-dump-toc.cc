@@ -45,7 +45,7 @@ void FDBDumpToc::usage(const std::string& tool) const {
 
 void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
-    bool walkSubTocs   = args.getBool("walk", false);
+    bool walkSubTocs = args.getBool("walk", false);
     bool dumpStructure = args.getBool("structure", false);
 
     for (size_t i = 0; i < args.count(); i++) {

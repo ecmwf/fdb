@@ -38,29 +38,32 @@ struct GribHeaderInfo {
 
 
 GribHeaderInfo parseGribHeader(const uint8_t* buf, std::size_t size) {
-    if (size < 8)
+    if (size < 8) {
         throw std::runtime_error("Buffer too small for GRIB");
+    }
 
-    if (buf[0] != 'G' || buf[1] != 'R' || buf[2] != 'I' || buf[3] != 'B')
+    if (buf[0] != 'G' || buf[1] != 'R' || buf[2] != 'I' || buf[3] != 'B') {
         throw std::runtime_error("Not a GRIB message");
+    }
 
     int edition = buf[7];
 
     std::size_t total_len = 0;
-    std::size_t offset    = 0;
+    std::size_t offset = 0;
 
     if (edition == 1) {
         // --- GRIB1 ---
         total_len = readU24Be(buf + 4);
-        offset    = 8;  // Section 0 length
+        offset = 8;  // Section 0 length
 
         // Sections 1–3 (walk until section 4)
         while (offset + 3 <= total_len) {
             uint32_t sec_len = readU24Be(buf + offset);
-            uint8_t sec_num  = buf[offset + 3];
+            uint8_t sec_num = buf[offset + 3];
 
-            if (sec_len == 0)
+            if (sec_len == 0) {
                 throw std::runtime_error("Invalid GRIB1 section length");
+            }
 
             if (sec_num == 4) {
                 // Binary Data Section → header ends here
@@ -74,19 +77,21 @@ GribHeaderInfo parseGribHeader(const uint8_t* buf, std::size_t size) {
     }
     else if (edition == 2) {
         // --- GRIB2 ---
-        if (size < 16)
+        if (size < 16) {
             throw std::runtime_error("Buffer too small for GRIB2");
+        }
 
         total_len = readU32Be(buf + 12);
-        offset    = 16;  // Section 0 length
+        offset = 16;  // Section 0 length
 
         // Sections 1–6 (stop at section 7)
         while (offset + 5 <= total_len) {
             uint32_t sec_len = readU32Be(buf + offset);
-            uint8_t sec_num  = buf[offset + 4];
+            uint8_t sec_num = buf[offset + 4];
 
-            if (sec_len == 0)
+            if (sec_len == 0) {
                 throw std::runtime_error("Invalid GRIB2 section length");
+            }
 
             if (sec_num == 7) {
                 // Data Section → header ends here
@@ -113,7 +118,7 @@ bool compareHeader(const metkit::codes::CodesHandle& h1, const metkit::codes::Co
     auto data1 = h1.messageData();
     auto data2 = h2.messageData();
 
-    auto refInfo  = parseGribHeader(data1.data(), data1.size());
+    auto refInfo = parseGribHeader(data1.data(), data1.size());
     auto testInfo = parseGribHeader(data2.data(), data2.size());
 
     if (refInfo.header_size == testInfo.header_size && (0 == memcmp(data1.data(), data2.data(), refInfo.header_size))) {

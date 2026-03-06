@@ -25,7 +25,7 @@ NumericResult compareDataSection(const metkit::codes::CodesHandle& h1, const met
     NumericResult res;
     size_t valuesLen1 = h1.size("values");
     size_t valuesLen2 = h2.size("values");
-    double maxError   = 0.;
+    double maxError = 0.;
 
     if (valuesLen1 != valuesLen2) {
         std::string errorMsg = std::string("Number of data entries does not match 1erence number") +

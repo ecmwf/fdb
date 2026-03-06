@@ -69,10 +69,10 @@ public:  // methods
 
     explicit Inspector(const Config& dbConfig);
 
-    Inspector(const Inspector&)            = delete;
+    Inspector(const Inspector&) = delete;
     Inspector& operator=(const Inspector&) = delete;
-    Inspector(Inspector&&)                 = delete;
-    Inspector& operator=(Inspector&&)      = delete;
+    Inspector(Inspector&&) = delete;
+    Inspector& operator=(Inspector&&) = delete;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from

@@ -60,13 +60,13 @@ struct FixtureService {
     std::vector<std::string> modelParams_;
 
     FixtureService() : env("environ") {
-        p["class"]  = "rd";
+        p["class"] = "rd";
         p["stream"] = "oper";
         p["domain"] = "g";
         p["expver"] = "0001";
-        p["date"]   = "20120911";
-        p["time"]   = "0000";
-        p["type"]   = "fc";
+        p["date"] = "20120911";
+        p["time"] = "0000";
+        p["type"] = "fc";
 
         modelParams_.push_back("130.128");
         modelParams_.push_back("138.128");
@@ -123,7 +123,7 @@ CASE("test_fdb_stepunit_archive") {
     fdb.archive(key, static_cast<const void*>(data_str.c_str()), data_str.size());
     fdb.flush();
 
-    metkit::mars::MarsRequest req     = key.request();
+    metkit::mars::MarsRequest req = key.request();
     metkit::mars::MarsRequest listReq = key.request("list");
 
     {
@@ -214,7 +214,7 @@ CASE("test_fdb_service") {
         SECTION("test_fdb_service_write") {
             fdb5::Archiver fdb;
 
-            f.p["class"]  = "rd";
+            f.p["class"] = "rd";
             f.p["stream"] = "oper";
             f.p["domain"] = "g";
             f.p["expver"] = "0001";
@@ -253,7 +253,7 @@ CASE("test_fdb_service") {
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
             for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"]   = *param;
+                f.p["param"] = *param;
                 f.p["levtype"] = "pl";
 
                 for (size_t step = 0; step < 2; ++step) {
@@ -301,9 +301,9 @@ CASE("test_fdb_service") {
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
             for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"]    = *param;
-                f.p["levtype"]  = "pl";
-                f.p["step"]     = str(0);
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
+                f.p["step"] = str(0);
                 f.p["levelist"] = str(0);
 
                 Log::info() << "Looking for: " << f.p << std::endl;
@@ -393,7 +393,7 @@ CASE("test_fdb_service_subtoc") {
         SECTION("test_fdb_service_subtoc_write") {
             fdb5::Archiver fdb(config);
 
-            f.p["class"]  = "rd";
+            f.p["class"] = "rd";
             f.p["stream"] = "oper";
             f.p["domain"] = "g";
             f.p["expver"] = "0002";
@@ -433,7 +433,7 @@ CASE("test_fdb_service_subtoc") {
             Translator<size_t, std::string> str;
             std::vector<std::string>::iterator param = f.modelParams_.begin();
             for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"]   = *param;
+                f.p["param"] = *param;
                 f.p["levtype"] = "pl";
 
                 for (size_t step = 0; step < 2; ++step) {
@@ -475,9 +475,9 @@ CASE("test_fdb_service_subtoc") {
             std::vector<std::string>::iterator param = f.modelParams_.begin();
             for (; param != f.modelParams_.end(); ++param) {
 
-                f.p["param"]    = *param;
-                f.p["levtype"]  = "pl";
-                f.p["step"]     = str(0);
+                f.p["param"] = *param;
+                f.p["levtype"] = "pl";
+                f.p["step"] = str(0);
                 f.p["levelist"] = str(0);
 
                 Log::info() << "Looking for: " << f.p << std::endl;
@@ -557,7 +557,7 @@ CASE("test_fdb_service_subtoc") {
 
 CASE("schemaSerialisation") {
 
-    PathName filename    = PathName::unique("data");
+    PathName filename = PathName::unique("data");
     std::string filepath = filename.asString();
 
     std::string original;

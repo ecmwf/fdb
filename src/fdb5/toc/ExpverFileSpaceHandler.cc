@@ -68,14 +68,17 @@ void ExpverFileSpaceHandler::load() const {
         size_t i = 0;
         while (i < s.size()) /* cleanup entries that are empty */
         {
-            if (s[i].length() == 0)
+            if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            else
+            }
+            else {
                 i++;
+            }
         }
 
-        if (s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#') {
             continue;
+        }
 
         if (s.size() != 2) {
             std::ostringstream oss;
@@ -121,14 +124,17 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         size_t i = 0;
         while (i < s.size()) /* cleanup entries that are empty */
         {
-            if (s[i].length() == 0)
+            if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            else
+            }
+            else {
                 i++;
+            }
         }
 
-        if (s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#') {
             continue;
+        }
 
         if (s.size() != 2) {
             std::ostringstream oss;
@@ -187,15 +193,17 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     // check if key is mapped already to a filesystem
 
-    if (table_.empty())
+    if (table_.empty()) {
         load();
+    }
 
     std::string expver = key.get("expver");
 
     // we can NOT use the type system here because we haven't opened a DB yet
     // so we have to do validation directly on string
-    if (not expver_is_valid(expver))
+    if (not expver_is_valid(expver)) {
         throw eckit::BadValue("Invalid expver value " + expver, Here());
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "Selecting file system for expver [" << expver << "]" << std::endl;
 

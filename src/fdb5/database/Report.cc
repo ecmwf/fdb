@@ -101,16 +101,19 @@ void Report::print(std::ostream& out) const {
         out << sep << "Database Type \'" << dbType << "\'" << std::endl;
 
         std::map<dbtype_t, DbStats>::const_iterator db = dbStats_.find(dbType);
-        if (db != dbStats_.end())
+        if (db != dbStats_.end()) {
             db->second.report(out);
+        }
 
         std::map<dbtype_t, IndexStats>::const_iterator idx = indexStats_.find(dbType);
-        if (idx != indexStats_.end())
+        if (idx != indexStats_.end()) {
             idx->second.report(out);
+        }
 
         std::map<dbtype_t, DataStats>::const_iterator data = dataStats_.find(dbType);
-        if (data != dataStats_.end())
+        if (data != dataStats_.end()) {
             data->second.report(out);
+        }
 
         sep = "\n";
     }

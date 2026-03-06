@@ -78,7 +78,7 @@ size_t RadosStore::flush() {
 
     flushDataHandles();
 
-    size_t out      = archivedFields_;
+    size_t out = archivedFields_;
     archivedFields_ = 0;
     return out;
 }
@@ -94,23 +94,27 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.rmdir(false);
+        }
     }
     else {
         logVerbose << "Unlinking: ";
         logAlways << path << std::endl;
-        if (doit)
+        if (doit) {
             path.unlink(false);
+        }
     }
 }
 
 eckit::DataHandle* RadosStore::getCachedHandle(const eckit::PathName& path) const {
     HandleStore::const_iterator j = handles_.find(path);
-    if (j != handles_.end())
+    if (j != handles_.end()) {
         return j->second;
-    else
+    }
+    else {
         return nullptr;
+    }
 }
 
 void RadosStore::closeDataHandles() {
@@ -146,12 +150,14 @@ eckit::DataHandle* RadosStore::createAsyncHandle(const eckit::PathName& path) {
 eckit::DataHandle* RadosStore::createDataHandle(const eckit::PathName& path) {
 
     static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if (fdbWriteToNull)
+    if (fdbWriteToNull) {
         return new eckit::EmptyHandle();
+    }
 
     static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-    if (fdbAsyncWrite)
+    if (fdbAsyncWrite) {
         return createAsyncHandle(path);
+    }
 
     return createFileHandle(path);
 }
@@ -177,8 +183,9 @@ eckit::PathName RadosStore::generateDataPath(const Key& key) const {
 
 eckit::PathName RadosStore::getDataPath(const Key& key) {
     PathStore::const_iterator j = dataPaths_.find(key);
-    if (j != dataPaths_.end())
+    if (j != dataPaths_.end()) {
         return j->second;
+    }
 
     eckit::PathName dataPath = generateDataPath(key);
 

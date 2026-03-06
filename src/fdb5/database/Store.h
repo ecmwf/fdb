@@ -51,12 +51,12 @@ public:
     virtual void print(std::ostream& out) const = 0;
 
     virtual std::string type() const = 0;
-    virtual bool open()              = 0;
-    virtual size_t flush()           = 0;
-    virtual void close()             = 0;
+    virtual bool open() = 0;
+    virtual size_t flush() = 0;
+    virtual void close() = 0;
 
     //    virtual std::string owner() const = 0;
-    virtual bool exists() const   = 0;
+    virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
@@ -65,10 +65,10 @@ public:
         NOTIMP;
     }
 
-    virtual eckit::URI uri() const                                                       = 0;
-    virtual bool uriBelongs(const eckit::URI&) const                                     = 0;
-    virtual bool uriExists(const eckit::URI& uri) const                                  = 0;
-    virtual std::set<eckit::URI> collocatedDataURIs() const                              = 0;
+    virtual eckit::URI uri() const = 0;
+    virtual bool uriBelongs(const eckit::URI&) const = 0;
+    virtual bool uriExists(const eckit::URI& uri) const = 0;
+    virtual std::set<eckit::URI> collocatedDataURIs() const = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const = 0;
 
     virtual std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const = 0;
@@ -105,9 +105,9 @@ public:
 
     StoreBuilderBase(const std::string&, const std::vector<std::string>&);
     virtual ~StoreBuilderBase();
-    virtual std::unique_ptr<Store> make(const Key& key, const Config& config)        = 0;
+    virtual std::unique_ptr<Store> make(const Key& key, const Config& config) = 0;
     virtual std::unique_ptr<Store> make(const eckit::URI& uri, const Config& config) = 0;
-    virtual eckit::URI uri(const eckit::URI& dataURI)                                = 0;
+    virtual eckit::URI uri(const eckit::URI& dataURI) = 0;
 };
 
 template <class T>

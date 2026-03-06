@@ -101,8 +101,9 @@ StoreBuilderBase& StoreFactory::find(const std::string& name) {
     if (j == builders_.end()) {
         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "StoreBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
@@ -144,8 +145,9 @@ StoreBuilderBase::StoreBuilderBase(const std::string& name, const std::vector<st
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     StoreFactory::instance().remove(name_);
 }
 

@@ -27,8 +27,9 @@ AxisRegistry& AxisRegistry::instance() {
 
 void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
-    if (ptr.use_count() != 2)
+    if (ptr.use_count() != 2) {
         return;
+    }
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -39,8 +40,9 @@ void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& pt
 
     ASSERT(ptr.use_count() == 1);
 
-    if (it->second.empty())
+    if (it->second.empty()) {
         axes_.erase(it);
+    }
 }
 
 void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
@@ -49,7 +51,7 @@ void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>
 
     //    static std::size_t dedups = 0;
 
-    axis_store_t& axis        = axes_[keyword];
+    axis_store_t& axis = axes_[keyword];
     axis_store_t::iterator it = axis.find(ptr);
     if (it == axis.end()) {
         axis.insert(ptr);

@@ -33,10 +33,10 @@ namespace fdb5 {
 class BaseKey {
 public:  // types
 
-    using pair_type              = std::pair<const std::string, std::string>;
-    using value_type             = eckit::StringDict;
-    using iterator               = value_type::iterator;
-    using const_iterator         = value_type::const_iterator;
+    using pair_type = std::pair<const std::string, std::string>;
+    using value_type = eckit::StringDict;
+    using iterator = value_type::iterator;
+    using const_iterator = value_type::const_iterator;
     using const_reverse_iterator = value_type::const_reverse_iterator;
 
 public:  // methods
@@ -58,12 +58,12 @@ public:  // methods
 
     // RULES
 
-    BaseKey()                                = default;
-    BaseKey(const BaseKey& other)            = default;
+    BaseKey() = default;
+    BaseKey(const BaseKey& other) = default;
     BaseKey& operator=(const BaseKey& other) = default;
-    BaseKey(BaseKey&& other)                 = default;
-    BaseKey& operator=(BaseKey&& other)      = default;
-    virtual ~BaseKey()                       = default;
+    BaseKey(BaseKey&& other) = default;
+    BaseKey& operator=(BaseKey&& other) = default;
+    virtual ~BaseKey() = default;
 
     virtual std::string type() const = 0;
 

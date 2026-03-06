@@ -88,8 +88,9 @@ void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) 
 metkit::mars::MarsRequest MessageDecoder::messageToRequest(const eckit::PathName& path, const char* verb) {
     metkit::mars::MarsRequest request(verb);
 
-    for (auto& r : messageToRequests(path, verb))
+    for (auto& r : messageToRequests(path, verb)) {
         request.merge(r);
+    }
 
     return request;
 }

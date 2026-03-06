@@ -36,12 +36,12 @@ class ReverseName {
 
 public:  // methods
 
-    ReverseName()                              = delete;
-    ReverseName(const ReverseName&)            = delete;
+    ReverseName() = delete;
+    ReverseName(const ReverseName&) = delete;
     ReverseName& operator=(const ReverseName&) = delete;
-    ReverseName(ReverseName&&)                 = delete;
-    ReverseName& operator=(ReverseName&&)      = delete;
-    ~ReverseName()                             = default;
+    ReverseName(ReverseName&&) = delete;
+    ReverseName& operator=(ReverseName&&) = delete;
+    ~ReverseName() = default;
 
     explicit ReverseName(const value_type& value) : value_{value} {}
 
