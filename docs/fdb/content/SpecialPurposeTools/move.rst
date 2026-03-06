@@ -41,5 +41,7 @@ Example
 -------
 
 This tool is non-destructive (it only copies data), but it affects the status of the source DB by applying locks.
-::
+
+.. code-block:: sh
+
   % fdb move class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g --dest=../fdb/root2 --delay=10 --threads=16

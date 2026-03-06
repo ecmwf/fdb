@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+$gribset -s step=9 data2.grib grib/9.grib
+$gribset -s type=an grib/6.grib grib/an6.grib
+
+# Write 3 messages to ref, but only 2 to test (omit an6)
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=ref.yaml grib/9.grib
+$fdbwrite --config=ref.yaml grib/an6.grib
+
+$fdbwrite --config=test.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/9.grib
+
+
+set +e
+
+# Test 1: Without --mars-keys-ignore, comparison should fail (ref has an extra an/step=6 message)
+$fdbcompare --config1=ref.yaml --config2=test.yaml | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "[MARS KEYS COMPARE] MISMATCH" out
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Should detect MARS mismatch without --mars-keys-ignore (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+# Test 2: With --mars-keys-ignore filtering out the extra message, comparison should succeed
+# The extra message in ref has type=an,step=6 — ignoring type=an will skip it
+$fdbcompare --config1=ref.yaml --config2=test.yaml --mars-keys-ignore="type=an" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Should succeed when mismatched message is ignored via --mars-keys-ignore (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi

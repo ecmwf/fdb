@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+
+# Modify a grib header key (localTablesVersion) to create a difference
+$gribset -s localTablesVersion=1 grib/6.grib grib/6_modified.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/6_modified.grib
+
+
+set +e
+
+# Test 1: Without --grib-keys-select, header-only comparison should detect the localTablesVersion mismatch
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "GRIB COMPARISON MISMATCH" out
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Should detect grib header mismatch without --grib-keys-select (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+# Test 2: With --grib-keys-select restricting to keys that match, comparison should succeed
+# editionNumber and gridType should be the same in both messages
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="grib-keys" --grib-keys-select="editionNumber,gridType" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "GRIB COMPARISON MISMATCH" out
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Should succeed when --grib-keys-select only checks matching keys (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+# Test 3: With --grib-keys-select including the differing key, comparison should fail
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="grib-keys" --grib-keys-select="editionNumber,localTablesVersion" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "GRIB COMPARISON MISMATCH" out
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Should detect mismatch when --grib-keys-select includes the differing key (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi

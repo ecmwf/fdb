@@ -10,10 +10,13 @@
 
 #include "fdb5/remote/client/RemoteStore.h"
 
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
@@ -238,11 +241,19 @@ RemoteStore::~RemoteStore() {
         eckit::Main::instance().terminate();
     }
 
-    ReadLimiter::instance().evictClient(id());
+    if (ReadLimiter::isInitialised()) {
+        ReadLimiter::instance().evictClient(id());
+    }
 }
 
 eckit::URI RemoteStore::uri() const {
-    return URI("fdb", "");
+    return URI("fdb", controlEndpoint().host(), controlEndpoint().port());
+}
+
+eckit::URI RemoteStore::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == "fdb");
+    auto path = URI{"file", dataURI.path().dirName()};
+    return URI("fdb", path, dataURI.host(), dataURI.port());
 }
 
 bool RemoteStore::exists() const {
@@ -331,10 +342,6 @@ void RemoteStore::close() {}
 
 void RemoteStore::remove(const eckit::URI& /*uri*/, std::ostream& /*logAlways*/, std::ostream& /*logVerbose*/,
                          const bool /*doit*/) const {
-    NOTIMP;
-}
-
-void RemoteStore::remove(const Key& /*key*/) const {
     NOTIMP;
 }
 
@@ -486,25 +493,112 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));
 }
 
+// low-level methods for wipe/purge
 bool RemoteStore::uriBelongs(const eckit::URI&) const {
-    NOTIMP;
+    // This functionality is deliberately not required for RemoteStore, so assume false.
+    return false;
 }
-
 bool RemoteStore::uriExists(const eckit::URI&) const {
     NOTIMP;
 }
-
-std::vector<eckit::URI> RemoteStore::collocatedDataURIs() const {
+std::set<eckit::URI> RemoteStore::collocatedDataURIs() const {
+    NOTIMP;
+}
+std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::set<eckit::URI>&) const {
+    NOTIMP;
+}
+std::vector<eckit::URI> RemoteStore::getAuxiliaryURIs(const eckit::URI&, bool onlyExisting) const {
     NOTIMP;
 }
 
-std::set<eckit::URI> RemoteStore::asCollocatedDataURIs(const std::vector<eckit::URI>&) const {
-    NOTIMP;
+// high-level API for wipe/purge
+
+void RemoteStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+
+    if (storeState.includedDataURIs().empty()) {
+        // Nothing to do
+        return;
+    }
+
+    // Send StoreWipeState to server
+    eckit::Buffer sendBuf(1_MiB);
+    eckit::ResizableMemoryStream stream(sendBuf);
+    stream << dbKey_;
+    stream << storeState;
+    stream << unsafeWipeAll;
+    stream << doit;
+
+    auto recvBuf = controlWriteReadResponse(Message::Wipe, generateRequestID(), sendBuf, stream.position());
+
+    // Receieve auxiliary and unknown URIs back from server
+    eckit::MemoryStream rstream(recvBuf);
+    std::set<eckit::URI> auxURIs;
+    std::set<eckit::URI> unknownURIs;
+    std::set<eckit::URI> missingURIs;
+    rstream >> auxURIs;
+    rstream >> unknownURIs;
+    rstream >> missingURIs;
+
+    for (const auto& uri : auxURIs) {
+        storeState.insertAuxiliaryURI(uri);
+    }
+
+    for (const auto& uri : unknownURIs) {
+        storeState.insertUnrecognised(uri);
+    }
+
+    for (const auto& uri : missingURIs) {
+        storeState.markAsMissing(uri);
+    }
+}
+
+bool RemoteStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
+    eckit::ResizableMemoryStream stream(sendBuf);
+    stream << dbKey_;
+    stream << unknownURIs;
+    controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
+    return true;
+}
+
+bool RemoteStore::doWipeURIs(const StoreWipeState& wipeState) const {
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    controlWriteCheckResponse(Message::DoWipeURIs, generateRequestID(), true, sendBuf, s.position());
+    return true;
+}
+void RemoteStore::doWipeEmptyDatabase() const {
+    // emptyDatabases_ will be accumulated on the server side.
+    eckit::Buffer sendBuf(256);
+    eckit::ResizableMemoryStream s(sendBuf);
+    s << dbKey_;
+    controlWriteCheckResponse(Message::DoWipeFinish, generateRequestID(), true, sendBuf, s.position());
+}
+
+bool RemoteStore::doUnsafeFullWipe() const {
+
+    bool result = false;
+
+    // send dbkey to remote
+    eckit::Buffer keyBuffer(RemoteStore::defaultBufferSizeKey);
+    eckit::MemoryStream keyStream(keyBuffer);
+    keyStream << dbKey_;
+
+    // receive bool (full wipe supported or not) from remote
+    auto recvBuf =
+        controlWriteReadResponse(Message::DoUnsafeFullWipe, generateRequestID(), keyBuffer, keyStream.position());
+
+    eckit::MemoryStream rms(recvBuf);
+    rms >> result;
+
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static StoreBuilder<RemoteStore> builder(RemoteStore::typeName());
+static StoreBuilder<RemoteStore> builder(RemoteStore::typeName(),
+                                         {RemoteStore::typeName(), RemoteFieldLocation::typeName()});
 
 //----------------------------------------------------------------------------------------------------------------------
 

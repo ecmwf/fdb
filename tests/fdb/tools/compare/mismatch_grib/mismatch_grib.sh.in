@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/mismatch_grib
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib scaled.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+$gribset -s step=9 data2.grib grib/9.grib
+$gribset -s type=an grib/6.grib grib/an6.grib
+$gribset -s type=an grib/9.grib grib/an9.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=ref.yaml grib/9.grib
+$fdbwrite --config=ref.yaml grib/an6.grib
+$fdbwrite --config=ref.yaml grib/an9.grib
+
+# ########################################################################################################################
+# Modify one grib file to contain different metadata
+
+$gribset -s localTablesVersion=1 grib/an6.grib grib/wronggrib.grib
+
+$fdbwrite --config=test.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/9.grib
+$fdbwrite --config=test.yaml grib/wronggrib.grib
+$fdbwrite --config=test.yaml grib/an9.grib
+
+set +e
+
+# Mars keys should match for all methods (only grib content differs)
+for METHOD in "grib-keys" "hash-keys" "bit-identical"; do
+    $fdbcompare --config1=ref.yaml --config2=test.yaml --grib-comparison-type=$METHOD | tee out
+    tool_rc=${PIPESTATUS[0]}
+
+    grep -Fq "[MARS KEYS COMPARE] SUCCESS" out 
+    grep_rc=$?
+
+    if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+        die "Mars Key mismatch and this should have been detected with $METHOD (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+    fi
+done
+
+################
+
+# Grib header mismatch should be detected by all methods
+for METHOD in "grib-keys" "hash-keys" "bit-identical"; do
+    $fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type=$METHOD | tee out
+    tool_rc=${PIPESTATUS[0]}
+
+    grep -Fq "GRIB COMPARISON MISMATCH" out 
+    grep_rc=$?
+
+    if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+        die "Grib header mismatch not detected with $METHOD (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+    fi
+done
+
+################
+
+set -e
+$fdbwrite --config=test.yaml scaled.grib
+sync
+
+set +e
+
+################
+
+### Test with diverging MARS entries.
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=all --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "Average Error: 0" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Data should not match (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+################
+
+### Test with diverging MARS entries.
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "GRIB COMPARISON MISMATCH" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "data headers should match (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+
+
+# Ignore header difference to force checking data
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=all --grib-keys-ignore=referenceValue,binaryScaleFactor --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "GRIB COMPARISON FAILED FP-DATA CHECK" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "FP data check should have failed (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+
+# Increase tolerance for checks to make comparison pass again
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=all --grib-keys-ignore=referenceValue,binaryScaleFactor --fp-tolerance=40.0 --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "GRIB COMPARISON MISMATCH" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Comparison should be valid (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+################
+
+# Test scope=all with hash-keys method: data section mismatch should be detected via md5 path
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=all --grib-comparison-type="hash-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -eq 0 ]; then
+    die "hash-keys scope=all should detect data section mismatch (tool_rc=$tool_rc)"
+fi
+
+
+################
+
+# Test --verbose does not crash (run one comparison with verbose enabled)
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="grib-keys" --verbose | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -ne 0 ]; then
+    die "Verbose flag should not cause errors (tool_rc=$tool_rc)"
+fi
+

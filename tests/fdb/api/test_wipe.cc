@@ -24,7 +24,7 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-// temporary schema,spaces,root files common to all DAOS Store tests
+// temporary schema and root directories common to all tests
 
 eckit::TmpFile& schema_file() {
     static eckit::TmpFile f{};
@@ -40,6 +40,8 @@ eckit::PathName& wipe_tests_tmp_root_store() {
     static eckit::PathName wipeRootStore("./wipe_tests_fdb_root_store");
     return wipeRootStore;
 }
+
+// helpers
 
 size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::FDBToolRequest>> reqs,
                 bool deduplicate = false) {
@@ -61,7 +63,7 @@ size_t countAll(fdb5::FDB& fdb, const std::vector<std::reference_wrapper<fdb5::F
 std::string configName;
 fdb5::Config config;
 
-namespace fdb {
+namespace fdb5 {
 namespace test {
 
 CASE("Wipe tests") {
@@ -96,32 +98,32 @@ CASE("Wipe tests") {
 
     // request
 
-    fdb5::Key requestKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-    fdb5::Key dbKey1({{"a", "1"}, {"b", "2"}});
-    fdb5::Key indexKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
+    Key requestKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+    Key dbKey1({{"a", "1"}, {"b", "2"}});
+    Key indexKey1({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
-    fdb5::FDBToolRequest fullReq1{requestKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest indexReq1{indexKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest dbReq1{dbKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest fullReq1{requestKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest indexReq1{indexKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest dbReq1{dbKey1.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
-    fdb5::Key requestKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
-    fdb5::Key dbKey2({{"a", "1"}, {"b", "y"}});
-    fdb5::Key indexKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}});
+    Key requestKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
+    Key dbKey2({{"a", "1"}, {"b", "y"}});
+    Key indexKey2({{"a", "1"}, {"b", "y"}, {"c", "z"}, {"d", "t"}});
 
-    fdb5::FDBToolRequest fullReq2{requestKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest indexReq2{indexKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest dbReq2{dbKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest fullReq2{requestKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest indexReq2{indexKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest dbReq2{dbKey2.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
-    fdb5::Key requestKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
-    fdb5::Key dbKey3({{"a", "1"}, {"b", "y"}});
-    fdb5::Key indexKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}});
+    Key requestKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}, {"e", "u"}, {"f", "v"}});
+    Key dbKey3({{"a", "1"}, {"b", "y"}});
+    Key indexKey3({{"a", "1"}, {"b", "y"}, {"c", "abc"}, {"d", "t"}});
 
-    fdb5::FDBToolRequest fullReq3{requestKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest indexReq3{indexKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-    fdb5::FDBToolRequest dbReq3{dbKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest fullReq3{requestKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest indexReq3{indexKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+    FDBToolRequest dbReq3{dbKey3.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
-    fdb5::Key commonKey({{"a", "1"}});
-    fdb5::FDBToolRequest commonReq{commonKey.request("retrieve"), false, std::vector<std::string>{"a"}};
+    Key commonKey({{"a", "1"}});
+    FDBToolRequest commonReq{commonKey.request("retrieve"), false, std::vector<std::string>{"a"}};
 
     // dummy field data
 
@@ -131,11 +133,11 @@ CASE("Wipe tests") {
 
         // initialise FDB
 
-        fdb5::FDB fdb(config);
+        FDB fdb(config);
 
         // check FDB is empty
 
-        EXPECT(countAll(fdb, {commonReq}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 0);
         std::cout << "Listed 0 fields" << std::endl;
 
         // store data
@@ -149,57 +151,74 @@ CASE("Wipe tests") {
 
         // check FDB is populated
 
-        EXPECT(countAll(fdb, {commonReq}) == 2);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         std::cout << "Listed 2 fields" << std::endl;
 
         // wipe data
 
-        fdb5::WipeElement elem;
-        size_t count;
+        WipeElement elem;
+        std::map<WipeElementType, size_t> element_counts;
 
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(fullReq1);
-        count           = 0;
         while (wipeObject.next(elem)) {
-            count++;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+
 
         // dry run wipe index and data files
         wipeObject = fdb.wipe(indexReq1);
-        count      = 0;
+        element_counts.clear();
         while (wipeObject.next(elem)) {
-            count++;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(count > 0);
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
 
         // dry run wipe all databases
         wipeObject = fdb.wipe(commonReq);
-        count      = 0;
+        element_counts.clear();
         while (wipeObject.next(elem)) {
-            count++;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(count > 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
 
         // ensure fields still exist
-        EXPECT(countAll(fdb, {commonReq}) == 2);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         std::cout << "Listed 2 fields" << std::endl;
 
         // attempt to wipe with too specific request, no dry run
         wipeObject = fdb.wipe(fullReq1, true);
+        element_counts.clear();
         while (wipeObject.next(elem)) {
-            std::cout << elem << std::endl;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(countAll(fdb, {commonReq}) == 2);
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+
+        // ensure fields still exist
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         std::cout << "Listed 2 fields" << std::endl;
 
         // wipe both databases, no dry run
         wipeObject = fdb.wipe(commonReq, true);
+        element_counts.clear();
         while (wipeObject.next(elem)) {
-            std::cout << elem << std::endl;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(countAll(fdb, {commonReq}) == 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 2);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 4);
+
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 0);
         std::cout << "Wiped 2 databases" << std::endl;
 
         // check database directories do not exist
@@ -230,11 +249,11 @@ CASE("Wipe tests") {
 
         // initialise FDB
 
-        fdb5::FDB fdb(config);
+        FDB fdb(config);
 
         // check FDB is empty
 
-        EXPECT(countAll(fdb, {commonReq}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 0);
         std::cout << "Listed 0 fields" << std::endl;
 
         // rearchive both databases, archive req3 as well
@@ -248,17 +267,17 @@ CASE("Wipe tests") {
 
         // check FDB is populated
 
-        EXPECT(countAll(fdb, {commonReq}) == 3);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 3);
         std::cout << "Listed 3 fields" << std::endl;
 
         // wipe one database
-        fdb5::WipeElement elem;
+        WipeElement elem;
         auto wipeObject = fdb.wipe(dbReq1, true);
         while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
         }
-        EXPECT(countAll(fdb, {commonReq}) == 2);
-        EXPECT(countAll(fdb, {dbReq1}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
+        EXPECT_EQUAL(countAll(fdb, {dbReq1}), 0);
         std::cout << "Wiped 1 database" << std::endl;
         // check database1 directory does not exist
         std::vector<eckit::PathName> dbFiles;
@@ -284,8 +303,8 @@ CASE("Wipe tests") {
         while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
         }
-        EXPECT(countAll(fdb, {commonReq}) == 1);
-        EXPECT(countAll(fdb, {indexReq2}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 1);
+        EXPECT_EQUAL(countAll(fdb, {indexReq2}), 0);
         std::cout << "Wiped 1 index" << std::endl;
         // check database2 only contains 4 files (toc, schema, index, data)
         if (configName == "localSingleRoot") {
@@ -313,7 +332,7 @@ CASE("Wipe tests") {
         while (wipeObject.next(elem)) {
             std::cout << elem << std::endl;
         }
-        EXPECT(countAll(fdb, {commonReq}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 0);
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -322,11 +341,11 @@ CASE("Wipe tests") {
 
         // initialise FDB
 
-        fdb5::FDB fdb(config);
+        FDB fdb(config);
 
         // check FDB is empty
 
-        EXPECT(countAll(fdb, {commonReq}) == 0);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 0);
         std::cout << "Listed 0 fields" << std::endl;
 
         // rearchive second database (two indices) two times
@@ -346,23 +365,31 @@ CASE("Wipe tests") {
         std::cout << "Archived 2 fields (4 including masked) in 1 database" << std::endl;
 
         // list masked and ensure there are four fields
-        EXPECT(countAll(fdb, {commonReq}) == 4);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 4);
         std::cout << "Listed 4 fields including masked" << std::endl;
 
         // list non-masked and ensure there are two fields
-        EXPECT(countAll(fdb, {commonReq}, true) == 2);
+        EXPECT_EQUAL(countAll(fdb, {commonReq}, true), 2);
         std::cout << "Listed 2 fields excluding masked" << std::endl;
 
         // wipe one index and ensure its field is gone
-        fdb5::WipeElement elem;
+        WipeElement elem;
         auto wipeObject = fdb.wipe(indexReq2, true);
+        std::map<WipeElementType, size_t> element_counts;
         while (wipeObject.next(elem)) {
-            std::cout << elem << std::endl;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(countAll(fdb, {commonReq}) == 2);
-        EXPECT(countAll(fdb, {indexReq2}) == 0);
-        EXPECT(countAll(fdb, {indexReq3}) == 2);
-        EXPECT(countAll(fdb, {indexReq3}, true) == 1);
+
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);            // 1 data file
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);  // 1 index
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no tocs or schemas wiped
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_SAFE], 1);       // 1 data
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 6);   // 1 index, schema, toc and the 3 locks
+
+        EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
+        EXPECT_EQUAL(countAll(fdb, {indexReq2}), 0);
+        EXPECT_EQUAL(countAll(fdb, {indexReq3}), 2);
+        EXPECT_EQUAL(countAll(fdb, {indexReq3}, true), 1);
         std::cout << "Wiped 1 index" << std::endl;
         // check database2 only contains 4 files (toc, schema, index, data)
         std::vector<eckit::PathName> dbFiles;
@@ -386,10 +413,17 @@ CASE("Wipe tests") {
 
         // wipe all database and ensure no fields can be listed, and all dirs are gone
         wipeObject = fdb.wipe(dbReq2, true);
+        element_counts.clear();
         while (wipeObject.next(elem)) {
-            std::cout << elem << std::endl;
+            element_counts[elem.type()] += elem.uris().size();
         }
-        EXPECT(countAll(fdb, {dbReq2}) == 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE_SAFE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 1);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 2);
+
+        EXPECT_EQUAL(countAll(fdb, {dbReq2}), 0);
         std::cout << "Wiped database" << std::endl;
         // check database directories do not exist
         if (configName == "localSingleRoot") {
@@ -407,15 +441,20 @@ CASE("Wipe tests") {
             ASSERT(dbDirs.size() == 0);
             dbFiles.clear();
             dbDirs.clear();
-            (wipe_tests_tmp_root_store() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
+            (wipe_tests_tmp_root_store()).children(dbFiles, dbDirs);
             ASSERT(dbFiles.size() == 0);
             ASSERT(dbDirs.size() == 0);
         }
     }
+
+    // remove root directory
+
+    testing::deldir(wipe_tests_tmp_root_store());
+    testing::deldir(wipe_tests_tmp_root());
 }
 
 }  // namespace test
-}  // namespace fdb
+}  // namespace fdb5
 
 int main(int argc, char** argv) {
     int failures = 0;
@@ -458,8 +497,7 @@ store: file)";
     // std::string remoteSeparateServersConfig{};
 
     std::map<std::string, std::string> configurations{
-        {"localSingleRoot", localSingleRootConfig},
-        // {"localSeparateRoots", localSeparateRootsConfig},
+        {"localSingleRoot", localSingleRootConfig}, {"localSeparateRoots", localSeparateRootsConfig},
         // {"localCatalogueRemoteStore", localCatalogueRemoteStoreConfig},
         // ...
     };

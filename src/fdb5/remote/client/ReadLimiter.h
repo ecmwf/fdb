@@ -40,6 +40,8 @@ struct RequestInfo {
 class ReadLimiter {
 public:
 
+    static bool isInitialised();
+
     static ReadLimiter& instance();
 
     ReadLimiter(const ReadLimiter&)            = delete;

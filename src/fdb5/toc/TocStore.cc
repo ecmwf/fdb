@@ -12,24 +12,34 @@
 #include <fcntl.h>
 #include <memory>
 
-#include "eckit/log/Timer.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/toc/TocPurgeVisitor.h"
-#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocStore.h"
 
 using namespace eckit;
+
+namespace {
+
+eckit::PathName directory(const eckit::PathName& dir) {
+    if (!dir.exists() || dir.isDir()) {
+        return dir;
+    }
+    return dir.dirName();
+}
+
+}  // namespace
 
 namespace fdb5 {
 
@@ -41,15 +51,35 @@ TocStore::TocStore(const Key& key, const Config& config) :
     archivedFields_(0),
     auxFileExtensions_{auxFileExtensions()} {}
 
-eckit::URI TocStore::uri() const {
+TocStore::TocStore(const eckit::URI& uri, const Config& config) :
+    Store(), TocCommon(directory(uri.path())), archivedFields_(0), auxFileExtensions_{auxFileExtensions()} {}
 
-    return URI("file", directory_);
+eckit::URI TocStore::uri() const {
+    return URI(type(), directory_);
+}
+
+eckit::URI TocStore::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == "file");
+    return URI("file", dataURI.path().dirName());
 }
 
 bool TocStore::uriBelongs(const eckit::URI& uri) const {
+    if (uri.scheme() != type() || !(uri.path().dirName() == directory_)) {
+        return false;
+    }
 
-    // TODO: assert uri represents a (not necessarily existing) data file
-    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)));
+    std::string ext = uri.path().extension();
+    if (ext == ".data") {
+        return true;
+    }
+
+    for (const auto& auxExt : auxFileExtensions_) {
+        if (ext == auxExt) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool TocStore::uriExists(const eckit::URI& uri) const {
@@ -72,28 +102,27 @@ bool TocStore::auxiliaryURIExists(const eckit::URI& uri) const {
     return p.exists();
 }
 
-std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
+std::set<eckit::URI> TocStore::collocatedDataURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
     PathName(directory_).children(files, dirs);
 
-    std::vector<eckit::URI> res;
+    std::set<eckit::URI> res;
     for (const auto& f : files) {
         if (f.extension() == ".data") {
-            res.push_back(eckit::URI{type(), f});
+            res.emplace(type(), f);
         }
     }
 
     return res;
 }
 
-std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
     for (auto& uri : uris) {
-
         ASSERT(uri.path().extension() == ".data");
         res.insert(uri);
     }
@@ -151,6 +180,7 @@ void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;
+
         if (doit)
             path.rmdir(false);
     }
@@ -297,11 +327,14 @@ eckit::URI TocStore::getAuxiliaryURI(const eckit::URI& uri, const std::string& e
     return eckit::URI(type(), path);
 }
 
-std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri) const {
+std::vector<eckit::URI> TocStore::getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const {
     ASSERT(uri.scheme() == type());
     std::vector<eckit::URI> uris;
-    for (const auto& e : LibFdb5::instance().auxiliaryRegistry()) {
-        uris.push_back(getAuxiliaryURI(uri, e));
+    for (const auto& ext : LibFdb5::instance().auxiliaryRegistry()) {
+        auto auxURI = getAuxiliaryURI(uri, ext);
+        if (!onlyExisting || auxiliaryURIExists(auxURI)) {
+            uris.push_back(auxURI);
+        }
     }
     return uris;
 }
@@ -347,20 +380,106 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     }
 }
 
-void TocStore::remove(const Key& key) const {
+void TocStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
 
-    eckit::PathName src_db = directory_;
+    // Note: doit and unsafeWipeAll do not affect the preparation of a local toc store wipe.
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
 
-    DIR* dirp = ::opendir(src_db.asString().c_str());
-    struct dirent* dp;
-    while ((dp = ::readdir(dirp)) != NULL) {
-        if (strstr(dp->d_name, ".data")) {
-            eckit::PathName dataFile = src_db / dp->d_name;
-            LOG_DEBUG_LIB(LibFdb5) << "Removing " << dataFile << std::endl;
-            dataFile.unlink(false);
+    // If store directory does not exist, mark all files as missing and return.
+    if (!directory_.exists()) {
+        storeState.markAllMissing();
+        return;
+    }
+
+    std::set<eckit::URI> nonExistingURIs;
+    for (const auto& uri : dataURIs) {
+
+        if (!uriBelongs(uri)) {
+            std::stringstream ss;
+            ss << "TocStore::finaliseWipeState: Index to be deleted has pointers to fields that don't belong to the "
+                  "configured store."
+               << std::endl;
+            ss << "Configured Store URI: " << this->uri().asString() << std::endl;
+            ss << "Pointed Store unit URI: " << uri.asString() << std::endl;
+            ss << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << std::endl;
+            throw eckit::SeriousBug(ss.str(), Here());
+        }
+
+        for (const auto& aux : getAuxiliaryURIs(uri, true)) {
+            storeState.insertAuxiliaryURI(aux);
+        }
+
+        // URI may not exist (e.g. due to a prior incomplete wipe.)
+        if (!uri.path().exists()) {
+            nonExistingURIs.insert(uri);
         }
     }
-    closedir(dirp);
+
+    for (const auto& uri : nonExistingURIs) {
+        storeState.markAsMissing(uri);
+    }
+
+    bool all = safeURIs.empty();
+    if (!all) {
+        return;
+    }
+
+    // Plan to erase all files in this folder. Find any unaccounted for.
+
+    const auto& auxURIs = storeState.dataAuxiliaryURIs();
+    std::vector<eckit::PathName> allPathsVector;
+    StdDir(basePath()).children(allPathsVector);
+    for (const eckit::PathName& path : allPathsVector) {
+        eckit::URI u("file", path);
+        if (dataURIs.find(u) == dataURIs.end() && auxURIs.find(u) == auxURIs.end() &&
+            safeURIs.find(u) == safeURIs.end()) {
+            storeState.insertUnrecognised(u);
+        }
+    }
+}
+
+bool TocStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    for (const auto& uri : unknownURIs) {
+        if (uri.path().exists()) {
+            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+        }
+    }
+
+    return true;
+}
+
+bool TocStore::doWipeURIs(const StoreWipeState& wipeState) const {
+
+    bool wipeall = wipeState.safeURIs().empty();
+
+    for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    }
+
+    for (const auto& uri : wipeState.includedDataURIs()) {
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    }
+
+    if (wipeall) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+
+    return true;
+}
+
+void TocStore::doWipeEmptyDatabase() const {
+
+    if (cleanupEmptyDatabase_) {
+
+        eckit::URI uri = this->uri();
+
+        if (uri.path().exists()) {
+            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+        }
+        cleanupEmptyDatabase_ = false;
+    }
 }
 
 void TocStore::print(std::ostream& out) const {

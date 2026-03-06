@@ -13,6 +13,7 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Inspector.h"
+#include "fdb5/database/WipeState.h"
 
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
@@ -49,9 +50,11 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 
         if (elem.hasLocation()) {
 
-            eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
-            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+            if (fdb5::LibFdb5::instance().debug()) {
+                eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
+                elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+                eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+            }
 
             // TODO move the endpoint replacement to the server side ()
             if (elem.location().uri().scheme() == "fdb") {
@@ -92,9 +95,11 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
 
-        eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
-        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
-        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        if (fdb5::LibFdb5::instance().debug()) {
+            eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
+            elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+            eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+        }
 
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
@@ -109,6 +114,25 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
             fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
+};
+
+struct WipeHelper : BaseAPIHelper<fdb5::CatalogueWipeState, fdb5::remote::Message::Wipe> {
+
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) : doit_(doit), unsafeWipeAll_(unsafeWipeAll) {}
+
+    void encodeExtra(eckit::Stream& s) const {
+        s << doit_;
+        s << unsafeWipeAll_;
+    }
+
+    static fdb5::CatalogueWipeState valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        return fdb5::CatalogueWipeState(s);
+    }
+
+private:
+
+    bool doit_;
+    bool unsafeWipeAll_;
 };
 
 }  // namespace
@@ -279,6 +303,10 @@ ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
+}
+
+WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {
