@@ -42,3 +42,12 @@ overridden by ``FDB_CONFIG``.
 ``FDB5_CONFIG_FILE``
 --------------------
 Deprecated. Equivalent to ``FDB_CONFIG_FILE``. If both are specified, ``FDB_CONFIG_FILE`` takes precedence over ``FDB5_CONFIG_FILE``.
+
+
+``FDB_SUB_TOCS``
+------------------
+
+If set to `1`, the FDB process will write to its own sub toc files instead of the main toc file.
+This mode is useful for avoiding contention on the main toc file when multiple FDB processes are writing concurrently.
+
+This variable overrides the `useSubToc` flag provided by the user config.

@@ -149,7 +149,10 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     dirty_(false) {
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
-    const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
+    const char* subTocOverride = ::getenv("FDB_SUB_TOCS");
+    if (!subTocOverride) {
+        subTocOverride = ::getenv("FDB5_SUB_TOCS");
+    }
     if (subTocOverride) {
         useSubToc_ = true;
     }

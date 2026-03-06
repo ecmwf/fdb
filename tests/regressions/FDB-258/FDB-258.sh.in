@@ -114,7 +114,7 @@ export FDB5_REMOTE_PROTOCOL_VERSION=2
 
 ! $fdbread mars.req out.grib
 
-export FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK=ON
+export FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK=ON # < no longer does anything.
 
 ! $fdbread mars.req out.grib
 
