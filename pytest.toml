@@ -1,0 +1,22 @@
+[pytest]
+addopts = ["-p no:doctest"]
+
+markers = [
+    "files: Test the files setup of FDB tool.",
+    "simple: Test the simple setup of FDB tool.",
+    "yaml: Test the yaml config setup of FDB tool.",
+    "yaml_mars_disks: Test the yaml mars disks config setup of FDB tool.",
+    "yaml_tools: Test the yaml tools config setup of FDB tool.",
+    "json: Test the json config setup of FDB tool.",
+    "json_tools: Test the json tools config setup of FDB tool.",
+    "info: Test the corresponding FDB tool.",
+    "hide: Test the corresponding FDB tool.",
+    "list: Test the corresponding FDB tool.",
+    "read: Test the corresponding FDB tool.",
+    "root: Test the corresponding FDB tool.",
+    "wipe: Test the corresponding FDB tool.",
+    "purge: Test the corresponding FDB tool.",
+    "write: Test the corresponding FDB tool.",
+    "overlay: Test the corresponding FDB tool.",
+    "grib2fdb: Test the corresponding FDB tool."
+]
