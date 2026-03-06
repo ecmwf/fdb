@@ -53,8 +53,16 @@ class UserInputMapper:
                 converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, (str, int, float)):
+            elif isinstance(values, (int, float)):
                 result[key] = [str(values)]
+            elif isinstance(values, str):
+                # Note: Even to and to-by are split here and are being treated as values.
+                #       This is handled by the FDB tool request. Designed analogously to the c++ splitting.
+                #       We hand list[str] to the pybind11 layer, as part of the FDBToolRequest
+                if "/" in values:
+                    result[key] = values.split("/")
+                else:
+                    result[key] = [values]
             else:
                 raise ValueError(
                     f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."

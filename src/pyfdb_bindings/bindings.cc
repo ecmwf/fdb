@@ -53,6 +53,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace py = pybind11;
@@ -92,10 +93,17 @@ metkit::mars::MarsRequest mars_requestfrom_map(const std::map<std::string, std::
         for (const auto& value : pair.second) {
             value_list.emplace_back(value);
         }
-        value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
+        value_map.emplace(eckit::Value(pair.first), value_list);
     }
 
-    return metkit::mars::MarsRequest("retrieve", value_map);
+    // Expand the mars request
+    auto mars_request = metkit::mars::MarsRequest("retrieve", value_map);
+
+    const bool inherit = false;
+    const bool strict = true;
+    metkit::mars::MarsExpansion expand(inherit, strict);
+
+    return expand.expand(mars_request);
 }
 
 PYBIND11_MODULE(pyfdb_bindings, m) {
