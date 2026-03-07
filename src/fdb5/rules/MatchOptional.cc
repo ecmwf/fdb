@@ -71,11 +71,13 @@ void MatchOptional::fill(Key& key, const std::string& keyword, const std::string
 
 const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
 
+    static std::string empty{};
+    
     if (const auto [iter, found] = key.find(keyword); found) {
         return iter->second;
     }
 
-    return default_[0];
+    return empty;
 }
 
 const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq,
