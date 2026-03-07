@@ -475,7 +475,7 @@ list( APPEND fdb5_tools
 if ( HAVE_GRIB )
     list( APPEND fdb5_tools
         fdb-hammer
-        fdb-patch
+        # fdb-patch
     )
 endif()
 

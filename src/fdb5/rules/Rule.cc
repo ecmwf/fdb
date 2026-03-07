@@ -208,7 +208,13 @@ std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const 
         return {};
     }
 
-    ASSERT(values.size() >= predicates_.size());
+    size_t numPred = predicates_.size();
+    for (const auto& p : predicates_) {
+        if (p->optional()) {
+            numPred--;
+        }
+    }
+    ASSERT(values.size() >= numPred);
 
     TypedKey key(registry_);
 
@@ -282,7 +288,6 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         }
     }
 
-    /// @todo activate this
     graph.canonicalise(registry_);
 
     return graph.makeKeys();
@@ -295,13 +300,12 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type = registry_.lookupType(keyword);
+        auto values = pred->values(request);
 
-
-        const auto& values = pred->values(request);
-
-        /// @note do we want to allow empty values?
-        // if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+        /// if the request does not have the keyword, but the predicate is optional, then use the default value
+        if (values.empty() && pred->optional()) {
+            values.push_back(pred->defaultValue());
+        }
 
         auto& node = graph.push(keyword);
 
@@ -311,6 +315,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
             }
         }
 
+        /// if there are no matching values for this predicate, then there are no matching keys for the rule
         if (node.empty()) {
             return {};
         }
@@ -328,22 +333,25 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type = registry_.lookupType(keyword);
 
         // performance optimization to avoid calling values() on visitor
-        if (!pred->optional() && request.countValues(keyword) == 0) {
-            return {};
-        }
-
         eckit::StringList values;
-        visitor.values(request, keyword, registry_, values);
-
-        if (values.empty() && pred->optional()) {
-            values.push_back(pred->defaultValue());
+        if (request.countValues(keyword) == 0) {
+            if (pred->optional()) {
+                values.push_back(pred->defaultValue());
+                if (!pred->defaultValue().empty()) {
+                    values.push_back("");
+                }
+            }
+            else {
+                return {};
+            }
+        }
+        else {
+            visitor.values(request, keyword, registry_, values);
         }
 
         auto& node = graph.push(keyword);
-
         for (const auto& value : values) {
             if (pred->match(value)) {
                 node.emplace_back(value);
@@ -351,23 +359,17 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         }
 
         if (node.empty()) {
-            return {};
+            if (pred->optional()) {
+                node.emplace_back("");
+            }
+            else {
+                return {};
+            }
         }
     }
 
     graph.canonicalise(registry_);
-
-    auto out = graph.makeKeys();
-
-    LOG_DEBUG_LIB(LibFdb5) << "findMatchingKeys  " << request << " ==> ";
-    std::string sep;
-    for (const auto& k : out) {
-        LOG_DEBUG_LIB(LibFdb5) << sep << k;
-        sep = " | ";
-    }
-    LOG_DEBUG_LIB(LibFdb5) << std::endl;
-
-    return out;
+    return graph.makeKeys();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -399,7 +401,13 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    ASSERT(values.size() >= predicates_.size());  // Should be equal, except for quantile (FDB-103)
+    size_t numPred = predicates_.size();
+    for (const auto& p : predicates_) {
+        if (p->optional()) {
+            numPred--;
+        }
+    }
+    ASSERT(values.size() >= numPred);  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
