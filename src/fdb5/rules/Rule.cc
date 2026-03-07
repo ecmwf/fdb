@@ -298,10 +298,11 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         const auto& type = registry_.lookupType(keyword);
 
 
-        const auto& values = pred->values(request);
+        auto values = pred->values(request);
+
 
         /// @note do we want to allow empty values?
-        // if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
+        if (values.empty() && pred->optional()) { values.push_back(pred->defaultValue()); }
 
         auto& node = graph.push(keyword);
 
