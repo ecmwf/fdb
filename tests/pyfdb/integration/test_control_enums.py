@@ -1,8 +1,7 @@
 import pytest
 
-from pyfdb._internal import _ControlAction
-from pyfdb._internal import _ControlIdentifier
 from pyfdb import ControlAction, ControlIdentifier
+from pyfdb._internal import _ControlAction, _ControlIdentifier
 
 
 def test_enum_control_identifiers():

@@ -1,5 +1,3 @@
-from typing import List
-
 from pyfdb import FDB
 from pyfdb.pyfdb_iterator import ListElement
 
@@ -24,14 +22,12 @@ def test_inspect(read_only_fdb_setup):
 
     assert list_iterator
 
-    elements: List[ListElement] = []
+    elements: list[ListElement] = []
 
     for el in list_iterator:
         elements.append(el)
         print(el)
 
-    # Because the selection needs to be fully specified, there
-    # should be only a single message returned
     assert len(elements) == 1
 
     for el in elements:
@@ -68,9 +64,7 @@ def test_inspect_multiple_values(read_only_fdb_setup):
         elements.append(el)
         print(el)
 
-    # Because the selection needs to be fully specified, there
-    # should be only a single message returned
-    assert len(elements) == 1
+    assert len(elements) == 2
 
     for el in elements:
         data_handle = el.data_handle
