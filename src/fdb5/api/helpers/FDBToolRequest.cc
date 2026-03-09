@@ -18,6 +18,7 @@
 #include <algorithm>
 
 #include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -86,7 +87,18 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 
 FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r, bool all,
                                const std::vector<std::string>& minimumKeySet) :
-    request_(r), all_(all) {
+    all_(all) {
+
+    if (!r.empty()) {
+        request_ = metkit::mars::MarsRequest(r.verb());
+        metkit::mars::MarsLanguage language{r.verb()};
+        // Only copy data parameters, as these are the only ones relevant for the FDB
+        for (const auto& p : r.parameters()) {
+            if (!language.isPostProc(p.name()) && !language.isSink(p.name())) {
+                request_.setValuesTyped(&p.type(), p.values());
+            }
+        }
+    }
 
     checkMinimumKeys(request_, minimumKeySet);
 }
@@ -122,7 +134,9 @@ void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request,
                                       const std::vector<std::string>& minimumKeys) {
     for (std::vector<std::string>::const_iterator j = minimumKeys.begin(); j != minimumKeys.end(); ++j) {
         if (!request.has(*j)) {
-            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+            std::ostringstream oss;
+            oss << "Please provide a value for '" << (*j) << "' in the request: " << request;
+            throw eckit::UserError(oss.str(), Here());
         }
     }
 }

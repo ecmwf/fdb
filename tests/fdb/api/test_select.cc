@@ -17,6 +17,9 @@
 
 #include "eckit/testing/Test.h"
 
+#include "metkit/mars/MarsLanguage.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -152,8 +155,20 @@ CASE("retrieves_distributed_according_to_select") {
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
-    fdb.list(metkit::mars::MarsRequest{"class=od"});
-    fdb.list(metkit::mars::MarsRequest{"class=rd"});
+    {
+        std::istringstream in("retrieve,class=od");
+        metkit::mars::MarsParser parser(in);
+        auto reqs = parser.parse();
+        ASSERT(reqs.size() == 1);
+        fdb.list(reqs[0]);
+    }
+    {
+        std::istringstream in("retrieve,class=rd");
+        metkit::mars::MarsParser parser(in);
+        auto reqs = parser.parse();
+        ASSERT(reqs.size() == 1);
+        fdb.list(reqs[0]);
+    }
 
     EXPECT(ApiSpy::knownSpies().size() == 3);
     ApiSpy& spy_od(*ApiSpy::knownSpies()[0]);
