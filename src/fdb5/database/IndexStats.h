@@ -31,16 +31,16 @@ public:
 
     ~IndexStatsContent() override;
 
-    virtual size_t fieldsCount() const     = 0;
+    virtual size_t fieldsCount() const = 0;
     virtual size_t duplicatesCount() const = 0;
 
-    virtual size_t fieldsSize() const     = 0;
+    virtual size_t fieldsSize() const = 0;
     virtual size_t duplicatesSize() const = 0;
 
-    virtual size_t addFieldsCount(size_t)     = 0;
+    virtual size_t addFieldsCount(size_t) = 0;
     virtual size_t addDuplicatesCount(size_t) = 0;
 
-    virtual size_t addFieldsSize(size_t i)     = 0;
+    virtual size_t addFieldsSize(size_t i) = 0;
     virtual size_t addDuplicatesSize(size_t i) = 0;
 
     virtual void add(const IndexStatsContent&) = 0;

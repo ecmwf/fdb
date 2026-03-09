@@ -13,8 +13,8 @@
 template <class BidirIt>
 bool next_perm(BidirIt first, BidirIt last) {
     auto r_first = std::make_reverse_iterator(last);
-    auto r_last  = std::make_reverse_iterator(first);
-    auto left    = std::is_sorted_until(r_first, r_last);
+    auto r_last = std::make_reverse_iterator(first);
+    auto left = std::is_sorted_until(r_first, r_last);
 
     if (left != r_last) {
         auto right = std::upper_bound(r_first, left, *left);
@@ -71,7 +71,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
         "param=v/u,"
         "time=0/6/12/18"};
 
-    auto request                   = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
     std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03"};
     std::vector<std::string> times = {"0", "6", "12", "18"};
     chunked_data_view::Axis axis({{"date", dates}, {"time", times}}, true);
@@ -109,16 +109,16 @@ bool assert_arrays(
 
     EXPECT(axis.parameters().size() == 4);
 
-    const std::string first_name                = axis.parameters()[0].name();
+    const std::string first_name = axis.parameters()[0].name();
     const std::vector<std::string> first_values = axis.parameters()[0].values();
 
-    const std::string second_name                = axis.parameters()[1].name();
+    const std::string second_name = axis.parameters()[1].name();
     const std::vector<std::string> second_values = axis.parameters()[1].values();
 
-    const std::string third_name                = axis.parameters()[2].name();
+    const std::string third_name = axis.parameters()[2].name();
     const std::vector<std::string> third_values = axis.parameters()[2].values();
 
-    const std::string fourth_name                = axis.parameters()[3].name();
+    const std::string fourth_name = axis.parameters()[3].name();
     const std::vector<std::string> fourth_values = axis.parameters()[3].values();
 
 
@@ -137,9 +137,9 @@ bool assert_arrays(
                     chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, chunk_index);
 
                     // Then
-                    auto first_result_values  = request_copy[first_name];
+                    auto first_result_values = request_copy[first_name];
                     auto second_result_values = request_copy[second_name];
-                    auto third_result_values  = request_copy[third_name];
+                    auto third_result_values = request_copy[third_name];
                     auto fourth_result_values = request_copy[fourth_name];
 
                     eckit::Log::debug() << "Chunk Index: " << chunk_index << std::endl;
@@ -181,15 +181,15 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
         "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
         "time=0/6/12/18"};
 
-    auto request                    = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
-    std::vector<std::string> dates  = {"2020-01-01", "2020-01-02", "2020-01-03"};
-    std::vector<std::string> times  = {"0", "6", "12", "18"};
-    std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+    auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03"};
+    std::vector<std::string> times = {"0", "6", "12", "18"};
+    std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     std::vector<std::string> params = {"v"};
 
-    chunked_data_view::Parameter date_parameter  = {"date", dates};
-    chunked_data_view::Parameter time_parameter  = {"time", times};
-    chunked_data_view::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Parameter date_parameter = {"date", dates};
+    chunked_data_view::Parameter time_parameter = {"time", times};
+    chunked_data_view::Parameter step_parameter = {"step", steps};
     chunked_data_view::Parameter param_parameter = {"param", params};
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, true};
@@ -211,15 +211,15 @@ CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
         "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
         "time=0/6/12/18"};
 
-    auto request                    = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
-    std::vector<std::string> dates  = {"20200101", "20200102", "20200103", "20200104"};
-    std::vector<std::string> times  = {"0000", "0600", "1200", "1800"};
-    std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+    auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
+    std::vector<std::string> times = {"0000", "0600", "1200", "1800"};
+    std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     std::vector<std::string> params = {"v"};
 
-    chunked_data_view::Parameter date_parameter  = {"date", dates};
-    chunked_data_view::Parameter time_parameter  = {"time", times};
-    chunked_data_view::Parameter step_parameter  = {"step", steps};
+    chunked_data_view::Parameter date_parameter = {"date", dates};
+    chunked_data_view::Parameter time_parameter = {"time", times};
+    chunked_data_view::Parameter step_parameter = {"step", steps};
     chunked_data_view::Parameter param_parameter = {"param", params};
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, false};
@@ -247,15 +247,15 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
         "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
         "time=0/6/12/18"};
 
-    const auto request                    = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
-    const std::vector<std::string> dates  = {"2020-01-01", "2020-01-02", "2020-01-03"};
-    const std::vector<std::string> times  = {"0", "6", "12", "18"};
-    const std::vector<std::string> steps  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+    const auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+    const std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03"};
+    const std::vector<std::string> times = {"0", "6", "12", "18"};
+    const std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
     const std::vector<std::string> params = {"v"};
 
-    const chunked_data_view::Parameter date_parameter  = {"date", dates};
-    const chunked_data_view::Parameter time_parameter  = {"time", times};
-    const chunked_data_view::Parameter step_parameter  = {"step", steps};
+    const chunked_data_view::Parameter date_parameter = {"date", dates};
+    const chunked_data_view::Parameter time_parameter = {"time", times};
+    const chunked_data_view::Parameter step_parameter = {"step", steps};
     const chunked_data_view::Parameter param_parameter = {"param", params};
 
     const std::vector<chunked_data_view::Parameter> param_vector = {date_parameter, time_parameter, step_parameter,
@@ -265,9 +265,9 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
 
     do {
 
-        auto& first  = param_vector[perm[0]];
+        auto& first = param_vector[perm[0]];
         auto& second = param_vector[perm[1]];
-        auto& third  = param_vector[perm[2]];
+        auto& third = param_vector[perm[2]];
         auto& fourth = param_vector[perm[3]];
 
         const chunked_data_view::Axis axis = {{first, second, third, fourth}, true};

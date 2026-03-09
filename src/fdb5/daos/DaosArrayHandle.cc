@@ -28,8 +28,9 @@ DaosArrayHandle::DaosArrayHandle(const fdb5::DaosArrayName& name) : name_(name),
 
 DaosArrayHandle::~DaosArrayHandle() {
 
-    if (open_)
+    if (open_) {
         eckit::Log::error() << "DaosArrayHandle not closed before destruction." << std::endl;
+    }
 }
 
 void DaosArrayHandle::print(std::ostream& s) const {
@@ -38,12 +39,13 @@ void DaosArrayHandle::print(std::ostream& s) const {
 
 void DaosArrayHandle::openForWrite(const Length& len) {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug{"Handle already opened."};
+    }
 
     session();
 
-    fdb5::DaosPool& p      = session_->getPool(name_.poolName());
+    fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     /// @note: to open/create an array without generating a snapshot, we must:
@@ -77,8 +79,9 @@ void DaosArrayHandle::openForWrite(const Length& len) {
 ///   if the size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug{"Handle already opened."};
+    }
 
     session();
 
@@ -111,8 +114,9 @@ long DaosArrayHandle::read(void* buf, long len) {
     /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
     ///   so it is calculated here and returned to the user as expected
     eckit::Length s = size();
-    if (len > s - offset_)
+    if (len > s - offset_) {
         read = s - offset_;
+    }
 
     offset_ += read;
 
@@ -121,8 +125,9 @@ long DaosArrayHandle::read(void* buf, long len) {
 
 void DaosArrayHandle::close() {
 
-    if (!open_)
+    if (!open_) {
         return;
+    }
 
     arr_->close();
 
@@ -169,8 +174,9 @@ std::string DaosArrayHandle::title() const {
 
 fdb5::DaosSession& DaosArrayHandle::session() {
 
-    if (!session_.has_value())
+    if (!session_.has_value()) {
         session_.emplace();
+    }
     return session_.value();
 }
 

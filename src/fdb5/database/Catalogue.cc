@@ -8,10 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include <cstring>
 #include <map>
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
@@ -134,7 +132,7 @@ void CatalogueReaderFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey, const Config& config) {
-    std::string name          = Manager(config).engine(dbKey);
+    std::string name = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -145,8 +143,9 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey,
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueReaderBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "CatalogueReaderBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No CatalogueReaderBuilder called ") + nameLowercase);
     }
 
@@ -154,7 +153,7 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey,
 }
 
 std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const eckit::URI& uri, const fdb5::Config& config) {
-    std::string name          = uri.scheme();
+    std::string name = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -165,8 +164,9 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const eckit::URI&
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueReaderBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "CatalogueReaderBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No CatalogueReaderBuilder called ") + nameLowercase);
     }
 
@@ -180,8 +180,9 @@ CatalogueReaderBuilderBase::CatalogueReaderBuilderBase(const std::string& name) 
 }
 
 CatalogueReaderBuilderBase::~CatalogueReaderBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     CatalogueReaderFactory::instance().remove(name_);
 }
 
@@ -230,7 +231,7 @@ void CatalogueWriterFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey, const Config& config) {
-    std::string name          = Manager(config).engine(dbKey);
+    std::string name = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -241,8 +242,9 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey,
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueWriterBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "CatalogueWriterBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No CatalogueWriterBuilder called ") + nameLowercase);
     }
 
@@ -250,7 +252,7 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey,
 }
 
 std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const eckit::URI& uri, const fdb5::Config& config) {
-    std::string name          = uri.scheme();
+    std::string name = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -261,8 +263,9 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const eckit::URI&
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueWriterBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "CatalogueWriterBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No CatalogueWriterBuilder called ") + nameLowercase);
     }
 
@@ -276,8 +279,9 @@ CatalogueWriterBuilderBase::CatalogueWriterBuilderBase(const std::string& name) 
 }
 
 CatalogueWriterBuilderBase::~CatalogueWriterBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     CatalogueWriterFactory::instance().remove(name_);
 }
 

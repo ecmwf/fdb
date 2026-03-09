@@ -64,8 +64,9 @@ void ControlIdentifierIterator::nextValue() {
         return;
     }
 
-    if (value_ == 0)
+    if (value_ == 0) {
         value_ = 1;
+    }
 
     while ((remaining_ & value_) == 0) {
         value_ <<= 1;
@@ -143,8 +144,9 @@ ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()
 
     controlIdentifiers = ControlIdentifier::None;
     for (auto id : ControlIdentifierList) {
-        if (!catalogue.enabled(id))
+        if (!catalogue.enabled(id)) {
             controlIdentifiers |= id;
+        }
     }
 }
 

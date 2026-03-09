@@ -93,8 +93,9 @@ DaosArray::DaosArray(fdb5::DaosSession& session, const eckit::URI& uri) : DaosAr
 
 DaosArray::~DaosArray() {
 
-    if (open_)
+    if (open_) {
         close();
+    }
 }
 
 /// @note: non-existing arrays (DAOS_OT_ARRAY) and byte-arrays
@@ -116,11 +117,13 @@ bool DaosArray::exists() {
 
 void DaosArray::create() {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug("Attempted create() on an open DaosArray");
+    }
 
-    if (oid_.otype() == DAOS_OT_ARRAY_BYTE)
+    if (oid_.otype() == DAOS_OT_ARRAY_BYTE) {
         return open();
+    }
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
@@ -141,8 +144,9 @@ void DaosArray::destroy() {
 
 void DaosArray::open() {
 
-    if (open_)
+    if (open_) {
         return;
+    }
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
@@ -181,9 +185,10 @@ void DaosArray::close() {
 
     int code = daos_array_close(oh_, NULL);
 
-    if (code < 0)
+    if (code < 0) {
         eckit::Log::warning() << "DAOS error in call to daos_array_close(), file " << __FILE__ << ", line " << __LINE__
                               << ", function " << __func__ << " [" << code << "] (" << code << ")" << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_array_close()" << std::endl;
 
@@ -205,9 +210,9 @@ uint64_t DaosArray::write(const void* buf, const uint64_t& len, const eckit::Off
     d_sg_list_t sgl;
     d_iov_t iov;
 
-    iod.arr_nr  = 1;
-    rg.rg_len   = (daos_size_t)len;
-    rg.rg_idx   = (daos_off_t)off;
+    iod.arr_nr = 1;
+    rg.rg_len = (daos_size_t)len;
+    rg.rg_idx = (daos_off_t)off;
     iod.arr_rgs = &rg;
 
     sgl.sg_nr = 1;
@@ -246,9 +251,9 @@ uint64_t DaosArray::read(void* buf, uint64_t len, const eckit::Offset& off) {
     d_sg_list_t sgl;
     d_iov_t iov;
 
-    iod.arr_nr  = 1;
-    rg.rg_len   = len;
-    rg.rg_idx   = (daos_off_t)off;
+    iod.arr_nr = 1;
+    rg.rg_len = len;
+    rg.rg_idx = (daos_off_t)off;
     iod.arr_rgs = &rg;
 
     sgl.sg_nr = 1;
@@ -293,8 +298,9 @@ DaosKeyValue::DaosKeyValue(fdb5::DaosSession& session, const eckit::URI& uri) : 
 
 DaosKeyValue::~DaosKeyValue() {
 
-    if (open_)
+    if (open_) {
         close();
+    }
 }
 
 bool DaosKeyValue::exists() {
@@ -306,8 +312,9 @@ bool DaosKeyValue::exists() {
 
 void DaosKeyValue::create() {
 
-    if (open_)
+    if (open_) {
         throw eckit::SeriousBug("Attempted create() on an open DaosKeyValue");
+    }
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
@@ -327,8 +334,9 @@ void DaosKeyValue::destroy() {
 
 void DaosKeyValue::open() {
 
-    if (open_)
+    if (open_) {
         return;
+    }
 
     create();
 }
@@ -344,9 +352,10 @@ void DaosKeyValue::close() {
 
     int code = daos_obj_close(oh_, NULL);
 
-    if (code < 0)
+    if (code < 0) {
         eckit::Log::warning() << "DAOS error in call to daos_obj_close(), file " << __FILE__ << ", line " << __LINE__
                               << ", function " << __func__ << " [" << code << "] (" << code << ")" << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_obj_close()" << std::endl;
 
@@ -388,8 +397,9 @@ uint64_t DaosKeyValue::get(const std::string& key, void* buf, const uint64_t& le
 
     DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), &res, buf, NULL));
 
-    if (res == 0)
+    if (res == 0) {
         throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
+    }
 
     return res;
 }
@@ -412,9 +422,9 @@ std::vector<std::string> DaosKeyValue::keys() {
     const size_t bufsize = 1_KiB;
     eckit::Buffer list_buf{bufsize};
     d_iov_set(&sg_iov, (char*)list_buf, bufsize);
-    sgl.sg_nr                    = 1;
-    sgl.sg_nr_out                = 0;
-    sgl.sg_iovs                  = &sg_iov;
+    sgl.sg_nr = 1;
+    sgl.sg_nr_out = 0;
+    sgl.sg_iovs = &sg_iov;
     daos_anchor_t listing_status = DAOS_ANCHOR_INIT;
     std::vector<std::string> listed_keys;
 
@@ -438,8 +448,9 @@ eckit::MemoryStream DaosKeyValue::getMemoryStream(std::vector<char>& v, const st
                                                   const std::string& kvTitle) {
 
     uint64_t sz = size(key);
-    if (sz == 0)
+    if (sz == 0) {
         throw fdb5::DaosEntityNotFoundException(std::string("Key '") + key + "' not found in " + kvTitle);
+    }
     v.resize(sz);
     get(key, &v[0], sz);
 

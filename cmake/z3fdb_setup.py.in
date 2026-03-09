@@ -1,8 +1,28 @@
+import os
 from setuptools import setup
+import platform
+from wheel.bdist_wheel import bdist_wheel
+import sys
+
+
+# NOTE this we need to correctly link with fdb5lib version on cd. For local builds feel free to ignore
+version_suffix = os.environ.get("VERSION_SUFFIX", "")
+
+# NOTE see ci-utils/wheelmaker/buildscripts/setup_utils, we need to get the right abi compat tag
+class bdist_wheel_ext(bdist_wheel):
+    def get_tag(self):
+        python, abi, plat = bdist_wheel.get_tag(self)
+        return python, abi, f"manylinux_2_28_{platform.machine()}"
+
+ext_kwargs = {
+    'darwin': {},
+    'linux': {"cmdclass": {"bdist_wheel": bdist_wheel_ext}},
+}
+
 
 setup(
     name="z3fdb",
-    version="@fdb5_VERSION_STR@",
+    version=f"@fdb5_VERSION_STR@{version_suffix}",
     packages=[
         "z3fdb",
         "z3fdb._internal",
@@ -12,6 +32,7 @@ setup(
     package_data={
         "chunked_data_view_bindings": ["*.so", "*.pyd"],
     },
-    install_requires=["numpy", "zarr>=3,<4", "findlibs"],
+    install_requires=["numpy", "zarr>=3,<4", "findlibs>=0.1.2", f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"],
     has_ext_modules=lambda: True,
+    **ext_kwargs[sys.platform],
 )

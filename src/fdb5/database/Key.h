@@ -76,11 +76,11 @@ public:  // methods
     explicit TypedKey(const TypesRegistry& reg) : registry_{reg} {}
 
     // RULES
-    TypedKey(const TypedKey& other)            = delete;
+    TypedKey(const TypedKey& other) = delete;
     TypedKey& operator=(const TypedKey& other) = delete;
-    TypedKey(TypedKey&& other)                 = delete;
-    TypedKey& operator=(TypedKey&& other)      = delete;
-    ~TypedKey()                                = default;
+    TypedKey(TypedKey&& other) = delete;
+    TypedKey& operator=(TypedKey&& other) = delete;
+    ~TypedKey() = default;
 
     std::string type() const override { return "TypedKey"; }
 

@@ -69,14 +69,14 @@ FieldHandle::FieldHandle(ListIterator& it) :
             for (size_t i = 0; i < cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
-                    eckit::Length len     = element.location().length();
+                    eckit::Length len = element.location().length();
                     eckit::DataHandle* dh = element.location().dataHandle();
                     datahandles_.push_back(std::make_pair(len, dh));
 
                     totalSize_ += len;
                     bool canSeek = dh->canSeek();
                     if (!canSeek) {
-                        largest   = std::max(largest, len);
+                        largest = std::max(largest, len);
                         seekable_ = false;
                     }
                 }
@@ -85,14 +85,14 @@ FieldHandle::FieldHandle(ListIterator& it) :
     }
     else {
         while (it.next(el)) {
-            eckit::Length len     = el.location().length();
+            eckit::Length len = el.location().length();
             eckit::DataHandle* dh = el.location().dataHandle();
             datahandles_.push_back(std::make_pair(len, dh));
 
             totalSize_ += len;
             bool canSeek = dh->canSeek();
             if (!canSeek) {
-                largest   = std::max(largest, len);
+                largest = std::max(largest, len);
                 seekable_ = false;
             }
         }
@@ -124,14 +124,14 @@ void FieldHandle::openCurrent() {
     if (currentIdx_ < datahandles_.size()) {
 
         eckit::Length currentSize = datahandles_[currentIdx_].first;
-        current_                  = datahandles_[currentIdx_].second;
+        current_ = datahandles_[currentIdx_].second;
         current_->openForRead();
 
         if (!current_->canSeek()) {
-            long len    = 0;
+            long len = 0;
             long toRead = currentSize;
-            long read   = 0;
-            char* buf   = buffer_;
+            long read = 0;
+            char* buf = buffer_;
             while (toRead > 0 && (len = current_->read(buf, toRead)) > 0) {
                 toRead -= len;
                 buf += len;
@@ -177,8 +177,8 @@ long FieldHandle::read1(char* buffer, long length) {
 long FieldHandle::read(void* buffer, long length) {
     long requested = length;
 
-    char* p    = static_cast<char*>(buffer);
-    long n     = 0;
+    char* p = static_cast<char*>(buffer);
+    long n = 0;
     long total = 0;
 
     while (length > 0 && (n = read1(p, length)) > 0) {
@@ -261,7 +261,7 @@ eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
     }
 
     const long long seekto = offset;
-    long long accumulated  = 0;
+    long long accumulated = 0;
 
     if (!seekable_) {  // check that the offset is within the current message of later
         for (size_t idx = 0; idx < currentIdx_; idx++) {

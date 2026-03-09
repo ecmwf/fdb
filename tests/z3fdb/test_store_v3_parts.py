@@ -3,6 +3,7 @@ import numpy as np
 
 from z3fdb import (
     AxisDefinition,
+    Chunking,
     ExtractorType,
     SimpleStoreBuilder,
 )
@@ -25,7 +26,10 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         "step=0,"
         "param=165/166,"
         "time=0/to/21/by/3",
-        [AxisDefinition(["date", "time"], True), AxisDefinition(["param"], True)],
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        ],
         ExtractorType.GRIB,
     )
     builder.add_part(
@@ -41,12 +45,12 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         "levelist=50/100,"
         "time=0/to/21/by/3",
         [
-            AxisDefinition(["date", "time"], True),
-            AxisDefinition(["param", "levelist"], True),
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
-    builder.extendOnAxis(1)
+    builder.extend_on_axis(1)
     store = builder.build()
 
     data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)

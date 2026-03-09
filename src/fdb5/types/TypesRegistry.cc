@@ -119,7 +119,7 @@ metkit::mars::MarsRequest TypesRegistry::canonicalise(const metkit::mars::MarsRe
         const Type& type = lookupType(param.name());
         for (const std::string& v : srcVals) {
             std::string newVal = type.toKey(v);
-            auto it            = uniqueVals.find(newVal);
+            auto it = uniqueVals.find(newVal);
             if (it == uniqueVals.end()) {
                 vals.push_back(newVal);
                 uniqueVals.insert(newVal);

@@ -49,8 +49,9 @@ public:  // methods
         std::string pathStr = HANDLE::path_;
         eckit::PathName path{pathStr};
 
-        if (path.exists())
+        if (path.exists()) {
             return;  //< Lustre API outputs ioctl error messages when called on files exist
+        }
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 

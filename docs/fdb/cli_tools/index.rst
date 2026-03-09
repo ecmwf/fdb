@@ -19,4 +19,5 @@ Most common tools are the following:
 .. _fdb-write: <cli_tools/write>
 .. _fdb-list: list.rst
 .. _fdb-read: read.rst
+.. _fdb-compare: compare.rst
 .. _MARS: mars.rst

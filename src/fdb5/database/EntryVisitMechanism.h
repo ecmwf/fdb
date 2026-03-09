@@ -39,10 +39,10 @@ public:  // methods
 
     EntryVisitor();
 
-    EntryVisitor(const EntryVisitor&)            = delete;
+    EntryVisitor(const EntryVisitor&) = delete;
     EntryVisitor& operator=(const EntryVisitor&) = delete;
-    EntryVisitor(EntryVisitor&&)                 = delete;
-    EntryVisitor& operator=(EntryVisitor&&)      = delete;
+    EntryVisitor(EntryVisitor&&) = delete;
+    EntryVisitor& operator=(EntryVisitor&&) = delete;
 
     virtual ~EntryVisitor();
 
@@ -85,10 +85,10 @@ public:  // methods
 
     EntryVisitMechanism(const Config& config);
 
-    EntryVisitMechanism(const EntryVisitMechanism&)            = delete;
+    EntryVisitMechanism(const EntryVisitMechanism&) = delete;
     EntryVisitMechanism& operator=(const EntryVisitMechanism&) = delete;
-    EntryVisitMechanism(EntryVisitMechanism&&)                 = delete;
-    EntryVisitMechanism& operator=(EntryVisitMechanism&&)      = delete;
+    EntryVisitMechanism(EntryVisitMechanism&&) = delete;
+    EntryVisitMechanism& operator=(EntryVisitMechanism&&) = delete;
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 

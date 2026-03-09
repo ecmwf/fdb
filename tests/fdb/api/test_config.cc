@@ -228,6 +228,63 @@ CASE("userConfig") {
     }
 }
 
+CASE("FDB_CONFIG takes precendence over FDB5_CONFIG") {
+
+    const std::string config_str_fdb(R"XX(
+        ---
+        type: local
+    )XX");
+
+
+    const std::string config_str_fdb5(R"XX(
+        ---
+        type: remote
+    )XX");
+
+    eckit::testing::SetEnv env_fdb("FDB_CONFIG", config_str_fdb.c_str());
+    eckit::testing::SetEnv env_fdb5("FDB5_CONFIG", config_str_fdb5.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+}
+
+CASE("FDB_CONFIG_FILE takes precendence over FDB5_CONFIG_FILE") {
+
+    const std::string config_str_fdb(R"XX(
+        ---
+        type: local
+    )XX");
+
+    const std::string config_str_fdb5(R"XX(
+        ---
+        type: remote
+    )XX");
+
+    eckit::TmpFile tf_fdb;
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf_fdb.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str_fdb.c_str(), config_str_fdb.size());
+    }
+
+    eckit::TmpFile tf_fdb5;
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf_fdb5.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str_fdb5.c_str(), config_str_fdb5.size());
+    }
+
+    eckit::testing::SetEnv env_fdb_file("FDB_CONFIG_FILE", tf_fdb.asString().c_str());
+    eckit::testing::SetEnv env_fdb5_file("FDB5_CONFIG_FILE", tf_fdb5.asString().c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace test

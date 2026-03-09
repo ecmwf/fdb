@@ -13,21 +13,6 @@ Usage
 
 ``fdb command [options]``
 
-Commands
---------
-
-The following commands are available:
-
-.. toctree::
-  :maxdepth: 1
-  :glob:
-
-  ../DebugTools/*
-  ./*
-  ../SpecialPurposeTools/*
-
-
-
 Example
 -------
 

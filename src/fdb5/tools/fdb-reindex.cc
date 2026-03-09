@@ -58,7 +58,7 @@ void FDBReindex::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     source_config_ = args.getString("source-config", "");
-    sink_config_   = args.getString("sink-config", "");
+    sink_config_ = args.getString("sink-config", "");
 
     // not optional
     if (source_config_.empty() || sink_config_.empty()) {
@@ -75,9 +75,9 @@ void FDBReindex::execute(const CmdArgs& args) {
     for (const FDBToolRequest& request : requests()) {
 
         if (LibFdb5::instance().debug()) {
-            LOG_DEBUG_LIB(LibFdb5) << "Listing for request" << std::endl;
+            Log::debug<LibFdb5>() << "Listing for request" << std::endl;
             request.print(Log::debug<LibFdb5>());
-            LOG_DEBUG_LIB(LibFdb5) << std::endl;
+            Log::debug<LibFdb5>() << std::endl;
         }
 
         auto it = source.list(request, true);
@@ -86,8 +86,8 @@ void FDBReindex::execute(const CmdArgs& args) {
         while (it.next(elem)) {
             LOG_DEBUG_LIB(LibFdb5) << "Reindexing ListElement: " << elem << std::endl;
 
-            const FieldLocation& location    = elem.location();
-            const Key& key                   = elem.combinedKey();
+            const FieldLocation& location = elem.location();
+            const Key& key = elem.combinedKey();
             ListElement::TimeStamp timestamp = elem.timestamp();
 
             // Only reindex if the timestamp is newer than the one we have.

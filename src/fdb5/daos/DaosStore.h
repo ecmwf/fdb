@@ -27,14 +27,16 @@ class DaosStore : public Store, public DaosCommon {
 public:  // methods
 
     DaosStore(const Key& key, const Config& config);
+    DaosStore(const eckit::URI& uri, const Config& config);
 
     ~DaosStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
     size_t flush() override;
@@ -42,9 +44,16 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Wipe-related methods
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
+
     // DAOS store does not currently support auxiliary objects
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
-    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+    // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
 
 protected:  // methods
 
@@ -55,14 +64,12 @@ protected:  // methods
     eckit::DataHandle* retrieve(Field& field) const override;
     std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
-    using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
 
 private:  // members
 
-    std::string db_str_;
     size_t archivedFields_;
 };
 

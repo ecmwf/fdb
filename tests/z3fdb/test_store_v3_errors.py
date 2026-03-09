@@ -5,6 +5,7 @@ import pytest
 from pychunked_data_view.exceptions import MarsRequestFormattingError
 from z3fdb import (
     AxisDefinition,
+    Chunking,
     ExtractorType,
     SimpleStoreBuilder,
 )
@@ -30,10 +31,10 @@ def test_additional_comma_end_of_request(
         "step=0,"
         "param=167/165/166,",  # Ending in an additional comma
         [
-            AxisDefinition(["time"], True),
-            AxisDefinition(["step"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["date"], True),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -60,10 +61,10 @@ def test_missing_comma_between_keys(
         "step=0,"
         "param=167/165/166",
         [
-            AxisDefinition(["time"], True),
-            AxisDefinition(["step"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["date"], True),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -90,10 +91,10 @@ def test_wrong_key(
         "step=0,"
         "param=167/165/166",
         [
-            AxisDefinition(["time"], True),
-            AxisDefinition(["step"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["date"], True),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )

@@ -76,12 +76,12 @@ public:
     }
     static fdb_request_t* parse(std::string str) {
         fdb_request_t* req = new fdb_request_t();
-        req->request_      = metkit::mars::MarsRequest::parse(str);
+        req->request_ = metkit::mars::MarsRequest::parse(str);
         return req;
     }
     void expand() {
         bool inherit = false;
-        bool strict  = true;
+        bool strict = true;
         metkit::mars::MarsExpansion expand(inherit, strict);
         request_ = expand.expand(request_);
     }
@@ -96,7 +96,7 @@ struct fdb_split_key_t {
     using value_type = std::array<Key, 3>;
 
     auto operator=(const value_type& keys) -> fdb_split_key_t& {
-        keys_  = &keys;
+        keys_ = &keys;
         level_ = keys_->end();
         return *this;
     }
@@ -105,7 +105,7 @@ struct fdb_split_key_t {
         /// @todo the following "if" is an unfortunate consequence of a flaw in this iterator
         if (level_ == keys_->end()) {
             level_ = keys_->begin();
-            curr_  = level_->begin();
+            curr_ = level_->begin();
             return *this;
         }
         if (curr_ != level_->end()) {
@@ -226,6 +226,7 @@ private:
 };
 
 // Wipe iterator
+// To be removed / replaced by pybind impl.
 struct fdb_wipe_iterator_t {
 
     fdb_wipe_iterator_t(WipeIterator&& iter) : iter_(std::move(iter)) {}
@@ -241,7 +242,7 @@ struct fdb_wipe_element_t {
 
     fdb_wipe_element_t(WipeElement&& e) : element_(std::move(e)) {}
 
-    const char* c_str() const { return element_.c_str(); }
+    const char* c_str() const { return element_.msg().c_str(); }
 
 private:
 
@@ -278,7 +279,7 @@ private:
 
 static std::string g_current_error_str;
 static fdb_failure_handler_t g_failure_handler = nullptr;
-static void* g_failure_handler_context         = nullptr;
+static void* g_failure_handler_context = nullptr;
 
 const char* fdb_error_string(int err) {
     switch (err) {
@@ -377,7 +378,7 @@ int fdb_initialise() {
 
 int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context) {
     return wrapApiFunction([handler, context] {
-        g_failure_handler         = handler;
+        g_failure_handler = handler;
         g_failure_handler_context = context;
         eckit::Log::info() << "FDB setting failure handler fn." << std::endl;
     });
@@ -484,7 +485,7 @@ int fdb_wipe_iterator_next(fdb_wipe_iterator_t* it, fdb_wipe_element_t** element
         ASSERT(element);
 
         WipeElement e;
-        int ret  = it->next(e);
+        int ret = it->next(e);
         *element = new fdb_wipe_element_t(std::move(e));
         return ret;
     }});
@@ -529,7 +530,7 @@ int fdb_purge_iterator_next(fdb_purge_iterator_t* it, fdb_purge_element_t** elem
         ASSERT(element);
 
         PurgeElement e;
-        int ret  = it->next(e);
+        int ret = it->next(e);
         *element = new fdb_purge_element_t(std::move(e));
         return ret;
     }});
@@ -672,8 +673,9 @@ int fdb_datareader_open(fdb_datareader_t* dr, long* size) {
         ASSERT(dr);
         long tmp;
         tmp = dr->open();
-        if (size)
+        if (size) {
             *size = tmp;
+        }
     });
 }
 int fdb_datareader_close(fdb_datareader_t* dr) {

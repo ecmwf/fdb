@@ -44,7 +44,7 @@ public:  // methods
     FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     FieldLocation(eckit::Stream&);
 
-    FieldLocation(const FieldLocation&)            = delete;
+    FieldLocation(const FieldLocation&) = delete;
     FieldLocation& operator=(const FieldLocation&) = delete;
 
     virtual const eckit::URI& uri() const { return uri_; }
@@ -105,7 +105,7 @@ public:
     virtual ~FieldLocationBuilderBase();
     virtual FieldLocation* make(const eckit::URI& uri) = 0;
     virtual FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                const Key& remapKey)   = 0;
+                                const Key& remapKey) = 0;
 };
 
 template <class T>
@@ -155,10 +155,10 @@ public:  // methods
 
     FieldLocationVisitor() = default;
 
-    FieldLocationVisitor(const FieldLocationVisitor&)            = delete;
+    FieldLocationVisitor(const FieldLocationVisitor&) = delete;
     FieldLocationVisitor& operator=(const FieldLocationVisitor&) = delete;
-    FieldLocationVisitor(FieldLocationVisitor&&)                 = delete;
-    FieldLocationVisitor& operator=(FieldLocationVisitor&&)      = delete;
+    FieldLocationVisitor(FieldLocationVisitor&&) = delete;
+    FieldLocationVisitor& operator=(FieldLocationVisitor&&) = delete;
 
     virtual ~FieldLocationVisitor();
 

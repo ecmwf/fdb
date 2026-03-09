@@ -30,8 +30,8 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/WipeState.h"
 
 namespace eckit::message {
 
@@ -61,12 +61,14 @@ public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
 
-    FDBBase(const FDBBase&)            = delete;
+    FDBBase(const FDBBase&) = delete;
     FDBBase& operator=(const FDBBase&) = delete;
-    FDBBase(FDBBase&&)                 = delete;
-    FDBBase& operator=(FDBBase&&)      = delete;
+    FDBBase(FDBBase&&) = delete;
+    FDBBase& operator=(FDBBase&&) = delete;
 
     virtual ~FDBBase() = default;
+
+    std::shared_ptr<FDBBase> shared() { return shared_from_this(); }
 
     // -------------- Primary API functions ----------------------------
 
@@ -84,7 +86,7 @@ public:  // methods
 
     virtual StatusIterator status(const FDBToolRequest& request) = 0;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
+    virtual WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
 

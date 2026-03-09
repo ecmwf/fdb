@@ -20,6 +20,10 @@ namespace {
 ReadLimiter* instance_ = nullptr;
 }  // namespace
 
+bool ReadLimiter::isInitialised() {
+    return instance_ != nullptr;
+}
+
 ReadLimiter& ReadLimiter::instance() {
     ASSERT(instance_);
     return *instance_;
@@ -39,7 +43,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
     s << fieldLocation;
     s << remapKey;
     size_t requestSize = s.position();
-    size_t resultSize  = fieldLocation.length();
+    size_t resultSize = fieldLocation.length();
 
     if (resultSize > memoryLimit_) {
         std::ostringstream ss;

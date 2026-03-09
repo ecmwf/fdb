@@ -44,7 +44,7 @@ namespace cdv = chunked_data_view;
 std::unique_ptr<eckit::DataHandle> makeHandle(const std::vector<double>& values) {
     const size_t size = values.size() * sizeof(std::decay_t<decltype(values)>::value_type) + 2 * sizeof(size_t);
     const size_t bytesPerValue = 8;
-    auto handle                = std::make_unique<eckit::MemoryHandle>(size);
+    auto handle = std::make_unique<eckit::MemoryHandle>(size);
     size_t _{};
     handle->openForWrite(_);
 
@@ -119,7 +119,7 @@ struct FakeExtractor : public cdv::Extractor {
                 break;
             }
 
-            const auto& key   = std::get<0>(*res);
+            const auto& key = std::get<0>(*res);
             auto& data_handle = std::get<1>(*res);
             data_handle->openForRead();
 
@@ -153,8 +153,9 @@ CASE("ChunkedDataView | View from 1 request | Can compute shape") {
                                                   fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
                                       }))
             .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                      cdv::AxisDefinition{{"param"}, false}},
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
                      std::make_unique<FakeExtractor>())
             .build();
     //
@@ -187,12 +188,14 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
                     });
                 }))
             .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                      cdv::AxisDefinition{{"param"}, true}},
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                      std::make_unique<FakeExtractor>())
             .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                      cdv::AxisDefinition{{"param"}, true}},
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                      std::make_unique<FakeExtractor>())
             .extendOnAxis(2)
             .build();
@@ -222,9 +225,13 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
                         std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
                     });
                 }))
-            .addPart(keys, {cdv::AxisDefinition{{"date", "time"}, true}, cdv::AxisDefinition{{"param"}, true}},
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                      std::make_unique<FakeExtractor>())
-            .addPart(keys, {cdv::AxisDefinition{{"date", "time"}, true}, cdv::AxisDefinition{{"param"}, true}},
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                      std::make_unique<FakeExtractor>())
             .extendOnAxis(1)
             .build();
@@ -255,10 +262,100 @@ CASE("ChunkedDataView - Can build") {
                     });
                 }))
             .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                      cdv::AxisDefinition{{"param"}, true}},
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                      std::make_unique<FakeExtractor>())
             .build());
+}
+
+CASE("ChunkedDataView | build | No data in FDB throws user-facing error") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(
+                      std::make_unique<MockFdb>(
+                          [](auto& _) -> std::unique_ptr<eckit::DataHandle> { throw eckit::Exception("FDB: no data"); },
+                          [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> { return nullptr; }))
+                      .addPart(keys,
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                               std::make_unique<FakeExtractor>())
+                      .build());
+}
+
+CASE("ChunkedDataView | at | Wrong index dimension throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>([](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                                      [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                                          return std::make_unique<MockListIterator>(
+                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{std::make_tuple(
+                                                  fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                                      }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build();
+
+    // View has 4 dimensions (date, time, param, values) -> chunks has 4 entries
+    std::vector<float> buf(view->countChunkValues());
+
+    // Too few dimensions
+    EXPECT_THROWS(view->at({0, 0}, buf.data(), buf.size()));
+
+    // Too many dimensions
+    EXPECT_THROWS(view->at({0, 0, 0, 0, 0}, buf.data(), buf.size()));
+}
+
+CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>([](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                                      [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                                          return std::make_unique<MockListIterator>(
+                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{std::make_tuple(
+                                                  fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                                      }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build();
+
+    // chunks = {4, 4, 1, 1} (4 dates, 4 times, 1 param-chunk, 1 value-chunk)
+    std::vector<float> buf(view->countChunkValues());
+
+    // Valid index at the boundary — should NOT throw
+    EXPECT_NO_THROW(view->at({3, 3, 0, 0}, buf.data(), buf.size()));
+
+    // Date index out of bounds (4 >= 4)
+    EXPECT_THROWS(view->at({4, 0, 0, 0}, buf.data(), buf.size()));
+
+    // Time index out of bounds (4 >= 4)
+    EXPECT_THROWS(view->at({0, 4, 0, 0}, buf.data(), buf.size()));
+
+    // Param chunk index out of bounds (1 >= 1)
+    EXPECT_THROWS(view->at({0, 0, 1, 0}, buf.data(), buf.size()));
+
+    // Value chunk index out of bounds (1 >= 1)
+    EXPECT_THROWS(view->at({0, 0, 0, 1}, buf.data(), buf.size()));
 }
 
 int main(int argc, char** argv) {

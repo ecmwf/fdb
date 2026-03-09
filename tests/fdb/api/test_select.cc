@@ -17,6 +17,7 @@
 
 #include "eckit/testing/Test.h"
 
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -329,7 +330,6 @@ CASE("dump_distributed_according_to_select") {
     EXPECT(spy_rd2.counts().dump == 0);
 
     //// Now match all the rd lanes
-
     fdb.dump(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy_od.counts().dump == 1);
@@ -446,44 +446,55 @@ CASE("wipe_distributed_according_to_select") {
     ApiSpy& spy_rd1(*ApiSpy::knownSpies()[1]);
     ApiSpy& spy_rd2(*ApiSpy::knownSpies()[2]);
 
-    // Do some archiving
-
     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
-    EXPECT(spy_od.counts().wipe == 1);
-    EXPECT(spy_rd1.counts().wipe == 0);
-    EXPECT(spy_rd2.counts().wipe == 0);
+    EXPECT_EQUAL(spy_od.counts().wipe, 1);
+    EXPECT_EQUAL(spy_rd1.counts().wipe, 0);
+    EXPECT_EQUAL(spy_rd2.counts().wipe, 0);
 
     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
-    EXPECT(spy_od.counts().wipe == 1);
-    EXPECT(spy_rd1.counts().wipe == 1);
-    EXPECT(spy_rd2.counts().wipe == 0);
+    EXPECT_EQUAL(spy_od.counts().wipe, 1);
+    EXPECT_EQUAL(spy_rd1.counts().wipe, 1);
+    EXPECT_EQUAL(spy_rd2.counts().wipe, 0);
 
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
     fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
-    EXPECT(spy_od.counts().wipe == 1);
-    EXPECT(spy_rd1.counts().wipe == 1);
-    EXPECT(spy_rd2.counts().wipe == 0);
+    EXPECT_EQUAL(spy_od.counts().wipe, 1);
+    EXPECT_EQUAL(spy_rd1.counts().wipe, 1);
+    EXPECT_EQUAL(spy_rd2.counts().wipe, 0);
 
-    //// Now match all the rd lanes
+    // Now match all the rd lanes
+    // We currently prohibit wipes that match multiple lanes, check that we raise an error
 
-    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
+    bool caught = false;
+    try {
 
-    EXPECT(spy_od.counts().wipe == 1);
-    EXPECT(spy_rd1.counts().wipe == 2);
-    EXPECT(spy_rd2.counts().wipe == 1);
+        auto x = fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
+        fdb5::WipeElement e;
+        while (x.next(e)) {}
+    }
+    catch (eckit::UserError& err) {
+        caught = true;
+    }
+
+    EXPECT(caught);
 
     // Explicitly match everything
-
-    fdb.wipe(fdb5::FDBToolRequest({}, true));
-
-    EXPECT(spy_od.counts().wipe == 2);
-    EXPECT(spy_rd1.counts().wipe == 3);
-    EXPECT(spy_rd2.counts().wipe == 2);
+    // We currently prohibit wipes that match multiple lanes, check that we raise an error
+    caught = false;
+    try {
+        auto x = fdb.wipe(fdb5::FDBToolRequest({}, true));
+        fdb5::WipeElement e;
+        while (x.next(e)) {}
+    }
+    catch (eckit::UserError& err) {
+        caught = true;
+    }
+    EXPECT(caught);
 
     // And unused functions
 

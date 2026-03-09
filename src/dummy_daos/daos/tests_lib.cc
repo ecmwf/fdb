@@ -21,31 +21,11 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/testing/Filesystem.h"
 #include "eckit/utils/MD5.h"
 
 #include "../dummy_daos.h"
 #include "tests_lib.h"
-
-namespace {
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,8 +41,9 @@ daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
     }
 
     D_ALLOC_PTR(prop);
-    if (prop == NULL)
+    if (prop == NULL) {
         return NULL;
+    }
 
     if (entries_nr > 0) {
         D_ALLOC_ARRAY(prop->dpp_entries, entries_nr);
@@ -78,15 +59,17 @@ daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
 void daos_prop_fini(daos_prop_t* prop) {
     int i;
 
-    if (!prop->dpp_entries)
+    if (!prop->dpp_entries) {
         goto out;
+    }
 
     for (i = 0; i < prop->dpp_nr; i++) {
         struct daos_prop_entry* entry;
 
         entry = &prop->dpp_entries[i];
-        if (entry->dpe_type != DAOS_PROP_PO_LABEL)
+        if (entry->dpe_type != DAOS_PROP_PO_LABEL) {
             NOTIMP;
+        }
         D_FREE(entry->dpe_str);
     }
 
@@ -96,8 +79,9 @@ out:
 }
 
 void daos_prop_free(daos_prop_t* prop) {
-    if (prop == NULL)
+    if (prop == NULL) {
         return;
+    }
 
     daos_prop_fini(prop);
     D_FREE(prop);
@@ -117,22 +101,26 @@ int dmg_pool_create(const char* dmg_config_file, uid_t uid, gid_t gid, const cha
 
     if (prop != NULL) {
 
-        if (prop->dpp_nr != 1)
+        if (prop->dpp_nr != 1) {
             NOTIMP;
-        if (prop->dpp_entries[0].dpe_type != DAOS_PROP_PO_LABEL)
+        }
+        if (prop->dpp_entries[0].dpe_type != DAOS_PROP_PO_LABEL) {
             NOTIMP;
+        }
 
         struct daos_prop_entry* entry = &prop->dpp_entries[0];
 
-        if (entry == NULL)
+        if (entry == NULL) {
             NOTIMP;
+        }
 
         pool_name = std::string(entry->dpe_str);
 
         label_symlink_path = dummy_daos_root() / pool_name;
 
-        if (label_symlink_path.exists())
+        if (label_symlink_path.exists()) {
             return -1;
+        }
     }
 
     /// @note: copied from LocalPathName::unique. Ditched StaticMutex as dummy DAOS is not thread safe
@@ -164,19 +152,21 @@ int dmg_pool_create(const char* dmg_config_file, uid_t uid, gid_t gid, const cha
 
     eckit::PathName pool_path = dummy_daos_root() / pool_uuid_cstr;
 
-    if (pool_path.exists())
+    if (pool_path.exists()) {
         throw eckit::SeriousBug("UUID clash in pool create");
+    }
 
     pool_path.mkdir();
 
-    if (prop == NULL)
+    if (prop == NULL) {
         return 0;
+    }
 
     if (::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str()) < 0) {
 
         if (errno == EEXIST) {  // link path already exists due to race condition
 
-            deldir(pool_path);
+            eckit::testing::deldir(pool_path);
             return -1;
         }
         else {  // symlink fails for unknown reason
@@ -196,8 +186,9 @@ int dmg_pool_destroy(const char* dmg_config_file, const uuid_t uuid, const char*
 
     eckit::PathName pool_path = dummy_daos_root() / uuid_str;
 
-    if (!pool_path.exists())
+    if (!pool_path.exists()) {
         return -1;
+    }
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
@@ -209,17 +200,19 @@ int dmg_pool_destroy(const char* dmg_config_file, const uuid_t uuid, const char*
     for (auto& f : files) {
         try {
 
-            if (f.isLink() && f.realName().baseName() == pool_path.baseName())
+            if (f.isLink() && f.realName().baseName() == pool_path.baseName()) {
                 f.unlink();
+            }
         }
         catch (eckit::FailedSystemCall& e) {
 
-            if (f.exists())
+            if (f.exists()) {
                 throw;
+            }
         }
     }
 
-    deldir(pool_path);
+    eckit::testing::deldir(pool_path);
 
     return 0;
 }

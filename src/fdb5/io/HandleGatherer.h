@@ -36,10 +36,10 @@ public:  // methods
 
     HandleGatherer(bool sorted);
 
-    HandleGatherer(const HandleGatherer&)            = delete;
+    HandleGatherer(const HandleGatherer&) = delete;
     HandleGatherer& operator=(const HandleGatherer&) = delete;
-    HandleGatherer(HandleGatherer&&)                 = delete;
-    HandleGatherer& operator=(HandleGatherer&&)      = delete;
+    HandleGatherer(HandleGatherer&&) = delete;
+    HandleGatherer& operator=(HandleGatherer&&) = delete;
 
     ~HandleGatherer();
 

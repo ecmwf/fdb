@@ -35,8 +35,11 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeCoordinator.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
@@ -237,8 +240,12 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
+ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {
+    return {internal_->list(request, level), mode};
+}
+
 ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
-    return {internal_->list(request, level), deduplicate};
+    return list(request, deduplicate ? ListMode::Deduplicate : ListMode::Full, level);
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
@@ -250,7 +257,26 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
+
+    auto internal = internal_->shared();
+
+    auto async = [internal, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
+        // Visit the catalogues to determine what they would wipe
+        WipeStateIterator it = internal->wipe(request, doit, porcelain, unsafeWipeAll);
+
+        // Coordinate the wipe across catalogues and stores
+        WipeCoordinator coordinator{internal->config()};
+        CatalogueWipeState catalogueWipeState;
+        while (it.next(catalogueWipeState)) {
+
+            auto elements = coordinator.wipe(catalogueWipeState, doit, unsafeWipeAll);
+            for (auto& el : elements) {
+                queue.emplace(el);
+            }
+        }
+    };
+
+    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

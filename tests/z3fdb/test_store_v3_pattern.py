@@ -6,6 +6,7 @@ import zarr
 
 from z3fdb import (
     AxisDefinition,
+    Chunking,
     SimpleStoreBuilder,
     ExtractorType,
 )
@@ -27,16 +28,16 @@ def test_access_pattern(read_only_fdb_pattern_setup) -> None:
         "param=165/166/167,"
         "time=0/to/21/by/6",
         [
-            AxisDefinition(["date"], True),
-            AxisDefinition(["time"], True),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
     store = builder.build()
 
-    data =zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
     assert data
 
     # This is coming from the read_only_fdb_pattern_setup fixtures, the data is filled in there
@@ -57,10 +58,10 @@ def test_access_pattern_shuffled_chunked(
     the received data aligns with the expected
     """
     axis = [
-        AxisDefinition(["date"], True),
-        AxisDefinition(["time"], True),
-        AxisDefinition(["param"], True),
-        AxisDefinition(["step"], True),
+        AxisDefinition(["date"], Chunking.SINGLE_VALUE),
+        AxisDefinition(["time"], Chunking.SINGLE_VALUE),
+        AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        AxisDefinition(["step"], Chunking.SINGLE_VALUE),
     ]
     axis_names = ["date", "time", "param", "step"]
     axis_permutation = [axis[i] for i in index_permutation]
@@ -119,7 +120,10 @@ def test_access_pattern_shuffled_chunked(
                     assert all(data[*cur_index] == value)
 
 
-test_data = product(permutations([0, 1, 2]), product([True, False], repeat=3))
+test_data = product(
+    permutations([0, 1, 2]),
+    product([Chunking.SINGLE_VALUE, Chunking.NONE], repeat=3),
+)
 
 
 @pytest.mark.parametrize("index_permutation, chunked_permutations", test_data)
@@ -206,10 +210,10 @@ def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
         "param=165/166/167,"
         "time=0/to/21/by/6",
         [
-            AxisDefinition(["date"], False),
-            AxisDefinition(["time"], False),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["date"], Chunking.NONE),
+            AxisDefinition(["time"], Chunking.NONE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -239,10 +243,10 @@ def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
         "param=165/166/167,"
         "time=0/to/21/by/6",
         [
-            AxisDefinition(["time"], False),
-            AxisDefinition(["date"], False),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["time"], Chunking.NONE),
+            AxisDefinition(["date"], Chunking.NONE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -272,9 +276,9 @@ def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> 
         "param=165/166/167,"
         "time=0/to/21/by/6",
         [
-            AxisDefinition(["date", "time"], False),
-            AxisDefinition(["param"], True),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["date", "time"], Chunking.NONE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )
@@ -307,9 +311,9 @@ def test_access_pattern_merged_axis_non_chunked_switched_date_time(
         "param=165/166/167,"
         "time=0/to/21/by/6",
         [
-            AxisDefinition(["param"], True),
-            AxisDefinition(["time", "date"], False),
-            AxisDefinition(["step"], True),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["time", "date"], Chunking.NONE),
+            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
     )

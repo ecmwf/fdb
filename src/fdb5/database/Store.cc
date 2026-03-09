@@ -24,6 +24,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& s, const Store& x) {
+    x.print(s);
+    return s;
+}
+
 void Store::archiveCb(const Key& key, const void* data, eckit::Length length,
                       std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
     catalogue_archive(archive(key, data, length));
@@ -49,7 +54,7 @@ StoreFactory& StoreFactory::instance() {
     return theOne;
 }
 
-void StoreFactory::add(const std::string& name, StoreBuilderBase* builder) {
+void StoreFactory::add(const std::string& name, const std::vector<std::string>& scheme, StoreBuilderBase* builder) {
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -57,6 +62,9 @@ void StoreFactory::add(const std::string& name, StoreBuilderBase* builder) {
         throw eckit::SeriousBug("Duplicate entry in StoreFactory: " + nameLowercase, Here());
     }
     builders_[nameLowercase] = builder;
+    for (const auto& s : scheme) {
+        fieldLocationStoreMapping_[s] = nameLowercase;
+    }
 }
 
 void StoreFactory::remove(const std::string& name) {
@@ -82,8 +90,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
-    std::string name          = config.getString("store", "file");
+StoreBuilderBase& StoreFactory::find(const std::string& name) {
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -94,23 +101,53 @@ std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config)
     if (j == builders_.end()) {
         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
         eckit::Log::error() << "StoreBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
+        for (j = builders_.begin(); j != builders_.end(); ++j) {
             eckit::Log::error() << "   " << (*j).first << std::endl;
+        }
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(key, config);
+    return *(j->second);
+}
+
+StoreBuilderBase& StoreFactory::findScheme(const std::string& scheme) {
+    std::string schemeLowercase = eckit::StringTools::lower(scheme);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    auto it = fieldLocationStoreMapping_.find(schemeLowercase);
+    if (it == fieldLocationStoreMapping_.end()) {
+        eckit::Log::error() << "No StoreBuilder for scheme [" << schemeLowercase << "]" << std::endl;
+        throw eckit::SeriousBug(std::string("No StoreBuilder for scheme ") + schemeLowercase);
+    }
+
+    auto j = builders_.find(it->second);
+    ASSERT(j != builders_.end());
+
+    return *(j->second);
+}
+
+std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
+    return find(config.getString("store", "file")).make(key, config);
+}
+
+std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& config) {
+    return findScheme(uri.scheme()).make(uri, config);
+}
+
+eckit::URI StoreFactory::uri(const eckit::URI& dataURI) {
+    return findScheme(dataURI.scheme()).uri(dataURI);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
-    StoreFactory::instance().add(name_, this);
+StoreBuilderBase::StoreBuilderBase(const std::string& name, const std::vector<std::string>& scheme) : name_(name) {
+    StoreFactory::instance().add(name_, scheme, this);
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
-    if (LibFdb5::instance().dontDeregisterFactories())
+    if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
+    }
     StoreFactory::instance().remove(name_);
 }
 

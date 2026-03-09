@@ -30,6 +30,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Notifier.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/io/HandleGatherer.h"
 
 using eckit::Log;
@@ -55,8 +56,9 @@ DistFDB::DistFDB(const Config& config, const std::string& name) : FDBBase(config
 
     // Configure the available lanes.
 
-    if (!config.has("lanes"))
+    if (!config.has("lanes")) {
         throw eckit::UserError("No lanes configured for pool", Here());
+    }
 
     for (const auto& laneCfg : config.getSubConfigs("lanes")) {
         lanes_.emplace_back(FDB(laneCfg), true);
@@ -90,7 +92,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
     LOG_DEBUG_LIB(LibFdb5) << "Attempting dist FDB archive" << std::endl;
 
-    decltype(laneIndices)::const_iterator it  = laneIndices.begin();
+    decltype(laneIndices)::const_iterator it = laneIndices.begin();
     decltype(laneIndices)::const_iterator end = laneIndices.end();
     for (; it != end; ++it) {
         size_t idx = *it;
@@ -142,7 +144,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
-    using ValueType     = typename QueryIterator::value_type;
+    using ValueType = typename QueryIterator::value_type;
 
     std::vector<std::future<QueryIterator>> futures;
     std::queue<APIIterator<ValueType>> iterQueue;
@@ -190,11 +192,10 @@ StatusIterator DistFDB::status(const FDBToolRequest& request) {
     return queryInternal(request, [](FDB& fdb, const FDBToolRequest& request) { return fdb.status(request); });
 }
 
-WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+// DIST FDB WILL BE REMOVED IN A FUTURE UPDATE
+WipeStateIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
-    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
-        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
-    });
+    NOTIMP;
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

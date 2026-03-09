@@ -40,10 +40,10 @@ struct TocRecord {
     /// and does not require bumping the format version (making roll-out more straightforward).
 
     enum {
-        TOC_NULL    = 0,
-        TOC_INIT    = 't',
-        TOC_INDEX   = 'i',
-        TOC_CLEAR   = 'c',
+        TOC_NULL = 0,
+        TOC_INIT = 't',
+        TOC_INDEX = 'i',
+        TOC_CLEAR = 'c',
         TOC_SUB_TOC = 's'
     };
 

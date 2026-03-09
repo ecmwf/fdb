@@ -11,7 +11,7 @@ namespace cdv = chunked_data_view;
 std::unique_ptr<eckit::DataHandle> makeHandle(const std::vector<double>& values) {
     const size_t size = values.size() * sizeof(std::decay_t<decltype(values)>::value_type) + 2 * sizeof(size_t);
     const size_t bytesPerValue = 8;
-    auto handle                = std::make_unique<eckit::MemoryHandle>(size);
+    auto handle = std::make_unique<eckit::MemoryHandle>(size);
     size_t _{};
     handle->openForWrite(_);
 
@@ -82,7 +82,7 @@ struct FakeExtractor : public cdv::Extractor {
             if (!res) {
                 break;
             }
-            const auto& key   = std::get<0>(*res);
+            const auto& key = std::get<0>(*res);
             auto& data_handle = std::get<1>(*res);
             data_handle->openForRead();
 
@@ -116,8 +116,9 @@ CASE("ChunkedDataView | Single part - no extension axis") {
                 });
             }))
         .addPart(keys,
-                 {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                  cdv::AxisDefinition{{"param"}, true}},
+                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                  std::make_unique<FakeExtractor>())
         .build();
 }
@@ -145,12 +146,14 @@ CASE("ChunkedDataView | Two parts - no extension axis | Expected FAILURE") {
                                   });
                           }))
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .build());
 }
@@ -177,8 +180,9 @@ CASE("ChunkedDataView | One part - extension axis set") {
                 });
             }))
         .addPart(keys,
-                 {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                  cdv::AxisDefinition{{"param"}, true}},
+                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                  std::make_unique<FakeExtractor>())
         .extendOnAxis(1)
         .build();
@@ -207,8 +211,9 @@ CASE("ChunkedDataView | One part - extension axis set | Invalid extension axis i
                 });
             }))
         .addPart(keys,
-                 {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                  cdv::AxisDefinition{{"param"}, true}},
+                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                  std::make_unique<FakeExtractor>())
         .extendOnAxis(2)
         .build();
@@ -239,12 +244,14 @@ CASE(
                                   });
                           }))
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .extendOnAxis(3)
                       .build());
@@ -283,12 +290,14 @@ CASE("ChunkedDataView | Two parts - extension axis set to 0 | Mismatching parame
                                   });
                           }))
                       .addPart(keys_part_1,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .addPart(keys_part_2,
-                               {cdv::AxisDefinition{{"date"}, true}, cdv::AxisDefinition{{"time"}, true},
-                                cdv::AxisDefinition{{"param"}, true}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{}}},
                                std::make_unique<FakeExtractor>())
                       .extendOnAxis(0)
                       .build());

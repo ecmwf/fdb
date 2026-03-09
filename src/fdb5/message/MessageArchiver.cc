@@ -51,9 +51,11 @@ std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
-    LOG_DEBUG_LIB(LibFdb5) << "Parsed requests:" << std::endl;
-    for (auto j = p.begin(); j != p.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
+        for (auto j = p.begin(); j != p.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     // expand requests
@@ -63,9 +65,11 @@ std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Expanded requests:" << std::endl;
-    for (auto j = v.begin(); j != v.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
+        for (auto j = v.begin(); j != v.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     return v;
@@ -73,8 +77,9 @@ std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
 std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
 
-    if (str.empty())
+    if (str.empty()) {
         return {};
+    }
 
     std::set<std::string> keys = Key::parse(str).keys();  //< keys to filter from that request
 
@@ -114,8 +119,9 @@ void MessageArchiver::transform(eckit::message::Message& msg) {
 
 static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
     for (auto r = v.begin(); r != v.end(); ++r) {
-        if (f.matches(*r))
+        if (f.matches(*r)) {
             return true;
+        }
     }
     return false;
 }
@@ -133,13 +139,15 @@ bool MessageArchiver::filterOut(const Key& k) const {
 
     // filter includes
 
-    if (include_.size() && not matchAny(field, include_))
+    if (include_.size() && not matchAny(field, include_)) {
         return out;
+    }
 
     // filter excludes
 
-    if (exclude_.size() && matchAny(field, exclude_))
+    if (exclude_.size() && matchAny(field, exclude_)) {
         return out;
+    }
 
     // datum wasn't filtered out
 
@@ -149,12 +157,13 @@ bool MessageArchiver::filterOut(const Key& k) const {
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     std::optional<eckit::Timer> timer;
-    if (verbose_)
+    if (verbose_) {
         timer.emplace("fdb::service::archive");
+    }
 
     eckit::message::Reader reader(source);
 
-    size_t count      = 0;
+    size_t count = 0;
     size_t total_size = 0;
 
     eckit::Progress progress("FDB archive", 0, source.estimate());
@@ -182,8 +191,9 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             ASSERT(key.match(key_));
 
-            if (filterOut(key))
+            if (filterOut(key)) {
                 continue;
+            }
 
             if (modifiers_.size()) {
                 transform(msg);
