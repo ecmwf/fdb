@@ -211,9 +211,7 @@ def test_list_backward_compat_to_by_list_of_str(read_only_fdb_setup):
         _ = list(fdb.list(selection))
 
 
-def test_list_backward_compat_list_relative_dates_list(
-    empty_fdb_setup, build_grib_messages_relative_dates
-):
+def test_list_backward_compat_list_relative_dates_list(empty_fdb_setup, build_grib_messages_relative_dates):
     fdb = FDB(empty_fdb_setup)
 
     with fdb:
@@ -245,9 +243,7 @@ def test_list_backward_compat_list_relative_dates_list(
     assert len(elements) == 9
 
 
-def test_list_backward_compat_list_relative_dates_list_of_str(
-    empty_fdb_setup, build_grib_messages_relative_dates
-):
+def test_list_backward_compat_list_relative_dates_list_of_str(empty_fdb_setup, build_grib_messages_relative_dates):
     fdb = FDB(empty_fdb_setup)
 
     with fdb:
@@ -272,9 +268,7 @@ def test_list_backward_compat_list_relative_dates_list_of_str(
         _ = list(fdb.list(selection_inconsistent))
 
 
-def test_list_backward_compat_list_relative_dates_str(
-    empty_fdb_setup, build_grib_messages_relative_dates
-):
+def test_list_backward_compat_list_relative_dates_str(empty_fdb_setup, build_grib_messages_relative_dates):
     fdb = FDB(empty_fdb_setup)
 
     with fdb:
@@ -301,9 +295,7 @@ def test_list_backward_compat_list_relative_dates_str(
     assert len(elements) == 9
 
 
-def test_list_backward_compat_list_relative_dates_to_str(
-    empty_fdb_setup, build_grib_messages_relative_dates
-):
+def test_list_backward_compat_list_relative_dates_to_str(empty_fdb_setup, build_grib_messages_relative_dates):
     fdb = FDB(empty_fdb_setup)
 
     with fdb:
@@ -329,9 +321,7 @@ def test_list_backward_compat_list_relative_dates_to_str(
     assert len(elements) == 9
 
 
-def test_list_backward_compat_list_relative_dates_to_by_str(
-    empty_fdb_setup, build_grib_messages_relative_dates
-):
+def test_list_backward_compat_list_relative_dates_to_by_str(empty_fdb_setup, build_grib_messages_relative_dates):
     fdb = FDB(empty_fdb_setup)
 
     with fdb:

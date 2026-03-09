@@ -67,9 +67,7 @@ class UserInputMapper:
                 else:
                     result[key] = [values]
             else:
-                raise ValueError(
-                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
-                )
+                raise ValueError(f"Unknown type for key: {key}. Type must be int, float, str or a collection of those.")
 
         return result
 
@@ -86,9 +84,7 @@ class UserInputMapper:
             elif isinstance(values, (str, int, float)):
                 result[key] = str(values)
             else:
-                raise ValueError(
-                    f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
-                )
+                raise ValueError(f"Unknown type for key: {key}. Type must be int, float, str or a collection of those.")
 
         return result
 
@@ -109,9 +105,7 @@ class UserInputMapper:
 
         for k, v in iterator:
             if k in key_values:
-                raise KeyError(
-                    f"Identifier: Key {k} already exists in Identifier: {str(key_values)}"
-                )
+                raise KeyError(f"Identifier: Key {k} already exists in Identifier: {str(key_values)}")
 
             if isinstance(v, list) or "/" in v:
                 raise ValueError(
@@ -268,9 +262,7 @@ class DataHandle:
         >>>     data_handle.read(-1) # Read the entire file
         """
         if self.opened is False:
-            raise RuntimeError(
-                "DataHandle: Read occured before the handle was opened. Must be opened first."
-            )
+            raise RuntimeError("DataHandle: Read occured before the handle was opened. Must be opened first.")
 
         if len == -1:
             len = self.dataHandle.size()
@@ -311,9 +303,7 @@ class DataHandle:
         >>>     dst_read_into.seek(0)
         """
         if self.opened is False:
-            raise RuntimeError(
-                "DataHandle: Read occured before the handle was opened. Must be opened first."
-            )
+            raise RuntimeError("DataHandle: Read occured before the handle was opened. Must be opened first.")
 
         # Buffer is a writable buffer (memoryview)
         return self.dataHandle.read(buffer)
@@ -447,9 +437,7 @@ class URI:
     def __init__(self, uri: str | Path, scheme: str = "", allow_fragments=True) -> None:
         uri = uri.as_posix() if isinstance(uri, Path) else uri
 
-        self._uri: parse.SplitResult = parse.urlsplit(
-            str(uri), scheme=scheme, allow_fragments=allow_fragments
-        )
+        self._uri: parse.SplitResult = parse.urlsplit(str(uri), scheme=scheme, allow_fragments=allow_fragments)
 
     def __eq__(self, value: object, /) -> bool:
         if isinstance(value, URI):
