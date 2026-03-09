@@ -11,6 +11,7 @@ import pathlib
 import shutil
 from collections.abc import Generator
 
+from findlibs import Path
 import git
 import pytest
 import yaml
@@ -47,6 +48,13 @@ def test_data_path() -> pathlib.Path:
     path = git_root / "tests" / "fdb" / "e2e" / "data"
     assert path.exists()
     return path
+
+
+@pytest.fixture(scope="function")
+def get_git_root() -> Path:
+    git_repo = git.Repo(__file__, search_parent_directories=True)
+    git_root = git_repo.git.rev_parse("--show-toplevel")
+    return Path(git_root)
 
 
 @pytest.fixture(scope="session")
@@ -144,8 +152,6 @@ def simple_fdb_setup(data_path, function_tmp) -> pathlib.Path:
     Creates a FDB setup in this tests temp directory.
     This setup can be shared between tests
     """
-
-    print(f"TEMP FOLDER FOR FIXTURE IS: {function_tmp}")
 
     ### echo "Using root for rd experiments: ${FDB5_ROOT}"
     ###

@@ -1,17 +1,11 @@
-from pathlib import Path
-from pyfdb import FDB
-
-from pyfdb.pyfdb_iterator import ListElement
-from util.tools import Tool
-import pytest
 import datetime
+from pathlib import Path
 
-# grib_set -s class=rd,expver=xxxx,type=fc,step=0 "{{ SOURCE_DATA }}" data.xxxx.0.grib
-# grib_set -s class=rd,expver=xxxx,type=fc,step=1 "{{ SOURCE_DATA }}" data.xxxx.1.grib
-# grib_set -s class=rd,expver=xxxx,type=fc,step=2 "{{ SOURCE_DATA }}" data.xxxx.2.grib
-# grib_set -s class=rd,expver=xxxy,type=fc,step=0 "{{ SOURCE_DATA }}" data.xxxy.0.grib
-# grib_set -s class=rd,expver=xxxy,type=fc,step=1 "{{ SOURCE_DATA }}" data.xxxy.1.grib
-# grib_set -s class=rd,expver=xxxy,type=fc,step=2 "{{ SOURCE_DATA }}" data.xxxy.2.grib
+import pytest
+from python_api.util.tools import Tool
+
+from pyfdb import FDB
+from pyfdb.pyfdb_iterator import ListElement
 
 
 def generate_test_files_expver_step(source_file_path, function_tmp):
@@ -96,7 +90,7 @@ def generate_test_files_key_value(
         output_file_names: Names of the output files
 
     Returns:
-        [TODO:return]
+        target_files - A list of paths to the created files
     """
     assert len(key_value_list) == len(output_file_names)
 
@@ -180,9 +174,7 @@ def test_list_all_including_masked(simple_fdb_setup, data_path, function_tmp):
             for step in range(0, 3):
                 # Check that for every of the given test files there are exact 24 entries
                 # In the second loop, those are masked and should return twice as many elements
-                list_elements = list(
-                    fdb.list({"class": "rd", "expver": expver, "step": step}, include_masked=True)
-                )
+                list_elements = list(fdb.list({"class": "rd", "expver": expver, "step": step}, include_masked=True))
                 assert len(list_elements) == 24 * (i + 1)
 
                 # Also check that without the masked elements we only retain 24 elements
@@ -205,9 +197,7 @@ def test_list_location(simple_fdb_setup, data_path, function_tmp):
     assert len(list_elements) == 24
 
     # Check total amount of elements at time 0000
-    list_elements: list[ListElement] = list(
-        fdb.list({"class": "rd", "expver": "xxxx", "time": "0000"})
-    )
+    list_elements: list[ListElement] = list(fdb.list({"class": "rd", "expver": "xxxx", "time": "0000"}))
 
     locations = []
 
@@ -216,9 +206,7 @@ def test_list_location(simple_fdb_setup, data_path, function_tmp):
         assert el.uri
         locations.append(el.uri)
 
-    assert len(locations) == 12, (
-        "Wrong amount of archived data for expver 'xxxx' and time '0000' should be 12"
-    )
+    assert len(locations) == 12, "Wrong amount of archived data for expver 'xxxx' and time '0000' should be 12"
 
     for el in list_elements:
         print(f"{el}")
@@ -261,11 +249,6 @@ def test_list_masking(simple_fdb_setup, data_path, function_tmp):
     list_elements = list(fdb.list({}, include_masked=True))
     assert len(list_elements) == 96
 
-    #  {{FDB_PATH}}fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
-    #  [[ "$(wc -l < out)" != "48" ]] && echo "Entries should be masked without --full" && exit -1
-    #  {{FDB_PATH}}fdb-list class=rd,expver=xxxx,date=-1/20170101,stream=oper,type=an,levtype=pl,param=155/138,levelist=300/400/500/700/850/1000 --porcelain --full | tee out
-    #  [[ "$(wc -l < out)" != "96" ]] && echo "All entries should be visible with --full" && exit -1
-
     # Check total amount of elements in the FDB with masked included
     selection = {
         "class": "rd",
@@ -304,6 +287,174 @@ def test_list_masking(simple_fdb_setup, data_path, function_tmp):
 # TODO(TKR): Should we include a test case for the minimum keys or is this not necessary due to the tools not being covered
 
 
-def test_list_ranges(simple_fdb_setup, data_path, function_tmp):
-    # TODO(TKR): Implement
-    pass
+def test_list_ranges_include_masked(simple_fdb_setup, data_path, function_tmp):
+    fdb = FDB(simple_fdb_setup)
+
+    yesterday = f"{(datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')}"
+
+    source_file_path = data_path / "oper.grib"
+    target_files = generate_test_files_key_value(
+        source_file_path,
+        function_tmp,
+        [
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", int(yesterday)),
+            ],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", 20170101),
+            ],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", 20180101),
+            ],
+        ],
+        ["xxxx.d1", "xxxx.d2", "xxxx.d3"],
+    )
+
+    with fdb:
+        for target_file in target_files:
+            fdb.archive(target_file.read_bytes())
+
+    all_entries = list(fdb.list({}, include_masked=True))
+    assert len(all_entries) == 72
+
+    all_entries = list(fdb.list({}))
+    assert len(all_entries) == 72
+
+
+request_entries_tuples = [
+    ({"class": "rd", "expver": "xxxx", "date": "-1"}, 24),
+    ({"class": "rd", "expver": "xxxx", "date": "-1/20170101"}, 48),
+    ({"class": "rd", "expver": "xxxx", "date": ["-1", "20170101"]}, 48),
+    ({"class": "rd", "expver": "xxxx", "date": "-1/20170101/20180101"}, 72),
+    ({"class": "rd", "expver": "xxxx", "date": ["-1", "20170101", "20180101"]}, 72),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101"],
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "param": 60,
+        },
+        0,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": "20060101",
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "param": 155,
+        },
+        0,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101", "20060101"],
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "param": 155,
+        },
+        36,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101", "20060101"],  # date 20060101 is not available
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "param": [155, 138],
+        },
+        72,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101", "20060101"],  # date 20060101 is not available
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "param": [155, 60, 138],  # param 60 not available
+        },
+        72,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101", "20060101"],  # date 20060101 is not available
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "levelist": "300/400/500/700/850/1000",
+            "param": [155, 60, 138],  # param 60 not available
+        },
+        72,
+    ),
+    (
+        {
+            "class": "rd",
+            "expver": "xxxx",
+            "date": ["-1", "20170101", "20180101", "20060101"],  # date 20060101 is not available
+            "stream": "oper",
+            "type": "an",
+            "levtype": "pl",
+            "levelist": "300/123/1000",
+            "param": [155, 60, 138],  # param 60 not available
+        },
+        24,
+    ),
+]
+
+
+@pytest.mark.parametrize("selection, expected_entries", request_entries_tuples)
+def test_list_ranges(simple_fdb_setup, data_path, function_tmp, selection, expected_entries):
+    fdb = FDB(simple_fdb_setup)
+
+    yesterday = f"{(datetime.date.today() - datetime.timedelta(days=1)).strftime('%Y%m%d')}"
+
+    source_file_path = data_path / "oper.grib"
+    target_files = generate_test_files_key_value(
+        source_file_path,
+        function_tmp,
+        [
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", int(yesterday)),
+            ],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", 20170101),
+            ],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("date", 20180101),
+            ],
+        ],
+        ["xxxx.d1", "xxxx.d2", "xxxx.d3"],
+    )
+
+    with fdb:
+        for target_file in target_files:
+            fdb.archive(target_file.read_bytes())
+
+    all_entries = list(fdb.list(selection))
+    assert len(all_entries) == expected_entries
