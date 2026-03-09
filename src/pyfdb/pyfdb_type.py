@@ -6,9 +6,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from collections.abc import Collection, Mapping
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
-from typing import Collection, Dict, List, Mapping, Tuple
 from urllib import parse
 
 from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle
@@ -21,7 +21,7 @@ Selection part of a MARS request.
 This is a key-value map, with the data types allowed below
 """
 
-MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
+MarsIdentifier = list[tuple[str, str]] | dict[str, str]
 """
 This is the representation of a MARS identifier
 

@@ -138,7 +138,7 @@ def test_list_backward_compat_list_of_str_list(read_only_fdb_setup):
     }
 
     with pytest.raises(RuntimeError, match="UserError: Bad value"):
-        elements = list(fdb.list(selection))
+        _ = list(fdb.list(selection))
 
 
 def test_list_backward_compat_to_by_list(read_only_fdb_setup):
