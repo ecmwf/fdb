@@ -21,16 +21,16 @@ fdb-hide class=rd,expver=xxxx,stream=oper,domain=g,date=$YESTERDAY,time=1200 --d
 fdb-list --all --minimum-keys="" --porcelain --full | tee out
 [[ "$(wc -l < out| tr -d '[:space:]')" != "24" ]] && echo "Unexpected visible data" && exit -1
 
-# When we do {{FDB_PATH}}fdb-wipe, we also wipe the hidden data
+# When we do fdb-wipe, we also wipe the hidden data
 
-[[ "$(find -name toc | wc -l| tr -d '[:space:]')" != "2" ]] && "Incorrect data present" && exit -1
-[[ "$(find -name "*.data" | wc -l| tr -d '[:space:]')" != "4" ]] && "Incorrect data present" && exit -1
-[[ "$(find -name "*.index" | wc -l| tr -d '[:space:]')" != "4" ]] && "Incorrect data present" && exit -1
+[[ "$(find . -name toc | wc -l| tr -d '[:space:]')" != "2" ]] && "Incorrect data present" && exit -1
+[[ "$(find . -name "*.data" | wc -l| tr -d '[:space:]')" != "4" ]] && "Incorrect data present" && exit -1
+[[ "$(find . -name "*.index" | wc -l| tr -d '[:space:]')" != "4" ]] && "Incorrect data present" && exit -1
 
 fdb-wipe class=rd,expver=xxxx --minimum-keys="" --doit
 
-[[ "$(find -name toc | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
-[[ "$(find -name "*.data" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
-[[ "$(find -name "*.index" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
+[[ "$(find . -name toc | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
+[[ "$(find . -name "*.data" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
+[[ "$(find . -name "*.index" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
 
 exit 0

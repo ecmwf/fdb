@@ -19,6 +19,10 @@ def search_test_sh_files_hide():
     return sorted((get_git_root(__file__) / "tests" / "fdb_e2e" / "tool_tests" / "hide").glob("**/*.sh"))
 
 
+def search_test_sh_files_grib2fdb5():
+    return sorted((get_git_root(__file__) / "tests" / "fdb_e2e" / "tool_tests" / "grib2fdb5").glob("**/*.sh"))
+
+
 @pytest.fixture(scope="function")
 def test_data_path() -> pathlib.Path:
     """
@@ -35,12 +39,18 @@ def test_data_path() -> pathlib.Path:
 def pytest_generate_tests(metafunc):
     if "info_script" in metafunc.fixturenames:
         # Collect your elements here
-        elements = search_test_sh_files_info()  # your custom function
+        elements = search_test_sh_files_info()
 
         metafunc.parametrize("info_script", elements, ids=[str(e) for e in elements])
 
     if "hide_script" in metafunc.fixturenames:
         # Collect your elements here
-        elements = search_test_sh_files_hide()  # your custom function
+        elements = search_test_sh_files_hide()
 
         metafunc.parametrize("hide_script", elements, ids=[str(e) for e in elements])
+
+    if "grib2fdb5_script" in metafunc.fixturenames:
+        # Collect your elements here
+        elements = search_test_sh_files_grib2fdb5()
+
+        metafunc.parametrize("grib2fdb5_script", elements, ids=[str(e) for e in elements])
