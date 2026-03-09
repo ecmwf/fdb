@@ -201,29 +201,30 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
     assert len(index_axis.keys()) == 11
 
     for key in [
-        "type",
         "class",
+        "date",
         "domain",
         "expver",
-        "stream",
-        "date",
+        "levelist",
         "levtype",
-        "step",
         "param",
+        "step",
+        "stream",
         "time",
+        "type",
     ]:
         assert key in index_axis
 
     assert index_axis["class"] == ["ea"]
-    assert index_axis["domain"] == ["g"]
     assert index_axis["date"] == ["20200101"]
+    assert index_axis["domain"] == ["g"]
     assert index_axis["expver"] == ["0001"]
-    assert index_axis["stream"] == ["oper"]
-    assert index_axis["time"] == ["1800"]
     assert index_axis["levelist"] == [""]
-    assert index_axis["type"] == ["an"]
+    assert index_axis["levtype"] == ["sfc"]
     assert index_axis["param"] == ["131", "132", "167"]
     assert index_axis["step"] == ["0"]
+    assert index_axis["stream"] == ["oper"]
+    assert index_axis["time"] == ["1800"]
     assert index_axis["type"] == ["an"]
 
     assert "non-existing-key" not in index_axis

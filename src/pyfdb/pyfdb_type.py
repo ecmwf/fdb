@@ -80,12 +80,10 @@ class UserInputMapper:
         for key, values in selection.items():
             # Values is a list of values but not a single string
             if isinstance(values, Collection) and not isinstance(values, str):
-                converted_values = [
-                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
-                ]
+                converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+            elif isinstance(values, (str, int, float)):
                 result[key] = str(values)
             else:
                 raise ValueError(
