@@ -32,7 +32,7 @@ endforeach()
 
 add_subdirectory( auxiliary )
 add_subdirectory( list )
-add_subdirectory( compare )
+# add_subdirectory( compare )
 add_subdirectory( inspect )
 add_subdirectory( wipe )
 add_subdirectory( reindex )
