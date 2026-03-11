@@ -384,7 +384,7 @@ method:     Integer;
                [ step, param, frequency?, direction? ]]
        [ type=me, levtype=ml, timespan?none
                [ step?, number-, levelist, param, coeffindex? ]]
-       [ type=4i, levtype=ml, tmespan?
+       [ type=4i, levtype=ml, timespan?none
                [ step, iteration, levelist, param ]]
        [ type=4v, levtype=ml/pl/sol/layer/o3d/pv/pt, timespan?none
                [ step, levelist, param ]]
