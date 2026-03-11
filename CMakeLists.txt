@@ -31,7 +31,7 @@ ecbuild_add_option( FEATURE FDB_DOCUMENTATION
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.33 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.32.5 REQUIRED )
 
 ### GRIB support
 
@@ -42,6 +42,8 @@ ecbuild_add_option( FEATURE GRIB
                     CONDITION eccodes_FOUND
                     DESCRIPTION "Support for GRIB via eccodes")
 
+## accepting a version that pre-dates SyncRelease 2026.02 to enable compatibility with multio 2.7.0 (used in 50r1)
+## fdb-compare and fdb-patch require metkit >= 1.16
 ecbuild_find_package( NAME metkit VERSION 1.15 REQUIRED )
 
 ### FDB backend in CEPH object store (using Rados)
