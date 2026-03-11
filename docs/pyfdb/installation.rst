@@ -67,7 +67,7 @@ Place the following ``CMakeLists.txt`` in it
 
     cmake_minimum_required( VERSION 3.18 FATAL_ERROR )
 
-    find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} $ENV{HOME}/.local/ecbuild)
+    find_package( ecbuild 3.8 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} $ENV{HOME}/.local/ecbuild)
 
     project( ecmwf_stack_bundle VERSION 0.0.1 LANGUAGES CXX)
 
@@ -77,11 +77,11 @@ Place the following ``CMakeLists.txt`` in it
 
     ecbuild_bundle_initialize()
 
-    ecbuild_bundle( PROJECT eckit       GIT "ssh://git@github.com/ecmwf/eckit"        BRANCH develop    MANUAL )
-    ecbuild_bundle( PROJECT eccodes     GIT "ssh://git@github.com/ecmwf/eccodes"      TAG 2.46.0        UPDATE )
+    ecbuild_bundle( PROJECT eckit       GIT "ssh://git@github.com/ecmwf/eckit"        BRANCH develop    UPDATE )
+    ecbuild_bundle( PROJECT eccodes     GIT "ssh://git@github.com/ecmwf/eccodes"      BRANCH develop    UPDATE )
     ecbuild_bundle( PROJECT metkit      GIT "ssh://git@github.com/ecmwf/metkit"       BRANCH develop    UPDATE )
-    ecbuild_bundle( PROJECT fdb         GIT "ssh://git@github.com/ecmwf/fdb"          BRANCH develop    MANUAL )
-    ecbuild_bundle( PROJECT gribjump    GIT "ssh://git@github.com/ecmwf/gribjump"     BRANCH develop    MANUAL )
+    ecbuild_bundle( PROJECT fdb         GIT "ssh://git@github.com/ecmwf/fdb"          BRANCH develop    UPDATE )
+    ecbuild_bundle( PROJECT gribjump    GIT "ssh://git@github.com/ecmwf/gribjump"     BRANCH develop    UPDATE )
 
     ecbuild_bundle_finalize()
 
