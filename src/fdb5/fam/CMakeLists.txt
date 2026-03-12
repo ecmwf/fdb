@@ -9,6 +9,18 @@ if( HAVE_FAMFDB )
         fam/FamCommon.cc
         fam/FamStore.h
         fam/FamStore.cc
+        fam/FamIndexLocation.h
+        fam/FamIndexLocation.cc
+        fam/FamIndex.h
+        fam/FamIndex.cc
+        fam/FamCatalogue.h
+        fam/FamCatalogue.cc
+        fam/FamCatalogueReader.h
+        fam/FamCatalogueReader.cc
+        fam/FamCatalogueWriter.h
+        fam/FamCatalogueWriter.cc
+        fam/FamEngine.h
+        fam/FamEngine.cc
     )
 endif()
 
