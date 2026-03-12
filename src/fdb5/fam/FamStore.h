@@ -46,6 +46,7 @@ class FamStore : protected FamCommon, public Store {
 
 private:  // types
 
+    // NOTE: Stats is mutated from const methods (retrieve) and is not thread-safe.
     struct Stats {
         size_t archived{0};
         size_t retrieved{0};

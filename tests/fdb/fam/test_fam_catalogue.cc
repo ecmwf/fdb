@@ -63,7 +63,7 @@ const std::string test_config =
     "type: local\n"
     "schema: ./schema\n"
     "store: fam\n"
-    "catalogue: toc\n"
+    "catalogue: fam\n"
     "spaces:\n"
     "- handler: Default\n"
     "  roots:\n"
@@ -74,7 +74,6 @@ const std::string test_config =
     "\n"
     "  writable: true\n"
     "  visit: true\n";
-
 
 }  // namespace
 
@@ -96,11 +95,6 @@ CASE("FamCatalogue: Archive, Retrieve, Remove") {
     const fam::FamSetup setup(test_schema, test_config);
 
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    // const auto& schema = config.schema();
-    // const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
-    // fdb5::FamStore famStore(storeKey, config);
-    // auto& store = static_cast<fdb5::Store&>(famStore);
 
     fdb5::FDB fdb(config);
 
@@ -159,7 +153,6 @@ CASE("FamCatalogue: Archive, Retrieve, Remove") {
                               {"fam3b", "val3b"},
                               {"fam3c", "val33c"}});
 
-
         fdb.archive(key, data, data_length);
         fdb.flush();
 
@@ -173,7 +166,6 @@ CASE("FamCatalogue: Archive, Retrieve, Remove") {
     }
 
     //------------------------------------------------------------------------------------------------------------------
-
 
     {
         TEST_LOG_INFO("LIST BOTH ARCHIVED DATA");
@@ -215,7 +207,6 @@ CASE("FamCatalogue: Archive, Retrieve, Remove") {
         EXPECT_EQUAL(retrieved.size(), eckit::Length(data_length));
         EXPECT_EQUAL(::memcmp(retrieved.data(), data, data_length), 0);
     }
-
 
     // handle->seek(-length);  // seek back (because of field loc)
     // fam::readAndValidate(handle.get(), value, length);

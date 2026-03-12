@@ -59,26 +59,26 @@ eckit::URI FamStore::uri(const eckit::URI& dataURI) {
     return eckit::FamObjectName(dataURI).uri();
 }
 
-auto FamStore::uri() const -> eckit::URI {
+eckit::URI FamStore::uri() const {
     return FamCommon::uri();
 }
 
-auto FamStore::exists() const -> bool {
+bool FamStore::exists() const {
     return FamCommon::exists();
 }
 
-auto FamStore::uriBelongs(const eckit::URI& uri) const -> bool {
+bool FamStore::uriBelongs(const eckit::URI& uri) const {
     return root_.uriBelongs(uri);
 }
 
-auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
+bool FamStore::uriExists(const eckit::URI& uri) const {
     ASSERT(uriBelongs(uri));
     return eckit::FamObjectName(uri).exists();
 }
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
-    auto archived = stats_.archived;
+    auto archived   = stats_.archived;
     stats_.archived = 0;
     return archived;
 }
@@ -94,7 +94,9 @@ std::set<eckit::URI> FamStore::collocatedDataURIs() const {
 std::set<eckit::URI> FamStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
     std::set<eckit::URI> res;
     for (const auto& uri : uris) {
-        ASSERT(uriBelongs(uri));
+        if (!uriBelongs(uri)) {
+            throw eckit::BadValue("FamStore: URI does not belong to this store: " + uri.asString());
+        }
         res.insert(uri);
     }
     return res;
@@ -105,17 +107,19 @@ std::vector<eckit::URI> FamStore::getAuxiliaryURIs(const eckit::URI& uri, bool /
     return {};
 }
 
-auto FamStore::makeObject(const Key& key) const -> eckit::FamObjectName {
+eckit::FamObjectName FamStore::makeObject(const Key& key) const {
+    // The human-readable stem is used only as a debugging hint; withUUID() replaces
+    // the region+object path entirely with a UUID, so the stem is not persisted.
     const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived);
     return root_.object(object_name).withUUID();
 }
 
-auto FamStore::retrieve(Field& field) const -> eckit::DataHandle* {
+eckit::DataHandle* FamStore::retrieve(Field& field) const {
     stats_.retrieved++;
     return field.dataHandle();
 }
 
-auto FamStore::archive(const Key& key, const void* data, eckit::Length length) -> std::unique_ptr<const FieldLocation> {
+std::unique_ptr<const FieldLocation> FamStore::archive(const Key& key, const void* data, eckit::Length length) {
     auto object = makeObject(key);
 
     LOG_DEBUG_LIB(LibFdb5) << "FamStore archiving object: " << object << '\n';
@@ -142,93 +146,74 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     logAlways << uri << '\n';
 
     if (doit) {
-        root_.object(eckit::FamPath(uri).objectName).lookup().deallocate();
+        const auto name = root_.object(eckit::FamPath(uri).objectName);
+        if (name.exists()) {
+            name.lookup().deallocate();
+        } else {
+            LOG_DEBUG_LIB(LibFdb5) << "FamStore::remove: object already absent: " << uri << '\n';
+        }
     }
 }
 
 void FamStore::finaliseWipeState(StoreWipeState& storeState, bool /*doit*/, bool /*unsafeWipeAll*/) {
 
-    throw ::eckit::NotImplemented("FamStore::finaliseWipeState is WIP", Here());
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();
 
-    // const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();
-    //
-    // if (dataURIs.empty()) {
-    //     return;
-    // }
-    //
-    // if (!root_.exists()) {
-    //     storeState.markAllMissing();
-    //     return;
-    // }
-    //
-    // for (const auto& uri : dataURIs) {
-    //     if (!uriBelongs(uri)) {
-    //         std::stringstream msg;
-    //         msg << "FamStore::finaliseWipeState: Index to be deleted has pointers to fields that don't belong to the
-    //         "
-    //                 "configured store."
-    //             << '\n';
-    //         msg << "Configured Store URI: " << this->uri().asString() << '\n';
-    //         msg << "Pointed Store unit URI: " << uri.asString() << '\n';
-    //         msg << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << '\n';
-    //         throw eckit::SeriousBug(msg.str(), Here());
-    //     }
-    //
-    //     if (!uriExists(uri)) {
-    //         storeState.markAsMissing(uri);
-    //     }
-    // }
+    if (dataURIs.empty()) {
+        return;
+    }
+
+    if (!root_.exists()) {
+        storeState.markAllMissing();
+        return;
+    }
+
+    for (const auto& uri : dataURIs) {
+        if (!uriBelongs(uri)) {
+            std::stringstream msg;
+            msg << "FamStore::finaliseWipeState: index to be deleted has pointers to fields that don't belong to the "
+                   "configured store.\n";
+            msg << "Configured store URI: " << this->uri().asString() << '\n';
+            msg << "Field URI: " << uri.asString() << '\n';
+            msg << "Index deletion aborted to avoid leaking fields.";
+            throw eckit::SeriousBug(msg.str(), Here());
+        }
+
+        if (!uriExists(uri)) {
+            storeState.markAsMissing(uri);
+        }
+    }
 }
 
 bool FamStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
-
-    throw ::eckit::NotImplemented("FamStore::doWipeUnknowns is WIP", Here());
-
-    // for (const auto& uri : unknownURIs) {
-    //     if (!uriBelongs(uri)) {
-    //         continue;
-    //     }
-    //     if (uriExists(uri)) {
-    //         remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-    //     }
-    // }
-    //
-    // return true;
+    for (const auto& uri : unknownURIs) {
+        if (!uriBelongs(uri)) {
+            continue;
+        }
+        if (uriExists(uri)) {
+            remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+        }
+    }
+    return true;
 }
 
 bool FamStore::doWipeURIs(const StoreWipeState& wipeState) const {
-
-    throw ::eckit::NotImplemented("FamStore::doWipeURIs is WIP", Here());
-
-    // const bool wipeall = wipeState.safeURIs().empty();
-    //
-    // for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
-    //     remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-    // }
-    //
-    // for (const auto& uri : wipeState.includedDataURIs()) {
-    //     remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-    // }
-    //
-    // if (wipeall) {
-    //     cleanupEmptyDatabase_ = true;
-    // }
-    //
-    // return true;
+    for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    }
+    for (const auto& uri : wipeState.includedDataURIs()) {
+        remove(uri, eckit::Log::info(), eckit::Log::info(), true);
+    }
+    // TODO: when all URIs are consumed and the DB is empty, destroy the FAM region
+    // (doWipeEmptyDatabase). Requires auditing the region-per-DB layout assumption first.
+    return true;
 }
 
 void FamStore::doWipeEmptyDatabase() const {
-
-    throw ::eckit::NotImplemented("FamStore::doWipeEmptyDatabase is WIP", Here());
-
-    // if (!cleanupEmptyDatabase_) {
-    //     return;
-    // }
-    //
-    // if (root_.exists()) {
-    //     root_.lookup().destroy();
-    // }
-    // cleanupEmptyDatabase_ = false;
+    // TODO: destroy the root FAM region once it is confirmed that each DB has its own
+    // dedicated region. If multiple DBs share a single region (as may happen with some
+    // FAM configurations), calling root_.lookup().destroy() would silently delete
+    // neighbour data. Implement only after the region-per-DB layout is enforced.
 }
 
 void FamStore::print(std::ostream& out) const {
