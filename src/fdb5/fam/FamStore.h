@@ -51,7 +51,6 @@ private:  // types
         size_t retrieved{0};
     };
 
-
 public:  // methods
 
     FamStore(const Key& key, const Config& config);
@@ -64,15 +63,15 @@ public:  // methods
 
     ~FamStore() override;
 
-    auto type() const -> std::string override { return FamCommon::type; }
+    std::string type() const override { return FamCommon::type; }
 
     static eckit::URI uri(const eckit::URI& dataURI);
 
-    auto uri() const -> eckit::URI override;
+    eckit::URI uri() const override;
 
-    auto uriBelongs(const eckit::URI& uri) const -> bool override;
+    bool uriBelongs(const eckit::URI& uri) const override;
 
-    auto uriExists(const eckit::URI& uri) const -> bool override;
+    bool uriExists(const eckit::URI& uri) const override;
 
     std::set<eckit::URI> collocatedDataURIs() const override;
 
@@ -80,7 +79,7 @@ public:  // methods
 
     std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
 
-    auto open() -> bool override { return true; }
+    bool open() override { return true; }
 
     size_t flush() override;
 
@@ -98,16 +97,15 @@ public:  // methods
 
     bool doUnsafeFullWipe() const override { return false; }
 
-    auto makeObject(const Key& key) const -> eckit::FamObjectName;
+    eckit::FamObjectName makeObject(const Key& key) const;
 
 protected:  // methods
 
-    auto exists() const -> bool override;
+    bool exists() const override;
 
-    auto retrieve(Field& field) const -> eckit::DataHandle* override;
+    eckit::DataHandle* retrieve(Field& field) const override;
 
-    auto archive(const Key& key, const void* data, eckit::Length length)
-        -> std::unique_ptr<const FieldLocation> override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

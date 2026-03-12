@@ -17,12 +17,12 @@
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
+#include "fdb5/database/FieldLocation.h"
+
 #include <memory>
 
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-
-#include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
 

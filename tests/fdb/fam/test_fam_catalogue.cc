@@ -13,7 +13,7 @@
  * (Grant agreement: 101092984) horizon-opencube.eu
  */
 
-/// @file   test_fam_store.cc
+/// @file   test_fam_catalogue.cc
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
@@ -90,7 +90,7 @@ CASE("FamStore: create test region") {
     }
 }
 
-CASE("FamCatalog: Archive, Retrieve, Remove") {
+CASE("FamCatalogue: Archive, Retrieve, Remove") {
     TEST_LOG_DEBUG("SETUP FDB FAM");
 
     const fam::FamSetup setup(test_schema, test_config);

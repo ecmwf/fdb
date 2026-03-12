@@ -19,7 +19,6 @@
 #include <memory>
 #include <ostream>
 #include <set>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -30,7 +29,6 @@
 #include "eckit/io/fam/FamObject.h"
 #include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamPath.h"
-#include "eckit/io/fam/FamRegion.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
@@ -80,7 +78,7 @@ auto FamStore::uriExists(const eckit::URI& uri) const -> bool {
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
-    auto archived   = stats_.archived;
+    auto archived = stats_.archived;
     stats_.archived = 0;
     return archived;
 }

@@ -33,7 +33,7 @@ namespace fdb5 {
 namespace {
 
 /// @todo handle roots via fam root manager
-auto parseRoot(const Config& config) -> eckit::URI {
+eckit::URI parseRoot(const Config& config) {
     eckit::LocalConfiguration fam;
 
     if (config.has("fam_roots")) {
@@ -47,7 +47,7 @@ auto parseRoot(const Config& config) -> eckit::URI {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-auto FamCommon::toString(const Key& key) -> std::string {
+std::string FamCommon::toString(const Key& key) {
     auto name = key.valuesToString();
     std::replace(name.begin(), name.end(), ':', '-');
     return name;
@@ -67,11 +67,11 @@ FamCommon::FamCommon(const eckit::URI& /*uri*/, const Config& config) : FamCommo
 
 //----------------------------------------------------------------------------------------------------------------------
 
-auto FamCommon::exists() const -> bool {
+bool FamCommon::exists() const {
     return root_.exists();
 }
 
-auto FamCommon::uri() const -> eckit::URI {
+eckit::URI FamCommon::uri() const {
     return root_.uri();
 }
 

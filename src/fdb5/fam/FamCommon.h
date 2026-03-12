@@ -34,7 +34,7 @@ class Config;
 struct FamCommon {
     static constexpr auto type = eckit::FamPath::scheme;
 
-    static auto toString(const Key& key) -> std::string;
+    static std::string toString(const Key& key);
 
     FamCommon(const FamCommon&)            = delete;
     FamCommon& operator=(const FamCommon&) = delete;
@@ -45,16 +45,15 @@ struct FamCommon {
 
     explicit FamCommon(const eckit::URI& root);
 
-
     FamCommon(const Key& key, const Config& config);
 
     FamCommon(const eckit::URI& uri, const Config& config);
 
     virtual ~FamCommon() = default;
 
-    auto exists() const -> bool;
+    bool exists() const;
 
-    auto uri() const -> eckit::URI;
+    eckit::URI uri() const;
 
     eckit::FamRegionName root_;
 

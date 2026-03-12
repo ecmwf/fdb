@@ -15,10 +15,10 @@
 
 #include "fdb5/fam/FamFieldLocation.h"
 
-#include "eckit/io/fam/FamPath.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
+
+#include "eckit/io/fam/FamPath.h"
 
 namespace fdb5 {
 
