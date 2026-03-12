@@ -7,6 +7,11 @@ import sys
 
 # NOTE this we need to correctly link with fdb5lib version on cd. For local builds feel free to ignore
 version_suffix = os.environ.get("VERSION_SUFFIX", "")
+if version_suffix:
+    version_suffix = f".{version_suffix}"
+    requires_extra = [f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"]
+else:
+    requires_extra = []
 
 
 # NOTE see ci-utils/wheelmaker/buildscripts/setup_utils, we need to get the right abi compat tag
@@ -21,29 +26,14 @@ ext_kwargs = {
     "linux": {"cmdclass": {"bdist_wheel": bdist_wheel_ext}},
 }
 
-if os.environ.get("IS_LOCAL_BUILD", "") != "":
-    # Don't pin the version of the fdb for the local install and rely on findlibs to find the
-    # corresponding version
-    setup(
-        name="pyfdb",
-        version=f"@fdb5_VERSION_STR@{version_suffix}",
-        packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
-        package_data={
-            "pyfdb_bindings": ["*.so", "*.pyd"],
-        },
-        install_requires=["findlibs>=0.1.2"],
-        has_ext_modules=lambda: True,
-        **ext_kwargs[sys.platform],
-    )
-else:
-    setup(
-        name="pyfdb",
-        version=f"@fdb5_VERSION_STR@{version_suffix}",
-        packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
-        package_data={
-            "pyfdb_bindings": ["*.so", "*.pyd"],
-        },
-        install_requires=["findlibs>=0.1.2", f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"],
-        has_ext_modules=lambda: True,
-        **ext_kwargs[sys.platform],
-    )
+setup(
+    name="pyfdb",
+    version=f"@fdb5_VERSION_STR@{version_suffix}",
+    packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
+    package_data={
+        "pyfdb_bindings": ["*.so", "*.pyd"],
+    },
+    install_requires=["findlibs>=0.1.2"] + requires_extra,
+    has_ext_modules=lambda: True,
+    **ext_kwargs[sys.platform],
+)
