@@ -146,4 +146,17 @@ and execute ``pytest``:
 Installation via PyPI
 *********************
 
-**This is currently not available**
+Install the package from pypi in your `venv`:
+
+.. code-block:: sh
+
+   uv venv
+   source .venv/bin/activate
+   uv pip install pyfdb
+
+Set the `FDB_HOME` environment variable accordingly:
+
+.. code-block:: sh
+
+    export FDB_HOME=<path_to_fdb_home>
+
