@@ -16,3 +16,4 @@ compile_commands.json
 __pycache__/
 
 *.swp
+**/*.egg-info/

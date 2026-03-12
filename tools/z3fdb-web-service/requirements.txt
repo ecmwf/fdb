@@ -1,0 +1,9 @@
+quart
+aiohttp
+requests
+build
+zarr
+pyfdb
+httpx
+fsspec
+pydantic
