@@ -47,7 +47,7 @@ private:  // members
 
 void FDBAxisTest::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
-    json_  = args.getBool("json", json_);
+    json_ = args.getBool("json", json_);
     level_ = args.getInt("level", level_);
 }
 

@@ -57,7 +57,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     while (fullEndpoints.size() > 0) {
 
         // select a random endpoint
-        size_t idx                    = std::rand() % fullEndpoints.size();
+        size_t idx = std::rand() % fullEndpoints.size();
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint

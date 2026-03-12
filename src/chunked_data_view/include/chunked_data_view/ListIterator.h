@@ -25,7 +25,7 @@ class ListIteratorInterface {
 
 public:
 
-    virtual ~ListIteratorInterface()                                                        = default;
+    virtual ~ListIteratorInterface() = default;
     virtual std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() = 0;
 };
 

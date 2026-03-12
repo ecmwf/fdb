@@ -72,15 +72,15 @@ void GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
         }
         iterator_empty = false;
 
-        const auto& key       = std::get<0>(*res);
-        auto& data_handle     = std::get<1>(*res);
+        const auto& key = std::get<0>(*res);
+        auto& data_handle = std::get<1>(*res);
         const size_t msgIndex = computeBufferIndex(axes, key);
 
         try {
             eckit::message::Reader reader(*data_handle);
             eckit::message::Message msg{};
 
-            auto copyInto  = ptr + msgIndex * layout.countValues;
+            auto copyInto = ptr + msgIndex * layout.countValues;
             const auto end = copyInto + layout.countValues;
             ASSERT(end - ptr <= len);
 

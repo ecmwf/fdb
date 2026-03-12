@@ -26,7 +26,7 @@ TypeDouble::TypeDouble(const std::string& name, const std::string& type) : Type(
 TypeDouble::~TypeDouble() {}
 
 std::string TypeDouble::toKey(const std::string& value) const {
-    double v     = eckit::Translator<std::string, double>()(value);
+    double v = eckit::Translator<std::string, double>()(value);
     long long ll = static_cast<long long>(v);
 
     if (ll == v) {

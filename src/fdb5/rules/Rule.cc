@@ -47,11 +47,11 @@ namespace {
 class RuleGraph {
     struct RuleNode {
 
-        RuleNode(const RuleNode&)            = delete;
+        RuleNode(const RuleNode&) = delete;
         RuleNode& operator=(const RuleNode&) = delete;
-        RuleNode(RuleNode&&)                 = delete;
-        RuleNode& operator=(RuleNode&&)      = delete;
-        ~RuleNode()                          = default;
+        RuleNode(RuleNode&&) = delete;
+        RuleNode& operator=(RuleNode&&) = delete;
+        ~RuleNode() = default;
 
         explicit RuleNode(const std::string& keyword) : keyword_{keyword} {}
 
@@ -62,8 +62,8 @@ class RuleGraph {
 
 public:  // types
 
-    using value_type     = std::list<RuleNode>;
-    using reference      = eckit::StringList&;
+    using value_type = std::list<RuleNode>;
+    using reference = eckit::StringList&;
     using const_iterator = value_type::const_iterator;
 
 public:  // methods
@@ -295,7 +295,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type    = registry_.lookupType(keyword);
+        const auto& type = registry_.lookupType(keyword);
 
 
         const auto& values = pred->values(request);
@@ -328,7 +328,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
     for (const auto& pred : predicates_) {
 
         const auto& keyword = pred->keyword();
-        const auto& type    = registry_.lookupType(keyword);
+        const auto& type = registry_.lookupType(keyword);
 
         // performance optimization to avoid calling values() on visitor
         if (!pred->optional() && request.countValues(keyword) == 0) {
@@ -403,7 +403,7 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
-    auto it_pred  = predicates_.begin();
+    auto it_pred = predicates_.begin();
 
     for (; it_pred != predicates_.end() && it_value != values.end(); ++it_pred, ++it_value) {
 
@@ -504,7 +504,7 @@ void Rule::check(const Key& key) const {
         const auto& keyword = pred->keyword();
 
         if (const auto [iter, found] = key.find(keyword); found) {
-            const auto& value     = iter->second;
+            const auto& value = iter->second;
             const auto& tidyValue = registry().lookupType(keyword).tidy(value);
             if (value != tidyValue) {
                 std::ostringstream oss;

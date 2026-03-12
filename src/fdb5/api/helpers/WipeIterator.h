@@ -97,9 +97,9 @@ private:  // members
 
 using WipeElements = std::vector<WipeElement>;
 
-using WipeIterator          = APIIterator<WipeElement>;
+using WipeIterator = APIIterator<WipeElement>;
 using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
-using WipeAsyncIterator     = APIAsyncIterator<WipeElement>;
+using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

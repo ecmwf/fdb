@@ -131,8 +131,9 @@ bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning index " << current_.location() << std::endl;
 
-    if (!current_.mayContain(key))
+    if (!current_.mayContain(key)) {
         return false;
+    }
 
     return current_.get(key, fdb5::Key(), field);
 }

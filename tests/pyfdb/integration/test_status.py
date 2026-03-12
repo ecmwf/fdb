@@ -1,5 +1,3 @@
-from typing import List
-
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import StatusElement
 
@@ -30,7 +28,7 @@ def test_status(read_only_fdb_setup):
         "expver": ["0001"],
         "stream": ["oper"],
     }
-    expected_control_identifiers: List[StatusElement] = []
+    expected_control_identifiers: list[StatusElement] = []
 
     for element in elements:
         assert all(

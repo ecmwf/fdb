@@ -46,7 +46,7 @@ public:  // methods
     IndexAxis();
     IndexAxis(eckit::Stream& s, const int version);
 
-    IndexAxis(const IndexAxis&)            = delete;
+    IndexAxis(const IndexAxis&) = delete;
     IndexAxis& operator=(const IndexAxis&) = delete;
 
     IndexAxis(IndexAxis&& rhs) noexcept;

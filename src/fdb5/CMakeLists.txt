@@ -477,6 +477,11 @@ list( APPEND fdb5_tools
 if ( HAVE_GRIB )
     list( APPEND fdb5_tools
         fdb-hammer
+    )
+endif()
+
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
+    list( APPEND fdb5_tools
         fdb-patch
     )
 endif()
@@ -528,7 +533,7 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
-if ( HAVE_GRIB )
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
     ecbuild_add_executable( TARGET    fdb-compare
                             CONDITION HAVE_FDB_BUILD_TOOLS
                             SOURCES   tools/compare/fdb-compare.cc

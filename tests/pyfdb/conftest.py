@@ -10,6 +10,8 @@ import logging
 import pathlib
 from typing import Generator
 
+import datetime
+
 import pytest
 import itertools
 import shutil
@@ -54,6 +56,7 @@ def test_data_path() -> pathlib.Path:
 
 @pytest.fixture(scope="session")
 def session_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
+    """Temporary folder for use in a single session"""
     tmp_dir = tmp_path_factory.mktemp("session_data")
     yield tmp_dir
     shutil.rmtree(str(tmp_dir))
@@ -61,6 +64,7 @@ def session_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
 
 @pytest.fixture(scope="function")
 def function_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
+    """Temporary folder for use in a single function"""
     tmp_function_dir = tmp_path_factory.mktemp("test_data", numbered=True)
     yield tmp_function_dir
     shutil.rmtree(str(tmp_function_dir))
@@ -68,6 +72,11 @@ def function_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
 
 @pytest.fixture(scope="function")
 def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
+    """This fixture is setting up a certain set of GRIB files by using a template GRIB file.
+    For every triple of dates, times and parameters as stated below a new field is created
+    and written to a file. This file path is returned at the end of the method to be usable
+    in other fixtures.
+    """
     template_grib = data_path / "template.grib"
     assert template_grib.is_file()
     template_grib_fd = open(template_grib, "rb")
@@ -158,7 +167,6 @@ def read_only_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
 def read_write_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
-    Test FDB currently reads all grib files in `tests/data`
     This setup can be shared between tests as we will only read
     data from this FDB
     """
@@ -166,3 +174,58 @@ def read_write_fdb_setup(empty_fdb_setup, build_grib_messages) -> pathlib.Path:
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
     return empty_fdb_setup
+
+
+@pytest.fixture(scope="function")
+def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
+    """This fixture is setting up a certain set of GRIB files by using a template GRIB file.
+    For every triple of dates, times and parameters as stated below a new field is created
+    and written to a file. This file path is returned at the end of the method to be usable
+    in other fixtures.
+
+    Note:
+    This is the same as the build_grib_messages fixture but sets the dates to be relative
+    to today.
+    """
+    template_grib = data_path / "template.grib"
+    assert template_grib.is_file()
+    template_grib_fd = open(template_grib, "rb")
+    gid = ec.codes_grib_new_from_file(template_grib_fd)
+    template_grib_fd.close()
+    count_data_points = int(ec.codes_get(gid, "numberOfDataPoints"))
+    count_values = int(ec.codes_get(gid, "numberOfValues"))
+    count_missing = int(ec.codes_get(gid, "numberOfMissing"))
+
+    # This only supports messages without missing datapoints
+    assert count_data_points == count_values
+    assert count_missing == 0
+
+    # Set common keys / data "pattern"
+    ec.codes_set_string(gid, "type", "an")
+    ec.codes_set_string(gid, "class", "ea")
+    ec.codes_set_string(gid, "expver", "0001")
+    ec.codes_set_string(gid, "stream", "oper")
+    ec.codes_set_string(gid, "levtype", "sfc")
+    ec.codes_set_values(gid, list(range(0, count_values)))
+
+    today_date = datetime.date.today()
+
+    today = int(today_date.strftime("%Y%m%d"))
+    yesterday = int((today_date - datetime.timedelta(days=1)).strftime("%Y%m%d"))
+    before_yesterday = int((today_date - datetime.timedelta(days=2)).strftime("%Y%m%d"))
+    before_before_yesterday = int((today_date - datetime.timedelta(days=3)).strftime("%Y%m%d"))
+
+    dates = [before_before_yesterday, before_yesterday, yesterday, today]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
+    parameters = [167, 131, 132]
+
+    messages = session_tmp / "test_data.grib"
+    with open(messages, "wb") as out:
+        for date, time, parameter in itertools.product(dates, times, parameters):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "paramId", parameter)
+            ec.codes_write(gid, out)
+
+    ec.codes_release(gid)
+    return messages

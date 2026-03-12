@@ -7,8 +7,9 @@
 # does it submit to any jurisdiction.
 
 import logging
+from collections.abc import Collection, Generator
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any
 
 from pyfdb._internal import (
     _FDB,
@@ -571,7 +572,7 @@ class FDB:
         self,
         mars_selection: MarsSelection,
         control_action: ControlAction,
-        control_identifiers: List[ControlIdentifier],
+        control_identifiers: Collection[ControlIdentifier],
     ) -> Generator[ControlElement, None, None]:
         """
         Enable certain features of FDB databases, e.g., disables or enables retrieving, list, etc.
@@ -582,7 +583,7 @@ class FDB:
             A MARS selection which specifies the affected data.
         `control_action` : `ControlAction`
             Which action should be modified, e.g., ControlAction.RETRIEVE
-        `control_identifier` : `ControlIdentifier`
+        `control_identifiers` : `list[ControlIdentifier]`
             Should an action be enabled or disabled, e.g., ControlIdentifier.ENABLE or ControlIdentifier.DISABLE
 
         Returns
@@ -633,9 +634,7 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        raw_control_identifiers = [
-            control_identifier._to_raw() for control_identifier in control_identifiers
-        ]
+        raw_control_identifiers = [control_identifier._to_raw() for control_identifier in control_identifiers]
         iterator = self.FDB.control(
             fdb_tool_request.tool_request,
             control_action._to_raw(),
@@ -753,7 +752,7 @@ class FDB:
         """
         return self.FDB.dirty()
 
-    def config(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def config(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """
         Return the system and user configuration of the underlying FDB.
 
@@ -763,7 +762,7 @@ class FDB:
 
         Returns
         -------
-        `Tuple[Dict[str, Any], Dict[str, Any]]`
+        `tuple[dict[str, Any], dict[str, Any]]`
             Python dictionaries describing the system and user configuration
 
 

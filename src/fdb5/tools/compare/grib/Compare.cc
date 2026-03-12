@@ -135,19 +135,22 @@ Result gribCompareSingleMessage(const fdb5::ListElement& gribLoc1, const fdb5::L
 
 
 void printProgressBar(std::ostream& os, std::size_t current, std::size_t total, std::size_t bar_width = 30) {
-    if (total == 0)
+    if (total == 0) {
         return;
+    }
 
-    double ratio       = static_cast<double>(current) / total;
+    double ratio = static_cast<double>(current) / total;
     std::size_t filled = static_cast<std::size_t>(ratio * bar_width);
 
     os << '\r' << '[';
 
     for (std::size_t i = 0; i < bar_width; ++i) {
-        if (i < filled)
+        if (i < filled) {
             os << '#';
-        else
+        }
+        else {
             os << '-';
+        }
     }
 
     os << "] " << current << '/' << total << " (" << std::fixed << std::setprecision(0) << ratio * 100 << "%)"
@@ -159,7 +162,7 @@ Result compareGrib(const DataIndex& ref, const DataIndex& test, const Options& o
     Result res;
 
     const auto total = ref.size();
-    size_t count     = 0;
+    size_t count = 0;
 
     for (auto& [key, value] : ref) {
         ++count;
@@ -168,7 +171,7 @@ Result compareGrib(const DataIndex& ref, const DataIndex& test, const Options& o
         }
 
         try {
-            auto modKey         = applyKeyDiff(key, opts.marsReqDiff);
+            auto modKey = applyKeyDiff(key, opts.marsReqDiff);
             const auto& testVal = test.at(modKey);
 
             Result singleRes = gribCompareSingleMessage(value, testVal, opts);

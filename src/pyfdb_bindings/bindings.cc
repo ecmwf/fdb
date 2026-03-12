@@ -27,7 +27,6 @@
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,7 +44,6 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
-#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
@@ -53,9 +51,10 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
-namespace py   = pybind11;
+namespace py = pybind11;
 namespace mars = metkit::mars;
 
 class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_support {
@@ -92,10 +91,17 @@ metkit::mars::MarsRequest mars_requestfrom_map(const std::map<std::string, std::
         for (const auto& value : pair.second) {
             value_list.emplace_back(value);
         }
-        value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
+        value_map.emplace(eckit::Value(pair.first), value_list);
     }
 
-    return metkit::mars::MarsRequest("retrieve", value_map);
+    // Expand the mars request
+    auto mars_request = metkit::mars::MarsRequest("retrieve", value_map);
+
+    const bool inherit = false;
+    const bool strict = true;
+    metkit::mars::MarsExpansion expand(inherit, strict);
+
+    return expand.expand(mars_request);
 }
 
 PYBIND11_MODULE(pyfdb_bindings, m) {
@@ -239,7 +245,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("__contains__",
              [](const fdb5::IndexAxis& index_axis, const std::string& key) {
                  const auto& map = index_axis.map();
-                 const auto it   = map.find(key);
+                 const auto it = map.find(key);
 
                  if (it == map.end()) {
                      return false;

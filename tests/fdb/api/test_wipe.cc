@@ -505,7 +505,7 @@ store: file)";
     for (const auto& configEntry : configurations) {
 
         configName = configEntry.first;
-        config     = fdb5::Config{YAMLConfiguration(configEntry.second)};
+        config = fdb5::Config{YAMLConfiguration(configEntry.second)};
 
         std::cout << std::endl;
         std::cout << "---------------------------------" << std::endl;

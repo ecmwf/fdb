@@ -16,13 +16,14 @@
 #include "fdb5/remote/FdbServer.h"
 
 #include <cstdlib>
+#include <sstream>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
 #include "fdb5/remote/FdbServer.h"
 
-#include "eckit/config/Resource.h"
 #include "fdb5/remote/server/AvailablePortList.h"
 #include "fdb5/remote/server/CatalogueHandler.h"
 #include "fdb5/remote/server/StoreHandler.h"
@@ -51,17 +52,22 @@ void FDBForker::run() {
                        << socket_.localPort() << "-->" << socket_.remoteHost() << ":" << socket_.remotePort()
                        << std::endl;
 
-    if (config_.getString("type", "local") == "catalogue" ||
-        (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
+    std::string type = config_.getString("type", "local");
+    if (type == "catalogue") {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
         CatalogueHandler handler(socket_, config_);
         handler.handle();
     }
-    else if (config_.getString("type", "local") == "store" ||
-             (::getenv("FDB_IS_STORE") && ::getenv("FDB_IS_STORE")[0] == '1')) {
+    else if (type == "store") {
         eckit::Log::info() << "FDB using Store Handler" << std::endl;
         StoreHandler handler(socket_, config_);
         handler.handle();
+    }
+    else {
+        std::ostringstream ss;
+        ss << "ERROR: Could not start fdb server. Unexpected type (" << type
+           << "). Expected either 'catalogue' or 'store'.";
+        throw UserError(ss.str(), Here());
     }
 }
 
@@ -90,17 +96,22 @@ FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
 void FDBServerThread::run() {
     eckit::Log::info() << "FDB started handler thread" << std::endl;
 
-    if (config_.getString("type", "local") == "catalogue" ||
-        (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
+    std::string type = config_.getString("type", "local");
+    if (type == "catalogue") {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
         CatalogueHandler handler(socket_, config_);
         handler.handle();
     }
-    else if (config_.getString("type", "local") == "store" ||
-             (::getenv("FDB_IS_STORE") && ::getenv("FDB_IS_STORE")[0] == '1')) {
+    else if (type == "store") {
         eckit::Log::info() << "FDB using Store Handler" << std::endl;
         StoreHandler handler(socket_, config_);
         handler.handle();
+    }
+    else {
+        std::ostringstream ss;
+        ss << "ERROR: Could not start fdb server. Unexpected type (" << type
+           << "). Expected either 'catalogue' or 'store'.";
+        throw UserError(ss.str(), Here());
     }
 }
 
@@ -121,7 +132,7 @@ void FdbServerBase::doRun() {
     // maintains the list of available ports.
     startPortReaperThread(config);
 
-    int port      = config.getInt("serverPort", 7654);
+    int port = config.getInt("serverPort", 7654);
     bool threaded = config.getBool("serverThreaded", false);
 
     net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
@@ -153,7 +164,7 @@ void FdbServerBase::startPortReaperThread(const Config& config) {
         ASSERT(config.has("dataPortCount"));
 
         int startPort = config.getInt("dataPortStart");
-        size_t count  = config.getLong("dataPortCount");
+        size_t count = config.getLong("dataPortCount");
 
         eckit::Log::info() << "Using custom port list. startPort=" << startPort << ", count=" << count << std::endl;
 

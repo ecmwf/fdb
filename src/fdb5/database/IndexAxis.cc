@@ -29,8 +29,9 @@ namespace fdb5 {
 IndexAxis::IndexAxis() : readOnly_(false), dirty_(false) {}
 
 IndexAxis::~IndexAxis() {
-    if (!readOnly_)
+    if (!readOnly_) {
         return;
+    }
 
     for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
         AxisRegistry::instance().release(it->first, it->second);
@@ -46,23 +47,26 @@ IndexAxis::IndexAxis(IndexAxis&& rhs) noexcept :
     axis_(std::move(rhs.axis_)), readOnly_(rhs.readOnly_), dirty_(rhs.dirty_) {}
 
 IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) noexcept {
-    axis_     = std::move(rhs.axis_);
+    axis_ = std::move(rhs.axis_);
     readOnly_ = rhs.readOnly_;
-    dirty_    = rhs.dirty_;
+    dirty_ = rhs.dirty_;
     return *this;
 }
 
 bool IndexAxis::operator==(const IndexAxis& rhs) const {
 
-    if (axis_.size() != rhs.axis_.size())
+    if (axis_.size() != rhs.axis_.size()) {
         return false;
+    }
 
     for (const auto& kv : axis_) {
         auto it = rhs.axis_.find(kv.first);
-        if (it == rhs.axis_.end())
+        if (it == rhs.axis_.end()) {
             return false;
-        if (*kv.second != *it->second)
+        }
+        if (*kv.second != *it->second) {
             return false;
+        }
     }
 
     return true;
@@ -131,10 +135,12 @@ void IndexAxis::encodeLegacy(eckit::Stream& s, const int version) const {
 
 
 void IndexAxis::decode(eckit::Stream& s, const int version) {
-    if (version >= 3)
+    if (version >= 3) {
         decodeCurrent(s, version);
-    else
+    }
+    else {
         decodeLegacy(s, version);
+    }
 }
 
 enum IndexAxisStreamKeys {
@@ -319,11 +325,13 @@ void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& 
 
     std::shared_ptr<eckit::DenseSet<std::string>>& axis_set = axis_[axis];
 
-    if (!axis_set)
+    if (!axis_set) {
         axis_set.reset(new eckit::DenseSet<std::string>());
+    }
 
-    for (const auto& value : values)
+    for (const auto& value : values) {
         axis_set->insert(value);
+    }
 
     dirty_ = true;
 }
@@ -338,8 +346,9 @@ void IndexAxis::clean() {
 }
 
 void IndexAxis::sort() {
-    for (AxisMap::iterator i = axis_.begin(); i != axis_.end(); ++i)
+    for (AxisMap::iterator i = axis_.begin(); i != axis_.end(); ++i) {
         i->second->sort();
+    }
 }
 
 void IndexAxis::wipe() {

@@ -1,27 +1,27 @@
 import json
+from collections.abc import Collection
 from pathlib import Path
-from typing import Any, Collection, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import yaml
 
 from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
 
-
 # Initial setup of binding via eckit main
 pyfdb_internal.init_bindings()
 
-InternalMarsSelection = Dict[str, Collection[str]]
+InternalMarsSelection = dict[str, Collection[str]]
 """
 This is the internal representation of a MARS selection
 
 This is a key-value map, mapping MARS keys to a string resembling values, value lists or value ranges.
 """
 
-InternalMarsIdentifier = List[Tuple[str, str]]
+InternalMarsIdentifier = list[tuple[str, str]]
 """
 This is the internal representation of a MARS identifier
 
-This is a key-value List, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
+This is a key-value list, mapping MARS keys to a string resembling a singluar value, see https://github.com/ecmwf/datacube-spec.
 """
 
 
@@ -35,7 +35,7 @@ class FDBToolRequest:
         Dictionary of key-value pairs which describe the MARS selection
     `all` : `bool`, *optional*, default: `False`
         Should a tool request be interpreted as querying all data? True if so, False otherwise.
-    `minimum_key_set` : `List[str]`, *optional*, default: `None`
+    `minimum_key_set` : `list[str]`, *optional*, default: `None`
         Define the minimum set of keys that must be specified. This prevents inadvertently exploring the entire FDB.
 
     Returns
@@ -62,7 +62,7 @@ class FDBToolRequest:
         self,
         key_values=None | InternalMarsSelection,
         all: bool = False,
-        minimum_key_set: List[str] | None = None,
+        minimum_key_set: list[str] | None = None,
     ) -> None:
         if key_values is not None:
             key_values = key_values
@@ -149,5 +149,5 @@ class ConfigMapper:
         return json.dumps(config_result)
 
     @classmethod
-    def from_json(cls, config: str) -> Dict[str, Any]:
+    def from_json(cls, config: str) -> dict[str, Any]:
         return json.loads(config)

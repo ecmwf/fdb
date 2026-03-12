@@ -35,10 +35,10 @@ public:
 
     Report() = default;
 
-    Report(const Report&)            = delete;
+    Report(const Report&) = delete;
     Report& operator=(const Report&) = delete;
-    Report(Report&&)                 = delete;
-    Report& operator=(Report&&)      = delete;
+    Report(Report&&) = delete;
+    Report& operator=(Report&&) = delete;
 
     ~Report();
 

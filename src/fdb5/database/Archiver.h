@@ -53,10 +53,10 @@ public:  // methods
 
     Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
-    Archiver(const Archiver&)            = delete;
+    Archiver(const Archiver&) = delete;
     Archiver& operator=(const Archiver&) = delete;
-    Archiver(Archiver&&)                 = delete;
-    Archiver& operator=(Archiver&&)      = delete;
+    Archiver(Archiver&&) = delete;
+    Archiver& operator=(Archiver&&) = delete;
 
     virtual ~Archiver();
 
