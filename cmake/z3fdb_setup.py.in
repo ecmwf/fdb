@@ -7,6 +7,11 @@ import sys
 
 # NOTE this we need to correctly link with fdb5lib version on cd. For local builds feel free to ignore
 version_suffix = os.environ.get("VERSION_SUFFIX", "")
+if version_suffix:
+    version_suffix = f".{version_suffix}"
+    requires_extra = [f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"]
+else:
+    requires_extra = []
 
 # NOTE see ci-utils/wheelmaker/buildscripts/setup_utils, we need to get the right abi compat tag
 class bdist_wheel_ext(bdist_wheel):
@@ -32,7 +37,7 @@ setup(
     package_data={
         "chunked_data_view_bindings": ["*.so", "*.pyd"],
     },
-    install_requires=["numpy", "zarr>=3,<4", "findlibs>=0.1.2", f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"],
+    install_requires=["numpy", "zarr>=3,<4", "findlibs>=0.1.2"] + requires_extra,
     has_ext_modules=lambda: True,
     **ext_kwargs[sys.platform],
 )
