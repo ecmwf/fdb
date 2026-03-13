@@ -18,7 +18,6 @@
 #include <climits>
 #include <fstream>
 
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamMapEntry.h"
 #include "eckit/log/Log.h"
@@ -36,12 +35,19 @@ namespace {
 
 using Map = eckit::FamMap128;
 
-/// Special map key that stores the serialised DB key (with keyword names).
-constexpr const char* KEY_DBKEY = "__dbkey__";
-
 Key decodeKey(eckit::MemoryStream key) {
-    // eckit::MemoryStream ms(key);
     return Key{key};
+}
+
+/// Truncate a fam-name component so that the total FAM object name (including
+/// suffixes like "-table" or "-b1023") stays within OpenFAM limits (~40 chars).
+std::string truncateKey(const Key& key, const std::size_t max_len = 26) {
+    const auto key_str = FamCommon::toString(key);
+    if (key_str.size() > max_len) {
+        eckit::Log::warning() << "FamCatalogue: map key '" << key_str << "' truncated to " << max_len
+                              << " chars; distinct keys sharing the same prefix will collide" << '\n';
+    }
+    return key_str.substr(0, max_len);
 }
 
 }  // namespace
@@ -56,8 +62,8 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
     CatalogueImpl(Key(), control_identifiers, config), FamCommon(uri, config) {
 
     // Derive the catalogue map name from the table object in the URI.
-    // Convention: uri.path().name() == catalogueMapName + "-map-table"
-    const std::string object_name = eckit::FamPath(uri).objectName;
+    // Convention: uri.path().name() == catalogueMapName + table_suffix
+    const auto object_name = eckit::FamPath(uri).objectName;
     const std::string_view suffix{FamCommon::table_suffix};
     if (object_name.size() > suffix.size() &&
         object_name.compare(object_name.size() - suffix.size(), suffix.size(), suffix) == 0) {
@@ -72,32 +78,24 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
         throw eckit::BadValue("FamCatalogue: root region does not exist: " + uri.asString());
     }
 
-    Map cat_map(name_, root_.lookup());
+    Map cat(name_, root_.lookup());
 
-    auto iter = cat_map.find(Map::key_type{KEY_DBKEY});
-    if (iter == cat_map.end()) {
+    auto iter = cat.find(FamCommon::db_key);
+    if (iter == cat.end()) {
         throw eckit::BadValue("FamCatalogue: DB key not found in catalogue at: " + uri.asString());
     }
-    auto db_key = *iter;
-    dbKey_      = decodeKey(db_key.value);
+
+    dbKey_ = decodeKey((*iter).value);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string FamCatalogue::truncateMapComponent(const std::string& key, std::size_t max_len) {
-    if (key.size() > max_len) {
-        eckit::Log::warning() << "FamCatalogue: map key '" << key << "' truncated to " << max_len
-                              << " chars; distinct keys sharing the same prefix will collide" << '\n';
-    }
-    return key.substr(0, max_len);
-}
-
 std::string FamCatalogue::catalogueName(const Key& key) {
-    return "cat-" + truncateMapComponent(FamCommon::toString(key));
+    return "cat-" + truncateKey(key);
 }
 
 std::string FamCatalogue::indexName(const Key& key) {
-    return "idx-" + truncateMapComponent(FamCommon::toString(key));
+    return "idx-" + truncateKey(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -17,7 +17,6 @@
 
 #include <climits>
 
-#include "eckit/io/AutoCloser.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -35,12 +34,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamIndex::FamIndex(const Key& key, const Catalogue& catalogue, const eckit::FamRegionName& regionName,
-                   const std::string& dataMapName, bool readAxes) :
+FamIndex::FamIndex(const Key& key, const Catalogue& /*catalogue*/, const eckit::FamRegionName& region_name,
+                   const std::string& data_map_name, bool read_axes) :
     IndexBase(key, "fam"),
-    location_(regionName.object(dataMapName + FamCommon::table_suffix).uri()),
-    data_map_(dataMapName, regionName.lookup()) {
-    if (readAxes) {
+    location_(region_name.object(data_map_name + FamCommon::table_suffix).uri()),
+    data_(data_map_name, region_name.lookup()) {
+    if (read_axes) {
         updateAxes();
     }
 }
@@ -51,10 +50,9 @@ void FamIndex::add(const Key& key, const Field& field) {
 
     // Wire format: [timestamp (time_t)] [FieldLocation (polymorphic)] [Key (with keyword names)]
     //
-    // TODO(FamFieldRefReducedWire): replace the polymorphic FieldLocation serialisation with
-    //   FamFieldRefReducedWire once a URI table (mapping uint64_t IDs → FAM object URIs) is
-    //   available at the FamStore level. That will eliminate the Reanimator class-name dependency
-    //   and reduce per-entry storage to a fixed 24-byte wire record.
+    // polymorphic FieldLocation serialisation (supported by eckit::Reanimator)
+    // TODO(metin): implement a URI table (mapping uint64_t IDs → FAM object URIs) at the FamStore level
+    // and FamFieldRefReducedWire, which will eliminate the Reanimator dependency
     eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
     eckit::HandleStream hs{h};
     h.openForWrite(0);
@@ -65,8 +63,7 @@ void FamIndex::add(const Key& key, const Field& field) {
         hs << key;
     }
 
-    const Map::key_type map_key{FamCommon::toString(key)};
-    data_map_.insert(map_key, h.data(), static_cast<std::size_t>(hs.bytesWritten()));
+    data_.insert(FamCommon::toString(key), h.data(), static_cast<std::size_t>(hs.bytesWritten()));
 }
 
 bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const {
@@ -74,8 +71,8 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
     LOG_DEBUG_LIB(LibFdb5) << "FamIndex::get key=" << key << std::endl;
 
     const Map::key_type map_key{FamCommon::toString(key)};
-    auto it = data_map_.find(map_key);
-    if (it == data_map_.end()) {
+    auto it = data_.find(map_key);
+    if (it == data_.end()) {
         return false;
     }
 
@@ -95,7 +92,7 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
 
 void FamIndex::entries(EntryVisitor& visitor) const {
 
-    for (auto it = data_map_.begin(); it != data_map_.end(); ++it) {
+    for (auto it = data_.begin(); it != data_.end(); ++it) {
 
         auto entry                 = *it;
         const eckit::Buffer& value = entry.value;
@@ -117,7 +114,7 @@ void FamIndex::entries(EntryVisitor& visitor) const {
 
 void FamIndex::updateAxes() {
 
-    for (auto it = data_map_.begin(); it != data_map_.end(); ++it) {
+    for (auto it = data_.begin(); it != data_.end(); ++it) {
 
         auto entry                 = *it;
         const eckit::Buffer& value = entry.value;
@@ -142,4 +139,13 @@ void FamIndex::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void FamIndex::dump(std::ostream& out, const char* indent, bool simple, bool dump_fields) const {
+    NOTIMP;
+}
+void FamIndex::encode(eckit::Stream& s, const int version) const {
+    NOTIMP;
+}
+void FamIndex::visit(IndexLocationVisitor& visitor) const {
+    NOTIMP;
+}
 }  // namespace fdb5

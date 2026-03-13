@@ -45,10 +45,6 @@ public:  // methods
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
-    /// Truncate a map-name component so that the total FAM object name (including
-    /// suffixes like "-map-table" or "-b1023") stays within OpenFAM limits (~40 chars).
-    static std::string truncateMapComponent(const std::string& key, std::size_t max_len = 26);
-
     /// Derive the catalogue FamMap name for a given DB key string.
     static std::string catalogueName(const Key& key);
 

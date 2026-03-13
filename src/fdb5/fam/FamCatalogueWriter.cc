@@ -19,7 +19,6 @@
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamMap.h"
-#include "eckit/io/fam/FamMapEntry.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/serialisation/HandleStream.h"
 
@@ -30,15 +29,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using Map = eckit::FamMap<eckit::FamMapEntry<128>>;
+using Map = eckit::FamMap128;
 
 namespace {
 
 /// Name of the FDB-global registry map within the root region.
 constexpr const char* fdb_registry_map_name = "fdb-reg";
-
-/// Special key under which the serialised DB key is stored in the catalogue map.
-constexpr const char* fdb_db_key = "__fdb__";
 
 std::string serializeKey(const fdb5::Key& key) {
     eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
@@ -85,7 +81,7 @@ void FamCatalogueWriter::initCatalogue() {
     Map(fdb_registry_map_name, region).insert(FamCommon::toString(dbKey_), db_key);
 
     // Create / open the per-DB catalogue map and store the DB key
-    Map(name(), region).insert(fdb_db_key, db_key);
+    Map(name(), region).insert(FamCommon::db_key, db_key);
 
     FamCatalogue::loadSchema();
 }
@@ -110,7 +106,7 @@ bool FamCatalogueWriter::open() {
     NOTIMP;
 }
 
-bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datumKeySize*/) {
+bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datum_key_size*/) {
     return true;  // creation is handled lazily in selectIndex
 }
 
@@ -119,17 +115,17 @@ bool FamCatalogueWriter::selectIndex(const Key& idx_key) {
     if (FamCatalogue::selectIndex(idx_key)) {
         return true;
     }
-
+    // found in the cache
     if (auto iter = indexes_.find(idx_key); iter != indexes_.end()) {
         current_ = iter->second;
         return true;
     }
-
-    // Create or open the FamIndex.
-    current_          = Index(new FamIndex(idx_key, *this, root_, indexName(idx_key), /*readAxes=*/false));
+    // Create or open the FamIndex for this key.
+    current_ = Index(new FamIndex(idx_key, *this, root_, indexName(idx_key), false));
+    // cache it for future selectIndex calls
     indexes_[idx_key] = current_;
 
-    // Register this index in the catalogue map
+    // Register this index in the fam catalogue map
     const auto region = root_.lookup();
     Map(name(), region).insert(FamCommon::toString(idx_key), serializeKey(idx_key));
 

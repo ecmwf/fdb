@@ -34,8 +34,9 @@ class Config;
 struct FamCommon {
     static constexpr auto type = eckit::FamPath::scheme;
 
-    /// Suffix appended to every map-name to form the FAM table-object name.
-    static constexpr const char* table_suffix = "-map-table";
+    static constexpr const char* db_key = "__fdb__";
+    /// Suffix appended to every FAM map table names
+    static constexpr const char* table_suffix = "-table";
 
     static std::string toString(const Key& key);
 

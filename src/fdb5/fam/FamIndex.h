@@ -20,8 +20,6 @@
 #pragma once
 
 #include "eckit/io/fam/FamMap.h"
-#include "eckit/io/fam/FamMapEntry.h"
-#include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
 
 #include "fdb5/database/Index.h"
@@ -40,19 +38,20 @@ class FamIndex : public IndexBase {
 
 public:  // types
 
-    using MapEntry = eckit::FamMapEntry<128>;
-    using Map      = eckit::FamMap<MapEntry>;
+    using Map = eckit::FamMap128;
+
+    static constexpr const char* db_key = "__fdb__";
 
 public:  // methods
 
     /// Construct (or reopen) an index backed by a FamMap in the given region.
-    /// @param key          The index key (identifies this index within the catalogue).
-    /// @param catalogue    Parent catalogue (for schema access).
-    /// @param regionName   FAM region that hosts the map objects.
-    /// @param dataMapName  Name prefix for the data map FAM objects (≤30 chars recommended).
-    /// @param readAxes     If true, populate in-memory axes by scanning the map on open.
-    FamIndex(const Key& key, const Catalogue& catalogue, const eckit::FamRegionName& regionName,
-             const std::string& dataMapName, bool readAxes = false);
+    /// @param key           The index key (identifies this index within the catalogue).
+    /// @param catalogue     Parent catalogue (for schema access).
+    /// @param region_name   FAM region that hosts the map objects.
+    /// @param name          Name prefix for the data map FAM objects (≤30 chars recommended).
+    /// @param read_axes     If true, populate in-memory axes by scanning the map on open.
+    FamIndex(const Key& key, const Catalogue& catalogue, const eckit::FamRegionName& region_name,
+             const std::string& name, bool read_axes = false);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
@@ -72,23 +71,23 @@ private:  // methods
     void close() override {}
     void reopen() override { NOTIMP; }
 
-    void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
+    void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get(const Key& key, const Key& remapKey, Field& field) const override;
+    bool get(const Key& key, const Key& remap_key, Field& field) const override;
     void add(const Key& key, const Field& field) override;
     void flush() override {}
-    void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
+    void encode(eckit::Stream& s, int version) const override;
     void entries(EntryVisitor& visitor) const override;
 
     void print(std::ostream& out) const override;
-    void dump(std::ostream& out, const char* indent, bool simple, bool dumpFields) const override { NOTIMP; }
+    void dump(std::ostream& out, const char* indent, bool simple, bool dump_fields) const override;
 
     IndexStats statistics() const override { NOTIMP; }
 
 private:  // members
 
     FamIndexLocation location_;
-    Map data_map_;
+    Map data_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
