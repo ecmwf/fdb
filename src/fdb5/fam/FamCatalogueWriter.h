@@ -66,7 +66,7 @@ protected:  // methods
 
     void archive(const Key& idx_key, const Key& datum_key, std::shared_ptr<const FieldLocation> fieldLocation) override;
 
-    void print(std::ostream& out) const override { out << "FamCatalogueWriter[" << uri() << "]"; }
+    void print(std::ostream& out) const override;
 
 private:  // methods
 

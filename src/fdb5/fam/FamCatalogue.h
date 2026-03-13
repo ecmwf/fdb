@@ -50,10 +50,10 @@ public:  // methods
     static std::string truncateMapComponent(const std::string& key, std::size_t max_len = 26);
 
     /// Derive the catalogue FamMap name for a given DB key string.
-    static std::string catalogueName(const std::string& key);
+    static std::string catalogueName(const Key& key);
 
     /// Derive the data FamMap name for a given index key string.
-    static std::string indexName(const std::string& key);
+    static std::string indexName(const Key& key);
 
 protected:  // methods
 

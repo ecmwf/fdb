@@ -37,7 +37,7 @@ namespace {
 
 using Map = eckit::FamMap128;
 
-constexpr const char* REGISTRY_MAP_NAME = "fdb-reg";
+constexpr const char* fdb_registry_map_name = "fdb-reg";
 
 eckit::URI parseRootURI(const Config& config) {
     if (config.has("fam_roots")) {
@@ -53,6 +53,8 @@ Key decodeKey(const eckit::Buffer& buf) {
     eckit::MemoryStream ms{static_cast<const char*>(buf.data()), buf.size()};
     return Key(ms);
 }
+
+const EngineBuilder<FamEngine> fam_engine_builder;
 
 }  // namespace
 
@@ -88,26 +90,24 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const Key& key, const Conf
     std::vector<eckit::URI> result;
 
     try {
-        const eckit::URI root_uri = parseRootURI(config);
-        const eckit::FamRegionName root{root_uri};
+        const auto uri = parseRootURI(config);
+        const eckit::FamRegionName root{uri};
 
         if (!root.exists()) {
             return result;
         }
 
         eckit::FamRegion region = root.lookup();
-        Map reg_map(REGISTRY_MAP_NAME, region);
+        Map reg_map(fdb_registry_map_name, region);
 
         if (reg_map.empty()) {
             return result;
         }
 
-        for (auto iter = reg_map.begin(); iter != reg_map.end(); ++iter) {
+        for (const auto& reg : reg_map) {
             try {
-                auto entry     = *iter;
-                const auto key = decodeKey(entry.value);
-                if (key.match(key)) {
-                    const auto name = FamCatalogue::catalogueName(FamCommon::toString(key));
+                if (const auto db_key = decodeKey(reg.value); db_key.match(key)) {
+                    const auto name = FamCatalogue::catalogueName(key);
                     result.push_back(root.object(name + FamCommon::table_suffix).uri());
                 }
             }
@@ -129,26 +129,24 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const metkit::mars::MarsRe
     std::vector<eckit::URI> result;
 
     try {
-        const eckit::URI root_uri = parseRootURI(config);
-        const eckit::FamRegionName root{root_uri};
+        const auto uri = parseRootURI(config);
+        const eckit::FamRegionName root{uri};
 
         if (!root.exists()) {
             return result;
         }
 
         eckit::FamRegion region = root.lookup();
-        Map reg_map(REGISTRY_MAP_NAME, region);
+        Map reg_map(fdb_registry_map_name, region);
 
         if (reg_map.empty()) {
             return result;
         }
 
-        for (auto iter = reg_map.begin(); iter != reg_map.end(); ++iter) {
+        for (const auto& entry : reg_map) {
             try {
-                auto entry     = *iter;
-                const auto key = decodeKey(entry.value);
-                if (key.partialMatch(request)) {
-                    const std::string name = FamCatalogue::catalogueName(FamCommon::toString(key));
+                if (const auto key = decodeKey(entry.value); key.partialMatch(request)) {
+                    const std::string name = FamCatalogue::catalogueName(key);
                     result.push_back(root.object(name + FamCommon::table_suffix).uri());
                 }
             }
@@ -163,8 +161,6 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const metkit::mars::MarsRe
 
     return result;
 }
-
-static EngineBuilder<FamEngine> fam_engine_builder;
 
 //----------------------------------------------------------------------------------------------------------------------
 

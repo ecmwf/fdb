@@ -39,9 +39,9 @@ using Map = eckit::FamMap128;
 /// Special map key that stores the serialised DB key (with keyword names).
 constexpr const char* KEY_DBKEY = "__dbkey__";
 
-Key deserializeKey(const void* data, std::size_t size) {
-    eckit::MemoryStream ms{static_cast<const char*>(data), size};
-    return Key{ms};
+Key decodeKey(eckit::MemoryStream key) {
+    // eckit::MemoryStream ms(key);
+    return Key{key};
 }
 
 }  // namespace
@@ -49,9 +49,7 @@ Key deserializeKey(const void* data, std::size_t size) {
 //----------------------------------------------------------------------------------------------------------------------
 
 FamCatalogue::FamCatalogue(const Key& key, const fdb5::Config& config) :
-    CatalogueImpl(key, ControlIdentifiers{}, config),
-    FamCommon(key, config),
-    name_(catalogueName(FamCommon::toString(key))) {}
+    CatalogueImpl(key, ControlIdentifiers{}, config), FamCommon(key, config), name_{catalogueName(key)} {}
 
 FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers,
                            const fdb5::Config& config) :
@@ -75,13 +73,13 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
     }
 
     Map cat_map(name_, root_.lookup());
+
     auto iter = cat_map.find(Map::key_type{KEY_DBKEY});
     if (iter == cat_map.end()) {
         throw eckit::BadValue("FamCatalogue: DB key not found in catalogue at: " + uri.asString());
     }
-    auto dbkey_entry   = *iter;
-    const auto& buffer = dbkey_entry.value;
-    dbKey_             = deserializeKey(buffer.data(), buffer.size());
+    auto db_key = *iter;
+    dbKey_      = decodeKey(db_key.value);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -94,12 +92,12 @@ std::string FamCatalogue::truncateMapComponent(const std::string& key, std::size
     return key.substr(0, max_len);
 }
 
-std::string FamCatalogue::catalogueName(const std::string& key) {
-    return "cat-" + truncateMapComponent(key);
+std::string FamCatalogue::catalogueName(const Key& key) {
+    return "cat-" + truncateMapComponent(FamCommon::toString(key));
 }
 
-std::string FamCatalogue::indexName(const std::string& key) {
-    return "idx-" + truncateMapComponent(key);
+std::string FamCatalogue::indexName(const Key& key) {
+    return "idx-" + truncateMapComponent(FamCommon::toString(key));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -158,27 +156,22 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
         return {};
     }
 
-    Map cat_map(name_, root_.lookup());
     std::vector<Index> result;
 
     // TODO(metin): the current sentinel convention (skip keys starting with '_') is fragile;
     // any future non-index administrative key that doesn't start with '_' would be
     // misread as an index entry. Consider switching to an explicit index-key prefix
     // (e.g. "i:") and storing all internal metadata under '_'-prefixed keys.
-    for (auto iter = cat_map.begin(); iter != cat_map.end(); ++iter) {
-        auto entry                 = *iter;
-        const std::string key_name = entry.key.asString();
-
+    for (const auto& [k, v] : Map(name_, root_.lookup())) {
+        const auto key_name = k.asString();
         // Skip special sentinel entries.
         if (key_name.empty() || key_name[0] == '_') {
             continue;
         }
-
         // Decode the stored index Key (with keyword names).
-        const Key key = deserializeKey(entry.value.data(), entry.value.size());
+        const Key key = decodeKey(v);
 
-        const std::string map_name = indexName(FamCommon::toString(key));
-        result.emplace_back(new FamIndex(key, *this, root_, map_name, /*readAxes=*/true));
+        result.emplace_back(new FamIndex(key, *this, root_, indexName(key), /*readAxes=*/true));
     }
 
     return result;

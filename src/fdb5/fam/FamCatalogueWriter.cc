@@ -17,13 +17,11 @@
 
 #include <climits>
 
-#include "eckit/io/AutoCloser.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamMapEntry.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/serialisation/HandleStream.h"
-#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fam/FamIndex.h"
@@ -37,10 +35,10 @@ using Map = eckit::FamMap<eckit::FamMapEntry<128>>;
 namespace {
 
 /// Name of the FDB-global registry map within the root region.
-constexpr const char* REGISTRY_MAP_NAME = "fdb-reg";
+constexpr const char* fdb_registry_map_name = "fdb-reg";
 
 /// Special key under which the serialised DB key is stored in the catalogue map.
-constexpr const char* KEY_DBKEY = "__dbkey__";
+constexpr const char* fdb_db_key = "__fdb__";
 
 std::string serializeKey(const fdb5::Key& key) {
     eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
@@ -50,8 +48,10 @@ std::string serializeKey(const fdb5::Key& key) {
         eckit::AutoClose c(h);
         hs << key;
     }
-    return std::string(static_cast<const char*>(h.data()), static_cast<std::size_t>(hs.bytesWritten()));
+    return {static_cast<const char*>(h.data()), static_cast<std::size_t>(hs.bytesWritten())};
 }
+
+const fdb5::CatalogueWriterBuilder<fdb5::FamCatalogueWriter> fam_catalogue_writer_builder("fam");
 
 }  // namespace
 
@@ -75,21 +75,17 @@ FamCatalogueWriter::~FamCatalogueWriter() {
 
 void FamCatalogueWriter::initCatalogue() {
 
-    eckit::FamRegion region = root_.lookup();
+    auto region = root_.lookup();
 
-    // Register this DB in the global FDB registry (idempotent: FamMap::insert is a no-op if key exists).
-    {
-        Map reg_map(REGISTRY_MAP_NAME, region);
-        const std::string encoded = serializeKey(dbKey_);
-        reg_map.insert(Map::key_type{FamCommon::toString(dbKey_)}, encoded.data(), encoded.size());
-    }
+    const auto db_key = serializeKey(dbKey_);
 
-    // Create / open the per-DB catalogue map and store the DB key (idempotent).
-    {
-        Map cat_map(name(), region);
-        const std::string encoded = serializeKey(dbKey_);
-        cat_map.insert(Map::key_type{KEY_DBKEY}, encoded.data(), encoded.size());
-    }
+    // idempotent (FamMap::insert is a no-op if key exists)
+
+    // Register this DB in the global FDB registry
+    Map(fdb_registry_map_name, region).insert(FamCommon::toString(dbKey_), db_key);
+
+    // Create / open the per-DB catalogue map and store the DB key
+    Map(name(), region).insert(fdb_db_key, db_key);
 
     FamCatalogue::loadSchema();
 }
@@ -106,24 +102,18 @@ bool FamCatalogueWriter::selectIndex(const Key& idx_key) {
         return true;
     }
 
-    auto iter = indexes_.find(idx_key);
-    if (iter != indexes_.end()) {
+    if (auto iter = indexes_.find(idx_key); iter != indexes_.end()) {
         current_ = iter->second;
         return true;
     }
 
-    const auto map_name = indexName(FamCommon::toString(idx_key));
-
     // Create or open the FamIndex.
-    current_          = Index(new FamIndex(idx_key, *this, root_, map_name, /*readAxes=*/false));
+    current_          = Index(new FamIndex(idx_key, *this, root_, indexName(idx_key), /*readAxes=*/false));
     indexes_[idx_key] = current_;
 
     // Register this index in the catalogue map (idempotent: FamMap::insert is a no-op if idx_key exists).
-    eckit::FamRegion region = root_.lookup();
-    Map cat_map(name(), region);
-    const std::string encoded = serializeKey(idx_key);
-    cat_map.insert(Map::key_type{FamCommon::toString(idx_key)}, encoded.data(), encoded.size());
-
+    const auto region = root_.lookup();
+    Map(name(), region).insert(FamCommon::toString(idx_key), serializeKey(idx_key));
     return true;
 }
 
@@ -164,7 +154,9 @@ void FamCatalogueWriter::flush(size_t /*archivedFields*/) {
     }
 }
 
-static fdb5::CatalogueWriterBuilder<fdb5::FamCatalogueWriter> famCatalogueWriterBuilder("fam");
+void FamCatalogueWriter::print(std::ostream& out) const {
+    out << "FamCatalogueWriter[" << uri() << "]";
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

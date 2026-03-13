@@ -40,7 +40,7 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
         return true;
     }
 
-    const std::string map_name = indexName(FamCommon::toString(key));
+    const std::string map_name = indexName(key);
 
     // Check the index map exists: the table object must be present in the region.
     if (!root_.object(map_name + FamCommon::table_suffix).exists()) {

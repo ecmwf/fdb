@@ -39,7 +39,14 @@
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/fam/FamCatalogue.h"
+#include "fdb5/fam/FamCatalogueReader.h"
+#include "fdb5/fam/FamCatalogueWriter.h"
+#include "fdb5/fam/FamCommon.h"
+#include "fdb5/fam/FamStore.h"
 #include "fdb5/rules/Schema.h"
 
 using namespace eckit::testing;
@@ -50,7 +57,7 @@ namespace fdb::test {
 
 namespace {
 
-constexpr eckit::fam::size_t test_region_size = 1024 * 10;  // 10 KB
+constexpr eckit::fam::size_t test_region_size = 1024 * 1024;  // 1 MB
 constexpr eckit::fam::perm_t test_region_perm = 0640;
 
 const std::string test_schema =
@@ -79,14 +86,88 @@ const std::string test_config =
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamStore: create test region") {
-    auto name = eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region);
-    try {
-        name.create(test_region_size, test_region_perm);
+CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
+
+    const auto cat_region = eckit::FamPath("test_region_fdb_catalog");
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, cat_region).create(test_region_size, test_region_perm, true);
+
+    std::string cat_config = test_config;
+    {
+        const auto uri_pos = cat_config.find(fam::test_fdb_fam_uri);
+        EXPECT_NOT_EQUAL(uri_pos, std::string::npos);
+        const auto direct_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + cat_region.asString();
+        cat_config.replace(uri_pos, fam::test_fdb_fam_uri.size(), direct_uri);
     }
-    catch (const eckit::AlreadyExists& e) {
-        eckit::Log::debug() << "FamCommon: " << name << " already exists.\n";
+
+    const fam::FamSetup setup(test_schema, cat_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", "i"}});
+
+    const char* data       = "Testing fam: ARCHIVE DATA!";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    fdb5::FamStore fam_store(db_key, config);
+    auto& store   = static_cast<fdb5::Store&>(fam_store);
+    auto location = store.archive(datum_key, data, eckit::Length(data_length));
+    EXPECT(location);
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::Catalogue& writer_cat         = writer;
+    fdb5::CatalogueWriter& writer_iface = writer;
+
+    EXPECT_EQUAL(writer_cat.type(), std::string("fam"));
+    EXPECT_EQUAL(writer_cat.uri().scheme(), std::string("fam"));
+    EXPECT(writer_cat.exists());
+
+    EXPECT(writer_iface.createIndex(idx_key, datum_key.size()));
+    writer_iface.archive(idx_key, datum_key, location->make_shared());
+    writer_iface.flush(1);
+
+    const eckit::URI cat_uri = writer.uri();
+    fdb5::FamCatalogueReader reader(cat_uri, config);
+    fdb5::Catalogue& reader_cat = reader;
+
+    EXPECT(reader.open());
+    EXPECT_EQUAL(reader_cat.type(), std::string("fam"));
+    EXPECT_EQUAL(reader_cat.uri().scheme(), std::string("fam"));
+    EXPECT(reader_cat.exists());
+    EXPECT(reader.selectIndex(idx_key));
+
+    fdb5::Field field;
+    EXPECT(reader.retrieve(datum_key, field));
+
+    {
+        std::unique_ptr<eckit::DataHandle> handle(field.dataHandle());
+        eckit::MemoryHandle retrieved;
+        handle->copyTo(retrieved);
+        EXPECT_EQUAL(retrieved.size(), eckit::Length(data_length));
+        EXPECT_EQUAL(::memcmp(retrieved.data(), data, data_length), 0);
     }
+
+    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, cat_region);
+
+    const auto cat_map_name = fdb5::FamCatalogue::catalogueName(db_key) + fdb5::FamCommon::table_suffix;
+    const auto idx_map_name = fdb5::FamCatalogue::indexName(idx_key) + fdb5::FamCommon::table_suffix;
+    const auto reg_map_name = std::string("fdb-reg") + fdb5::FamCommon::table_suffix;
+
+    EXPECT(root.object(reg_map_name).exists());
+    EXPECT(root.object(cat_map_name).exists());
+    EXPECT(root.object(idx_map_name).exists());
 }
 
 CASE("FamCatalogue: Archive, Retrieve, Remove") {
