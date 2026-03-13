@@ -92,7 +92,25 @@ void FamCatalogueWriter::initCatalogue() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool FamCatalogueWriter::createIndex(const Key& /*idxKey*/, size_t /*datumKeySize*/) {
+void FamCatalogueWriter::index(const Key& /*key*/, const eckit::URI& /*uri*/, eckit::Offset /*offset*/,
+                               eckit::Length /*length*/) {
+    NOTIMP;
+}
+
+void FamCatalogueWriter::overlayDB(const Catalogue& /*other_catalogue*/, const std::set<std::string>& /*variable_keys*/,
+                                   bool /*unmount*/) {
+    NOTIMP;
+}
+
+void FamCatalogueWriter::reconsolidate() {
+    NOTIMP;
+}
+
+bool FamCatalogueWriter::open() {
+    NOTIMP;
+}
+
+bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datumKeySize*/) {
     return true;  // creation is handled lazily in selectIndex
 }
 
@@ -111,9 +129,10 @@ bool FamCatalogueWriter::selectIndex(const Key& idx_key) {
     current_          = Index(new FamIndex(idx_key, *this, root_, indexName(idx_key), /*readAxes=*/false));
     indexes_[idx_key] = current_;
 
-    // Register this index in the catalogue map (idempotent: FamMap::insert is a no-op if idx_key exists).
+    // Register this index in the catalogue map
     const auto region = root_.lookup();
     Map(name(), region).insert(FamCommon::toString(idx_key), serializeKey(idx_key));
+
     return true;
 }
 
@@ -137,13 +156,13 @@ const Index& FamCatalogueWriter::currentIndex() {
     return current_;
 }
 
-void FamCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
-                                 std::shared_ptr<const FieldLocation> fieldLocation) {
+void FamCatalogueWriter::archive(const Key& idx_key, const Key& datum_key,
+                                 std::shared_ptr<const FieldLocation> field_location) {
 
-    selectIndex(idxKey);
+    selectIndex(idx_key);
 
-    Field field(std::move(fieldLocation), current_.timestamp());
-    current_.put(datumKey, field);
+    Field field(std::move(field_location), current_.timestamp());
+    current_.put(datum_key, field);
 }
 
 void FamCatalogueWriter::flush(size_t /*archivedFields*/) {

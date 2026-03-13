@@ -43,13 +43,11 @@ public:  // methods
 
     ~FamCatalogueWriter() override;
 
-    void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; }
+    void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
 
-    void reconsolidate() override { NOTIMP; }
+    void reconsolidate() override;
 
-    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override {
-        NOTIMP;
-    }
+    void overlayDB(const Catalogue& other_catalogue, const eckit::StringSet& variable_keys, bool unmount) override;
 
     const Index& currentIndex() override;
 
@@ -59,12 +57,13 @@ protected:  // methods
     bool createIndex(const Key& idx_key, size_t datum_key_size) override;
     void deselectIndex() override;
 
-    bool open() override { NOTIMP; }
+    bool open() override;
     void flush(size_t archived_fields) override;
     void clean() override;
     void close() override;
 
-    void archive(const Key& idx_key, const Key& datum_key, std::shared_ptr<const FieldLocation> fieldLocation) override;
+    void archive(const Key& idx_key, const Key& datum_key,
+                 std::shared_ptr<const FieldLocation> field_location) override;
 
     void print(std::ostream& out) const override;
 
