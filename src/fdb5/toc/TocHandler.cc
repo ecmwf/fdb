@@ -746,13 +746,13 @@ public:
             iomode |= O_NOATIME;
         }
 #endif
+        if (paths_.empty()) {
+            return std::move(subTocReadCache_);
+        }
 
         std::vector<aiocb> aiocbs(paths_.size());
-        std::vector<Buffer> buffers(paths_.size());
+        std::vector<std::vector<char>> buffers(paths_.size());
         std::vector<AutoFDCloser> closers;
-        std::vector<char> done(paths_.size());
-        ::memset(done.data(), 0, done.size() * sizeof(char));
-        ::memset(aiocbs.data(), 0, sizeof(aiocb) * aiocbs.size());
 
         {
             eckit::Timer sstime("subtocs.statsubmit", Log::debug<LibFdb5>());
@@ -785,62 +785,70 @@ public:
             aiocbPtrs[i] = &aiocbs[i];
         }
 
-        int doneCount = 0;
-
         {
             eckit::Timer sstime("subtocs.collect", Log::debug<LibFdb5>());
 
-            while (doneCount < aiocbs.size()) {
+            do {
 
                 // Now wait until data is ready from at least one read
-
+                struct timespec timeout = {.tv_sec = 1, .tv_nsec = 0};
                 errno = 0;
-                while (::aio_suspend(aiocbPtrs.data(), aiocbs.size(), nullptr) < 0) {
-                    if (errno != EINTR) {
-                        throw FailedSystemCall("aio_suspend", Here(), errno);
+                while (::aio_suspend(aiocbPtrs.data(), aiocbPtrs.size(), &timeout) < 0) {
+                    switch (errno) {
+                        case EINTR:
+                            // got interrupted, continue sleeping
+                            continue;
+                        case EAGAIN:
+                            // timeout reached
+
+                            LOG_DEBUG_LIB(LibFdb5) << "Reading subtocs - timeout(1s) reached for:\n";
+                            for (int index = 0; index < aiocbPtrs.size(); ++index) {
+                                LOG_DEBUG_LIB(LibFdb5) << paths_[index].localPath() << "\n";
+                            }
+                            LOG_DEBUG_LIB(LibFdb5) << "retrying." << std::endl;
+                            continue;
+                        default:
+                            throw FailedSystemCall("aio_suspend", Here(), errno);
                     }
                 }
 
                 // Find which one(s) are ready
-
-                for (int n = 0; n < aiocbs.size(); ++n) {
-
-                    if (done[n]) {
+                for (int n = 0; n < aiocbPtrs.size(); ++n) {
+                    if (aiocbPtrs[n] == nullptr) {
+                        // allready completed, skip
                         continue;
                     }
-
-                    int e = ::aio_error(&aiocbs[n]);
+                    const int e = ::aio_error(aiocbPtrs[n]);
                     if (e == EINPROGRESS) {
                         continue;
                     }
-
                     if (e == 0) {
-
-                        ssize_t len = ::aio_return(&aiocbs[n]);
+                        const auto len = SYSCALL(::aio_return(aiocbPtrs[n]));
                         if (len != buffers[n].size()) {
-                            aiocbs[n].aio_nbytes = len;
+                            // File has not been truncated since stat has been called
+                            throw eckit::ShortFile(paths_[n], Here());
                         }
 
                         bool grow = true;
                         auto cachedToc = std::make_unique<eckit::MemoryHandle>(buffers[n].size(), grow);
 
                         {
-                            cachedToc->openForWrite(aiocbs[n].aio_nbytes);
+                            cachedToc->openForWrite(buffers[n].size());
                             AutoClose closer(*cachedToc);
-                            ASSERT(cachedToc->write(buffers[n].data(), aiocbs[n].aio_nbytes) == aiocbs[n].aio_nbytes);
+                            ASSERT(cachedToc->write(buffers[n].data(), buffers[n].size()) == buffers[n].size());
                         }
                         ASSERT(subTocReadCache_.find(paths_[n]) == subTocReadCache_.end());
                         subTocReadCache_.emplace(
                             paths_[n], std::make_unique<TocHandler>(paths_[n], parentKey_, cachedToc.release()));
 
-                        done[n] = true;
-                        doneCount++;
+                        aiocbPtrs[n] = nullptr;
                     }
                     else {
                         throw FailedSystemCall("aio_error", Here(), e);
                     }
                 }
-            }
+            } while (
+                std::any_of(std::begin(aiocbPtrs), std::end(aiocbPtrs), [](const auto ptr) { return ptr != nullptr; }));
         }
 #else
         NOTIMP;
