@@ -21,8 +21,10 @@
 
 #include <string>
 
+#include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 namespace fdb5 {
 
@@ -32,13 +34,23 @@ class Config;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct FamCommon {
+
+    using Map = eckit::FamMap128;
+
     static constexpr auto type = eckit::FamPath::scheme;
 
     static constexpr const char* db_key = "__fdb__";
-    /// Suffix appended to every FAM map table names
-    static constexpr const char* table_suffix = "-table";
+
+    static constexpr const char* registry_name = "__fdb-reg__";
+
+    /// Suffix appended to every FAM map table name. Must match eckit::FamMap.
+    static constexpr const char* table_suffix = "-map-table";
 
     static std::string toString(const Key& key);
+
+    static Key decodeKey(eckit::MemoryStream key);
+
+    // rules
 
     FamCommon(const FamCommon&)            = delete;
     FamCommon& operator=(const FamCommon&) = delete;
@@ -54,6 +66,8 @@ struct FamCommon {
     FamCommon(const eckit::URI& uri, const Config& config);
 
     virtual ~FamCommon() = default;
+
+    // methods
 
     bool exists() const;
 

@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include <optional>
-
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/database/Engine.h"
@@ -39,16 +36,17 @@ class FamEngine : public Engine {
 
 public:  // methods
 
-    FamEngine() = default;
+    /// Parse the root fam URI from config (fam_roots[0].uri).
+    static eckit::URI rootURI(const Config& config);
 
-    static const char* typeName() { return "fam"; }
+    FamEngine() = default;
 
 protected:  // methods
 
     std::string name() const override;
-    std::string dbType() const override { NOTIMP; }
+    std::string dbType() const override;
 
-    eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; }
+    eckit::URI location(const Key& key, const Config& config) const override;
 
     bool canHandle(const eckit::URI& uri, const Config& config) const override;
 
@@ -56,12 +54,7 @@ protected:  // methods
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
                                                const Config& config) const override;
 
-    void print(std::ostream& out) const override { out << "FamEngine[]"; }
-
-private:  // methods
-
-    /// Parse the root fam URI from config (fam_roots[0].uri).
-    static eckit::URI rootURI(const Config& config);
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

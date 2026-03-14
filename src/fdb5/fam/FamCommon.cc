@@ -19,31 +19,15 @@
 #include <string>
 #include <utility>
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/fam/FamEngine.h"
 
 namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace {
-
-/// @todo handle roots via fam root manager
-eckit::URI parseRoot(const Config& config) {
-    eckit::LocalConfiguration fam;
-
-    if (config.has("fam_roots")) {
-        fam = config.getSubConfigurations("fam_roots")[0];
-    }
-
-    return eckit::URI{fam.getString("uri")};
-}
-
-}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,11 +37,15 @@ std::string FamCommon::toString(const Key& key) {
     return name;
 }
 
+Key FamCommon::decodeKey(eckit::MemoryStream key) {
+    return Key{key};
+}
+
 FamCommon::FamCommon(eckit::FamRegionName root) : root_{std::move(root)} {}
 
 FamCommon::FamCommon(const eckit::URI& root) : FamCommon(eckit::FamRegionName(root)) {}
 
-FamCommon::FamCommon(const Config& config) : FamCommon(parseRoot(config)) {}
+FamCommon::FamCommon(const Config& config) : FamCommon(FamEngine::rootURI(config)) {}
 
 /// @todo use key once fam root manager is implemented
 FamCommon::FamCommon(const Key& /*key*/, const Config& config) : FamCommon(config) {}

@@ -33,12 +33,6 @@ namespace fdb5 {
 
 namespace {
 
-using Map = eckit::FamMap128;
-
-Key decodeKey(eckit::MemoryStream key) {
-    return Key{key};
-}
-
 /// Truncate a fam-name component so that the total FAM object name (including
 /// suffixes like "-table" or "-b1023") stays within OpenFAM limits (~40 chars).
 std::string truncateKey(const Key& key, const std::size_t max_len = 26) {
@@ -62,7 +56,7 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
     CatalogueImpl(Key(), control_identifiers, config), FamCommon(uri, config) {
 
     // Derive the catalogue map name from the table object in the URI.
-    // Convention: uri.path().name() == catalogueMapName + table_suffix
+    // Convention: uri.path().name() == catalogueName + table_suffix
     const auto object_name = eckit::FamPath(uri).objectName;
     const std::string_view suffix{FamCommon::table_suffix};
     if (object_name.size() > suffix.size() &&

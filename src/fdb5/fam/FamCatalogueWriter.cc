@@ -29,12 +29,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using Map = eckit::FamMap128;
-
 namespace {
-
-/// Name of the FDB-global registry map within the root region.
-constexpr const char* fdb_registry_map_name = "fdb-reg";
 
 std::string serializeKey(const fdb5::Key& key) {
     eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
@@ -78,7 +73,7 @@ void FamCatalogueWriter::initCatalogue() {
     // idempotent (FamMap::insert is a no-op if key exists)
 
     // Register this DB in the global FDB registry
-    Map(fdb_registry_map_name, region).insert(FamCommon::toString(dbKey_), db_key);
+    Map(FamCommon::registry_name, region).insert(FamCommon::toString(dbKey_), db_key);
 
     // Create / open the per-DB catalogue map and store the DB key
     Map(name(), region).insert(FamCommon::db_key, db_key);

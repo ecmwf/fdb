@@ -37,6 +37,14 @@ namespace fdb5 {
 /// provided by FamCatalogueWriter and FamCatalogueReader respectively.
 class FamCatalogue : public CatalogueImpl, public FamCommon {
 
+public:  // static methods
+
+    /// Derive the catalogue FamMap name for a given DB key string.
+    static std::string catalogueName(const Key& key);
+
+    /// Derive the data FamMap name for a given index key string.
+    static std::string indexName(const Key& key);
+
 public:  // methods
 
     FamCatalogue(const Key& key, const fdb5::Config& config);
@@ -44,12 +52,6 @@ public:  // methods
 
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
-
-    /// Derive the catalogue FamMap name for a given DB key string.
-    static std::string catalogueName(const Key& key);
-
-    /// Derive the data FamMap name for a given index key string.
-    static std::string indexName(const Key& key);
 
 protected:  // methods
 
