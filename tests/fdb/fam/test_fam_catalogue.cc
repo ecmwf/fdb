@@ -68,6 +68,7 @@ const std::string test_schema =
 const std::string test_config =
     "---\n"
     "type: local\n"
+    "engine: fam\n"
     "schema: ./schema\n"
     "store: fam\n"
     "catalogue: fam\n"
@@ -88,19 +89,10 @@ const std::string test_config =
 
 CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 
-    const auto cat_region = eckit::FamPath("test_region_fdb_catalog");
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, cat_region).create(test_region_size, test_region_perm, true);
-
-    std::string cat_config = test_config;
-    {
-        const auto uri_pos = cat_config.find(fam::test_fdb_fam_uri);
-        EXPECT_NOT_EQUAL(uri_pos, std::string::npos);
-        const auto direct_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + cat_region.asString();
-        cat_config.replace(uri_pos, fam::test_fdb_fam_uri.size(), direct_uri);
-    }
-
-    const fam::FamSetup setup(test_schema, cat_config);
+    const fam::FamSetup setup(test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -159,11 +151,11 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
         EXPECT_EQUAL(::memcmp(retrieved.data(), data, data_length), 0);
     }
 
-    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, cat_region);
+    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region);
 
     const auto cat_map_name = fdb5::FamCatalogue::catalogueName(db_key) + fdb5::FamCommon::table_suffix;
     const auto idx_map_name = fdb5::FamCatalogue::indexName(idx_key) + fdb5::FamCommon::table_suffix;
-    const auto reg_map_name = std::string("fdb-reg") + fdb5::FamCommon::table_suffix;
+    const auto reg_map_name = std::string(fdb5::FamCommon::registry_name) + fdb5::FamCommon::table_suffix;
 
     EXPECT(root.object(reg_map_name).exists());
     EXPECT(root.object(cat_map_name).exists());
@@ -171,6 +163,10 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 }
 
 CASE("FamCatalogue: Archive, Retrieve, Remove") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
     TEST_LOG_DEBUG("SETUP FDB FAM");
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -292,11 +288,20 @@ CASE("FamCatalogue: Archive, Retrieve, Remove") {
     // handle->seek(-length);  // seek back (because of field loc)
     // fam::readAndValidate(handle.get(), value, length);
 
-    //     //------------------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------------------------------
+
+    // TEST_LOG_INFO("REMOVE");
+    //     const auto request = key.request("retrieve");
+    //     fdb.wipe(request);
+    //     fdb.flush();
     //
-    //     TEST_LOG_INFO("REMOVE");
-    //
-    //     store.remove(key);
+    //     {
+    //         TEST_LOG_INFO("LIST THAT DB IS EMPTY AGAIN");
+    //         auto key   = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
+    //         auto list  = fdb.list(key.request("retrieve"));
+    //         auto count = fam::count_list(list);
+    //         EXPECT_EQUAL(count, 0);
+    //     }
     //
     //     EXPECT_THROWS(fam::readAndValidate(handle.get(), value, length));
 
