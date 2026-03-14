@@ -36,7 +36,7 @@ namespace fdb5 {
 
 FamIndex::FamIndex(const Key& key, const Catalogue& /*catalogue*/, const eckit::FamRegionName& region_name,
                    const std::string& data_map_name, bool read_axes) :
-    IndexBase(key, "fam"),
+    IndexBase(key, FamCommon::type),
     location_(region_name.object(data_map_name + FamCommon::table_suffix).uri()),
     data_(data_map_name, region_name.lookup()) {
     if (read_axes) {
@@ -92,45 +92,62 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
 
 void FamIndex::entries(EntryVisitor& visitor) const {
 
-    for (auto it = data_.begin(); it != data_.end(); ++it) {
+    Index instant_index(const_cast<FamIndex*>(this));
 
-        auto entry                 = *it;
-        const eckit::Buffer& value = entry.value;
-        eckit::MemoryStream ms{static_cast<const char*>(value.data()), value.size()};
+    // Allow the visitor to decline visiting this index's entries.
+    if (!visitor.visitIndex(instant_index)) {
+        return;
+    }
+
+    for (const auto& [k, value] : data_) {
+
+        eckit::MemoryStream ms{value};
 
         time_t ts{};
         ms >> ts;
 
-        auto loc = std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(ms));
+        auto loc = std::shared_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
 
-        Key datumKey(ms);
+        Key datum_key(ms);
 
-        Field f(std::move(loc), ts, FieldDetails());
+        Field field(std::move(loc), ts, FieldDetails());
+
         // Use the public visitDatum(field, keyFingerprint) overload; it calls rule_->makeKey()
         // to reconstruct the Key with keyword names before dispatching to the protected override.
-        visitor.visitDatum(f, datumKey.valuesToString());
+        visitor.visitDatum(field, datum_key.valuesToString());
     }
 }
 
 void FamIndex::updateAxes() {
 
-    for (auto it = data_.begin(); it != data_.end(); ++it) {
+    for (const auto& [k, value] : data_) {
 
-        auto entry                 = *it;
-        const eckit::Buffer& value = entry.value;
-        eckit::MemoryStream ms{static_cast<const char*>(value.data()), value.size()};
+        eckit::MemoryStream ms{value};
 
-        time_t ts{};
-        ms >> ts;
+        {
+            // Discard the timestamp
+            time_t ts{};
+            ms >> ts;
+            // Discard the FieldLocation
+            std::unique_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
+        }
 
-        // Discard the FieldLocation to advance the stream to the Key.
-        std::unique_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(ms));
-
-        Key datumKey(ms);
-        axes_.insert(datumKey);  // inserts all keyword-value pairs from the Key
+        axes_.insert(Key{ms});
     }
 
     axes_.sort();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void FamIndex::dump(std::ostream& /*out*/, const char* /*indent*/, bool /*simple*/, bool /*dump_fields*/) const {
+    NOTIMP;
+}
+void FamIndex::encode(eckit::Stream& /*s*/, const int /*version*/) const {
+    NOTIMP;
+}
+void FamIndex::visit(IndexLocationVisitor& /*visitor*/) const {
+    NOTIMP;
 }
 
 void FamIndex::print(std::ostream& out) const {
@@ -139,13 +156,4 @@ void FamIndex::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FamIndex::dump(std::ostream& out, const char* indent, bool simple, bool dump_fields) const {
-    NOTIMP;
-}
-void FamIndex::encode(eckit::Stream& s, const int version) const {
-    NOTIMP;
-}
-void FamIndex::visit(IndexLocationVisitor& visitor) const {
-    NOTIMP;
-}
 }  // namespace fdb5

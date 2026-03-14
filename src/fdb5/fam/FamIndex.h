@@ -40,8 +40,6 @@ public:  // types
 
     using Map = eckit::FamMap128;
 
-    static constexpr const char* db_key = "__fdb__";
-
 public:  // methods
 
     /// Construct (or reopen) an index backed by a FamMap in the given region.
