@@ -104,7 +104,7 @@ std::ostream& operator<<(std::ostream& os, const Method& method);
 
 
 struct Options {
-    Scope scope   = Scope::Mars;
+    Scope scope = Scope::Mars;
     Method method = Method::KeyByKey;
 
     // For MARS comparison:
@@ -135,9 +135,9 @@ struct Options {
 //---------------------------------------------------------------------------------------------------------------------
 
 struct NumericError {
-    double sum   = 0.0;
-    double min   = std::numeric_limits<double>::infinity();
-    double max   = 0.0;
+    double sum = 0.0;
+    double min = std::numeric_limits<double>::infinity();
+    double max = 0.0;
     size_t count = 0;
 
     double avg() const;

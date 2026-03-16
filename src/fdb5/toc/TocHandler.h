@@ -74,7 +74,7 @@ public:
     bool next(double& time, eckit::Length& len) {
         if (tocCopyStats_.size() > idx_) {
             time = tocCopyStats_[idx_].first;
-            len  = tocCopyStats_[idx_].second;
+            len = tocCopyStats_[idx_].second;
 
             idx_++;
             return true;
@@ -107,10 +107,10 @@ public:  // methods
     /// For initialising sub tocs or diagnostic interrogation.
     TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr);
 
-    TocHandler(const TocHandler&)            = delete;
+    TocHandler(const TocHandler&) = delete;
     TocHandler& operator=(const TocHandler&) = delete;
-    TocHandler(TocHandler&&)                 = delete;
-    TocHandler& operator=(TocHandler&&)      = delete;
+    TocHandler(TocHandler&&) = delete;
+    TocHandler& operator=(TocHandler&&) = delete;
 
     ~TocHandler() override;
 
@@ -132,7 +132,7 @@ public:  // methods
     /// subTocs that were read to get these indexes
     std::vector<Index> loadIndexes(bool sorted = false, std::set<std::string>* subTocs = nullptr,
                                    std::vector<bool>* indexInSubtoc = nullptr,
-                                   std::vector<Key>* remapKeys      = nullptr) const;
+                                   std::vector<Key>* remapKeys = nullptr) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;

@@ -17,8 +17,8 @@ namespace fdb5::test {
 eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::string ext) {
     eckit::PathName auxpath(datapath + "." + ext);
     std::string data_str = "Some extra data";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
     eckit::FileHandle file(auxpath);
     file.openForWrite(0);
     file.write(data, length);
@@ -43,8 +43,8 @@ std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = 
     });
 
     std::string data_str = "Raining cats and dogs";
-    const void* data     = static_cast<const void*>(data_str.c_str());
-    size_t length        = data_str.size();
+    const void* data = static_cast<const void*>(data_str.c_str());
+    size_t length = data_str.size();
 
     Key key;
     key.set("class", "od");
@@ -110,8 +110,8 @@ CASE("Wipe with extensions") {
 
     // call wipe, without doit
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = false;
-    auto iter              = fdb.wipe(request, doit);
+    bool doit = false;
+    auto iter = fdb.wipe(request, doit);
 
     WipeElement elem;
     std::map<WipeElementType, size_t> element_counts;
@@ -127,8 +127,8 @@ CASE("Wipe with extensions") {
 
     // over specified wipe: returns nothing
     request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf,step=1")[0];
-    doit    = true;
-    iter    = fdb.wipe(request, doit);
+    doit = true;
+    iter = fdb.wipe(request, doit);
     element_counts.clear();
     while (iter.next(elem)) {
         element_counts[elem.type()] += elem.uris().size();
@@ -141,8 +141,8 @@ CASE("Wipe with extensions") {
 
     // partial wipe on the second level. Hits half the data files
     request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf")[0];
-    doit    = true;
-    iter    = fdb.wipe(request, doit);
+    doit = true;
+    iter = fdb.wipe(request, doit);
     element_counts.clear();
     while (iter.next(elem)) {
         element_counts[elem.type()] += elem.uris().size();
@@ -154,8 +154,8 @@ CASE("Wipe with extensions") {
 
     // call wipe on everything which remains
     request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    doit    = true;
-    iter    = fdb.wipe(request, doit);
+    doit = true;
+    iter = fdb.wipe(request, doit);
     element_counts.clear();
     while (iter.next(elem)) {
         element_counts[elem.type()] += elem.uris().size();
@@ -189,9 +189,9 @@ CASE("Ensure wipe fails if extensions are unknown") {
 
     // call wipe
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = true;
-    bool unsafeWipeAll     = false;
-    bool error_was_thrown  = false;
+    bool doit = true;
+    bool unsafeWipeAll = false;
+    bool error_was_thrown = false;
     WipeElement elem;
 
     // Expect an error to be thrown when unsafeWipeAll is false.
@@ -211,7 +211,7 @@ CASE("Ensure wipe fails if extensions are unknown") {
 
     // Check we can still list the data (i.e. there isn't a lingering lock)
     auto listObject = fdb.list(request, false);
-    size_t count    = 0;
+    size_t count = 0;
     ListElement le;
     while (listObject.next(le)) {
         eckit::Log::info() << le;
@@ -221,7 +221,7 @@ CASE("Ensure wipe fails if extensions are unknown") {
 
     // Use unsafe wipe all to actually delete everything.
     unsafeWipeAll = true;
-    auto iter     = fdb.wipe(request, doit, false, unsafeWipeAll);
+    auto iter = fdb.wipe(request, doit, false, unsafeWipeAll);
 
     std::map<WipeElementType, size_t> element_counts;
     while (iter.next(elem)) {
@@ -271,8 +271,8 @@ CASE("Purge with extensions") {
 
     // call purge
     FDBToolRequest request = FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
-    bool doit              = true;
-    auto listObject        = fdb.purge(request, doit, false);
+    bool doit = true;
+    auto listObject = fdb.purge(request, doit, false);
 
     PurgeElement elem;
     while (listObject.next(elem)) {

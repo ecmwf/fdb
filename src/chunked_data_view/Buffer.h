@@ -31,7 +31,7 @@ public:
         }
 
         bitset_ = std::vector<bool>(prod);
-        data_   = std::vector<float>(prod * chunkShape[chunkShape.size() - 1]);
+        data_ = std::vector<float>(prod * chunkShape[chunkShape.size() - 1]);
     };
 
     void resize(size_t size) {

@@ -53,12 +53,16 @@ Config::Config(const Configuration& config, const eckit::Configuration& userConf
 
 Config Config::expandConfig() const {
     // stops recursion on loading configuration of sub-fdb's
-    if (has("type"))
+    if (has("type")) {
         return *this;
+    }
 
     // If we have explicitly specified a config as an environment variable, use that
 
-    char* config_str = ::getenv("FDB5_CONFIG");
+    char* config_str = ::getenv("FDB_CONFIG");
+    if (!config_str) {
+        config_str = ::getenv("FDB5_CONFIG");  // backwards compatibility
+    }
     if (config_str) {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
@@ -79,11 +83,16 @@ Config Config::expandConfig() const {
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    std::string config_path = eckit::Resource<std::string>("fdbConfigFile;$FDB_CONFIG_FILE", "");
+    if (config_path.empty()) {
+        config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");  // backwards compatibility
+    }
+
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
-        if (!actual_path.exists())
+        if (!actual_path.exists()) {
             return *this;
+        }
         found = true;
     }
 
@@ -100,8 +109,9 @@ Config Config::expandConfig() const {
                     break;
                 }
             }
-            if (found)
+            if (found) {
                 break;
+            }
         }
     }
 
@@ -128,8 +138,9 @@ PathName Config::expandPath(const std::string& path) const {
     if (path[0] == '~') {
         if (path.length() > 1 && path[1] != '/') {
             size_t slashpos = path.find('/');
-            if (slashpos == std::string::npos)
+            if (slashpos == std::string::npos) {
                 slashpos = path.length();
+            }
 
             std::string key = path.substr(1, slashpos - 1) + "_home";
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
@@ -159,7 +170,7 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
-    schemaPath_            = schemaPath;
+    schemaPath_ = schemaPath;
     schemaPathInitialised_ = true;
 }
 

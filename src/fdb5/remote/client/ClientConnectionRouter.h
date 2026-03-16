@@ -27,10 +27,10 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnectionRouter(const ClientConnectionRouter&)            = delete;
+    ClientConnectionRouter(const ClientConnectionRouter&) = delete;
     ClientConnectionRouter& operator=(const ClientConnectionRouter&) = delete;
-    ClientConnectionRouter(ClientConnectionRouter&&)                 = delete;
-    ClientConnectionRouter& operator=(ClientConnectionRouter&&)      = delete;
+    ClientConnectionRouter(ClientConnectionRouter&&) = delete;
+    ClientConnectionRouter& operator=(ClientConnectionRouter&&) = delete;
 
     std::shared_ptr<ClientConnection> connection(const eckit::Configuration& config,
                                                  const eckit::net::Endpoint& endpoint,

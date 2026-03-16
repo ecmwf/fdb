@@ -27,7 +27,7 @@ namespace fdb5 {
 
 class CatalogueWipeState;
 using WipeStateIterator = APIIterator<CatalogueWipeState>;
-using URIMap            = std::map<WipeElementType, std::set<eckit::URI>>;
+using URIMap = std::map<WipeElementType, std::set<eckit::URI>>;
 
 // -----------------------------------------------------------------------------------------------
 /// Class for storing all URIs to be wiped.
@@ -48,10 +48,10 @@ public:
 
     explicit WipeState(eckit::Stream& s);
 
-    WipeState(const WipeState&)            = delete;
+    WipeState(const WipeState&) = delete;
     WipeState& operator=(const WipeState&) = delete;
 
-    WipeState(WipeState&&) noexcept            = default;
+    WipeState(WipeState&&) noexcept = default;
     WipeState& operator=(WipeState&&) noexcept = default;
 
     virtual ~WipeState() = default;
@@ -125,7 +125,7 @@ public:
     StoreWipeState(eckit::Stream& s);
 
     // Non-copyable
-    StoreWipeState(const StoreWipeState&)            = delete;
+    StoreWipeState(const StoreWipeState&) = delete;
     StoreWipeState& operator=(const StoreWipeState&) = delete;
 
     // Adding and Removing URIs
@@ -225,11 +225,11 @@ public:
     CatalogueWipeState(eckit::Stream& s);
 
     // Non-copyable
-    CatalogueWipeState(const CatalogueWipeState&)            = delete;
+    CatalogueWipeState(const CatalogueWipeState&) = delete;
     CatalogueWipeState& operator=(const CatalogueWipeState&) = delete;
 
     // Movable
-    CatalogueWipeState(CatalogueWipeState&&) noexcept            = default;
+    CatalogueWipeState(CatalogueWipeState&&) noexcept = default;
     CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
 
     virtual ~CatalogueWipeState() override {

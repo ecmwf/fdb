@@ -1,7 +1,7 @@
 if( HAVE_FAMFDB )
 
     list( APPEND _fam_tests
-        store
+        store catalogue
     )
 
     foreach( _test ${_fam_tests} )

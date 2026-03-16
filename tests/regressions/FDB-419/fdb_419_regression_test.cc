@@ -124,9 +124,9 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
     dup2(fd, 2);
     close(fd);
 
-    std::array<const char*, 2> argv       = {"fdb-server", nullptr};
-    const auto server_config_path         = get_cwd() / "fdb_server_config.yaml";
-    auto env                              = copy_environment();
+    std::array<const char*, 2> argv = {"fdb-server", nullptr};
+    const auto server_config_path = get_cwd() / "fdb_server_config.yaml";
+    auto env = copy_environment();
     const std::string fdb_config_file_env = std::string("FDB5_CONFIG_FILE=") + server_config_path.asString();
     env.emplace_back(fdb_config_file_env.c_str());
     env.emplace_back(nullptr);
@@ -143,7 +143,7 @@ pid_t run_server(const PathName& fdb_server_path, const PathName& log_file) {
 void kill_server(const pid_t ppid) {
 
 #if has_libproc
-    int n       = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+    int n = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
     int* buffer = (int*)malloc(sizeof(int) * n);
 
     int numpids = proc_listpids(PROC_PPID_ONLY, (uint32_t)ppid, buffer, n * sizeof(int));
@@ -151,8 +151,9 @@ void kill_server(const pid_t ppid) {
         numpids /= sizeof(int);
         for (int i = 0; i < numpids; i++) {
             pid_t pid = buffer[i];
-            if (pid == 0 || pid == ppid)
+            if (pid == 0 || pid == ppid) {
                 continue;
+            }
             int rc = kill(pid, SIGKILL);
             Log::info() << "Killing child " << pid << std::endl;
             if (rc == -1) {
@@ -186,8 +187,8 @@ size_t count_in_file(const PathName& file, const std::string& text) {
     std::ifstream in(file.asString());
     oss << in.rdbuf();
     std::string content = oss.str();
-    size_t count        = 0;
-    size_t pos          = 0;
+    size_t count = 0;
+    size_t pos = 0;
     while ((pos = content.find(text, pos)) != std::string::npos) {
         ++count;
         pos += text.length();
@@ -201,11 +202,11 @@ size_t count_in_file(const PathName& file, const std::string& text) {
 // this server.
 CASE("FDB-419") {
     const auto fdb_server_path = get_fdb_server_path();
-    auto fdb_server_pid        = run_server(fdb_server_path, "srv1.log");
+    auto fdb_server_pid = run_server(fdb_server_path, "srv1.log");
 
     const auto config = Config::make("fdb_client_config.yaml");
-    auto fdb_a        = FDB(config);
-    auto fdb_b        = FDB(config);
+    auto fdb_a = FDB(config);
+    auto fdb_b = FDB(config);
 
     const auto req = fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0];
     EXPECT_NO_THROW(fdb_a.list(req));

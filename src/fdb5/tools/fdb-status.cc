@@ -50,16 +50,21 @@ void FDBStatus::execute(const CmdArgs& args) {
             Log::info() << "Database: " << elem.key << std::endl
                         << "  location: " << elem.location.asString() << std::endl;
 
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve)) {
                 Log::info() << "  retrieve: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))
+            }
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive)) {
                 Log::info() << "  archive: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))
+            }
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List)) {
                 Log::info() << "  list: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))
+            }
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe)) {
                 Log::info() << "  wipe: LOCKED" << std::endl;
-            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot))
+            }
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) {
                 Log::info() << "  multi-root: PERMITTED" << std::endl;
+            }
 
             count++;
         }

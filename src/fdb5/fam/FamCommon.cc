@@ -17,55 +17,49 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/fam/FamEngine.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-
-/// @todo handle roots via fam root manager
-auto parseRoot(const Config& config) -> eckit::URI {
-    eckit::LocalConfiguration fam;
-
-    if (config.has("fam_roots")) {
-        fam = config.getSubConfigurations("fam_roots")[0];
-    }
-
-    return eckit::URI{fam.getString("uri")};
-}
-
-}  // namespace
-
-//----------------------------------------------------------------------------------------------------------------------
-
-auto FamCommon::toString(const Key& key) -> std::string {
+std::string FamCommon::toString(const Key& key) {
     auto name = key.valuesToString();
     std::replace(name.begin(), name.end(), ':', '-');
     return name;
 }
 
-FamCommon::FamCommon(const eckit::FamRegionName& root) : root_{root} {}
+Key FamCommon::decodeKey(eckit::MemoryStream key) {
+    return Key{key};
+}
 
-FamCommon::FamCommon(const Config& config) : FamCommon(parseRoot(config)) {}
+FamCommon::FamCommon(eckit::FamRegionName root) : root_{std::move(root)} {}
+
+FamCommon::FamCommon(const eckit::URI& root) : FamCommon(eckit::FamRegionName(root)) {}
+
+FamCommon::FamCommon(const Config& config) : FamCommon(FamEngine::rootURI(config)) {}
 
 /// @todo use key once fam root manager is implemented
-FamCommon::FamCommon(const Config& config, const Key& /* key */) : FamCommon(config) {}
+FamCommon::FamCommon(const Key& /*key*/, const Config& config) : FamCommon(config) {}
+
+/// @todo use uri once fam root manager is implemented
+FamCommon::FamCommon(const eckit::URI& /*uri*/, const Config& config) : FamCommon(config) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-auto FamCommon::exists() const -> bool {
+bool FamCommon::exists() const {
     return root_.exists();
 }
 
-auto FamCommon::uri() const -> eckit::URI {
+eckit::URI FamCommon::uri() const {
     return root_.uri();
 }
 

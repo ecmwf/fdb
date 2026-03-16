@@ -125,7 +125,7 @@ CASE("Remote protocol: the basics") {
 
 
     // -- write a few fields
-    const size_t Nfields          = 8;
+    const size_t Nfields = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys;
     eckit::Log::info() << "[CLIENT]" << "Archiving " << Nfields << " fields." << std::endl;
@@ -153,7 +153,7 @@ CASE("Remote protocol: the basics") {
     eckit::Log::info() << "[CLIENT]" << "Listing all fields with request." << std::endl;
     {
 
-        count   = 0;
+        count = 0;
         auto it = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
         ListElement elem;
         while (it.next(elem)) {
@@ -198,7 +198,7 @@ CASE("Remote protocol: the basics") {
     // -- list all fields again, expect same number as before
     eckit::Log::info() << "[CLIENT]" << "Listing all fields." << std::endl;
     {
-        count   = 0;
+        count = 0;
         auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
         ListElement elem;
         while (it.next(elem)) {
@@ -244,7 +244,7 @@ CASE("Remote protocol: the basics") {
     // -- list all remaining fields
     eckit::Log::info() << "[CLIENT]" << "Listing all fields." << std::endl;
     {
-        count   = 0;
+        count = 0;
         auto it = FDB{}.list(FDBToolRequest{{}, true, {}}, true);
         ListElement elem;
         while (it.next(elem)) {
@@ -290,7 +290,7 @@ CASE("Remote protocol: more wipe testing") {
 
 
     // -- write a few fields. 2 databases. Each with 1 index and 1 data file
-    const size_t Nfields          = 8;
+    const size_t Nfields = 8;
     const std::string data_string = "It's gonna be a bright, sunshiny day!";
     std::vector<Key> keys;
     eckit::Log::info() << "[CLIENT]" << "Archiving " << Nfields << " fields." << std::endl;

@@ -19,18 +19,16 @@
 
 #include "test_fam_common.h"
 
+#include <cstring>
 #include <ctime>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "eckit/config/YAMLConfiguration.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
-#include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
-#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
@@ -40,20 +38,21 @@
 #include "fdb5/fam/FamStore.h"
 #include "fdb5/rules/Schema.h"
 
-using namespace eckit::testing;
-
 namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
 
-const std::string testSchema =
+constexpr eckit::fam::size_t test_region_size = 1024 * 64;  // 64 KB
+constexpr eckit::fam::perm_t test_region_perm = 0640;
+
+const std::string test_schema =
     "[ fam1a, fam1b, fam1c\n"
     "    [ fam2a, fam2b, fam2c\n"
     "       [ fam3a, fam3b, fam3c ]]]\n";
 
-const std::string testConfig =
+const std::string test_config =
     "---\n"
     "type: local\n"
     "schema: ./schema\n"
@@ -63,14 +62,9 @@ const std::string testConfig =
     "- handler: Default\n"
     "  roots:\n"
     "  - path: ./root\n"
-    "  - path: fam://endpoint/region\n"
-    "  - path: ./backup\n"
-    "    wipe: true\n"
-    "    list: true\n"
-    "    retrieve: false\n"
     "fam_roots:\n"
     "- uri: " +
-    TEST_FDB_FAM_URI +
+    fam::test_fdb_fam_uri +
     "\n"
     "  writable: true\n"
     "  visit: true\n";
@@ -79,74 +73,173 @@ const std::string testConfig =
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamStore: create test region") {
-    auto name = eckit::FamRegionName(TEST_FDB_FAM_ENDPOINT, TEST_FDB_FAM_REGION);
-    try {
-        name.create(1024 * 4, 0640);
-    }
-    catch (const eckit::AlreadyExists& e) {
-        eckit::Log::debug() << "FamCommon: " << name << " already exists.\n";
-    }
-}
+CASE("FamStore: metadata and identity") {
 
-CASE("FamStore: Archive, Retrieve, Remove") {
-    TEST_LOG_DEBUG("SETUP FAM STORE");
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(testSchema, testConfig);
-
+    const fam::FamSetup setup(test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
-    const auto& schema = config.schema();
+    const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
-    const auto storeKey = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
+    fdb5::FamStore fam_store(store_key, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
 
-    fdb5::FamStore famStore(storeKey, config);
+    EXPECT_EQUAL(store.type(), std::string("fam"));
+    EXPECT_EQUAL(store.uri().scheme(), std::string("fam"));
+    EXPECT(store.exists());
 
-    auto& store = static_cast<fdb5::Store&>(famStore);
+    // Collocated URIs start empty (no sub-objects tracked)
+    EXPECT(store.collocatedDataURIs().empty());
 
-    //------------------------------------------------------------------------------------------------------------------
+    // flush() returns zero when nothing has been archived
+    EXPECT_EQUAL(store.flush(), 0U);
+}
 
-    const char* value = "Testing fam: ARCHIVE DATA!";
-    const auto length = std::char_traits<char>::length(value);
+CASE("FamStore: archive, retrieve, flush") {
 
-    const auto key = fdb5::Key({{"fam1a", "val1a"},
-                                {"fam1b", "val1b"},
-                                {"fam1c", "val1c"},
-                                {"fam2a", "val2a"},
-                                {"fam2b", "val2b"},
-                                {"fam2c", "val2c"},
-                                {"fam3a", "val3a"},
-                                {"fam3b", "val3b"},
-                                {"fam3c", "val3c"}});
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
 
-    //------------------------------------------------------------------------------------------------------------------
+    const fam::FamSetup setup(test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
-    TEST_LOG_INFO("ARCHIVE");
+    const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
-    auto floc = store.archive(key, value, length);
-
-    EXPECT(floc && floc->length() == eckit::Length(length));
+    fdb5::FamStore fam_store(store_key, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
 
     //------------------------------------------------------------------------------------------------------------------
 
-    TEST_LOG_INFO("RETRIEVE");
+    const char* data1       = "Testing fam: ARCHIVE DATA #1";
+    const auto data1_length = std::char_traits<char>::length(data1);
+
+    const char* data2       = "Different payload for field #2";
+    const auto data2_length = std::char_traits<char>::length(data2);
+
+    auto key1 = fdb5::Key({{"fam1a", "v1a"},
+                           {"fam1b", "v1b"},
+                           {"fam1c", "v1c"},
+                           {"fam2a", "v2a"},
+                           {"fam2b", "v2b"},
+                           {"fam2c", "v2c"},
+                           {"fam3a", "v3a"},
+                           {"fam3b", "v3b"},
+                           {"fam3c", "v3c"}});
+
+    auto key2 = fdb5::Key({{"fam1a", "v1a"},
+                           {"fam1b", "v1b"},
+                           {"fam1c", "v1c"},
+                           {"fam2a", "v2a"},
+                           {"fam2b", "v2b"},
+                           {"fam2c", "v2c"},
+                           {"fam3a", "v3a"},
+                           {"fam3b", "v3b"},
+                           {"fam3c", "x3c"}});
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TEST_LOG_INFO("ARCHIVE #1");
+
+    auto floc1 = store.archive(key1, data1, data1_length);
+    EXPECT(floc1);
+    EXPECT_EQUAL(floc1->length(), eckit::Length(data1_length));
+
+    TEST_LOG_INFO("ARCHIVE #2");
+
+    auto floc2 = store.archive(key2, data2, data2_length);
+    EXPECT(floc2);
+    EXPECT_EQUAL(floc2->length(), eckit::Length(data2_length));
+
+    // Archived URIs must be distinct (UUID-based)
+    EXPECT(floc1->uri() != floc2->uri());
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TEST_LOG_INFO("FLUSH — returns archived count");
+
+    EXPECT_EQUAL(store.flush(), 2U);
+    // Second flush returns zero — counter was reset
+    EXPECT_EQUAL(store.flush(), 0U);
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TEST_LOG_INFO("URI MEMBERSHIP");
+
+    EXPECT(store.uriBelongs(floc1->uri()));
+    EXPECT(store.uriExists(floc1->uri()));
+    EXPECT(store.uriBelongs(floc2->uri()));
+    EXPECT(store.uriExists(floc2->uri()));
+
+    // A fabricated URI in the same scheme but different region should not belong
+    const eckit::URI foreign("fam://host:1234/other_region/obj");
+    EXPECT(!store.uriBelongs(foreign));
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TEST_LOG_INFO("RETRIEVE #1");
+    {
+        auto field  = fdb5::Field(std::move(floc1), std::time(nullptr));
+        auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
+        EXPECT(handle);
+        fam::read_and_validate(handle.get(), data1, data1_length);
+    }
+
+    TEST_LOG_INFO("RETRIEVE #2 — different payload");
+    {
+        auto field  = fdb5::Field(std::move(floc2), std::time(nullptr));
+        auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
+        EXPECT(handle);
+        fam::read_and_validate(handle.get(), data2, data2_length);
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TEST_LOG_INFO("CLOSE");
+    store.close();
+
+    TEST_LOG_INFO("FINISHED!");
+}
+
+CASE("FamStore: URI-based construction") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    // Construct from URI instead of Key
+    const eckit::URI root_uri(fam::test_fdb_fam_uri);
+    fdb5::FamStore fam_store(root_uri, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
+
+    EXPECT_EQUAL(store.type(), std::string("fam"));
+    EXPECT(store.exists());
+
+    // Archive a field to verify the URI-constructed store is fully functional
+    const char* data       = "URI-constructed store data";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    auto key = fdb5::Key({{"fam1a", "v1a"},
+                          {"fam1b", "v1b"},
+                          {"fam1c", "v1c"},
+                          {"fam2a", "v2a"},
+                          {"fam2b", "v2b"},
+                          {"fam2c", "v2c"},
+                          {"fam3a", "v3a"},
+                          {"fam3b", "v3b"},
+                          {"fam3c", "v3c"}});
+
+    auto floc = store.archive(key, data, data_length);
+    EXPECT(floc);
+    EXPECT_EQUAL(floc->length(), eckit::Length(data_length));
 
     auto field  = fdb5::Field(std::move(floc), std::time(nullptr));
     auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
-
     EXPECT(handle);
-
-    // handle->seek(-length);  // seek back (because of field loc)
-
-    fam::readAndValidate(handle.get(), value, length);
-
-    //------------------------------------------------------------------------------------------------------------------
-
-    TEST_LOG_INFO("REMOVE");
-
-    store.remove(key);
-
-    EXPECT_THROWS(fam::readAndValidate(handle.get(), value, length));
+    fam::read_and_validate(handle.get(), data, data_length);
 
     TEST_LOG_INFO("FINISHED!");
 }
@@ -156,5 +249,5 @@ CASE("FamStore: Archive, Retrieve, Remove") {
 }  // namespace fdb::test
 
 int main(int argc, char** argv) {
-    return run_tests(argc, argv);
+    return eckit::testing::run_tests(argc, argv);
 }

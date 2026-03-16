@@ -64,8 +64,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         ControlIdentifiers initialID;
 
         for (auto id : ControlIdentifierList) {
-            if (catalogue.enabled(id))
+            if (catalogue.enabled(id)) {
                 initialID |= id;
+            }
         }
 
         catalogueWipeState_.initialControlState(initialID);

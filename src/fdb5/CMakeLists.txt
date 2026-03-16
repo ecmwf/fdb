@@ -242,8 +242,6 @@ if(HAVE_FDB_REMOTE)
 
         remote/Connection.h
         remote/Connection.cc
-        remote/RemoteFieldLocation.h
-        remote/RemoteFieldLocation.cc
         remote/Messages.h
         remote/Messages.cc
         remote/FdbServer.h
@@ -314,8 +312,6 @@ if( HAVE_TOCFDB )
         toc/TocCatalogueReader.h
         toc/TocCatalogueWriter.cc
         toc/TocCatalogueWriter.h
-        toc/TocFieldLocation.cc
-        toc/TocFieldLocation.h
         toc/TocHandler.cc
         toc/TocHandler.h
         toc/TocIndex.cc
@@ -377,8 +373,6 @@ if( HAVE_DAOSFDB )
         daos/DaosKeyValueHandle.h
         daos/DaosStore.h
         daos/DaosStore.cc
-        daos/DaosFieldLocation.h
-        daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
         daos/DaosEngine.h
@@ -409,9 +403,7 @@ else()
     set( UUID_INCLUDE_DIRS "" )
 endif()
 
-if( HAVE_FAMFDB )
-    add_subdirectory( fam )
-endif()
+add_subdirectory( fam )
 
 ecbuild_add_library(
 
@@ -421,6 +413,12 @@ ecbuild_add_library(
 
     SOURCES
         ${fdb5_srcs}
+        toc/TocFieldLocation.cc
+        toc/TocFieldLocation.h
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
+        daos/DaosFieldLocation.h
+        daos/DaosFieldLocation.cc
 
     INSTALL_HEADERS LISTED
 
@@ -479,6 +477,11 @@ list( APPEND fdb5_tools
 if ( HAVE_GRIB )
     list( APPEND fdb5_tools
         fdb-hammer
+    )
+endif()
+
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
+    list( APPEND fdb5_tools
         fdb-patch
     )
 endif()
@@ -530,7 +533,7 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
-if ( HAVE_GRIB )
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
     ecbuild_add_executable( TARGET    fdb-compare
                             CONDITION HAVE_FDB_BUILD_TOOLS
                             SOURCES   tools/compare/fdb-compare.cc

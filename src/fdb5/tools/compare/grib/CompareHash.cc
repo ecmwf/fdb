@@ -62,7 +62,7 @@ CompareResult compareMd5sums(const metkit::codes::CodesHandle& h1, const metkit:
     }
 
     for (const auto& value : makeGribMD5Sections(gribEdition1)) {
-        auto md5HashValueRef  = h1.getString(value);
+        auto md5HashValueRef = h1.getString(value);
         auto md5HashValueTest = h2.getString(value);
 
         if ((md5HashValueRef.size() != md5HashValueTest.size())) {

@@ -60,13 +60,15 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         }
 
         if (e->d_name[0] == '.') {
-            if (e->d_name[1] == 0 || (e->d_name[1] == '.' && e->d_name[2] == 0))
+            if (e->d_name[1] == 0 || (e->d_name[1] == '.' && e->d_name[2] == 0)) {
                 continue;
+            }
         }
 
         std::string full = path;
-        if (path[path.length() - 1] != '/')
+        if (path[path.length() - 1] != '/') {
             full += "/";
+        }
         full += e->d_name;
 
         bool do_stat = true;
@@ -87,8 +89,9 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
                     dbs.push_back(full);
                 }
             }
-            else
+            else {
                 Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
+            }
         }
     }
 }
@@ -106,11 +109,12 @@ eckit::URI TocEngine::location(const Key& key, const Config& config) const {
 }
 
 bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const {
-    if (uri.scheme() != "toc")
+    if (uri.scheme() != "toc") {
         return false;
+    }
 
     eckit::PathName path = uri.path();
-    eckit::PathName toc  = path / "toc";
+    eckit::PathName toc = path / "toc";
     return path.isDir() && toc.exists();
 }
 
@@ -175,8 +179,9 @@ std::map<eckit::PathName, const Rule*> TocEngine::databases(const std::map<Key, 
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "TocEngine::databases() results [";
-    for (const auto& [path, rule] : result)
+    for (const auto& [path, rule] : result) {
         LOG_DEBUG_LIB(LibFdb5) << path << std::endl;
+    }
     LOG_DEBUG_LIB(LibFdb5) << "]" << std::endl;
 
     return result;
@@ -219,8 +224,9 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     matchRequestToDB(request, keys, "", config);
 
     LOG_DEBUG_LIB(LibFdb5) << "Matched DB schemas for request " << request << " -> keys [";
-    for (const auto& [key, rule] : keys)
+    for (const auto& [key, rule] : keys) {
         LOG_DEBUG_LIB(LibFdb5) << key << " | " << *rule << ",";
+    }
     LOG_DEBUG_LIB(LibFdb5) << "]" << std::endl;
 
     std::map<eckit::PathName, const Rule*> databasesMatchRegex(databases(keys, roots, config));
@@ -231,7 +237,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
             /// @todo we don't have to open tocs to check if they match the request
             if (p.exists()) {
                 eckit::PathName path = p.isDir() ? p : p.dirName();
-                path                 = path.realName();
+                path = path.realName();
 
                 LOG_DEBUG_LIB(LibFdb5) << "FDB processing Path " << path << std::endl;
 

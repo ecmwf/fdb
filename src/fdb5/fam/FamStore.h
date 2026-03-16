@@ -38,6 +38,7 @@
 namespace fdb5 {
 
 class Schema;
+class StoreWipeState;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,31 +46,41 @@ class FamStore : protected FamCommon, public Store {
 
 private:  // types
 
+    // NOTE: Stats is mutated from const methods (retrieve) and is not thread-safe.
     struct Stats {
         size_t archived{0};
         size_t retrieved{0};
     };
 
-
 public:  // methods
 
     FamStore(const Key& key, const Config& config);
+    FamStore(const eckit::URI& uri, const Config& config);
+
+    FamStore(const FamStore&)            = delete;
+    FamStore& operator=(const FamStore&) = delete;
+    FamStore(FamStore&&)                 = delete;
+    FamStore& operator=(FamStore&&)      = delete;
 
     ~FamStore() override;
 
-    auto type() const -> std::string override { return FamCommon::type; }
+    std::string type() const override { return FamCommon::type; }
 
-    auto uri() const -> eckit::URI override;
+    static eckit::URI uri(const eckit::URI& dataURI);
 
-    auto uriBelongs(const eckit::URI& uri) const -> bool override;
+    eckit::URI uri() const override;
 
-    auto uriExists(const eckit::URI& uri) const -> bool override;
+    bool uriBelongs(const eckit::URI& uri) const override;
 
-    auto collocatedDataURIs() const -> std::vector<eckit::URI> override;
+    bool uriExists(const eckit::URI& uri) const override;
 
-    auto asCollocatedDataURIs(const std::vector<eckit::URI>& uriList) const -> std::set<eckit::URI> override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
 
-    auto open() -> bool override { return true; }
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>& uris) const override;
+
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
+
+    bool open() override { return true; }
 
     size_t flush() override;
 
@@ -77,18 +88,25 @@ public:  // methods
 
     void checkUID() const override {}
 
-    auto makeObject(const Key& key) const -> eckit::FamObjectName;
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+
+    void doWipeEmptyDatabase() const override;
+
+    bool doUnsafeFullWipe() const override { return false; }
+
+    eckit::FamObjectName makeObject(const Key& key) const;
 
 protected:  // methods
 
-    auto exists() const -> bool override;
+    bool exists() const override;
 
-    auto retrieve(Field& field) const -> eckit::DataHandle* override;
+    eckit::DataHandle* retrieve(Field& field) const override;
 
-    auto archive(const Key& key, const void* data, eckit::Length length)
-        -> std::unique_ptr<const FieldLocation> override;
-
-    void remove(const Key& key) const override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -97,8 +115,6 @@ protected:  // methods
 private:  // members
 
     mutable Stats stats_;
-
-    const Config& config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

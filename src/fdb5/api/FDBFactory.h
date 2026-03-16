@@ -61,10 +61,10 @@ public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
 
-    FDBBase(const FDBBase&)            = delete;
+    FDBBase(const FDBBase&) = delete;
     FDBBase& operator=(const FDBBase&) = delete;
-    FDBBase(FDBBase&&)                 = delete;
-    FDBBase& operator=(FDBBase&&)      = delete;
+    FDBBase(FDBBase&&) = delete;
+    FDBBase& operator=(FDBBase&&) = delete;
 
     virtual ~FDBBase() = default;
 

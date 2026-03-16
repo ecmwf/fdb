@@ -44,8 +44,9 @@ std::set<int> readServices() {
     std::set<int> portsToSkip;
 
     PathName servicesFile = "/etc/services";
-    if (!servicesFile.exists())
+    if (!servicesFile.exists()) {
         return portsToSkip;
+    }
 
     std::ifstream in(servicesFile.localPath());
 
@@ -85,8 +86,8 @@ std::set<int> readServices() {
 
         if (s.size() >= 3) {
 
-            const std::string& sname    = s[0];
-            const std::string& port     = s[1];
+            const std::string& sname = s[0];
+            const std::string& port = s[1];
             const std::string& protocol = s[2];
 
             LOG_DEBUG_LIB(LibFdb5) << "Skipping port " << port << " service " << sname << " protocol " << protocol
@@ -123,28 +124,30 @@ void AvailablePortList::initialise() {
             break;
         }
     }
-    if (initialised)
+    if (initialised) {
         return;
+    }
 
     // Get a list of everything that needs to be skipped
 
     std::set<int> portsToSkip = readServices();
 
     size_t foundCount = 0;
-    int port          = startPort_;
+    int port = startPort_;
 
     eckit::Log::info() << "Initialising port list." << std::endl;
     while (foundCount < count_) {
 
         bool found = true;
-        if (portsToSkip.find(port) != portsToSkip.end())
+        if (portsToSkip.find(port) != portsToSkip.end()) {
             found = false;
+        }
 
         //        if (found && getservbyport(port, 0) != 0) found = false;
 
         if (found) {
-            shared_[foundCount].port     = port;
-            shared_[foundCount].pid      = 0;
+            shared_[foundCount].port = port;
+            shared_[foundCount].pid = 0;
             shared_[foundCount].deadTime = 0;
             foundCount++;
         }
@@ -166,7 +169,7 @@ int AvailablePortList::acquire() {
 
     for (auto it = shared_.begin(); it != shared_.end(); ++it) {
         if (it->pid == 0) {
-            it->pid      = pid;
+            it->pid = pid;
             it->deadTime = 0;
             shared_.sync();
             if (::getservbyport(it->port, 0) == 0) {
@@ -200,7 +203,7 @@ void AvailablePortList::reap(int deadTime) {
             ASSERT(it->deadTime <= now);
             ASSERT(!ProcessControler::isRunning(it->pid));
             if ((now - it->deadTime) >= deadTime) {
-                it->pid      = 0;
+                it->pid = 0;
                 it->deadTime = 0;
             }
         }

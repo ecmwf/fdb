@@ -47,10 +47,10 @@ public:  // methods
     UriStore(const eckit::PathName& directory);
     UriStore(const eckit::PathName& directory, eckit::Stream&);
 
-    UriStore(const UriStore&)            = delete;
+    UriStore(const UriStore&) = delete;
     UriStore& operator=(const UriStore&) = delete;
-    UriStore(UriStore&&)                 = delete;
-    UriStore& operator=(UriStore&&)      = delete;
+    UriStore(UriStore&&) = delete;
+    UriStore& operator=(UriStore&&) = delete;
 
     ~UriStore();
 

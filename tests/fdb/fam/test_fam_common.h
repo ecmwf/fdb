@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include <cstring>
 #include <fstream>
+#include <iostream>
 #include <ostream>
 #include <regex>
 #include <string>
@@ -28,19 +30,17 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
-
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 using namespace std::string_literals;
-
-namespace {
-const auto TEST_FDB_FAM_ENDPOINT = "172.31.0.2:8880"s;
-const auto TEST_FDB_FAM_REGION   = "test_region_fdb"s;
-const auto TEST_FDB_FAM_URI      = "fam://" + TEST_FDB_FAM_ENDPOINT + "/" + TEST_FDB_FAM_REGION;
-}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -51,14 +51,18 @@ const auto TEST_FDB_FAM_URI      = "fam://" + TEST_FDB_FAM_ENDPOINT + "/" + TEST
 
 namespace fdb::test::fam {
 
-void readAndValidate(eckit::DataHandle* dh, const char* data, const long length) {
+const auto test_fdb_fam_endpoint = "172.26.0.2:8880"s;
+const auto test_fdb_fam_region   = eckit::FamPath("test_region_fdb");
+const auto test_fdb_fam_uri      = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
+
+inline void read_and_validate(eckit::DataHandle* dh, const char* data, const long length) {
     TEST_LOG_INFO("READ");
 
     dh->openForRead();
 
     std::string tmp;
     tmp.resize(length);
-    char* buffer = &tmp[0];
+    char* buffer = tmp.data();
 
     const auto rlen = dh->read(buffer, length);
 
@@ -71,7 +75,7 @@ void readAndValidate(eckit::DataHandle* dh, const char* data, const long length)
     dh->close();
 }
 
-void write(const std::string& buffer, const eckit::PathName& path) {
+inline void write(const std::string& buffer, const eckit::PathName& path) {
     std::ofstream file(path);
     if (!file) {
         throw eckit::CantOpenFile(path);
@@ -79,17 +83,33 @@ void write(const std::string& buffer, const eckit::PathName& path) {
     file << buffer;
 }
 
+inline int count_list(fdb5::ListIterator& list, std::ostream& out = std::cout) {
+    int count = 0;
+    fdb5::ListElement elem;
+    while (list.next(elem)) {
+        elem.print(out, true, true, false, " ");
+        out << '\n';
+        ++count;
+    }
+    return count;
+}
+
 struct FamSetup {
-    FamSetup(const std::string& schema, const std::string& config) {
-        cwd_.mkdir();
+    FamSetup(const std::string& schema, std::string config) {
+        // cwd_.mkdir();
+        eckit::LocalPathName root_dir(cwd_ + "/" + "root");
+        root_dir.mkdir();
         write(schema, schemaPath);
-        write(std::regex_replace(config, std::regex("./schema"), schemaPath.asString()), configPath.asString());
+        config = std::regex_replace(config, std::regex("./schema"), schemaPath.asString());
+        config = std::regex_replace(config, std::regex("./root"), root_dir.c_str());
+        write(config, configPath.asString());
     }
 
-    const eckit::LocalPathName cwd_{eckit::LocalPathName::cwd() + "/" + "fam_test_dir"};
+    // const eckit::LocalPathName cwd_{eckit::LocalPathName::cwd() + "/" + "fam_test_dir"};
+    eckit::TmpDir cwd_{eckit::LocalPathName::cwd().c_str()};
 
-    const eckit::PathName schemaPath{cwd_ + "/" + "schema"};
-    const eckit::PathName configPath{cwd_ + "/" + "config.yaml"};
+    eckit::PathName schemaPath{cwd_ + "/" + "schema"};
+    eckit::PathName configPath{cwd_ + "/" + "config.yaml"};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

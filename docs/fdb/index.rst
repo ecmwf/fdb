@@ -22,6 +22,7 @@ request using a specific language developed for accessing MARS Archive.
    content/reference
    content/tools
    content/config-schema
+   content/environment-variables
    content/license
    cli_tools/index
    cpp_api

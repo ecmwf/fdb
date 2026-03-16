@@ -49,9 +49,9 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
     fdb5::DaosName n{uri};
 
     bool result = (uri.scheme() == type());
-    result      = result && (n.poolName() == pool_);
-    result      = result && (n.containerName().rfind(db_cont_, 0) == 0);
-    result      = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
+    result = result && (n.poolName() == pool_);
+    result = result && (n.containerName().rfind(db_cont_, 0) == 0);
+    result = result && (n.OID().otype() == DAOS_OT_ARRAY || n.OID().otype() == DAOS_OT_ARRAY_BYTE);
 
     return result;
 }
@@ -76,16 +76,19 @@ std::set<eckit::URI> DaosStore::collocatedDataURIs() const {
 
     fdb5::DaosName db_cont{pool_, db_cont_};
 
-    if (!db_cont.exists())
+    if (!db_cont.exists()) {
         return collocated_data_uris;
+    }
 
     for (const auto& oid : db_cont.listOIDs()) {
 
-        if (oid.otype() != DAOS_OT_KV_HASHED && oid.otype() != DAOS_OT_ARRAY_BYTE)
+        if (oid.otype() != DAOS_OT_KV_HASHED && oid.otype() != DAOS_OT_ARRAY_BYTE) {
             throw eckit::SeriousBug("Found non-KV non-ByteArray objects in DB container " + db_cont.URI().asString());
+        }
 
-        if (oid.otype() == DAOS_OT_KV_HASHED)
+        if (oid.otype() == DAOS_OT_KV_HASHED) {
             continue;
+        }
 
         collocated_data_uris.insert(fdb5::DaosArrayName(pool_, db_cont_, oid).URI());
     }
@@ -97,9 +100,10 @@ std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::set<eckit::URI>&
 
     std::set<eckit::URI> res;
 
-    for (auto& uri : uris)
+    for (auto& uri : uris) {
         /// @note: seems redundant, but intends to check validity of input URIs
         res.insert(fdb5::DaosName(uri).URI());
+    }
 
     return res;
 }
@@ -175,8 +179,9 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
     }
 
     logAlways << n.asString() << std::endl;
-    if (doit)
+    if (doit) {
         n.destroy();
+    }
 }
 
 void DaosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {

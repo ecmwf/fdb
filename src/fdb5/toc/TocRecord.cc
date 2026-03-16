@@ -34,7 +34,7 @@ TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag) 
 
     if (tag_ != TOC_NULL) {
         eckit::zero(*this);
-        tag_                  = tag;
+        tag_ = tag;
         serialisationVersion_ = serialisationVersion;
 
         fdbVersion_ = ::fdb5_version_int();
@@ -45,8 +45,8 @@ TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag) 
         uid_ = ::getuid();
 
         std::string host = eckit::Main::hostname();
-        host             = host.substr(0, host.find("."));  // guaranteed to be less than 64 chars -- seee RFC 1035
-        hostname_        = host;
+        host = host.substr(0, host.find("."));  // guaranteed to be less than 64 chars -- seee RFC 1035
+        hostname_ = host;
     }
 }
 

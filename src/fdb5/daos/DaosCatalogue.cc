@@ -51,7 +51,7 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
         std::vector<char> data;
         eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-        dbKey_                 = fdb5::Key(ms);
+        dbKey_ = fdb5::Key(ms);
     }
     catch (fdb5::DaosEntityNotFoundException& e) {
 
@@ -107,9 +107,9 @@ bool DaosCatalogue::uriBelongs(const eckit::URI& uri) const {
     fdb5::DaosName n{uri};
 
     bool result = (uri.scheme() == type());
-    result      = result && (n.poolName() == pool_);
-    result      = result && (n.containerName().rfind(db_cont_, 0) == 0);
-    result      = result && (n.OID().otype() == DAOS_OT_KV_HASHED);
+    result = result && (n.poolName() == pool_);
+    result = result && (n.containerName().rfind(db_cont_, 0) == 0);
+    result = result && (n.OID().otype() == DAOS_OT_KV_HASHED);
 
     return result;
 };
@@ -132,8 +132,9 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
 
         /// @todo: document these well. Single source these reserved values.
         ///    Ensure where appropriate that user-provided keys do not collide.
-        if (key == "schema" || key == "key")
+        if (key == "schema" || key == "key") {
             continue;
+        }
 
         /// @note: performed RPCs:
         /// - db kv get index location size (daos_kv_get without a buffer)
@@ -182,8 +183,9 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 
     logVerbose << "Removing " << (n.hasOID() ? "KV" : "container") << ": ";
     logAlways << n.URI() << std::endl;
-    if (doit)
+    if (doit) {
         n.destroy();
+    }
 }
 
 CatalogueWipeState DaosCatalogue::wipeInit() const {

@@ -21,8 +21,10 @@
 
 #include <string>
 
+#include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 namespace fdb5 {
 
@@ -32,23 +34,50 @@ class Config;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct FamCommon {
+
+    using Map = eckit::FamMap128;
+
     static constexpr auto type = eckit::FamPath::scheme;
 
-    static auto toString(const Key& key) -> std::string;
+    static constexpr const char* db_key = "__fdb__";
 
-    FamCommon(const eckit::FamRegionName& root);
+    static constexpr const char* registry_name = "__fdb-reg__";
 
-    FamCommon(const Config& config);
+    /// Suffix appended to every FAM map table name. Must match eckit::FamMap.
+    static constexpr const char* table_suffix = "-map-table";
 
-    FamCommon(const Config& config, const Key& key);
+    static std::string toString(const Key& key);
+
+    static Key decodeKey(eckit::MemoryStream key);
+
+    // rules
+
+    FamCommon(const FamCommon&)            = delete;
+    FamCommon& operator=(const FamCommon&) = delete;
+    FamCommon(FamCommon&&)                 = delete;
+    FamCommon& operator=(FamCommon&&)      = delete;
+
+    explicit FamCommon(eckit::FamRegionName root);
+
+    explicit FamCommon(const eckit::URI& root);
+
+    FamCommon(const Key& key, const Config& config);
+
+    FamCommon(const eckit::URI& uri, const Config& config);
 
     virtual ~FamCommon() = default;
 
-    auto exists() const -> bool;
+    // methods
 
-    auto uri() const -> eckit::URI;
+    bool exists() const;
+
+    eckit::URI uri() const;
 
     eckit::FamRegionName root_;
+
+private:
+
+    explicit FamCommon(const Config& config);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

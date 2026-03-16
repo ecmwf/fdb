@@ -232,8 +232,9 @@ void Result::update(const Result& other) {
 bool isSubset(const fdb5::Key& a, const fdb5::Key& b) {
     for (const auto& kv : a) {
         auto [it, isValid] = b.find(kv.first);
-        if (!isValid || it->second != kv.second)
+        if (!isValid || it->second != kv.second) {
             return false;
+        }
     }
     return true;
 }

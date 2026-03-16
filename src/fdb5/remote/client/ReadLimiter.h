@@ -44,10 +44,10 @@ public:
 
     static ReadLimiter& instance();
 
-    ReadLimiter(const ReadLimiter&)            = delete;
+    ReadLimiter(const ReadLimiter&) = delete;
     ReadLimiter& operator=(const ReadLimiter&) = delete;
-    ReadLimiter(ReadLimiter&&)                 = delete;
-    ReadLimiter& operator=(ReadLimiter&&)      = delete;
+    ReadLimiter(ReadLimiter&&) = delete;
+    ReadLimiter& operator=(ReadLimiter&&) = delete;
 
     static void init(size_t memoryLimit);
 

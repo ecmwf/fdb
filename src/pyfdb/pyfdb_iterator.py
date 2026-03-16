@@ -6,18 +6,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from enum import IntEnum, auto
 import logging
-from typing import (
-    Collection,
-    Dict,
-    ItemsView,
-    Iterator,
-    KeysView,
-    List,
-    Optional,
-    ValuesView,
-)
+from collections.abc import Collection, ItemsView, Iterator, KeysView, ValuesView
+from enum import IntEnum, auto
+from typing import Optional
 
 from pyfdb._internal import (
     ControlElement as _ControlElement,
@@ -29,6 +21,9 @@ from pyfdb._internal import (
     ListElement as _ListElement,
 )
 from pyfdb._internal import (
+    PurgeElement as _PurgeElement,
+)
+from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
 from pyfdb._internal import (
@@ -36,9 +31,6 @@ from pyfdb._internal import (
 )
 from pyfdb._internal import (
     WipeElementType as _WipeElementType,
-)
-from pyfdb._internal import (
-    PurgeElement as _PurgeElement,
 )
 from pyfdb._internal.pyfdb_internal import InternalMarsSelection
 from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle, MarsSelection, UserInputMapper
@@ -179,7 +171,7 @@ class WipeElement:
     def msg(self) -> str:
         return self._element.msg()
 
-    def uris(self) -> List[URI]:
+    def uris(self) -> list[URI]:
         return [URI(uri) for uri in self._element.uris()]
 
     def __repr__(self) -> str:
@@ -209,7 +201,7 @@ class StatusElement:
     def location(self) -> URI:
         return URI(self.element.location())
 
-    def controlIdentifiers(self) -> List[ControlIdentifier]:
+    def controlIdentifiers(self) -> list[ControlIdentifier]:
         return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
 
     def key(self) -> MarsSelection:
@@ -268,7 +260,7 @@ class ControlElement:
     def location(self) -> URI:
         return URI(self.element.location())
 
-    def controlIdentifiers(self) -> List[ControlIdentifier]:
+    def controlIdentifiers(self) -> list[ControlIdentifier]:
         return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
 
     def key(self) -> MarsSelection:
@@ -289,12 +281,12 @@ class IndexAxis(InternalMarsSelection):
     def __init__(self, index_axis: _IndexAxis | MarsSelection) -> None:
         if isinstance(index_axis, _IndexAxis):
             self.index_axis: _IndexAxis = index_axis
-        elif isinstance(index_axis, Dict):
+        elif isinstance(index_axis, dict):
             internal_mars_selection = UserInputMapper.map_selection_to_internal(index_axis)
             self.index_axis: _IndexAxis = _IndexAxis(internal_mars_selection)
         else:
             raise TypeError(
-                f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `Dict[str, Collection[str]]` are allowed."
+                f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `dict[str, Collection[str]]` are allowed."
             )
 
     def __repr__(self) -> str:
@@ -321,7 +313,7 @@ class IndexAxis(InternalMarsSelection):
     def __eq__(self, value) -> bool:
         dict_list_values = {}
 
-        if isinstance(value, (Dict, IndexAxis)):
+        if isinstance(value, (dict, IndexAxis)):
             for k, v in value.items():
                 if isinstance(v, str):
                     dict_list_values[k] = [v]
