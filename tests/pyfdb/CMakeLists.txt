@@ -14,6 +14,7 @@ function(add_py_test test)
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
+        "FINDLIBS_DISABLE_PACKAGE=yes"
     )
     set_tests_properties(pyfdb_${stem}
         PROPERTIES
@@ -67,6 +68,7 @@ function(add_rst_doc_test test)
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
+        "FINDLIBS_DISABLE_PACKAGE=yes"
     )
     set_tests_properties(pyfdb_doc_${stem}
         PROPERTIES
