@@ -71,22 +71,23 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
     LOG_DEBUG_LIB(LibFdb5) << "FamIndex::get key=" << key << std::endl;
 
     const Map::key_type map_key{FamCommon::toString(key)};
-    auto it = data_.find(map_key);
-    if (it == data_.end()) {
+    auto iter = data_.find(map_key);
+    if (iter == data_.end()) {
         return false;
     }
 
-    auto entry                 = *it;  // copies FamMapEntry by value (FAM data → local Buffer)
-    const eckit::Buffer& value = entry.value;
-    eckit::MemoryStream ms{static_cast<const char*>(value.data()), value.size()};
+    auto entry        = *iter;  // copies FamMapEntry by value (FAM data → local Buffer)
+    const auto& value = entry.value;
+    eckit::MemoryStream ms{value};
 
-    time_t ts{};
-    ms >> ts;
+    time_t timestamp{};
+    ms >> timestamp;
 
     // Key follows FieldLocation in the wire format; we stop here — no need to deserialise it.
-    auto loc = std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(ms));
+    auto loc = std::shared_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
 
-    field = Field(std::move(loc), ts, FieldDetails());
+    field = Field(std::move(loc), timestamp);
+
     return true;
 }
 
