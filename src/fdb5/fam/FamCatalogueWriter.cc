@@ -15,6 +15,9 @@
 
 #include "fdb5/fam/FamCatalogueWriter.h"
 
+#include <fstream>
+#include <sstream>
+
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamRegion.h"
 
@@ -59,10 +62,10 @@ void FamCatalogueWriter::initCatalogue() {
     // Register this DB in the global FDB registry
     Map(FamCommon::registry_name, region).insert(FamCommon::toString(dbKey_), db_key);
 
-    // Create / open the per-DB catalogue map and store the DB key
+    // Create / open the per-DB catalogue map and store the DB key.
     Map(name(), region).insert(FamCommon::db_key, db_key);
 
-    FamCatalogue::loadSchema();
+    loadSchema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

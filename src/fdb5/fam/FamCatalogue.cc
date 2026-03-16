@@ -17,6 +17,7 @@
 
 #include <climits>
 #include <fstream>
+#include <sstream>
 
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamMapEntry.h"
@@ -117,13 +118,27 @@ const Rule& FamCatalogue::rule() const {
     return *rule_;
 }
 
+void FamCatalogue::parseSchema(std::istream& stream) {
+    schema_.load(stream, true);
+    rule_ = &schema_.matchingRule(dbKey_);
+}
+
 void FamCatalogue::loadSchema() {
-    std::ifstream in(config_.schemaPath());
-    if (!in) {
+    std::ifstream stream(config_.schemaPath());
+    if (!stream) {
         throw eckit::CantOpenFile(config_.schemaPath());
     }
-    schema_.load(in);
-    rule_ = &schema_.matchingRule(dbKey_);
+
+    // Read once, then use independent stream cursors for parse + persist.
+    std::ostringstream buffer;
+    buffer << stream.rdbuf();
+    const std::string schema_text = buffer.str();
+
+    std::istringstream parse_stream(schema_text);
+    parseSchema(parse_stream);
+
+    // Persist the schema to the FAM catalogue map.
+    catalogue().insert(FamCommon::schema_key, schema_text);
 }
 
 bool FamCatalogue::uriBelongs(const eckit::URI& uri) const {

@@ -52,6 +52,10 @@ public:  // methods
 
     void print(std::ostream& out) const override { out << "FamCatalogueReader[" << uri() << "]"; }
 
+protected:  // methods
+
+    void loadSchema() override;
+
 private:  // methods
 
     std::optional<Axis> computeAxis(const std::string& keyword) const override;

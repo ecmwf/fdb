@@ -41,6 +41,8 @@ struct FamCommon {
 
     static constexpr const char* db_key = "__fdb__";
 
+    static constexpr const char* schema_key = "__schema__";
+
     static constexpr const char* registry_name = "__fdb-reg__";
 
     /// Suffix appended to every FAM map table name. Must match eckit::FamMap.

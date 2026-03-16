@@ -96,6 +96,11 @@ protected:  // methods
 
     const std::string& name() const { return name_; }
 
+    Map catalogue() const { return {name_, root_.lookup()}; }
+
+    /// Parse schema text from a stream and resolve the matching rule for dbKey_.
+    void parseSchema(std::istream& stream);
+
 private:  // members
 
     /// The FamMap name used as the catalogue-level index registry (maps index keys to markers).
