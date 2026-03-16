@@ -42,7 +42,7 @@ std::string serializeKey(const fdb5::Key& key) {
     return {static_cast<const char*>(h.data()), static_cast<std::size_t>(hs.bytesWritten())};
 }
 
-const fdb5::CatalogueWriterBuilder<fdb5::FamCatalogueWriter> fam_catalogue_writer_builder("fam");
+const fdb5::CatalogueWriterBuilder<fdb5::FamCatalogueWriter> fam_cat_writer_builder(FamCommon::type);
 
 }  // namespace
 

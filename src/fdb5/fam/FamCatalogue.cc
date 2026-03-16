@@ -163,7 +163,7 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
         // Decode the stored index Key (with keyword names).
         const Key key = decodeKey(v);
 
-        result.emplace_back(new FamIndex(key, *this, root_, indexName(key), /*readAxes=*/true));
+        result.emplace_back(new FamIndex(key, *this, root_, indexName(key), true));
     }
 
     return result;

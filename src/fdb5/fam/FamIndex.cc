@@ -25,7 +25,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/database/FieldDetails.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamIndexLocation.h"
@@ -97,6 +96,7 @@ void FamIndex::entries(EntryVisitor& visitor) const {
 
     // Allow the visitor to decline visiting this index's entries.
     if (!visitor.visitIndex(instant_index)) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamIndex::entries visitor declined index=" << instant_index << std::endl;
         return;
     }
 
@@ -111,7 +111,7 @@ void FamIndex::entries(EntryVisitor& visitor) const {
 
         Key datum_key(ms);
 
-        Field field(std::move(loc), ts, FieldDetails());
+        Field field(std::move(loc), ts);
 
         // Use the public visitDatum(field, keyFingerprint) overload; it calls rule_->makeKey()
         // to reconstruct the Key with keyword names before dispatching to the protected override.

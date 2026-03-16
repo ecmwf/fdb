@@ -22,6 +22,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+const fdb5::CatalogueReaderBuilder<fdb5::FamCatalogueReader> fam_cat_reader_builder(FamCommon::type);
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
 FamCatalogueReader::FamCatalogueReader(const Key& key, const fdb5::Config& config) : FamCatalogue(key, config) {}
 
 FamCatalogueReader::FamCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
@@ -47,7 +55,7 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
         return false;
     }
 
-    indexes_[key] = Index(new FamIndex(key, *this, root_, map_name, /*readAxes=*/true));
+    indexes_[key] = Index(new FamIndex(key, *this, root_, map_name, true));
     current_      = indexes_[key];
     return true;
 }
@@ -88,8 +96,6 @@ bool FamCatalogueReader::retrieve(const Key& key, Field& field) const {
     }
     return current_.get(key, Key(), field);
 }
-
-static fdb5::CatalogueReaderBuilder<fdb5::FamCatalogueReader> famCatalogueReaderBuilder("fam");
 
 //----------------------------------------------------------------------------------------------------------------------
 
