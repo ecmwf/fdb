@@ -74,23 +74,22 @@ bool FamCatalogueReader::open() {
 }
 
 std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) const {
-    Axis ax;
+    Axis axis;
     bool found = false;
-    for (const auto& [key, idx] : indexes_) {
-        if (idx.axes().has(keyword)) {
+    for (const auto& [key, index] : indexes_) {
+        if (index.axes().has(keyword)) {
+            axis.merge(index.axes().values(keyword));
             found = true;
-            ax.merge(idx.axes().values(keyword));
         }
     }
     if (found) {
-        return ax;
+        return axis;
     }
     return std::nullopt;
 }
 
 bool FamCatalogueReader::retrieve(const Key& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "FamCatalogueReader::retrieve key=" << key << std::endl;
-
     if (current_.null() || !current_.mayContain(key)) {
         return false;
     }
