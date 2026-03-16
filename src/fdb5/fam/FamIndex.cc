@@ -179,7 +179,10 @@ void FamIndex::reopen() {
 
 void FamIndex::close() {}
 
-void FamIndex::flush() {}
+void FamIndex::flush() {
+    // Keep the in-memory axes sorted so readers always see a consistent view.
+    axes_.sort();
+}
 
 IndexStats FamIndex::statistics() const {
     NOTIMP;
