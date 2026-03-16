@@ -150,14 +150,12 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
 
     std::vector<Index> result;
 
-    // TODO(metin): the current sentinel convention (skip keys starting with '_') is fragile;
-    // any future non-index administrative key that doesn't start with '_' would be
-    // misread as an index entry. Consider switching to an explicit index-key prefix
-    // (e.g. "i:") and storing all internal metadata under '_'-prefixed keys.
     for (const auto& [k, v] : Map(name_, root_.lookup())) {
         const auto key_name = k.asString();
-        // Skip special sentinel entries.
-        if (key_name.empty() || key_name[0] == '_') {
+        // Only process entries registered by FamCatalogueWriter::selectIndex(), which
+        // stores them under the "i:" prefix.  All other map entries (e.g. "__fdb__")
+        // are administrative and must be skipped.
+        if (key_name.size() < 2 || key_name[0] != 'i' || key_name[1] != ':') {
             continue;
         }
         // Decode the stored index Key (with keyword names).
@@ -198,6 +196,32 @@ void FamCatalogue::control(const ControlAction& /*action*/, const ControlIdentif
 bool FamCatalogue::markIndexForWipe(const Index& /*index*/, bool /*include*/,
                                     CatalogueWipeState& /*wipe_state*/) const {
     return false;
+}
+
+void FamCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
+    // Mark the catalogue-level FAM map table as to be deleted (full wipe) or safe (partial).
+    // A "full wipe" is indicated by an empty safeURIs set — i.e. everything matched.
+    const eckit::URI cat_uri = uri();
+    if (wipeState.safeURIs().empty()) {
+        wipeState.markForDeletion(WipeElementType::CATALOGUE, {cat_uri});
+    }
+    else {
+        wipeState.markAsSafe({cat_uri});
+    }
+}
+
+bool FamCatalogue::doWipeUnknowns(const std::set<eckit::URI>& /*unknown_uris*/) const {
+    return false;  // FAM wipe of unknown objects not yet implemented
+}
+
+bool FamCatalogue::doWipeURIs(const CatalogueWipeState& /*wipe_state*/) const {
+    return false;  // FAM catalogue wipe not yet implemented
+}
+
+void FamCatalogue::doWipeEmptyDatabase() const {}
+
+bool FamCatalogue::doUnsafeFullWipe() const {
+    return false;  // FAM unsafe full wipe not yet implemented
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -48,6 +48,9 @@ struct FamCommon {
 
     static std::string toString(const Key& key);
 
+    /// Serialise a Key to a binary string (inverse of decodeKey).
+    static std::string encodeKey(const Key& key);
+
     static Key decodeKey(eckit::MemoryStream key);
 
     // rules

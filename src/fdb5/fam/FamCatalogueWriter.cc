@@ -15,12 +15,8 @@
 
 #include "fdb5/fam/FamCatalogueWriter.h"
 
-#include <climits>
-
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamRegion.h"
-#include "eckit/serialisation/HandleStream.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fam/FamIndex.h"
@@ -30,17 +26,6 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-
-std::string serializeKey(const fdb5::Key& key) {
-    eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
-    eckit::HandleStream hs{h};
-    h.openForWrite(0);
-    {
-        eckit::AutoClose c(h);
-        hs << key;
-    }
-    return {static_cast<const char*>(h.data()), static_cast<std::size_t>(hs.bytesWritten())};
-}
 
 const fdb5::CatalogueWriterBuilder<fdb5::FamCatalogueWriter> fam_cat_writer_builder(FamCommon::type);
 
@@ -67,7 +52,7 @@ void FamCatalogueWriter::initCatalogue() {
 
     auto region = root_.lookup();
 
-    const auto db_key = serializeKey(dbKey_);
+    const auto db_key = FamCommon::encodeKey(dbKey_);
 
     // idempotent (FamMap::insert is a no-op if key exists)
 
@@ -119,11 +104,11 @@ bool FamCatalogueWriter::selectIndex(const Key& key) {
     current_.open();
     // cache it for future selectIndex calls
     indexes_[key] = current_;
-    // current_.flock();
 
-    // Register this index in the fam catalogue map
+    // Register this index in the fam catalogue map.  The "i:" prefix distinguishes
+    // index entries from administrative sentinel keys (e.g. "__fdb__").
     const auto region = root_.lookup();
-    Map(name(), region).insert(FamCommon::toString(key), serializeKey(key));
+    Map(name(), region).insert("i:" + FamCommon::toString(key), FamCommon::encodeKey(key));
 
     return true;
 }
@@ -159,9 +144,9 @@ void FamCatalogueWriter::archive(const Key& idx_key, const Key& datum_key,
 
 void FamCatalogueWriter::flush(size_t /*archivedFields*/) {
     LOG_DEBUG_LIB(LibFdb5) << "FamCatalogueWriter::flush" << std::endl;
-    // Sort axes once per flush, not on every archive() call.
+    // Delegate axis sorting to FamIndex::flush(), keeping the writer free of casts.
     for (auto& [key, idx] : indexes_) {
-        const_cast<fdb5::IndexAxis&>(idx.axes()).sort();
+        idx.flush();
     }
 }
 
