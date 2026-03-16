@@ -62,40 +62,35 @@ protected:  // methods
     std::string type() const override;
     bool exists() const override;
 
-    void checkUID() const override { NOTIMP; }
+    void checkUID() const override;
     const Schema& schema() const override;
     const Rule& rule() const override;
     void loadSchema() override;
 
-    void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; }
+    void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
 
-    StatsReportVisitor* statsReportVisitor() const override { NOTIMP; }
-    PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; }
+    StatsReportVisitor* statsReportVisitor() const override;
+    PurgeVisitor* purgeVisitor(const Store& store) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
-                             eckit::Queue<MoveElement>& queue) const override {
-        NOTIMP;
-    }
+                             eckit::Queue<MoveElement>& queue) const override;
 
-    void maskIndexEntries(const std::set<Index>& indexes) const override {}
-    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override {}
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;
 
     bool uriBelongs(const eckit::URI& uri) const override;
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
     bool enabled(const ControlIdentifier& /*control_identifier*/) const override { return true; }
-    void control(const ControlAction& /*action*/, const ControlIdentifiers& /*identifiers*/) const override {}
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     CatalogueWipeState wipeInit() const override;
-    bool markIndexForWipe(const Index& /*index*/, bool /*include*/, CatalogueWipeState& /*wipe_state*/) const override {
-        return false;
-    }
-    void finaliseWipeState(CatalogueWipeState& /*wipe_state*/) const override {}
-    bool doWipeUnknowns(const std::set<eckit::URI>& /*unknown_uris*/) const override { return false; }
-    bool doWipeURIs(const CatalogueWipeState& /*wipe_state*/) const override { return false; }
-    void doWipeEmptyDatabase() const override {}
-    bool doUnsafeFullWipe() const override { return false; }
+    bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipe_state) const override;
+    void finaliseWipeState(CatalogueWipeState& wipe_state) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknown_uris) const override;
+    bool doWipeURIs(const CatalogueWipeState& wipe_state) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
 
 protected:  // methods
 

@@ -85,7 +85,7 @@ std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) 
     if (found) {
         return axis;
     }
-    return std::nullopt;
+    return {};
 }
 
 bool FamCatalogueReader::retrieve(const Key& key, Field& field) const {

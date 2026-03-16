@@ -51,8 +51,8 @@ public:  // methods
     FamIndex(const Key& key, const Catalogue& catalogue, const eckit::FamRegionName& region_name,
              const std::string& name, bool read_axes = false);
 
-    void flock() const override { NOTIMP; }
-    void funlock() const override { NOTIMP; }
+    void flock() const override;
+    void funlock() const override;
 
     /// Scan all entries and populate in-memory IndexAxis.
     void updateAxes();
@@ -61,26 +61,26 @@ private:  // methods
 
     const IndexLocation& location() const override { return location_; }
 
-    std::vector<eckit::URI> dataURIs() const override { return {}; }
+    std::vector<eckit::URI> dataURIs() const override;
 
-    bool dirty() const override { return false; }
+    bool dirty() const override;
 
-    void open() override {}
-    void close() override {}
-    void reopen() override { NOTIMP; }
+    void open() override;
+    void close() override;
+    void reopen() override;
 
     void visit(IndexLocationVisitor& visitor) const override;
 
     bool get(const Key& key, const Key& remap_key, Field& field) const override;
     void add(const Key& key, const Field& field) override;
-    void flush() override {}
+    void flush() override;
     void encode(eckit::Stream& s, int version) const override;
     void entries(EntryVisitor& visitor) const override;
 
     void print(std::ostream& out) const override;
     void dump(std::ostream& out, const char* indent, bool simple, bool dump_fields) const override;
 
-    IndexStats statistics() const override { NOTIMP; }
+    IndexStats statistics() const override;
 
 private:  // members
 

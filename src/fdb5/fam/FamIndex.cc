@@ -155,6 +155,36 @@ void FamIndex::print(std::ostream& out) const {
     out << "FamIndex[key=" << key_ << ",location=" << location_ << "]";
 }
 
+void FamIndex::flock() const {
+    NOTIMP;
+}
+
+void FamIndex::funlock() const {
+    NOTIMP;
+}
+
+std::vector<eckit::URI> FamIndex::dataURIs() const {
+    return {};
+}
+
+bool FamIndex::dirty() const {
+    return false;
+}
+
+void FamIndex::open() {}
+
+void FamIndex::reopen() {
+    NOTIMP;
+}
+
+void FamIndex::close() {}
+
+void FamIndex::flush() {}
+
+IndexStats FamIndex::statistics() const {
+    NOTIMP;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

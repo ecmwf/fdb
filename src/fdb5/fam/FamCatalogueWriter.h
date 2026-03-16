@@ -53,8 +53,8 @@ public:  // methods
 
 protected:  // methods
 
-    bool selectIndex(const Key& idx_key) override;
-    bool createIndex(const Key& idx_key, size_t datum_key_size) override;
+    bool selectIndex(const Key& key) override;
+    bool createIndex(const Key& key, size_t datum_key_size) override;
     void deselectIndex() override;
 
     bool open() override;

@@ -49,7 +49,7 @@ std::string truncateKey(const Key& key, const std::size_t max_len = 26) {
 //----------------------------------------------------------------------------------------------------------------------
 
 FamCatalogue::FamCatalogue(const Key& key, const fdb5::Config& config) :
-    CatalogueImpl(key, ControlIdentifiers{}, config), FamCommon(key, config), name_{catalogueName(key)} {}
+    CatalogueImpl(key, {}, config), FamCommon(key, config), name_{catalogueName(key)} {}
 
 FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers,
                            const fdb5::Config& config) :
@@ -171,6 +171,33 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
 
 CatalogueWipeState FamCatalogue::wipeInit() const {
     return dbKey_;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void FamCatalogue::checkUID() const {
+    NOTIMP;
+}
+void FamCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
+    NOTIMP;
+}
+StatsReportVisitor* FamCatalogue::statsReportVisitor() const {
+    NOTIMP;
+}
+PurgeVisitor* FamCatalogue::purgeVisitor(const Store& store) const {
+    NOTIMP;
+}
+MoveVisitor* FamCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                       const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
+    NOTIMP;
+}
+void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {}
+void FamCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                             std::set<eckit::URI>& data) const {}
+void FamCatalogue::control(const ControlAction& /*action*/, const ControlIdentifiers& /*identifiers*/) const {}
+bool FamCatalogue::markIndexForWipe(const Index& /*index*/, bool /*include*/,
+                                    CatalogueWipeState& /*wipe_state*/) const {
+    return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

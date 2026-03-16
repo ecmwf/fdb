@@ -54,12 +54,11 @@ FamCatalogueWriter::FamCatalogueWriter(const Key& key, const fdb5::Config& confi
 
 FamCatalogueWriter::FamCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
     FamCatalogue(uri, ControlIdentifiers{}, config) {
-    NOTIMP;
+    initCatalogue();
 }
 
 FamCatalogueWriter::~FamCatalogueWriter() {
     clean();
-    close();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -98,31 +97,33 @@ void FamCatalogueWriter::reconsolidate() {
 }
 
 bool FamCatalogueWriter::open() {
-    NOTIMP;
+    return true;  // nothing to open for FAM catalogue
 }
 
 bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datum_key_size*/) {
     return true;  // creation is handled lazily in selectIndex
 }
 
-bool FamCatalogueWriter::selectIndex(const Key& idx_key) {
+bool FamCatalogueWriter::selectIndex(const Key& key) {
     // Fast path: already selected.
-    if (FamCatalogue::selectIndex(idx_key)) {
+    if (FamCatalogue::selectIndex(key)) {
         return true;
     }
     // found in the cache
-    if (auto iter = indexes_.find(idx_key); iter != indexes_.end()) {
+    if (auto iter = indexes_.find(key); iter != indexes_.end()) {
         current_ = iter->second;
         return true;
     }
     // Create or open the FamIndex for this key.
-    current_ = Index(new FamIndex(idx_key, *this, root_, indexName(idx_key), false));
+    current_ = Index(new FamIndex(key, *this, root_, indexName(key), false));
+    current_.open();
     // cache it for future selectIndex calls
-    indexes_[idx_key] = current_;
+    indexes_[key] = current_;
+    // current_.flock();
 
     // Register this index in the fam catalogue map
     const auto region = root_.lookup();
-    Map(name(), region).insert(FamCommon::toString(idx_key), serializeKey(idx_key));
+    Map(name(), region).insert(FamCommon::toString(key), serializeKey(key));
 
     return true;
 }
