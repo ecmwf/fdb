@@ -127,18 +127,18 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
                                       {"fam3b", "h"},
                                       {"fam3c", "i"}});
 
-    const char* data       = "Testing fam: ARCHIVE DATA!";
+    const char* data = "Testing fam: ARCHIVE DATA!";
     const auto data_length = std::char_traits<char>::length(data);
 
     // Archive data into the store first
     fdb5::FamStore fam_store(db_key, config);
-    auto& store   = static_cast<fdb5::Store&>(fam_store);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
     auto location = store.archive(datum_key, data, eckit::Length(data_length));
     EXPECT(location);
 
     // Write metadata into the catalogue
     fdb5::FamCatalogueWriter writer(db_key, config);
-    fdb5::Catalogue& writer_cat         = writer;
+    fdb5::Catalogue& writer_cat = writer;
     fdb5::CatalogueWriter& writer_iface = writer;
 
     EXPECT_EQUAL(writer_cat.type(), std::string("fam"));
@@ -237,15 +237,15 @@ CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
                                        {"fam3b", "q"},
                                        {"fam3c", "r"}});
 
-    const char* data1       = "Index-1 field data";
+    const char* data1 = "Index-1 field data";
     const auto data1_length = std::char_traits<char>::length(data1);
-    const char* data2       = "Index-2 field data";
+    const char* data2 = "Index-2 field data";
     const auto data2_length = std::char_traits<char>::length(data2);
 
     fdb5::FamStore fam_store(db_key, config);
     auto& store = static_cast<fdb5::Store&>(fam_store);
-    auto loc1   = store.archive(datum_key1, data1, eckit::Length(data1_length));
-    auto loc2   = store.archive(datum_key2, data2, eckit::Length(data2_length));
+    auto loc1 = store.archive(datum_key1, data1, eckit::Length(data1_length));
+    auto loc2 = store.archive(datum_key2, data2, eckit::Length(data2_length));
 
     // Write two indexes through the CatalogueWriter interface
     fdb5::FamCatalogueWriter writer(db_key, config);
@@ -286,7 +286,7 @@ CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
 
     // indexes() should return both (access through Catalogue base class)
     const fdb5::Catalogue& reader_cat = reader;
-    const auto idxs                   = reader_cat.indexes(false);
+    const auto idxs = reader_cat.indexes(false);
     EXPECT_EQUAL(idxs.size(), 2U);
 }
 
@@ -331,7 +331,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    const char* data       = "Testing fam: ARCHIVE DATA!";
+    const char* data = "Testing fam: ARCHIVE DATA!";
     const auto data_length = std::char_traits<char>::length(data);
 
     {
@@ -351,7 +351,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 
         {
             TEST_LOG_INFO("LIST THAT DB IS EMPTY");
-            auto list  = fdb.list(request);
+            auto list = fdb.list(request);
             auto count = fam::count_list(list);
             EXPECT_EQUAL(count, 0);
         }
@@ -404,7 +404,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 
     {
         TEST_LOG_INFO("LIST BOTH ARCHIVED DATA");
-        auto key           = fdb5::Key({
+        auto key = fdb5::Key({
             {"fam1a", "val1a"},
             {"fam1b", "val1b"},
             {"fam1c", "val1c"},
@@ -413,7 +413,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
             {"fam2c", "val2c"},
         });
         const auto request = key.request("retrieve");
-        auto list          = fdb.list(request);
+        auto list = fdb.list(request);
         std::ostringstream out;
         auto count = fam::count_list(list, out);
         TEST_LOG_INFO("LIST OUTPUT:\n" << out.str());

@@ -100,9 +100,9 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     }
 
     endpoint_ = args.getString("endpoint", endpoint_);
-    lookup_   = args.getBool("lookup", lookup_);
-    create_   = args.getBool("create", create_);
-    delete_   = args.getBool("delete", delete_);
+    lookup_ = args.getBool("lookup", lookup_);
+    create_ = args.getBool("create", create_);
+    delete_ = args.getBool("delete", delete_);
 
     if (create_) {
         try {
@@ -115,7 +115,7 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
         }
     }
 
-    path_     = eckit::FamPath{args(0)};
+    path_ = eckit::FamPath{args(0)};
     isRegion_ = path_.objectName.empty();
 
     LOG_DEBUG_LIB(LibFdb5) << "Item " << item_ << std::endl;

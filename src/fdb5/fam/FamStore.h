@@ -57,10 +57,10 @@ public:  // methods
     FamStore(const Key& key, const Config& config);
     FamStore(const eckit::URI& uri, const Config& config);
 
-    FamStore(const FamStore&)            = delete;
+    FamStore(const FamStore&) = delete;
     FamStore& operator=(const FamStore&) = delete;
-    FamStore(FamStore&&)                 = delete;
-    FamStore& operator=(FamStore&&)      = delete;
+    FamStore(FamStore&&) = delete;
+    FamStore& operator=(FamStore&&) = delete;
 
     ~FamStore() override;
 

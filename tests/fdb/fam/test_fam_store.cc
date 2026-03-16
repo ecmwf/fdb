@@ -112,10 +112,10 @@ CASE("FamStore: archive, retrieve, flush") {
 
     //------------------------------------------------------------------------------------------------------------------
 
-    const char* data1       = "Testing fam: ARCHIVE DATA #1";
+    const char* data1 = "Testing fam: ARCHIVE DATA #1";
     const auto data1_length = std::char_traits<char>::length(data1);
 
-    const char* data2       = "Different payload for field #2";
+    const char* data2 = "Different payload for field #2";
     const auto data2_length = std::char_traits<char>::length(data2);
 
     auto key1 = fdb5::Key({{"fam1a", "v1a"},
@@ -180,7 +180,7 @@ CASE("FamStore: archive, retrieve, flush") {
 
     TEST_LOG_INFO("RETRIEVE #1");
     {
-        auto field  = fdb5::Field(std::move(floc1), std::time(nullptr));
+        auto field = fdb5::Field(std::move(floc1), std::time(nullptr));
         auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
         EXPECT(handle);
         fam::read_and_validate(handle.get(), data1, data1_length);
@@ -188,7 +188,7 @@ CASE("FamStore: archive, retrieve, flush") {
 
     TEST_LOG_INFO("RETRIEVE #2 — different payload");
     {
-        auto field  = fdb5::Field(std::move(floc2), std::time(nullptr));
+        auto field = fdb5::Field(std::move(floc2), std::time(nullptr));
         auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
         EXPECT(handle);
         fam::read_and_validate(handle.get(), data2, data2_length);
@@ -219,7 +219,7 @@ CASE("FamStore: URI-based construction") {
     EXPECT(store.exists());
 
     // Archive a field to verify the URI-constructed store is fully functional
-    const char* data       = "URI-constructed store data";
+    const char* data = "URI-constructed store data";
     const auto data_length = std::char_traits<char>::length(data);
 
     auto key = fdb5::Key({{"fam1a", "v1a"},
@@ -236,7 +236,7 @@ CASE("FamStore: URI-based construction") {
     EXPECT(floc);
     EXPECT_EQUAL(floc->length(), eckit::Length(data_length));
 
-    auto field  = fdb5::Field(std::move(floc), std::time(nullptr));
+    auto field = fdb5::Field(std::move(floc), std::time(nullptr));
     auto handle = std::unique_ptr<eckit::DataHandle>(store.retrieve(field));
     EXPECT(handle);
     fam::read_and_validate(handle.get(), data, data_length);

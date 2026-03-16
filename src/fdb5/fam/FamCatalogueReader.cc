@@ -56,7 +56,7 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
     }
 
     indexes_[key] = Index(new FamIndex(key, *this, root_, map_name, true));
-    current_      = indexes_[key];
+    current_ = indexes_[key];
     return true;
 }
 

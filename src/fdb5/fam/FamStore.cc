@@ -78,7 +78,7 @@ bool FamStore::uriExists(const eckit::URI& uri) const {
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
-    auto archived   = stats_.archived;
+    auto archived = stats_.archived;
     stats_.archived = 0;
     return archived;
 }
@@ -149,7 +149,8 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
         const auto name = root_.object(eckit::FamPath(uri).objectName);
         if (name.exists()) {
             name.lookup().deallocate();
-        } else {
+        }
+        else {
             LOG_DEBUG_LIB(LibFdb5) << "FamStore::remove: object already absent: " << uri << '\n';
         }
     }

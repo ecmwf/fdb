@@ -52,10 +52,10 @@ struct FamCommon {
 
     // rules
 
-    FamCommon(const FamCommon&)            = delete;
+    FamCommon(const FamCommon&) = delete;
     FamCommon& operator=(const FamCommon&) = delete;
-    FamCommon(FamCommon&&)                 = delete;
-    FamCommon& operator=(FamCommon&&)      = delete;
+    FamCommon(FamCommon&&) = delete;
+    FamCommon& operator=(FamCommon&&) = delete;
 
     explicit FamCommon(eckit::FamRegionName root);
 

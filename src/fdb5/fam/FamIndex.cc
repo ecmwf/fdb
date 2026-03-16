@@ -75,7 +75,7 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
         return false;
     }
 
-    auto entry        = *iter;  // copies FamMapEntry by value (FAM data → local Buffer)
+    auto entry = *iter;  // copies FamMapEntry by value (FAM data → local Buffer)
     const auto& value = entry.value;
     eckit::MemoryStream ms{value};
 
