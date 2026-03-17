@@ -51,19 +51,38 @@ FamCatalogueWriter::~FamCatalogueWriter() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FamCatalogueWriter::initCatalogue() {
+void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
+    std::string schema;
+    {
+        // Read the schema from the provided file path
+        std::ifstream file(config_.schemaPath());
+        if (!file) {
+            throw eckit::CantOpenFile(config_.schemaPath());
+        }
+        // Read the whole file
+        std::ostringstream ss;
+        ss << file.rdbuf();
+        schema = ss.str();
+    }
+    // Persist the schema to the FAM catalogue.
+    catalogue().insert(FamCommon::schema_key, schema);
+    // Dump the schema to the provided stream for loading into the Schema object.
+    stream << schema;
+}
 
-    auto region = root_.lookup();
+
+void FamCatalogueWriter::initCatalogue() {
 
     const auto db_key = FamCommon::encodeKey(dbKey_);
 
     // idempotent (FamMap::insert is a no-op if key exists)
 
     // Register this DB in the global FDB registry
-    Map(FamCommon::registry_name, region).insert(FamCommon::toString(dbKey_), db_key);
+    Map registry(FamCommon::registry_name, root_.lookup());
+    registry.insert(FamCommon::toString(dbKey_), db_key);
 
     // Create / open the per-DB catalogue map and store the DB key.
-    Map(name(), region).insert(FamCommon::db_key, db_key);
+    catalogue().insert(FamCommon::db_key, db_key);
 
     loadSchema();
 }

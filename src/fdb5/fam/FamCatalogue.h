@@ -94,12 +94,12 @@ protected:  // methods
 
 protected:  // methods
 
+    virtual void dumpSchema(std::ostream& stream) const = 0;
+
     const std::string& name() const { return name_; }
 
     Map catalogue() const { return {name_, root_.lookup()}; }
 
-    /// Parse schema text from a stream and resolve the matching rule for dbKey_.
-    void parseSchema(std::istream& stream);
 
 private:  // members
 

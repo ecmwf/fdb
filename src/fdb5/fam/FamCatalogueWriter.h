@@ -69,6 +69,8 @@ protected:  // methods
 
 private:  // methods
 
+    void dumpSchema(std::ostream& stream) const override;
+
     void initCatalogue();
 
 private:  // types

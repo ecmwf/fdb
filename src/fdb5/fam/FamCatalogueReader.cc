@@ -73,14 +73,14 @@ bool FamCatalogueReader::open() {
     return true;
 }
 
-void FamCatalogueReader::loadSchema() {
+void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
     auto cat = catalogue();
-    if (auto iter = cat.find(FamCommon::schema_key); iter != cat.end()) {
-        std::istringstream stream{std::string((*iter).value)};
-        parseSchema(stream);
-        return;
+    auto iter = cat.find(FamCommon::schema_key);
+    if (iter == cat.end()) {
+        throw eckit::BadValue("FamCatalogueReader: schema not found in catalogue at: " + uri().asString());
     }
-    throw eckit::BadValue("FamCatalogueReader: schema not found in catalogue at: " + uri().asString());
+    std::string schema{(*iter).value};
+    stream << schema;
 }
 
 std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) const {
