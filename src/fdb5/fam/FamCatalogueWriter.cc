@@ -52,21 +52,23 @@ FamCatalogueWriter::~FamCatalogueWriter() {
 //----------------------------------------------------------------------------------------------------------------------
 
 void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
-    std::string schema;
-    {
-        // Read the schema from the provided file path
-        std::ifstream file(config_.schemaPath());
-        if (!file) {
-            throw eckit::CantOpenFile(config_.schemaPath());
-        }
-        // Read the whole file
-        std::ostringstream ss;
-        ss << file.rdbuf();
-        schema = ss.str();
+    auto cat = catalogue();
+    // 1- If schema exists on FAM, dump it to the stream.
+    if (auto iter = cat.find(FamCommon::schema_key); iter != cat.end()) {
+        auto schema = (*iter).value.view();
+        stream << schema;
+        return;
     }
-    // Persist the schema to the FAM catalogue.
-    catalogue().insert(FamCommon::schema_key, schema);
-    // Dump the schema to the provided stream for loading into the Schema object.
+    // 2- Not on FAM, read local schema and persist it in FAM.
+    std::ifstream file(config_.schemaPath());
+    if (!file) {
+        throw eckit::CantOpenFile(config_.schemaPath());
+    }
+    std::ostringstream ss;
+    ss << file.rdbuf();
+    const std::string schema = ss.str();
+    // persist the schema in the FAM catalogue
+    cat.insert(FamCommon::schema_key, schema);
     stream << schema;
 }
 
