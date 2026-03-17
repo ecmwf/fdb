@@ -202,6 +202,47 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     EXPECT(!reader.retrieve(wrong_datum, no_field));
 }
 
+CASE("FamCatalogueReader: loads schema from persisted FAM copy") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+
+    // Seed the catalogue and persist schema into FAM.
+    fdb5::FamCatalogueWriter writer(db_key, config);
+
+    // Corrupt the local schema file after persistence.
+    fam::write("[ invalid schema", setup.schemaPath);
+
+    // Reader must still open successfully by loading schema from FAM.
+    fdb5::FamCatalogueReader reader(writer.uri(), config);
+    EXPECT(reader.open());
+}
+
+CASE("FamCatalogueWriter: persisted FAM schema is authoritative") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+
+    // First writer persists schema.
+    fdb5::FamCatalogueWriter writer1(db_key, config);
+
+    // Corrupt local schema file. A second writer for the same DB must still
+    // use the persisted schema and succeed.
+    fam::write("[ invalid schema", setup.schemaPath);
+
+    EXPECT_NO_THROW(fdb5::FamCatalogueWriter writer2(db_key, config));
+}
+
 CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)

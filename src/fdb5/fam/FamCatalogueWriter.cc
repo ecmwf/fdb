@@ -55,8 +55,8 @@ void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
     auto cat = catalogue();
     // 1- If schema exists on FAM, dump it to the stream.
     if (auto iter = cat.find(FamCommon::schema_key); iter != cat.end()) {
-        auto schema = (*iter).value.view();
-        stream << schema;
+        auto schema = (*iter).value;
+        stream << schema.view();
         return;
     }
     // 2- Not on FAM, read local schema and persist it in FAM.

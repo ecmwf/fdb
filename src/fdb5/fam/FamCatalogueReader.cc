@@ -79,8 +79,8 @@ void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
     if (iter == cat.end()) {
         throw eckit::BadValue("FamCatalogueReader: schema not found in catalogue at: " + uri().asString());
     }
-    auto schema = (*iter).value.view();
-    stream << schema;
+    auto schema = (*iter).value;
+    stream << schema.view();
 }
 
 std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) const {
