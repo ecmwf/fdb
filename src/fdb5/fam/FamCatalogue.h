@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -98,18 +99,26 @@ protected:  // methods
 
     const std::string& name() const { return name_; }
 
-    Map catalogue() const { return {name_, root_.lookup()}; }
-
+    /// Return the cached catalogue.
+    /// FamMap construction costs 2 FAM RPCs (table + count objects).
+    Map& catalogue() const {
+        if (!catalogue_) {
+            catalogue_.emplace(name_, getRegion());
+        }
+        return *catalogue_;
+    }
 
 private:  // members
 
-    /// The FamMap name used as the catalogue-level index registry (maps index keys to markers).
+    /// The name_ is used as the catalogue-level index registry
     std::string name_;
 
     Key currentIndexKey_;
 
     Schema schema_;
     const RuleDatabase* rule_{nullptr};
+
+    mutable std::optional<Map> catalogue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

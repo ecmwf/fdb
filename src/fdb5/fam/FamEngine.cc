@@ -86,7 +86,7 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const Key& key, const Conf
             return result;
         }
 
-        FamCommon::Map reg_map(FamCommon::registry_name, root.lookup());
+        FamCommon::Map reg_map(FamCommon::registry_keyword, root.lookup());
 
         if (reg_map.empty()) {
             return result;
@@ -124,7 +124,7 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const metkit::mars::MarsRe
             return result;
         }
 
-        FamCommon::Map reg_map(FamCommon::registry_name, root.lookup());
+        FamCommon::Map reg_map(FamCommon::registry_keyword, root.lookup());
 
         if (reg_map.empty()) {
             return result;

@@ -33,11 +33,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamIndex::FamIndex(const Key& key, const Catalogue& /*catalogue*/, const eckit::FamRegionName& region_name,
-                   const std::string& data_map_name, bool read_axes) :
+FamIndex::FamIndex(const Key& key, const eckit::FamRegionName& region_name, const std::string& name, bool read_axes) :
     IndexBase(key, FamCommon::type),
-    location_(region_name.object(data_map_name + FamCommon::table_suffix).uri()),
-    data_(data_map_name, region_name.lookup()) {
+    location_{region_name.object(name + FamCommon::table_suffix).uri()},
+    data_{name, region_name.lookup()} {
     if (read_axes) {
         updateAxes();
     }

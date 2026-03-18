@@ -176,7 +176,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 
     const auto cat_map_name = fdb5::FamCatalogue::catalogueName(db_key) + fdb5::FamCommon::table_suffix;
     const auto idx_map_name = fdb5::FamCatalogue::indexName(idx_key) + fdb5::FamCommon::table_suffix;
-    const auto reg_map_name = std::string(fdb5::FamCommon::registry_name) + fdb5::FamCommon::table_suffix;
+    const auto reg_map_name = std::string(fdb5::FamCommon::registry_keyword) + fdb5::FamCommon::table_suffix;
 
     EXPECT(root.object(reg_map_name).exists());
     EXPECT(root.object(cat_map_name).exists());

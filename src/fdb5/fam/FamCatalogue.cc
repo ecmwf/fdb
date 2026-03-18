@@ -54,32 +54,17 @@ FamCatalogue::FamCatalogue(const Key& key, const fdb5::Config& config) :
 
 FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers,
                            const fdb5::Config& config) :
-    CatalogueImpl(Key(), control_identifiers, config), FamCommon(uri, config) {
+    CatalogueImpl({}, control_identifiers, config), FamCommon(uri, config), name_{eckit::FamPath(uri).objectName} {
 
-    // Derive the catalogue map name from the table object in the URI.
-    // Convention: uri.path().name() == catalogueName + table_suffix
-    const auto object_name = eckit::FamPath(uri).objectName;
-    const std::string_view suffix{FamCommon::table_suffix};
-    if (object_name.size() > suffix.size() &&
-        object_name.compare(object_name.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        name_ = object_name.substr(0, object_name.size() - suffix.size());
-    }
-    else {
-        name_ = object_name;
-    }
+    // std::cerr << "FamCatalogue: opened catalogue at URI: " << eckit::FamPath(uri).objectName << std::endl;
 
-    // Open catalogue map and read the stored DB key.
-    if (!root_.exists()) {
-        throw eckit::BadValue("FamCatalogue: root region does not exist: " + uri.asString());
-    }
+    // name_ = root_.objectName(uri);
+    // , name_{eckit::FamPath(uri).objectName}
 
-    Map cat(name_, root_.lookup());
-
-    auto iter = cat.find(FamCommon::db_key);
-    if (iter == cat.end()) {
+    auto iter = catalogue().find(db_keyword);
+    if (iter == catalogue().end()) {
         throw eckit::BadValue("FamCatalogue: DB key not found in catalogue at: " + uri.asString());
     }
-
     dbKey_ = decodeKey((*iter).value);
 }
 
@@ -100,8 +85,6 @@ std::string FamCatalogue::type() const {
 }
 
 bool FamCatalogue::exists() const {
-    // A single object-level lookup implicitly confirms the region also exists;
-    // FamObjectName::exists() returns false (not throws) on NotFound at any level.
     return root_.object(name_ + FamCommon::table_suffix).exists();
 }
 
@@ -114,7 +97,7 @@ const Schema& FamCatalogue::schema() const {
 }
 
 const Rule& FamCatalogue::rule() const {
-    ASSERT(rule_ != nullptr);
+    ASSERT(rule_);
     return *rule_;
 }
 
@@ -126,7 +109,7 @@ void FamCatalogue::loadSchema() {
 }
 
 bool FamCatalogue::uriBelongs(const eckit::URI& uri) const {
-    return uri.scheme() == type() && root_.uriBelongs(uri);
+    return root_.uriBelongs(uri);
 }
 
 bool FamCatalogue::selectIndex(const Key& key) {
@@ -138,7 +121,7 @@ bool FamCatalogue::selectIndex(const Key& key) {
 }
 
 void FamCatalogue::deselectIndex() {
-    currentIndexKey_ = Key();
+    currentIndexKey_ = {};
 }
 
 std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
@@ -149,7 +132,7 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
 
     std::vector<Index> result;
 
-    for (const auto& [k, v] : Map(name_, root_.lookup())) {
+    for (const auto& [k, v] : catalogue()) {
         const auto key_name = k.asString();
         // Only process entries registered by FamCatalogueWriter::selectIndex(), which
         // stores them under the "i:" prefix.  All other map entries (e.g. "__fdb__")
@@ -158,9 +141,8 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
             continue;
         }
         // Decode the stored index Key (with keyword names).
-        const Key key = decodeKey(v);
-
-        result.emplace_back(new FamIndex(key, *this, root_, indexName(key), true));
+        const auto key = decodeKey(v);
+        result.emplace_back(new FamIndex(key, root_, indexName(key), true));
     }
 
     return result;

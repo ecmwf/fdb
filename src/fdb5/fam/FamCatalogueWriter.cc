@@ -19,7 +19,6 @@
 #include <sstream>
 
 #include "eckit/io/fam/FamMap.h"
-#include "eckit/io/fam/FamRegion.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fam/FamIndex.h"
@@ -52,9 +51,9 @@ FamCatalogueWriter::~FamCatalogueWriter() {
 //----------------------------------------------------------------------------------------------------------------------
 
 void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
-    auto cat = catalogue();
+    auto& cat = catalogue();
     // 1- If schema exists on FAM, dump it to the stream.
-    if (auto iter = cat.find(FamCommon::schema_key); iter != cat.end()) {
+    if (auto iter = cat.find(schema_keyword); iter != cat.end()) {
         auto schema = (*iter).value;
         stream << schema.view();
         return;
@@ -68,23 +67,19 @@ void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
     ss << file.rdbuf();
     const std::string schema = ss.str();
     // persist the schema in the FAM catalogue
-    cat.insert(FamCommon::schema_key, schema);
+    cat.insert(schema_keyword, schema);
     stream << schema;
 }
 
 
 void FamCatalogueWriter::initCatalogue() {
-
-    const auto db_key = FamCommon::encodeKey(dbKey_);
-
-    // idempotent (FamMap::insert is a no-op if key exists)
+    const auto key = encodeKey(dbKey_);
 
     // Register this DB in the global FDB registry
-    Map registry(FamCommon::registry_name, root_.lookup());
-    registry.insert(FamCommon::toString(dbKey_), db_key);
+    Map(registry_keyword, getRegion()).insert(toString(dbKey_), key);
 
     // Create / open the per-DB catalogue map and store the DB key.
-    catalogue().insert(FamCommon::db_key, db_key);
+    catalogue().insert(db_keyword, key);
 
     loadSchema();
 }
@@ -124,15 +119,14 @@ bool FamCatalogueWriter::selectIndex(const Key& key) {
         return true;
     }
     // Create or open the FamIndex for this key.
-    current_ = Index(new FamIndex(key, *this, root_, indexName(key), false));
+    current_ = Index(new FamIndex(key, root_, indexName(key), false));
     current_.open();
     // cache it for future selectIndex calls
     indexes_[key] = current_;
 
-    // Register this index in the fam catalogue map.  The "i:" prefix distinguishes
+    // Register this index in the catalogue FamMap.  The "i:" prefix distinguishes
     // index entries from administrative sentinel keys (e.g. "__fdb__").
-    const auto region = root_.lookup();
-    Map(name(), region).insert("i:" + FamCommon::toString(key), FamCommon::encodeKey(key));
+    catalogue().insert("i:" + toString(key), encodeKey(key));
 
     return true;
 }

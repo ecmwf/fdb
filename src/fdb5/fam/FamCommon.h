@@ -19,10 +19,12 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamPath.h"
+#include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/serialisation/MemoryStream.h"
 
@@ -39,20 +41,21 @@ struct FamCommon {
 
     static constexpr auto type = eckit::FamPath::scheme;
 
-    static constexpr const char* db_key = "__fdb__";
+    static constexpr const char* db_keyword = "__fdb__";
 
-    static constexpr const char* schema_key = "__schema__";
+    static constexpr const char* schema_keyword = "__schema__";
 
-    static constexpr const char* registry_name = "__fdb-reg__";
+    static constexpr const char* registry_keyword = "__fdb-reg__";
 
-    /// Suffix appended to every FAM map table name. Must match eckit::FamMap.
-    static constexpr const char* table_suffix = "-map-table";
+    /// Suffix appended to every FAM map table name.
+    static constexpr const char* table_suffix = Map::table_suffix;
 
     static std::string toString(const Key& key);
 
     /// Serialise a Key to a binary string (inverse of decodeKey).
     static std::string encodeKey(const Key& key);
 
+    /// Deserialise a Key from a binary string (inverse of encodeKey).
     static Key decodeKey(eckit::MemoryStream key);
 
     // rules
@@ -78,11 +81,21 @@ struct FamCommon {
 
     eckit::URI uri() const;
 
+    /// @note Throws if the region does not exist
+    const eckit::FamRegion& getRegion() const {
+        if (!region_) {
+            region_.emplace(root_.lookup());
+        }
+        return *region_;
+    }
+
     eckit::FamRegionName root_;
 
 private:
 
     explicit FamCommon(const Config& config);
+
+    mutable std::optional<eckit::FamRegion> region_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

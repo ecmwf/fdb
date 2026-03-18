@@ -48,14 +48,14 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
         return true;
     }
 
-    const std::string map_name = indexName(key);
+    const auto index_name = indexName(key);
 
     // Check the index map exists: the table object must be present in the region.
-    if (!root_.object(map_name + FamCommon::table_suffix).exists()) {
+    if (!root_.object(index_name + FamCommon::table_suffix).exists()) {
         return false;
     }
 
-    indexes_[key] = Index(new FamIndex(key, *this, root_, map_name, true));
+    indexes_[key] = Index(new FamIndex(key, root_, index_name, true));
     current_ = indexes_[key];
     return true;
 }
@@ -74,8 +74,8 @@ bool FamCatalogueReader::open() {
 }
 
 void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
-    auto cat = catalogue();
-    auto iter = cat.find(FamCommon::schema_key);
+    auto& cat = catalogue();
+    auto iter = cat.find(schema_keyword);
     if (iter == cat.end()) {
         throw eckit::BadValue("FamCatalogueReader: schema not found in catalogue at: " + uri().asString());
     }

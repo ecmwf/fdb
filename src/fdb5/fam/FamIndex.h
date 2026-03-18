@@ -44,12 +44,10 @@ public:  // methods
 
     /// Construct (or reopen) an index backed by a FamMap in the given region.
     /// @param key           The index key (identifies this index within the catalogue).
-    /// @param catalogue     Parent catalogue (for schema access).
     /// @param region_name   FAM region that hosts the map objects.
     /// @param name          Name prefix for the data map FAM objects (≤30 chars recommended).
     /// @param read_axes     If true, populate in-memory axes by scanning the map on open.
-    FamIndex(const Key& key, const Catalogue& catalogue, const eckit::FamRegionName& region_name,
-             const std::string& name, bool read_axes = false);
+    FamIndex(const Key& key, const eckit::FamRegionName& region_name, const std::string& name, bool read_axes = false);
 
     void flock() const override;
     void funlock() const override;
