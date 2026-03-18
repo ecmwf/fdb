@@ -146,11 +146,12 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     logAlways << uri << '\n';
 
     if (doit) {
-        const auto name = root_.object(eckit::FamPath(uri).objectName);
-        if (name.exists()) {
-            name.lookup().deallocate();
+        // Use a single fam_lookup + deallocate rather than exists() + lookup() (two
+        // identical RPCs).  Treat NotFound as a benign "already gone" condition.
+        try {
+            root_.object(eckit::FamPath(uri).objectName).lookup().deallocate();
         }
-        else {
+        catch (const eckit::NotFound&) {
             LOG_DEBUG_LIB(LibFdb5) << "FamStore::remove: object already absent: " << uri << '\n';
         }
     }
