@@ -230,7 +230,7 @@ public:
 
     // Movable
     CatalogueWipeState(CatalogueWipeState&&) noexcept = default;
-    CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
+    CatalogueWipeState& operator=(CatalogueWipeState&&) = default;
 
     virtual ~CatalogueWipeState() override {
         try {
