@@ -11,12 +11,9 @@ from typing import Optional
 
 def run_script(script: Path, args: Optional[list[str]], cwd: str, env: dict[str, str]):
     command = [str(script)]
+
     if args is not None:
-        logging.debug("Appending")
-        if len(args) > 1:
-            command.extend(args)
-        else:
-            command.append(args[0])
+        command.extend(args)
 
     logging.debug(f"Calling {command}")
 

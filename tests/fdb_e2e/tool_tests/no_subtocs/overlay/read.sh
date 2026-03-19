@@ -22,7 +22,7 @@ grib_set -s expver=xxxy data.xxxx.grib data.xxxy.grib
 # Create an overlay to xxxy
 
 fdb-overlay class=rd,expver=xxxx,stream=oper,date=$YESTERDAY,domain=g,time=0000 \
-            class=rd,expver=xxxy,stream=oper,date=$YESTERDAY,domain=g,time=0000 \
+            class=rd,expver=xxxy,stream=oper,date=$YESTERDAY,domain=g,time=0000
 
 fdb-read --extract data.xxxy.0000.grib out.grib
 grib_compare out.grib data.xxxy.0000.grib
