@@ -45,6 +45,13 @@ std::string truncateKey(const Key& key, const std::size_t max_len = 26) {
     return key_str.substr(0, max_len);
 }
 
+std::string stripSuffix(const std::string& name, const std::string& suffix) {
+    if (name.size() >= suffix.size() && name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0) {
+        return name.substr(0, name.size() - suffix.size());
+    }
+    return name;
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,12 +61,10 @@ FamCatalogue::FamCatalogue(const Key& key, const fdb5::Config& config) :
 
 FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers,
                            const fdb5::Config& config) :
-    CatalogueImpl({}, control_identifiers, config), FamCommon(uri, config), name_{eckit::FamPath(uri).objectName} {
+    CatalogueImpl({}, control_identifiers, config), FamCommon(uri, config) {
 
-    // std::cerr << "FamCatalogue: opened catalogue at URI: " << eckit::FamPath(uri).objectName << std::endl;
-
-    // name_ = root_.objectName(uri);
-    // , name_{eckit::FamPath(uri).objectName}
+    // Strip table_suffix to recover the logical catalogue name
+    name_ = stripSuffix(eckit::FamPath(uri).objectName, FamCommon::table_suffix);
 
     auto iter = catalogue().find(db_keyword);
     if (iter == catalogue().end()) {
