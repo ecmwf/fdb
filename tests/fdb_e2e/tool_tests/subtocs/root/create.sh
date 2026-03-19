@@ -5,12 +5,12 @@ set -euxo pipefail
 
 SIMPLE_REQUEST=$(cat req.xxxy.simple)
 
-fdb-where --ignore-errors=false $SIMPLE_REQUEST && echo "Database already exists" && exit-1
+fdb-where --ignore-errors=false $SIMPLE_REQUEST && echo "Database already exists" && exit -1
 
 # By default, we don't create a database just by asking where it is
 
 fdb-root $SIMPLE_REQUEST
-fdb-where --ignore-errors=false $SIMPLE_REQUEST && echo "Database incorrectly created" && exit-1
+fdb-where --ignore-errors=false $SIMPLE_REQUEST && echo "Database incorrectly created" && exit -1
 
 # We can create a database if needed!
 

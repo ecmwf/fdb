@@ -32,8 +32,8 @@ fdb-list --all --minimum-keys="" --porcelain --full | tee out
 
 fdb-wipe class=rd,expver=xxxx --minimum-keys="" --doit
 
-[[ "$(find . -name toc | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
-[[ "$(find . -name "*.data" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
-[[ "$(find . -name "*.index" | wc -l| tr -d '[:space:]')" != "0" ]] && "All data should have been wiped" && exit -1
+[[ "$(find . -name toc | wc -l| tr -d '[:space:]')" != "0" ]] && echo "All data should have been wiped" && exit -1
+[[ "$(find . -name "*.data" | wc -l| tr -d '[:space:]')" != "0" ]] && echo "All data should have been wiped" && exit -1
+[[ "$(find . -name "*.index" | wc -l| tr -d '[:space:]')" != "0" ]] && echo "All data should have been wiped" && exit -1
 
 exit 0
