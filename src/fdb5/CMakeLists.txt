@@ -475,7 +475,12 @@ list( APPEND fdb5_tools
 if ( HAVE_GRIB )
     list( APPEND fdb5_tools
         fdb-hammer
-        # fdb-patch
+    )
+endif()
+
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
+    list( APPEND fdb5_tools
+        fdb-patch
     )
 endif()
 
@@ -520,7 +525,7 @@ ecbuild_add_executable(
             remote/fdb-server.cc
         LIBS fdb5 )
 
-if ( HAVE_GRIB )
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
     ecbuild_add_executable( TARGET    fdb-compare
                             CONDITION HAVE_FDB_BUILD_TOOLS
                             SOURCES   tools/compare/fdb-compare.cc
@@ -545,7 +550,7 @@ if ( HAVE_GRIB )
                             INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                             LIBS      fdb5 eckit metkit eccodes)
 endif()
-                        
+
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
