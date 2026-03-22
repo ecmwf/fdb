@@ -338,10 +338,7 @@ std::vector<Key> Rule::findMatchingKeys(const metkit::mars::MarsRequest& request
         eckit::StringList values;
         if (request.countValues(keyword) == 0) {
             if (pred->optional()) {
-                values.push_back(pred->defaultValue());
-                if (!pred->defaultValue().empty()) {
-                    values.push_back("");
-                }
+                values = pred->optionalValues();
             }
             else {
                 return {};

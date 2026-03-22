@@ -49,6 +49,8 @@ private:  // methods
 
     bool optional() const override { return true; }
 
+    std::vector<std::string> optionalValues() const override;
+
     const std::string& value(const Key&, const std::string& keyword) const override;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
                                            const std::string& keyword) const override;
