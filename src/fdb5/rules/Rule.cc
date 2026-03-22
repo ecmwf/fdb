@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <list>
@@ -43,6 +44,10 @@ namespace fdb5 {
 // GRAPH
 
 namespace {
+
+size_t requiredPredicateCount(const Rule::Predicates& preds) {
+    return std::count_if(preds.begin(), preds.end(), [](const auto& p) { return !p->optional(); });
+}
 
 class RuleGraph {
     struct RuleNode {
@@ -176,6 +181,7 @@ size_t Rule::size() const {
     return predicates_.size();
 }
 
+
 //----------------------------------------------------------------------------------------------------------------------
 // MATCHING KEYS
 
@@ -208,13 +214,7 @@ std::optional<Key> Rule::findMatchingKey(const eckit::StringList& values) const 
         return {};
     }
 
-    size_t numPred = predicates_.size();
-    for (const auto& p : predicates_) {
-        if (p->optional()) {
-            numPred--;
-        }
-    }
-    ASSERT(values.size() >= numPred);
+    ASSERT(values.size() >= requiredPredicateCount(predicates_));
 
     TypedKey key(registry_);
 
@@ -401,13 +401,7 @@ bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    size_t numPred = predicates_.size();
-    for (const auto& p : predicates_) {
-        if (p->optional()) {
-            numPred--;
-        }
-    }
-    ASSERT(values.size() >= numPred);  // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() >= requiredPredicateCount(predicates_));  // Should be equal, except for quantile (FDB-103)
     ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
