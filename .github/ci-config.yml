@@ -1,9 +1,9 @@
 dependencies: |
-  ecmwf/ecbuild
+  ecmwf/ecbuild@develop
   MathisRosenhauer/libaec@refs/tags/v1.1.3
-  ecmwf/eccodes
-  ecmwf/eckit
-  ecmwf/metkit
-dependency_branch: develop
+  ecmwf/eccodes@develop
+  ecmwf/eckit@feature/ECKIT-635_fam-backend-map
+  ecmwf/odc@develop
+  ecmwf/metkit@develop
 cmake_options: -DENABLE_DUMMY_DAOS=ON -DENABLE_FAMFDB=ON
 parallelism_factor: 8
