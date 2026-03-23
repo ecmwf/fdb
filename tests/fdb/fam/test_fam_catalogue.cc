@@ -55,6 +55,8 @@ namespace {
 
 constexpr eckit::fam::size_t test_region_size = 1024 * 1024;  // 1 MB
 constexpr eckit::fam::perm_t test_region_perm = 0640;
+const auto test_fdb_fam_region = eckit::FamPath("test_fdb_catalogue");
+const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 const std::string test_schema =
     "[ fam1a, fam1b, fam1c\n"
@@ -74,7 +76,7 @@ const std::string test_config =
     "  - path: ./root\n"
     "fam_roots:\n"
     "- uri: " +
-    fam::test_fdb_fam_uri +
+    test_fdb_fam_uri +
     "\n"
     "  writable: true\n"
     "  visit: true\n";
@@ -106,7 +108,7 @@ CASE("FamCatalogue: static naming helpers") {
 
 CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -172,7 +174,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     }
 
     // Verify FAM objects were created in the region
-    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region);
+    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
 
     const auto cat_map_name = fdb5::FamCatalogue::catalogueName(db_key) + fdb5::FamCommon::table_suffix;
     const auto idx_map_name = fdb5::FamCatalogue::indexName(idx_key) + fdb5::FamCommon::table_suffix;
@@ -204,7 +206,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 
 CASE("FamCatalogueReader: loads schema from persisted FAM copy") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -225,7 +227,7 @@ CASE("FamCatalogueReader: loads schema from persisted FAM copy") {
 
 CASE("FamCatalogueWriter: persisted FAM schema is authoritative") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -245,7 +247,7 @@ CASE("FamCatalogueWriter: persisted FAM schema is authoritative") {
 
 CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -333,7 +335,7 @@ CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
 
 CASE("FamEngine: canHandle and visitableLocations") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -341,7 +343,7 @@ CASE("FamEngine: canHandle and visitableLocations") {
 
     // Access through the Engine base class (canHandle/visitableLocations are public there)
     fdb5::Engine& engine = fdb5::Engine::backend("fam");
-    const eckit::URI root_uri(fam::test_fdb_fam_uri);
+    const eckit::URI root_uri(test_fdb_fam_uri);
     EXPECT(engine.canHandle(root_uri, config));
 
     // A non-fam URI should not be handled
@@ -359,7 +361,7 @@ CASE("FamEngine: canHandle and visitableLocations") {
 
 CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     TEST_LOG_DEBUG("SETUP FDB FAM");

@@ -57,8 +57,8 @@ inline const std::string test_fdb_fam_endpoint = []() -> std::string {
     return ep ? ep : "localhost:8880";
 }();
 
-const auto test_fdb_fam_region = eckit::FamPath("test_region_fdb");
-const auto test_fdb_fam_uri = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
+// const auto test_fdb_fam_region = eckit::FamPath("test_region_fdb");
+// const auto test_fdb_fam_uri = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 inline void read_and_validate(eckit::DataHandle* dh, const char* data, const long length) {
     TEST_LOG_INFO("READ");

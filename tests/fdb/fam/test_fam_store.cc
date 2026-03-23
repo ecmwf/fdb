@@ -46,6 +46,8 @@ namespace {
 
 constexpr eckit::fam::size_t test_region_size = 1024 * 64;  // 64 KB
 constexpr eckit::fam::perm_t test_region_perm = 0640;
+const auto test_fdb_fam_region = eckit::FamPath("test_fdb_store");
+const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 const std::string test_schema =
     "[ fam1a, fam1b, fam1c\n"
@@ -64,10 +66,11 @@ const std::string test_config =
     "  - path: ./root\n"
     "fam_roots:\n"
     "- uri: " +
-    fam::test_fdb_fam_uri +
+    test_fdb_fam_uri +
     "\n"
     "  writable: true\n"
     "  visit: true\n";
+
 
 }  // namespace
 
@@ -75,7 +78,7 @@ const std::string test_config =
 
 CASE("FamStore: metadata and identity") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -99,7 +102,7 @@ CASE("FamStore: metadata and identity") {
 
 CASE("FamStore: archive, retrieve, flush") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
@@ -204,14 +207,14 @@ CASE("FamStore: archive, retrieve, flush") {
 
 CASE("FamStore: URI-based construction") {
 
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, fam::test_fdb_fam_region)
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     // Construct from URI instead of Key
-    const eckit::URI root_uri(fam::test_fdb_fam_uri);
+    const eckit::URI root_uri(test_fdb_fam_uri);
     fdb5::FamStore fam_store(root_uri, config);
     auto& store = static_cast<fdb5::Store&>(fam_store);
 
