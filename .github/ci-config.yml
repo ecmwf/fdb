@@ -5,5 +5,5 @@ dependencies: |
   ecmwf/eckit@feature/ECKIT-635_fam-backend-map
   ecmwf/odc@develop
   ecmwf/metkit@develop
-cmake_options: -DENABLE_DUMMY_DAOS=ON -DENABLE_FAMFDB=ON
+cmake_options: -DENABLE_DUMMY_DAOS=ON -DENABLE_OPENFAM_MOCK=ON -DENABLE_FAMFDB=ON
 parallelism_factor: 8
