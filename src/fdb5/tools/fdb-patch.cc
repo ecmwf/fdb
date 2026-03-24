@@ -18,7 +18,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "metkit/codes/CodesContent.h"
+#include "metkit/codes/CodesDataContent.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
