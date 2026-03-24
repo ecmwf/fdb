@@ -18,7 +18,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
 
-#include "eckit/io/fam/FamPath.h"
+#include "eckit/io/fam/FamCommon.h"
 
 namespace fdb5 {
 
@@ -26,7 +26,7 @@ namespace fdb5 {
 
 ::eckit::Reanimator<FamFieldLocation> FamFieldLocation::reanimator_;
 
-static const FieldLocationBuilder<FamFieldLocation> builder(eckit::FamPath::scheme);
+static const FieldLocationBuilder<FamFieldLocation> builder(eckit::fam::scheme);
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -22,8 +22,8 @@
 #include <optional>
 #include <string>
 
+#include "eckit/io/fam/FamCommon.h"
 #include "eckit/io/fam/FamMap.h"
-#include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -39,7 +39,7 @@ struct FamCommon {
 
     using Map = eckit::FamMap128;
 
-    static constexpr auto type = eckit::FamPath::scheme;
+    static constexpr auto type = eckit::fam::scheme;
 
     static constexpr const char* db_keyword = "__fdb__";
 

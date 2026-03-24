@@ -1,26 +1,28 @@
+# FamFieldLocation is independent of FAMFDB.
+# We compile it even if FAMFDB is not available for client/server builds.
 list( APPEND fdb5_srcs
-    fam/FamFieldLocation.h
     fam/FamFieldLocation.cc
+    fam/FamFieldLocation.h
 )
 
 if( HAVE_FAMFDB )
     list( APPEND fdb5_srcs
-        fam/FamCommon.h
         fam/FamCommon.cc
-        fam/FamStore.h
+        fam/FamCommon.h
         fam/FamStore.cc
-        fam/FamIndexLocation.h
+        fam/FamStore.h
         fam/FamIndexLocation.cc
-        fam/FamIndex.h
+        fam/FamIndexLocation.h
         fam/FamIndex.cc
-        fam/FamCatalogue.h
+        fam/FamIndex.h
         fam/FamCatalogue.cc
-        fam/FamCatalogueReader.h
+        fam/FamCatalogue.h
         fam/FamCatalogueReader.cc
-        fam/FamCatalogueWriter.h
+        fam/FamCatalogueReader.h
         fam/FamCatalogueWriter.cc
-        fam/FamEngine.h
+        fam/FamCatalogueWriter.h
         fam/FamEngine.cc
+        fam/FamEngine.h
     )
 endif()
 
