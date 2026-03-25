@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+
+set -ux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+# Expect a command to succeed and its stdout to contain a given string.
+expect_output() {
+  local pattern="$1"; shift
+  local out
+  out=$("$@") || die "Command failed => '$*'"
+  echo "$out" | grep -qF "$pattern" || die "Expected '$pattern' in output of '$*', got: $out"
+  echo "$out"
+}
+
+# Expect a command to succeed and its stdout to contain a given regex.
+expect_match() {
+  local pattern="$1"; shift
+  local out
+  out=$("$@") || die "Command failed => '$*'"
+  echo "$out" | grep -qE "$pattern" || die "Expected regex '$pattern' in output of '$*', got: $out"
+  echo "$out"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+test_region="fdb_fam_cli_test_$$"
+
+echo "=== fdb-fam CLI test ==="
+echo "endpoint : $fam_endpoint"
+echo "region   : $test_region"
+
+########################################################################################################################
+# 1. Create a region
+########################################################################################################################
+
+echo "--- TEST: create region ---"
+expect_output "Created" \
+    fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region"
+
+########################################################################################################################
+# 2. Lookup the created region
+########################################################################################################################
+
+echo "--- TEST: lookup region ---"
+expect_match "size=4096" \
+    fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region"
+
+########################################################################################################################
+# 3. Create same region again — expect graceful failure (not crash)
+########################################################################################################################
+
+echo "--- TEST: create duplicate region (graceful failure) ---"
+out=$(fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region" 2>/dev/null)
+echo "$out" | grep -qF "Failed to create" || die "Expected 'Failed to create' for duplicate region, got: $out"
+
+########################################################################################################################
+# 4. Delete the region
+########################################################################################################################
+
+echo "--- TEST: delete region ---"
+expect_output "Deleted" \
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
+
+########################################################################################################################
+# 5. Lookup deleted region — expect graceful failure
+########################################################################################################################
+
+echo "--- TEST: lookup deleted region (graceful failure) ---"
+out=$(fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region" 2>/dev/null)
+echo "$out" | grep -qF "Failed to lookup" || die "Expected 'Failed to lookup' for deleted region, got: $out"
+
+########################################################################################################################
+# 6. Delete non-existent region — expect graceful failure
+########################################################################################################################
+
+echo "--- TEST: delete non-existent region (graceful failure) ---"
+out=$(fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null)
+echo "$out" | grep -qF "Failed to delete" || die "Expected 'Failed to delete' for non-existent region, got: $out"
+
+########################################################################################################################
+# 7. Create, then delete, then re-create (lifecycle roundtrip)
+########################################################################################################################
+
+echo "--- TEST: full lifecycle roundtrip ---"
+expect_output "Created" \
+    fdb-fam --endpoint="$fam_endpoint" --create --size=2048 --perm=0640 "/$test_region"
+expect_match "size=2048" \
+    fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region"
+expect_output "Deleted" \
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
+
+########################################################################################################################
+
+echo "=== All fdb-fam CLI tests passed ==="
