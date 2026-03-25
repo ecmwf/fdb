@@ -12,6 +12,7 @@ if( HAVE_FAMFDB )
         ecbuild_add_test(
             TARGET  fdb_test_fam_${_test}
             SOURCES test_fam_common.h test_fam_${_test}.cc
+            LABELS  fam
             LIBS    fdb5
             ENVIRONMENT "${_fam_environment}"
         )

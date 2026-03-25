@@ -28,7 +28,7 @@ expect_match() {
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 
-fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+fam_endpoint="${FDB_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
 test_region="fdb_fam_cli_test_$$"
 
 echo "=== fdb-fam CLI test ==="
