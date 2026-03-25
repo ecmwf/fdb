@@ -185,6 +185,36 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
         EXPECT_EQUAL(::memcmp(retrieved.data(), data, data_length), 0);
     }
 
+    // dump — simple mode: header + index key, no axes or fields
+    {
+        std::ostringstream out;
+        reader_cat.dump(out, true);
+        const auto dump_str = out.str();
+        EXPECT(dump_str.find("FamCatalogue") != std::string::npos);
+        EXPECT(dump_str.find("{fam1a=a,fam1b=b,fam1c=c}") != std::string::npos);
+        EXPECT(dump_str.find("Key: {fam1a=a,fam1b=b,fam1c=c,fam2a=d,fam2b=e,fam2c=f}") != std::string::npos);
+        // Simple mode: no axes or field contents
+        EXPECT(dump_str.find("Axes:") == std::string::npos);
+        EXPECT(dump_str.find("Contents of index:") == std::string::npos);
+    }
+
+    // dump — verbose mode: header + index key + axes + field entries
+    {
+        std::ostringstream out;
+        reader_cat.dump(out, false);
+        const auto dump_str = out.str();
+        EXPECT(dump_str.find("FamCatalogue") != std::string::npos);
+        EXPECT(dump_str.find("Key: {fam1a=a,fam1b=b,fam1c=c,fam2a=d,fam2b=e,fam2c=f}") != std::string::npos);
+        // Verbose: axes are printed
+        EXPECT(dump_str.find("Axes:") != std::string::npos);
+        EXPECT(dump_str.find("fam3a") != std::string::npos);
+        EXPECT(dump_str.find("fam3c") != std::string::npos);
+        // Verbose: field contents are printed
+        EXPECT(dump_str.find("Contents of index:") != std::string::npos);
+        EXPECT(dump_str.find("Fingerprint: a-b-c-d-e-f-g-h-i") != std::string::npos);
+        EXPECT(dump_str.find("FamFieldLocation") != std::string::npos);
+    }
+
     // Verify FAM objects were created in the region
     const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
 
@@ -650,10 +680,19 @@ CASE("FamCatalogue: NOTIMP methods throw") {
 
     EXPECT_THROWS(cat.checkUID());
 
-    std::ostringstream out;
-    const std::string yaml_str("---\n");
-    eckit::YAMLConfiguration empty_conf(yaml_str);
-    EXPECT_THROWS(cat.dump(out, true, empty_conf));
+    // dump — empty catalogue, simple mode
+    {
+        std::ostringstream out;
+        const std::string yaml_str("---\n");
+        eckit::YAMLConfiguration empty_conf(yaml_str);
+        EXPECT_NO_THROW(cat.dump(out, true, empty_conf));
+        const auto dump_str = out.str();
+        EXPECT(dump_str.find("FamCatalogue") != std::string::npos);
+        EXPECT(dump_str.find("{fam1a=a,fam1b=b,fam1c=c}") != std::string::npos);
+        EXPECT(dump_str.find("uri=") != std::string::npos);
+        // No indexes archived, so no "Key:" lines
+        EXPECT(dump_str.find("Key:") == std::string::npos);
+    }
 
     EXPECT_THROWS(cat.statsReportVisitor());
 }
@@ -1242,7 +1281,7 @@ CASE("FamEngine: canHandle with invalid FAM URI") {
 // FamIndex: additional NOTIMP coverage
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamIndex: dump, encode, visit, statistics throw NOTIMP") {
+CASE("FamIndex: dump, encode, visit, statistics") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -1256,11 +1295,21 @@ CASE("FamIndex: dump, encode, visit, statistics throw NOTIMP") {
     eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
     fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(idx_key), false));
 
-    // dump
-    std::ostringstream out;
-    EXPECT_THROWS(idx.dump(out, "  ", false, false));
+    // dump — simple mode
+    {
+        std::ostringstream out;
+        idx.dump(out, "  ", true, false);
+        EXPECT(out.str().find("Key:") != std::string::npos);
+    }
 
-    // encode
+    // dump — full mode
+    {
+        std::ostringstream out;
+        idx.dump(out, "  ", false, true);
+        EXPECT(out.str().find("Key:") != std::string::npos);
+    }
+
+    // encode — NOTIMP
     eckit::MemoryHandle h(1024);
     h.openForWrite(0);
     eckit::HandleStream hs(h);

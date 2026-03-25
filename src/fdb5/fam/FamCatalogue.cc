@@ -162,8 +162,12 @@ CatalogueWipeState FamCatalogue::wipeInit() const {
 void FamCatalogue::checkUID() const {
     NOTIMP;
 }
-void FamCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
-    NOTIMP;
+void FamCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& /*conf*/) const {
+    out << "FamCatalogue " << dbKey_ << ", uri=" << uri() << '\n';
+    for (const auto& index : indexes()) {
+        index.dump(out, "  ", simple, !simple);
+        out << '\n';
+    }
 }
 StatsReportVisitor* FamCatalogue::statsReportVisitor() const {
     NOTIMP;

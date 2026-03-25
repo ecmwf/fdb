@@ -164,8 +164,26 @@ void FamIndex::updateAxes() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FamIndex::dump(std::ostream& /*out*/, const char* /*indent*/, bool /*simple*/, bool /*dump_fields*/) const {
-    NOTIMP;
+void FamIndex::dump(std::ostream& out, const char* indent, bool simple, bool dump_fields) const {
+    out << indent << "Key: " << key_;
+
+    if (!simple) {
+        out << '\n';
+        axes_.dump(out, indent);
+    }
+
+    if (dump_fields) {
+        out << '\n' << indent << "Contents of index:" << '\n';
+        const std::string child_indent = std::string(indent) + "  ";
+        for (const auto& [key, value] : data_) {
+            if (key.asString() == FamCommon::axes_keyword) {
+                continue;
+            }
+            eckit::MemoryStream stream{value};
+            auto [timestamp, location] = decodePrefix(stream);
+            out << child_indent << "Fingerprint: " << key.asString() << ", location: " << *location << '\n';
+        }
+    }
 }
 void FamIndex::encode(eckit::Stream& /*s*/, const int /*version*/) const {
     NOTIMP;
