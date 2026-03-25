@@ -1,0 +1,51 @@
+[package]
+name = "fdb-sys"
+version = "5.19.1"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "C++ bindings to ECMWF FDB5 library using cxx"
+links = "fdb_sys"
+build = "build.rs"
+
+[features]
+# Defaults match CMake defaults (without external library dependencies)
+default = ["grib", "tocfdb", "fdb-remote"]
+
+# Build strategy (mutually exclusive)
+vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "eccodes-sys/vendored"]
+system = ["eckit-sys/system", "metkit-sys/system", "eccodes-sys/system"]
+
+# Core features (CMake default: ON)
+grib = ["eccodes-sys/product-grib"]  # GRIB support via eccodes
+tocfdb = []      # Filesystem TOC support for FDB
+fdb-remote = []  # FDB remote access
+
+# Storage backends (CMake default: OFF or require external libs)
+radosfdb = []    # Ceph/Rados support for FDB Store (requires RADOS)
+lustre = []      # Lustre API control of file stripping (requires LUSTREAPI)
+daosfdb = []     # DAOS support for FDB Store (requires DAOS)
+daos-admin = []  # DAOS pool management (requires DAOS)
+dummy-daos = []  # Dummy DAOS library (emulates DAOS with filesystem)
+
+# Other (CMake default: OFF)
+experimental = []  # Experimental features
+sandbox = []       # Sandbox stuff
+
+[dependencies]
+cxx.workspace = true
+eckit-sys.workspace = true
+metkit-sys.workspace = true
+eccodes-sys.workspace = true
+bindman.workspace = true
+
+[build-dependencies]
+cxx-build.workspace = true
+bindman-build.workspace = true
+fs_extra = "1.3"
+
+[package.metadata.docs.rs]
