@@ -16,8 +16,10 @@
 #include "fdb5/fam/FamIndex.h"
 
 #include <climits>
+#include <utility>
 
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/log/Log.h"
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
@@ -30,6 +32,43 @@
 #include "fdb5/fam/FamIndexLocation.h"
 
 namespace fdb5 {
+
+namespace {
+
+//----------------------------------------------------------------------------------------------------------------------
+// Helpers
+
+template <typename T>
+eckit::Buffer serialize(std::size_t initial_capacity, T&& writer) {
+    eckit::MemoryHandle handle{initial_capacity};
+    eckit::HandleStream stream{handle};
+    handle.openForWrite(0);
+    {
+        eckit::AutoClose closer(handle);
+        std::forward<T>(writer)(stream);
+    }
+    return {handle.data(), static_cast<std::size_t>(stream.bytesWritten())};
+}
+
+/// Encode a field entry in wire format: [timestamp] [FieldLocation] [Key].
+eckit::Buffer encodeIndex(const Field& field, const Key& key) {
+    return serialize(static_cast<std::size_t>(PATH_MAX), [&](eckit::HandleStream& stream) {
+        stream << field.timestamp();
+        stream << field.location();
+        stream << key;
+    });
+}
+
+/// Decode the wire-format prefix: [timestamp] [FieldLocation]
+/// @note the caller may continue reading Key
+std::pair<time_t, std::shared_ptr<const FieldLocation>> decodePrefix(eckit::MemoryStream& stream) {
+    time_t timestamp{};
+    stream >> timestamp;
+    auto location = std::shared_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(stream));
+    return {timestamp, std::move(location)};
+}
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,23 +84,7 @@ FamIndex::FamIndex(const Key& key, const eckit::FamRegionName& region_name, cons
 //----------------------------------------------------------------------------------------------------------------------
 
 void FamIndex::add(const Key& key, const Field& field) {
-
-    // Wire format: [timestamp (time_t)] [FieldLocation (polymorphic)] [Key (with keyword names)]
-    //
-    // polymorphic FieldLocation serialisation (supported by eckit::Reanimator)
-    // TODO(metin): implement a URI table (mapping uint64_t IDs → FAM object URIs) at the FamStore level
-    // and FamFieldRefReducedWire, which will eliminate the Reanimator dependency
-    eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
-    eckit::HandleStream hs{h};
-    h.openForWrite(0);
-    {
-        eckit::AutoClose closer(h);
-        hs << field.timestamp();
-        hs << field.location();
-        hs << key;
-    }
-
-    data_.insert(FamCommon::toString(key), h.data(), static_cast<std::size_t>(hs.bytesWritten()));
+    data_.insert(FamCommon::toString(key), encodeIndex(field, key));
 }
 
 bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const {
@@ -75,16 +98,12 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
     }
 
     auto entry = *iter;  // copies FamMapEntry by value (FAM data → local Buffer)
-    const auto& value = entry.value;
-    eckit::MemoryStream ms{value};
+    eckit::MemoryStream ms{entry.value};
 
-    time_t timestamp{};
-    ms >> timestamp;
+    // no need to deserialize Key
+    auto [timestamp, location] = decodePrefix(ms);
 
-    // Key follows FieldLocation in the wire format; we stop here — no need to deserialise it.
-    auto loc = std::shared_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
-
-    field = Field(std::move(loc), timestamp);
+    field = Field(std::move(location), timestamp);
 
     return true;
 }
@@ -99,40 +118,45 @@ void FamIndex::entries(EntryVisitor& visitor) const {
         return;
     }
 
-    for (const auto& [k, value] : data_) {
+    for (const auto& [key, value] : data_) {
 
-        eckit::MemoryStream ms{value};
+        // Skip the reserved axes metadata entry.
+        if (key.asString() == FamCommon::axes_keyword) {
+            continue;
+        }
 
-        time_t ts{};
-        ms >> ts;
-
-        auto loc = std::shared_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
-
-        Key datum_key(ms);
-
-        Field field(std::move(loc), ts);
+        eckit::MemoryStream stream{value};
+        auto [timestamp, location] = decodePrefix(stream);
+        auto datum = Key(stream).valuesToString();
 
         // Use the public visitDatum(field, keyFingerprint) overload; it calls rule_->makeKey()
         // to reconstruct the Key with keyword names before dispatching to the protected override.
-        visitor.visitDatum(field, datum_key.valuesToString());
+        visitor.visitDatum(Field(std::move(location), timestamp), datum);
     }
 }
 
 void FamIndex::updateAxes() {
 
-    for (const auto& [k, value] : data_) {
+    // Fast path: read the persisted axes snapshot if available.
+    const Map::key_type axes_key{FamCommon::axes_keyword};
+    if (auto iter = data_.find(axes_key); iter != data_.end()) {
+        auto axes = (*iter).value;
+        eckit::MemoryStream stream{axes};
+        axes_.decode(stream, IndexAxis::currentVersion());
+        return;
+    }
 
-        eckit::MemoryStream ms{value};
+    // Slow path (legacy / first open): full-scan all data entries.
+    LOG_DEBUG_LIB(LibFdb5) << "FamIndex::updateAxes: no persisted axes, falling back to full scan" << std::endl;
 
-        {
-            // Discard the timestamp
-            time_t ts{};
-            ms >> ts;
-            // Discard the FieldLocation
-            std::unique_ptr<const FieldLocation>(eckit::Reanimator<const FieldLocation>::reanimate(ms));
+    for (const auto& [key, value] : data_) {
+        // Skip the axes metadata entry
+        if (key.asString() == FamCommon::axes_keyword) {
+            continue;
         }
-
-        axes_.insert(Key{ms});
+        eckit::MemoryStream stream{value};
+        decodePrefix(stream);  // skip timestamp + FieldLocation
+        axes_.insert(Key{stream});
     }
 
     axes_.sort();
@@ -167,7 +191,7 @@ std::vector<eckit::URI> FamIndex::dataURIs() const {
 }
 
 bool FamIndex::dirty() const {
-    return false;
+    return axes_.dirty();
 }
 
 void FamIndex::open() {}
@@ -181,6 +205,16 @@ void FamIndex::close() {}
 void FamIndex::flush() {
     // Keep the in-memory axes sorted so readers always see a consistent view.
     axes_.sort();
+
+    // Persist the axes_ to FAM
+    if (axes_.dirty()) {
+        auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [this](eckit::HandleStream& stream) {
+            axes_.encode(stream, IndexAxis::currentVersion());
+        });
+        const Map::key_type axes_key{FamCommon::axes_keyword};
+        data_.insertOrAssign(axes_key, payload);
+        axes_.clean();
+    }
 }
 
 IndexStats FamIndex::statistics() const {

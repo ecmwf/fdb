@@ -47,6 +47,8 @@ struct FamCommon {
 
     static constexpr const char* registry_keyword = "__fdb-reg__";
 
+    static constexpr const char* axes_keyword = "__axes__";
+
     /// Suffix appended to every FAM map table name.
     static constexpr const char* table_suffix = Map::table_suffix;
 
