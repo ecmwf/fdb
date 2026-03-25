@@ -16,13 +16,12 @@
 #include "fdb5/fam/FamCatalogue.h"
 
 #include <climits>
-#include <fstream>
 #include <sstream>
 
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamMapEntry.h"
-#include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/MD5.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/WipeState.h"
@@ -34,15 +33,17 @@ namespace fdb5 {
 
 namespace {
 
-/// Truncate a fam-name component so that the total FAM object name (including
-/// suffixes like "-table" or "-b1023") stays within OpenFAM limits (~40 chars).
-std::string truncateKey(const Key& key, const std::size_t max_len = 26) {
+constexpr size_t k_hash_length = 8;
+
+static_assert(MD5_DIGEST_LENGTH >= k_hash_length,
+              "MD5 digest length must be at least 8 bytes for the hashKey() function to produce 16-hex-char output.");
+
+/// Hash a Key to a short, deterministic, fixed-length hex string for OpenFAM object names.
+/// Name:  prefix "cat-"/"idx-" (4) + hash (16) + bucket suffix (worst case=13)
+/// "-b1023-list-e" (13) = 33 chars, within the ~40-char OpenFAM limit.
+std::string hashKey(const Key& key) {
     const auto key_str = FamCommon::toString(key);
-    if (key_str.size() > max_len) {
-        eckit::Log::warning() << "FamCatalogue: map key '" << key_str << "' truncated to " << max_len
-                              << " chars; distinct keys sharing the same prefix will collide" << '\n';
-    }
-    return key_str.substr(0, max_len);
+    return eckit::MD5(key_str).digest().substr(0, k_hash_length);
 }
 
 std::string stripSuffix(const std::string& name, const std::string& suffix) {
@@ -76,11 +77,11 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
 //----------------------------------------------------------------------------------------------------------------------
 
 std::string FamCatalogue::catalogueName(const Key& key) {
-    return "cat-" + truncateKey(key);
+    return "cat-" + hashKey(key);
 }
 
 std::string FamCatalogue::indexName(const Key& key) {
-    return "idx-" + truncateKey(key);
+    return "idx-" + hashKey(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
