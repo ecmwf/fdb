@@ -9,13 +9,13 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
 
-#include "metkit/mars/MarsRequest.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/Main.h"
+#include "metkit/mars/MarsRequest.h"
 
-#include <stdexcept>
 #include <mutex>
+#include <stdexcept>
 
 // Include the cxx-generated header for our bridge types
 #include "fdb-sys/src/lib.rs.h"
@@ -78,7 +78,9 @@ static metkit::mars::MarsRequest parse_request_no_verb(const std::string& reques
     while (pos < request_str.size()) {
         // Find key
         auto eq_pos = request_str.find('=', pos);
-        if (eq_pos == std::string::npos) break;
+        if (eq_pos == std::string::npos) {
+            break;
+        }
         std::string key = request_str.substr(pos, eq_pos - pos);
 
         // Find values (until comma or end)
@@ -87,7 +89,8 @@ static metkit::mars::MarsRequest parse_request_no_verb(const std::string& reques
         if (comma_pos == std::string::npos) {
             values_str = request_str.substr(eq_pos + 1);
             pos = request_str.size();
-        } else {
+        }
+        else {
             values_str = request_str.substr(eq_pos + 1, comma_pos - eq_pos - 1);
             pos = comma_pos + 1;
         }
@@ -122,22 +125,38 @@ static fdb5::FDBToolRequest make_tool_request(const std::string& request_str) {
 /// Convert ControlIdentifier enum to string
 static std::string control_identifier_to_string(fdb5::ControlIdentifier id) {
     switch (id) {
-        case fdb5::ControlIdentifier::List: return "list";
-        case fdb5::ControlIdentifier::Retrieve: return "retrieve";
-        case fdb5::ControlIdentifier::Archive: return "archive";
-        case fdb5::ControlIdentifier::Wipe: return "wipe";
-        case fdb5::ControlIdentifier::UniqueRoot: return "uniqueRoot";
-        default: return "unknown";
+        case fdb5::ControlIdentifier::List:
+            return "list";
+        case fdb5::ControlIdentifier::Retrieve:
+            return "retrieve";
+        case fdb5::ControlIdentifier::Archive:
+            return "archive";
+        case fdb5::ControlIdentifier::Wipe:
+            return "wipe";
+        case fdb5::ControlIdentifier::UniqueRoot:
+            return "uniqueRoot";
+        default:
+            return "unknown";
     }
 }
 
 /// Convert string to ControlIdentifier enum
 static fdb5::ControlIdentifier control_identifier_from_string(const std::string& s) {
-    if (s == "list") return fdb5::ControlIdentifier::List;
-    if (s == "retrieve") return fdb5::ControlIdentifier::Retrieve;
-    if (s == "archive") return fdb5::ControlIdentifier::Archive;
-    if (s == "wipe") return fdb5::ControlIdentifier::Wipe;
-    if (s == "uniqueRoot") return fdb5::ControlIdentifier::UniqueRoot;
+    if (s == "list") {
+        return fdb5::ControlIdentifier::List;
+    }
+    if (s == "retrieve") {
+        return fdb5::ControlIdentifier::Retrieve;
+    }
+    if (s == "archive") {
+        return fdb5::ControlIdentifier::Archive;
+    }
+    if (s == "wipe") {
+        return fdb5::ControlIdentifier::Wipe;
+    }
+    if (s == "uniqueRoot") {
+        return fdb5::ControlIdentifier::UniqueRoot;
+    }
     return fdb5::ControlIdentifier::None;
 }
 
@@ -145,8 +164,7 @@ static fdb5::ControlIdentifier control_identifier_from_string(const std::string&
 // FdbHandle implementation
 // ============================================================================
 
-FdbHandle::FdbHandle()
-    : impl_(std::make_unique<fdb5::FDB>()) {}
+FdbHandle::FdbHandle() : impl_(std::make_unique<fdb5::FDB>()) {}
 
 FdbHandle::FdbHandle(const std::string& yaml_config) {
     eckit::YAMLConfiguration config(yaml_config);
@@ -232,14 +250,14 @@ bool FdbHandle::config_has(rust::Str key) const {
 // DataReaderHandle implementation
 // ============================================================================
 
-DataReaderHandle::DataReaderHandle(std::unique_ptr<eckit::DataHandle> handle)
-    : impl_(std::move(handle)) {}
+DataReaderHandle::DataReaderHandle(std::unique_ptr<eckit::DataHandle> handle) : impl_(std::move(handle)) {}
 
 DataReaderHandle::~DataReaderHandle() {
     if (is_open_ && impl_) {
         try {
             impl_->close();
-        } catch (...) {
+        }
+        catch (...) {
             // Ignore errors during destruction
         }
     }
@@ -291,20 +309,24 @@ uint64_t DataReaderHandle::size() const {
 // ListIteratorHandle implementation
 // ============================================================================
 
-ListIteratorHandle::ListIteratorHandle(fdb5::ListIterator&& it)
-    : impl_(std::move(it)) {}
+ListIteratorHandle::ListIteratorHandle(fdb5::ListIterator&& it) : impl_(std::move(it)) {}
 
 ListIteratorHandle::~ListIteratorHandle() = default;
 
 bool ListIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     // Try to fetch next element
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -344,19 +366,23 @@ ListElementData ListIteratorHandle::next() {
 // DumpIteratorHandle implementation
 // ============================================================================
 
-DumpIteratorHandle::DumpIteratorHandle(fdb5::DumpIterator&& it)
-    : impl_(std::move(it)) {}
+DumpIteratorHandle::DumpIteratorHandle(fdb5::DumpIterator&& it) : impl_(std::move(it)) {}
 
 DumpIteratorHandle::~DumpIteratorHandle() = default;
 
 bool DumpIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -379,19 +405,23 @@ DumpElementData DumpIteratorHandle::next() {
 // StatusIteratorHandle implementation
 // ============================================================================
 
-StatusIteratorHandle::StatusIteratorHandle(fdb5::StatusIterator&& it)
-    : impl_(std::move(it)) {}
+StatusIteratorHandle::StatusIteratorHandle(fdb5::StatusIterator&& it) : impl_(std::move(it)) {}
 
 StatusIteratorHandle::~StatusIteratorHandle() = default;
 
 bool StatusIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -413,19 +443,23 @@ StatusElementData StatusIteratorHandle::next() {
 // WipeIteratorHandle implementation
 // ============================================================================
 
-WipeIteratorHandle::WipeIteratorHandle(fdb5::WipeIterator&& it)
-    : impl_(std::move(it)) {}
+WipeIteratorHandle::WipeIteratorHandle(fdb5::WipeIterator&& it) : impl_(std::move(it)) {}
 
 WipeIteratorHandle::~WipeIteratorHandle() = default;
 
 bool WipeIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -449,19 +483,23 @@ WipeElementData WipeIteratorHandle::next() {
 // PurgeIteratorHandle implementation
 // ============================================================================
 
-PurgeIteratorHandle::PurgeIteratorHandle(fdb5::PurgeIterator&& it)
-    : impl_(std::move(it)) {}
+PurgeIteratorHandle::PurgeIteratorHandle(fdb5::PurgeIterator&& it) : impl_(std::move(it)) {}
 
 PurgeIteratorHandle::~PurgeIteratorHandle() = default;
 
 bool PurgeIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -485,19 +523,23 @@ PurgeElementData PurgeIteratorHandle::next() {
 // StatsIteratorHandle implementation
 // ============================================================================
 
-StatsIteratorHandle::StatsIteratorHandle(fdb5::StatsIterator&& it)
-    : impl_(std::move(it)) {}
+StatsIteratorHandle::StatsIteratorHandle(fdb5::StatsIterator&& it) : impl_(std::move(it)) {}
 
 StatsIteratorHandle::~StatsIteratorHandle() = default;
 
 bool StatsIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -524,19 +566,23 @@ StatsElementData StatsIteratorHandle::next() {
 // ControlIteratorHandle implementation
 // ============================================================================
 
-ControlIteratorHandle::ControlIteratorHandle(fdb5::ControlIterator&& it)
-    : impl_(std::move(it)) {}
+ControlIteratorHandle::ControlIteratorHandle(fdb5::ControlIterator&& it) : impl_(std::move(it)) {}
 
 ControlIteratorHandle::~ControlIteratorHandle() = default;
 
 bool ControlIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -561,19 +607,23 @@ ControlElementData ControlIteratorHandle::next() {
 // MoveIteratorHandle implementation
 // ============================================================================
 
-MoveIteratorHandle::MoveIteratorHandle(fdb5::MoveIterator&& it)
-    : impl_(std::move(it)) {}
+MoveIteratorHandle::MoveIteratorHandle(fdb5::MoveIterator&& it) : impl_(std::move(it)) {}
 
 MoveIteratorHandle::~MoveIteratorHandle() = default;
 
 bool MoveIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -599,19 +649,23 @@ MoveElementData MoveIteratorHandle::next() {
 // AxesIteratorHandle implementation
 // ============================================================================
 
-AxesIteratorHandle::AxesIteratorHandle(fdb5::AxesIterator&& it)
-    : impl_(std::move(it)) {}
+AxesIteratorHandle::AxesIteratorHandle(fdb5::AxesIterator&& it) : impl_(std::move(it)) {}
 
 AxesIteratorHandle::~AxesIteratorHandle() = default;
 
 bool AxesIteratorHandle::hasNext() {
-    if (exhausted_) return false;
-    if (has_current_) return true;
+    if (exhausted_) {
+        return false;
+    }
+    if (has_current_) {
+        return true;
+    }
 
     if (impl_.next(current_)) {
         has_current_ = true;
         return true;
-    } else {
+    }
+    else {
         exhausted_ = true;
         return false;
     }
@@ -702,11 +756,8 @@ std::unique_ptr<DataReaderHandle> read_uri(FdbHandle& handle, rust::Str uri) {
     return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
 }
 
-std::unique_ptr<DataReaderHandle> read_uris(
-    FdbHandle& handle,
-    const rust::Vec<rust::String>& uris,
-    bool in_storage_order
-) {
+std::unique_ptr<DataReaderHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
+                                            bool in_storage_order) {
     std::vector<eckit::URI> eckit_uris;
     eckit_uris.reserve(uris.size());
     for (const auto& uri : uris) {
@@ -716,11 +767,8 @@ std::unique_ptr<DataReaderHandle> read_uris(
     return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
 }
 
-std::unique_ptr<DataReaderHandle> read_list_iterator(
-    FdbHandle& handle,
-    ListIteratorHandle& iterator,
-    bool in_storage_order
-) {
+std::unique_ptr<DataReaderHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
+                                                     bool in_storage_order) {
     // Calls FDB::read(ListIterator&, bool) directly - most efficient path
     eckit::DataHandle* dh = handle.inner().read(iterator.inner(), in_storage_order);
     return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
@@ -730,12 +778,7 @@ std::unique_ptr<DataReaderHandle> read_list_iterator(
 // List functions
 // ============================================================================
 
-std::unique_ptr<ListIteratorHandle> list(
-    FdbHandle& handle,
-    rust::Str request,
-    bool deduplicate,
-    int32_t level
-) {
+std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
     auto it = handle.inner().list(tool_request, deduplicate, level);
@@ -754,10 +797,8 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
     rust::Vec<AxisEntry> result;
     // IndexAxis - iterate using has() and values() interface
     // Common axis names in FDB
-    static const std::vector<std::string> common_axes = {
-        "class", "expver", "stream", "type", "levtype", "date", "time",
-        "step", "param", "levelist", "number"
-    };
+    static const std::vector<std::string> common_axes = {"class", "expver", "stream", "type",     "levtype", "date",
+                                                         "time",  "step",   "param",  "levelist", "number"};
     for (const auto& axis_name : common_axes) {
         if (index_axis.has(axis_name)) {
             AxisEntry entry;
@@ -772,11 +813,7 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
     return result;
 }
 
-std::unique_ptr<AxesIteratorHandle> axes_iterator(
-    FdbHandle& handle,
-    rust::Str request,
-    int32_t level
-) {
+std::unique_ptr<AxesIteratorHandle> axes_iterator(FdbHandle& handle, rust::Str request, int32_t level) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
     auto it = handle.inner().axesIterator(tool_request, level);
@@ -787,11 +824,7 @@ std::unique_ptr<AxesIteratorHandle> axes_iterator(
 // Dump functions
 // ============================================================================
 
-std::unique_ptr<DumpIteratorHandle> dump(
-    FdbHandle& handle,
-    rust::Str request,
-    bool simple
-) {
+std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, bool simple) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
     auto it = handle.inner().dump(tool_request, simple);
@@ -813,13 +846,8 @@ std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str reques
 // Wipe functions
 // ============================================================================
 
-std::unique_ptr<WipeIteratorHandle> wipe(
-    FdbHandle& handle,
-    rust::Str request,
-    bool doit,
-    bool porcelain,
-    bool unsafe_wipe_all
-) {
+std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, bool doit, bool porcelain,
+                                         bool unsafe_wipe_all) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
     auto it = handle.inner().wipe(tool_request, doit, porcelain, unsafe_wipe_all);
@@ -830,12 +858,7 @@ std::unique_ptr<WipeIteratorHandle> wipe(
 // Purge functions
 // ============================================================================
 
-std::unique_ptr<PurgeIteratorHandle> purge(
-    FdbHandle& handle,
-    rust::Str request,
-    bool doit,
-    bool porcelain
-) {
+std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request, bool doit, bool porcelain) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
     auto it = handle.inner().purge(tool_request, doit, porcelain);
@@ -857,12 +880,8 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 // Control functions
 // ============================================================================
 
-std::unique_ptr<ControlIteratorHandle> control(
-    FdbHandle& handle,
-    rust::Str request,
-    fdb5::ControlAction action,
-    const rust::Vec<rust::String>& identifiers
-) {
+std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
+                                               const rust::Vec<rust::String>& identifiers) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
 
@@ -880,11 +899,7 @@ std::unique_ptr<ControlIteratorHandle> control(
 // Move functions
 // ============================================================================
 
-std::unique_ptr<MoveIteratorHandle> move_data(
-    FdbHandle& handle,
-    rust::Str request,
-    rust::Str dest
-) {
+std::unique_ptr<MoveIteratorHandle> move_data(FdbHandle& handle, rust::Str request, rust::Str dest) {
     std::string request_str{request};
     std::string dest_str{dest};
     auto tool_request = make_tool_request(request_str);
@@ -897,33 +912,22 @@ std::unique_ptr<MoveIteratorHandle> move_data(
 // Callback registration functions
 // ============================================================================
 
-void register_flush_callback(
-    FdbHandle& handle,
-    rust::Box<FlushCallbackBox> callback
-) {
+void register_flush_callback(FdbHandle& handle, rust::Box<FlushCallbackBox> callback) {
     // Create a shared_ptr to hold the callback box so it can be captured by the lambda
     auto callback_ptr = std::make_shared<rust::Box<FlushCallbackBox>>(std::move(callback));
 
-    fdb5::FlushCallback cpp_callback = [callback_ptr]() {
-        invoke_flush_callback(**callback_ptr);
-    };
+    fdb5::FlushCallback cpp_callback = [callback_ptr]() { invoke_flush_callback(**callback_ptr); };
 
     handle.inner().registerFlushCallback(std::move(cpp_callback));
 }
 
-void register_archive_callback(
-    FdbHandle& handle,
-    rust::Box<ArchiveCallbackBox> callback
-) {
+void register_archive_callback(FdbHandle& handle, rust::Box<ArchiveCallbackBox> callback) {
     // Create a shared_ptr to hold the callback box so it can be captured by the lambda
     auto callback_ptr = std::make_shared<rust::Box<ArchiveCallbackBox>>(std::move(callback));
 
     fdb5::ArchiveCallback cpp_callback = [callback_ptr](
-        const fdb5::Key& key,
-        const void* data,
-        size_t length,
-        std::future<std::shared_ptr<const fdb5::FieldLocation>> location_future
-    ) {
+                                             const fdb5::Key& key, const void* data, size_t length,
+                                             std::future<std::shared_ptr<const fdb5::FieldLocation>> location_future) {
         // Convert key to Vec<KeyValue>
         rust::Vec<KeyValue> key_vec;
         for (const auto& [k, v] : key) {
@@ -934,10 +938,7 @@ void register_archive_callback(
         }
 
         // Create a slice from the data
-        rust::Slice<const uint8_t> data_slice{
-            static_cast<const uint8_t*>(data),
-            length
-        };
+        rust::Slice<const uint8_t> data_slice{static_cast<const uint8_t*>(data), length};
 
         // Wait for the location future and extract info
         std::string location_uri;
@@ -951,21 +952,16 @@ void register_archive_callback(
                 location_offset = location->offset();
                 location_length = location->length();
             }
-        } catch (...) {
+        }
+        catch (...) {
             // If future fails, leave location info empty
         }
 
         // Create a slice from key_vec
         rust::Slice<const KeyValue> key_slice{key_vec.data(), key_vec.size()};
 
-        invoke_archive_callback(
-            **callback_ptr,
-            key_slice,
-            data_slice,
-            rust::Str(location_uri),
-            location_offset,
-            location_length
-        );
+        invoke_archive_callback(**callback_ptr, key_slice, data_slice, rust::Str(location_uri), location_offset,
+                                location_length);
     };
 
     handle.inner().registerArchiveCallback(std::move(cpp_callback));
