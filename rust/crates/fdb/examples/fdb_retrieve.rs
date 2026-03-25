@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let fdb = Fdb::open_default()?;
+    let fdb = Fdb::new()?;
     let request: Request = args[1].parse()?;
 
     println!("Retrieving data...");

@@ -5,7 +5,7 @@
 //! `Fdb` implements `Send + Sync` and uses internal locking. Methods can be
 //! called directly on `Arc<Fdb>` without external synchronization.
 //!
-//! Run with `cargo test --test fdb_async`.
+//! Run with: `cargo test --test fdb_async -- --ignored --test-threads=1`
 
 use std::env;
 use std::fs;
@@ -13,7 +13,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, Request};
 use tokio::task::JoinSet;
 
 /// Get the path to test fixtures directory.
@@ -42,6 +42,15 @@ spaces:
     )
 }
 
+/// Build a Request from a Key.
+fn request_from_key(key: &Key) -> Request {
+    let mut request = Request::new();
+    for (k, v) in key.entries() {
+        request = request.with(k, v);
+    }
+    request
+}
+
 /// Archive test data and return the key used.
 fn archive_test_data(fdb: &Fdb, step: &str) -> Key {
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
@@ -62,12 +71,13 @@ fn archive_test_data(fdb: &Fdb, step: &str) -> Key {
 }
 
 #[tokio::test]
+#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_archive() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     // Fdb has internal locking
-    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
 
     let grib_data =
         Arc::new(fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB"));
@@ -108,14 +118,18 @@ async fn test_fdb_concurrent_archive() {
 
     // Flush to persist
     fdb.flush().expect("flush failed");
+
+    drop(fdb);
+    drop(tmpdir);
 }
 
 #[tokio::test]
+#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_retrieve() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
 
     // Archive some test data first
     for i in 0..4 {
@@ -130,7 +144,7 @@ async fn test_fdb_concurrent_retrieve() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let request = Request::new()
+            let key = Key::new()
                 .with("class", "rd")
                 .with("expver", "xxxx")
                 .with("stream", "oper")
@@ -140,6 +154,8 @@ async fn test_fdb_concurrent_retrieve() {
                 .with("levtype", "sfc")
                 .with("step", &i.to_string())
                 .with("param", "151130");
+
+            let request = request_from_key(&key);
 
             // Retrieve returns a DataReader that owns the data
             let mut reader = fdb.retrieve(&request).expect("retrieve failed");
@@ -162,14 +178,18 @@ async fn test_fdb_concurrent_retrieve() {
         assert!(*size > 0, "step {step} should have data");
         println!("Step {step}: retrieved {size} bytes");
     }
+
+    drop(fdb);
+    drop(tmpdir);
 }
 
 #[tokio::test]
+#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_list() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
 
     // Archive test data
     for i in 0..4 {
@@ -189,16 +209,7 @@ async fn test_fdb_concurrent_list() {
                 .with("expver", "xxxx")
                 .with("stream", "oper");
 
-            let entries: Vec<_> = fdb
-                .list(
-                    &request,
-                    ListOptions {
-                        depth: 3,
-                        deduplicate: false,
-                    },
-                )
-                .expect("list failed")
-                .collect();
+            let entries: Vec<_> = fdb.list(&request, 3, false).expect("list failed").collect();
             entries.len()
         });
     }
@@ -211,16 +222,20 @@ async fn test_fdb_concurrent_list() {
     // All tasks should see the same number of entries
     assert!(counts.iter().all(|&c| c == counts[0]));
     println!("Concurrent list: all tasks found {} entries", counts[0]);
+
+    drop(fdb);
+    drop(tmpdir);
 }
 
 #[tokio::test]
+#[ignore = "requires FDB libraries"]
 async fn test_fdb_spawn_blocking_pattern() {
     // Test the recommended pattern for using FDB in async code:
     // use spawn_blocking for operations that may block
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
     let grib_data =
         Arc::new(fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB"));
 
@@ -250,7 +265,7 @@ async fn test_fdb_spawn_blocking_pattern() {
     // Retrieve using spawn_blocking
     let fdb_clone = Arc::clone(&fdb);
     let result = tokio::task::spawn_blocking(move || {
-        let request = Request::new()
+        let key = Key::new()
             .with("class", "rd")
             .with("expver", "xxxx")
             .with("stream", "oper")
@@ -261,6 +276,7 @@ async fn test_fdb_spawn_blocking_pattern() {
             .with("step", "1")
             .with("param", "151130");
 
+        let request = request_from_key(&key);
         let mut reader = fdb_clone.retrieve(&request).expect("retrieve failed");
 
         let mut buf = Vec::new();
@@ -272,4 +288,7 @@ async fn test_fdb_spawn_blocking_pattern() {
 
     assert!(result > 0);
     println!("spawn_blocking pattern: retrieved {result} bytes");
+
+    drop(fdb);
+    drop(tmpdir);
 }

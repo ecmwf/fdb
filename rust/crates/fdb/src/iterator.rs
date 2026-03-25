@@ -1,5 +1,7 @@
 //! FDB iterator wrappers.
 
+use std::collections::HashMap;
+
 use fdb_sys::UniquePtr;
 
 use crate::error::Result;
@@ -19,100 +21,36 @@ fn key_values_to_vec(kv: Vec<fdb_sys::KeyValue>) -> Vec<(String, String)> {
 /// An iterator over FDB list results.
 pub struct ListIterator {
     handle: UniquePtr<fdb_sys::ListIteratorHandle>,
-    exhausted: bool,
 }
 
 impl ListIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::ListIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 
     /// Access the underlying iterator handle (for `read_list_iterator`).
     pub(crate) fn inner_mut(&mut self) -> std::pin::Pin<&mut fdb_sys::ListIteratorHandle> {
         self.handle.pin_mut()
     }
-
-    /// Drain the iterator and write the compact MARS-request aggregation
-    /// to `out`, mirroring `fdb-list --compact`.
-    ///
-    /// Returns the total number of fields that went into the aggregation
-    /// and their combined on-disk size. The C++ side groups adjacent
-    /// entries by their database + index keys and folds the leaf keys
-    /// via `metkit::hypercube::HyperCube`, so ranges like
-    /// `step=0/3/6/9/12` collapse into a single line.
-    ///
-    /// This consumes the iterator — the equivalent C++ call drains the
-    /// underlying `fdb5::ListIterator` entirely.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the underlying C++ aggregation fails or if
-    /// writing to `out` fails.
-    pub fn dump_compact<W>(mut self, out: &mut W) -> Result<CompactSummary>
-    where
-        W: std::io::Write,
-    {
-        let data = fdb_sys::list_iterator_dump_compact(self.handle.pin_mut())?;
-        // Mark exhausted so any stray subsequent use surfaces as
-        // `None` rather than trying to touch the drained C++ iterator.
-        self.exhausted = true;
-        out.write_all(data.text.as_bytes())?;
-        Ok(CompactSummary {
-            fields: data.fields,
-            total_bytes: data.total_bytes,
-        })
-    }
-}
-
-/// Counters returned by [`ListIterator::dump_compact`] — mirrors the
-/// `std::pair<size_t, eckit::Length>` returned by
-/// `fdb5::ListIterator::dumpCompact`.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct CompactSummary {
-    /// Total number of individual fields that went into the aggregation.
-    pub fields: u64,
-    /// Combined on-disk size of those fields, in bytes.
-    pub total_bytes: u64,
 }
 
 impl Iterator for ListIterator {
     type Item = Result<ListElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(ListElement::from_cxx(data))),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: ListIterator can be sent to another thread because:
-// 1. The C++ fdb5::ListIterator contains a snapshot of index data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
+// SAFETY: The underlying C++ iterator is accessed through &mut self only.
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ListIterator {}
 
@@ -164,22 +102,70 @@ impl ListElement {
 }
 
 // =============================================================================
+// AxesIterator
+// =============================================================================
+
+/// An iterator over FDB axes results.
+pub struct AxesIterator {
+    handle: UniquePtr<fdb_sys::AxesIteratorHandle>,
+}
+
+impl AxesIterator {
+    /// Create a new iterator from a cxx handle.
+    pub(crate) const fn new(handle: UniquePtr<fdb_sys::AxesIteratorHandle>) -> Self {
+        Self { handle }
+    }
+}
+
+impl Iterator for AxesIterator {
+    type Item = Result<AxesElement>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.handle.pin_mut().hasNext() {
+            return None;
+        }
+
+        match self.handle.pin_mut().next() {
+            Ok(data) => Some(Ok(AxesElement::from_cxx(data))),
+            Err(e) => Some(Err(e.into())),
+        }
+    }
+}
+
+#[allow(clippy::non_send_fields_in_send_ty)]
+unsafe impl Send for AxesIterator {}
+
+/// An axes element containing database key and available axes.
+#[derive(Debug, Clone)]
+pub struct AxesElement {
+    /// Database-level key entries.
+    pub db_key: Vec<(String, String)>,
+    /// Available axes (key -> values mapping).
+    pub axes: HashMap<String, Vec<String>>,
+}
+
+impl AxesElement {
+    fn from_cxx(data: fdb_sys::AxesElementData) -> Self {
+        Self {
+            db_key: key_values_to_vec(data.db_key),
+            axes: data.axes.into_iter().map(|a| (a.key, a.values)).collect(),
+        }
+    }
+}
+
+// =============================================================================
 // DumpIterator
 // =============================================================================
 
 /// An iterator over FDB dump results.
 pub struct DumpIterator {
     handle: UniquePtr<fdb_sys::DumpIteratorHandle>,
-    exhausted: bool,
 }
 
 impl DumpIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::DumpIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -187,38 +173,19 @@ impl Iterator for DumpIterator {
     type Item = Result<DumpElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(DumpElement {
                 content: data.content,
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: DumpIterator can be sent to another thread because:
-// 1. The C++ fdb5::DumpIterator contains a snapshot of dump data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for DumpIterator {}
 
@@ -236,16 +203,12 @@ pub struct DumpElement {
 /// An iterator over FDB status results.
 pub struct StatusIterator {
     handle: UniquePtr<fdb_sys::StatusIteratorHandle>,
-    exhausted: bool,
 }
 
 impl StatusIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::StatusIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -253,19 +216,8 @@ impl Iterator for StatusIterator {
     type Item = Result<StatusElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -273,19 +225,11 @@ impl Iterator for StatusIterator {
                 location: data.location,
                 status: key_values_to_vec(data.status),
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: StatusIterator can be sent to another thread because:
-// 1. The C++ fdb5::StatusIterator contains a snapshot of status data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for StatusIterator {}
 
@@ -305,16 +249,12 @@ pub struct StatusElement {
 /// An iterator over FDB wipe results.
 pub struct WipeIterator {
     handle: UniquePtr<fdb_sys::WipeIteratorHandle>,
-    exhausted: bool,
 }
 
 impl WipeIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::WipeIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -322,38 +262,19 @@ impl Iterator for WipeIterator {
     type Item = Result<WipeElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(WipeElement {
                 content: data.content,
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: WipeIterator can be sent to another thread because:
-// 1. The C++ fdb5::WipeIterator contains a snapshot of wipe data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for WipeIterator {}
 
@@ -371,16 +292,12 @@ pub struct WipeElement {
 /// An iterator over FDB purge results.
 pub struct PurgeIterator {
     handle: UniquePtr<fdb_sys::PurgeIteratorHandle>,
-    exhausted: bool,
 }
 
 impl PurgeIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::PurgeIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -388,38 +305,19 @@ impl Iterator for PurgeIterator {
     type Item = Result<PurgeElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(PurgeElement {
                 content: data.content,
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: PurgeIterator can be sent to another thread because:
-// 1. The C++ fdb5::PurgeIterator contains a snapshot of purge data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for PurgeIterator {}
 
@@ -437,16 +335,12 @@ pub struct PurgeElement {
 /// An iterator over FDB stats results.
 pub struct StatsIterator {
     handle: UniquePtr<fdb_sys::StatsIteratorHandle>,
-    exhausted: bool,
 }
 
 impl StatsIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::StatsIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -454,90 +348,39 @@ impl Iterator for StatsIterator {
     type Item = Result<StatsElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(StatsElement {
-                index_statistics: IndexStats {
-                    fields_count: data.index_statistics.fields_count,
-                    fields_size: data.index_statistics.fields_size,
-                    duplicates_count: data.index_statistics.duplicates_count,
-                    duplicates_size: data.index_statistics.duplicates_size,
-                    report: data.index_statistics.report,
-                },
-                db_statistics: DbStats {
-                    report: data.db_statistics.report,
-                },
+                location: data.location,
+                field_count: data.field_count,
+                total_size: data.total_size,
+                duplicate_count: data.duplicate_count,
+                duplicate_size: data.duplicate_size,
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: StatsIterator can be sent to another thread because:
-// 1. The C++ fdb5::StatsIterator contains a snapshot of stats data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for StatsIterator {}
 
-/// Index-level statistics — mirrors `fdb5::IndexStats`.
-///
-/// Bundles the four numeric accessors upstream exposes
-/// (`fieldsCount` / `fieldsSize` / `duplicatesCount` / `duplicatesSize`)
-/// plus the captured `report()` text.
-#[derive(Debug, Clone)]
-pub struct IndexStats {
-    /// Number of fields covered by this index.
-    pub fields_count: u64,
-    /// Total size in bytes of those fields.
-    pub fields_size: u64,
-    /// Number of duplicate (masked) entries.
-    pub duplicates_count: u64,
-    /// Total size in bytes of the duplicate entries.
-    pub duplicates_size: u64,
-    /// Captured `fdb5::IndexStats::report()` output — the same text
-    /// `fdb-stats --details` prints for the index portion.
-    pub report: String,
-}
-
-/// Database-level statistics — mirrors `fdb5::DbStats`.
-///
-/// Upstream's `DbStats` is fully content-opaque; the only public
-/// readable accessor is `report(std::ostream&)`. The captured report
-/// text is therefore the only thing this binding can surface — same
-/// rule the C++ tools play by.
-#[derive(Debug, Clone)]
-pub struct DbStats {
-    /// Captured `fdb5::DbStats::report()` output — the same text
-    /// `fdb-stats --details` prints for the database portion.
-    pub report: String,
-}
-
-/// A stats element — mirrors `fdb5::StatsElement`.
+/// A stats element containing database statistics.
 #[derive(Debug, Clone)]
 pub struct StatsElement {
-    /// Index-level statistics for this database.
-    pub index_statistics: IndexStats,
-    /// Database-level statistics for this database.
-    pub db_statistics: DbStats,
+    /// Location of the database.
+    pub location: String,
+    /// Number of fields.
+    pub field_count: u64,
+    /// Total size in bytes.
+    pub total_size: u64,
+    /// Number of duplicate entries.
+    pub duplicate_count: u64,
+    /// Size of duplicate data in bytes.
+    pub duplicate_size: u64,
 }
 
 // =============================================================================
@@ -547,16 +390,12 @@ pub struct StatsElement {
 /// An iterator over FDB control results.
 pub struct ControlIterator {
     handle: UniquePtr<fdb_sys::ControlIteratorHandle>,
-    exhausted: bool,
 }
 
 impl ControlIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::ControlIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
+        Self { handle }
     }
 }
 
@@ -564,19 +403,8 @@ impl Iterator for ControlIterator {
     type Item = Result<ControlElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
+        if !self.handle.pin_mut().hasNext() {
             return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -584,19 +412,11 @@ impl Iterator for ControlIterator {
                 location: data.location,
                 identifiers: data.identifiers,
             })),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
+            Err(e) => Some(Err(e.into())),
         }
     }
 }
 
-// SAFETY: ControlIterator can be sent to another thread because:
-// 1. The C++ fdb5::ControlIterator contains a snapshot of control data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ControlIterator {}
 
@@ -605,6 +425,52 @@ unsafe impl Send for ControlIterator {}
 pub struct ControlElement {
     /// Location of the database.
     pub location: String,
-    /// Control identifiers enabled for this database.
-    pub identifiers: Vec<fdb_sys::ControlIdentifier>,
+    /// Control identifiers (e.g., "retrieve", "archive").
+    pub identifiers: Vec<String>,
+}
+
+// =============================================================================
+// MoveIterator
+// =============================================================================
+
+/// An iterator over FDB move results.
+pub struct MoveIterator {
+    handle: UniquePtr<fdb_sys::MoveIteratorHandle>,
+}
+
+impl MoveIterator {
+    /// Create a new iterator from a cxx handle.
+    pub(crate) const fn new(handle: UniquePtr<fdb_sys::MoveIteratorHandle>) -> Self {
+        Self { handle }
+    }
+}
+
+impl Iterator for MoveIterator {
+    type Item = Result<MoveElement>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.handle.pin_mut().hasNext() {
+            return None;
+        }
+
+        match self.handle.pin_mut().next() {
+            Ok(data) => Some(Ok(MoveElement {
+                source: data.source,
+                destination: data.destination,
+            })),
+            Err(e) => Some(Err(e.into())),
+        }
+    }
+}
+
+#[allow(clippy::non_send_fields_in_send_ty)]
+unsafe impl Send for MoveIterator {}
+
+/// A move element describing data relocation.
+#[derive(Debug, Clone)]
+pub struct MoveElement {
+    /// Source location.
+    pub source: String,
+    /// Destination location.
+    pub destination: String,
 }

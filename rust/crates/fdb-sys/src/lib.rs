@@ -1,6 +1,6 @@
-//! C++ bindings to ECMWF's FDB (Fields `DataBase`) library using cxx.
+//! C++ bindings to ECMWF FDB5 library using cxx.
 //!
-//! This crate provides raw C++ bindings to the FDB. For a safe, idiomatic
+//! This crate provides raw C++ bindings to FDB5. For a safe, idiomatic
 //! Rust interface, use the `fdb` crate instead.
 
 #![allow(clippy::needless_lifetimes)]
@@ -39,31 +39,7 @@ pub struct FlushCallbackBox(Box<dyn FlushCallback>);
 /// Opaque wrapper for archive callbacks (used internally by cxx bridge).
 pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 
-/// Opaque wrapper for an arbitrary Rust [`std::io::Read`] source.
-///
-/// Exposed to the C++ side as an `eckit::DataHandle` by
-/// [`archive_reader`] to stream GRIB data from a Rust source into FDB
-/// without buffering the entire payload in memory first.
-pub struct ReaderBox(Box<dyn std::io::Read + Send>);
-
-// Methods intentionally not exposed:
-// - `axesIterator`: internal detail of the multi-FDB implementation
-//   (DistFDB / SelectFDB), not meaningful at the user API. The synchronous
-//   `axes()` method is the supported entry point.
-// - `config`: returns the same configuration the user just supplied to
-//   `Fdb::from_yaml(...)`. The user already has it; round-tripping it back
-//   through the FFI adds no information.
-// - `move`: admin-tier operation for physically relocating FDB databases
-//   between storage roots. Upstream `fdb-move` drives an MPI-based
-//   producer/consumer transport and calls `FileCopy::execute` / `cleanup`
-//   per element — none of which is feasible to bind cleanly, and none of
-//   which pyfdb exposes either. Rust programs that need to relocate data
-//   should shell out to the `fdb-move` CLI tool.
-#[track_cpp_api(
-    "fdb5/api/FDB.h",
-    class = "FDB",
-    ignore = ["inspect", "reindex", "axesIterator", "config", "move"]
-)]
+#[track_cpp_api("fdb5/api/FDB.h", class = "FDB", ignore = ["inspect", "reindex"])]
 #[cxx::bridge(namespace = "fdb::ffi")]
 mod ffi {
     // =========================================================================
@@ -83,19 +59,13 @@ mod ffi {
         pub entries: Vec<KeyValue>,
     }
 
-    /// A single key in a parsed MARS request, paired with all of its values.
-    #[derive(Debug, Clone, Default)]
-    pub struct RequestParam {
-        pub key: String,
-        pub values: Vec<String>,
-    }
-
-    /// A fully-expanded MARS request, as produced by `parse_mars_request`.
-    /// `to`/`by` ranges, type expansions, etc. have already been applied by
-    /// `metkit::mars::MarsExpansion`.
+    /// Data for constructing an FDB Request.
     #[derive(Debug, Clone, Default)]
     pub struct RequestData {
-        pub params: Vec<RequestParam>,
+        /// MARS request string (e.g., "class=od,expver=0001,...")
+        pub request_str: String,
+        /// Whether to expand the request using schema
+        pub expand: bool,
     }
 
     /// Data returned from list iteration.
@@ -122,6 +92,15 @@ mod ffi {
     pub struct AxisEntry {
         pub key: String,
         pub values: Vec<String>,
+    }
+
+    /// Data from axes iteration - contains a database key and all its axes.
+    #[derive(Debug, Clone, Default)]
+    pub struct AxesElementData {
+        /// Database key entries
+        pub db_key: Vec<KeyValue>,
+        /// All axes for this database
+        pub axes: Vec<AxisEntry>,
     }
 
     /// Aggregate FDB statistics.
@@ -165,47 +144,19 @@ mod ffi {
         pub content: String,
     }
 
-    /// Internal transport for `list_iterator_dump_compact`. Mirrors
-    /// what `fdb5::ListIterator::dumpCompact` produces: aggregated
-    /// MARS-request text plus the two counters it returns. The
-    /// high-level `ListIterator::dump_compact` immediately writes
-    /// `text` into the caller's `std::io::Write` and drops this struct,
-    /// so the `text` allocation is bridge-internal.
-    #[derive(Debug, Clone, Default)]
-    pub struct CompactListingData {
-        pub text: String,
-        pub fields: u64,
-        pub total_bytes: u64,
-    }
-
-    /// Index-level stats — mirrors `fdb5::IndexStats`. Bundles the four
-    /// numeric accessors (`fieldsCount` / `fieldsSize` /
-    /// `duplicatesCount` / `duplicatesSize`) plus the `report()` text.
-    #[derive(Debug, Clone, Default)]
-    pub struct IndexStatsData {
-        pub fields_count: u64,
-        pub fields_size: u64,
-        pub duplicates_count: u64,
-        pub duplicates_size: u64,
-        /// Captured `fdb5::IndexStats::report()` output.
-        pub report: String,
-    }
-
-    /// Database-level stats — mirrors `fdb5::DbStats`. Upstream exposes
-    /// `DbStats` as fully opaque content; the only public read accessor
-    /// is `report(std::ostream&)`, so the captured report text is the
-    /// only thing we can surface.
-    #[derive(Debug, Clone, Default)]
-    pub struct DbStatsData {
-        /// Captured `fdb5::DbStats::report()` output.
-        pub report: String,
-    }
-
-    /// Result from stats iteration — mirrors `fdb5::StatsElement`.
+    /// Result from stats iteration.
     #[derive(Debug, Clone, Default)]
     pub struct StatsElementData {
-        pub index_statistics: IndexStatsData,
-        pub db_statistics: DbStatsData,
+        /// Location
+        pub location: String,
+        /// Number of fields
+        pub field_count: u64,
+        /// Total size in bytes
+        pub total_size: u64,
+        /// Duplicate count
+        pub duplicate_count: u64,
+        /// Duplicate size
+        pub duplicate_size: u64,
     }
 
     /// Result from control iteration.
@@ -213,11 +164,29 @@ mod ffi {
     pub struct ControlElementData {
         /// Location
         pub location: String,
-        /// Control identifiers (each variant is the same as `fdb5::ControlIdentifier`).
-        pub identifiers: Vec<ControlIdentifier>,
+        /// Control identifiers
+        pub identifiers: Vec<String>,
     }
 
-    // Bind to existing fdb5::ControlAction / fdb5::ControlIdentifier C++ enums.
+    /// Result from move iteration.
+    #[derive(Debug, Clone, Default)]
+    pub struct MoveElementData {
+        /// Source location
+        pub source: String,
+        /// Destination location
+        pub destination: String,
+    }
+
+    /// FDB configuration data.
+    #[derive(Debug, Clone, Default)]
+    pub struct ConfigData {
+        /// Path to the schema file.
+        pub schema_path: String,
+        /// Path to the config file.
+        pub config_path: String,
+    }
+
+    // Bind to existing fdb5::ControlAction C++ enum.
     // The shared enum + extern type pattern tells CXX to use the existing
     // C++ enum and generate static assertions to verify the values match.
     /// Control action for database features.
@@ -232,25 +201,10 @@ mod ffi {
         Enable = 2,
     }
 
-    /// Feature identifier for `control()` operations. Bitflag values match
-    /// `fdb5::ControlIdentifier` exactly.
-    #[namespace = "fdb5"]
-    #[repr(u16)]
-    #[derive(Debug)]
-    pub enum ControlIdentifier {
-        None = 0,
-        List = 1,
-        Retrieve = 2,
-        Archive = 4,
-        Wipe = 8,
-        UniqueRoot = 16,
-    }
-
     #[namespace = "fdb5"]
     unsafe extern "C++" {
         include!("fdb5/api/helpers/ControlIterator.h");
         type ControlAction;
-        type ControlIdentifier;
     }
 
     // =========================================================================
@@ -277,7 +231,7 @@ mod ffi {
         fn stats(self: &FdbHandle) -> FdbStatsData;
 
         /// Check if a control identifier is enabled.
-        fn enabled(self: &FdbHandle, identifier: ControlIdentifier) -> bool;
+        fn enabled(self: &FdbHandle, identifier: &str) -> bool;
 
         /// Get the FDB configuration ID.
         fn id(self: &FdbHandle) -> String;
@@ -285,128 +239,45 @@ mod ffi {
         /// Get the FDB type name (e.g., "local", "remote").
         fn name(self: &FdbHandle) -> String;
 
-        // =====================================================================
-        // FdbHandle operations
-        // =====================================================================
+        /// Get the FDB configuration data (schema path, config path).
+        fn config(self: &FdbHandle) -> ConfigData;
 
-        /// Archive data with an explicit key.
-        fn archive(self: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
+        /// Get a string value from the FDB configuration.
+        fn config_string(self: &FdbHandle, key: &str) -> String;
 
-        /// Archive raw GRIB data (key is extracted from the message).
-        fn archive_raw(self: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
+        /// Get an integer value from the FDB configuration.
+        fn config_int(self: &FdbHandle, key: &str) -> i64;
 
-        /// Archive raw GRIB data streamed from a Rust `std::io::Read`.
-        fn archive_reader(self: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
+        /// Get a boolean value from the FDB configuration.
+        fn config_bool(self: &FdbHandle, key: &str) -> bool;
 
-        /// Retrieve data matching a request.
-        fn retrieve(self: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a single URI.
-        fn read_uri(self: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list of URIs.
-        fn read_uris(
-            self: Pin<&mut FdbHandle>,
-            uris: &Vec<String>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list iterator (most efficient).
-        fn read_list_iterator(
-            self: Pin<&mut FdbHandle>,
-            iterator: Pin<&mut ListIteratorHandle>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        /// List data matching a request.
-        fn list(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            deduplicate: bool,
-            level: i32,
-        ) -> Result<UniquePtr<ListIteratorHandle>>;
-
-        /// Get axes for a request.
-        fn axes(self: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
-
-        /// Dump database structure.
-        fn dump(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            simple: bool,
-        ) -> Result<UniquePtr<DumpIteratorHandle>>;
-
-        /// Get database status.
-        fn status(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatusIteratorHandle>>;
-
-        /// Wipe data matching a request.
-        fn wipe(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-            unsafe_wipe_all: bool,
-        ) -> Result<UniquePtr<WipeIteratorHandle>>;
-
-        /// Purge duplicate data.
-        fn purge(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
-
-        /// Get statistics iterator.
-        fn stats_iterator(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatsIteratorHandle>>;
-
-        /// Control database features.
-        fn control(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            action: ControlAction,
-            identifiers: &[ControlIdentifier],
-        ) -> Result<UniquePtr<ControlIteratorHandle>>;
-
-        /// Register a flush callback.
-        fn register_flush_callback(self: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
-
-        /// Register an archive callback.
-        fn register_archive_callback(self: Pin<&mut FdbHandle>, callback: Box<ArchiveCallbackBox>);
+        /// Check if a key exists in the FDB configuration.
+        fn config_has(self: &FdbHandle, key: &str) -> bool;
 
         // =====================================================================
-        // eckit::DataHandle - For reading retrieved data
+        // DataReaderHandle - For reading retrieved data
         // =====================================================================
 
-        /// Opaque handle to an `eckit::DataHandle` (the upstream abstract
-        /// base for byte streams). Owned via `UniquePtr<DataHandle>`;
-        /// `eckit::DataHandle` has a virtual destructor so cxx's
-        /// generated `delete` is correct for any concrete subclass.
-        #[namespace = "eckit"]
-        type DataHandle;
+        /// Wrapper around eckit::DataHandle for reading retrieved data
+        type DataReaderHandle;
 
-        /// Open the handle for reading. Returns the estimated length.
-        fn data_handle_open(handle: Pin<&mut DataHandle>) -> Result<u64>;
+        /// Open the DataReader (must be called before reading).
+        fn open(self: Pin<&mut DataReaderHandle>) -> Result<()>;
 
-        /// Close the handle.
-        fn data_handle_close(handle: Pin<&mut DataHandle>) -> Result<()>;
+        /// Close the DataReader.
+        fn close(self: Pin<&mut DataReaderHandle>) -> Result<()>;
 
-        /// Read up to `buffer.len()` bytes into `buffer`.
-        fn data_handle_read(handle: Pin<&mut DataHandle>, buffer: &mut [u8]) -> Result<usize>;
+        /// Read data into a buffer. Returns the number of bytes read.
+        fn read(self: Pin<&mut DataReaderHandle>, buffer: &mut [u8]) -> Result<usize>;
 
-        /// Seek to an absolute byte position.
-        fn data_handle_seek(handle: Pin<&mut DataHandle>, position: u64) -> Result<()>;
+        /// Seek to a position in the DataReader.
+        fn seek(self: Pin<&mut DataReaderHandle>, position: u64) -> Result<()>;
 
-        /// Current read position.
-        fn data_handle_tell(handle: Pin<&mut DataHandle>) -> u64;
+        /// Get current position in the DataReader.
+        fn tell(self: &DataReaderHandle) -> u64;
 
-        /// Total size of the underlying data, in bytes.
-        fn data_handle_size(handle: Pin<&mut DataHandle>) -> u64;
+        /// Get total size of the data.
+        fn size(self: &DataReaderHandle) -> u64;
 
         // =====================================================================
         // ListIteratorHandle
@@ -416,17 +287,10 @@ mod ffi {
         type ListIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut ListIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut ListIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut ListIteratorHandle>) -> Result<ListElementData>;
-
-        /// Drain the iterator via `fdb5::ListIterator::dumpCompact`,
-        /// returning the aggregated MARS-request text and the two
-        /// counters. Mirrors `fdb-list --compact`.
-        fn list_iterator_dump_compact(
-            iterator: Pin<&mut ListIteratorHandle>,
-        ) -> Result<CompactListingData>;
 
         // =====================================================================
         // DumpIteratorHandle
@@ -436,7 +300,7 @@ mod ffi {
         type DumpIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut DumpIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut DumpIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut DumpIteratorHandle>) -> Result<DumpElementData>;
@@ -449,7 +313,7 @@ mod ffi {
         type StatusIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut StatusIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut StatusIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut StatusIteratorHandle>) -> Result<StatusElementData>;
@@ -462,7 +326,7 @@ mod ffi {
         type WipeIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut WipeIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut WipeIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut WipeIteratorHandle>) -> Result<WipeElementData>;
@@ -475,7 +339,7 @@ mod ffi {
         type PurgeIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut PurgeIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut PurgeIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut PurgeIteratorHandle>) -> Result<PurgeElementData>;
@@ -488,7 +352,7 @@ mod ffi {
         type StatsIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut StatsIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut StatsIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut StatsIteratorHandle>) -> Result<StatsElementData>;
@@ -501,10 +365,36 @@ mod ffi {
         type ControlIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut ControlIteratorHandle>) -> Result<bool>;
+        fn hasNext(self: Pin<&mut ControlIteratorHandle>) -> bool;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut ControlIteratorHandle>) -> Result<ControlElementData>;
+
+        // =====================================================================
+        // MoveIteratorHandle
+        // =====================================================================
+
+        /// Wrapper around fdb5::MoveIterator
+        type MoveIteratorHandle;
+
+        /// Check if the iterator has more elements.
+        fn hasNext(self: Pin<&mut MoveIteratorHandle>) -> bool;
+
+        /// Get the next element from the iterator.
+        fn next(self: Pin<&mut MoveIteratorHandle>) -> Result<MoveElementData>;
+
+        // =====================================================================
+        // AxesIteratorHandle
+        // =====================================================================
+
+        /// Wrapper around fdb5::AxesIterator
+        type AxesIteratorHandle;
+
+        /// Check if the iterator has more elements.
+        fn hasNext(self: Pin<&mut AxesIteratorHandle>) -> bool;
+
+        /// Get the next element from the iterator.
+        fn next(self: Pin<&mut AxesIteratorHandle>) -> Result<AxesElementData>;
 
         // =====================================================================
         // Initialization (free functions)
@@ -525,19 +415,6 @@ mod ffi {
         fn fdb_git_sha1() -> String;
 
         // =====================================================================
-        // MARS request parsing (free functions)
-        // =====================================================================
-
-        /// Parse a MARS request string using metkit's parser and expansion
-        /// machinery. Handles `to`/`by` ranges, type expansion, optional
-        /// fields, and any other syntax the upstream MARS language supports.
-        ///
-        /// On success, returns the fully-expanded request as a sequence of
-        /// `(key, [values])` pairs. On parse failure, returns an `Err` whose
-        /// message comes from the underlying eckit/metkit exception.
-        fn parse_mars_request(request: &str) -> Result<RequestData>;
-
-        // =====================================================================
         // Handle lifecycle (free functions)
         // =====================================================================
 
@@ -547,25 +424,169 @@ mod ffi {
         /// Create a new FDB handle from YAML configuration.
         fn new_fdb_from_yaml(config: &str) -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from YAML configuration plus a YAML
-        /// per-instance "user config" (e.g. `useSubToc`, `preloadTocBTree`).
-        fn new_fdb_from_yaml_with_user_config(
-            config: &str,
-            user_config: &str,
-        ) -> Result<UniquePtr<FdbHandle>>;
+        // =====================================================================
+        // Archive operations (free functions)
+        // =====================================================================
 
-        /// Create a new FDB handle by loading the configuration file at
-        /// `path`. Delegates to `fdb5::Config::make`, which loads YAML or
-        /// JSON, expands `~fdb` and `fdb_home` references, and resolves
-        /// transitive sub-configurations.
-        fn new_fdb_from_path(path: &str) -> Result<UniquePtr<FdbHandle>>;
+        /// Archive data with an explicit key.
+        fn archive(handle: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
 
-        /// Same as `new_fdb_from_path` but additionally applies a YAML
-        /// per-instance "user config" (e.g. `useSubToc`).
-        fn new_fdb_from_path_with_user_config(
-            path: &str,
-            user_config: &str,
-        ) -> Result<UniquePtr<FdbHandle>>;
+        /// Archive raw GRIB data (key is extracted from the message).
+        fn archive_raw(handle: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
+
+        // =====================================================================
+        // Retrieve operations (free functions)
+        // =====================================================================
+
+        /// Retrieve data matching a request.
+        fn retrieve(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+        ) -> Result<UniquePtr<DataReaderHandle>>;
+
+        // =====================================================================
+        // Read operations (by URI)
+        // =====================================================================
+
+        /// Read data from a single URI.
+        fn read_uri(
+            handle: Pin<&mut FdbHandle>,
+            uri: &str,
+        ) -> Result<UniquePtr<DataReaderHandle>>;
+
+        /// Read data from a list of URIs.
+        fn read_uris(
+            handle: Pin<&mut FdbHandle>,
+            uris: &Vec<String>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataReaderHandle>>;
+
+        /// Read data from a list iterator (most efficient).
+        fn read_list_iterator(
+            handle: Pin<&mut FdbHandle>,
+            iterator: Pin<&mut ListIteratorHandle>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataReaderHandle>>;
+
+        // =====================================================================
+        // List operations (free functions)
+        // =====================================================================
+
+        /// List data matching a request.
+        fn list(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            deduplicate: bool,
+            level: i32,
+        ) -> Result<UniquePtr<ListIteratorHandle>>;
+
+        // =====================================================================
+        // Axes query (free functions)
+        // =====================================================================
+
+        /// Get axes (available metadata dimensions) for a request.
+        fn axes(handle: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
+
+        /// Get an axes iterator for streaming axes results.
+        fn axes_iterator(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            level: i32,
+        ) -> Result<UniquePtr<AxesIteratorHandle>>;
+
+        // =====================================================================
+        // Dump operations (free functions)
+        // =====================================================================
+
+        /// Dump database structure.
+        fn dump(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            simple: bool,
+        ) -> Result<UniquePtr<DumpIteratorHandle>>;
+
+        // =====================================================================
+        // Status operations (free functions)
+        // =====================================================================
+
+        /// Get database status.
+        fn status(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+        ) -> Result<UniquePtr<StatusIteratorHandle>>;
+
+        // =====================================================================
+        // Wipe operations (free functions)
+        // =====================================================================
+
+        /// Wipe (delete) data matching a request.
+        fn wipe(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            doit: bool,
+            porcelain: bool,
+            unsafe_wipe_all: bool,
+        ) -> Result<UniquePtr<WipeIteratorHandle>>;
+
+        // =====================================================================
+        // Purge operations (free functions)
+        // =====================================================================
+
+        /// Purge duplicate data.
+        fn purge(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            doit: bool,
+            porcelain: bool,
+        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
+
+        // =====================================================================
+        // Stats operations (free functions)
+        // =====================================================================
+
+        /// Get statistics iterator.
+        fn stats_iterator(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+        ) -> Result<UniquePtr<StatsIteratorHandle>>;
+
+        // =====================================================================
+        // Control operations (free functions)
+        // =====================================================================
+
+        /// Control database features.
+        fn control(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            action: ControlAction,
+            identifiers: &Vec<String>,
+        ) -> Result<UniquePtr<ControlIteratorHandle>>;
+
+        // =====================================================================
+        // Move operations (free functions)
+        // =====================================================================
+
+        /// Move data to a new location.
+        fn move_data(
+            handle: Pin<&mut FdbHandle>,
+            request: &str,
+            dest: &str,
+        ) -> Result<UniquePtr<MoveIteratorHandle>>;
+
+        // =====================================================================
+        // Callback registration (free functions)
+        // =====================================================================
+
+        /// Register a flush callback.
+        /// The callback will be invoked when flush() is called.
+        fn register_flush_callback(handle: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
+
+        /// Register an archive callback.
+        /// The callback will be invoked for each field archived.
+        fn register_archive_callback(
+            handle: Pin<&mut FdbHandle>,
+            callback: Box<ArchiveCallbackBox>,
+        );
 
         // =====================================================================
         // Test functions (for verifying exception handling)
@@ -594,7 +615,6 @@ mod ffi {
     extern "Rust" {
         type FlushCallbackBox;
         type ArchiveCallbackBox;
-        type ReaderBox;
 
         /// Called by C++ to invoke the flush callback.
         fn invoke_flush_callback(callback: &FlushCallbackBox);
@@ -608,12 +628,6 @@ mod ffi {
             location_offset: u64,
             location_length: u64,
         );
-
-        /// Called by C++ to read the next chunk from a Rust `Read` source
-        /// that has been wrapped in a [`ReaderBox`]. Returns the number of
-        /// bytes read on success (0 means EOF), or `-1` if the underlying
-        /// reader returned an error or panicked.
-        fn invoke_reader_read(reader: &mut ReaderBox, buf: &mut [u8]) -> i64;
     }
 }
 
@@ -622,13 +636,7 @@ mod ffi {
 // =============================================================================
 
 fn invoke_flush_callback(callback: &FlushCallbackBox) {
-    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        callback.0.on_flush();
-    }))
-    .is_err()
-    {
-        eprintln!("fdb-sys: panic in flush callback (suppressed at FFI boundary)");
-    }
+    callback.0.on_flush();
 }
 
 fn invoke_archive_callback(
@@ -639,49 +647,24 @@ fn invoke_archive_callback(
     location_offset: u64,
     location_length: u64,
 ) {
-    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let key_vec: Vec<(String, String)> = key
-            .iter()
-            .map(|kv| (kv.key.clone(), kv.value.clone()))
-            .collect();
+    let key_vec: Vec<(String, String)> = key
+        .iter()
+        .map(|kv| (kv.key.clone(), kv.value.clone()))
+        .collect();
 
-        let callback_data = ArchiveCallbackData {
-            key: key_vec,
-            data: data.to_vec(),
-            location_uri: if location_uri.is_empty() {
-                None
-            } else {
-                Some(location_uri.to_string())
-            },
-            location_offset,
-            location_length,
-        };
+    let callback_data = ArchiveCallbackData {
+        key: key_vec,
+        data: data.to_vec(),
+        location_uri: if location_uri.is_empty() {
+            None
+        } else {
+            Some(location_uri.to_string())
+        },
+        location_offset,
+        location_length,
+    };
 
-        callback.0.on_archive(callback_data);
-    }))
-    .is_err()
-    {
-        eprintln!("fdb-sys: panic in archive callback (suppressed at FFI boundary)");
-    }
-}
-
-/// Called by the C++ `RustReaderHandle::read` shim to fill the next chunk
-/// from a Rust [`std::io::Read`] source. Returns the byte count on success
-/// (0 = EOF), or `-1` on error/panic, mirroring the convention used by
-/// `eckit::DataHandle::read`.
-fn invoke_reader_read(reader: &mut ReaderBox, buf: &mut [u8]) -> i64 {
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| reader.0.read(buf)));
-    match result {
-        Ok(Ok(n)) => i64::try_from(n).unwrap_or(i64::MAX),
-        Ok(Err(e)) => {
-            eprintln!("fdb-sys: error reading from Rust source: {e}");
-            -1
-        }
-        Err(_) => {
-            eprintln!("fdb-sys: panic in Rust reader (suppressed at FFI boundary)");
-            -1
-        }
-    }
+    callback.0.on_archive(callback_data);
 }
 
 // =============================================================================
@@ -714,18 +697,6 @@ where
         }
     }
     Box::new(ArchiveCallbackBox(Box::new(ClosureCallback(f))))
-}
-
-/// Wrap a Rust [`std::io::Read`] source in a [`ReaderBox`].
-///
-/// Used by the high-level `Fdb::archive_reader` to bridge any Rust
-/// `Read` into the C++ `eckit::DataHandle` consumed by
-/// `fdb5::FDB::archive`.
-pub fn make_reader_box<R>(reader: R) -> Box<ReaderBox>
-where
-    R: std::io::Read + Send + 'static,
-{
-    Box::new(ReaderBox(Box::new(reader)))
 }
 
 pub use ffi::*;
@@ -816,8 +787,8 @@ mod tests {
         let err = result.expect_err("expected error");
         // Non-std exceptions get a generic message
         assert!(
-            err.what().contains("non-std::exception"),
-            "Expected non-std::exception message, got: {}",
+            err.what().contains("unknown exception"),
+            "Expected unknown exception message, got: {}",
             err.what()
         );
     }

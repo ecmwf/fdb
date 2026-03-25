@@ -2,27 +2,24 @@
 //!
 //! Run with: `cargo run --example fdb_basic -p fdb`
 
-use fdb::{ControlIdentifier, Fdb};
+use fdb::Fdb;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Print version info (works without FDB config)
-    println!("FDB version: {}", fdb::version());
-    println!("FDB git SHA1: {}", fdb::git_sha1());
+    println!("FDB version: {}", Fdb::version());
+    println!("FDB git SHA1: {}", Fdb::git_sha1());
 
     // Create a default handle (requires FDB_HOME or FDB5_CONFIG environment)
-    let fdb = Fdb::open_default()?;
+    let fdb = Fdb::new()?;
+    println!("FDB handle created successfully");
+    println!("FDB type: {}", fdb.name());
+    println!("FDB id: {}", fdb.id());
 
     // Check capabilities
     println!("\nCapabilities:");
-    println!(
-        "  retrieve enabled: {}",
-        fdb.enabled(ControlIdentifier::Retrieve)
-    );
-    println!(
-        "  archive enabled: {}",
-        fdb.enabled(ControlIdentifier::Archive)
-    );
-    println!("  list enabled: {}", fdb.enabled(ControlIdentifier::List));
+    println!("  retrieve enabled: {}", fdb.enabled("retrieve"));
+    println!("  archive enabled: {}", fdb.enabled("archive"));
+    println!("  list enabled: {}", fdb.enabled("list"));
 
     Ok(())
 }

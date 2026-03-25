@@ -8,7 +8,7 @@ rust-version.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-description = "Safe Rust wrapper for ECMWF's FDB (Fields DataBase)"
+description = "Safe Rust wrapper for ECMWF FDB (Fields DataBase)"
 links = "fdb_rpath"
 build = "build.rs"
 
@@ -17,17 +17,12 @@ default = ["vendored"]
 vendored = ["fdb-sys/vendored"]
 system = ["fdb-sys/system"]
 
-[build-dependencies]
-bindman-utils.workspace = true
-
 [dependencies]
 fdb-sys.workspace = true
-indexmap.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-clap = { version = "4", features = ["derive"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 tempfile.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

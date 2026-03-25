@@ -6,7 +6,7 @@
 //! Some benchmarks require FDB setup and will be skipped if setup fails.
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, Request};
 use std::sync::OnceLock;
 
 // FDB setup for benchmarks that need data
@@ -18,13 +18,9 @@ mod fdb_setup {
 
     pub struct TestFdb;
 
-    fn crate_dir() -> PathBuf {
+    fn project_root() -> PathBuf {
         let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
         PathBuf::from(manifest_dir)
-    }
-
-    fn workspace_root() -> PathBuf {
-        crate_dir()
             .parent()
             .expect("parent dir")
             .parent()
@@ -33,8 +29,9 @@ mod fdb_setup {
     }
 
     pub fn setup() -> Option<TestFdb> {
-        let fdb_dir = workspace_root().join("target/bench-fdb");
-        let fixtures_dir = crate_dir().join("tests/fixtures");
+        let root = project_root();
+        let fdb_dir = root.join("target/bench-fdb");
+        let fixtures_dir = root.join("tests/fixtures");
 
         // Create fixed directory
         fs::create_dir_all(&fdb_dir).ok()?;
@@ -60,7 +57,7 @@ mod fdb_setup {
             env::set_var("FDB5_CONFIG", &config);
         }
 
-        let fdb = Fdb::open(Some(&config), None).ok()?;
+        let fdb = Fdb::from_yaml(&config).ok()?;
 
         // Read test GRIB data
         let grib_path = fixtures_dir.join("synth11.grib");
@@ -94,8 +91,13 @@ fn get_fdb_setup() -> Option<&'static fdb_setup::TestFdb> {
 /// Benchmark FDB handle creation.
 fn bench_handle_creation(c: &mut Criterion) {
     c.bench_function("fdb_handle_creation", |b| {
-        b.iter(|| black_box(Fdb::open_default().expect("failed to create handle")));
+        b.iter(|| black_box(Fdb::new().expect("failed to create handle")));
     });
+}
+
+/// Benchmark version string retrieval.
+fn bench_version(c: &mut Criterion) {
+    c.bench_function("fdb_version", |b| b.iter(|| black_box(Fdb::version())));
 }
 
 /// Benchmark Key creation with builder pattern.
@@ -150,7 +152,7 @@ fn bench_list(c: &mut Criterion) {
         return;
     };
 
-    let fdb = Fdb::open_default().expect("failed to create FDB handle");
+    let fdb = Fdb::new().expect("failed to create FDB handle");
     let request = Request::new()
         .with("class", "rd")
         .with("expver", "xxxx")
@@ -158,16 +160,7 @@ fn bench_list(c: &mut Criterion) {
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
-            let results: Vec<_> = fdb
-                .list(
-                    &request,
-                    ListOptions {
-                        depth: 3,
-                        deduplicate: false,
-                    },
-                )
-                .expect("list failed")
-                .collect();
+            let results: Vec<_> = fdb.list(&request, 3, false).expect("list failed").collect();
             black_box(results);
         });
     });
@@ -180,7 +173,7 @@ fn bench_axes(c: &mut Criterion) {
         return;
     };
 
-    let fdb = Fdb::open_default().expect("failed to create FDB handle");
+    let fdb = Fdb::new().expect("failed to create FDB handle");
     let request = Request::new()
         .with("class", "rd")
         .with("expver", "xxxx")
@@ -196,7 +189,7 @@ fn bench_axes(c: &mut Criterion) {
 
 /// Benchmark id/name/stats (read-only operations).
 fn bench_readonly_ops(c: &mut Criterion) {
-    let fdb = Fdb::open_default().expect("failed to create FDB handle");
+    let fdb = Fdb::new().expect("failed to create FDB handle");
 
     c.bench_function("fdb_id", |b| b.iter(|| black_box(fdb.id())));
 
@@ -208,6 +201,7 @@ fn bench_readonly_ops(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_handle_creation,
+    bench_version,
     bench_key_creation,
     bench_request_creation,
     bench_request_multi_values,

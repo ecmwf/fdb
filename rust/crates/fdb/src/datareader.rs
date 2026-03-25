@@ -10,24 +10,26 @@ use crate::error::Result;
 ///
 /// Implements [`std::io::Read`] and [`std::io::Seek`] for standard I/O operations.
 pub struct DataReader {
-    handle: UniquePtr<fdb_sys::DataHandle>,
+    handle: UniquePtr<fdb_sys::DataReaderHandle>,
 }
 
 impl DataReader {
     /// Create a new data reader from a cxx handle.
-    pub(crate) fn new(mut handle: UniquePtr<fdb_sys::DataHandle>) -> Result<Self> {
-        fdb_sys::data_handle_open(handle.pin_mut())?;
+    pub(crate) fn new(mut handle: UniquePtr<fdb_sys::DataReaderHandle>) -> Result<Self> {
+        handle.pin_mut().open()?;
         Ok(Self { handle })
     }
 
     /// Get the total size of the data in bytes.
-    pub fn size(&mut self) -> u64 {
-        fdb_sys::data_handle_size(self.handle.pin_mut())
+    #[must_use]
+    pub fn size(&self) -> u64 {
+        self.handle.size()
     }
 
     /// Get the current read position.
-    pub fn tell(&mut self) -> u64 {
-        fdb_sys::data_handle_tell(self.handle.pin_mut())
+    #[must_use]
+    pub fn tell(&self) -> u64 {
+        self.handle.tell()
     }
 
     /// Seek to a position in the data.
@@ -36,7 +38,7 @@ impl DataReader {
     ///
     /// Returns an error if seeking fails.
     pub fn seek_to(&mut self, pos: u64) -> Result<()> {
-        fdb_sys::data_handle_seek(self.handle.pin_mut(), pos)?;
+        self.handle.pin_mut().seek(pos)?;
         Ok(())
     }
 
@@ -51,7 +53,7 @@ impl DataReader {
         let mut total_read = 0;
 
         while total_read < size {
-            let n = fdb_sys::data_handle_read(self.handle.pin_mut(), &mut buf[total_read..])?;
+            let n = self.handle.pin_mut().read(&mut buf[total_read..])?;
             if n == 0 {
                 break;
             }
@@ -68,14 +70,16 @@ impl DataReader {
     ///
     /// Returns an error if closing fails.
     pub fn close(&mut self) -> Result<()> {
-        fdb_sys::data_handle_close(self.handle.pin_mut())?;
+        self.handle.pin_mut().close()?;
         Ok(())
     }
 }
 
 impl Read for DataReader {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        fdb_sys::data_handle_read(self.handle.pin_mut(), buf)
+        self.handle
+            .pin_mut()
+            .read(buf)
             .map_err(|e| std::io::Error::other(e.to_string()))
     }
 }
@@ -85,22 +89,16 @@ impl Seek for DataReader {
         let new_pos = match pos {
             SeekFrom::Start(offset) => offset,
             SeekFrom::End(offset) => {
-                let size = i64::try_from(self.size())
-                    .map_err(|_| std::io::Error::other("file size exceeds i64::MAX"))?;
-                let new = size
-                    .checked_add(offset)
-                    .ok_or_else(|| std::io::Error::other("seek position overflow"))?;
+                let size = self.size().cast_signed();
+                let new = size + offset;
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
                 new.cast_unsigned()
             }
             SeekFrom::Current(offset) => {
-                let current = i64::try_from(self.tell())
-                    .map_err(|_| std::io::Error::other("current position exceeds i64::MAX"))?;
-                let new = current
-                    .checked_add(offset)
-                    .ok_or_else(|| std::io::Error::other("seek position overflow"))?;
+                let current = self.tell().cast_signed();
+                let new = current + offset;
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
@@ -108,7 +106,9 @@ impl Seek for DataReader {
             }
         };
 
-        fdb_sys::data_handle_seek(self.handle.pin_mut(), new_pos)
+        self.handle
+            .pin_mut()
+            .seek(new_pos)
             .map_err(|e| std::io::Error::other(e.to_string()))?;
 
         Ok(new_pos)
@@ -117,7 +117,7 @@ impl Seek for DataReader {
 
 impl Drop for DataReader {
     fn drop(&mut self) {
-        let _ = fdb_sys::data_handle_close(self.handle.pin_mut());
+        let _ = self.handle.pin_mut().close();
     }
 }
 
