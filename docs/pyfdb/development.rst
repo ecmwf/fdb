@@ -3,14 +3,11 @@ Development
 
 Follow the guide in :ref:`installation-label`. We advise to use `uv` for installation of the build dependencies.
 
-After building the project with `ninja`, set the following environment variable:
+The version pinning for the python dependency of the `FDB` is by default disabled, which is what you want for
+local development. To enable this pinning, on CI we set the environment variable `VERSION_SUFFIX`, which is
+used to pin the correct `fdb5lib` wheel version.
 
-.. code-block:: sh
-
-   export IS_LOCAL_BUILD=1
-
-This disables the version pinning for the python dependency of the `FDB`. Make sure `findlibs` is installed
-in your `venv` and export:
+To utilize your local fdb build, make sure `findlibs` is installed in your `venv` and export:
 
 .. code-block:: sh
 
