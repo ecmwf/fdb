@@ -36,13 +36,13 @@ grib_ls -m 9.grib
 ####### Check lots of content
 
 fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --json > axes.out
-echo '{"class":["rd"],"date":["20201102"],"domain":["g"],"expver":["xxxx"],"levelist":[""],"levtype":["sfc"],"param":["166"],"step":["6","9"],"stream":["oper"],"time":["0000"],"type":["an","fc"]}' > expected.out
+echo '{"class":["rd"],"date":["20201102"],"domain":["g"],"expver":["xxxx"],"levtype":["sfc"],"param":["166"],"step":["6","9"],"stream":["oper"],"time":["0000"],"type":["an","fc"]}' > expected.out
 cat axes.out
 cat expected.out
 cmp axes.out expected.out
 
 fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g > axes.out
-echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levelist=(),levtype=(sfc),param=(166),step=(6,9),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levtype=(sfc),param=(166),step=(6,9),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
 cat axes.out
 cat expected.out
 cmp axes.out expected.out
@@ -62,7 +62,7 @@ cmp axes.out expected.out
 ####### Sub-selection by index
 
 fdb-axes class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,step=6 > axes.out
-echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levelist=(),levtype=(sfc),param=(166),step=(6),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
+echo 'IndexAxis[axis={class=(rd),date=(20201102),domain=(g),expver=(xxxx),levtype=(sfc),param=(166),step=(6),stream=(oper),time=(0000),type=(an,fc)}]' > expected.out
 cat axes.out
 cat expected.out
 cmp axes.out expected.out

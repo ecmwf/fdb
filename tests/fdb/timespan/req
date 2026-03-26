@@ -1,0 +1,12 @@
+retrieve,
+timespan=none/1h,
+class=e6,
+expver=5659,
+stream=oper,
+date=20161230,
+domain=g,
+type=fc,
+levtype=sfc,
+time=1800,
+step=6/12/18,
+param=167/228143

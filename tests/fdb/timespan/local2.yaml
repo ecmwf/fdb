@@ -1,0 +1,7 @@
+---
+type: local
+engine: toc
+schema: ./schema2
+spaces:
+ - roots:
+   - path: ./localroot
