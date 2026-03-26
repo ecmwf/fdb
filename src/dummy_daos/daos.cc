@@ -31,8 +31,7 @@
 #include "eckit/types/UUID.h"
 #include "eckit/utils/MD5.h"
 
-#include "daos.h"
-#include "dummy_daos.h"
+#include "dummy_daos/dummy_daos.h"
 
 using eckit::PathName;
 

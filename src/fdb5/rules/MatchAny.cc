@@ -12,6 +12,8 @@
 
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/MatchAny.h"
+
+#include "fdb5/database/Key.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {

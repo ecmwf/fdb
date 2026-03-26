@@ -9,6 +9,8 @@
  */
 
 
+#include "fdb5/tools/FDBVisitTool.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"

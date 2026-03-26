@@ -13,6 +13,10 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include <stdlib.h>
+
+#include <random>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 

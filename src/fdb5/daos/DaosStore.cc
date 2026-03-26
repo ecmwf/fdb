@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/daos/DaosStore.h"
+
 #include "eckit/config/Resource.h"
 
 #include "fdb5/database/WipeState.h"

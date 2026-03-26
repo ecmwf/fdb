@@ -8,9 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocMoveVisitor.h"
+
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <fdb5/LibFdb5.h>
+#include <sys/file.h>
+#include <sys/types.h>
+
 #include <algorithm>
+#include <cstring>
 
 #include "eckit/config/Resource.h"
 #include "eckit/distributed/Message.h"

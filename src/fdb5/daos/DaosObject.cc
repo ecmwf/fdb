@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/daos/DaosObject.h"
+
 #include <utility>
 
 #include "eckit/exception/Exceptions.h"

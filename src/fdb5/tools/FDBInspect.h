@@ -17,9 +17,9 @@
 #ifndef fdb5_FDBInspect_H
 #define fdb5_FDBInspect_H
 
-#include "fdb5/tools/FDBTool.h"
-
 #include "eckit/exception/Exceptions.h"
+
+#include "fdb5/tools/FDBTool.h"
 
 namespace fdb5 {
 
