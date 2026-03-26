@@ -13,7 +13,7 @@ CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access valid") {
     chunked_data_view::Parameter date_parameter = {"date", dates};
     const chunked_data_view::Axis axis = {{date_parameter}, true};
 
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index({0}, axis) == std::vector{0UL});
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index({0}, axis), std::vector{0UL});
 }
 
 CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access out of bounds") {
@@ -38,12 +38,12 @@ CASE("index_mapping | delinearize | 1 axes 2 param | Chunked | Valid access") {
 
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter}, true};
 
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(0, axis) == std::vector<size_t>({0UL, 0UL}));
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(1, axis) == std::vector<size_t>({0UL, 1UL}));
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(2, axis) == std::vector<size_t>({0UL, 2UL}));
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(3, axis) == std::vector<size_t>({1UL, 0UL}));
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(7, axis) == std::vector<size_t>({2UL, 1UL}));
-    EXPECT(chunked_data_view::index_mapping::to_axis_parameter_index(11, axis) == std::vector<size_t>({3UL, 2UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(0, axis), std::vector<size_t>({0UL, 0UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(1, axis), std::vector<size_t>({0UL, 1UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(2, axis), std::vector<size_t>({0UL, 2UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(3, axis), std::vector<size_t>({1UL, 0UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(7, axis), std::vector<size_t>({2UL, 1UL}));
+    EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(11, axis), std::vector<size_t>({3UL, 2UL}));
 }
 
 CASE("index_mapping | 2 axes 2/1 param | Chunked | Valid access") {
@@ -62,8 +62,8 @@ CASE("index_mapping | 2 axes 2/1 param | Chunked | Valid access") {
                                                        {{steps_parameter}, true}};
 
 
-    EXPECT(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0}, axes) == 0);
-    EXPECT(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0}, axes) == 0);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0}, axes), 0);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0}, axes), 0);
 }
 
 CASE("index_mapping | 3 axes 2/1 param | Chunked/Non-Chunked| Valid access") {
@@ -83,8 +83,8 @@ CASE("index_mapping | 3 axes 2/1 param | Chunked/Non-Chunked| Valid access") {
         {{date_parameter, time_parameter}, true}, {{steps_parameter}, false}, {{params_parameter}, true}};
 
 
-    EXPECT(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes) == 0);
-    EXPECT(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0, 0}, axes) == 0);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes), 0);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0, 0}, axes), 0);
 }
 
 

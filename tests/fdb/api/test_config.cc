@@ -51,12 +51,12 @@ CASE("config_expands_from_environment_variable_json") {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("groups").size() == 1);
-    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
-    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") ==
-           "/a/path/is/something");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path"),
+                 "/a/path/is/something");
 }
 
 
@@ -75,12 +75,12 @@ CASE("config_expands_from_environment_variable_yaml") {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
-           "/a/path/is/something");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/something");
 }
 
 CASE("config_expands_explicit_path") {
@@ -108,12 +108,12 @@ CASE("config_expands_explicit_path") {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
-           "/a/path/is/different");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/different");
 }
 
 CASE("config_expands_override_fdb_home") {
@@ -145,14 +145,14 @@ CASE("config_expands_override_fdb_home") {
 
     fdb5::Config expanded = cfg.expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 2);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") ==
-           "/a/path/is/first");
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") ==
-           "/a/path/is/second");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 2);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/first");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path"),
+                 "/a/path/is/second");
 }
 
 CASE("userConfig") {
@@ -170,23 +170,23 @@ CASE("userConfig") {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    EXPECT(expanded.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(expanded.userConfig().getBool("useSubToc", false), false);
 
     eckit::LocalConfiguration userConf;
     userConf.set("useSubToc", true);
 
     fdb5::Config empty;
     EXPECT(!empty.has("type"));
-    EXPECT(empty.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(empty.userConfig().getBool("useSubToc", false), false);
     fdb5::Config user(empty, userConf);
     EXPECT(!user.has("type"));
-    EXPECT(user.userConfig().getBool("useSubToc", false) == true);
+    EXPECT_EQUAL(user.userConfig().getBool("useSubToc", false), true);
     fdb5::Config userExpanded = user.expandConfig();
     EXPECT(userExpanded.has("type"));
-    EXPECT(userExpanded.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(userExpanded.userConfig().getBool("useSubToc", false), false);
 
     fdb5::Config config(expanded, userConf);
-    EXPECT(config.userConfig().getBool("useSubToc", false) == true);
+    EXPECT_EQUAL(config.userConfig().getBool("useSubToc", false), true);
 
     eckit::LocalConfiguration cfg_od;
     cfg_od.set("type", "spy");
@@ -205,12 +205,12 @@ CASE("userConfig") {
         cfg.set("type", "dist");
         cfg.set("lanes", {cfg_od, cfg_rd1, cfg_rd2});
 
-        EXPECT(cfg.userConfig().getBool("useSubToc", false) == false);
+        EXPECT_EQUAL(cfg.userConfig().getBool("useSubToc", false), false);
 
         std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
         ASSERT(configs.size() == 3);
         for (const auto& c : configs) {
-            EXPECT(c.userConfig().getBool("useSubToc", false) == false);
+            EXPECT_EQUAL(c.userConfig().getBool("useSubToc", false), false);
         }
     }
     {
@@ -218,12 +218,12 @@ CASE("userConfig") {
         cfg.set("type", "dist");
         cfg.set("lanes", {cfg_od, cfg_rd1, cfg_rd2});
 
-        EXPECT(cfg.userConfig().getBool("useSubToc", false) == true);
+        EXPECT_EQUAL(cfg.userConfig().getBool("useSubToc", false), true);
 
         std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
         ASSERT(configs.size() == 3);
         for (const auto& c : configs) {
-            EXPECT(c.userConfig().getBool("useSubToc", false) == true);
+            EXPECT_EQUAL(c.userConfig().getBool("useSubToc", false), true);
         }
     }
 }

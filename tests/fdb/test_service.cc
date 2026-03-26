@@ -131,7 +131,7 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "60");
         EXPECT(!iter.next(el));
     }
 
@@ -146,12 +146,12 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "2");
         EXPECT(!iter.next(el));
 
         iter = fdb5::FDB{}.list(r, true);
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "2");
         EXPECT(!iter.next(el));
     }
 
@@ -161,16 +161,16 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "2");
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "60");
         EXPECT(!iter.next(el));
 
         iter = fdb5::FDB{}.list(r, true);
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "2");
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "60");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "60");
         EXPECT(!iter.next(el));
     }
 
@@ -185,7 +185,7 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "30m");
         EXPECT(!iter.next(el));
     }
 
@@ -199,9 +199,9 @@ CASE("test_fdb_stepunit_archive") {
         fdb5::ListIterator iter = fdb.list(r, true);
         fdb5::ListElement el;
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "30m");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "30m");
         EXPECT(iter.next(el));
-        EXPECT(el.combinedKey().get("step") == "2");
+        EXPECT_EQUAL(el.combinedKey().get("step"), "2");
         EXPECT(!iter.next(el));
     }
 }
@@ -269,9 +269,9 @@ CASE("test_fdb_service") {
                         auto it = fdb5::FDB{}.inspect(r);
                         fdb5::ListElement el;
                         EXPECT(it.next(el));
-                        EXPECT(el.combinedKey().get("param") == *param);
-                        EXPECT(el.combinedKey().get("step") == str(step * 3));
-                        EXPECT(el.combinedKey().get("levelist") == str(level * 100));
+                        EXPECT_EQUAL(el.combinedKey().get("param"), *param);
+                        EXPECT_EQUAL(el.combinedKey().get("step"), str(step * 3));
+                        EXPECT_EQUAL(el.combinedKey().get("levelist"), str(level * 100));
                         EXPECT(!it.next(el));
 
                         std::unique_ptr<DataHandle> dh(retriever.retrieve(r));
@@ -288,7 +288,7 @@ CASE("test_fdb_service") {
                         data << "Raining cats and dogs -- "
                              << " param " << *param << " step " << step << " level " << level << std::endl;
 
-                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
+                        EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
                 }
             }
@@ -459,7 +459,7 @@ CASE("test_fdb_service_subtoc") {
                         data << "Raining cats and dogs -- "
                              << " param " << *param << " step " << step << " level " << level << std::endl;
 
-                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
+                        EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
                 }
             }
@@ -584,7 +584,7 @@ CASE("schemaSerialisation") {
         std::ostringstream ss;
         clone->dump(ss);
 
-        EXPECT(original == ss.str());
+        EXPECT_EQUAL(original, ss.str());
     }
     if (filename.exists()) {
         filename.unlink();
