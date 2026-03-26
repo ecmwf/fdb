@@ -218,7 +218,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     // Verify FAM objects were created in the region
     const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
 
-    const auto cat_name     = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
     const auto cat_map_name = cat_name + fdb5::FamCommon::table_suffix;
     const auto idx_map_name = fdb5::FamCatalogue::indexName(cat_name, idx_key) + fdb5::FamCommon::table_suffix;
     const auto reg_map_name = std::string(fdb5::FamCommon::registry_keyword) + fdb5::FamCommon::table_suffix;
