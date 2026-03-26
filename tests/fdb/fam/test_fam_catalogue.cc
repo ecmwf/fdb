@@ -104,18 +104,18 @@ CASE("FamCatalogue: static naming helpers") {
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
     const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
-    const auto idx_name = fdb5::FamCatalogue::indexName(idx_key);
+    const auto idx_name = fdb5::FamCatalogue::indexName(cat_name, idx_key);
 
     // Names must start with the expected prefix
-    EXPECT(cat_name.find("cat-") == 0);
-    EXPECT(idx_name.find("idx-") == 0);
+    EXPECT(cat_name.find(fdb5::FamCommon::catalogue_prefix) == 0);
+    EXPECT(idx_name.find(fdb5::FamCommon::index_prefix) == 0);
 
     // Different keys produce different names
     EXPECT(cat_name != idx_name);
 
     // Same key produces the same name (deterministic)
     EXPECT_EQUAL(fdb5::FamCatalogue::catalogueName(db_key), cat_name);
-    EXPECT_EQUAL(fdb5::FamCatalogue::indexName(idx_key), idx_name);
+    EXPECT_EQUAL(fdb5::FamCatalogue::indexName(cat_name, idx_key), idx_name);
 }
 
 CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
@@ -218,8 +218,9 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     // Verify FAM objects were created in the region
     const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
 
-    const auto cat_map_name = fdb5::FamCatalogue::catalogueName(db_key) + fdb5::FamCommon::table_suffix;
-    const auto idx_map_name = fdb5::FamCatalogue::indexName(idx_key) + fdb5::FamCommon::table_suffix;
+    const auto cat_name     = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto cat_map_name = cat_name + fdb5::FamCommon::table_suffix;
+    const auto idx_map_name = fdb5::FamCatalogue::indexName(cat_name, idx_key) + fdb5::FamCommon::table_suffix;
     const auto reg_map_name = std::string(fdb5::FamCommon::registry_keyword) + fdb5::FamCommon::table_suffix;
 
     EXPECT(root.object(reg_map_name).exists());
@@ -883,7 +884,8 @@ CASE("FamIndex: NOTIMP and stub methods") {
     eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
 
     // Allocate on heap — Index takes ownership via reference counting
-    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(idx_key), false));
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
+    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(cat_name, idx_key), false));
 
     // NOTIMP methods (flock/funlock are public on IndexBase)
     EXPECT_THROWS(idx.flock());
@@ -1293,7 +1295,8 @@ CASE("FamIndex: dump, encode, visit, statistics") {
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
     eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
-    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(idx_key), false));
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(idx_key);
+    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(cat_name, idx_key), false));
 
     // dump — simple mode
     {
@@ -1385,7 +1388,8 @@ CASE("FamIndexLocation: encode via IndexLocation pointer throws NOTIMP") {
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
     eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
-    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(idx_key), false));
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(idx_key);
+    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(cat_name, idx_key), false));
 
     eckit::MemoryHandle h(256);
     h.openForWrite(0);

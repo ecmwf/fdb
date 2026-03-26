@@ -40,21 +40,24 @@ class FamCatalogue : public CatalogueImpl, public FamCommon {
 
 public:  // static methods
 
-    /// Derive the catalogue FamMap name for a given DB key string.
+    /// Derive the catalogue name for a given DB key
     static std::string catalogueName(const Key& key);
 
-    /// Derive the data FamMap name for a given index key string.
-    static std::string indexName(const Key& key);
+    static std::string indexName(const std::string& cat_name, Key key);
 
 public:  // methods
 
     FamCatalogue(const Key& key, const fdb5::Config& config);
+
     FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers, const fdb5::Config& config);
 
     eckit::URI uri() const override;
+
     const Key& indexKey() const override { return currentIndexKey_; }
 
 protected:  // methods
+
+    std::string indexName(const Key& key) const;
 
     bool selectIndex(const Key& key) override;
 
@@ -93,8 +96,6 @@ protected:  // methods
     void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
-protected:  // methods
-
     virtual void dumpSchema(std::ostream& stream) const = 0;
 
     const std::string& name() const { return name_; }
@@ -110,12 +111,12 @@ protected:  // methods
 
 private:  // members
 
-    /// The name_ is used as the catalogue-level index registry
     std::string name_;
 
     Key currentIndexKey_;
 
     Schema schema_;
+
     const RuleDatabase* rule_{nullptr};
 
     mutable std::optional<Map> catalogue_;

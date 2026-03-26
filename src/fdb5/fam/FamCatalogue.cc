@@ -16,6 +16,7 @@
 #include "fdb5/fam/FamCatalogue.h"
 
 #include <climits>
+#include <cstddef>
 #include <sstream>
 
 #include "eckit/io/fam/FamMap.h"
@@ -33,14 +34,19 @@ namespace fdb5 {
 
 namespace {
 
-constexpr size_t k_hash_length = 8;
+/// Number of hex characters taken from the MD5 digest for object names.
+///
+/// 32 hex chars = 128 bits → birthday bound ~2.7e18 entries before 1% collision.
+///
+/// OpenFAM limits dataitem names to 40 characters (RadixTree MAX_KEY_LEN).
+/// The deepest derived name is created by FamMap bucket lists:
+///   prefix(1) + hash(32) + "." + bucket_index(≤4) + sentinel(1) = 39 chars (≤ 40).
+constexpr size_t k_hash_length = 32;
 
-static_assert(MD5_DIGEST_LENGTH >= k_hash_length,
-              "MD5 digest length must be at least 8 bytes for the hashKey() function to produce 16-hex-char output.");
+static_assert(static_cast<size_t>(2 * MD5_DIGEST_LENGTH) >= k_hash_length,
+              "MD5 hex digest (32 chars) must be at least k_hash_length.");
 
-/// Hash a Key to a short, deterministic, fixed-length hex string for OpenFAM object names.
-/// Name:  prefix "cat-"/"idx-" (4) + hash (16) + bucket suffix (worst case=13)
-/// "-b1023-list-e" (13) = 33 chars, within the ~40-char OpenFAM limit.
+/// Hash a Key to a fixed-length hex string for OpenFAM object names.
 std::string hashKey(const Key& key) {
     const auto key_str = FamCommon::toString(key);
     return eckit::MD5(key_str).digest().substr(0, k_hash_length);
@@ -77,14 +83,20 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
 //----------------------------------------------------------------------------------------------------------------------
 
 std::string FamCatalogue::catalogueName(const Key& key) {
-    return "cat-" + hashKey(key);
+    return FamCommon::catalogue_prefix + hashKey(key);
 }
 
-std::string FamCatalogue::indexName(const Key& key) {
-    return "idx-" + hashKey(key);
+std::string FamCatalogue::indexName(const std::string& cat_name, Key key) {
+    // include catalogue name in hash to ensure per-DB isolation
+    key.push("catalogue", cat_name);
+    return FamCommon::index_prefix + hashKey(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+
+std::string FamCatalogue::indexName(const Key& key) const {
+    return indexName(name_, key);
+}
 
 std::string FamCatalogue::type() const {
     return FamCommon::type;

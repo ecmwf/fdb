@@ -49,6 +49,10 @@ struct FamCommon {
 
     static constexpr const char* axes_keyword = "__axes__";
 
+    static constexpr const char* catalogue_prefix = "c";
+
+    static constexpr const char* index_prefix = "i";
+
     /// Suffix appended to every FAM map table name.
     static constexpr const char* table_suffix = Map::table_suffix;
 
