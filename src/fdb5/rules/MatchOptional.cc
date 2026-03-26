@@ -89,6 +89,13 @@ const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRe
     return default_;
 }
 
+std::vector<std::string> MatchOptional::optionalValues() const {
+    if (!defaultValue().empty()) {
+        return {defaultValue(), ""};
+    }
+    return {defaultValue()};
+}
+
 const std::string& MatchOptional::defaultValue() const {
     return default_[0];
 }
