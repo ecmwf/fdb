@@ -46,6 +46,33 @@ def test_list_partial(read_only_fdb_setup):
     assert len(elements) == 32
 
 
+@pytest.mark.parametrize("level, expected_key_elements", [(3, 10), (2, 8), (1, 6)])
+def test_list_partial_contains_key(read_only_fdb_setup, level, expected_key_elements):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {"type": "an"}
+
+    elements = list(fdb.list(selection, level=level))
+
+    for element in elements:
+        print(f"Element Offset: {element.offset}, Element Length: {element.length}, Element Key: {element.key}")
+
+        if level == 3 or level == 2:
+            assert "type" in element.key()
+            assert element.key()["type"] == "an"
+        else:
+            assert "type" not in element.key()
+
+        if level == 3:
+            assert element.offset() is not None
+            assert element.length() is not None
+        else:
+            assert element.offset() is None
+            assert element.length() is None
+
+        assert len(element.key()) == expected_key_elements
+
+
 def test_read_only_attributes_list_element(read_only_fdb_setup):
     fdb = FDB(read_only_fdb_setup)
 
