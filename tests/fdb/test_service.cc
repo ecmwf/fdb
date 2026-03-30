@@ -11,9 +11,6 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#include <cstring>
-#include <memory>
-
 #include <dirent.h>
 #include <fcntl.h>
 

@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/AdoptVisitor.h"
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 

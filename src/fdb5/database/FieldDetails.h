@@ -16,7 +16,6 @@
 #define fdb5_FieldDetails_H
 
 #include "eckit/eckit.h"
-
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"

@@ -124,6 +124,12 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
+### Enables the FAM support for FDB. (https://openfam.github.io/)
+ecbuild_add_option( FEATURE FAMFDB
+                    CONDITION eckit_HAVE_OPENFAM OR eckit_HAVE_OPENFAM_MOCK
+                    DEFAULT ON
+                    DESCRIPTION "Enables the FAM support for FDB via OpenFAM API" )
+
 ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     DESCRIPTION "Build python Zarr interface layer"
                     DEFAULT OFF

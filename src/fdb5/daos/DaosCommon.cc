@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
-
 #include "fdb5/daos/DaosCommon.h"
 
 #include "eckit/config/Resource.h"

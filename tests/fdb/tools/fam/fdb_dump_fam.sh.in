@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Command failed => '$*'"
+}
+
+expect_output() {
+  local pattern="$1"; shift
+  local out
+  out=$("$@") || die "Command failed => '$*'"
+  echo "$out" | grep -qF "$pattern" || die "Expected '$pattern' in output of '$*', got: $out"
+  echo "$out"
+}
+
+expect_match() {
+  local pattern="$1"; shift
+  local out
+  out=$("$@") || die "Command failed => '$*'"
+  echo "$out" | grep -qE "$pattern" || die "Expected regex '$pattern' in output of '$*', got: $out"
+  echo "$out"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+test_region="fdb_dump_fam_test_$$"
+fam_uri="fam://${fam_endpoint}/${test_region}"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+tname="dump-fam_test"
+
+########################################################################################################################
+
+echo "=== fdb-dump FAM test ==="
+echo "endpoint : $fam_endpoint"
+echo "region   : $test_region"
+
+try cd "$bindir"
+rm -rf "$tname" || true
+mkdir -p "$tname/localroot"
+try cd "$tname"
+
+# Create the FAM region (1 MB)
+try fdb-fam --endpoint="$fam_endpoint" --create --size=1048576 --perm=0640 "/$test_region"
+
+cleanup() {
+    echo "cleanup"
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
+    rm -rf "$bindir/$tname" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+########################################################################################################################
+# Write config and schema
+########################################################################################################################
+
+schema_src="$FDB_HOME/etc/fdb/schema"
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: fam
+schema: ${schema_src}
+store: fam
+catalogue: fam
+spaces:
+- handler: Default
+  roots:
+  - path: $(pwd)/localroot
+fam_roots:
+- uri: ${fam_uri}
+  writable: true
+  visit: true
+EOF
+
+export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
+
+########################################################################################################################
+# Create GRIB test data and archive
+########################################################################################################################
+
+src_grib="$srcdir/x.grib"
+
+echo "--- Archive GRIB data ---"
+
+try grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_grib" step0.grib
+try grib_set -s class=rd,expver=xxxx,type=an,step=0 "$src_grib" an.grib
+
+try fdb-write step0.grib
+try fdb-write an.grib
+
+########################################################################################################################
+# Test: fdb-dump --simple
+########################################################################################################################
+
+echo "--- TEST: fdb-dump --simple ---"
+
+out=$(try fdb-dump --simple class=rd,expver=xxxx)
+echo "$out"
+
+echo "$out" | grep -qF "FamCatalogue"    || die "Expected 'FamCatalogue' in simple dump"
+echo "$out" | grep -qF "Key:"            || die "Expected 'Key:' in simple dump"
+
+########################################################################################################################
+# Test: fdb-dump (verbose)
+########################################################################################################################
+
+echo "--- TEST: fdb-dump (verbose) ---"
+
+out=$(try fdb-dump class=rd,expver=xxxx)
+echo "$out"
+
+echo "$out" | grep -qF "FamCatalogue"        || die "Expected 'FamCatalogue' in verbose dump"
+echo "$out" | grep -qF "Key:"                || die "Expected 'Key:' in verbose dump"
+echo "$out" | grep -qF "Axes:"               || die "Expected 'Axes:' in verbose dump"
+echo "$out" | grep -qF "Contents of index:"  || die "Expected 'Contents of index:' in verbose dump"
+echo "$out" | grep -qF "FamFieldLocation"    || die "Expected 'FamFieldLocation' in verbose dump"
+
+########################################################################################################################
+
+echo "=== All fdb-dump FAM tests passed ==="

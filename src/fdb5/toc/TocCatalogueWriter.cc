@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/EmptyHandle.h"

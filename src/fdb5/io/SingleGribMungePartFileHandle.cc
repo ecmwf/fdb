@@ -11,6 +11,9 @@
 
 #include "fdb5/io/SingleGribMungePartFileHandle.h"
 
+#include <stdio.h>
+#include "eccodes.h"
+
 #include <algorithm>
 
 #include "eckit/log/Log.h"

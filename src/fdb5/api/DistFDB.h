@@ -19,6 +19,8 @@
 #ifndef fdb5_api_DistFDB_H
 #define fdb5_api_DistFDB_H
 
+#include "eckit/utils/RendezvousHash.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 

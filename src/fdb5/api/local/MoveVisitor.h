@@ -22,6 +22,10 @@
 
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/database/MoveVisitor.h"
+
 
 namespace fdb5 {
 namespace api {
