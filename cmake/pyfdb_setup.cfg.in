@@ -1,7 +1,40 @@
 [metadata]
-description = "pyfdb"
-# TODO replace with file: README.md
-long_description = "PyFDB is the Python API to FDB" 
+name = pyfdb
+description = Python interface to FDB
+long_description = file: README.md
 long_description_content_type = text/markdown
-# TODO consider replacing with file: AUTHORS, possibly after updating that file
-author = "European Centre for Medium-Range Weather Forecasts"
+author_email = European Centre for Medium-Range Weather Forecasts (ECMWF) <software.support@ecmwf.int>
+project_urls =
+    Documentation = https://github.com/ecmwf/fdb
+    Homepage = https://github.com/ecmwf/fdb
+    Issues = https://github.com/ecmwf/fdb/issues
+    Repository = https://github.com/ecmwf/fdb
+keywords = python, fdb, tools
+license_expression = Apache-2.0
+license_file = LICENSE
+
+[options]
+python_requires = >=3.11
+install_requires =
+    findlibs>=0.1.2
+    PyYAML>=6.0.3
+
+[options.extras_require]
+test =
+    pytest
+    pytest-cov
+    pytest-flakes
+    gitpython
+    Sybil[pytest]
+docs =
+    Sphinx
+    breathe
+    sphinx-book-theme
+    requests
+    sphinxcontrib-mermaid
+    autoapi
+    sphinx-autoapi
+dev =
+    isort
+    black
+    flake8
