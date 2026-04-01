@@ -65,13 +65,15 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
         "${PYFDB_STAGING}/pyfdb" SYMBOLIC
     )
-    file(CREATE_LINK
-        "${CMAKE_SOURCE_DIR}/README.md"
-        "${PYFDB_STAGING}/README.md" SYMBOLIC
+    file(COPY
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
+        DESTINATION
+        ${PYFDB_STAGING} 
     )
-    file(CREATE_LINK
-        "${CMAKE_SOURCE_DIR}/LICENSE"
-        "${PYFDB_STAGING}/LICENSE" SYMBOLIC
+    file(COPY
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+        DESTINATION
+        ${PYFDB_STAGING}
     )
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/pyfdb_setup.py.in
@@ -90,8 +92,8 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "pyfdb/_internal/*.py"
     )
     list(APPEND _pyfdb_package_files
-        "${CMAKE_SOURCE_DIR}/README.md"
-        "${CMAKE_SOURCE_DIR}/LICENSE"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp
