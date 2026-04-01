@@ -527,19 +527,18 @@ You can use this directly to read the message represented by the ``ListElement``
         data_handle.close()
 
 
-If you want to access the keys of any given `ListElement`, you can use either
-the `combined_keys` or the `keys` method of the `ListElement` class. `keys`
-returns a `list` with 3 elements. Each entry is a dictionary, resembling the
-corresponding level of the `FDB` schema, e.g., the first entry contains all
-MARS keys of the first level, etc. In case the list call specifies `level=2` or
-`level=1`, the entries of the dictionaries linked to the lower levels are
+If you want to access the keys of any given ``ListElement``, you can use either
+the ``combined_key`` or the ``keys`` method of the ``ListElement`` class. ``keys``
+returns a ``list`` with 3 elements. Each entry is a dictionary, resembling the
+corresponding level of the ``FDB`` schema, e.g., the first entry contains all
+MARS keys of the first level, etc. In case the list call specifies ``level=2`` or
+``level=1``, the entries of the dictionaries linked to the lower levels are
 empty.
 
 .. code-block:: python
 
     fdb = pyfdb.FDB(fdb_config_path)
 
-    list_iterator = fdb.list(selection, level=2)
     selection = {
             "type": "an",
             "class": "ea",
@@ -552,27 +551,30 @@ empty.
             "param": ["167", "131", "132"],
             "time": "1800",
     }
+    list_iterator = fdb.list(selection, level=2)
 
     for el in list_iterator:
         keys = el.keys()
         print(keys)
 
-For a single element of this `list_iterator` its keys would have the following structure:
+For a single element of this ``list_iterator`` its keys would have the following structure:
 
 :: 
+
     ...
     [{'class': 'ea', 'date': '20200101', 'domain': 'g', 'expver': '0001', 'stream': 'oper', 'time': '1800'}, {'levtype': 'sfc', 'type': 'an'}, {}]
     ...
 
-If we called `fdb.list` with `level=1`, the result would have the following structure:
+If we called ``fdb.list`` with ``level=1``, the result would have the following structure:
 
 :: 
+
     ...
     [{'class': 'ea', 'date': '20200101', 'domain': 'g', 'expver': '0001', 'stream': 'oper', 'time': '1800'}, {}, {}]
     ...
 
-`combined_keys` is a convenience method for combining all dictionaries of the
-`keys` function into a single dictionary.
+``combined_key`` is a convenience method for combining all dictionaries of the
+``keys`` function into a single dictionary.
 
 
 .. clear-namespace
