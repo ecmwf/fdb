@@ -1,4 +1,5 @@
 import pytest
+
 from pyfdb import FDB
 
 
@@ -47,7 +48,7 @@ def test_list_partial(read_only_fdb_setup):
 
 
 @pytest.mark.parametrize("level, expected_key_elements", [(3, 10), (2, 8), (1, 6)])
-def test_list_partial_contains_key(read_only_fdb_setup, level, expected_key_elements):
+def test_list_partial_contains_combined_key(read_only_fdb_setup, level, expected_key_elements):
     fdb = FDB(read_only_fdb_setup)
 
     selection = {"type": "an"}
@@ -55,13 +56,16 @@ def test_list_partial_contains_key(read_only_fdb_setup, level, expected_key_elem
     elements = list(fdb.list(selection, level=level))
 
     for element in elements:
-        print(f"Element Offset: {element.offset}, Element Length: {element.length}, Element Key: {element.key}")
+        print(
+            f"Element Offset: {element.offset()}, Element Length: {element.length()}, Element Key: {element.combined_key()}"
+        )
+        combined_key = element.combined_key()
 
         if level == 3 or level == 2:
-            assert "type" in element.key()
-            assert element.key()["type"] == "an"
+            assert "type" in combined_key
+            assert combined_key["type"] == "an"
         else:
-            assert "type" not in element.key()
+            assert "type" not in combined_key
 
         if level == 3:
             assert element.offset() is not None
@@ -70,7 +74,44 @@ def test_list_partial_contains_key(read_only_fdb_setup, level, expected_key_elem
             assert element.offset() is None
             assert element.length() is None
 
-        assert len(element.key()) == expected_key_elements
+        assert len(combined_key) == expected_key_elements
+
+
+@pytest.mark.parametrize("level", [3, 2, 1])
+def test_list_partial_contains_keys(read_only_fdb_setup, level):
+    fdb = FDB(read_only_fdb_setup)
+
+    selection = {"type": "an"}
+
+    elements = list(fdb.list(selection, level=level))
+
+    for element in elements:
+        print(f"Element Offset: {element.offset()}, Element Length: {element.length()}, Element Key: {element.keys()}")
+        keys = element.keys()
+
+        # type is part of the second level
+        if level == 3:
+            assert "type" in element.keys()[1]
+            assert keys[1]["type"] == "an"
+            assert len(keys[0]) == 6
+            assert len(keys[1]) == 2
+            assert len(keys[2]) == 2
+            assert element.offset() is not None
+            assert element.length() is not None
+        elif level == 2:
+            assert "type" in element.keys()[1]
+            assert keys[1]["type"] == "an"
+            assert len(keys[0]) == 6
+            assert len(keys[1]) == 2
+            assert keys[2] == {}
+            assert element.offset() is None
+            assert element.length() is None
+        else:
+            assert len(element.keys()[0]) == 6
+            assert keys[1] == {}
+            assert keys[2] == {}
+            assert element.offset() is None
+            assert element.length() is None
 
 
 def test_read_only_attributes_list_element(read_only_fdb_setup):
