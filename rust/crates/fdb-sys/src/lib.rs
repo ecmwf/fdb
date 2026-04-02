@@ -796,8 +796,8 @@ mod tests {
         let err = result.expect_err("expected error");
         // Non-std exceptions get a generic message
         assert!(
-            err.what().contains("unknown exception"),
-            "Expected unknown exception message, got: {}",
+            err.what().contains("non-std::exception"),
+            "Expected non-std::exception message, got: {}",
             err.what()
         );
     }
