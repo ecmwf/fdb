@@ -250,7 +250,8 @@ class DataHandle:
         Parameters
         ----------
         `len`: int
-            The amount of bytes to read. If -1 is entered the whole data handle is read.
+            Number of bytes to read. Defaults to -1, which reads the entire buffer.
+            If the requested size exceeds the available data, the result is zero-padded to match the requested size.
 
         Returns
         -------
