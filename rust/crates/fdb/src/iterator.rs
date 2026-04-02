@@ -50,7 +50,11 @@ impl Iterator for ListIterator {
     }
 }
 
-// SAFETY: The underlying C++ iterator is accessed through &mut self only.
+// SAFETY: ListIterator can be sent to another thread because:
+// 1. The C++ fdb5::ListIterator contains a snapshot of index data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ListIterator {}
 
@@ -132,6 +136,11 @@ impl Iterator for AxesIterator {
     }
 }
 
+// SAFETY: AxesIterator can be sent to another thread because:
+// 1. The C++ fdb5::AxesIterator contains a snapshot of index data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for AxesIterator {}
 
@@ -186,6 +195,11 @@ impl Iterator for DumpIterator {
     }
 }
 
+// SAFETY: DumpIterator can be sent to another thread because:
+// 1. The C++ fdb5::DumpIterator contains a snapshot of dump data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for DumpIterator {}
 
@@ -230,6 +244,11 @@ impl Iterator for StatusIterator {
     }
 }
 
+// SAFETY: StatusIterator can be sent to another thread because:
+// 1. The C++ fdb5::StatusIterator contains a snapshot of status data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for StatusIterator {}
 
@@ -275,6 +294,11 @@ impl Iterator for WipeIterator {
     }
 }
 
+// SAFETY: WipeIterator can be sent to another thread because:
+// 1. The C++ fdb5::WipeIterator contains a snapshot of wipe data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for WipeIterator {}
 
@@ -318,6 +342,11 @@ impl Iterator for PurgeIterator {
     }
 }
 
+// SAFETY: PurgeIterator can be sent to another thread because:
+// 1. The C++ fdb5::PurgeIterator contains a snapshot of purge data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for PurgeIterator {}
 
@@ -365,6 +394,11 @@ impl Iterator for StatsIterator {
     }
 }
 
+// SAFETY: StatsIterator can be sent to another thread because:
+// 1. The C++ fdb5::StatsIterator contains a snapshot of stats data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for StatsIterator {}
 
@@ -417,6 +451,11 @@ impl Iterator for ControlIterator {
     }
 }
 
+// SAFETY: ControlIterator can be sent to another thread because:
+// 1. The C++ fdb5::ControlIterator contains a snapshot of control data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ControlIterator {}
 
@@ -463,6 +502,11 @@ impl Iterator for MoveIterator {
     }
 }
 
+// SAFETY: MoveIterator can be sent to another thread because:
+// 1. The C++ fdb5::MoveIterator contains a snapshot of move data taken at construction
+// 2. It does not hold references back to the FDB handle after creation
+// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
+// 4. The iterator has no thread-local state or thread-affine resources
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for MoveIterator {}
 
