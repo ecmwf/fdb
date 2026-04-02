@@ -89,20 +89,26 @@ impl Seek for DataReader {
         let new_pos = match pos {
             SeekFrom::Start(offset) => offset,
             SeekFrom::End(offset) => {
-                let size = self.size().cast_signed();
-                let new = size + offset;
+                let size = i64::try_from(self.size())
+                    .map_err(|_| std::io::Error::other("file size exceeds i64::MAX"))?;
+                let new = size
+                    .checked_add(offset)
+                    .ok_or_else(|| std::io::Error::other("seek position overflow"))?;
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
-                new.cast_unsigned()
+                new as u64
             }
             SeekFrom::Current(offset) => {
-                let current = self.tell().cast_signed();
-                let new = current + offset;
+                let current = i64::try_from(self.tell())
+                    .map_err(|_| std::io::Error::other("current position exceeds i64::MAX"))?;
+                let new = current
+                    .checked_add(offset)
+                    .ok_or_else(|| std::io::Error::other("seek position overflow"))?;
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
-                new.cast_unsigned()
+                new as u64
             }
         };
 
