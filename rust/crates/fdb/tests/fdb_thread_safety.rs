@@ -229,3 +229,195 @@ fn test_concurrent_errors_no_crash() {
         h.join().expect("Thread panicked");
     }
 }
+
+// =============================================================================
+// Concurrent write tests (M15)
+// =============================================================================
+
+/// Helper to create test configuration
+fn create_test_config(tmpdir: &std::path::Path) -> String {
+    use std::fs;
+    use std::path::PathBuf;
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let fixtures_dir = PathBuf::from(manifest_dir).join("tests/fixtures");
+
+    // Copy schema to temp directory
+    let schema_src = fixtures_dir.join("schema");
+    let schema_dst = tmpdir.join("schema");
+    fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
+
+    format!(
+        r"---
+type: local
+engine: toc
+schema: {}/schema
+spaces:
+  - roots:
+      - path: {}
+",
+        tmpdir.display(),
+        tmpdir.display()
+    )
+}
+
+/// Test: Concurrent archive operations from multiple threads.
+///
+/// Note: FDB documents that `flush()` has global semantics - it flushes ALL
+/// archived messages from ALL threads. This test verifies that concurrent
+/// archive operations don't crash, but users should be aware of this behavior.
+#[test]
+#[ignore = "requires FDB libraries and configuration"]
+fn test_concurrent_archive_operations() {
+    use std::fs;
+    use std::path::PathBuf;
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create handle"));
+
+    // Read GRIB data for archiving
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
+
+    let thread_count = 4;
+    let iterations_per_thread = 5;
+
+    let handles: Vec<_> = (0..thread_count)
+        .map(|thread_id| {
+            let fdb = Arc::clone(&fdb);
+            let grib_data = Arc::clone(&grib_data);
+            thread::spawn(move || {
+                for i in 0..iterations_per_thread {
+                    // Each thread archives with a unique step value
+                    let step = format!("{}", thread_id * 100 + i);
+                    let key = Key::new()
+                        .with("class", "rd")
+                        .with("expver", "xxxx")
+                        .with("stream", "oper")
+                        .with("date", "20230508")
+                        .with("time", "1200")
+                        .with("type", "fc")
+                        .with("levtype", "sfc")
+                        .with("step", &step)
+                        .with("param", "151130");
+
+                    let result = fdb.archive(&key, &grib_data);
+                    assert!(
+                        result.is_ok(),
+                        "thread {thread_id} archive failed: {:?}",
+                        result.err()
+                    );
+                }
+            })
+        })
+        .collect();
+
+    for h in handles {
+        h.join().expect("thread panicked during concurrent archive");
+    }
+
+    // Flush all archived data
+    fdb.flush().expect("flush failed");
+
+    // Verify data was archived by listing
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let items: Vec<_> = fdb
+        .list(&request, 3, false)
+        .expect("list failed")
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let expected_count = thread_count * iterations_per_thread;
+    assert_eq!(
+        items.len(),
+        expected_count,
+        "expected {expected_count} archived items, found {}",
+        items.len()
+    );
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
+/// Test: Mixed concurrent read and write operations.
+#[test]
+#[ignore = "requires FDB libraries and configuration"]
+fn test_concurrent_read_write_mix() {
+    use std::fs;
+    use std::path::PathBuf;
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create handle"));
+
+    // Pre-archive some data first
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
+
+    // Archive initial data
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+    fdb.archive(&key, &grib_data)
+        .expect("initial archive failed");
+    fdb.flush().expect("initial flush failed");
+
+    // Spawn threads that mix read and write operations
+    let thread_count = 8;
+    let iterations = 10;
+
+    let handles: Vec<_> = (0..thread_count)
+        .map(|thread_id| {
+            let fdb = Arc::clone(&fdb);
+            let grib_data = Arc::clone(&grib_data);
+            thread::spawn(move || {
+                let request = Request::new().with("class", "rd").with("expver", "xxxx");
+
+                for i in 0..iterations {
+                    if thread_id % 2 == 0 {
+                        // Even threads: read operations
+                        let _ = fdb.list(&request, 1, false);
+                        let _ = fdb.axes(&request, 1);
+                    } else {
+                        // Odd threads: write operations
+                        let step = format!("{}", 1000 + thread_id * 100 + i);
+                        let key = Key::new()
+                            .with("class", "rd")
+                            .with("expver", "xxxx")
+                            .with("stream", "oper")
+                            .with("date", "20230508")
+                            .with("time", "1200")
+                            .with("type", "fc")
+                            .with("levtype", "sfc")
+                            .with("step", &step)
+                            .with("param", "151130");
+
+                        let _ = fdb.archive(&key, &grib_data);
+                    }
+                }
+            })
+        })
+        .collect();
+
+    for h in handles {
+        h.join().expect("thread panicked during mixed operations");
+    }
+
+    // Final flush
+    fdb.flush().expect("final flush failed");
+
+    drop(fdb);
+    drop(tmpdir);
+}
