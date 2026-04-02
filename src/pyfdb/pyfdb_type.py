@@ -273,10 +273,17 @@ class DataHandle:
                 "DataHandle: Read occured before the handle was opened. Must be opened first."
             )
 
-        if len == -1:
-            len = self.dataHandle.size()
+        # NB: Some data handles do not implement the size() method. In this case, we just read the requested amount of bytes.
+        try:
+            dh_size = self.dataHandle.size()
+        except RuntimeError as e:
+            if len == -1:
+                raise e
 
-        buffer = bytearray(len)
+        if len == -1:
+            len = dh_size
+
+        buffer = bytearray(min(len, dh_size))
         read_bytes = self.dataHandle.read(buffer)
 
         if read_bytes == 0:
