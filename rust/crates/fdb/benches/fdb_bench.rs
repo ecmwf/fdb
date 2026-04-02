@@ -18,9 +18,13 @@ mod fdb_setup {
 
     pub struct TestFdb;
 
-    fn project_root() -> PathBuf {
+    fn crate_dir() -> PathBuf {
         let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
         PathBuf::from(manifest_dir)
+    }
+
+    fn workspace_root() -> PathBuf {
+        crate_dir()
             .parent()
             .expect("parent dir")
             .parent()
@@ -29,9 +33,8 @@ mod fdb_setup {
     }
 
     pub fn setup() -> Option<TestFdb> {
-        let root = project_root();
-        let fdb_dir = root.join("target/bench-fdb");
-        let fixtures_dir = root.join("tests/fixtures");
+        let fdb_dir = workspace_root().join("target/bench-fdb");
+        let fixtures_dir = crate_dir().join("tests/fixtures");
 
         // Create fixed directory
         fs::create_dir_all(&fdb_dir).ok()?;
