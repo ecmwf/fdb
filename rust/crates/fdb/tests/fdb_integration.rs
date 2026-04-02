@@ -1438,3 +1438,275 @@ fn test_fdb_enabled_identifiers() {
     drop(fdb);
     drop(tmpdir);
 }
+
+// =============================================================================
+// Tests for previously untested methods (H9)
+// =============================================================================
+
+/// Test archive_raw() - archives GRIB data with embedded metadata key.
+/// This is useful when archiving GRIB files that already contain full metadata.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_archive_raw() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Read GRIB data - the template.grib should have embedded metadata
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    // Archive using archive_raw - key is extracted from GRIB metadata
+    let result = fdb.archive_raw(&grib_data);
+    println!("archive_raw result: {:?}", result);
+
+    // Note: This may fail if the GRIB doesn't have complete metadata for the schema,
+    // but the method itself should work. Testing the API works without panicking.
+    if result.is_ok() {
+        fdb.flush().expect("flush failed");
+
+        // Try to find the archived data
+        // Note: We don't know the exact key, so use a broad request
+        let request = Request::new().with("class", "rd");
+        let items: Vec<_> = fdb
+            .list(&request, 3, false)
+            .expect("failed to list")
+            .filter_map(|r| r.ok())
+            .collect();
+
+        println!("archive_raw: found {} items after archive", items.len());
+    }
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
+/// Test read_uri() - reads data from a specific URI location.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_read_uri() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Archive data first
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+
+    // List to get the URI
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let items: Vec<_> = fdb
+        .list(&request, 3, false)
+        .expect("failed to list")
+        .filter_map(|r| r.ok())
+        .collect();
+
+    assert!(!items.is_empty(), "expected at least one item");
+
+    // Get the URI from the first list element
+    let uri = &items[0].uri;
+    let offset = items[0].offset;
+    let length = items[0].length;
+    println!(
+        "Reading from URI: {} (offset={}, length={})",
+        uri, offset, length
+    );
+
+    // Read using the URI
+    let mut reader = fdb.read_uri(uri).expect("failed to read_uri");
+
+    // Seek to the offset and read the data
+    reader.seek_to(offset).expect("failed to seek");
+    let mut data = vec![0u8; length as usize];
+    reader.read_exact(&mut data).expect("failed to read");
+
+    assert_eq!(
+        data.len(),
+        grib_data.len(),
+        "read data should match original size"
+    );
+    assert_eq!(data, grib_data, "read data should match original");
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
+/// Test read_uris() - reads data from multiple URI locations.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_read_uris() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Archive multiple pieces of data
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    // Archive with different steps
+    for step in ["0", "1", "2"] {
+        let key = Key::new()
+            .with("class", "rd")
+            .with("expver", "xxxx")
+            .with("stream", "oper")
+            .with("date", "20230508")
+            .with("time", "1200")
+            .with("type", "fc")
+            .with("levtype", "sfc")
+            .with("step", step)
+            .with("param", "151130");
+
+        fdb.archive(&key, &grib_data).expect("failed to archive");
+    }
+    fdb.flush().expect("flush failed");
+
+    // List to get URIs
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let items: Vec<_> = fdb
+        .list(&request, 3, false)
+        .expect("failed to list")
+        .filter_map(|r| r.ok())
+        .collect();
+
+    assert!(items.len() >= 2, "expected at least 2 items");
+
+    // Collect URIs (with offset/length encoded if needed)
+    // Note: read_uris expects URIs that include offset/length or full file URIs
+    let uris: Vec<String> = items.iter().take(2).map(|item| item.uri.clone()).collect();
+    println!("Reading from {} URIs", uris.len());
+
+    // Read using multiple URIs
+    let mut reader = fdb.read_uris(&uris, false).expect("failed to read_uris");
+
+    // Read all data
+    let data = reader.read_all().expect("failed to read_all");
+    println!("read_uris returned {} bytes", data.len());
+
+    // Should have read data from both URIs
+    assert!(!data.is_empty(), "expected non-empty data from read_uris");
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
+/// Test read_from_list() - reads data from a ListIterator.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_read_from_list() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Archive data
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+
+    // Get a list iterator
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let list_iter = fdb.list(&request, 3, false).expect("failed to list");
+
+    // Read from the list iterator
+    let mut reader = fdb
+        .read_from_list(list_iter, false)
+        .expect("failed to read_from_list");
+
+    // Read all data
+    let data = reader.read_all().expect("failed to read_all");
+    println!("read_from_list returned {} bytes", data.len());
+
+    assert_eq!(
+        data.len(),
+        grib_data.len(),
+        "read_from_list should return same amount of data"
+    );
+    assert_eq!(data, grib_data, "data should match original");
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
+/// Test move_data() - moves data to a new location.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_move_data() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    // Create a destination directory within tmpdir
+    let dest_dir = tmpdir.path().join("dest");
+    fs::create_dir(&dest_dir).expect("failed to create dest dir");
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Archive data
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+
+    // Move data to new location
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let dest_path = dest_dir.to_str().expect("invalid path");
+
+    let result = fdb.move_data(&request, dest_path);
+    println!("move_data result: {}", if result.is_ok() { "Ok" } else { "Err" });
+
+    // Collect move elements if successful
+    if let Ok(move_iter) = result {
+        let elements: Vec<_> = move_iter.filter_map(|r| r.ok()).collect();
+        println!("move_data returned {} elements", elements.len());
+        for elem in &elements {
+            println!("  moved: {} -> {}", elem.source, elem.destination);
+        }
+    }
+
+    // Note: move_data behavior depends on FDB configuration and backend support.
+    // The test verifies the API works without panicking.
+
+    drop(fdb);
+    drop(tmpdir);
+}
