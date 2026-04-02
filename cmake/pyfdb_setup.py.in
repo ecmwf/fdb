@@ -39,11 +39,11 @@ setup(
     long_description=Path.open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     install_requires=["findlibs>=0.1.2", "PyYAML>=6.0.3"] + requires_extra,
+    python_requires=">3.10",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
