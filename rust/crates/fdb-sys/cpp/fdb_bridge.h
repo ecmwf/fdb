@@ -50,8 +50,9 @@ catch (const eckit::Exception& e) {
 catch (const std::exception& e) {
     fail(e.what());
 }
+// REQUIRED: catch(...) is necessary at FFI boundary to prevent undefined behavior.
 catch (...) {
-    fail("unknown exception (non-std::exception type)");
+    fail("unknown C++ exception (non-std::exception type)");
 }
 }  // namespace rust::behavior
 

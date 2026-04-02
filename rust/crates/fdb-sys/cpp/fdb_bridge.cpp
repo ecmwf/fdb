@@ -257,8 +257,8 @@ DataReaderHandle::~DataReaderHandle() {
         try {
             impl_->close();
         }
-        catch (...) {
-            // Ignore errors during destruction
+        catch (const std::exception&) {
+            // Destructors must not throw - swallow exception
         }
     }
 }
@@ -948,8 +948,8 @@ void register_archive_callback(FdbHandle& handle, rust::Box<ArchiveCallbackBox> 
                 location_length = location->length();
             }
         }
-        catch (...) {
-            // If future fails, leave location info empty
+        catch (const std::exception&) {
+            // If future fails, leave location info empty (best-effort)
         }
 
         // Create a slice from key_vec
