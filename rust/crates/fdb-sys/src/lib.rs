@@ -449,10 +449,7 @@ mod ffi {
         // =====================================================================
 
         /// Read data from a single URI.
-        fn read_uri(
-            handle: Pin<&mut FdbHandle>,
-            uri: &str,
-        ) -> Result<UniquePtr<DataReaderHandle>>;
+        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataReaderHandle>>;
 
         /// Read data from a list of URIs.
         fn read_uris(
@@ -636,7 +633,13 @@ mod ffi {
 // =============================================================================
 
 fn invoke_flush_callback(callback: &FlushCallbackBox) {
-    callback.0.on_flush();
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        callback.0.on_flush();
+    }))
+    .is_err()
+    {
+        eprintln!("fdb-sys: panic in flush callback (suppressed at FFI boundary)");
+    }
 }
 
 fn invoke_archive_callback(
@@ -647,24 +650,30 @@ fn invoke_archive_callback(
     location_offset: u64,
     location_length: u64,
 ) {
-    let key_vec: Vec<(String, String)> = key
-        .iter()
-        .map(|kv| (kv.key.clone(), kv.value.clone()))
-        .collect();
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let key_vec: Vec<(String, String)> = key
+            .iter()
+            .map(|kv| (kv.key.clone(), kv.value.clone()))
+            .collect();
 
-    let callback_data = ArchiveCallbackData {
-        key: key_vec,
-        data: data.to_vec(),
-        location_uri: if location_uri.is_empty() {
-            None
-        } else {
-            Some(location_uri.to_string())
-        },
-        location_offset,
-        location_length,
-    };
+        let callback_data = ArchiveCallbackData {
+            key: key_vec,
+            data: data.to_vec(),
+            location_uri: if location_uri.is_empty() {
+                None
+            } else {
+                Some(location_uri.to_string())
+            },
+            location_offset,
+            location_length,
+        };
 
-    callback.0.on_archive(callback_data);
+        callback.0.on_archive(callback_data);
+    }))
+    .is_err()
+    {
+        eprintln!("fdb-sys: panic in archive callback (suppressed at FFI boundary)");
+    }
 }
 
 // =============================================================================
