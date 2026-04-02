@@ -462,21 +462,39 @@ impl Fdb {
     }
 
     /// Get a string value from the FDB configuration.
+    ///
+    /// Returns `None` if the key doesn't exist.
     #[must_use]
-    pub fn config_string(&self, key: &str) -> String {
-        self.with_handle_ref(|h| h.config_string(key))
+    pub fn config_string(&self, key: &str) -> Option<String> {
+        if self.config_has(key) {
+            Some(self.with_handle_ref(|h| h.config_string(key)))
+        } else {
+            None
+        }
     }
 
     /// Get an integer value from the FDB configuration.
+    ///
+    /// Returns `None` if the key doesn't exist.
     #[must_use]
-    pub fn config_int(&self, key: &str) -> i64 {
-        self.with_handle_ref(|h| h.config_int(key))
+    pub fn config_int(&self, key: &str) -> Option<i64> {
+        if self.config_has(key) {
+            Some(self.with_handle_ref(|h| h.config_int(key)))
+        } else {
+            None
+        }
     }
 
     /// Get a boolean value from the FDB configuration.
+    ///
+    /// Returns `None` if the key doesn't exist.
     #[must_use]
-    pub fn config_bool(&self, key: &str) -> bool {
-        self.with_handle_ref(|h| h.config_bool(key))
+    pub fn config_bool(&self, key: &str) -> Option<bool> {
+        if self.config_has(key) {
+            Some(self.with_handle_ref(|h| h.config_bool(key)))
+        } else {
+            None
+        }
     }
 
     /// Check if a key exists in the FDB configuration.

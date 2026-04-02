@@ -331,8 +331,7 @@ fn test_fdb_axes_consistency() {
 
     // Get axes via the direct function
     let axes_direct = fdb.axes(&request, 3).expect("failed to get axes");
-    let direct_keys: std::collections::HashSet<_> =
-        axes_direct.iter().map(|(k, _)| k.clone()).collect();
+    let direct_keys: std::collections::HashSet<_> = axes_direct.keys().cloned().collect();
 
     // Get axes via the iterator
     let axes_iter_items: Vec<_> = fdb
@@ -404,11 +403,19 @@ fn test_fdb_dump() {
     let dump_items: Vec<_> = fdb.dump(&request, true).expect("failed to dump").collect();
 
     println!("Dump returned {} items", dump_items.len());
-    for item in &dump_items {
-        match item {
-            Ok(elem) => println!("  {}", elem.content),
-            Err(e) => println!("  error: {e}"),
-        }
+    assert!(!dump_items.is_empty(), "expected at least one dump element");
+
+    // Verify all items are Ok
+    let ok_items: Vec<_> = dump_items.iter().filter_map(|r| r.as_ref().ok()).collect();
+    assert_eq!(
+        ok_items.len(),
+        dump_items.len(),
+        "all dump items should be Ok"
+    );
+
+    for item in &ok_items {
+        println!("  {}", item.content);
+        assert!(!item.content.is_empty(), "dump content should not be empty");
     }
 
     drop(fdb);
@@ -449,11 +456,19 @@ fn test_fdb_status() {
         .collect();
 
     println!("Status returned {} items", status_items.len());
+    assert!(
+        !status_items.is_empty(),
+        "expected at least one status element"
+    );
+
+    // Verify all items are Ok and have valid locations
     for item in &status_items {
-        match item {
-            Ok(elem) => println!("  location={}, status={:?}", elem.location, elem.status),
-            Err(e) => println!("  error: {e}"),
-        }
+        let elem = item.as_ref().expect("status item should be Ok");
+        println!("  location={}, status={:?}", elem.location, elem.status);
+        assert!(
+            !elem.location.is_empty(),
+            "status location should not be empty"
+        );
     }
 
     drop(fdb);
@@ -1354,28 +1369,30 @@ fn test_fdb_control_lock_unlock() {
 
     // Test None action (query current state)
     let none_result = fdb.control(&request, ControlAction::None, &identifiers);
-    if let Ok(iter) = none_result {
-        let elements: Vec<_> = iter.filter_map(|r| r.ok()).collect();
-        println!("Control None elements: {:?}", elements);
-    }
+    assert!(none_result.is_ok(), "control None should succeed");
+    let elements: Vec<_> = none_result.expect("control None failed").filter_map(|r| r.ok()).collect();
+    println!("Control None elements: {:?}", elements);
+    assert!(!elements.is_empty(), "control None should return elements");
 
     // Test Disable action
     let disable_result = fdb.control(&request, ControlAction::Disable, &identifiers);
-    if let Ok(iter) = disable_result {
-        let elements: Vec<_> = iter.filter_map(|r| r.ok()).collect();
-        println!("Control Disable elements: {:?}", elements);
-    }
+    assert!(disable_result.is_ok(), "control Disable should succeed");
+    let elements: Vec<_> = disable_result.expect("control Disable failed").filter_map(|r| r.ok()).collect();
+    println!("Control Disable elements: {:?}", elements);
 
     // Test Enable action
     let enable_result = fdb.control(&request, ControlAction::Enable, &identifiers);
-    if let Ok(iter) = enable_result {
-        let elements: Vec<_> = iter.filter_map(|r| r.ok()).collect();
-        for elem in &elements {
-            println!(
-                "Control element - location: {}, identifiers: {:?}",
-                elem.location, elem.identifiers
-            );
-        }
+    assert!(enable_result.is_ok(), "control Enable should succeed");
+    let elements: Vec<_> = enable_result.expect("control Enable failed").filter_map(|r| r.ok()).collect();
+    for elem in &elements {
+        println!(
+            "Control element - location: {}, identifiers: {:?}",
+            elem.location, elem.identifiers
+        );
+        assert!(
+            !elem.location.is_empty(),
+            "control element location should not be empty"
+        );
     }
 
     drop(fdb);
@@ -1392,16 +1409,17 @@ fn test_fdb_config_accessors() {
 
     // Test config_string - try to get a string config value
     let type_str = fdb.config_string("type");
-    println!("config_string('type') = '{type_str}'");
+    println!("config_string('type') = {:?}", type_str);
 
-    // Test config_int - try to get an int config value
-    // Note: may return 0 if key doesn't exist or isn't an int
+    // Test config_int - returns None if key doesn't exist
     let some_int = fdb.config_int("nonexistent_key");
-    println!("config_int('nonexistent_key') = {some_int}");
+    assert!(some_int.is_none(), "nonexistent key should return None");
+    println!("config_int('nonexistent_key') = {:?}", some_int);
 
-    // Test config_bool - try to get a bool config value
+    // Test config_bool - returns None if key doesn't exist
     let some_bool = fdb.config_bool("nonexistent_key");
-    println!("config_bool('nonexistent_key') = {some_bool}");
+    assert!(some_bool.is_none(), "nonexistent key should return None");
+    println!("config_bool('nonexistent_key') = {:?}", some_bool);
 
     // Test config_has for various keys
     let has_type = fdb.config_has("type");
@@ -1432,8 +1450,11 @@ fn test_fdb_enabled_identifiers() {
         "enabled: retrieve={retrieve_enabled}, archive={archive_enabled}, list={list_enabled}, wipe={wipe_enabled}"
     );
 
-    // By default, most operations should be enabled
-    // (unless explicitly disabled in config)
+    // By default, these operations should be enabled
+    assert!(retrieve_enabled, "retrieve should be enabled by default");
+    assert!(archive_enabled, "archive should be enabled by default");
+    assert!(list_enabled, "list should be enabled by default");
+    // wipe may or may not be enabled depending on config
 
     drop(fdb);
     drop(tmpdir);
