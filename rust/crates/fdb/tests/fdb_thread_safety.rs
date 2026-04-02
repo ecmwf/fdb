@@ -5,15 +5,15 @@
 //! The FDB C++ library is documented as thread-safe (fdb5/api/FDB.h:62-66):
 //! "FDB and its methods are threadsafe."
 //!
-//! With the `thread-safe` feature:
-//! - `Fdb` implements `Send + Sync`
+//! Thread-safety guarantees:
+//! - `Fdb` implements `Send + Sync` (always, no feature flag required)
 //! - Methods can be called from multiple threads via `Arc<Fdb>`
-//! - Internal locking ensures thread-safe access
+//! - Internal `Mutex` ensures thread-safe access to the C++ handle
 //!
-//! Run with: `cargo test --test fdb_thread_safety --features thread-safe`
+//! Run with: `cargo test --test fdb_thread_safety --features vendored`
 //!
 //! For integration tests that require FDB libraries:
-//! `cargo test --test fdb_thread_safety --features thread-safe -- --ignored --test-threads=1`
+//! `cargo test --test fdb_thread_safety --features vendored -- --ignored --test-threads=1`
 
 use std::sync::Arc;
 use std::thread;
