@@ -299,6 +299,80 @@ fn test_fdb_axes_iterator() {
     drop(tmpdir);
 }
 
+/// Test that axes() and axes_iter() return the same set of axis names.
+/// This is a regression test for the fix that removed hardcoded axis names.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_axes_consistency() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+
+    // Archive some data first
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+
+    // Get axes via the direct function
+    let axes_direct = fdb.axes(&request, 3).expect("failed to get axes");
+    let direct_keys: std::collections::HashSet<_> =
+        axes_direct.iter().map(|(k, _)| k.clone()).collect();
+
+    // Get axes via the iterator
+    let axes_iter_items: Vec<_> = fdb
+        .axes_iter(&request, 3)
+        .expect("failed to get axes iterator")
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Collect all axis names from iterator
+    let iter_keys: std::collections::HashSet<_> = axes_iter_items
+        .iter()
+        .flat_map(|elem| elem.axes.keys().cloned())
+        .collect();
+
+    println!(
+        "axes() returned {} axis names: {:?}",
+        direct_keys.len(),
+        direct_keys
+    );
+    println!(
+        "axes_iter() returned {} axis names: {:?}",
+        iter_keys.len(),
+        iter_keys
+    );
+
+    // Both methods should return the same set of axis names
+    assert_eq!(
+        direct_keys, iter_keys,
+        "axes() and axes_iter() should return the same axis names"
+    );
+
+    // Verify we got the expected axes from the archived data
+    assert!(direct_keys.contains("class"), "should have 'class' axis");
+    assert!(direct_keys.contains("expver"), "should have 'expver' axis");
+    assert!(direct_keys.contains("stream"), "should have 'stream' axis");
+
+    drop(fdb);
+    drop(tmpdir);
+}
+
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_dump() {
@@ -1105,17 +1179,23 @@ fn test_fdb_datareader_seek() {
     assert_eq!(reader.tell(), 0, "expected initial position at 0");
 
     // Test SeekFrom::Start
-    let pos = reader.seek(SeekFrom::Start(10)).expect("seek to start+10 failed");
+    let pos = reader
+        .seek(SeekFrom::Start(10))
+        .expect("seek to start+10 failed");
     assert_eq!(pos, 10);
     assert_eq!(reader.tell(), 10);
 
     // Test SeekFrom::Current (positive)
-    let pos = reader.seek(SeekFrom::Current(5)).expect("seek current+5 failed");
+    let pos = reader
+        .seek(SeekFrom::Current(5))
+        .expect("seek current+5 failed");
     assert_eq!(pos, 15);
     assert_eq!(reader.tell(), 15);
 
     // Test SeekFrom::Current (negative)
-    let pos = reader.seek(SeekFrom::Current(-5)).expect("seek current-5 failed");
+    let pos = reader
+        .seek(SeekFrom::Current(-5))
+        .expect("seek current-5 failed");
     assert_eq!(pos, 10);
     assert_eq!(reader.tell(), 10);
 
@@ -1142,7 +1222,9 @@ fn test_fdb_datareader_seek() {
     assert!(n > 0, "expected to read some bytes");
 
     // Test read_all() reads from current position
-    reader.seek(SeekFrom::Start(0)).expect("rewind before read_all failed");
+    reader
+        .seek(SeekFrom::Start(0))
+        .expect("rewind before read_all failed");
     let all_data = reader.read_all().expect("read_all failed");
     assert_eq!(all_data.len(), grib_data.len());
     assert_eq!(all_data, grib_data);
@@ -1150,10 +1232,16 @@ fn test_fdb_datareader_seek() {
     // Test negative position errors
     reader.seek(SeekFrom::Start(0)).expect("rewind failed");
     let err = reader.seek(SeekFrom::Current(-100));
-    assert!(err.is_err(), "expected error when seeking to negative position");
+    assert!(
+        err.is_err(),
+        "expected error when seeking to negative position"
+    );
 
     let err = reader.seek(SeekFrom::End(-(total_size as i64 + 100)));
-    assert!(err.is_err(), "expected error when seeking before start via End");
+    assert!(
+        err.is_err(),
+        "expected error when seeking before start via End"
+    );
 
     // Test close() explicitly
     reader.close().expect("close failed");
@@ -1204,7 +1292,11 @@ fn test_fdb_list_element_full_key() {
 
         // Check that full_key contains entries from all levels
         let total_expected = item.db_key.len() + item.index_key.len() + item.datum_key.len();
-        assert_eq!(full.len(), total_expected, "full_key should combine all key levels");
+        assert_eq!(
+            full.len(),
+            total_expected,
+            "full_key should combine all key levels"
+        );
 
         // Verify the ordering: db_key first, then index_key, then datum_key
         let mut idx = 0;
@@ -1279,7 +1371,10 @@ fn test_fdb_control_lock_unlock() {
     if let Ok(iter) = enable_result {
         let elements: Vec<_> = iter.filter_map(|r| r.ok()).collect();
         for elem in &elements {
-            println!("Control element - location: {}, identifiers: {:?}", elem.location, elem.identifiers);
+            println!(
+                "Control element - location: {}, identifiers: {:?}",
+                elem.location, elem.identifiers
+            );
         }
     }
 
@@ -1333,7 +1428,9 @@ fn test_fdb_enabled_identifiers() {
     let list_enabled = fdb.enabled("list");
     let wipe_enabled = fdb.enabled("wipe");
 
-    println!("enabled: retrieve={retrieve_enabled}, archive={archive_enabled}, list={list_enabled}, wipe={wipe_enabled}");
+    println!(
+        "enabled: retrieve={retrieve_enabled}, archive={archive_enabled}, list={list_enabled}, wipe={wipe_enabled}"
+    );
 
     // By default, most operations should be enabled
     // (unless explicitly disabled in config)

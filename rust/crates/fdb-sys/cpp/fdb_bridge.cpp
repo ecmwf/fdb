@@ -795,20 +795,15 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
     auto index_axis = handle.inner().axes(tool_request, level);
 
     rust::Vec<AxisEntry> result;
-    // IndexAxis - iterate using has() and values() interface
-    // Common axis names in FDB
-    static const std::vector<std::string> common_axes = {"class", "expver", "stream", "type",     "levtype", "date",
-                                                         "time",  "step",   "param",  "levelist", "number"};
-    for (const auto& axis_name : common_axes) {
-        if (index_axis.has(axis_name)) {
-            AxisEntry entry;
-            entry.key = rust::String(axis_name);
-            const auto& values = index_axis.values(axis_name);
-            for (const auto& v : values) {
-                entry.values.push_back(rust::String(v));
-            }
-            result.push_back(std::move(entry));
+    // Iterate over all axes using map() instead of hardcoded list
+    auto axes_map = index_axis.map();
+    for (const auto& [axis_name, values_set] : axes_map) {
+        AxisEntry entry;
+        entry.key = rust::String(axis_name);
+        for (const auto& v : values_set) {
+            entry.values.push_back(rust::String(v));
         }
+        result.push_back(std::move(entry));
     }
     return result;
 }

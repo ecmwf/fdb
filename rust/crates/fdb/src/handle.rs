@@ -215,9 +215,8 @@ impl Fdb {
         mut list: ListIterator,
         in_storage_order: bool,
     ) -> Result<DataReader> {
-        let handle = self.with_handle(|h| {
-            fdb_sys::read_list_iterator(h, list.inner_mut(), in_storage_order)
-        })?;
+        let handle = self
+            .with_handle(|h| fdb_sys::read_list_iterator(h, list.inner_mut(), in_storage_order))?;
         DataReader::new(handle)
     }
 
