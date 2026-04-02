@@ -362,7 +362,7 @@ fn build_vendored() {
     let cmakelists = fdb_src.join("CMakeLists.txt");
     if let Ok(content) = fs::read_to_string(&cmakelists) {
         let patched = content.replace("add_subdirectory( tests )", "# add_subdirectory( tests )");
-        let _ = fs::write(&cmakelists, patched);
+        fs::write(&cmakelists, patched).expect("failed to patch CMakeLists.txt");
     }
 
     let ecbuild_bin = ecbuild_src.join("bin/ecbuild");
