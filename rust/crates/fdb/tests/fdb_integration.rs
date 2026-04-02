@@ -1693,7 +1693,10 @@ fn test_fdb_move_data() {
     let dest_path = dest_dir.to_str().expect("invalid path");
 
     let result = fdb.move_data(&request, dest_path);
-    println!("move_data result: {}", if result.is_ok() { "Ok" } else { "Err" });
+    println!(
+        "move_data result: {}",
+        if result.is_ok() { "Ok" } else { "Err" }
+    );
 
     // Collect move elements if successful
     if let Ok(move_iter) = result {
