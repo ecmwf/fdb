@@ -6,22 +6,29 @@ FDB is a domain-specific object store for meteorological data, developed at ECMW
 
 ## Usage
 
-```rust
-use fdb::{FDB, Key, WriteRequest};
+```rust,no_run
+use fdb::{Fdb, Key, Request};
+use std::io::Read;
 
 // Open FDB with default configuration
-let fdb = FDB::open()?;
+let fdb = Fdb::new()?;
 
 // Write data
 let key = Key::new()
-    .set("class", "od")
-    .set("stream", "oper")
-    .set("type", "fc");
-let request = WriteRequest::new(&key);
-fdb.archive(&request, &data)?;
+    .with("class", "od")
+    .with("stream", "oper")
+    .with("type", "fc");
+fdb.archive(&key, &data)?;
+fdb.flush()?;
 
 // Read data back
-let results = fdb.retrieve(&request)?;
+let request = Request::new()
+    .with("class", "od")
+    .with("stream", "oper")
+    .with("type", "fc");
+let mut reader = fdb.retrieve(&request)?;
+let mut results = Vec::new();
+reader.read_to_end(&mut results)?;
 ```
 
 ## Features
