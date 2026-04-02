@@ -1370,20 +1370,29 @@ fn test_fdb_control_lock_unlock() {
     // Test None action (query current state)
     let none_result = fdb.control(&request, ControlAction::None, &identifiers);
     assert!(none_result.is_ok(), "control None should succeed");
-    let elements: Vec<_> = none_result.expect("control None failed").filter_map(|r| r.ok()).collect();
+    let elements: Vec<_> = none_result
+        .expect("control None failed")
+        .filter_map(|r| r.ok())
+        .collect();
     println!("Control None elements: {:?}", elements);
     assert!(!elements.is_empty(), "control None should return elements");
 
     // Test Disable action
     let disable_result = fdb.control(&request, ControlAction::Disable, &identifiers);
     assert!(disable_result.is_ok(), "control Disable should succeed");
-    let elements: Vec<_> = disable_result.expect("control Disable failed").filter_map(|r| r.ok()).collect();
+    let elements: Vec<_> = disable_result
+        .expect("control Disable failed")
+        .filter_map(|r| r.ok())
+        .collect();
     println!("Control Disable elements: {:?}", elements);
 
     // Test Enable action
     let enable_result = fdb.control(&request, ControlAction::Enable, &identifiers);
     assert!(enable_result.is_ok(), "control Enable should succeed");
-    let elements: Vec<_> = enable_result.expect("control Enable failed").filter_map(|r| r.ok()).collect();
+    let elements: Vec<_> = enable_result
+        .expect("control Enable failed")
+        .filter_map(|r| r.ok())
+        .collect();
     for elem in &elements {
         println!(
             "Control element - location: {}, identifiers: {:?}",
