@@ -275,7 +275,7 @@ class DataHandle:
         if len == -1:
             len = self.dataHandle.size()
 
-        buffer = bytearray(min(len, self.dataHandle.size()))
+        buffer = bytearray(len)
         read_bytes = self.dataHandle.read(buffer)
 
         if read_bytes == 0:
