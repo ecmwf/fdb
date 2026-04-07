@@ -10,78 +10,20 @@ on:
       - '**'
     paths:
       - 'rust/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/ci-rust.yml'
 
   pull_request:
     paths:
       - 'rust/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/ci-rust.yml'
 
   workflow_dispatch: ~
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
-  check:
-    name: check
-    if: ${{ !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-
-      - name: Check
-        run: cargo check --features vendored
-
-  test:
-    name: test
-    if: ${{ !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-
-      - name: Test
-        run: cargo test --features vendored
-
-  clippy:
-    name: clippy
-    if: ${{ !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-
-      - name: Clippy
-        run: cargo clippy --features vendored -- -D warnings
-
   fmt:
     name: fmt
     runs-on: ubuntu-latest
@@ -97,3 +39,41 @@ jobs:
 
       - name: Format check
         run: cargo fmt --check
+
+  clippy:
+    name: clippy
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git for private repos
+        run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Clippy
+        run: cargo clippy --features vendored --all-targets -- -D warnings
+
+  test:
+    name: test
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git for private repos
+        run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        run: cargo test --features vendored
