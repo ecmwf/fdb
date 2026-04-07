@@ -47,10 +47,10 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t* it, boo
     size_t level = 0;
     for (const auto& key : keys) {
         for (const auto& k1 : key) {
-            int err;
+            int err = FDB_SUCCESS;
             v = nullptr;
             // skip empty values (optional metadata)
-            while (v == nullptr || strlen(v) == 0) {
+            while ((v == nullptr || strlen(v) == 0) && err == FDB_SUCCESS) {
                 err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
             }
             std::cerr << "k=" << k << " v=" << v << " l=" << l << std::endl;
