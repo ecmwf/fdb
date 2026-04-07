@@ -67,10 +67,11 @@ class ListElement:
 
         Examples
         --------
-        >>> data_handle = list_element.dataHandle()
-        >>> data_handle.open()
-        >>> data_handle.read(4)
-        >>> data_handle.close()
+        >>> data_handle = list_element.data_handle
+        >>> if data_handle is not None:
+        >>>     data_handle.open()
+        >>>     data_handle.read(4)
+        >>>     data_handle.close()
 
         Output:
 
@@ -97,7 +98,7 @@ class ListElement:
 
         Examples
         --------
-        >>> uri = list_element.uri()
+        >>> uri = list_element.uri
         >>> print(uri)
 
         Output:
