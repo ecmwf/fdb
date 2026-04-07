@@ -30,10 +30,6 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/hypercube/HyperCube.h"
-#include "metkit/mars/MarsLanguage.h"
-#include "metkit/mars/MarsRequest.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -241,19 +237,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
-
-    ASSERT(!request.empty());
-
-    metkit::mars::MarsRequest indexingRequest{request.verb()};
-    metkit::mars::MarsLanguage language{request.verb()};
-    // Only copy data parameters, as these are the only ones relevant for the indexing
-    for (const auto& p : request.parameters()) {
-        if (!language.isPostProc(p.name()) && !language.isSink(p.name())) {
-            indexingRequest.setValuesTyped(&p.type(), p.values());
-        }
-    }
-
-    return internal_->inspect(indexingRequest);
+    return internal_->inspect(request);
 }
 
 ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {
