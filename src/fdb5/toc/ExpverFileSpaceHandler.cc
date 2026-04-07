@@ -14,6 +14,7 @@
 #include <cctype>
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 
 #include "eckit/config/Resource.h"

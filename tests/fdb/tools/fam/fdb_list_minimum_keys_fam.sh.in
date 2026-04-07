@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+set -ux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=fam_minimum_keys
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+test_region="fdb_list_fam_min_keys_$$"
+fam_uri="fam://${fam_endpoint}/${test_region}"
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+try cd $bin_dir
+
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
+
+try cd $test_name
+
+# Create the FAM region (256 MB — od.oper.grib is 76 MB, 1 write)
+try fdb-fam --endpoint="$fam_endpoint" --create --size=268435456 --perm=0640 "/$test_region"
+
+cleanup() {
+    echo "cleanup"
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
+    rm -rf "$bin_dir/$test_name" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+schema_src="$FDB_HOME/etc/fdb/schema"
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: fam
+schema: ${schema_src}
+store: fam
+catalogue: fam
+spaces:
+- handler: Default
+  roots:
+  - path: $(pwd)/localroot
+fam_roots:
+- uri: ${fam_uri}
+  writable: true
+  visit: true
+EOF
+
+export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+
+########################################################################################################################
+
+# Ensure that we can wipe specified databases, but only when fully specified
+
+try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.grib
+try grib_ls -m data.xxxx.grib
+try fdb-write data.xxxx.grib
+
+
+echo "Test: check all output"
+try fdb-list --all --full --minimum-keys= --porcelain | tee out
+line_count 24
+
+
+echo "Test: nothing happens if any of the keys are missing"
+for invalid_key in class=rd expver=xxxx; do
+  fdb-list $invalid_key
+  rc=$?
+  [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
+done
+
+
+echo "Test: supplying the key"
+try fdb-list class=rd,expver=xxxx --porcelain | tee out
+line_count 24
+
+
+echo "Test: changing the minimum keys"
+for invalid_key in class=rd,expver=xxxx class=rd,time=1200 expver=xxxx,time=1200; do
+  fdb-list --minimum-keys="class,expver,time" $invalid_key
+  rc=$?
+  [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
+done
+
+
+echo "Test: the purge works now this is supplied"
+try fdb-list --minimum-keys="class,expver,time" class=rd,expver=xxxx,time=1200 --porcelain | tee out
+line_count 12

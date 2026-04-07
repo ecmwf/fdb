@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include <map>
-
 #include "fdb5/database/Store.h"
+
+#include <map>
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"

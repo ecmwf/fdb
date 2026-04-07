@@ -21,8 +21,6 @@
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/exception/Exceptions.h"
-
 #include "fdb5/LibFdb5.h"
 
 

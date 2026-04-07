@@ -19,11 +19,11 @@
 #ifndef fdb5_api_local_QueueStringLogTarget_H
 #define fdb5_api_local_QueueStringLogTarget_H
 
+#include <string>
+
 #include "eckit/container/Queue.h"
 #include "eckit/log/Channel.h"
 #include "eckit/log/LineBasedTarget.h"
-
-#include <string>
 
 namespace fdb5 {
 namespace api {
