@@ -1,3 +1,11 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 from pyfdb import FDB, URI
 
 
@@ -72,9 +80,7 @@ def test_list_element_uri(read_only_fdb_setup):
 
 
 def test_uri_roundtrip():
-    uri_str = (
-        "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2"
-    )
+    uri_str = "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2"
     test_uri = URI(uri_str)
 
     assert test_uri.scheme() == "scheme"
@@ -94,14 +100,10 @@ def test_uri_roundtrip():
 
 
 def test_uri_cmp():
-    uri_str = (
-        "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2"
-    )
+    uri_str = "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-2"
     test_uri = URI(uri_str)
 
-    uri_str_section3 = (
-        "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-3"
-    )
+    uri_str_section3 = "scheme://user:secretpass@example.com:8443/path/to/resource?query=search&sort=asc#section-3"
 
     test_uri_section3 = URI(uri_str_section3)
 
