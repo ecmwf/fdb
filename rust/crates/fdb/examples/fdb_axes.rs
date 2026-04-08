@@ -17,7 +17,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     let fdb = Fdb::new()?;
-    println!("FDB: {}", fdb.name());
 
     let request: Request = if args.len() > 1 {
         args[1].parse()?
