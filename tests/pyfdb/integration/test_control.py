@@ -1,3 +1,11 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 from pathlib import Path
 
 import pytest
@@ -35,7 +43,9 @@ def test_control_identifier_string():
     assert str(ControlIdentifier.LIST | ControlIdentifier.RETRIEVE) == "LIST|RETRIEVE"
     assert str(ControlIdentifier.RETRIEVE | ControlIdentifier.NONE) == "RETRIEVE"
     assert (
-        str(ControlIdentifier.RETRIEVE | ControlIdentifier.NONE | ControlIdentifier.LIST)
+        str(
+            ControlIdentifier.RETRIEVE | ControlIdentifier.NONE | ControlIdentifier.LIST
+        )
         == "LIST|RETRIEVE"
     )
 
@@ -99,7 +109,9 @@ def test_control_lock_retrieve(read_only_fdb_setup, function_tmp):
 
     assert len(elements) == 1
 
-    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock").exists()
+    assert (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
+    ).exists()
 
     print("Retrieve with lock")
     # Needed because reuse of databases in the retrieve path is using a cached db
@@ -145,7 +157,9 @@ def test_control_lock_list(read_only_fdb_setup, function_tmp):
     assert len(elements) == 3
 
     print("Locking database for listing")
-    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.LIST])
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.LIST]
+    )
     assert control_iterator
 
     elements = []
@@ -156,7 +170,9 @@ def test_control_lock_list(read_only_fdb_setup, function_tmp):
 
     assert len(elements) == 1
 
-    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock").exists()
+    assert (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
+    ).exists()
 
     print("List with lock. Expecting 0 elements.")
     list_iterator = fdb.list(selection)
@@ -164,14 +180,18 @@ def test_control_lock_list(read_only_fdb_setup, function_tmp):
     assert len(elements) == 0
 
     print("Unlocking database for listing")
-    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.LIST])
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.LIST]
+    )
     assert control_iterator
 
     elements = list(control_iterator)
     assert len(elements) > 0
 
     # Correct behaviour is to "not see the data after locking"
-    assert not (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock").exists()
+    assert not (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "list.lock"
+    ).exists()
 
     list_iterator = fdb.list(selection)
     elements = list(list_iterator)
@@ -191,7 +211,9 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function
     }
 
     print("Lock the database for archiving")
-    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
+    )
 
     elements = []
 
@@ -201,15 +223,21 @@ def test_control_lock_archive(read_only_fdb_setup, build_grib_messages, function
 
     assert len(elements) == 1
 
-    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock").exists()
+    assert (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
+    ).exists()
 
     print("Try archiving")
-    with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
+    with pytest.raises(
+        Exception, match=" matched for archived is LOCKED against archiving"
+    ):
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
     print("Unlock the database for archiving")
-    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE])
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
+    )
     assert control_iterator
 
     elements = []
@@ -245,7 +273,9 @@ def test_control_lock_archive_status(
     }
 
     test_logger.info("Lock the database for archiving")
-    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE])
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.ARCHIVE]
+    )
     assert control_iterator
 
     elements = []
@@ -265,15 +295,21 @@ def test_control_lock_archive_status(
     for el in elements:
         test_logger.debug(el)
 
-    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock").exists()
+    assert (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "archive.lock"
+    ).exists()
 
     test_logger.info("Try archiving")
-    with pytest.raises(Exception, match=" matched for archived is LOCKED against archiving"):
+    with pytest.raises(
+        Exception, match=" matched for archived is LOCKED against archiving"
+    ):
         fdb.archive(build_grib_messages.read_bytes())
         fdb.flush()
 
     test_logger.info("Unlock the database for archiving")
-    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE])
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.ARCHIVE]
+    )
     assert control_iterator
 
     elements = []
@@ -311,7 +347,9 @@ def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_message
     fdb.flush()
 
     print("Lock the database for wiping")
-    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.WIPE])
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.WIPE]
+    )
     assert control_iterator
 
     elements = []
@@ -321,7 +359,9 @@ def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_message
         elements.append(el)
 
     assert len(elements) == 1
-    assert (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
+    assert (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
+    ).exists()
 
     print("Try Wipe")
     wipe_iterator = fdb.wipe(selection, doit=True)
@@ -335,7 +375,9 @@ def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_message
     assert len(elements) == 0
 
     print("Unlock the database for wiping")
-    control_iterator = fdb.control(selection, ControlAction.ENABLE, [ControlIdentifier.WIPE])
+    control_iterator = fdb.control(
+        selection, ControlAction.ENABLE, [ControlIdentifier.WIPE]
+    )
     assert control_iterator
 
     elements = []
@@ -346,7 +388,9 @@ def test_control_lock_wipe(read_only_fdb_setup, function_tmp, build_grib_message
 
     assert len(elements) > 0
 
-    assert not (function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock").exists()
+    assert not (
+        function_tmp / "db_store" / "ea:0001:oper:20200101:1800:g" / "wipe.lock"
+    ).exists()
 
     print("Try Wipe")
     fdb.wipe(selection, doit=True)
@@ -442,7 +486,9 @@ def test_control_element_key(read_only_fdb_setup):
     assert len(elements) == 3
 
     print("Locking database for listing")
-    control_iterator = fdb.control(selection, ControlAction.DISABLE, [ControlIdentifier.LIST])
+    control_iterator = fdb.control(
+        selection, ControlAction.DISABLE, [ControlIdentifier.LIST]
+    )
     assert control_iterator
 
     elements = []
@@ -495,7 +541,9 @@ def test_control_element_control_identifiers(read_only_fdb_setup):
         elements.append(el.controlIdentifiers())
 
     assert len(elements) == 1
-    assert len(elements[0]) == 5  # There should be 5 control identifiers for the first database
+    assert (
+        len(elements[0]) == 5
+    )  # There should be 5 control identifiers for the first database
     assert elements[0] == control_identifier_list
     print(f"Element control identifiers: {elements[0]}")
     print(f"Element control identifiers type: {type(elements[0])}")

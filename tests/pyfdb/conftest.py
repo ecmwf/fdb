@@ -1,4 +1,4 @@
-# (C) Copyright 2011- ECMWF.
+# (C) Copyright 2025- ECMWF.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -213,7 +213,9 @@ def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
     today = int(today_date.strftime("%Y%m%d"))
     yesterday = int((today_date - datetime.timedelta(days=1)).strftime("%Y%m%d"))
     before_yesterday = int((today_date - datetime.timedelta(days=2)).strftime("%Y%m%d"))
-    before_before_yesterday = int((today_date - datetime.timedelta(days=3)).strftime("%Y%m%d"))
+    before_before_yesterday = int(
+        (today_date - datetime.timedelta(days=3)).strftime("%Y%m%d")
+    )
 
     dates = [before_before_yesterday, before_yesterday, yesterday, today]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
