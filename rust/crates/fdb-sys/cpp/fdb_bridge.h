@@ -57,7 +57,6 @@ catch (...) {
 }  // namespace rust::behavior
 
 #include "fdb5/api/FDB.h"
-#include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
@@ -89,7 +88,6 @@ struct StatsElementData;
 struct ControlElementData;
 struct MoveElementData;
 struct ConfigData;
-struct AxesElementData;
 
 // ============================================================================
 // Wrapper classes for opaque C++ types
@@ -388,30 +386,6 @@ private:
     bool exhausted_ = false;
 };
 
-/// Wrapper around fdb5::AxesIterator.
-class AxesIteratorHandle {
-public:
-
-    explicit AxesIteratorHandle(fdb5::AxesIterator&& it);
-    ~AxesIteratorHandle();
-
-    AxesIteratorHandle(const AxesIteratorHandle&) = delete;
-    AxesIteratorHandle& operator=(const AxesIteratorHandle&) = delete;
-    AxesIteratorHandle(AxesIteratorHandle&&) = default;
-    AxesIteratorHandle& operator=(AxesIteratorHandle&&) = default;
-
-    // Methods exposed to Rust via cxx
-    bool hasNext();
-    AxesElementData next();
-
-private:
-
-    fdb5::AxesIterator impl_;
-    fdb5::AxesElement current_;
-    bool has_current_ = false;
-    bool exhausted_ = false;
-};
-
 // ============================================================================
 // Initialization functions
 // ============================================================================
@@ -489,9 +463,6 @@ std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, b
 
 /// Get axes for a request.
 rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level);
-
-/// Get an axes iterator.
-std::unique_ptr<AxesIteratorHandle> axes_iterator(FdbHandle& handle, rust::Str request, int32_t level);
 
 // ============================================================================
 // Dump functions
