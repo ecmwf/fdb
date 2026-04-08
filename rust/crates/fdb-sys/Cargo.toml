@@ -21,7 +21,10 @@ vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "eccodes-sys/vendored"]
 system = ["eckit-sys/system", "metkit-sys/system", "eccodes-sys/system"]
 
 # Core features (CMake default: ON)
-grib = ["eccodes-sys/product-grib"]  # GRIB support via eccodes
+# GRIB support requires both eccodes-sys/product-grib (the eccodes library
+# itself) AND metkit-sys/grib (so metkit's grib message splitter is built and
+# its static initializers register with eckit::message::Splitter).
+grib = ["eccodes-sys/product-grib", "metkit-sys/grib"]
 tocfdb = []      # Filesystem TOC support for FDB
 fdb-remote = []  # FDB remote access
 
