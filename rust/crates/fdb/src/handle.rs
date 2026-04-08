@@ -10,8 +10,8 @@ use parking_lot::Mutex;
 use crate::datareader::DataReader;
 use crate::error::Result;
 use crate::iterator::{
-    AxesIterator, ControlIterator, DumpIterator, ListIterator, MoveIterator, PurgeIterator,
-    StatsIterator, StatusIterator, WipeIterator,
+    ControlIterator, DumpIterator, ListIterator, MoveIterator, PurgeIterator, StatsIterator,
+    StatusIterator, WipeIterator,
 };
 use crate::key::Key;
 use crate::request::Request;
@@ -318,22 +318,6 @@ impl Fdb {
     pub fn axes(&self, request: &Request, depth: i32) -> Result<HashMap<String, Vec<String>>> {
         let axes = self.with_handle(|h| fdb_sys::axes(h, &request.to_request_string(), depth))?;
         Ok(axes.into_iter().map(|a| (a.key, a.values)).collect())
-    }
-
-    /// Get an axes iterator for streaming axes results.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The request to query axes for
-    /// * `depth` - Index depth to traverse (1=database, 2=index, 3=full)
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the query fails.
-    pub fn axes_iter(&self, request: &Request, depth: i32) -> Result<AxesIterator> {
-        let it =
-            self.with_handle(|h| fdb_sys::axes_iterator(h, &request.to_request_string(), depth))?;
-        Ok(AxesIterator::new(it))
     }
 
     /// Dump database structure.

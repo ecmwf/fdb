@@ -621,58 +621,6 @@ MoveElementData MoveIteratorHandle::next() {
 }
 
 // ============================================================================
-// AxesIteratorHandle implementation
-// ============================================================================
-
-AxesIteratorHandle::AxesIteratorHandle(fdb5::AxesIterator&& it) : impl_(std::move(it)) {}
-
-AxesIteratorHandle::~AxesIteratorHandle() = default;
-
-bool AxesIteratorHandle::hasNext() {
-    if (exhausted_) {
-        return false;
-    }
-    if (has_current_) {
-        return true;
-    }
-
-    if (impl_.next(current_)) {
-        has_current_ = true;
-        return true;
-    }
-    else {
-        exhausted_ = true;
-        return false;
-    }
-}
-
-AxesElementData AxesIteratorHandle::next() {
-    if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
-    }
-
-    has_current_ = false;
-
-    AxesElementData data;
-
-    // Extract the database key
-    data.db_key = from_fdb_key(current_.key());
-
-    // Extract all axes from the IndexAxis
-    auto axes_map = current_.axes().map();
-    for (const auto& [axis_name, values_set] : axes_map) {
-        AxisEntry entry;
-        entry.key = rust::String(axis_name);
-        for (const auto& v : values_set) {
-            entry.values.push_back(rust::String(v));
-        }
-        data.axes.push_back(std::move(entry));
-    }
-
-    return data;
-}
-
-// ============================================================================
 // Library metadata functions
 // ============================================================================
 
@@ -785,13 +733,6 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
         result.push_back(std::move(entry));
     }
     return result;
-}
-
-std::unique_ptr<AxesIteratorHandle> axes_iterator(FdbHandle& handle, rust::Str request, int32_t level) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().axesIterator(tool_request, level);
-    return std::make_unique<AxesIteratorHandle>(std::move(it));
 }
 
 // ============================================================================
