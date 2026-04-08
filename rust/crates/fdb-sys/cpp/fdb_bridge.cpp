@@ -173,6 +173,14 @@ FdbHandle::FdbHandle(const std::string& yaml_config) :
         return fdb5::FDB(fdb_config);
     }()) {}
 
+FdbHandle::FdbHandle(const std::string& yaml_config, const std::string& yaml_user_config) :
+    impl_([&] {
+        eckit::YAMLConfiguration config(yaml_config);
+        eckit::YAMLConfiguration user_config(yaml_user_config);
+        fdb5::Config fdb_config(config, user_config);
+        return fdb5::FDB(fdb_config);
+    }()) {}
+
 FdbHandle::~FdbHandle() = default;
 
 bool FdbHandle::dirty() const {
@@ -720,6 +728,10 @@ std::unique_ptr<FdbHandle> new_fdb() {
 
 std::unique_ptr<FdbHandle> new_fdb_from_yaml(rust::Str config) {
     return std::make_unique<FdbHandle>(std::string(config));
+}
+
+std::unique_ptr<FdbHandle> new_fdb_from_yaml_with_user_config(rust::Str config, rust::Str user_config) {
+    return std::make_unique<FdbHandle>(std::string(config), std::string(user_config));
 }
 
 // ============================================================================

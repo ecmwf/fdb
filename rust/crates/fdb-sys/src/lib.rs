@@ -424,6 +424,13 @@ mod ffi {
         /// Create a new FDB handle from YAML configuration.
         fn new_fdb_from_yaml(config: &str) -> Result<UniquePtr<FdbHandle>>;
 
+        /// Create a new FDB handle from YAML configuration plus a YAML
+        /// per-instance "user config" (e.g. `useSubToc`, `preloadTocBTree`).
+        fn new_fdb_from_yaml_with_user_config(
+            config: &str,
+            user_config: &str,
+        ) -> Result<UniquePtr<FdbHandle>>;
+
         // =====================================================================
         // Archive operations (free functions)
         // =====================================================================
