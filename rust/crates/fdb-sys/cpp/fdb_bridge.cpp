@@ -309,7 +309,13 @@ ListElementData ListIteratorHandle::next() {
     has_current_ = false;
 
     ListElementData data;
-    data.uri = rust::String(current_.location().uri().asRawString());
+    // Use `fullUri()` (not `uri()`) so the resulting string encodes the
+    // entry's offset in the URI fragment and its length in the `length` query
+    // parameter. This matches what `FieldLocation(const eckit::URI&)` parses
+    // back, so the URI is round-trippable through `read_uri()` without the
+    // caller having to seek manually. Same pattern as the upstream
+    // `fdb-url`/`fdb-hammer` tools.
+    data.uri = rust::String(current_.location().fullUri().asRawString());
     data.offset = current_.location().offset();
     data.length = current_.location().length();
 
