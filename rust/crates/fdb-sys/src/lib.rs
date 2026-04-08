@@ -287,7 +287,7 @@ mod ffi {
         type ListIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut ListIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut ListIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut ListIteratorHandle>) -> Result<ListElementData>;
@@ -300,7 +300,7 @@ mod ffi {
         type DumpIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut DumpIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut DumpIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut DumpIteratorHandle>) -> Result<DumpElementData>;
@@ -313,7 +313,7 @@ mod ffi {
         type StatusIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut StatusIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut StatusIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut StatusIteratorHandle>) -> Result<StatusElementData>;
@@ -326,7 +326,7 @@ mod ffi {
         type WipeIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut WipeIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut WipeIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut WipeIteratorHandle>) -> Result<WipeElementData>;
@@ -339,7 +339,7 @@ mod ffi {
         type PurgeIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut PurgeIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut PurgeIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut PurgeIteratorHandle>) -> Result<PurgeElementData>;
@@ -352,7 +352,7 @@ mod ffi {
         type StatsIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut StatsIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut StatsIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut StatsIteratorHandle>) -> Result<StatsElementData>;
@@ -365,7 +365,7 @@ mod ffi {
         type ControlIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut ControlIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut ControlIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut ControlIteratorHandle>) -> Result<ControlElementData>;
@@ -378,7 +378,7 @@ mod ffi {
         type MoveIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut MoveIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut MoveIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut MoveIteratorHandle>) -> Result<MoveElementData>;
@@ -391,7 +391,7 @@ mod ffi {
         type AxesIteratorHandle;
 
         /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut AxesIteratorHandle>) -> bool;
+        fn hasNext(self: Pin<&mut AxesIteratorHandle>) -> Result<bool>;
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut AxesIteratorHandle>) -> Result<AxesElementData>;
