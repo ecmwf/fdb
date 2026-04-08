@@ -327,7 +327,7 @@ fn test_concurrent_archive_operations() {
     let items: Vec<_> = fdb
         .list(&request, 3, false)
         .expect("list failed")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
 
     let expected_count = thread_count * iterations_per_thread;

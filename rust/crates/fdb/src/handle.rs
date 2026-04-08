@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Once;
 
-use fdb_sys::ControlAction;
 use fdb_sys::UniquePtr;
+use fdb_sys::{ControlAction, ControlIdentifier};
 use parking_lot::Mutex;
 
 use crate::datareader::DataReader;
@@ -433,7 +433,8 @@ impl Fdb {
     ///
     /// * `request` - The request specifying which databases to control
     /// * `action` - The action to perform
-    /// * `identifiers` - The feature identifiers to control (e.g., "retrieve", "archive")
+    /// * `identifiers` - The feature identifiers to control (e.g.
+    ///   `ControlIdentifier::Retrieve`, `ControlIdentifier::Archive`)
     ///
     /// # Errors
     ///
@@ -442,11 +443,11 @@ impl Fdb {
         &self,
         request: &Request,
         action: ControlAction,
-        identifiers: &[String],
+        identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
-        let ids: Vec<String> = identifiers.to_vec();
-        let it =
-            self.with_handle(|h| fdb_sys::control(h, &request.to_request_string(), action, &ids))?;
+        let it = self.with_handle(|h| {
+            fdb_sys::control(h, &request.to_request_string(), action, identifiers)
+        })?;
         Ok(ControlIterator::new(it))
     }
 
@@ -469,9 +470,10 @@ impl Fdb {
     ///
     /// # Arguments
     ///
-    /// * `identifier` - The identifier to check (e.g., "retrieve", "archive")
+    /// * `identifier` - The identifier to check (e.g.
+    ///   `ControlIdentifier::Retrieve`, `ControlIdentifier::Archive`)
     #[must_use]
-    pub fn enabled(&self, identifier: &str) -> bool {
+    pub fn enabled(&self, identifier: ControlIdentifier) -> bool {
         self.with_handle_ref(|h| h.enabled(identifier))
     }
 

@@ -130,7 +130,7 @@ public:
     FdbStatsData stats() const;
 
     /// Check if a control identifier is enabled.
-    bool enabled(rust::Str identifier) const;
+    bool enabled(fdb5::ControlIdentifier identifier) const;
 
     /// Get the FDB configuration ID.
     rust::String id() const;
@@ -535,7 +535,7 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 
 /// Control database features.
 std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
-                                               const rust::Vec<rust::String>& identifiers);
+                                               rust::Slice<const fdb5::ControlIdentifier> identifiers);
 
 // ============================================================================
 // Move functions
