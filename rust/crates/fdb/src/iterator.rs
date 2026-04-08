@@ -608,8 +608,8 @@ unsafe impl Send for ControlIterator {}
 pub struct ControlElement {
     /// Location of the database.
     pub location: String,
-    /// Control identifiers (e.g., "retrieve", "archive").
-    pub identifiers: Vec<String>,
+    /// Control identifiers enabled for this database.
+    pub identifiers: Vec<fdb_sys::ControlIdentifier>,
 }
 
 // =============================================================================

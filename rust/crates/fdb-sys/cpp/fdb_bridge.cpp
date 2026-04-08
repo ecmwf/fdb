@@ -122,44 +122,6 @@ static fdb5::FDBToolRequest make_tool_request(const std::string& request_str) {
     return fdb5::FDBToolRequest{mars, all, std::vector<std::string>{}};
 }
 
-/// Convert ControlIdentifier enum to string
-static std::string control_identifier_to_string(fdb5::ControlIdentifier id) {
-    switch (id) {
-        case fdb5::ControlIdentifier::List:
-            return "list";
-        case fdb5::ControlIdentifier::Retrieve:
-            return "retrieve";
-        case fdb5::ControlIdentifier::Archive:
-            return "archive";
-        case fdb5::ControlIdentifier::Wipe:
-            return "wipe";
-        case fdb5::ControlIdentifier::UniqueRoot:
-            return "uniqueRoot";
-        default:
-            return "unknown";
-    }
-}
-
-/// Convert string to ControlIdentifier enum
-static fdb5::ControlIdentifier control_identifier_from_string(const std::string& s) {
-    if (s == "list") {
-        return fdb5::ControlIdentifier::List;
-    }
-    if (s == "retrieve") {
-        return fdb5::ControlIdentifier::Retrieve;
-    }
-    if (s == "archive") {
-        return fdb5::ControlIdentifier::Archive;
-    }
-    if (s == "wipe") {
-        return fdb5::ControlIdentifier::Wipe;
-    }
-    if (s == "uniqueRoot") {
-        return fdb5::ControlIdentifier::UniqueRoot;
-    }
-    return fdb5::ControlIdentifier::None;
-}
-
 // ============================================================================
 // FdbHandle implementation
 // ============================================================================
@@ -200,10 +162,8 @@ FdbStatsData FdbHandle::stats() const {
     return data;
 }
 
-bool FdbHandle::enabled(rust::Str identifier) const {
-    std::string id_str{identifier};
-    auto ctrl_id = control_identifier_from_string(id_str);
-    return impl_.enabled(ctrl_id);
+bool FdbHandle::enabled(fdb5::ControlIdentifier identifier) const {
+    return impl_.enabled(identifier);
 }
 
 rust::String FdbHandle::id() const {
@@ -607,7 +567,7 @@ ControlElementData ControlIteratorHandle::next() {
     ControlElementData data;
     data.location = rust::String(current_.location.asString());
     for (const auto& id : current_.controlIdentifiers) {
-        data.identifiers.push_back(rust::String(control_identifier_to_string(id)));
+        data.identifiers.push_back(id);
     }
     return data;
 }
@@ -889,14 +849,13 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 // ============================================================================
 
 std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
-                                               const rust::Vec<rust::String>& identifiers) {
+                                               rust::Slice<const fdb5::ControlIdentifier> identifiers) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
 
-    // Parse control identifiers using |= operator
     fdb5::ControlIdentifiers ctrl_ids;
-    for (const auto& id : identifiers) {
-        ctrl_ids |= control_identifier_from_string(std::string(id));
+    for (auto id : identifiers) {
+        ctrl_ids |= id;
     }
 
     auto it = handle.inner().control(tool_request, action, ctrl_ids);

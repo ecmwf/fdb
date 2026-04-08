@@ -40,5 +40,5 @@ pub use iterator::{
 pub use key::Key;
 pub use request::Request;
 
-// Re-export control action enum from the cxx bindings
-pub use fdb_sys::ControlAction;
+// Re-export control enums from the cxx bindings
+pub use fdb_sys::{ControlAction, ControlIdentifier};

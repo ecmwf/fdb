@@ -279,7 +279,7 @@ fn test_fdb_axes_iterator() {
     }
 }
 
-/// Test that axes() and axes_iter() return the same set of axis names.
+/// Test that `axes()` and `axes_iter()` return the same set of axis names.
 /// This is a regression test for the fix that removed hardcoded axis names.
 #[test]
 #[ignore = "requires FDB libraries"]
@@ -317,7 +317,7 @@ fn test_fdb_axes_consistency() {
     let axes_iter_items: Vec<_> = fdb
         .axes_iter(&request, 3)
         .expect("failed to get axes iterator")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
 
     // Collect all axis names from iterator
@@ -726,15 +726,17 @@ fn test_fdb_aggregate_stats() {
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_enabled() {
+    use fdb::ControlIdentifier;
+
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
     // Check if various identifiers are enabled
-    let retrieve_enabled = fdb.enabled("retrieve");
-    let archive_enabled = fdb.enabled("archive");
-    let list_enabled = fdb.enabled("list");
+    let retrieve_enabled = fdb.enabled(ControlIdentifier::Retrieve);
+    let archive_enabled = fdb.enabled(ControlIdentifier::Archive);
+    let list_enabled = fdb.enabled(ControlIdentifier::List);
 
     println!(
         "Enabled: retrieve={retrieve_enabled}, archive={archive_enabled}, list={list_enabled}"
@@ -1187,7 +1189,7 @@ fn test_fdb_datareader_seek() {
         "expected error when seeking to negative position"
     );
 
-    let err = reader.seek(SeekFrom::End(-(total_size as i64 + 100)));
+    let err = reader.seek(SeekFrom::End(-(total_size.cast_signed() + 100)));
     assert!(
         err.is_err(),
         "expected error when seeking before start via End"
@@ -1228,7 +1230,7 @@ fn test_fdb_list_element_full_key() {
     let items: Vec<_> = fdb
         .list(&list_request, 3, false)
         .expect("failed to list")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
 
     assert!(!items.is_empty(), "expected at least one item");
@@ -1261,7 +1263,7 @@ fn test_fdb_list_element_full_key() {
         }
 
         // Print for debugging
-        println!("ListElement full_key: {:?}", full);
+        println!("ListElement full_key: {full:?}");
     }
 }
 
@@ -1294,16 +1296,19 @@ fn test_fdb_control_lock_unlock() {
     fdb.flush().expect("flush failed");
 
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
-    let identifiers = vec!["retrieve".to_string(), "archive".to_string()];
+    let identifiers = [
+        fdb::ControlIdentifier::Retrieve,
+        fdb::ControlIdentifier::Archive,
+    ];
 
     // Test None action (query current state)
     let none_result = fdb.control(&request, ControlAction::None, &identifiers);
     assert!(none_result.is_ok(), "control None should succeed");
     let elements: Vec<_> = none_result
         .expect("control None failed")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
-    println!("Control None elements: {:?}", elements);
+    println!("Control None elements: {elements:?}");
     assert!(!elements.is_empty(), "control None should return elements");
 
     // Test Disable action
@@ -1311,16 +1316,16 @@ fn test_fdb_control_lock_unlock() {
     assert!(disable_result.is_ok(), "control Disable should succeed");
     let elements: Vec<_> = disable_result
         .expect("control Disable failed")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
-    println!("Control Disable elements: {:?}", elements);
+    println!("Control Disable elements: {elements:?}");
 
     // Test Enable action
     let enable_result = fdb.control(&request, ControlAction::Enable, &identifiers);
     assert!(enable_result.is_ok(), "control Enable should succeed");
     let elements: Vec<_> = enable_result
         .expect("control Enable failed")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
     for elem in &elements {
         println!(
@@ -1344,17 +1349,17 @@ fn test_fdb_config_accessors() {
 
     // Test config_string - try to get a string config value
     let type_str = fdb.config_string("type");
-    println!("config_string('type') = {:?}", type_str);
+    println!("config_string('type') = {type_str:?}");
 
     // Test config_int - returns None if key doesn't exist
     let some_int = fdb.config_int("nonexistent_key");
     assert!(some_int.is_none(), "nonexistent key should return None");
-    println!("config_int('nonexistent_key') = {:?}", some_int);
+    println!("config_int('nonexistent_key') = {some_int:?}");
 
     // Test config_bool - returns None if key doesn't exist
     let some_bool = fdb.config_bool("nonexistent_key");
     assert!(some_bool.is_none(), "nonexistent key should return None");
-    println!("config_bool('nonexistent_key') = {:?}", some_bool);
+    println!("config_bool('nonexistent_key') = {some_bool:?}");
 
     // Test config_has for various keys
     let has_type = fdb.config_has("type");
@@ -1367,16 +1372,18 @@ fn test_fdb_config_accessors() {
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_enabled_identifiers() {
+    use fdb::ControlIdentifier;
+
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
     // Test enabled() for various identifiers
-    let retrieve_enabled = fdb.enabled("retrieve");
-    let archive_enabled = fdb.enabled("archive");
-    let list_enabled = fdb.enabled("list");
-    let wipe_enabled = fdb.enabled("wipe");
+    let retrieve_enabled = fdb.enabled(ControlIdentifier::Retrieve);
+    let archive_enabled = fdb.enabled(ControlIdentifier::Archive);
+    let list_enabled = fdb.enabled(ControlIdentifier::List);
+    let wipe_enabled = fdb.enabled(ControlIdentifier::Wipe);
 
     println!(
         "enabled: retrieve={retrieve_enabled}, archive={archive_enabled}, list={list_enabled}, wipe={wipe_enabled}"
@@ -1393,7 +1400,7 @@ fn test_fdb_enabled_identifiers() {
 // Tests for previously untested methods (H9)
 // =============================================================================
 
-/// Test archive_raw() - archives GRIB data with embedded metadata key.
+/// Test `archive_raw()` - archives GRIB data with embedded metadata key.
 /// This is useful when archiving GRIB files that already contain full metadata.
 #[test]
 #[ignore = "requires FDB libraries"]
@@ -1409,7 +1416,7 @@ fn test_fdb_archive_raw() {
 
     // Archive using archive_raw - key is extracted from GRIB metadata
     let result = fdb.archive_raw(&grib_data);
-    println!("archive_raw result: {:?}", result);
+    println!("archive_raw result: {result:?}");
 
     // Note: This may fail if the GRIB doesn't have complete metadata for the schema,
     // but the method itself should work. Testing the API works without panicking.
@@ -1422,14 +1429,14 @@ fn test_fdb_archive_raw() {
         let items: Vec<_> = fdb
             .list(&request, 3, false)
             .expect("failed to list")
-            .filter_map(|r| r.ok())
+            .filter_map(std::result::Result::ok)
             .collect();
 
         println!("archive_raw: found {} items after archive", items.len());
     }
 }
 
-/// Test read_uri() - reads data from a specific URI location.
+/// Test `read_uri()` - reads data from a specific URI location.
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_read_uri() {
@@ -1461,7 +1468,7 @@ fn test_fdb_read_uri() {
     let items: Vec<_> = fdb
         .list(&request, 3, false)
         .expect("failed to list")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
 
     assert!(!items.is_empty(), "expected at least one item");
@@ -1470,17 +1477,14 @@ fn test_fdb_read_uri() {
     let uri = &items[0].uri;
     let offset = items[0].offset;
     let length = items[0].length;
-    println!(
-        "Reading from URI: {} (offset={}, length={})",
-        uri, offset, length
-    );
+    println!("Reading from URI: {uri} (offset={offset}, length={length})");
 
     // Read using the URI
     let mut reader = fdb.read_uri(uri).expect("failed to read_uri");
 
     // Seek to the offset and read the data
     reader.seek_to(offset).expect("failed to seek");
-    let mut data = vec![0u8; length as usize];
+    let mut data = vec![0u8; usize::try_from(length).expect("length exceeds usize::MAX")];
     reader.read_exact(&mut data).expect("failed to read");
 
     assert_eq!(
@@ -1491,7 +1495,7 @@ fn test_fdb_read_uri() {
     assert_eq!(data, grib_data, "read data should match original");
 }
 
-/// Test read_uris() - reads data from multiple URI locations.
+/// Test `read_uris()` - reads data from multiple URI locations.
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_read_uris() {
@@ -1526,7 +1530,7 @@ fn test_fdb_read_uris() {
     let items: Vec<_> = fdb
         .list(&request, 3, false)
         .expect("failed to list")
-        .filter_map(|r| r.ok())
+        .filter_map(std::result::Result::ok)
         .collect();
 
     assert!(items.len() >= 2, "expected at least 2 items");
@@ -1547,7 +1551,7 @@ fn test_fdb_read_uris() {
     assert!(!data.is_empty(), "expected non-empty data from read_uris");
 }
 
-/// Test read_from_list() - reads data from a ListIterator.
+/// Test `read_from_list()` - reads data from a `ListIterator`.
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_read_from_list() {
@@ -1595,7 +1599,7 @@ fn test_fdb_read_from_list() {
     assert_eq!(data, grib_data, "data should match original");
 }
 
-/// Test move_data() - moves data to a new location.
+/// Test `move_data()` - moves data to a new location.
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_move_data() {
@@ -1638,7 +1642,7 @@ fn test_fdb_move_data() {
 
     // Collect move elements if successful
     if let Ok(move_iter) = result {
-        let elements: Vec<_> = move_iter.filter_map(|r| r.ok()).collect();
+        let elements: Vec<_> = move_iter.filter_map(std::result::Result::ok).collect();
         println!("move_data returned {} elements", elements.len());
         for elem in &elements {
             println!("  moved: {} -> {}", elem.source, elem.destination);

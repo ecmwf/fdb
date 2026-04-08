@@ -2,7 +2,7 @@
 //!
 //! Run with: `cargo run --example fdb_basic -p fdb`
 
-use fdb::Fdb;
+use fdb::{ControlIdentifier, Fdb};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Print version info (works without FDB config)
@@ -17,9 +17,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Check capabilities
     println!("\nCapabilities:");
-    println!("  retrieve enabled: {}", fdb.enabled("retrieve"));
-    println!("  archive enabled: {}", fdb.enabled("archive"));
-    println!("  list enabled: {}", fdb.enabled("list"));
+    println!(
+        "  retrieve enabled: {}",
+        fdb.enabled(ControlIdentifier::Retrieve)
+    );
+    println!(
+        "  archive enabled: {}",
+        fdb.enabled(ControlIdentifier::Archive)
+    );
+    println!("  list enabled: {}", fdb.enabled(ControlIdentifier::List));
 
     Ok(())
 }

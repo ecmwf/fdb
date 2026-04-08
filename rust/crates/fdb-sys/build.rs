@@ -530,7 +530,7 @@ fn emit_rpath_flags() {
 
 /// Copy libraries to target directory for portable binaries.
 /// Returns the path to the libs directory where libraries were copied.
-/// This MUST be called BEFORE emit_link_directives so we link against the copied location.
+/// This MUST be called BEFORE `emit_link_directives` so we link against the copied location.
 #[cfg(feature = "vendored")]
 fn copy_resources_to_output(
     fdb_install_dir: &std::path::Path,
@@ -562,7 +562,9 @@ fn copy_resources_to_output(
             let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             // Match .so, .dylib, and versioned .so.X files
-            let is_shared_lib = file_name.ends_with(".dylib")
+            let is_shared_lib = std::path::Path::new(file_name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("dylib"))
                 || file_name.contains(".so")
                 || path.extension().is_some_and(|ext| ext == "so");
 
@@ -594,5 +596,5 @@ fn copy_resources_to_output(
     // Export resource directory name for runtime discovery
     println!("cargo:rustc-env=FDB_LIBS_DIR=fdb_libs");
 
-    libs_dest.to_path_buf()
+    libs_dest.clone()
 }

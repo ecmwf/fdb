@@ -164,8 +164,8 @@ mod ffi {
     pub struct ControlElementData {
         /// Location
         pub location: String,
-        /// Control identifiers
-        pub identifiers: Vec<String>,
+        /// Control identifiers (each variant is the same as `fdb5::ControlIdentifier`).
+        pub identifiers: Vec<ControlIdentifier>,
     }
 
     /// Result from move iteration.
@@ -186,7 +186,7 @@ mod ffi {
         pub config_path: String,
     }
 
-    // Bind to existing fdb5::ControlAction C++ enum.
+    // Bind to existing fdb5::ControlAction / fdb5::ControlIdentifier C++ enums.
     // The shared enum + extern type pattern tells CXX to use the existing
     // C++ enum and generate static assertions to verify the values match.
     /// Control action for database features.
@@ -201,10 +201,25 @@ mod ffi {
         Enable = 2,
     }
 
+    /// Feature identifier for `control()` operations. Bitflag values match
+    /// `fdb5::ControlIdentifier` exactly.
+    #[namespace = "fdb5"]
+    #[repr(u16)]
+    #[derive(Debug)]
+    pub enum ControlIdentifier {
+        None = 0,
+        List = 1,
+        Retrieve = 2,
+        Archive = 4,
+        Wipe = 8,
+        UniqueRoot = 16,
+    }
+
     #[namespace = "fdb5"]
     unsafe extern "C++" {
         include!("fdb5/api/helpers/ControlIterator.h");
         type ControlAction;
+        type ControlIdentifier;
     }
 
     // =========================================================================
@@ -231,7 +246,7 @@ mod ffi {
         fn stats(self: &FdbHandle) -> FdbStatsData;
 
         /// Check if a control identifier is enabled.
-        fn enabled(self: &FdbHandle, identifier: &str) -> bool;
+        fn enabled(self: &FdbHandle, identifier: ControlIdentifier) -> bool;
 
         /// Get the FDB configuration ID.
         fn id(self: &FdbHandle) -> String;
@@ -563,7 +578,7 @@ mod ffi {
             handle: Pin<&mut FdbHandle>,
             request: &str,
             action: ControlAction,
-            identifiers: &Vec<String>,
+            identifiers: &[ControlIdentifier],
         ) -> Result<UniquePtr<ControlIteratorHandle>>;
 
         // =====================================================================
