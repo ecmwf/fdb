@@ -84,6 +84,32 @@ impl Fdb {
         })
     }
 
+    /// Create a new FDB handle from a YAML configuration plus a per-instance
+    /// "user config" (also YAML).
+    ///
+    /// The user config corresponds to the second argument of
+    /// `fdb5::Config::Config(...)` and carries runtime overrides such as
+    /// `useSubToc: true` or `preloadTocBTree: true` that are not part of the
+    /// shared FDB configuration file.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use fdb::Fdb;
+    ///
+    /// let config = "type: local\nengine: toc\nschema: /tmp/schema\nspaces: []";
+    /// let user_config = "useSubToc: true";
+    /// let fdb = Fdb::from_yaml_with_user_config(config, user_config)?;
+    /// # Ok::<(), fdb::Error>(())
+    /// ```
+    pub fn from_yaml_with_user_config(config: &str, user_config: &str) -> Result<Self> {
+        initialize();
+        let handle = fdb_sys::new_fdb_from_yaml_with_user_config(config, user_config)?;
+        Ok(Self {
+            handle: Mutex::new(HandleInner(handle)),
+        })
+    }
+
     #[inline]
     fn with_handle<F, R>(&self, f: F) -> R
     where

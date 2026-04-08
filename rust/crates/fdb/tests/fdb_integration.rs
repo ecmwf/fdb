@@ -1648,3 +1648,121 @@ fn test_fdb_move_data() {
     // Note: move_data behavior depends on FDB configuration and backend support.
     // The test verifies the API works without panicking.
 }
+
+/// Walk a directory tree and collect every `toc.*` filename (subtoc files
+/// produced by `useSubToc: true`). Returns the relative basenames so the test
+/// only sees the discriminating part of the layout.
+fn collect_subtoc_files(root: &std::path::Path) -> Vec<String> {
+    fn walk(dir: &std::path::Path, out: &mut Vec<String>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, out);
+            } else if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                // Subtoc files are produced by `eckit::PathName::unique("toc")`
+                // and have the form `toc.<unique-suffix>`. Exclude the main
+                // `toc` file itself.
+                if name.starts_with("toc.") {
+                    out.push(name.to_string());
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, &mut out);
+    out
+}
+
+/// Drive an archive + retrieve cycle and return the subtoc files that ended
+/// up in `tmpdir`. Used by the subtoc on/off test below.
+fn archive_one_record(fdb: &Fdb) {
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+}
+
+/// Verify that the `useSubToc` user-config flag is actually plumbed through
+/// `fdb5::Config`'s second constructor argument: with the flag off the
+/// database directory contains only the main `toc`, with the flag on we get
+/// at least one `toc.<unique>` subtoc file in the same place.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_subtoc_user_config() {
+    // --- subtocs OFF (default) ---
+    let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
+    let config_off = create_test_config(tmpdir_off.path());
+    {
+        let fdb_off = Fdb::from_yaml_with_user_config(&config_off, "useSubToc: false")
+            .expect("from_yaml off");
+        archive_one_record(&fdb_off);
+    } // drop handle so the TOC is fully closed before we walk the dir
+
+    let subtocs_off = collect_subtoc_files(tmpdir_off.path());
+    assert!(
+        subtocs_off.is_empty(),
+        "expected no subtoc files with useSubToc=false, found: {subtocs_off:?}"
+    );
+
+    // --- subtocs ON ---
+    let tmpdir_on = tempfile::tempdir().expect("failed to create temp dir");
+    let config_on = create_test_config(tmpdir_on.path());
+    {
+        let fdb_on =
+            Fdb::from_yaml_with_user_config(&config_on, "useSubToc: true").expect("from_yaml on");
+        archive_one_record(&fdb_on);
+    }
+
+    let subtocs_on = collect_subtoc_files(tmpdir_on.path());
+    assert!(
+        !subtocs_on.is_empty(),
+        "expected at least one subtoc file with useSubToc=true, found none under {}",
+        tmpdir_on.path().display()
+    );
+}
+
+/// Smoke test for the `preloadTocBTree` user-config flag.
+///
+/// Unlike `useSubToc`, this option only changes runtime behaviour (it eagerly
+/// loads the toc B-tree on open instead of lazily) and produces no observable
+/// on-disk artifact, so we can only verify that both values are accepted by
+/// the C++ side and that an archive + list round-trip succeeds in each mode.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_preload_toc_btree_user_config() {
+    for preload in ["true", "false"] {
+        let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+        let config = create_test_config(tmpdir.path());
+        let user_config = format!("preloadTocBTree: {preload}");
+
+        let fdb = Fdb::from_yaml_with_user_config(&config, &user_config)
+            .unwrap_or_else(|e| panic!("from_yaml_with_user_config({user_config:?}) failed: {e}"));
+
+        archive_one_record(&fdb);
+
+        let request = Request::new().with("class", "rd").with("expver", "xxxx");
+        let items: Vec<_> = fdb
+            .list(&request, 3, false)
+            .expect("failed to list")
+            .collect();
+        assert!(
+            !items.is_empty(),
+            "list returned no items with preloadTocBTree={preload}"
+        );
+    }
+}
