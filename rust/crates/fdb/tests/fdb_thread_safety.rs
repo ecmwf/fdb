@@ -337,9 +337,6 @@ fn test_concurrent_archive_operations() {
         "expected {expected_count} archived items, found {}",
         items.len()
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test: Mixed concurrent read and write operations.
@@ -417,7 +414,4 @@ fn test_concurrent_read_write_mix() {
 
     // Final flush
     fdb.flush().expect("final flush failed");
-
-    drop(fdb);
-    drop(tmpdir);
 }
