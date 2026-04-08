@@ -91,11 +91,12 @@ const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRe
 
 const std::vector<std::string>& MatchOptional::optionalValues() const {
     if (!optionalValues_) {
-         if (!defaultValue().empty()) {
-             optionalValues_ = std::vector<std::string>{defaultValue(), ""};
-         } else {
-             optionalValues_ = std::vector<std::string>{defaultValue()};
-         }
+        if (!defaultValue().empty()) {
+            optionalValues_ = std::vector<std::string>{defaultValue(), ""};
+        }
+        else {
+            optionalValues_ = std::vector<std::string>{defaultValue()};
+        }
     }
     return *optionalValues_;
 }
