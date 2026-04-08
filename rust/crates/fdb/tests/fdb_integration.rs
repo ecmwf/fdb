@@ -67,10 +67,6 @@ fn test_fdb_handle_from_yaml() {
 
     let fdb = Fdb::from_yaml(&config);
     assert!(fdb.is_ok(), "failed to create FDB handle: {:?}", fdb.err());
-
-    // Keep tmpdir alive until FDB is dropped
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -107,9 +103,6 @@ fn test_fdb_list_no_results() {
         items.is_empty(),
         "expected no results for nonexistent class"
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -148,10 +141,6 @@ fn test_fdb_archive_simple() {
         fdb.flush().expect("flush failed");
         println!("Done!");
     }
-
-    // Keep tmpdir alive
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -209,9 +198,6 @@ fn test_fdb_archive_retrieve_cycle() {
         .expect("failed to read");
 
     assert_eq!(retrieved_data.len(), grib_data.len());
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -248,9 +234,6 @@ fn test_fdb_axes() {
 
     // Should have some axes returned
     assert!(!axes.is_empty(), "expected at least one axis");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -294,9 +277,6 @@ fn test_fdb_axes_iterator() {
             Err(e) => println!("  error: {e}"),
         }
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test that axes() and axes_iter() return the same set of axis names.
@@ -367,9 +347,6 @@ fn test_fdb_axes_consistency() {
     assert!(direct_keys.contains("class"), "should have 'class' axis");
     assert!(direct_keys.contains("expver"), "should have 'expver' axis");
     assert!(direct_keys.contains("stream"), "should have 'stream' axis");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -417,9 +394,6 @@ fn test_fdb_dump() {
         println!("  {}", item.content);
         assert!(!item.content.is_empty(), "dump content should not be empty");
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -470,9 +444,6 @@ fn test_fdb_status() {
             "status location should not be empty"
         );
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -537,9 +508,6 @@ fn test_fdb_wipe_dry_run() {
         items_after.len(),
         "dry-run should not delete data"
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -584,9 +552,6 @@ fn test_fdb_purge_dry_run() {
             Err(e) => println!("  error: {e}"),
         }
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -632,9 +597,6 @@ fn test_fdb_stats_iterator() {
             Err(e) => println!("  error: {e}"),
         }
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -673,9 +635,6 @@ fn test_fdb_dirty_flag() {
 
     // Should not be dirty after flush
     assert!(!fdb.dirty(), "expected FDB to not be dirty after flush");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -703,9 +662,6 @@ fn test_fdb_config_methods() {
     // Note: available keys depend on the configuration
     let has_type = fdb.config_has("type");
     println!("config_has('type') = {has_type}");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -765,9 +721,6 @@ fn test_fdb_aggregate_stats() {
         stats_after_flush.num_flush > stats_after_archive.num_flush,
         "expected flush count to increase"
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -791,9 +744,6 @@ fn test_fdb_enabled() {
     assert!(retrieve_enabled, "expected retrieve to be enabled");
     assert!(archive_enabled, "expected archive to be enabled");
     assert!(list_enabled, "expected list to be enabled");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test matching C++ `test_callback.cc`: Archive and flush callback
@@ -887,9 +837,6 @@ fn test_fdb_callbacks() {
         flush_called.load(Ordering::SeqCst),
         archive_count.load(Ordering::SeqCst)
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test matching C++ `test_wipe.cc`: Actual wipe (doit=true)
@@ -973,9 +920,6 @@ fn test_fdb_wipe_actual() {
         .collect();
     assert_eq!(items_final.len(), 0, "expected 0 fields after full wipe");
     println!("Wiped all databases");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test matching C++ `test_wipe.cc`: Wipe masked data (duplicates)
@@ -1039,9 +983,6 @@ fn test_fdb_wipe_masked_data() {
         .expect("failed to list")
         .collect();
     assert_eq!(items_final.len(), 0, "expected 0 fields after wipe");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test matching C++ `test_wipe.cc`: Purge removes duplicates
@@ -1101,9 +1042,6 @@ fn test_fdb_purge_actual() {
         1,
         "expected 1 field after purge removes duplicates"
     );
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test matching C++ `test_config.cc`: Config expansion from YAML
@@ -1141,9 +1079,6 @@ spaces:
     // Test config accessors
     let has_type = fdb.config_has("type");
     println!("config_has('type') = {has_type}");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -1260,9 +1195,6 @@ fn test_fdb_datareader_seek() {
 
     // Test close() explicitly
     reader.close().expect("close failed");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -1331,9 +1263,6 @@ fn test_fdb_list_element_full_key() {
         // Print for debugging
         println!("ListElement full_key: {:?}", full);
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -1403,9 +1332,6 @@ fn test_fdb_control_lock_unlock() {
             "control element location should not be empty"
         );
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -1436,9 +1362,6 @@ fn test_fdb_config_accessors() {
     let has_nonexistent = fdb.config_has("definitely_not_a_key");
     println!("config_has: type={has_type}, schema={has_schema}, nonexistent={has_nonexistent}");
     assert!(!has_nonexistent, "nonexistent key should return false");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[test]
@@ -1464,9 +1387,6 @@ fn test_fdb_enabled_identifiers() {
     assert!(archive_enabled, "archive should be enabled by default");
     assert!(list_enabled, "list should be enabled by default");
     // wipe may or may not be enabled depending on config
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 // =============================================================================
@@ -1507,9 +1427,6 @@ fn test_fdb_archive_raw() {
 
         println!("archive_raw: found {} items after archive", items.len());
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test read_uri() - reads data from a specific URI location.
@@ -1572,9 +1489,6 @@ fn test_fdb_read_uri() {
         "read data should match original size"
     );
     assert_eq!(data, grib_data, "read data should match original");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test read_uris() - reads data from multiple URI locations.
@@ -1631,9 +1545,6 @@ fn test_fdb_read_uris() {
 
     // Should have read data from both URIs
     assert!(!data.is_empty(), "expected non-empty data from read_uris");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test read_from_list() - reads data from a ListIterator.
@@ -1682,9 +1593,6 @@ fn test_fdb_read_from_list() {
         "read_from_list should return same amount of data"
     );
     assert_eq!(data, grib_data, "data should match original");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 /// Test move_data() - moves data to a new location.
@@ -1739,7 +1647,4 @@ fn test_fdb_move_data() {
 
     // Note: move_data behavior depends on FDB configuration and backend support.
     // The test verifies the API works without panicking.
-
-    drop(fdb);
-    drop(tmpdir);
 }

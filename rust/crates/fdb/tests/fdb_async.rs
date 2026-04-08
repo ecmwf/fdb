@@ -118,9 +118,6 @@ async fn test_fdb_concurrent_archive() {
 
     // Flush to persist
     fdb.flush().expect("flush failed");
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -178,9 +175,6 @@ async fn test_fdb_concurrent_retrieve() {
         assert!(*size > 0, "step {step} should have data");
         println!("Step {step}: retrieved {size} bytes");
     }
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -222,9 +216,6 @@ async fn test_fdb_concurrent_list() {
     // All tasks should see the same number of entries
     assert!(counts.iter().all(|&c| c == counts[0]));
     println!("Concurrent list: all tasks found {} entries", counts[0]);
-
-    drop(fdb);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -288,7 +279,4 @@ async fn test_fdb_spawn_blocking_pattern() {
 
     assert!(result > 0);
     println!("spawn_blocking pattern: retrieved {result} bytes");
-
-    drop(fdb);
-    drop(tmpdir);
 }
