@@ -33,9 +33,9 @@ pub use datareader::DataReader;
 pub use error::{Error, Result};
 pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
 pub use iterator::{
-    AxesElement, AxesIterator, ControlElement, ControlIterator, DumpElement, DumpIterator,
-    ListElement, ListIterator, MoveElement, MoveIterator, PurgeElement, PurgeIterator,
-    StatsElement, StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
+    ControlElement, ControlIterator, DumpElement, DumpIterator, ListElement, ListIterator,
+    MoveElement, MoveIterator, PurgeElement, PurgeIterator, StatsElement, StatsIterator,
+    StatusElement, StatusIterator, WipeElement, WipeIterator,
 };
 pub use key::Key;
 pub use request::Request;

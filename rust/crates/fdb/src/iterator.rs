@@ -1,7 +1,5 @@
 //! FDB iterator wrappers.
 
-use std::collections::HashMap;
-
 use fdb_sys::UniquePtr;
 
 use crate::error::Result;
@@ -120,81 +118,6 @@ impl ListElement {
         key.extend(self.index_key.iter().cloned());
         key.extend(self.datum_key.iter().cloned());
         key
-    }
-}
-
-// =============================================================================
-// AxesIterator
-// =============================================================================
-
-/// An iterator over FDB axes results.
-pub struct AxesIterator {
-    handle: UniquePtr<fdb_sys::AxesIteratorHandle>,
-    exhausted: bool,
-}
-
-impl AxesIterator {
-    /// Create a new iterator from a cxx handle.
-    pub(crate) const fn new(handle: UniquePtr<fdb_sys::AxesIteratorHandle>) -> Self {
-        Self {
-            handle,
-            exhausted: false,
-        }
-    }
-}
-
-impl Iterator for AxesIterator {
-    type Item = Result<AxesElement>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.exhausted {
-            return None;
-        }
-        match self.handle.pin_mut().hasNext() {
-            Ok(false) => {
-                self.exhausted = true;
-                return None;
-            }
-            Err(e) => {
-                self.exhausted = true;
-                return Some(Err(e.into()));
-            }
-            Ok(true) => {}
-        }
-
-        match self.handle.pin_mut().next() {
-            Ok(data) => Some(Ok(AxesElement::from_cxx(data))),
-            Err(e) => {
-                self.exhausted = true;
-                Some(Err(e.into()))
-            }
-        }
-    }
-}
-
-// SAFETY: AxesIterator can be sent to another thread because:
-// 1. The C++ fdb5::AxesIterator contains a snapshot of index data taken at construction
-// 2. It does not hold references back to the FDB handle after creation
-// 3. Access is exclusive via &mut self (Pin<&mut> in the FFI layer)
-// 4. The iterator has no thread-local state or thread-affine resources
-#[allow(clippy::non_send_fields_in_send_ty)]
-unsafe impl Send for AxesIterator {}
-
-/// An axes element containing database key and available axes.
-#[derive(Debug, Clone)]
-pub struct AxesElement {
-    /// Database-level key entries.
-    pub db_key: Vec<(String, String)>,
-    /// Available axes (key -> values mapping).
-    pub axes: HashMap<String, Vec<String>>,
-}
-
-impl AxesElement {
-    fn from_cxx(data: fdb_sys::AxesElementData) -> Self {
-        Self {
-            db_key: key_values_to_vec(data.db_key),
-            axes: data.axes.into_iter().map(|a| (a.key, a.values)).collect(),
-        }
     }
 }
 
