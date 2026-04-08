@@ -276,14 +276,13 @@ class DataHandle:
         # NB: Some data handles do not implement the size() method. In this case, we just read the requested amount of bytes.
         try:
             dh_size = self.dataHandle.size()
-        except RuntimeError as e:
+            array_size = dh_size if len == -1 else min(len, dh_size)
+        except RuntimeError:
             if len == -1:
-                raise e
+                raise
+            array_size = len
 
-        if len == -1:
-            len = dh_size
-
-        buffer = bytearray(min(len, dh_size))
+        buffer = bytearray(array_size)
         read_bytes = self.dataHandle.read(buffer)
 
         if read_bytes == 0:
