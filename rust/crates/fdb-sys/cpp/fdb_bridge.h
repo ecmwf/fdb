@@ -112,8 +112,8 @@ public:
     FdbHandle& operator=(FdbHandle&&) = default;
 
     /// Access the underlying FDB instance.
-    fdb5::FDB& inner() { return *impl_; }
-    const fdb5::FDB& inner() const { return *impl_; }
+    fdb5::FDB& inner() { return impl_; }
+    const fdb5::FDB& inner() const { return impl_; }
 
     // -------------------------------------------------------------------------
     // Methods exposed to Rust via cxx
@@ -154,7 +154,7 @@ public:
 
 private:
 
-    std::unique_ptr<fdb5::FDB> impl_;
+    fdb5::FDB impl_;
 };
 
 /// Wrapper around eckit::DataHandle for reading retrieved data.
