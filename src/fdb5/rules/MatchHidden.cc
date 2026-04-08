@@ -58,7 +58,7 @@ const std::vector<std::string>& MatchHidden::values(const metkit::mars::MarsRequ
     return default_;
 }
 
-std::vector<std::string> MatchHidden::optionalValues() const {
+const std::vector<std::string>& MatchHidden::optionalValues() const {
     return default_;
 }
 

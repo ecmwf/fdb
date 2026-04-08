@@ -58,7 +58,7 @@ public:  // methods
 
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
 
-    std::vector<std::string> optionalValues() const;
+    const std::vector<std::string>& optionalValues() const;
 
     const std::string& defaultValue() const;
 

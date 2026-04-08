@@ -72,7 +72,7 @@ const std::vector<std::string>& Predicate::values(const metkit::mars::MarsReques
     return matcher_->values(rq, keyword_);
 }
 
-std::vector<std::string> Predicate::optionalValues() const {
+const std::vector<std::string>& Predicate::optionalValues() const {
     return matcher_->optionalValues();
 }
 

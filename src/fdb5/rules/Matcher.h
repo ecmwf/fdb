@@ -48,9 +48,7 @@ public:  // methods
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
                                                    const std::string& keyword) const;
 
-    /// Returns by value to allow subclasses to construct custom lists
-    /// (e.g., MatchOptional returns both default and empty-string entries).
-    virtual std::vector<std::string> optionalValues() const;
+    virtual const std::vector<std::string>& optionalValues() const;
 
     virtual const std::string& defaultValue() const;
 

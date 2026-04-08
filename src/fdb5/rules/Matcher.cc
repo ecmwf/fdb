@@ -37,7 +37,7 @@ void Matcher::fill(Key& key, const std::string& keyword, const std::string& valu
     key.push(keyword, value);
 }
 
-std::vector<std::string> Matcher::optionalValues() const {
+const std::vector<std::string>& Matcher::optionalValues() const {
     NOTIMP;
 }
 
