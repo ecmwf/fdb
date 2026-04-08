@@ -34,10 +34,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut count = 0;
     for item in fdb.list(&request, 3, false)? {
         let item = item?;
-        println!(
-            "  {} (offset={}, length={})",
-            item.uri, item.offset, item.length
-        );
+        let key = item
+            .full_key()
+            .into_iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        println!("  {{{key}}}");
         count += 1;
     }
 
