@@ -39,7 +39,10 @@ pub struct FlushCallbackBox(Box<dyn FlushCallback>);
 /// Opaque wrapper for archive callbacks (used internally by cxx bridge).
 pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 
-#[track_cpp_api("fdb5/api/FDB.h", class = "FDB", ignore = ["inspect", "reindex"])]
+// `axesIterator` is intentionally not exposed: it is an internal detail of
+// the multi-FDB implementation (DistFDB / SelectFDB) and not meaningful at
+// the user API. The synchronous `axes()` method is the supported entry point.
+#[track_cpp_api("fdb5/api/FDB.h", class = "FDB", ignore = ["inspect", "reindex", "axesIterator"])]
 #[cxx::bridge(namespace = "fdb::ffi")]
 mod ffi {
     // =========================================================================
@@ -92,15 +95,6 @@ mod ffi {
     pub struct AxisEntry {
         pub key: String,
         pub values: Vec<String>,
-    }
-
-    /// Data from axes iteration - contains a database key and all its axes.
-    #[derive(Debug, Clone, Default)]
-    pub struct AxesElementData {
-        /// Database key entries
-        pub db_key: Vec<KeyValue>,
-        /// All axes for this database
-        pub axes: Vec<AxisEntry>,
     }
 
     /// Aggregate FDB statistics.
@@ -399,19 +393,6 @@ mod ffi {
         fn next(self: Pin<&mut MoveIteratorHandle>) -> Result<MoveElementData>;
 
         // =====================================================================
-        // AxesIteratorHandle
-        // =====================================================================
-
-        /// Wrapper around fdb5::AxesIterator
-        type AxesIteratorHandle;
-
-        /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut AxesIteratorHandle>) -> Result<bool>;
-
-        /// Get the next element from the iterator.
-        fn next(self: Pin<&mut AxesIteratorHandle>) -> Result<AxesElementData>;
-
-        // =====================================================================
         // Initialization (free functions)
         // =====================================================================
 
@@ -505,13 +486,6 @@ mod ffi {
 
         /// Get axes (available metadata dimensions) for a request.
         fn axes(handle: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
-
-        /// Get an axes iterator for streaming axes results.
-        fn axes_iterator(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            level: i32,
-        ) -> Result<UniquePtr<AxesIteratorHandle>>;
 
         // =====================================================================
         // Dump operations (free functions)
