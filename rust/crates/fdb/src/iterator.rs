@@ -21,12 +21,16 @@ fn key_values_to_vec(kv: Vec<fdb_sys::KeyValue>) -> Vec<(String, String)> {
 /// An iterator over FDB list results.
 pub struct ListIterator {
     handle: UniquePtr<fdb_sys::ListIteratorHandle>,
+    exhausted: bool,
 }
 
 impl ListIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::ListIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 
     /// Access the underlying iterator handle (for `read_list_iterator`).
@@ -39,13 +43,27 @@ impl Iterator for ListIterator {
     type Item = Result<ListElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(ListElement::from_cxx(data))),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -112,12 +130,16 @@ impl ListElement {
 /// An iterator over FDB axes results.
 pub struct AxesIterator {
     handle: UniquePtr<fdb_sys::AxesIteratorHandle>,
+    exhausted: bool,
 }
 
 impl AxesIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::AxesIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -125,13 +147,27 @@ impl Iterator for AxesIterator {
     type Item = Result<AxesElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(AxesElement::from_cxx(data))),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -169,12 +205,16 @@ impl AxesElement {
 /// An iterator over FDB dump results.
 pub struct DumpIterator {
     handle: UniquePtr<fdb_sys::DumpIteratorHandle>,
+    exhausted: bool,
 }
 
 impl DumpIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::DumpIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -182,15 +222,29 @@ impl Iterator for DumpIterator {
     type Item = Result<DumpElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(DumpElement {
                 content: data.content,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -217,12 +271,16 @@ pub struct DumpElement {
 /// An iterator over FDB status results.
 pub struct StatusIterator {
     handle: UniquePtr<fdb_sys::StatusIteratorHandle>,
+    exhausted: bool,
 }
 
 impl StatusIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::StatusIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -230,8 +288,19 @@ impl Iterator for StatusIterator {
     type Item = Result<StatusElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -239,7 +308,10 @@ impl Iterator for StatusIterator {
                 location: data.location,
                 status: key_values_to_vec(data.status),
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -268,12 +340,16 @@ pub struct StatusElement {
 /// An iterator over FDB wipe results.
 pub struct WipeIterator {
     handle: UniquePtr<fdb_sys::WipeIteratorHandle>,
+    exhausted: bool,
 }
 
 impl WipeIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::WipeIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -281,15 +357,29 @@ impl Iterator for WipeIterator {
     type Item = Result<WipeElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(WipeElement {
                 content: data.content,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -316,12 +406,16 @@ pub struct WipeElement {
 /// An iterator over FDB purge results.
 pub struct PurgeIterator {
     handle: UniquePtr<fdb_sys::PurgeIteratorHandle>,
+    exhausted: bool,
 }
 
 impl PurgeIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::PurgeIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -329,15 +423,29 @@ impl Iterator for PurgeIterator {
     type Item = Result<PurgeElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(PurgeElement {
                 content: data.content,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -364,12 +472,16 @@ pub struct PurgeElement {
 /// An iterator over FDB stats results.
 pub struct StatsIterator {
     handle: UniquePtr<fdb_sys::StatsIteratorHandle>,
+    exhausted: bool,
 }
 
 impl StatsIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::StatsIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -377,8 +489,19 @@ impl Iterator for StatsIterator {
     type Item = Result<StatsElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -389,7 +512,10 @@ impl Iterator for StatsIterator {
                 duplicate_count: data.duplicate_count,
                 duplicate_size: data.duplicate_size,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -424,12 +550,16 @@ pub struct StatsElement {
 /// An iterator over FDB control results.
 pub struct ControlIterator {
     handle: UniquePtr<fdb_sys::ControlIteratorHandle>,
+    exhausted: bool,
 }
 
 impl ControlIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::ControlIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -437,8 +567,19 @@ impl Iterator for ControlIterator {
     type Item = Result<ControlElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -446,7 +587,10 @@ impl Iterator for ControlIterator {
                 location: data.location,
                 identifiers: data.identifiers,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
@@ -475,12 +619,16 @@ pub struct ControlElement {
 /// An iterator over FDB move results.
 pub struct MoveIterator {
     handle: UniquePtr<fdb_sys::MoveIteratorHandle>,
+    exhausted: bool,
 }
 
 impl MoveIterator {
     /// Create a new iterator from a cxx handle.
     pub(crate) const fn new(handle: UniquePtr<fdb_sys::MoveIteratorHandle>) -> Self {
-        Self { handle }
+        Self {
+            handle,
+            exhausted: false,
+        }
     }
 }
 
@@ -488,8 +636,19 @@ impl Iterator for MoveIterator {
     type Item = Result<MoveElement>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.handle.pin_mut().hasNext() {
+        if self.exhausted {
             return None;
+        }
+        match self.handle.pin_mut().hasNext() {
+            Ok(false) => {
+                self.exhausted = true;
+                return None;
+            }
+            Err(e) => {
+                self.exhausted = true;
+                return Some(Err(e.into()));
+            }
+            Ok(true) => {}
         }
 
         match self.handle.pin_mut().next() {
@@ -497,7 +656,10 @@ impl Iterator for MoveIterator {
                 source: data.source,
                 destination: data.destination,
             })),
-            Err(e) => Some(Err(e.into())),
+            Err(e) => {
+                self.exhausted = true;
+                Some(Err(e.into()))
+            }
         }
     }
 }
