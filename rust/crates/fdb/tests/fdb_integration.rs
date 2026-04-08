@@ -1410,30 +1410,55 @@ fn test_fdb_archive_raw() {
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
-    // Read GRIB data - the template.grib should have embedded metadata
-    let grib_path = fixtures_dir().join("template.grib");
-    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+    // Read GRIB data with embedded MARS metadata. `synth11.grib` carries
+    // section-1 headers (class=od, expver=0001, stream=oper, date=20230508,
+    // time=1200, type=fc, levtype=sfc, param=151130, step=1) which is what
+    // `archive_raw` extracts to build the storage key.
+    let grib_path = fixtures_dir().join("synth11.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read synth11.grib");
 
-    // Archive using archive_raw - key is extracted from GRIB metadata
-    let result = fdb.archive_raw(&grib_data);
-    println!("archive_raw result: {result:?}");
+    // Archive using archive_raw - key is extracted from GRIB metadata.
+    fdb.archive_raw(&grib_data).expect("archive_raw failed");
+    fdb.flush().expect("flush failed");
 
-    // Note: This may fail if the GRIB doesn't have complete metadata for the schema,
-    // but the method itself should work. Testing the API works without panicking.
-    if result.is_ok() {
-        fdb.flush().expect("flush failed");
+    // Verify the data actually landed in the database by listing it back
+    // with the exact key the GRIB embeds, and check the field-level entry
+    // matches.
+    let request = Request::new().with("class", "od").with("expver", "0001");
+    let items: Vec<_> = fdb
+        .list(&request, 3, false)
+        .expect("failed to list")
+        .collect::<Result<_, _>>()
+        .expect("list iterator returned an error");
 
-        // Try to find the archived data
-        // Note: We don't know the exact key, so use a broad request
-        let request = Request::new().with("class", "rd");
-        let items: Vec<_> = fdb
-            .list(&request, 3, false)
-            .expect("failed to list")
-            .filter_map(std::result::Result::ok)
-            .collect();
+    assert_eq!(
+        items.len(),
+        1,
+        "expected exactly one entry after archive_raw, got {}: {items:#?}",
+        items.len()
+    );
 
-        println!("archive_raw: found {} items after archive", items.len());
-    }
+    let item = &items[0];
+    // Spot-check the key parts from each level — these come from the GRIB
+    // section-1 headers, so if any drift the test will catch it loudly.
+    let db: std::collections::HashMap<_, _> = item.db_key.iter().cloned().collect();
+    assert_eq!(db.get("class").map(String::as_str), Some("od"));
+    assert_eq!(db.get("expver").map(String::as_str), Some("0001"));
+    assert_eq!(db.get("stream").map(String::as_str), Some("oper"));
+    assert_eq!(db.get("date").map(String::as_str), Some("20230508"));
+    assert_eq!(db.get("time").map(String::as_str), Some("1200"));
+
+    let index: std::collections::HashMap<_, _> = item.index_key.iter().cloned().collect();
+    assert_eq!(index.get("type").map(String::as_str), Some("fc"));
+    assert_eq!(index.get("levtype").map(String::as_str), Some("sfc"));
+
+    let datum: std::collections::HashMap<_, _> = item.datum_key.iter().cloned().collect();
+    assert_eq!(datum.get("param").map(String::as_str), Some("151130"));
+    assert_eq!(datum.get("step").map(String::as_str), Some("1"));
+
+    // The byte length recorded in the listing should match the GRIB message
+    // we archived (proves it's not a zero-length sentinel).
+    assert_eq!(item.length, grib_data.len() as u64);
 }
 
 /// Test `read_uri()` - reads data from a specific URI location.
