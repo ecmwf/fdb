@@ -101,6 +101,7 @@ public:
 
     FdbHandle();
     explicit FdbHandle(const std::string& yaml_config);
+    FdbHandle(const std::string& yaml_config, const std::string& yaml_user_config);
     ~FdbHandle();
 
     // Non-copyable
@@ -438,6 +439,10 @@ std::unique_ptr<FdbHandle> new_fdb();
 
 /// Create a new FDB handle from YAML configuration.
 std::unique_ptr<FdbHandle> new_fdb_from_yaml(rust::Str config);
+
+/// Create a new FDB handle from YAML configuration plus a YAML "user config"
+/// (per-instance overrides such as `useSubToc`, `preloadTocBTree`, etc.).
+std::unique_ptr<FdbHandle> new_fdb_from_yaml_with_user_config(rust::Str config, rust::Str user_config);
 
 // ============================================================================
 // Archive functions
