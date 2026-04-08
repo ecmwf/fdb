@@ -164,26 +164,27 @@ static fdb5::ControlIdentifier control_identifier_from_string(const std::string&
 // FdbHandle implementation
 // ============================================================================
 
-FdbHandle::FdbHandle() : impl_(std::make_unique<fdb5::FDB>()) {}
+FdbHandle::FdbHandle() = default;
 
-FdbHandle::FdbHandle(const std::string& yaml_config) {
-    eckit::YAMLConfiguration config(yaml_config);
-    fdb5::Config fdb_config(config);
-    impl_ = std::make_unique<fdb5::FDB>(fdb_config);
-}
+FdbHandle::FdbHandle(const std::string& yaml_config) :
+    impl_([&] {
+        eckit::YAMLConfiguration config(yaml_config);
+        fdb5::Config fdb_config(config);
+        return fdb5::FDB(fdb_config);
+    }()) {}
 
 FdbHandle::~FdbHandle() = default;
 
 bool FdbHandle::dirty() const {
-    return impl_->dirty();
+    return impl_.dirty();
 }
 
 void FdbHandle::flush() {
-    impl_->flush();
+    impl_.flush();
 }
 
 FdbStatsData FdbHandle::stats() const {
-    auto s = impl_->stats();
+    auto s = impl_.stats();
     FdbStatsData data;
     data.num_archive = s.numArchive();
     data.num_location = s.numLocation();
@@ -194,27 +195,27 @@ FdbStatsData FdbHandle::stats() const {
 bool FdbHandle::enabled(rust::Str identifier) const {
     std::string id_str{identifier};
     auto ctrl_id = control_identifier_from_string(id_str);
-    return impl_->enabled(ctrl_id);
+    return impl_.enabled(ctrl_id);
 }
 
 rust::String FdbHandle::id() const {
-    return rust::String(impl_->id());
+    return rust::String(impl_.id());
 }
 
 rust::String FdbHandle::name() const {
-    return rust::String(impl_->name());
+    return rust::String(impl_.name());
 }
 
 ConfigData FdbHandle::config() const {
     ConfigData data;
-    const auto& cfg = impl_->config();
+    const auto& cfg = impl_.config();
     data.schema_path = rust::String(cfg.schemaPath().asString());
     data.config_path = rust::String(cfg.configPath().asString());
     return data;
 }
 
 rust::String FdbHandle::config_string(rust::Str key) const {
-    const auto& cfg = impl_->config();
+    const auto& cfg = impl_.config();
     std::string key_str{key};
     if (cfg.has(key_str)) {
         return rust::String(cfg.getString(key_str));
@@ -223,7 +224,7 @@ rust::String FdbHandle::config_string(rust::Str key) const {
 }
 
 int64_t FdbHandle::config_int(rust::Str key) const {
-    const auto& cfg = impl_->config();
+    const auto& cfg = impl_.config();
     std::string key_str{key};
     if (cfg.has(key_str)) {
         return cfg.getLong(key_str);
@@ -232,7 +233,7 @@ int64_t FdbHandle::config_int(rust::Str key) const {
 }
 
 bool FdbHandle::config_bool(rust::Str key) const {
-    const auto& cfg = impl_->config();
+    const auto& cfg = impl_.config();
     std::string key_str{key};
     if (cfg.has(key_str)) {
         return cfg.getBool(key_str);
@@ -241,7 +242,7 @@ bool FdbHandle::config_bool(rust::Str key) const {
 }
 
 bool FdbHandle::config_has(rust::Str key) const {
-    const auto& cfg = impl_->config();
+    const auto& cfg = impl_.config();
     std::string key_str{key};
     return cfg.has(key_str);
 }
