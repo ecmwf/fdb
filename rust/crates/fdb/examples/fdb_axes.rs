@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let axes = fdb.axes(&request, 3)?;
 
     if axes.is_empty() {
-        println!("No axes found for the given request.");
+        println!("No data matches the given request.");
     } else {
         for (name, values) in &axes {
             println!("{name}:");
