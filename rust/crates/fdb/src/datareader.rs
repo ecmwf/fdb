@@ -97,7 +97,7 @@ impl Seek for DataReader {
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
-                new as u64
+                new.cast_unsigned()
             }
             SeekFrom::Current(offset) => {
                 let current = i64::try_from(self.tell())
@@ -108,7 +108,7 @@ impl Seek for DataReader {
                 if new < 0 {
                     return Err(std::io::Error::other("seek to negative position"));
                 }
-                new as u64
+                new.cast_unsigned()
             }
         };
 
