@@ -66,7 +66,7 @@ fn test_request_traits() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_handle_creation() {
-    let fdb = Fdb::new();
+    let fdb = Fdb::open_default();
     assert!(fdb.is_ok(), "Failed to create Fdb: {:?}", fdb.err());
 }
 
@@ -74,7 +74,7 @@ fn test_handle_creation() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_arc_sharing_readonly() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -99,7 +99,7 @@ fn test_arc_sharing_readonly() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_readonly_methods() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
     let handles: Vec<_> = (0..8)
         .map(|_| {
@@ -124,7 +124,7 @@ fn test_concurrent_readonly_methods() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_list_operations() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -147,7 +147,7 @@ fn test_concurrent_list_operations() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_axes() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -170,7 +170,7 @@ fn test_concurrent_axes() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_stress_concurrent_access() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
     let iterations = 50;
     let thread_count = 16;
 
@@ -208,7 +208,7 @@ fn test_stress_concurrent_access() {
 #[test]
 #[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_errors_no_crash() {
-    let fdb = Arc::new(Fdb::new().expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
     let handles: Vec<_> = (0..8)
         .map(|i| {
@@ -275,7 +275,7 @@ fn test_concurrent_archive_operations() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Read GRIB data for archiving
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
@@ -349,7 +349,7 @@ fn test_concurrent_read_write_mix() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create handle"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Pre-archive some data first
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());

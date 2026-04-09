@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("FDB git SHA1: {}", fdb::git_sha1());
 
     // Create a default handle (requires FDB_HOME or FDB5_CONFIG environment)
-    let fdb = Fdb::new()?;
+    let fdb = Fdb::open_default()?;
     println!("FDB handle created successfully");
     println!("FDB type: {}", fdb.name());
     println!("FDB id: {}", fdb.id());

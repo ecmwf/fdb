@@ -93,7 +93,7 @@ fn format_item(item: &ListElement, args: &Args) -> Result<String, std::fmt::Erro
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let request: Request = args.request.parse()?;
-    let fdb = Fdb::new()?;
+    let fdb = Fdb::open_default()?;
 
     if !args.porcelain {
         println!("Listing for request:");
