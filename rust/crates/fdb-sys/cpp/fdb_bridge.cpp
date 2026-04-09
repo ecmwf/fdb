@@ -656,6 +656,59 @@ void archive_raw(FdbHandle& handle, rust::Slice<const uint8_t> data) {
     handle.inner().archive(data.data(), data.size());
 }
 
+namespace {
+
+/// `eckit::DataHandle` adapter that pulls bytes from a Rust `std::io::Read`
+/// source via the cxx callback `invoke_reader_read`. Used by
+/// `archive_reader` to stream Rust-side data into
+/// `fdb5::FDB::archive(eckit::DataHandle&)` without buffering the whole
+/// payload in memory first.
+///
+/// Only the methods that `fdb5::FDB::archive(DataHandle&)` actually
+/// touches are overridden — `openForRead`, `read`, `close`, `estimate`,
+/// `size`, plus the abstract `print`. Everything else inherits the base
+/// behaviour (which throws `NotImplemented` for the seek/write paths
+/// `archive` never reaches).
+class RustReaderHandle : public eckit::DataHandle {
+public:
+
+    explicit RustReaderHandle(rust::Box<ReaderBox> reader) : reader_(std::move(reader)) {}
+
+    void print(std::ostream& s) const override { s << "RustReaderHandle[]"; }
+
+    eckit::Length openForRead() override { return eckit::Length(0); }
+
+    long read(void* buffer, long length) override {
+        if (length <= 0) {
+            return 0;
+        }
+        auto* bytes = static_cast<uint8_t*>(buffer);
+        rust::Slice<uint8_t> slice{bytes, static_cast<size_t>(length)};
+        int64_t n = invoke_reader_read(*reader_, slice);
+        if (n < 0) {
+            throw eckit::ReadError("RustReaderHandle: error reading from Rust source");
+        }
+        return static_cast<long>(n);
+    }
+
+    void close() override {}
+
+    eckit::Length estimate() override { return eckit::Length(0); }
+
+    eckit::Length size() override { return eckit::Length(0); }
+
+private:
+
+    rust::Box<ReaderBox> reader_;
+};
+
+}  // namespace
+
+void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
+    RustReaderHandle adapter(std::move(reader));
+    handle.inner().archive(adapter);
+}
+
 // ============================================================================
 // Retrieve functions
 // ============================================================================

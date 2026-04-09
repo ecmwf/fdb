@@ -39,6 +39,13 @@ pub struct FlushCallbackBox(Box<dyn FlushCallback>);
 /// Opaque wrapper for archive callbacks (used internally by cxx bridge).
 pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 
+/// Opaque wrapper for an arbitrary Rust [`std::io::Read`] source.
+///
+/// Exposed to the C++ side as an `eckit::DataHandle` by
+/// [`archive_reader`] to stream GRIB data from a Rust source into FDB
+/// without buffering the entire payload in memory first.
+pub struct ReaderBox(Box<dyn std::io::Read + Send>);
+
 // Methods intentionally not exposed:
 // - `axesIterator`: internal detail of the multi-FDB implementation
 //   (DistFDB / SelectFDB), not meaningful at the user API. The synchronous
@@ -453,6 +460,13 @@ mod ffi {
         /// Archive raw GRIB data (key is extracted from the message).
         fn archive_raw(handle: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
 
+        /// Archive raw GRIB data streamed from an arbitrary Rust
+        /// `std::io::Read` source. The C++ side wraps the [`ReaderBox`]
+        /// in an `eckit::DataHandle` subclass and hands it to
+        /// `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the
+        /// metadata from each GRIB message as it streams.
+        fn archive_reader(handle: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
+
         // =====================================================================
         // Retrieve operations (free functions)
         // =====================================================================
@@ -624,6 +638,7 @@ mod ffi {
     extern "Rust" {
         type FlushCallbackBox;
         type ArchiveCallbackBox;
+        type ReaderBox;
 
         /// Called by C++ to invoke the flush callback.
         fn invoke_flush_callback(callback: &FlushCallbackBox);
@@ -637,6 +652,12 @@ mod ffi {
             location_offset: u64,
             location_length: u64,
         );
+
+        /// Called by C++ to read the next chunk from a Rust `Read` source
+        /// that has been wrapped in a [`ReaderBox`]. Returns the number of
+        /// bytes read on success (0 means EOF), or `-1` if the underlying
+        /// reader returned an error or panicked.
+        fn invoke_reader_read(reader: &mut ReaderBox, buf: &mut [u8]) -> i64;
     }
 }
 
@@ -688,6 +709,25 @@ fn invoke_archive_callback(
     }
 }
 
+/// Called by the C++ `RustReaderHandle::read` shim to fill the next chunk
+/// from a Rust [`std::io::Read`] source. Returns the byte count on success
+/// (0 = EOF), or `-1` on error/panic, mirroring the convention used by
+/// `eckit::DataHandle::read`.
+fn invoke_reader_read(reader: &mut ReaderBox, buf: &mut [u8]) -> i64 {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| reader.0.read(buf)));
+    match result {
+        Ok(Ok(n)) => i64::try_from(n).unwrap_or(i64::MAX),
+        Ok(Err(e)) => {
+            eprintln!("fdb-sys: error reading from Rust source: {e}");
+            -1
+        }
+        Err(_) => {
+            eprintln!("fdb-sys: panic in Rust reader (suppressed at FFI boundary)");
+            -1
+        }
+    }
+}
+
 // =============================================================================
 // Helper functions for creating callbacks
 // =============================================================================
@@ -718,6 +758,18 @@ where
         }
     }
     Box::new(ArchiveCallbackBox(Box::new(ClosureCallback(f))))
+}
+
+/// Wrap a Rust [`std::io::Read`] source in a [`ReaderBox`].
+///
+/// Used by the high-level `Fdb::archive_reader` to bridge any Rust
+/// `Read` into the C++ `eckit::DataHandle` consumed by
+/// `fdb5::FDB::archive`.
+pub fn make_reader_box<R>(reader: R) -> Box<ReaderBox>
+where
+    R: std::io::Read + Send + 'static,
+{
+    Box::new(ReaderBox(Box::new(reader)))
 }
 
 pub use ffi::*;

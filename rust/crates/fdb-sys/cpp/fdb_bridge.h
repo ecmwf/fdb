@@ -438,6 +438,17 @@ void archive(FdbHandle& handle, const KeyData& key, rust::Slice<const uint8_t> d
 /// Archive raw GRIB data (key is extracted from the message).
 void archive_raw(FdbHandle& handle, rust::Slice<const uint8_t> data);
 
+// Forward declaration for the opaque Rust reader box used by
+// `archive_reader`. Defined on the Rust side; cxx generates the symbol
+// in the same namespace.
+struct ReaderBox;
+
+/// Archive raw GRIB data streamed from a Rust `std::io::Read` source.
+/// Wraps the Rust reader in an `eckit::DataHandle` subclass and hands it
+/// to `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the key
+/// from each GRIB message as it streams.
+void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader);
+
 // ============================================================================
 // Retrieve functions
 // ============================================================================
