@@ -70,13 +70,19 @@ mod ffi {
         pub entries: Vec<KeyValue>,
     }
 
-    /// Data for constructing an FDB Request.
+    /// A single key in a parsed MARS request, paired with all of its values.
+    #[derive(Debug, Clone, Default)]
+    pub struct RequestParam {
+        pub key: String,
+        pub values: Vec<String>,
+    }
+
+    /// A fully-expanded MARS request, as produced by `parse_mars_request`.
+    /// `to`/`by` ranges, type expansions, etc. have already been applied by
+    /// `metkit::mars::MarsExpansion`.
     #[derive(Debug, Clone, Default)]
     pub struct RequestData {
-        /// MARS request string (e.g., "class=od,expver=0001,...")
-        pub request_str: String,
-        /// Whether to expand the request using schema
-        pub expand: bool,
+        pub params: Vec<RequestParam>,
     }
 
     /// Data returned from list iteration.
@@ -393,6 +399,19 @@ mod ffi {
 
         /// Get the FDB git SHA1 hash.
         fn fdb_git_sha1() -> String;
+
+        // =====================================================================
+        // MARS request parsing (free functions)
+        // =====================================================================
+
+        /// Parse a MARS request string using metkit's parser and expansion
+        /// machinery. Handles `to`/`by` ranges, type expansion, optional
+        /// fields, and any other syntax the upstream MARS language supports.
+        ///
+        /// On success, returns the fully-expanded request as a sequence of
+        /// `(key, [values])` pairs. On parse failure, returns an `Err` whose
+        /// message comes from the underlying eckit/metkit exception.
+        fn parse_mars_request(request: &str) -> Result<RequestData>;
 
         // =====================================================================
         // Handle lifecycle (free functions)
