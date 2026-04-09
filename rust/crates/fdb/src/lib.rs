@@ -12,7 +12,7 @@
 //! use fdb::{Fdb, Request};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let fdb = Fdb::new()?;
+//! let fdb = Fdb::open_default()?;
 //!
 //! let request = Request::new()
 //!     .with("class", "od")
@@ -42,7 +42,7 @@ mod request;
 
 pub use datareader::DataReader;
 pub use error::{Error, Result};
-pub use handle::{ArchiveCallbackData, Fdb, FdbStats};
+pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
 pub use iterator::{
     ControlElement, ControlIterator, DumpElement, DumpIterator, ListElement, ListIterator,
     MoveElement, MoveIterator, PurgeElement, PurgeIterator, StatsElement, StatsIterator,

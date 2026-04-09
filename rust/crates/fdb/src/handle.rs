@@ -24,6 +24,17 @@ fn initialize() {
     INIT.call_once(fdb_sys::fdb_init);
 }
 
+/// Convert a path to a `&str`, returning a typed `UserError` if it isn't
+/// valid UTF-8 (which the cxx bridge can't accept).
+fn path_to_str(path: &std::path::Path) -> Result<&str> {
+    path.to_str().ok_or_else(|| {
+        crate::Error::UserError(format!(
+            "FDB config path is not valid UTF-8: {}",
+            path.display()
+        ))
+    })
+}
+
 // Private wrapper to make UniquePtr Send-safe for use with Mutex
 struct HandleInner(UniquePtr<fdb_sys::FdbHandle>);
 
@@ -47,7 +58,7 @@ unsafe impl Send for HandleInner {}
 /// use std::sync::Arc;
 /// use std::thread;
 ///
-/// let fdb = Arc::new(Fdb::new().expect("failed to create FDB handle"));
+/// let fdb = Arc::new(Fdb::open_default().expect("failed to create FDB handle"));
 ///
 /// let handles: Vec<_> = (0..4).map(|_| {
 ///     let fdb = Arc::clone(&fdb);
@@ -65,94 +76,150 @@ pub struct Fdb {
     handle: Mutex<HandleInner>,
 }
 
+/// One of the shapes the main FDB config can take when opening an `Fdb`.
+///
+/// You generally don't construct this directly — [`Fdb::open`] accepts any
+/// `Option<impl Into<FdbConfig>>`, and the standard `From` impls let you
+/// pass `&str`/`&String` (interpreted as inline YAML) or `&Path`/`&PathBuf`
+/// (interpreted as a path to a config file on disk) directly.
+///
+/// Mirrors the shape of pyfdb's `config: str | Path | None` argument.
+///
+/// Note that this enum is for the *main* config only. The user config
+/// (second argument of [`Fdb::open`]) takes only YAML strings — upstream
+/// `fdb5::Config` does not have a path-based user-config entry point.
+#[derive(Debug, Clone)]
+pub enum FdbConfig<'a> {
+    /// Inline YAML. Goes through `eckit::YAMLConfiguration` on the C++ side.
+    Yaml(&'a str),
+    /// Path to a YAML/JSON config file. Goes through `fdb5::Config::make`,
+    /// which also expands `~fdb`/`fdb_home` references and resolves
+    /// transitive sub-configurations.
+    Path(&'a std::path::Path),
+}
+
+impl<'a> From<&'a str> for FdbConfig<'a> {
+    fn from(s: &'a str) -> Self {
+        FdbConfig::Yaml(s)
+    }
+}
+
+impl<'a> From<&'a String> for FdbConfig<'a> {
+    fn from(s: &'a String) -> Self {
+        FdbConfig::Yaml(s.as_str())
+    }
+}
+
+impl<'a> From<&'a std::path::Path> for FdbConfig<'a> {
+    fn from(p: &'a std::path::Path) -> Self {
+        FdbConfig::Path(p)
+    }
+}
+
+impl<'a> From<&'a std::path::PathBuf> for FdbConfig<'a> {
+    fn from(p: &'a std::path::PathBuf) -> Self {
+        FdbConfig::Path(p.as_path())
+    }
+}
+
 impl Fdb {
-    /// Create a new FDB handle with default configuration.
-    pub fn new() -> Result<Self> {
-        initialize();
-        let handle = fdb_sys::new_fdb()?;
-        Ok(Self {
-            handle: Mutex::new(HandleInner(handle)),
-        })
-    }
-
-    /// Create a new FDB handle from a YAML configuration.
-    pub fn from_yaml(config: &str) -> Result<Self> {
-        initialize();
-        let handle = fdb_sys::new_fdb_from_yaml(config)?;
-        Ok(Self {
-            handle: Mutex::new(HandleInner(handle)),
-        })
-    }
-
-    /// Create a new FDB handle from a YAML configuration plus a per-instance
-    /// "user config" (also YAML).
+    /// Open an FDB.
     ///
-    /// The user config corresponds to the second argument of
-    /// `fdb5::Config::Config(...)` and carries runtime overrides such as
-    /// `useSubToc: true` or `preloadTocBTree: true` that are not part of the
-    /// shared FDB configuration file.
+    /// `config` is the main FDB configuration. It accepts anything
+    /// convertible to [`FdbConfig`]: a `&str`/`&String` (inline YAML), a
+    /// `&Path`/`&PathBuf` (config file on disk), or `None` to use the
+    /// upstream's environment-driven defaults (`FDB_HOME` /
+    /// `FDB_CONFIG_FILE` / `~/.fdb`).
     ///
-    /// # Example
+    /// `user_config` is an optional per-instance YAML overlay (e.g.
+    /// `useSubToc: true`, `preloadTocBTree: false`). It accepts only a
+    /// YAML string because upstream `fdb5::Config` itself only takes the
+    /// user config as an in-memory `eckit::Configuration`, never as a
+    /// path. A user config without a main config is rejected — there's
+    /// nothing for the overlay to apply to.
+    ///
+    /// Mirrors pyfdb's `FDB(config, user_config)` constructor shape, with
+    /// two improvements: (1) `(None, Some(user_config))` is rejected
+    /// instead of silently dropping the user config like pyfdb does, and
+    /// (2) the unsupported `Path` user-config shape is forbidden at the
+    /// type level rather than at runtime.
+    ///
+    /// # Examples
     ///
     /// ```no_run
     /// use fdb::Fdb;
+    /// use std::path::Path;
     ///
-    /// let config = "type: local\nengine: toc\nschema: /tmp/schema\nspaces: []";
-    /// let user_config = "useSubToc: true";
-    /// let fdb = Fdb::from_yaml_with_user_config(config, user_config)?;
+    /// // Inline YAML, no user config:
+    /// let fdb = Fdb::open(Some("type: local\nschema: /tmp/schema\nspaces: []"), None)?;
+    ///
+    /// // Config file on disk:
+    /// let fdb = Fdb::open(Some(Path::new("/etc/fdb/config.yaml")), None)?;
+    ///
+    /// // Path config + inline user config to enable sub-tocs:
+    /// let fdb = Fdb::open(
+    ///     Some(Path::new("/etc/fdb/config.yaml")),
+    ///     Some("useSubToc: true"),
+    /// )?;
     /// # Ok::<(), fdb::Error>(())
     /// ```
-    pub fn from_yaml_with_user_config(config: &str, user_config: &str) -> Result<Self> {
-        initialize();
-        let handle = fdb_sys::new_fdb_from_yaml_with_user_config(config, user_config)?;
-        Ok(Self {
-            handle: Mutex::new(HandleInner(handle)),
-        })
-    }
-
-    /// Open an FDB by loading the configuration file at `path`.
     ///
-    /// The path is handed straight to `fdb5::Config::make`, which loads
-    /// YAML or JSON, expands `~fdb`/`fdb_home` references, and resolves
-    /// transitive sub-configurations. Use this when you have a config
-    /// file on disk and don't want to slurp it into a string yourself.
+    /// For the "use defaults from environment" case where neither argument
+    /// is supplied, prefer [`Self::open_default`] — it avoids Rust's
+    /// type-inference annoyance with `Fdb::open(None, None)`.
     ///
     /// # Errors
     ///
-    /// Returns an error if the file can't be read, doesn't parse as
-    /// valid FDB configuration, or if the resulting FDB instance fails
-    /// to construct.
-    pub fn from_path(path: impl AsRef<std::path::Path>) -> Result<Self> {
+    /// - `UserError` if a non-UTF-8 path is supplied (the cxx bridge can't
+    ///   accept it).
+    /// - `UserError` if `user_config` is supplied without a `config`.
+    /// - Whatever `eckit`/`fdb5` raises if the configuration can't be
+    ///   parsed or the FDB instance can't be constructed.
+    pub fn open<'a, C>(config: Option<C>, user_config: Option<&str>) -> Result<Self>
+    where
+        C: Into<FdbConfig<'a>>,
+    {
         initialize();
-        let path_str = path.as_ref().to_str().ok_or_else(|| {
-            crate::Error::UserError(format!(
-                "FDB config path is not valid UTF-8: {}",
-                path.as_ref().display()
-            ))
-        })?;
-        let handle = fdb_sys::new_fdb_from_path(path_str)?;
+        let config = config.map(Into::into);
+
+        // Map (config, user_config) to one of the existing cxx-bridge
+        // entry points. The arms below cover exactly the combinations
+        // upstream `fdb5::Config` supports — there are no invented arms.
+        let handle = match (config, user_config) {
+            (None, None) => fdb_sys::new_fdb()?,
+            (Some(FdbConfig::Yaml(yaml)), None) => fdb_sys::new_fdb_from_yaml(yaml)?,
+            (Some(FdbConfig::Path(path)), None) => {
+                let path_str = path_to_str(path)?;
+                fdb_sys::new_fdb_from_path(path_str)?
+            }
+            (Some(FdbConfig::Yaml(yaml)), Some(user)) => {
+                fdb_sys::new_fdb_from_yaml_with_user_config(yaml, user)?
+            }
+            (Some(FdbConfig::Path(path)), Some(user)) => {
+                let path_str = path_to_str(path)?;
+                fdb_sys::new_fdb_from_path_with_user_config(path_str, user)?
+            }
+            // pyfdb silently drops `user_config` here. We don't — there's
+            // no upstream entry point that says "env-default config plus
+            // this user overlay", and silently dropping is a footgun.
+            (None, Some(_)) => {
+                return Err(crate::Error::UserError(
+                    "Fdb::open: user_config requires a main config".to_string(),
+                ));
+            }
+        };
+
         Ok(Self {
             handle: Mutex::new(HandleInner(handle)),
         })
     }
 
-    /// Same as [`Self::from_path`] but additionally applies a YAML
-    /// per-instance "user config" (e.g. `useSubToc: true`).
-    pub fn from_path_with_user_config(
-        path: impl AsRef<std::path::Path>,
-        user_config: &str,
-    ) -> Result<Self> {
-        initialize();
-        let path_str = path.as_ref().to_str().ok_or_else(|| {
-            crate::Error::UserError(format!(
-                "FDB config path is not valid UTF-8: {}",
-                path.as_ref().display()
-            ))
-        })?;
-        let handle = fdb_sys::new_fdb_from_path_with_user_config(path_str, user_config)?;
-        Ok(Self {
-            handle: Mutex::new(HandleInner(handle)),
-        })
+    /// Open an FDB using the upstream's default configuration discovery
+    /// (`FDB_HOME` / `FDB_CONFIG_FILE` / `~/.fdb`). Equivalent to
+    /// `Fdb::open(None::<&str>, None)`, but avoids the type-inference
+    /// annoyance with the bare `Fdb::open(None, None)` form.
+    pub fn open_default() -> Result<Self> {
+        Self::open(None::<&str>, None)
     }
 
     #[inline]
