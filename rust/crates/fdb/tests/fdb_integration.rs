@@ -526,29 +526,16 @@ fn test_fdb_dirty_flag() {
 
 #[test]
 #[ignore = "requires FDB libraries"]
-fn test_fdb_config_methods() {
+fn test_fdb_id_and_name() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
-    // Test config()
-    let cfg = fdb.config();
-    println!(
-        "Config: schema_path={}, config_path={}",
-        cfg.schema_path, cfg.config_path
-    );
-
-    // Test id() and name()
     let id = fdb.id();
     let name = fdb.name();
     println!("FDB id={id}, name={name}");
     assert!(!name.is_empty(), "expected non-empty FDB name");
-
-    // Test config_has
-    // Note: available keys depend on the configuration
-    let has_type = fdb.config_has("type");
-    println!("config_has('type') = {has_type}");
 }
 
 #[test]
@@ -960,14 +947,10 @@ spaces:
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
-    // Verify config was parsed
+    // Verify the FDB handle came up cleanly with the YAML we built.
     let name = fdb.name();
     assert!(!name.is_empty(), "expected non-empty FDB name");
     println!("FDB type/name: {name}");
-
-    // Test config accessors
-    let has_type = fdb.config_has("type");
-    println!("config_has('type') = {has_type}");
 }
 
 #[test]
@@ -1224,36 +1207,6 @@ fn test_fdb_control_lock_unlock() {
             "control element location should not be empty"
         );
     }
-}
-
-#[test]
-#[ignore = "requires FDB libraries"]
-fn test_fdb_config_accessors() {
-    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let config = create_test_config(tmpdir.path());
-
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
-
-    // Test config_string - try to get a string config value
-    let type_str = fdb.config_string("type");
-    println!("config_string('type') = {type_str:?}");
-
-    // Test config_int - returns None if key doesn't exist
-    let some_int = fdb.config_int("nonexistent_key");
-    assert!(some_int.is_none(), "nonexistent key should return None");
-    println!("config_int('nonexistent_key') = {some_int:?}");
-
-    // Test config_bool - returns None if key doesn't exist
-    let some_bool = fdb.config_bool("nonexistent_key");
-    assert!(some_bool.is_none(), "nonexistent key should return None");
-    println!("config_bool('nonexistent_key') = {some_bool:?}");
-
-    // Test config_has for various keys
-    let has_type = fdb.config_has("type");
-    let has_schema = fdb.config_has("schema");
-    let has_nonexistent = fdb.config_has("definitely_not_a_key");
-    println!("config_has: type={has_type}, schema={has_schema}, nonexistent={has_nonexistent}");
-    assert!(!has_nonexistent, "nonexistent key should return false");
 }
 
 #[test]
