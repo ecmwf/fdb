@@ -207,14 +207,14 @@ void DataReaderHandle::close() {
 
 size_t DataReaderHandle::read(rust::Slice<uint8_t> buffer) {
     if (!impl_ || !is_open_) {
-        throw std::runtime_error("DataReader not open");
+        throw eckit::UserError("DataReader not open", Here());
     }
     return impl_->read(buffer.data(), buffer.size());
 }
 
 void DataReaderHandle::seek(uint64_t position) {
     if (!impl_ || !is_open_) {
-        throw std::runtime_error("DataReader not open");
+        throw eckit::UserError("DataReader not open", Here());
     }
     impl_->seek(eckit::Offset(position));
 }
@@ -262,7 +262,7 @@ bool ListIteratorHandle::hasNext() {
 
 ListElementData ListIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -324,7 +324,7 @@ bool DumpIteratorHandle::hasNext() {
 
 DumpElementData DumpIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -363,7 +363,7 @@ bool StatusIteratorHandle::hasNext() {
 
 StatusElementData StatusIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -401,7 +401,7 @@ bool WipeIteratorHandle::hasNext() {
 
 WipeElementData WipeIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -441,7 +441,7 @@ bool PurgeIteratorHandle::hasNext() {
 
 PurgeElementData PurgeIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -481,7 +481,7 @@ bool StatsIteratorHandle::hasNext() {
 
 StatsElementData StatsIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -524,7 +524,7 @@ bool ControlIteratorHandle::hasNext() {
 
 ControlElementData ControlIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
@@ -565,7 +565,7 @@ bool MoveIteratorHandle::hasNext() {
 
 MoveElementData MoveIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
