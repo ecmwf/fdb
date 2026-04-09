@@ -314,10 +314,29 @@ fn test_fdb_axes() {
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let axes = fdb.axes(&request, 3).expect("failed to get axes");
 
-    println!("Axes: {axes:?}");
+    // We archived exactly one field, so each axis the schema covers
+    // should be present with exactly the value from the key.
+    let expected: &[(&str, &str)] = &[
+        ("class", "rd"),
+        ("expver", "xxxx"),
+        ("stream", "oper"),
+        ("date", "20230508"),
+        ("time", "1200"),
+        ("type", "fc"),
+        ("levtype", "sfc"),
+        ("step", "0"),
+        ("param", "151130"),
+    ];
 
-    // Should have some axes returned
-    assert!(!axes.is_empty(), "expected at least one axis");
+    for (axis, value) in expected {
+        let values = axes
+            .get(*axis)
+            .unwrap_or_else(|| panic!("axis {axis:?} missing from axes() result: {axes:#?}"));
+        assert!(
+            values.iter().any(|v| v == value),
+            "axis {axis:?} does not contain expected value {value:?} (got {values:?})"
+        );
+    }
 }
 
 #[test]
