@@ -6,8 +6,8 @@ use fdb::{ControlIdentifier, Fdb};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Print version info (works without FDB config)
-    println!("FDB version: {}", Fdb::version());
-    println!("FDB git SHA1: {}", Fdb::git_sha1());
+    println!("FDB version: {}", fdb::version());
+    println!("FDB git SHA1: {}", fdb::git_sha1());
 
     // Create a default handle (requires FDB_HOME or FDB5_CONFIG environment)
     let fdb = Fdb::new()?;
