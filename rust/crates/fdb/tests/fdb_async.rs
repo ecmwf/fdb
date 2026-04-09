@@ -13,7 +13,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use fdb::{Fdb, Key, Request};
+use fdb::{Fdb, Key, ListOptions, Request};
 use tokio::task::JoinSet;
 
 /// Get the path to test fixtures directory.
@@ -203,7 +203,16 @@ async fn test_fdb_concurrent_list() {
                 .with("expver", "xxxx")
                 .with("stream", "oper");
 
-            let entries: Vec<_> = fdb.list(&request, 3, false).expect("list failed").collect();
+            let entries: Vec<_> = fdb
+                .list(
+                    &request,
+                    ListOptions {
+                        depth: 3,
+                        deduplicate: false,
+                    },
+                )
+                .expect("list failed")
+                .collect();
             entries.len()
         });
     }
