@@ -65,7 +65,7 @@ fn test_fdb_handle_from_yaml() {
     let config = create_test_config(tmpdir.path());
     println!("Config:\n{config}");
 
-    let fdb = Fdb::from_yaml(&config);
+    let fdb = Fdb::open(Some(&config), None);
     assert!(fdb.is_ok(), "failed to create FDB handle: {:?}", fdb.err());
 }
 
@@ -79,7 +79,7 @@ fn test_fdb_handle_from_path() {
     let config_path = tmpdir.path().join("fdb.yaml");
     fs::write(&config_path, &config).expect("failed to write config file");
 
-    let fdb = Fdb::from_path(&config_path);
+    let fdb = Fdb::open(Some(&config_path), None);
     assert!(
         fdb.is_ok(),
         "failed to create FDB handle from path {:?}: {:?}",
@@ -124,7 +124,7 @@ fn test_fdb_handle_from_path_invalid_utf8() {
     // file to exist — `from_path` should reject the path before touching
     // the filesystem.
     let bad = std::ffi::OsStr::from_bytes(b"/tmp/\xff-not-utf8");
-    let result = Fdb::from_path(Path::new(bad));
+    let result = Fdb::open(Some(Path::new(bad)), None);
     let err = result
         .err()
         .expect("from_path should reject a non-UTF-8 path");
@@ -154,7 +154,7 @@ fn test_fdb_list_no_results() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Use a valid class value but an `expver` that nothing has been archived
     // under in this fresh tmpdir. metkit (now used for parsing) only accepts
@@ -179,7 +179,7 @@ fn test_fdb_archive_simple() {
     println!("Temp dir: {}", tmpdir.path().display());
     println!("Config:\n{config}");
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Read test GRIB data
     let grib_path = fixtures_dir().join("template.grib");
@@ -215,7 +215,7 @@ fn test_fdb_archive_retrieve_cycle() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
@@ -272,7 +272,7 @@ fn test_fdb_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive some data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -308,7 +308,7 @@ fn test_fdb_dump() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive some data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -355,7 +355,7 @@ fn test_fdb_status() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive some data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -405,7 +405,7 @@ fn test_fdb_wipe_dry_run() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive some data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -469,7 +469,7 @@ fn test_fdb_purge_dry_run() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive same data twice to create duplicates
     let grib_path = fixtures_dir().join("template.grib");
@@ -513,7 +513,7 @@ fn test_fdb_stats_iterator() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive some data
     let grib_path = fixtures_dir().join("template.grib");
@@ -558,7 +558,7 @@ fn test_fdb_dirty_flag() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Initially not dirty
     assert!(!fdb.dirty(), "expected FDB to not be dirty initially");
@@ -596,7 +596,7 @@ fn test_fdb_id_and_name() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     let id = fdb.id();
     let name = fdb.name();
@@ -610,7 +610,7 @@ fn test_fdb_aggregate_stats() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Initial stats
     let stats_before = fdb.stats();
@@ -671,7 +671,7 @@ fn test_fdb_enabled() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Check if various identifiers are enabled
     let retrieve_enabled = fdb.enabled(ControlIdentifier::Retrieve);
@@ -699,7 +699,7 @@ fn test_fdb_callbacks() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Set up callback tracking (matching C++ test_callback.cc)
     let flush_called = Arc::new(AtomicBool::new(false));
@@ -789,7 +789,7 @@ fn test_fdb_wipe_actual() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
@@ -872,7 +872,7 @@ fn test_fdb_wipe_masked_data() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
@@ -934,7 +934,7 @@ fn test_fdb_purge_actual() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
@@ -1011,7 +1011,7 @@ spaces:
         tmpdir.path().display()
     );
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Verify the FDB handle came up cleanly with the YAML we built.
     let name = fdb.name();
@@ -1027,7 +1027,7 @@ fn test_fdb_datareader_seek() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -1141,7 +1141,7 @@ fn test_fdb_list_element_full_key() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -1211,7 +1211,7 @@ fn test_fdb_control_lock_unlock() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data first so we have something to control
     let grib_path = fixtures_dir().join("template.grib");
@@ -1283,7 +1283,7 @@ fn test_fdb_enabled_identifiers() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Test enabled() for various identifiers
     let retrieve_enabled = fdb.enabled(ControlIdentifier::Retrieve);
@@ -1314,7 +1314,7 @@ fn test_fdb_archive_raw() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Read GRIB data with embedded MARS metadata. `synth11.grib` carries
     // section-1 headers (class=od, expver=0001, stream=oper, date=20230508,
@@ -1374,7 +1374,7 @@ fn test_fdb_read_uri() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data first
     let grib_path = fixtures_dir().join("template.grib");
@@ -1433,7 +1433,7 @@ fn test_fdb_read_uris() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive multiple pieces of data
     let grib_path = fixtures_dir().join("template.grib");
@@ -1489,7 +1489,7 @@ fn test_fdb_read_from_list() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data
     let grib_path = fixtures_dir().join("template.grib");
@@ -1541,7 +1541,7 @@ fn test_fdb_move_data() {
     let dest_dir = tmpdir.path().join("dest");
     fs::create_dir(&dest_dir).expect("failed to create dest dir");
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
     // Archive data
     let grib_path = fixtures_dir().join("template.grib");
@@ -1643,8 +1643,8 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
     let config_off = create_test_config(tmpdir_off.path());
     {
-        let fdb_off = Fdb::from_yaml_with_user_config(&config_off, "useSubToc: false")
-            .expect("from_yaml off");
+        let fdb_off =
+            Fdb::open(Some(&config_off), Some("useSubToc: false")).expect("from_yaml off");
         archive_one_record(&fdb_off);
     } // drop handle so the TOC is fully closed before we walk the dir
 
@@ -1658,8 +1658,7 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_on = tempfile::tempdir().expect("failed to create temp dir");
     let config_on = create_test_config(tmpdir_on.path());
     {
-        let fdb_on =
-            Fdb::from_yaml_with_user_config(&config_on, "useSubToc: true").expect("from_yaml on");
+        let fdb_on = Fdb::open(Some(&config_on), Some("useSubToc: true")).expect("from_yaml on");
         archive_one_record(&fdb_on);
     }
 
@@ -1685,7 +1684,7 @@ fn test_fdb_preload_toc_btree_user_config() {
         let config = create_test_config(tmpdir.path());
         let user_config = format!("preloadTocBTree: {preload}");
 
-        let fdb = Fdb::from_yaml_with_user_config(&config, &user_config)
+        let fdb = Fdb::open(Some(&config), Some(&user_config))
             .unwrap_or_else(|e| panic!("from_yaml_with_user_config({user_config:?}) failed: {e}"));
 
         archive_one_record(&fdb);
