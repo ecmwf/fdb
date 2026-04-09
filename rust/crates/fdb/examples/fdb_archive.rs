@@ -23,9 +23,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let grib_path = &args[2];
     let use_raw = args.get(3).is_some_and(|a| a == "--raw");
 
-    // Load config and create handle
-    let config = fs::read_to_string(config_path)?;
-    let fdb = Fdb::from_yaml(&config)?;
+    // Open the FDB. `from_path` hands the file directly to `fdb5::Config::make`,
+    // which loads YAML or JSON and expands `~fdb`/`fdb_home` references — no
+    // need to slurp the file into a String first.
+    let fdb = Fdb::from_path(config_path)?;
     println!("FDB handle created: {}", fdb.name());
 
     // Read GRIB data

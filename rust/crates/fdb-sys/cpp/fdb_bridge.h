@@ -99,6 +99,13 @@ public:
     FdbHandle();
     explicit FdbHandle(const std::string& yaml_config);
     FdbHandle(const std::string& yaml_config, const std::string& yaml_user_config);
+
+    /// Tag type to disambiguate the path-loading constructor from the
+    /// YAML-string constructor (both take a `std::string`).
+    struct FromPathTag {};
+    FdbHandle(FromPathTag, const std::string& path);
+    FdbHandle(FromPathTag, const std::string& path, const std::string& yaml_user_config);
+
     ~FdbHandle();
 
     // Non-copyable
@@ -411,6 +418,15 @@ std::unique_ptr<FdbHandle> new_fdb_from_yaml(rust::Str config);
 /// Create a new FDB handle from YAML configuration plus a YAML "user config"
 /// (per-instance overrides such as `useSubToc`, `preloadTocBTree`, etc.).
 std::unique_ptr<FdbHandle> new_fdb_from_yaml_with_user_config(rust::Str config, rust::Str user_config);
+
+/// Create a new FDB handle by loading the configuration file at `path`.
+/// Delegates to `fdb5::Config::make`, which is the same entry point upstream
+/// FDB tools use when given `--config-file` / `FDB_CONFIG_FILE`. Loads
+/// YAML or JSON, resolves `~fdb`-style paths, and honours `fdb_home`.
+std::unique_ptr<FdbHandle> new_fdb_from_path(rust::Str path);
+
+/// Same as `new_fdb_from_path` but also applies a YAML "user config".
+std::unique_ptr<FdbHandle> new_fdb_from_path_with_user_config(rust::Str path, rust::Str user_config);
 
 // ============================================================================
 // Archive functions

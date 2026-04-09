@@ -71,6 +71,71 @@ fn test_fdb_handle_from_yaml() {
 
 #[test]
 #[ignore = "requires FDB libraries"]
+fn test_fdb_handle_from_path() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    // Write the config to a file and load it via the path-based constructor.
+    let config_path = tmpdir.path().join("fdb.yaml");
+    fs::write(&config_path, &config).expect("failed to write config file");
+
+    let fdb = Fdb::from_path(&config_path);
+    assert!(
+        fdb.is_ok(),
+        "failed to create FDB handle from path {:?}: {:?}",
+        config_path,
+        fdb.err()
+    );
+
+    // The handle returned by `from_path` should round-trip an archive +
+    // list cycle just like the YAML-string variant — proves it isn't a
+    // half-built `Fdb`.
+    let fdb = fdb.expect("from_path returned an error");
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+    fdb.archive(&key, &grib_data).expect("archive failed");
+    fdb.flush().expect("flush failed");
+
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let items: Vec<_> = fdb
+        .list(&request, 3, false)
+        .expect("list failed")
+        .collect::<Result<_, _>>()
+        .expect("list iterator returned an error");
+    assert_eq!(items.len(), 1, "expected exactly one entry after archive");
+}
+
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_handle_from_path_invalid_utf8() {
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::Path;
+    // Construct a path with a non-UTF-8 byte sequence. We don't need this
+    // file to exist — `from_path` should reject the path before touching
+    // the filesystem.
+    let bad = std::ffi::OsStr::from_bytes(b"/tmp/\xff-not-utf8");
+    let result = Fdb::from_path(Path::new(bad));
+    let err = result
+        .err()
+        .expect("from_path should reject a non-UTF-8 path");
+    assert!(
+        matches!(err, fdb::Error::UserError(_)),
+        "expected UserError for non-UTF-8 path, got {err:?}"
+    );
+}
+
+#[test]
+#[ignore = "requires FDB libraries"]
 fn test_fdb_key_creation() {
     let key = Key::new().with("class", "rd").with("expver", "xxxx");
     assert_eq!(key.len(), 2);
