@@ -33,8 +33,14 @@ reader.read_to_end(&mut results)?;
 
 ## Features
 
-- `vendored` (default) - Build FDB5 and dependencies from source
-- `system` - Link against system-installed FDB5
+- `vendored` (default) - Build the FDB and its dependencies (eckit, metkit,
+  ecCodes) from source.
+- `system` - Link against a system-installed FDB.
+
+Lower-level feature flags (GRIB support, storage backends, experimental
+features) live on the [`fdb-sys`](https://crates.io/crates/fdb-sys) crate;
+see its README for the full list. The defaults inherited here enable GRIB,
+the filesystem TOC backend, and remote FDB client support.
 
 ## Running
 
