@@ -283,6 +283,33 @@ const fn on_off(enabled: bool) -> &'static str {
     if enabled { "ON" } else { "OFF" }
 }
 
+/// Map the active cargo profile to the matching `CMake` `CMAKE_BUILD_TYPE`.
+///
+/// Cargo doesn't expose the full profile name to build scripts, so we
+/// reconstruct it from `OPT_LEVEL` and `DEBUG`:
+///
+/// | `OPT_LEVEL`   | `DEBUG` | `CMake` build type |
+/// |---------------|---------|--------------------|
+/// | `0`           | any     | `Debug`            |
+/// | `>= 1`        | `true`  | `RelWithDebInfo`   |
+/// | `>= 1`        | `false` | `Release`          |
+///
+/// This is the same mapping the `cmake` crate uses.
+#[cfg(feature = "vendored")]
+fn cmake_build_type() -> &'static str {
+    let opt_level = env::var("OPT_LEVEL").unwrap_or_else(|_| "0".to_string());
+    let debug = env::var("DEBUG")
+        .map(|v| v != "false" && v != "0")
+        .unwrap_or(false);
+    if opt_level == "0" {
+        "Debug"
+    } else if debug {
+        "RelWithDebInfo"
+    } else {
+        "Release"
+    }
+}
+
 #[cfg(feature = "vendored")]
 fn git_clone(repo: &str, tag: &str, dest: &std::path::Path) -> PathBuf {
     use std::process::Command;
@@ -377,7 +404,7 @@ fn build_vendored() {
         .arg("--")
         .arg(&fdb_src)
         .arg(format!("-DCMAKE_PREFIX_PATH={cmake_prefix_path}"))
-        .arg("-DCMAKE_BUILD_TYPE=Release")
+        .arg(format!("-DCMAKE_BUILD_TYPE={}", cmake_build_type()))
         // Always disabled (no features)
         .arg("-DENABLE_TESTS=OFF")
         .arg("-DBUILD_TESTING=OFF")
