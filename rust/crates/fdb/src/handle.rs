@@ -406,6 +406,30 @@ impl Fdb {
         Ok(())
     }
 
+    /// Archive raw GRIB data streamed from an arbitrary [`std::io::Read`]
+    /// source.
+    ///
+    /// The C++ side wraps the reader in an `eckit::DataHandle` and hands
+    /// it to `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the
+    /// key from each GRIB message as it streams. This is the streaming
+    /// equivalent of [`Self::archive_raw`] — useful for archiving from a
+    /// file, network socket, or any other `Read` source without
+    /// buffering the entire payload in memory first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if archiving fails (including I/O errors raised
+    /// by the supplied reader, surfaced from the C++ side as an
+    /// `eckit::ReadError`).
+    pub fn archive_reader<R>(&self, reader: R) -> Result<()>
+    where
+        R: std::io::Read + Send + 'static,
+    {
+        let boxed = fdb_sys::make_reader_box(reader);
+        self.with_handle(|h| fdb_sys::archive_reader(h, boxed))?;
+        Ok(())
+    }
+
     /// Get available axes (metadata dimensions) for a request.
     ///
     /// Returns a map of axis names to their available values.
