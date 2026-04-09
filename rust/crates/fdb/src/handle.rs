@@ -139,7 +139,7 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive(&self, key: &Key, data: &[u8]) -> Result<()> {
-        self.with_handle(|h| fdb_sys::archive(h, &key.to_cxx(), data))?;
+        self.with_handle(|h| fdb_sys::archive(h, key.to_cxx(), data))?;
         Ok(())
     }
 
