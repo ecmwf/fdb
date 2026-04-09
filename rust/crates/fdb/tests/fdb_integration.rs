@@ -571,17 +571,52 @@ fn test_fdb_stats_iterator() {
     let stats_items: Vec<_> = fdb
         .stats_iter(&request)
         .expect("failed to get stats")
-        .collect();
+        .collect::<Result<Vec<_>, _>>()
+        .expect("stats iterator returned an error");
 
-    println!("Stats returned {} items", stats_items.len());
-    for item in &stats_items {
-        match item {
-            Ok(elem) => println!(
-                "  fields={}, size={}, duplicates={}",
-                elem.field_count, elem.total_size, elem.duplicate_count
-            ),
-            Err(e) => println!("  error: {e}"),
-        }
+    assert!(
+        !stats_items.is_empty(),
+        "expected at least one stats element after archiving one field"
+    );
+
+    // Sum the index-level numeric fields across all returned databases.
+    // We just archived one field, so the totals across the iterator must
+    // include it. (Some FDB layouts may report it as multiple index
+    // entries; what matters is that the totals are non-zero and
+    // consistent with what we wrote.)
+    let total_fields: u64 = stats_items
+        .iter()
+        .map(|s| s.index_statistics.fields_count)
+        .sum();
+    let total_bytes: u64 = stats_items
+        .iter()
+        .map(|s| s.index_statistics.fields_size)
+        .sum();
+
+    assert!(
+        total_fields >= 1,
+        "expected total fields_count >= 1, got {total_fields}"
+    );
+    assert!(
+        total_bytes >= grib_data.len() as u64,
+        "expected total fields_size >= {} bytes (the GRIB we archived), got {total_bytes}",
+        grib_data.len()
+    );
+
+    // The report text fields are captured straight from
+    // `IndexStats::report()` / `DbStats::report()` on the C++ side.
+    // They should be non-empty for a populated database — that proves
+    // the captured-report path is actually wired up, not just an empty
+    // sentinel like the bogus `location` field used to be.
+    for stats in &stats_items {
+        assert!(
+            !stats.index_statistics.report.is_empty(),
+            "index_statistics.report should not be empty after archiving data"
+        );
+        assert!(
+            !stats.db_statistics.report.is_empty(),
+            "db_statistics.report should not be empty after archiving data"
+        );
     }
 }
 

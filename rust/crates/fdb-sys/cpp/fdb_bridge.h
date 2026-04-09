@@ -84,6 +84,8 @@ struct DumpElementData;
 struct StatusElementData;
 struct WipeElementData;
 struct PurgeElementData;
+struct IndexStatsData;
+struct DbStatsData;
 struct StatsElementData;
 struct ControlElementData;
 struct MoveElementData;

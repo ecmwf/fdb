@@ -159,19 +159,34 @@ mod ffi {
         pub content: String,
     }
 
-    /// Result from stats iteration.
+    /// Index-level stats — mirrors `fdb5::IndexStats`. Bundles the four
+    /// numeric accessors (`fieldsCount` / `fieldsSize` /
+    /// `duplicatesCount` / `duplicatesSize`) plus the `report()` text.
+    #[derive(Debug, Clone, Default)]
+    pub struct IndexStatsData {
+        pub fields_count: u64,
+        pub fields_size: u64,
+        pub duplicates_count: u64,
+        pub duplicates_size: u64,
+        /// Captured `fdb5::IndexStats::report()` output.
+        pub report: String,
+    }
+
+    /// Database-level stats — mirrors `fdb5::DbStats`. Upstream exposes
+    /// `DbStats` as fully opaque content; the only public read accessor
+    /// is `report(std::ostream&)`, so the captured report text is the
+    /// only thing we can surface.
+    #[derive(Debug, Clone, Default)]
+    pub struct DbStatsData {
+        /// Captured `fdb5::DbStats::report()` output.
+        pub report: String,
+    }
+
+    /// Result from stats iteration — mirrors `fdb5::StatsElement`.
     #[derive(Debug, Clone, Default)]
     pub struct StatsElementData {
-        /// Location
-        pub location: String,
-        /// Number of fields
-        pub field_count: u64,
-        /// Total size in bytes
-        pub total_size: u64,
-        /// Duplicate count
-        pub duplicate_count: u64,
-        /// Duplicate size
-        pub duplicate_size: u64,
+        pub index_statistics: IndexStatsData,
+        pub db_statistics: DbStatsData,
     }
 
     /// Result from control iteration.
