@@ -429,11 +429,16 @@ impl Iterator for StatsIterator {
 
         match self.handle.pin_mut().next() {
             Ok(data) => Some(Ok(StatsElement {
-                location: data.location,
-                field_count: data.field_count,
-                total_size: data.total_size,
-                duplicate_count: data.duplicate_count,
-                duplicate_size: data.duplicate_size,
+                index_statistics: IndexStats {
+                    fields_count: data.index_statistics.fields_count,
+                    fields_size: data.index_statistics.fields_size,
+                    duplicates_count: data.index_statistics.duplicates_count,
+                    duplicates_size: data.index_statistics.duplicates_size,
+                    report: data.index_statistics.report,
+                },
+                db_statistics: DbStats {
+                    report: data.db_statistics.report,
+                },
             })),
             Err(e) => {
                 self.exhausted = true;
@@ -451,19 +456,46 @@ impl Iterator for StatsIterator {
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for StatsIterator {}
 
-/// A stats element containing database statistics.
+/// Index-level statistics — mirrors `fdb5::IndexStats`.
+///
+/// Bundles the four numeric accessors upstream exposes
+/// (`fieldsCount` / `fieldsSize` / `duplicatesCount` / `duplicatesSize`)
+/// plus the captured `report()` text.
+#[derive(Debug, Clone)]
+pub struct IndexStats {
+    /// Number of fields covered by this index.
+    pub fields_count: u64,
+    /// Total size in bytes of those fields.
+    pub fields_size: u64,
+    /// Number of duplicate (masked) entries.
+    pub duplicates_count: u64,
+    /// Total size in bytes of the duplicate entries.
+    pub duplicates_size: u64,
+    /// Captured `fdb5::IndexStats::report()` output — the same text
+    /// `fdb-stats --details` prints for the index portion.
+    pub report: String,
+}
+
+/// Database-level statistics — mirrors `fdb5::DbStats`.
+///
+/// Upstream's `DbStats` is fully content-opaque; the only public
+/// readable accessor is `report(std::ostream&)`. The captured report
+/// text is therefore the only thing this binding can surface — same
+/// rule the C++ tools play by.
+#[derive(Debug, Clone)]
+pub struct DbStats {
+    /// Captured `fdb5::DbStats::report()` output — the same text
+    /// `fdb-stats --details` prints for the database portion.
+    pub report: String,
+}
+
+/// A stats element — mirrors `fdb5::StatsElement`.
 #[derive(Debug, Clone)]
 pub struct StatsElement {
-    /// Location of the database.
-    pub location: String,
-    /// Number of fields.
-    pub field_count: u64,
-    /// Total size in bytes.
-    pub total_size: u64,
-    /// Number of duplicate entries.
-    pub duplicate_count: u64,
-    /// Size of duplicate data in bytes.
-    pub duplicate_size: u64,
+    /// Index-level statistics for this database.
+    pub index_statistics: IndexStats,
+    /// Database-level statistics for this database.
+    pub db_statistics: DbStats,
 }
 
 // =============================================================================

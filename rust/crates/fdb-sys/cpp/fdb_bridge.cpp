@@ -20,6 +20,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 
 // Include the cxx-generated header for our bridge types
@@ -490,13 +491,25 @@ StatsElementData StatsIteratorHandle::next() {
 
     has_current_ = false;
 
+    // Mirror `fdb5::StatsElement { IndexStats; DbStats; }` directly.
+    // For `IndexStats` we can read every numeric accessor; for
+    // `DbStats` upstream only exposes `report(ostream&)`, so the
+    // captured text is the only thing we can surface.
     StatsElementData data;
-    // StatsElement is a DbStats - access via indexStatistics methods
-    data.location = rust::String("");
-    data.field_count = current_.indexStatistics.fieldsCount();
-    data.total_size = current_.indexStatistics.fieldsSize();
-    data.duplicate_count = current_.indexStatistics.duplicatesCount();
-    data.duplicate_size = current_.indexStatistics.duplicatesSize();
+    data.index_statistics.fields_count = current_.indexStatistics.fieldsCount();
+    data.index_statistics.fields_size = current_.indexStatistics.fieldsSize();
+    data.index_statistics.duplicates_count = current_.indexStatistics.duplicatesCount();
+    data.index_statistics.duplicates_size = current_.indexStatistics.duplicatesSize();
+    {
+        std::ostringstream os;
+        current_.indexStatistics.report(os);
+        data.index_statistics.report = os.str();
+    }
+    {
+        std::ostringstream os;
+        current_.dbStatistics.report(os);
+        data.db_statistics.report = os.str();
+    }
     return data;
 }
 
