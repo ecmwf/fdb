@@ -62,7 +62,6 @@ private:
     std::optional<std::string> config2_;
     std::optional<std::string> req1String_;
     std::optional<std::string> req2String_;
-    bool singleFDB_ = false;
 };
 
 //---------------------------------------------------------------------------------------------------------------------

@@ -47,18 +47,131 @@ class ListElement:
         self._element: _ListElement = list_element
 
     def has_location(self) -> bool:
+        """
+        Does the `ListElement` have a location
+
+        Returns
+        -------
+        `bool`
+            `True` if this element has a location, `False` otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
         return self._element.has_location()
 
-    def offset(self) -> int:
-        return self._element.offset()
+    def offset(self) -> Optional[int]:
+        """
+        Offset within the file associated with the `ListElement`
 
-    def length(self) -> int:
-        return self._element.length()
+        Returns
+        -------
+        `Optional[int]`
+            Offset in bytes in the data file of the FDB, if `ListElement` is on `level` 3, None otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
+        if self.has_location():
+            return self._element.offset()
+        logger.info("Asking for offset on list element without location. Did you specify `level=3` in a list call?")
+        return None
+
+    def length(self) -> Optional[int]:
+        """
+        Size of the `ListElement` within the file associated.
+
+        Returns
+        -------
+        `Optional[int]`
+            Size in bytes in the data file of the FDB, if `ListElement` is on `level` 3, None otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
+        if self.has_location():
+            return self._element.length()
+        logger.info("Asking for length on list element without location. Did you specify `level=3` in a list call?")
+        return None
+
+    def combined_key(self) -> dict[str, str]:
+        """
+        Return the MARS keys of the `ListElement`
+
+        Returns
+        -------
+        `dict[str, str]`
+            Dictionary containing all metadata for the `ListElement`
+
+        Note
+        ----
+        Depending on the `level` specified in the `list` command, the returned dictionary contains
+        all available keys from schema levels up to and including the requested level; keys that
+        exist only at deeper levels are omitted.
+
+        Examples
+        --------
+        >>> list_iterator = fdb.list(selection, level=3)
+        >>> assert list_iterator
+
+        >>> elements = list(list_iterator)
+
+        >>> for element in elements:
+        >>>     print(element.combined_key())
+
+        Output:
+
+        ``
+        ...
+        { 'class': 'ea', 'date': '20200104', ... , 'type': 'an' }
+        ...
+        ``
+        """
+        return self._element.combined_key()
+
+    def keys(self) -> list[dict[str, str]]:
+        """
+        Return the MARS keys of the `ListElement` separated by their level in the schema.
+
+        Returns
+        -------
+        `list[dict[str, str]]`
+            List containing MARS keys and their values for the `ListElement`. The keys are split
+            by their level in the schema
+
+        Note
+        ----
+        Depending on the `level` specified in the `list` command, the returned dictionary contains
+        all available keys from schema levels up to and including the requested level; keys that
+        exist only at deeper levels are omitted.
+
+        Examples
+        --------
+        >>> list_iterator = fdb.list(selection, level=3)
+        >>> assert list_iterator
+
+        >>> elements = list(list_iterator)
+
+        >>> for element in elements:
+        >>>     print(element.keys())
+
+        Output:
+
+        ``
+        ...
+        [{'class': 'ea', ... , 'time': '2100'}, {'levtype': 'sfc', 'type': 'an'}, {'param': '167', 'step': '0'}]
+        ...
+        ``
+        """
+        return self._element.keys()
 
     @property
     def data_handle(self) -> Optional[DataHandle]:
         """
-        Access the DataHandle
+        Access the `DataHandle`
 
         Returns
         -------
