@@ -128,18 +128,6 @@ impl Fdb {
         f(&guard.0)
     }
 
-    /// Get the FDB library version.
-    #[must_use]
-    pub fn version() -> String {
-        fdb_sys::fdb_version()
-    }
-
-    /// Get the FDB git SHA1.
-    #[must_use]
-    pub fn git_sha1() -> String {
-        fdb_sys::fdb_git_sha1()
-    }
-
     /// Archive data to FDB.
     ///
     /// # Arguments
