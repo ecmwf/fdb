@@ -14,6 +14,7 @@ use crate::iterator::{
     StatusIterator, WipeIterator,
 };
 use crate::key::Key;
+use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 use crate::request::Request;
 
 static INIT: Once = Once::new();
@@ -64,7 +65,7 @@ unsafe impl Send for HandleInner {}
 ///     let fdb = Arc::clone(&fdb);
 ///     thread::spawn(move || {
 ///         let request = Request::new().with("class", "od");
-///         let _ = fdb.list(&request, 1, false);
+///         let _ = fdb.list(&request, fdb::ListOptions::default());
 ///     })
 /// }).collect();
 ///
@@ -260,13 +261,15 @@ impl Fdb {
     /// # Arguments
     ///
     /// * `request` - The request specifying which fields to list
-    /// * `depth` - Index depth to traverse (1=database, 2=index, 3=full)
-    /// * `deduplicate` - Whether to exclude duplicate entries
+    /// * `options` - Traversal depth and deduplication flag (see
+    ///   [`ListOptions`]). Defaults match `fdb-list`: full-depth traversal,
+    ///   masked entries hidden.
     ///
     /// # Errors
     ///
     /// Returns an error if listing fails.
-    pub fn list(&self, request: &Request, depth: i32, deduplicate: bool) -> Result<ListIterator> {
+    pub fn list(&self, request: &Request, options: ListOptions) -> Result<ListIterator> {
+        let ListOptions { depth, deduplicate } = options;
         let it = self
             .with_handle(|h| fdb_sys::list(h, &request.to_request_string(), deduplicate, depth))?;
         Ok(ListIterator::new(it))
@@ -425,12 +428,14 @@ impl Fdb {
     /// # Arguments
     ///
     /// * `request` - The request to filter which databases to dump
-    /// * `simple` - Whether to use simple output format
+    /// * `options` - Output format flags (see [`DumpOptions`]). Defaults
+    ///   to the verbose multi-line format that matches `fdb-dump`.
     ///
     /// # Errors
     ///
     /// Returns an error if the dump fails.
-    pub fn dump(&self, request: &Request, simple: bool) -> Result<DumpIterator> {
+    pub fn dump(&self, request: &Request, options: DumpOptions) -> Result<DumpIterator> {
+        let DumpOptions { simple } = options;
         let it = self.with_handle(|h| fdb_sys::dump(h, &request.to_request_string(), simple))?;
         Ok(DumpIterator::new(it))
     }
@@ -454,20 +459,19 @@ impl Fdb {
     /// # Arguments
     ///
     /// * `request` - The request specifying which data to wipe
-    /// * `doit` - If true, actually perform the wipe; if false, dry run
-    /// * `porcelain` - If true, use machine-readable output format
-    /// * `unsafe_wipe_all` - If true, allow wiping all data (dangerous)
+    /// * `options` - Wipe flags (see [`WipeOptions`]). Defaults to a dry
+    ///   run — pass `WipeOptions { doit: true, ..Default::default() }` to
+    ///   actually delete.
     ///
     /// # Errors
     ///
     /// Returns an error if the wipe fails.
-    pub fn wipe(
-        &self,
-        request: &Request,
-        doit: bool,
-        porcelain: bool,
-        unsafe_wipe_all: bool,
-    ) -> Result<WipeIterator> {
+    pub fn wipe(&self, request: &Request, options: WipeOptions) -> Result<WipeIterator> {
+        let WipeOptions {
+            doit,
+            porcelain,
+            unsafe_wipe_all,
+        } = options;
         let it = self.with_handle(|h| {
             fdb_sys::wipe(
                 h,
@@ -485,13 +489,15 @@ impl Fdb {
     /// # Arguments
     ///
     /// * `request` - The request specifying which data to purge
-    /// * `doit` - If true, actually perform the purge; if false, dry run
-    /// * `porcelain` - If true, use machine-readable output format
+    /// * `options` - Purge flags (see [`PurgeOptions`]). Defaults to a dry
+    ///   run — pass `PurgeOptions { doit: true, ..Default::default() }` to
+    ///   actually delete.
     ///
     /// # Errors
     ///
     /// Returns an error if the purge fails.
-    pub fn purge(&self, request: &Request, doit: bool, porcelain: bool) -> Result<PurgeIterator> {
+    pub fn purge(&self, request: &Request, options: PurgeOptions) -> Result<PurgeIterator> {
+        let PurgeOptions { doit, porcelain } = options;
         let it =
             self.with_handle(|h| fdb_sys::purge(h, &request.to_request_string(), doit, porcelain))?;
         Ok(PurgeIterator::new(it))
