@@ -110,6 +110,51 @@ impl Fdb {
         })
     }
 
+    /// Open an FDB by loading the configuration file at `path`.
+    ///
+    /// The path is handed straight to `fdb5::Config::make`, which loads
+    /// YAML or JSON, expands `~fdb`/`fdb_home` references, and resolves
+    /// transitive sub-configurations. Use this when you have a config
+    /// file on disk and don't want to slurp it into a string yourself.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file can't be read, doesn't parse as
+    /// valid FDB configuration, or if the resulting FDB instance fails
+    /// to construct.
+    pub fn from_path(path: impl AsRef<std::path::Path>) -> Result<Self> {
+        initialize();
+        let path_str = path.as_ref().to_str().ok_or_else(|| {
+            crate::Error::UserError(format!(
+                "FDB config path is not valid UTF-8: {}",
+                path.as_ref().display()
+            ))
+        })?;
+        let handle = fdb_sys::new_fdb_from_path(path_str)?;
+        Ok(Self {
+            handle: Mutex::new(HandleInner(handle)),
+        })
+    }
+
+    /// Same as [`Self::from_path`] but additionally applies a YAML
+    /// per-instance "user config" (e.g. `useSubToc: true`).
+    pub fn from_path_with_user_config(
+        path: impl AsRef<std::path::Path>,
+        user_config: &str,
+    ) -> Result<Self> {
+        initialize();
+        let path_str = path.as_ref().to_str().ok_or_else(|| {
+            crate::Error::UserError(format!(
+                "FDB config path is not valid UTF-8: {}",
+                path.as_ref().display()
+            ))
+        })?;
+        let handle = fdb_sys::new_fdb_from_path_with_user_config(path_str, user_config)?;
+        Ok(Self {
+            handle: Mutex::new(HandleInner(handle)),
+        })
+    }
+
     #[inline]
     fn with_handle<F, R>(&self, f: F) -> R
     where
