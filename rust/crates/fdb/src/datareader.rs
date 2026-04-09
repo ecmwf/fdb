@@ -10,26 +10,24 @@ use crate::error::Result;
 ///
 /// Implements [`std::io::Read`] and [`std::io::Seek`] for standard I/O operations.
 pub struct DataReader {
-    handle: UniquePtr<fdb_sys::DataReaderHandle>,
+    handle: UniquePtr<fdb_sys::DataHandle>,
 }
 
 impl DataReader {
     /// Create a new data reader from a cxx handle.
-    pub(crate) fn new(mut handle: UniquePtr<fdb_sys::DataReaderHandle>) -> Result<Self> {
-        handle.pin_mut().open()?;
+    pub(crate) fn new(mut handle: UniquePtr<fdb_sys::DataHandle>) -> Result<Self> {
+        fdb_sys::data_handle_open(handle.pin_mut())?;
         Ok(Self { handle })
     }
 
     /// Get the total size of the data in bytes.
-    #[must_use]
-    pub fn size(&self) -> u64 {
-        self.handle.size()
+    pub fn size(&mut self) -> u64 {
+        fdb_sys::data_handle_size(self.handle.pin_mut())
     }
 
     /// Get the current read position.
-    #[must_use]
-    pub fn tell(&self) -> u64 {
-        self.handle.tell()
+    pub fn tell(&mut self) -> u64 {
+        fdb_sys::data_handle_tell(self.handle.pin_mut())
     }
 
     /// Seek to a position in the data.
@@ -38,7 +36,7 @@ impl DataReader {
     ///
     /// Returns an error if seeking fails.
     pub fn seek_to(&mut self, pos: u64) -> Result<()> {
-        self.handle.pin_mut().seek(pos)?;
+        fdb_sys::data_handle_seek(self.handle.pin_mut(), pos)?;
         Ok(())
     }
 
@@ -53,7 +51,7 @@ impl DataReader {
         let mut total_read = 0;
 
         while total_read < size {
-            let n = self.handle.pin_mut().read(&mut buf[total_read..])?;
+            let n = fdb_sys::data_handle_read(self.handle.pin_mut(), &mut buf[total_read..])?;
             if n == 0 {
                 break;
             }
@@ -70,16 +68,14 @@ impl DataReader {
     ///
     /// Returns an error if closing fails.
     pub fn close(&mut self) -> Result<()> {
-        self.handle.pin_mut().close()?;
+        fdb_sys::data_handle_close(self.handle.pin_mut())?;
         Ok(())
     }
 }
 
 impl Read for DataReader {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.handle
-            .pin_mut()
-            .read(buf)
+        fdb_sys::data_handle_read(self.handle.pin_mut(), buf)
             .map_err(|e| std::io::Error::other(e.to_string()))
     }
 }
@@ -112,9 +108,7 @@ impl Seek for DataReader {
             }
         };
 
-        self.handle
-            .pin_mut()
-            .seek(new_pos)
+        fdb_sys::data_handle_seek(self.handle.pin_mut(), new_pos)
             .map_err(|e| std::io::Error::other(e.to_string()))?;
 
         Ok(new_pos)
@@ -123,7 +117,7 @@ impl Seek for DataReader {
 
 impl Drop for DataReader {
     fn drop(&mut self) {
-        let _ = self.handle.pin_mut().close();
+        let _ = fdb_sys::data_handle_close(self.handle.pin_mut());
     }
 }
 

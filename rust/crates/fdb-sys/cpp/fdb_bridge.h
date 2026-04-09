@@ -149,38 +149,6 @@ private:
     fdb5::FDB impl_;
 };
 
-/// Wrapper around eckit::DataHandle for reading retrieved data.
-class DataReaderHandle {
-public:
-
-    explicit DataReaderHandle(std::unique_ptr<eckit::DataHandle> handle);
-    ~DataReaderHandle();
-
-    // Non-copyable
-    DataReaderHandle(const DataReaderHandle&) = delete;
-    DataReaderHandle& operator=(const DataReaderHandle&) = delete;
-
-    // Movable
-    DataReaderHandle(DataReaderHandle&&) = default;
-    DataReaderHandle& operator=(DataReaderHandle&&) = default;
-
-    // -------------------------------------------------------------------------
-    // Methods exposed to Rust via cxx
-    // -------------------------------------------------------------------------
-
-    void open();
-    void close();
-    size_t read(rust::Slice<uint8_t> buffer);
-    void seek(uint64_t position);
-    uint64_t tell() const;
-    uint64_t size() const;
-
-private:
-
-    std::unique_ptr<eckit::DataHandle> impl_;
-    bool is_open_ = false;
-};
-
 /// Wrapper around fdb5::ListIterator.
 class ListIteratorHandle {
 public:
@@ -456,22 +424,44 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader);
 // ============================================================================
 
 /// Retrieve data matching a request.
-std::unique_ptr<DataReaderHandle> retrieve(FdbHandle& handle, rust::Str request);
+std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, rust::Str request);
 
 // ============================================================================
 // Read functions (by URI)
 // ============================================================================
 
 /// Read data from a single URI.
-std::unique_ptr<DataReaderHandle> read_uri(FdbHandle& handle, rust::Str uri);
+std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri);
 
 /// Read data from a list of URIs.
-std::unique_ptr<DataReaderHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
-                                            bool in_storage_order);
+std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
+                                             bool in_storage_order);
 
 /// Read data from a list iterator (most efficient - avoids URI conversion).
-std::unique_ptr<DataReaderHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
-                                                     bool in_storage_order);
+std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
+                                                      bool in_storage_order);
+
+// ============================================================================
+// eckit::DataHandle shim functions
+// ============================================================================
+
+/// Open the handle for reading. Returns the estimated length.
+uint64_t data_handle_open(eckit::DataHandle& handle);
+
+/// Read up to `buffer.size()` bytes into `buffer`. Returns the byte count.
+size_t data_handle_read(eckit::DataHandle& handle, rust::Slice<uint8_t> buffer);
+
+/// Seek to an absolute byte position in the underlying stream.
+void data_handle_seek(eckit::DataHandle& handle, uint64_t position);
+
+/// Current read position.
+uint64_t data_handle_tell(eckit::DataHandle& handle);
+
+/// Total size of the underlying data, in bytes.
+uint64_t data_handle_size(eckit::DataHandle& handle);
+
+/// Close the handle. Safe to call more than once.
+void data_handle_close(eckit::DataHandle& handle);
 
 // ============================================================================
 // List functions
