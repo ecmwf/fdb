@@ -23,6 +23,11 @@ one explicitly.
   `eckit::message::Splitter`.
 - `tocfdb` - Filesystem TOC backend (the standard local FDB store).
 - `fdb-remote` - Client support for remote FDB servers.
+- `memfs` - Bake the eccodes definition/sample tables into `libeccodes`
+  itself (`ENABLE_MEMFS=ON`). With this on, end users do **not** have to
+  ship an `eccodes_resources/` directory next to their binary. Build-time
+  requirement: Python 3 must be on `PATH` (the upstream CMake step uses a
+  Python helper to embed the resource files).
 
 ### Storage backends (off by default; require external libraries)
 

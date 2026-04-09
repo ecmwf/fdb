@@ -13,8 +13,10 @@ links = "fdb_sys"
 build = "build.rs"
 
 [features]
-# Defaults match CMake defaults (without external library dependencies)
-default = ["grib", "tocfdb", "fdb-remote"]
+# Defaults match CMake defaults (without external library dependencies),
+# plus `memfs` so the eccodes definition tables are baked into libeccodes
+# and end users don't have to ship an `eccodes_resources/` directory.
+default = ["grib", "tocfdb", "fdb-remote", "memfs"]
 
 # Build strategy (mutually exclusive)
 vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "eccodes-sys/vendored"]
@@ -27,6 +29,13 @@ system = ["eckit-sys/system", "metkit-sys/system", "eccodes-sys/system"]
 grib = ["eccodes-sys/product-grib", "metkit-sys/grib"]
 tocfdb = []      # Filesystem TOC support for FDB
 fdb-remote = []  # FDB remote access
+
+# Bake the eccodes definition/sample tables directly into the eccodes shared
+# library (CMake `ENABLE_MEMFS=ON`). With this on, runtime needs no
+# `eccodes_resources/` directory next to the binary. Build-time requirement:
+# Python 3 must be available, since the upstream CMake step uses a Python
+# script to embed the resource files.
+memfs = ["eccodes-sys/memfs"]
 
 # Storage backends (CMake default: OFF or require external libs)
 radosfdb = []    # Ceph/Rados support for FDB Store (requires RADOS)

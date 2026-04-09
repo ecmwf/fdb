@@ -88,11 +88,14 @@ Copy these directories alongside your binary:
 my_app/
 ├── my-fdb-app           # Your binary
 ├── fdb_libs/            # FDB, eckit, metkit libraries
-├── eccodes_libs/        # eccodes, libaec libraries
-└── eccodes_resources/   # GRIB/BUFR definitions (if using eccodes)
-    ├── definitions/
-    └── samples/
+└── eccodes_libs/        # eccodes, libaec libraries
 ```
+
+The eccodes definition/sample tables are baked into `libeccodes` itself
+via the default `memfs` feature, so there's no `eccodes_resources/`
+directory to ship. (If you opt out of `memfs`, you'd also need to ship
+`eccodes_resources/{definitions,samples}/` next to the binary and point
+`ECCODES_DEFINITION_PATH`/`ECCODES_SAMPLES_PATH` at it.)
 
 **macOS**: Works immediately after copying.
 
