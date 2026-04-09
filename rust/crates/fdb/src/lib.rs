@@ -5,21 +5,32 @@
 //!
 //! # Example
 //!
+//! `list` accepts partial requests — any unset key matches everything — which
+//! makes it the typical entry point for browsing what's archived.
+//!
 //! ```no_run
 //! use fdb::{Fdb, Request};
 //!
-//! let mut fdb = Fdb::new().expect("failed to create FDB handle");
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let fdb = Fdb::new()?;
 //!
-//! // Create a request for listing data
 //! let request = Request::new()
 //!     .with("class", "od")
 //!     .with("expver", "0001");
 //!
-//! // List matching fields (depth=3 for full traversal, no duplicates)
-//! for item in fdb.list(&request, 3, false).expect("list failed") {
-//!     let item = item.expect("failed to get item");
-//!     println!("Found: {} (offset={}, length={})", item.uri, item.offset, item.length);
+//! // depth=3 for full traversal (db + index + datum); deduplicate=false
+//! for item in fdb.list(&request, 3, false)? {
+//!     let item = item?;
+//!     let key = item
+//!         .full_key()
+//!         .into_iter()
+//!         .map(|(k, v)| format!("{k}={v}"))
+//!         .collect::<Vec<_>>()
+//!         .join(",");
+//!     println!("{{{key}}}");
 //! }
+//! # Ok(())
+//! # }
 //! ```
 
 mod datareader;

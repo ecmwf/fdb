@@ -6,29 +6,52 @@ The FDB is a domain-specific object store for meteorological data, developed at 
 
 ## Usage
 
+Archive and retrieve always work on a fully-specified key — every key the
+schema requires before bottoming out at a datum must be set. A typical
+schema (e.g. `class=od`, `stream=oper`) requires
+`class, expver, stream, date, time, type, levtype, step, param` at minimum.
+
 ```rust,no_run
 use fdb::{Fdb, Key, Request};
 use std::io::Read;
 
-// Open FDB with default configuration
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+// Open the FDB. Picks up its configuration from the environment
+// (`FDB_CONFIG_FILE` or similar); see the upstream FDB docs.
 let fdb = Fdb::new()?;
 
-// Write data
 let key = Key::new()
     .with("class", "od")
+    .with("expver", "0001")
     .with("stream", "oper")
-    .with("type", "fc");
-fdb.archive(&key, &data)?;
+    .with("date", "20240101")
+    .with("time", "0000")
+    .with("type", "fc")
+    .with("levtype", "sfc")
+    .with("step", "0")
+    .with("param", "151130");
+
+let data: &[u8] = b"...field bytes...";
+fdb.archive(&key, data)?;
 fdb.flush()?;
 
-// Read data back
+// Retrieve uses the same fully-specified key (any unset key would match
+// every value, which is rarely what you want).
 let request = Request::new()
     .with("class", "od")
+    .with("expver", "0001")
     .with("stream", "oper")
-    .with("type", "fc");
+    .with("date", "20240101")
+    .with("time", "0000")
+    .with("type", "fc")
+    .with("levtype", "sfc")
+    .with("step", "0")
+    .with("param", "151130");
 let mut reader = fdb.retrieve(&request)?;
 let mut results = Vec::new();
 reader.read_to_end(&mut results)?;
+# Ok(())
+# }
 ```
 
 ## Features
