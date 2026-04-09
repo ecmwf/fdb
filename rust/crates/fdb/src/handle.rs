@@ -31,7 +31,7 @@ struct HandleInner(UniquePtr<fdb_sys::FdbHandle>);
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for HandleInner {}
 
-/// A handle to the FDB library.
+/// A handle to a single FDB instance (wraps `fdb5::FDB`).
 ///
 /// This is the main entry point for FDB operations.
 ///
