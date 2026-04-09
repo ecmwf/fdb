@@ -98,11 +98,6 @@ fn bench_handle_creation(c: &mut Criterion) {
     });
 }
 
-/// Benchmark version string retrieval.
-fn bench_version(c: &mut Criterion) {
-    c.bench_function("fdb_version", |b| b.iter(|| black_box(Fdb::version())));
-}
-
 /// Benchmark Key creation with builder pattern.
 fn bench_key_creation(c: &mut Criterion) {
     c.bench_function("fdb_key_creation", |b| {
@@ -204,7 +199,6 @@ fn bench_readonly_ops(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_handle_creation,
-    bench_version,
     bench_key_creation,
     bench_request_creation,
     bench_request_multi_values,

@@ -45,7 +45,7 @@ spaces:
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_version() {
-    let version = Fdb::version();
+    let version = fdb::version();
     assert!(!version.is_empty());
     println!("FDB version: {version}");
 }
@@ -53,7 +53,7 @@ fn test_fdb_version() {
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_git_sha1() {
-    let sha = Fdb::git_sha1();
+    let sha = fdb::git_sha1();
     assert!(!sha.is_empty());
     println!("FDB git SHA1: {sha}");
 }
