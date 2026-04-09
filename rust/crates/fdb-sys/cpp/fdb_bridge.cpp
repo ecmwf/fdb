@@ -12,6 +12,9 @@
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/Main.h"
+#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParsedRequest.h"
+#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <mutex>
@@ -63,61 +66,45 @@ static rust::Vec<KeyValue> from_fdb_key(const fdb5::Key& key) {
     return result;
 }
 
-/// Parse a key=value string (no verb) into a MarsRequest
-static metkit::mars::MarsRequest parse_request_no_verb(const std::string& request_str) {
+/// Parse a MARS request string into a fully-expanded `metkit::mars::MarsRequest`.
+///
+/// Uses the same parser + expansion pipeline as upstream FDB tools (see
+/// `fdb5::FDBToolRequest::requestsFromString`):
+///
+///   1. Prepend a dummy verb (`retrieve`) so `MarsParser` accepts the input.
+///   2. Run `MarsParser::parse()` to produce a `MarsParsedRequest`.
+///   3. Run `MarsExpansion::expand()` to apply `to`/`by` ranges, type
+///      expansion, optional fields, etc.
+///
+/// An empty request string is returned as a default-constructed
+/// `MarsRequest` (matches everything) without invoking the parser.
+///
+/// Throws on any parser/expansion error; the global `rust::behavior::trycatch`
+/// turns the exception into a Rust `Result::Err`.
+static metkit::mars::MarsRequest parse_to_mars_request(const std::string& request_str) {
     if (request_str.empty()) {
         return metkit::mars::MarsRequest{};
     }
 
-    // Create MarsRequest with empty verb
-    metkit::mars::MarsRequest mars("");
+    // MarsParser requires a verb at the start of the input. Use "retrieve"
+    // as the canonical verb (matches what `FDBToolRequest::requestsFromString`
+    // defaults to). The verb itself is discarded by MarsExpansion.
+    std::string full = "retrieve," + request_str;
+    std::istringstream in(full);
+    metkit::mars::MarsParser parser(in);
+    auto parsed = parser.parse();
+    ASSERT(parsed.size() == 1);
 
-    // Parse key=value pairs separated by commas
-    // Format: key1=val1/val2,key2=val3,...
-    std::string::size_type pos = 0;
-    while (pos < request_str.size()) {
-        // Find key
-        auto eq_pos = request_str.find('=', pos);
-        if (eq_pos == std::string::npos) {
-            break;
-        }
-        std::string key = request_str.substr(pos, eq_pos - pos);
-
-        // Find values (until comma or end)
-        auto comma_pos = request_str.find(',', eq_pos);
-        std::string values_str;
-        if (comma_pos == std::string::npos) {
-            values_str = request_str.substr(eq_pos + 1);
-            pos = request_str.size();
-        }
-        else {
-            values_str = request_str.substr(eq_pos + 1, comma_pos - eq_pos - 1);
-            pos = comma_pos + 1;
-        }
-
-        // Split values by '/'
-        std::vector<std::string> values;
-        std::string::size_type vpos = 0;
-        while (vpos < values_str.size()) {
-            auto slash_pos = values_str.find('/', vpos);
-            if (slash_pos == std::string::npos) {
-                values.push_back(values_str.substr(vpos));
-                break;
-            }
-            values.push_back(values_str.substr(vpos, slash_pos - vpos));
-            vpos = slash_pos + 1;
-        }
-
-        mars.values(key, values);
-    }
-
-    return mars;
+    metkit::mars::MarsExpansion expand(/*inherit*/ false, /*strict*/ true);
+    auto expanded = expand.expand(parsed);
+    ASSERT(expanded.size() == 1);
+    return std::move(expanded.front());
 }
 
-/// Create FDBToolRequest from request string
+/// Create an `FDBToolRequest` from a MARS request string.
 static fdb5::FDBToolRequest make_tool_request(const std::string& request_str) {
-    auto mars = parse_request_no_verb(request_str);
-    // If request is empty, match all; otherwise filter by request
+    auto mars = parse_to_mars_request(request_str);
+    // If the request is empty, match all; otherwise filter by request.
     bool all = mars.empty();
     return fdb5::FDBToolRequest{mars, all, std::vector<std::string>{}};
 }
@@ -592,6 +579,30 @@ rust::String fdb_git_sha1() {
 }
 
 // ============================================================================
+// MARS request parsing
+// ============================================================================
+
+RequestData parse_mars_request(rust::Str request) {
+    // Parsing requires eckit to be initialised (type registries, log levels,
+    // etc.), but `parse_mars_request` is a free function that may be called
+    // before the user constructs an `Fdb`. Make it self-sufficient.
+    fdb_init();
+
+    auto mars = parse_to_mars_request(std::string(request));
+
+    RequestData out;
+    for (const auto& key : mars.params()) {
+        RequestParam param;
+        param.key = rust::String(key);
+        for (const auto& v : mars.values(key)) {
+            param.values.push_back(rust::String(v));
+        }
+        out.params.push_back(std::move(param));
+    }
+    return out;
+}
+
+// ============================================================================
 // Handle lifecycle functions
 // ============================================================================
 
@@ -625,8 +636,7 @@ void archive_raw(FdbHandle& handle, rust::Slice<const uint8_t> data) {
 // ============================================================================
 
 std::unique_ptr<DataReaderHandle> retrieve(FdbHandle& handle, rust::Str request) {
-    std::string request_str{request};
-    auto mars = parse_request_no_verb(request_str);
+    auto mars = parse_to_mars_request(std::string(request));
     eckit::DataHandle* dh = handle.inner().retrieve(mars);
     return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
 }

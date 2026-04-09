@@ -136,11 +136,13 @@ To fix this, try one of:
    - Debian/Ubuntu: apt install lib{package_lower}-dev
    - From source: https://github.com/ecmwf/{package_lower}
 
-2. Set CMAKE_PREFIX_PATH to the installation directory:
-   export CMAKE_PREFIX_PATH=/path/to/{package_lower}:$CMAKE_PREFIX_PATH
-
-3. Set {env_var} environment variable:
+2. Point at a {package} install with the package-specific variable
+   (preferred — affects only {package}):
    export {env_var}=/path/to/{package_lower}
+
+3. Or, if you have a shared install tree for multiple ECMWF packages,
+   add it to CMAKE_PREFIX_PATH:
+   export CMAKE_PREFIX_PATH=/path/to/install:$CMAKE_PREFIX_PATH
 
 4. Use vendored build (builds from source):
    cargo build --no-default-features --features vendored
@@ -170,11 +172,13 @@ To fix this, try one of:
    - Debian/Ubuntu: apt install lib{package_lower}-dev
    - From source: https://github.com/ecmwf/{package_lower}
 
-2. Set CMAKE_PREFIX_PATH to the installation directory:
-   export CMAKE_PREFIX_PATH=/path/to/{package_lower}:$CMAKE_PREFIX_PATH
-
-3. Set {env_var} environment variable:
+2. Point at a {package} install with the package-specific variable
+   (preferred — affects only {package}):
    export {env_var}=/path/to/{package_lower}
+
+3. Or, if you have a shared install tree for multiple ECMWF packages,
+   add it to CMAKE_PREFIX_PATH:
+   export CMAKE_PREFIX_PATH=/path/to/install:$CMAKE_PREFIX_PATH
 
 4. Use vendored build (builds from source):
    cargo build --no-default-features --features vendored

@@ -389,6 +389,16 @@ rust::String fdb_version();
 rust::String fdb_git_sha1();
 
 // ============================================================================
+// MARS request parsing
+// ============================================================================
+
+/// Parse a MARS request string with metkit's parser + expansion. Handles
+/// `to`/`by` ranges, type expansion, optional fields, etc. Throws an
+/// `eckit::Exception` on parse failure (which the global trycatch turns
+/// into a Rust `Result::Err`).
+RequestData parse_mars_request(rust::Str request);
+
+// ============================================================================
 // Handle lifecycle functions
 // ============================================================================
 
