@@ -180,62 +180,32 @@ rust::String FdbHandle::name() const {
 }
 
 // ============================================================================
-// DataReaderHandle implementation
+// eckit::DataHandle shim functions
 // ============================================================================
 
-DataReaderHandle::DataReaderHandle(std::unique_ptr<eckit::DataHandle> handle) : impl_(std::move(handle)) {}
-
-DataReaderHandle::~DataReaderHandle() {
-    if (is_open_ && impl_) {
-        try {
-            impl_->close();
-        }
-        catch (const std::exception&) {
-            // Destructors must not throw - swallow exception
-        }
-    }
+uint64_t data_handle_open(eckit::DataHandle& handle) {
+    return static_cast<uint64_t>(handle.openForRead());
 }
 
-void DataReaderHandle::open() {
-    if (impl_ && !is_open_) {
-        impl_->openForRead();
-        is_open_ = true;
-    }
+void data_handle_close(eckit::DataHandle& handle) {
+    handle.close();
 }
 
-void DataReaderHandle::close() {
-    if (impl_ && is_open_) {
-        impl_->close();
-        is_open_ = false;
-    }
+size_t data_handle_read(eckit::DataHandle& handle, rust::Slice<uint8_t> buffer) {
+    long n = handle.read(buffer.data(), static_cast<long>(buffer.size()));
+    return n < 0 ? 0 : static_cast<size_t>(n);
 }
 
-size_t DataReaderHandle::read(rust::Slice<uint8_t> buffer) {
-    if (!impl_ || !is_open_) {
-        throw eckit::UserError("DataReader not open", Here());
-    }
-    return impl_->read(buffer.data(), buffer.size());
+void data_handle_seek(eckit::DataHandle& handle, uint64_t position) {
+    handle.seek(eckit::Offset(position));
 }
 
-void DataReaderHandle::seek(uint64_t position) {
-    if (!impl_ || !is_open_) {
-        throw eckit::UserError("DataReader not open", Here());
-    }
-    impl_->seek(eckit::Offset(position));
+uint64_t data_handle_tell(eckit::DataHandle& handle) {
+    return static_cast<uint64_t>(handle.position());
 }
 
-uint64_t DataReaderHandle::tell() const {
-    if (!impl_) {
-        return 0;
-    }
-    return impl_->position();
-}
-
-uint64_t DataReaderHandle::size() const {
-    if (!impl_) {
-        return 0;
-    }
-    return impl_->size();
+uint64_t data_handle_size(eckit::DataHandle& handle) {
+    return static_cast<uint64_t>(handle.size());
 }
 
 // ============================================================================
@@ -726,39 +696,35 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
 // Retrieve functions
 // ============================================================================
 
-std::unique_ptr<DataReaderHandle> retrieve(FdbHandle& handle, rust::Str request) {
+std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, rust::Str request) {
     auto mars = parse_to_mars_request(std::string(request));
-    eckit::DataHandle* dh = handle.inner().retrieve(mars);
-    return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
+    return std::unique_ptr<eckit::DataHandle>(handle.inner().retrieve(mars));
 }
 
 // ============================================================================
 // Read functions (by URI)
 // ============================================================================
 
-std::unique_ptr<DataReaderHandle> read_uri(FdbHandle& handle, rust::Str uri) {
+std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri) {
     std::string uri_str{uri};
     eckit::URI eckit_uri{uri_str};
-    eckit::DataHandle* dh = handle.inner().read(eckit_uri);
-    return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
+    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uri));
 }
 
-std::unique_ptr<DataReaderHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
-                                            bool in_storage_order) {
+std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
+                                             bool in_storage_order) {
     std::vector<eckit::URI> eckit_uris;
     eckit_uris.reserve(uris.size());
     for (const auto& uri : uris) {
         eckit_uris.emplace_back(std::string(uri));
     }
-    eckit::DataHandle* dh = handle.inner().read(eckit_uris, in_storage_order);
-    return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
+    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uris, in_storage_order));
 }
 
-std::unique_ptr<DataReaderHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
-                                                     bool in_storage_order) {
+std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
+                                                      bool in_storage_order) {
     // Calls FDB::read(ListIterator&, bool) directly - most efficient path
-    eckit::DataHandle* dh = handle.inner().read(iterator.inner(), in_storage_order);
-    return std::make_unique<DataReaderHandle>(std::unique_ptr<eckit::DataHandle>(dh));
+    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(iterator.inner(), in_storage_order));
 }
 
 // ============================================================================
