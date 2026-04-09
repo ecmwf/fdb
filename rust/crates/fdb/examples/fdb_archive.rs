@@ -5,6 +5,7 @@
 //! Or to archive using raw GRIB metadata extraction:
 //! `cargo run --example fdb_archive -p fdb -- <config.yaml> <data.grib> --raw`
 
+use std::path::Path;
 use std::{env, fs};
 
 use fdb::{Fdb, Key};
@@ -19,14 +20,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let config_path = &args[1];
+    let config_path = Path::new(&args[1]);
     let grib_path = &args[2];
     let use_raw = args.get(3).is_some_and(|a| a == "--raw");
 
-    // Open the FDB. `from_path` hands the file directly to `fdb5::Config::make`,
-    // which loads YAML or JSON and expands `~fdb`/`fdb_home` references — no
-    // need to slurp the file into a String first.
-    let fdb = Fdb::from_path(config_path)?;
+    // Open the FDB. Passing a `Path` (rather than a `&str`) routes through
+    // `fdb5::Config::make`, which loads YAML or JSON and expands `~fdb`/
+    // `fdb_home` references — no need to slurp the file into a String first.
+    let fdb = Fdb::open(Some(config_path), None)?;
     println!("FDB handle created: {}", fdb.name());
 
     // Read GRIB data

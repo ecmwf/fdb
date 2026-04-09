@@ -18,7 +18,7 @@ use std::io::Read;
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 // Open the FDB. Picks up its configuration from the environment
 // (`FDB_CONFIG_FILE` or similar); see the upstream FDB docs.
-let fdb = Fdb::new()?;
+let fdb = Fdb::open_default()?;
 
 let key = Key::new()
     .with("class", "od")

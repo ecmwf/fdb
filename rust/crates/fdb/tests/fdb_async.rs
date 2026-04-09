@@ -77,7 +77,7 @@ async fn test_fdb_concurrent_archive() {
     let config = create_test_config(tmpdir.path());
 
     // Fdb has internal locking
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
 
     let grib_data =
         Arc::new(fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB"));
@@ -126,7 +126,7 @@ async fn test_fdb_concurrent_retrieve() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
 
     // Archive some test data first
     for i in 0..4 {
@@ -183,7 +183,7 @@ async fn test_fdb_concurrent_list() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
 
     // Archive test data
     for i in 0..4 {
@@ -226,7 +226,7 @@ async fn test_fdb_spawn_blocking_pattern() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
-    let fdb = Arc::new(Fdb::from_yaml(&config).expect("failed to create FDB"));
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create FDB"));
     let grib_data =
         Arc::new(fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB"));
 
