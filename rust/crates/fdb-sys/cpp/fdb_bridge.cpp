@@ -174,47 +174,6 @@ rust::String FdbHandle::name() const {
     return rust::String(impl_.name());
 }
 
-ConfigData FdbHandle::config() const {
-    ConfigData data;
-    const auto& cfg = impl_.config();
-    data.schema_path = rust::String(cfg.schemaPath().asString());
-    data.config_path = rust::String(cfg.configPath().asString());
-    return data;
-}
-
-rust::String FdbHandle::config_string(rust::Str key) const {
-    const auto& cfg = impl_.config();
-    std::string key_str{key};
-    if (cfg.has(key_str)) {
-        return rust::String(cfg.getString(key_str));
-    }
-    return rust::String("");
-}
-
-int64_t FdbHandle::config_int(rust::Str key) const {
-    const auto& cfg = impl_.config();
-    std::string key_str{key};
-    if (cfg.has(key_str)) {
-        return cfg.getLong(key_str);
-    }
-    return 0;
-}
-
-bool FdbHandle::config_bool(rust::Str key) const {
-    const auto& cfg = impl_.config();
-    std::string key_str{key};
-    if (cfg.has(key_str)) {
-        return cfg.getBool(key_str);
-    }
-    return false;
-}
-
-bool FdbHandle::config_has(rust::Str key) const {
-    const auto& cfg = impl_.config();
-    std::string key_str{key};
-    return cfg.has(key_str);
-}
-
 // ============================================================================
 // DataReaderHandle implementation
 // ============================================================================

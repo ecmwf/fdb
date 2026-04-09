@@ -31,7 +31,7 @@ mod request;
 
 pub use datareader::DataReader;
 pub use error::{Error, Result};
-pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
+pub use handle::{ArchiveCallbackData, Fdb, FdbStats};
 pub use iterator::{
     ControlElement, ControlIterator, DumpElement, DumpIterator, ListElement, ListIterator,
     MoveElement, MoveIterator, PurgeElement, PurgeIterator, StatsElement, StatsIterator,

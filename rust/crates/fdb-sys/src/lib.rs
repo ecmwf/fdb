@@ -39,10 +39,18 @@ pub struct FlushCallbackBox(Box<dyn FlushCallback>);
 /// Opaque wrapper for archive callbacks (used internally by cxx bridge).
 pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 
-// `axesIterator` is intentionally not exposed: it is an internal detail of
-// the multi-FDB implementation (DistFDB / SelectFDB) and not meaningful at
-// the user API. The synchronous `axes()` method is the supported entry point.
-#[track_cpp_api("fdb5/api/FDB.h", class = "FDB", ignore = ["inspect", "reindex", "axesIterator"])]
+// Methods intentionally not exposed:
+// - `axesIterator`: internal detail of the multi-FDB implementation
+//   (DistFDB / SelectFDB), not meaningful at the user API. The synchronous
+//   `axes()` method is the supported entry point.
+// - `config`: returns the same configuration the user just supplied to
+//   `Fdb::from_yaml(...)`. The user already has it; round-tripping it back
+//   through the FFI adds no information.
+#[track_cpp_api(
+    "fdb5/api/FDB.h",
+    class = "FDB",
+    ignore = ["inspect", "reindex", "axesIterator", "config"]
+)]
 #[cxx::bridge(namespace = "fdb::ffi")]
 mod ffi {
     // =========================================================================
@@ -171,15 +179,6 @@ mod ffi {
         pub destination: String,
     }
 
-    /// FDB configuration data.
-    #[derive(Debug, Clone, Default)]
-    pub struct ConfigData {
-        /// Path to the schema file.
-        pub schema_path: String,
-        /// Path to the config file.
-        pub config_path: String,
-    }
-
     // Bind to existing fdb5::ControlAction / fdb5::ControlIdentifier C++ enums.
     // The shared enum + extern type pattern tells CXX to use the existing
     // C++ enum and generate static assertions to verify the values match.
@@ -247,21 +246,6 @@ mod ffi {
 
         /// Get the FDB type name (e.g., "local", "remote").
         fn name(self: &FdbHandle) -> String;
-
-        /// Get the FDB configuration data (schema path, config path).
-        fn config(self: &FdbHandle) -> ConfigData;
-
-        /// Get a string value from the FDB configuration.
-        fn config_string(self: &FdbHandle, key: &str) -> String;
-
-        /// Get an integer value from the FDB configuration.
-        fn config_int(self: &FdbHandle, key: &str) -> i64;
-
-        /// Get a boolean value from the FDB configuration.
-        fn config_bool(self: &FdbHandle, key: &str) -> bool;
-
-        /// Check if a key exists in the FDB configuration.
-        fn config_has(self: &FdbHandle, key: &str) -> bool;
 
         // =====================================================================
         // DataReaderHandle - For reading retrieved data
