@@ -91,18 +91,19 @@ fn test_fdb_list_no_results() {
 
     let fdb = Fdb::from_yaml(&config).expect("failed to create FDB from YAML");
 
-    // Request with criteria that won't match anything (FDB requires at least one criterion)
-    let request = Request::new().with("class", "nonexistent");
+    // Use a valid class value but an `expver` that nothing has been archived
+    // under in this fresh tmpdir. metkit (now used for parsing) only accepts
+    // values it can type-check, so we can't pass a literal 'nonexistent'
+    // class — we have to express "no results" via a value the schema
+    // accepts but that doesn't appear in the database.
+    let request = Request::new().with("class", "rd").with("expver", "zzzz");
 
     let items: Vec<_> = fdb
         .list(&request, 3, false)
         .expect("failed to list")
         .collect();
 
-    assert!(
-        items.is_empty(),
-        "expected no results for nonexistent class"
-    );
+    assert!(items.is_empty(), "expected no results for unused expver");
 }
 
 #[test]
