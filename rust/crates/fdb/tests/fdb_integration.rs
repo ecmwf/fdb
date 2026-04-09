@@ -1478,6 +1478,92 @@ fn test_fdb_archive_raw() {
     assert_eq!(item.length, grib_data.len() as u64);
 }
 
+/// Test `archive_reader()` — streaming sibling of `archive_raw`. Same
+/// GRIB fixture, same expected key, but the bytes flow through a
+/// `Cursor<Vec<u8>>` (an arbitrary `std::io::Read`) and are pulled into
+/// the C++ side via the cxx callback bridge.
+///
+/// This proves the end-to-end streaming path works: Rust source ->
+/// `RustReaderHandle` -> `fdb5::FDB::archive(DataHandle&)` -> the same
+/// metadata extraction the slice-based path uses.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_archive_reader() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+
+    let grib_path = fixtures_dir().join("synth11.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read synth11.grib");
+    let grib_len = grib_data.len();
+
+    // Wrap the bytes in a `Cursor` so we go through the streaming path
+    // (`Vec<u8>` is not `Read`, but `Cursor<Vec<u8>>` is).
+    let reader = std::io::Cursor::new(grib_data);
+    fdb.archive_reader(reader).expect("archive_reader failed");
+    fdb.flush().expect("flush failed");
+
+    // Verify the same key/length the slice-based test asserts on.
+    let request = Request::new().with("class", "od").with("expver", "0001");
+    let items: Vec<_> = fdb
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
+        .expect("failed to list")
+        .collect::<Result<_, _>>()
+        .expect("list iterator returned an error");
+
+    assert_eq!(
+        items.len(),
+        1,
+        "expected exactly one entry after archive_reader, got {}: {items:#?}",
+        items.len()
+    );
+
+    let item = &items[0];
+    let db: std::collections::HashMap<_, _> = item.db_key.iter().cloned().collect();
+    assert_eq!(db.get("class").map(String::as_str), Some("od"));
+    assert_eq!(db.get("expver").map(String::as_str), Some("0001"));
+    assert_eq!(db.get("date").map(String::as_str), Some("20230508"));
+    let datum: std::collections::HashMap<_, _> = item.datum_key.iter().cloned().collect();
+    assert_eq!(datum.get("param").map(String::as_str), Some("151130"));
+
+    assert_eq!(item.length, grib_len as u64);
+}
+
+/// Test `archive_reader()` surfaces I/O errors from the supplied
+/// reader. The C++ side throws `eckit::ReadError` when
+/// `invoke_reader_read` returns `-1`, which the global trycatch turns
+/// into a Rust `Err`.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_archive_reader_propagates_io_error() {
+    /// A reader that always fails — used to prove errors propagate
+    /// through the cxx callback boundary as a Rust `Err`.
+    struct AlwaysFailingReader;
+    impl std::io::Read for AlwaysFailingReader {
+        fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::other("synthetic read failure"))
+        }
+    }
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+
+    let result = fdb.archive_reader(AlwaysFailingReader);
+    assert!(
+        result.is_err(),
+        "archive_reader should surface reader I/O errors as Err"
+    );
+}
+
 /// Test `read_uri()` - reads data from a specific URI location.
 #[test]
 #[ignore = "requires FDB libraries"]
