@@ -18,7 +18,7 @@
 use std::sync::Arc;
 use std::thread;
 
-use fdb::{Fdb, Key, Request};
+use fdb::{Fdb, Key, ListOptions, Request};
 
 // =============================================================================
 // Trait bound tests (compile-time verification)
@@ -132,7 +132,13 @@ fn test_concurrent_list_operations() {
             thread::spawn(move || {
                 let request = Request::new().with("class", "rd");
                 for _ in 0..10 {
-                    let _ = fdb.list(&request, 1, false);
+                    let _ = fdb.list(
+                        &request,
+                        ListOptions {
+                            depth: 1,
+                            deduplicate: false,
+                        },
+                    );
                 }
             })
         })
@@ -186,7 +192,13 @@ fn test_stress_concurrent_access() {
                         let _ = fdb.name();
                     } else {
                         // Query operations
-                        let _ = fdb.list(&request, 1, false);
+                        let _ = fdb.list(
+                            &request,
+                            ListOptions {
+                                depth: 1,
+                                deduplicate: false,
+                            },
+                        );
                     }
                 }
             })
@@ -219,7 +231,13 @@ fn test_concurrent_errors_no_crash() {
                 let request = Request::new().with("INVALID_KEY", &value);
                 for _ in 0..20 {
                     // Ignore the error - testing that concurrent errors don't crash
-                    let _ = fdb.list(&request, 1, false);
+                    let _ = fdb.list(
+                        &request,
+                        ListOptions {
+                            depth: 1,
+                            deduplicate: false,
+                        },
+                    );
                 }
             })
         })
@@ -325,7 +343,13 @@ fn test_concurrent_archive_operations() {
     // Verify data was archived by listing
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("list failed")
         .filter_map(std::result::Result::ok)
         .collect();
@@ -385,7 +409,13 @@ fn test_concurrent_read_write_mix() {
                 for i in 0..iterations {
                     if thread_id % 2 == 0 {
                         // Even threads: read operations
-                        let _ = fdb.list(&request, 1, false);
+                        let _ = fdb.list(
+                            &request,
+                            ListOptions {
+                                depth: 1,
+                                deduplicate: false,
+                            },
+                        );
                         let _ = fdb.axes(&request, 1);
                     } else {
                         // Odd threads: write operations
