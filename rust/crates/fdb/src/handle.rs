@@ -461,60 +461,6 @@ impl Fdb {
         self.with_handle_ref(|h| h.enabled(identifier))
     }
 
-    /// Get the FDB configuration data.
-    #[must_use]
-    pub fn config(&self) -> FdbConfig {
-        self.with_handle_ref(|h| {
-            let data = h.config();
-            FdbConfig {
-                schema_path: data.schema_path,
-                config_path: data.config_path,
-            }
-        })
-    }
-
-    /// Get a string value from the FDB configuration.
-    ///
-    /// Returns `None` if the key doesn't exist.
-    #[must_use]
-    pub fn config_string(&self, key: &str) -> Option<String> {
-        if self.config_has(key) {
-            Some(self.with_handle_ref(|h| h.config_string(key)))
-        } else {
-            None
-        }
-    }
-
-    /// Get an integer value from the FDB configuration.
-    ///
-    /// Returns `None` if the key doesn't exist.
-    #[must_use]
-    pub fn config_int(&self, key: &str) -> Option<i64> {
-        if self.config_has(key) {
-            Some(self.with_handle_ref(|h| h.config_int(key)))
-        } else {
-            None
-        }
-    }
-
-    /// Get a boolean value from the FDB configuration.
-    ///
-    /// Returns `None` if the key doesn't exist.
-    #[must_use]
-    pub fn config_bool(&self, key: &str) -> Option<bool> {
-        if self.config_has(key) {
-            Some(self.with_handle_ref(|h| h.config_bool(key)))
-        } else {
-            None
-        }
-    }
-
-    /// Check if a key exists in the FDB configuration.
-    #[must_use]
-    pub fn config_has(&self, key: &str) -> bool {
-        self.with_handle_ref(|h| h.config_has(key))
-    }
-
     /// Register a callback to be invoked on flush.
     pub fn on_flush<F>(&self, callback: F)
     where
@@ -549,15 +495,6 @@ pub struct FdbStats {
     pub num_location: u64,
     /// Number of flush operations.
     pub num_flush: u64,
-}
-
-/// FDB configuration data.
-#[derive(Debug, Clone, Default)]
-pub struct FdbConfig {
-    /// Path to the schema file.
-    pub schema_path: String,
-    /// Path to the config file.
-    pub config_path: String,
 }
 
 /// Re-export callback data type.

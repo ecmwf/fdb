@@ -87,7 +87,6 @@ struct PurgeElementData;
 struct StatsElementData;
 struct ControlElementData;
 struct MoveElementData;
-struct ConfigData;
 
 // ============================================================================
 // Wrapper classes for opaque C++ types
@@ -135,21 +134,6 @@ public:
 
     /// Get the FDB type name.
     rust::String name() const;
-
-    /// Get the FDB configuration data.
-    ConfigData config() const;
-
-    /// Get a string value from the FDB configuration.
-    rust::String config_string(rust::Str key) const;
-
-    /// Get an integer value from the FDB configuration.
-    int64_t config_int(rust::Str key) const;
-
-    /// Get a boolean value from the FDB configuration.
-    bool config_bool(rust::Str key) const;
-
-    /// Check if a key exists in the FDB configuration.
-    bool config_has(rust::Str key) const;
 
 private:
 
