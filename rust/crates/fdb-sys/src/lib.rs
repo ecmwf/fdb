@@ -1,4 +1,4 @@
-//! C++ bindings to ECMWF's FDB (Fields DataBase) library using cxx.
+//! C++ bindings to ECMWF's FDB (Fields `DataBase`) library using cxx.
 //!
 //! This crate provides raw C++ bindings to the FDB. For a safe, idiomatic
 //! Rust interface, use the `fdb` crate instead.
