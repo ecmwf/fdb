@@ -1,6 +1,6 @@
-//! Safe Rust wrapper for the ECMWF FDB (Fields Database) library.
+//! Safe Rust wrapper for ECMWF's FDB (Fields DataBase).
 //!
-//! This crate provides a safe, idiomatic Rust interface to FDB,
+//! This crate provides a safe, idiomatic Rust interface to the FDB,
 //! a domain-specific object store for meteorological data.
 //!
 //! # Example

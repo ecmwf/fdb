@@ -1,8 +1,8 @@
 # fdb
 
-Safe Rust wrapper for ECMWF's [FDB5](https://github.com/ecmwf/fdb) (Fields DataBase).
+Safe Rust wrapper for ECMWF's [FDB](https://github.com/ecmwf/fdb) (Fields DataBase).
 
-FDB is a domain-specific object store for meteorological data, developed at ECMWF for high-performance storage and retrieval of weather and climate data.
+The FDB is a domain-specific object store for meteorological data, developed at ECMWF for high-performance storage and retrieval of weather and climate data.
 
 ## Usage
 
