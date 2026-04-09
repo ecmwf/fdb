@@ -276,29 +276,33 @@ mod ffi {
         fn name(self: &FdbHandle) -> String;
 
         // =====================================================================
-        // DataReaderHandle - For reading retrieved data
+        // eckit::DataHandle - For reading retrieved data
         // =====================================================================
 
-        /// Wrapper around eckit::DataHandle for reading retrieved data
-        type DataReaderHandle;
+        /// Opaque handle to an `eckit::DataHandle` (the upstream abstract
+        /// base for byte streams). Owned via `UniquePtr<DataHandle>`;
+        /// `eckit::DataHandle` has a virtual destructor so cxx's
+        /// generated `delete` is correct for any concrete subclass.
+        #[namespace = "eckit"]
+        type DataHandle;
 
-        /// Open the DataReader (must be called before reading).
-        fn open(self: Pin<&mut DataReaderHandle>) -> Result<()>;
+        /// Open the handle for reading. Returns the estimated length.
+        fn data_handle_open(handle: Pin<&mut DataHandle>) -> Result<u64>;
 
-        /// Close the DataReader.
-        fn close(self: Pin<&mut DataReaderHandle>) -> Result<()>;
+        /// Close the handle.
+        fn data_handle_close(handle: Pin<&mut DataHandle>) -> Result<()>;
 
-        /// Read data into a buffer. Returns the number of bytes read.
-        fn read(self: Pin<&mut DataReaderHandle>, buffer: &mut [u8]) -> Result<usize>;
+        /// Read up to `buffer.len()` bytes into `buffer`.
+        fn data_handle_read(handle: Pin<&mut DataHandle>, buffer: &mut [u8]) -> Result<usize>;
 
-        /// Seek to a position in the DataReader.
-        fn seek(self: Pin<&mut DataReaderHandle>, position: u64) -> Result<()>;
+        /// Seek to an absolute byte position.
+        fn data_handle_seek(handle: Pin<&mut DataHandle>, position: u64) -> Result<()>;
 
-        /// Get current position in the DataReader.
-        fn tell(self: &DataReaderHandle) -> u64;
+        /// Current read position.
+        fn data_handle_tell(handle: Pin<&mut DataHandle>) -> u64;
 
-        /// Get total size of the data.
-        fn size(self: &DataReaderHandle) -> u64;
+        /// Total size of the underlying data, in bytes.
+        fn data_handle_size(handle: Pin<&mut DataHandle>) -> u64;
 
         // =====================================================================
         // ListIteratorHandle
@@ -487,31 +491,28 @@ mod ffi {
         // =====================================================================
 
         /// Retrieve data matching a request.
-        fn retrieve(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<DataReaderHandle>>;
+        fn retrieve(handle: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
 
         // =====================================================================
         // Read operations (by URI)
         // =====================================================================
 
         /// Read data from a single URI.
-        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataReaderHandle>>;
+        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
 
         /// Read data from a list of URIs.
         fn read_uris(
             handle: Pin<&mut FdbHandle>,
             uris: &Vec<String>,
             in_storage_order: bool,
-        ) -> Result<UniquePtr<DataReaderHandle>>;
+        ) -> Result<UniquePtr<DataHandle>>;
 
         /// Read data from a list iterator (most efficient).
         fn read_list_iterator(
             handle: Pin<&mut FdbHandle>,
             iterator: Pin<&mut ListIteratorHandle>,
             in_storage_order: bool,
-        ) -> Result<UniquePtr<DataReaderHandle>>;
+        ) -> Result<UniquePtr<DataHandle>>;
 
         // =====================================================================
         // List operations (free functions)
