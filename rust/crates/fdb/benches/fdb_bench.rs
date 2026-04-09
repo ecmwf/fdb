@@ -6,7 +6,7 @@
 //! Some benchmarks require FDB setup and will be skipped if setup fails.
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use fdb::{Fdb, Key, Request};
+use fdb::{Fdb, Key, ListOptions, Request};
 use std::sync::OnceLock;
 
 // FDB setup for benchmarks that need data
@@ -158,7 +158,16 @@ fn bench_list(c: &mut Criterion) {
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
-            let results: Vec<_> = fdb.list(&request, 3, false).expect("list failed").collect();
+            let results: Vec<_> = fdb
+                .list(
+                    &request,
+                    ListOptions {
+                        depth: 3,
+                        deduplicate: false,
+                    },
+                )
+                .expect("list failed")
+                .collect();
             black_box(results);
         });
     });

@@ -13,7 +13,7 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
-use fdb::{Fdb, Key, Request};
+use fdb::{DumpOptions, Fdb, Key, ListOptions, PurgeOptions, Request, WipeOptions};
 
 /// Get the path to test fixtures directory.
 fn fixtures_dir() -> PathBuf {
@@ -108,7 +108,13 @@ fn test_fdb_handle_from_path() {
 
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("list failed")
         .collect::<Result<_, _>>()
         .expect("list iterator returned an error");
@@ -164,7 +170,13 @@ fn test_fdb_list_no_results() {
     let request = Request::new().with("class", "rd").with("expver", "zzzz");
 
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
 
@@ -238,7 +250,13 @@ fn test_fdb_archive_retrieve_cycle() {
     let list_request = Request::new().with("class", "rd").with("expver", "xxxx");
 
     let items: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
 
@@ -330,7 +348,10 @@ fn test_fdb_dump() {
 
     // Dump database structure
     let request = Request::new().with("class", "rd");
-    let dump_items: Vec<_> = fdb.dump(&request, true).expect("failed to dump").collect();
+    let dump_items: Vec<_> = fdb
+        .dump(&request, DumpOptions { simple: true })
+        .expect("failed to dump")
+        .collect();
 
     println!("Dump returned {} items", dump_items.len());
     assert!(!dump_items.is_empty(), "expected at least one dump element");
@@ -428,7 +449,13 @@ fn test_fdb_wipe_dry_run() {
     // Verify data exists
     let list_request = Request::new().with("class", "rd");
     let items_before: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert!(
@@ -439,7 +466,7 @@ fn test_fdb_wipe_dry_run() {
     // Dry-run wipe (doit=false)
     let wipe_request = Request::new().with("class", "rd").with("expver", "xxxx");
     let wipe_items: Vec<_> = fdb
-        .wipe(&wipe_request, false, false, false)
+        .wipe(&wipe_request, WipeOptions::default())
         .expect("failed to wipe")
         .collect();
 
@@ -453,7 +480,13 @@ fn test_fdb_wipe_dry_run() {
 
     // Verify data still exists after dry-run
     let items_after: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert_eq!(
@@ -494,7 +527,7 @@ fn test_fdb_purge_dry_run() {
     // Dry-run purge (doit=false)
     let purge_request = Request::new().with("class", "rd");
     let purge_items: Vec<_> = fdb
-        .purge(&purge_request, false, false)
+        .purge(&purge_request, PurgeOptions::default())
         .expect("failed to purge")
         .collect();
 
@@ -826,7 +859,13 @@ fn test_fdb_wipe_actual() {
     // Verify FDB is populated
     let list_request = Request::new().with("class", "rd");
     let items: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert_eq!(items.len(), 2, "expected 2 fields");
@@ -835,14 +874,26 @@ fn test_fdb_wipe_actual() {
     // Wipe first database (doit=true)
     let wipe_request1 = Request::new().with("class", "rd").with("expver", "xxxx");
     let wipe_items: Vec<_> = fdb
-        .wipe(&wipe_request1, true, false, false)
+        .wipe(
+            &wipe_request1,
+            WipeOptions {
+                doit: true,
+                ..Default::default()
+            },
+        )
         .expect("failed to wipe")
         .collect();
     println!("Wipe returned {} items", wipe_items.len());
 
     // Verify first database is wiped
     let items_after: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert_eq!(items_after.len(), 1, "expected 1 field after wipe");
@@ -851,13 +902,25 @@ fn test_fdb_wipe_actual() {
     // Wipe remaining database
     let wipe_request2 = Request::new().with("class", "rd");
     let _: Vec<_> = fdb
-        .wipe(&wipe_request2, true, false, false)
+        .wipe(
+            &wipe_request2,
+            WipeOptions {
+                doit: true,
+                ..Default::default()
+            },
+        )
         .expect("failed to wipe")
         .collect();
 
     // Verify all data is wiped
     let items_final: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert_eq!(items_final.len(), 0, "expected 0 fields after full wipe");
@@ -898,14 +961,20 @@ fn test_fdb_wipe_masked_data() {
     // List including masked
     let list_request = Request::new().with("class", "rd");
     let items_with_masked: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     println!("Listed {} fields including masked", items_with_masked.len());
 
     // List excluding masked (deduplicate=true)
     let items_dedup: Vec<_> = fdb
-        .list(&list_request, 3, true)
+        .list(&list_request, ListOptions::default())
         .expect("failed to list")
         .collect();
     println!("Listed {} fields excluding masked", items_dedup.len());
@@ -914,14 +983,26 @@ fn test_fdb_wipe_masked_data() {
     // Wipe all
     let wipe_request = Request::new().with("class", "rd").with("expver", "xxxx");
     let wipe_items: Vec<_> = fdb
-        .wipe(&wipe_request, true, false, false)
+        .wipe(
+            &wipe_request,
+            WipeOptions {
+                doit: true,
+                ..Default::default()
+            },
+        )
         .expect("failed to wipe")
         .collect();
     println!("Wipe returned {} items", wipe_items.len());
 
     // Verify all wiped
     let items_final: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     assert_eq!(items_final.len(), 0, "expected 0 fields after wipe");
@@ -960,7 +1041,13 @@ fn test_fdb_purge_actual() {
     // List including masked
     let list_request = Request::new().with("class", "rd");
     let items_before: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     println!("Listed {} fields before purge", items_before.len());
@@ -968,14 +1055,26 @@ fn test_fdb_purge_actual() {
     // Purge duplicates (doit=true)
     let purge_request = Request::new().with("class", "rd");
     let purge_items: Vec<_> = fdb
-        .purge(&purge_request, true, false)
+        .purge(
+            &purge_request,
+            PurgeOptions {
+                doit: true,
+                ..Default::default()
+            },
+        )
         .expect("failed to purge")
         .collect();
     println!("Purge returned {} items", purge_items.len());
 
     // List after purge - should have only 1 field
     let items_after: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect();
     println!("Listed {} fields after purge", items_after.len());
@@ -1164,7 +1263,13 @@ fn test_fdb_list_element_full_key() {
     // List and check full_key()
     let list_request = Request::new().with("class", "rd").with("expver", "xxxx");
     let items: Vec<_> = fdb
-        .list(&list_request, 3, false)
+        .list(
+            &list_request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .filter_map(std::result::Result::ok)
         .collect();
@@ -1332,7 +1437,13 @@ fn test_fdb_archive_raw() {
     // matches.
     let request = Request::new().with("class", "od").with("expver", "0001");
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .collect::<Result<_, _>>()
         .expect("list iterator returned an error");
@@ -1397,7 +1508,13 @@ fn test_fdb_read_uri() {
     // List to get the URI
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .filter_map(std::result::Result::ok)
         .collect();
@@ -1459,7 +1576,13 @@ fn test_fdb_read_uris() {
     // List to get URIs
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let items: Vec<_> = fdb
-        .list(&request, 3, false)
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
         .expect("failed to list")
         .filter_map(std::result::Result::ok)
         .collect();
@@ -1511,7 +1634,15 @@ fn test_fdb_read_from_list() {
 
     // Get a list iterator
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
-    let list_iter = fdb.list(&request, 3, false).expect("failed to list");
+    let list_iter = fdb
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
+        .expect("failed to list");
 
     // Read from the list iterator
     let mut reader = fdb
@@ -1691,7 +1822,13 @@ fn test_fdb_preload_toc_btree_user_config() {
 
         let request = Request::new().with("class", "rd").with("expver", "xxxx");
         let items: Vec<_> = fdb
-            .list(&request, 3, false)
+            .list(
+                &request,
+                ListOptions {
+                    depth: 3,
+                    deduplicate: false,
+                },
+            )
             .expect("failed to list")
             .collect();
         assert!(

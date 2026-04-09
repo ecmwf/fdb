@@ -9,7 +9,7 @@
 //! makes it the typical entry point for browsing what's archived.
 //!
 //! ```no_run
-//! use fdb::{Fdb, Request};
+//! use fdb::{Fdb, ListOptions, Request};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let fdb = Fdb::open_default()?;
@@ -18,8 +18,8 @@
 //!     .with("class", "od")
 //!     .with("expver", "0001");
 //!
-//! // depth=3 for full traversal (db + index + datum); deduplicate=false
-//! for item in fdb.list(&request, 3, false)? {
+//! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
+//! for item in fdb.list(&request, ListOptions::default())? {
 //!     let item = item?;
 //!     let key = item
 //!         .full_key()
@@ -38,6 +38,7 @@ mod error;
 mod handle;
 mod iterator;
 mod key;
+mod options;
 mod request;
 
 pub use datareader::DataReader;
@@ -49,6 +50,7 @@ pub use iterator::{
     StatusElement, StatusIterator, WipeElement, WipeIterator,
 };
 pub use key::Key;
+pub use options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 pub use request::Request;
 
 // Re-export control enums from the cxx bindings

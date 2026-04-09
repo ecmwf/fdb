@@ -15,7 +15,7 @@ use std::fmt::Write as _;
 use std::process::ExitCode;
 
 use clap::Parser;
-use fdb::{Fdb, ListElement, Request};
+use fdb::{Fdb, ListElement, ListOptions, Request};
 
 /// `fdb-list`-style listing tool. Reimplements a sensible subset of the
 /// upstream `fdb-list` CLI on top of the Rust `fdb` binding.
@@ -102,11 +102,14 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // `fdb-list` deduplicates by default; `--full` opts in to seeing the
-    // masked entries too. `Fdb::list` takes a `deduplicate` flag, so pass
+    // masked entries too. `ListOptions` takes a `deduplicate` flag, so pass
     // the negation.
-    let deduplicate = !args.full;
+    let options = ListOptions {
+        depth: args.depth,
+        deduplicate: !args.full,
+    };
     let mut count = 0;
-    for item in fdb.list(&request, args.depth, deduplicate)? {
+    for item in fdb.list(&request, options)? {
         let item = item?;
         println!("{}", format_item(&item, args)?);
         count += 1;
