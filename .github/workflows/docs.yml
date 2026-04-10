@@ -44,21 +44,21 @@ jobs:
     with:
       artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
-      name: dev-section
-      path: fdb/pull-requests
+      name: fdb
+      path: pull-requests
       link-tag: PREVIEW-PUBLISH-FDB
       link-text: 🌈🌦️📖🚧 Documentation FDB 🚧📖🌦️🌈
     secrets:
-      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_FDB_TOKEN }}
   preview-unpublish-fdb:
     if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' }}
     uses: ecmwf/reusable-workflows/.github/workflows/pr-preview-unpublish.yml@main
     with:
       space: docs
-      name: dev-section
-      path: fdb/pull-requests
+      name: fdb
+      path: pull-requests
     secrets:
-      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_FDB_TOKEN }}
   publish-fdb:
     if: >-
       ${{ github.event_name == 'push' && (
@@ -71,10 +71,10 @@ jobs:
     with:
       artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
-      name: dev-section
-      path: fdb
+      name: fdb
+      path: "/"
       id: ${{ github.ref_name }}
       softlink: ${{ github.ref_name == 'master'   && 'stable'
                  || github.ref_name == 'develop' && 'latest' }}
     secrets:
-      sites-token: ${{ secrets.ECMWF_SITES_DOCS_DEV_SECTION_TOKEN }}
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_FDB_TOKEN }}
