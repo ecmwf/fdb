@@ -1,0 +1,2 @@
+earthkit-data
+zarr>=3
