@@ -144,6 +144,10 @@ if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
     find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 endif()
 
+ecbuild_add_option( FEATURE PYTHON_EXTENDED_FDB_TOOL_TESTS
+                    DESCRIPTION "Build extendend fdb tool tests"
+                    CONDITION HAVE_PYTHON_FDB_INTERFACE
+                    DEFAULT OFF)
 
 ### build the tools
 
