@@ -72,7 +72,7 @@ jobs:
       artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
       name: fdb
-      path: "/"
+      path: ""
       id: ${{ github.ref_name }}
       softlink: ${{ github.ref_name == 'master'   && 'stable'
                  || github.ref_name == 'develop' && 'latest' }}
