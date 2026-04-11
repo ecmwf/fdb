@@ -1,0 +1,69 @@
+//! Safe Rust wrapper for ECMWF's FDB (Fields `DataBase`).
+//!
+//! This crate provides a safe, idiomatic Rust interface to the FDB,
+//! a domain-specific object store for meteorological data.
+//!
+//! # Example
+//!
+//! `list` accepts partial requests — any unset key matches everything — which
+//! makes it the typical entry point for browsing what's archived.
+//!
+//! ```no_run
+//! use fdb::{Fdb, ListOptions, Request};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let fdb = Fdb::open_default()?;
+//!
+//! let request = Request::new()
+//!     .with("class", "od")
+//!     .with("expver", "0001");
+//!
+//! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
+//! for item in fdb.list(&request, ListOptions::default())? {
+//!     let item = item?;
+//!     let key = item
+//!         .full_key()
+//!         .into_iter()
+//!         .map(|(k, v)| format!("{k}={v}"))
+//!         .collect::<Vec<_>>()
+//!         .join(",");
+//!     println!("{{{key}}}");
+//! }
+//! # Ok(())
+//! # }
+//! ```
+
+mod datareader;
+mod error;
+mod handle;
+mod iterator;
+mod key;
+mod options;
+mod request;
+
+pub use datareader::DataReader;
+pub use error::{Error, Result};
+pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
+pub use iterator::{
+    ControlElement, ControlIterator, DbStats, DumpElement, DumpIterator, IndexStats, ListElement,
+    ListIterator, MoveElement, MoveIterator, PurgeElement, PurgeIterator, StatsElement,
+    StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
+};
+pub use key::Key;
+pub use options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+pub use request::Request;
+
+// Re-export control enums from the cxx bindings
+pub use fdb_sys::{ControlAction, ControlIdentifier};
+
+/// Version string of the underlying FDB C++ library.
+#[must_use]
+pub fn version() -> String {
+    fdb_sys::fdb_version()
+}
+
+/// Git SHA1 of the underlying FDB C++ library.
+#[must_use]
+pub fn git_sha1() -> String {
+    fdb_sys::fdb_git_sha1()
+}

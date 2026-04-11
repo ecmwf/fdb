@@ -1,0 +1,38 @@
+[package]
+name = "fdb"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Safe Rust wrapper for ECMWF's FDB (Fields DataBase)"
+links = "fdb_rpath"
+build = "build.rs"
+
+[features]
+default = ["vendored"]
+vendored = ["fdb-sys/vendored"]
+system = ["fdb-sys/system"]
+
+[build-dependencies]
+bindman-utils.workspace = true
+
+[dependencies]
+fdb-sys.workspace = true
+parking_lot.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+clap = { version = "4", features = ["derive"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[[bench]]
+name = "fdb_bench"
+harness = false
+
+[package.metadata.docs.rs]
