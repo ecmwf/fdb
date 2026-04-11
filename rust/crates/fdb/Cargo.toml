@@ -17,6 +17,9 @@ default = ["vendored"]
 vendored = ["fdb-sys/vendored"]
 system = ["fdb-sys/system"]
 
+[build-dependencies]
+bindman-utils.workspace = true
+
 [dependencies]
 fdb-sys.workspace = true
 parking_lot.workspace = true
