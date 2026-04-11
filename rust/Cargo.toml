@@ -24,6 +24,7 @@ eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git",
 # Build tools
 bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
 bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git", branch = "bindman-utils" }
 
 # External
 thiserror = "2"
