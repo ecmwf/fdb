@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fdb-sys", "crates/fdb"]
+members = ["crates/fdb-sys", "crates/fdb", "tools/fdb-hammer"]
 
 [workspace.package]
 edition = "2024"
