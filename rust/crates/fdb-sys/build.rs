@@ -67,12 +67,24 @@ fn build_system() {
         .expect("DEP_ECKIT_ROOT not set - eckit-sys must be a dependency");
     let metkit_root = env::var("DEP_METKIT_ROOT")
         .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_ROOT")
+        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
 
     println!("cargo:rustc-link-search=native={eckit_root}/lib");
     println!("cargo:rustc-link-lib=dylib=eckit");
     println!("cargo:rustc-link-search=native={metkit_root}/lib");
     println!("cargo:rustc-link-lib=dylib=metkit");
     bindman_utils::link_cpp_stdlib();
+
+    // Re-publish each dependency's install lib dir so the downstream
+    // `fdb` crate's build script can emit matching absolute rpath
+    // entries on the final binary. `rustc-link-arg` emitted by a
+    // library crate's build.rs does not reach binaries that link the
+    // crate, so the rpath flags have to come from `fdb/build.rs`.
+    println!("cargo:system_fdb5_lib={}", lib_dir.display());
+    println!("cargo:system_eckit_lib={eckit_root}/lib");
+    println!("cargo:system_metkit_lib={metkit_root}/lib");
+    println!("cargo:system_eccodes_lib={eccodes_root}/lib");
 
     // Export for downstream crates
     println!("cargo:root={}", root.display());
