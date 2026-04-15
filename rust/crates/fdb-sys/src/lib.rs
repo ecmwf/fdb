@@ -159,6 +159,19 @@ mod ffi {
         pub content: String,
     }
 
+    /// Internal transport for `list_iterator_dump_compact`. Mirrors
+    /// what `fdb5::ListIterator::dumpCompact` produces: aggregated
+    /// MARS-request text plus the two counters it returns. The
+    /// high-level `ListIterator::dump_compact` immediately writes
+    /// `text` into the caller's `std::io::Write` and drops this struct,
+    /// so the `text` allocation is bridge-internal.
+    #[derive(Debug, Clone, Default)]
+    pub struct CompactListingData {
+        pub text: String,
+        pub fields: u64,
+        pub total_bytes: u64,
+    }
+
     /// Index-level stats — mirrors `fdb5::IndexStats`. Bundles the four
     /// numeric accessors (`fieldsCount` / `fieldsSize` /
     /// `duplicatesCount` / `duplicatesSize`) plus the `report()` text.
@@ -316,6 +329,13 @@ mod ffi {
 
         /// Get the next element from the iterator.
         fn next(self: Pin<&mut ListIteratorHandle>) -> Result<ListElementData>;
+
+        /// Drain the iterator via `fdb5::ListIterator::dumpCompact`,
+        /// returning the aggregated MARS-request text and the two
+        /// counters. Mirrors `fdb-list --compact`.
+        fn list_iterator_dump_compact(
+            iterator: Pin<&mut ListIteratorHandle>,
+        ) -> Result<CompactListingData>;
 
         // =====================================================================
         // DumpIteratorHandle

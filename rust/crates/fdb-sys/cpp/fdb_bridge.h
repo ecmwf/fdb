@@ -78,6 +78,7 @@ struct KeyValue;
 struct KeyData;
 struct RequestData;
 struct ListElementData;
+struct CompactListingData;
 struct AxisEntry;
 struct FdbStatsData;
 struct DumpElementData;
@@ -469,6 +470,10 @@ void data_handle_close(eckit::DataHandle& handle);
 
 /// List data matching a request.
 std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level);
+
+/// Drain a `ListIteratorHandle` via `fdb5::ListIterator::dumpCompact` and
+/// return the aggregated MARS-request text plus the two counters.
+CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator);
 
 // ============================================================================
 // Axes query functions

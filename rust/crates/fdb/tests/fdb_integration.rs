@@ -1362,6 +1362,84 @@ fn test_fdb_list_element_full_key() {
     }
 }
 
+/// Test `ListIterator::dump_compact` — the Rust mirror of
+/// `fdb-list --compact` / `fdb5::ListIterator::dumpCompact`. Archives
+/// several fields sharing database+index keys and verifies:
+///   1. the captured text lists at least one MARS-request line,
+///   2. `fields` matches the number archived, and
+///   3. `total_bytes` matches the combined byte length.
+#[test]
+#[ignore = "requires FDB libraries"]
+fn test_fdb_list_dump_compact() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+
+    let grib_path = fixtures_dir().join("template.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
+
+    // Archive the same template under three different `step` values so
+    // the compact aggregation has something real to collapse.
+    let steps = ["0", "3", "6"];
+    for step in &steps {
+        let key = Key::new()
+            .with("class", "rd")
+            .with("expver", "xxxx")
+            .with("stream", "oper")
+            .with("date", "20230508")
+            .with("time", "1200")
+            .with("type", "fc")
+            .with("levtype", "sfc")
+            .with("step", step)
+            .with("param", "151130");
+        fdb.archive(&key, &grib_data).expect("failed to archive");
+    }
+    fdb.flush().expect("flush failed");
+
+    // Default ListOptions (depth=3, deduplicate=true) matches the mode
+    // `dumpCompact` requires — it asserts `keys.size() == 3` internally.
+    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let list_iter = fdb
+        .list(&request, fdb::ListOptions::default())
+        .expect("failed to list");
+
+    let mut text = Vec::<u8>::new();
+    let summary = list_iter
+        .dump_compact(&mut text)
+        .expect("dump_compact failed");
+
+    let text = String::from_utf8(text).expect("dump_compact wrote non-UTF-8");
+
+    assert_eq!(
+        summary.fields,
+        steps.len() as u64,
+        "expected fields == {} (one per archived step), got {}: {text}",
+        steps.len(),
+        summary.fields
+    );
+    assert_eq!(
+        summary.total_bytes,
+        (grib_data.len() * steps.len()) as u64,
+        "expected total_bytes == {} (grib_len * steps), got {}",
+        grib_data.len() * steps.len(),
+        summary.total_bytes
+    );
+    assert!(
+        !text.trim().is_empty(),
+        "dump_compact text should contain at least one MARS-request line"
+    );
+    // The aggregation should mention the shared database/index keys.
+    assert!(
+        text.contains("class=rd"),
+        "expected aggregated text to contain class=rd: {text}"
+    );
+    assert!(
+        text.contains("expver=xxxx"),
+        "expected aggregated text to contain expver=xxxx: {text}"
+    );
+}
+
 #[test]
 #[ignore = "requires FDB libraries"]
 fn test_fdb_control_lock_unlock() {
