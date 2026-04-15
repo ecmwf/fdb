@@ -79,10 +79,11 @@ find the FDB / eckit / metkit / eccodes libraries at runtime:
 - **System** (`--features system`): absolute entries pointing at the
   `lib` directory that `find_package` resolved for each dependency.
 
-### Distributing Portable Binaries
+### Redistributable vendored binaries
 
-For a redistributable vendored build, copy these directories alongside
-your binary:
+For a self-contained distribution (no assumption that libfdb5 is
+available on the target machine), ship the binary together with the
+two library directories the vendored build emits:
 
 ```
 my_app/
@@ -101,6 +102,37 @@ The binary-relative RPATH means users can drop this tree anywhere on
 disk and the binary keeps loading the libraries from alongside itself
 — no wrapper script and no environment variables needed on either
 platform.
+
+### System / FHS-packaged installs (e.g. RPM, deb)
+
+When the target system already provides FDB and its dependencies —
+typically via separate distro packages installed under `/usr/lib{,64}`
+with headers under `/usr/include` — you don't need the colocated
+layout at all. Build against the system libraries with:
+
+```bash
+cargo build --release --no-default-features --features system
+```
+
+The build script calls `find_package(fdb5)` (and the same for eckit /
+metkit / eccodes), links the Rust binary against those system
+libraries, and stamps absolute RPATH entries pointing at the lib
+directories the CMake search resolved. A downstream package can then
+install the binary to a standard location such as `/usr/bin` and rely
+on the distro's own `libfdb5` / `libeckit` / `libmetkit` / `libeccodes`
+packages for the shared libraries — no need to copy any directories
+around or set environment variables.
+
+Typical packaging setups:
+
+- **RPM / deb**: depend on the distro's FDB `-devel` packages at build
+  time, depend on the runtime packages at install time, and build with
+  `--features system`. Binary goes to `/usr/bin`, libs stay where the
+  distro packages put them.
+- **Custom prefix**: point `CMAKE_PREFIX_PATH` at your install tree
+  before running cargo (e.g.
+  `CMAKE_PREFIX_PATH=/opt/ecmwf cargo build --features system`).
+  Everything else is automatic.
 
 ## License
 
