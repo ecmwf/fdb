@@ -86,6 +86,24 @@ ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
 }
 
+ControlIdentifiers::ControlIdentifiers(const eckit::LocalConfiguration& config) : value_(0) {
+
+    bool writable = config.getBool("writable", true);
+    bool visitable = config.getBool("visitable", true);
+    if (!config.getBool("list", visitable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::List);
+    }
+    if (!config.getBool("retrieve", visitable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Retrieve);
+    }
+    if (!config.getBool("archive", writable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Archive);
+    }
+    if (!config.getBool("wipe", writable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
+    }
+}
+
 ControlIdentifiers& ControlIdentifiers::operator|=(const ControlIdentifier& val) {
     value_ |= static_cast<value_type>(val);
     return *this;
