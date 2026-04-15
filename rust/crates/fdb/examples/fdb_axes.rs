@@ -1,47 +1,63 @@
 //! Query available axes (dimensions) in FDB.
 //!
-//! Run with: `cargo run --example fdb_axes -p fdb -- [key=value,key=value,...]`
-//!
-//! Examples:
+//! # Examples
 //!
 //! ```text
-//! cargo run --example fdb_axes -p fdb -- class=od
+//! cargo run --example fdb_axes -p fdb -- class=od,expver=0001
 //! cargo run --example fdb_axes -p fdb -- class=rd,expver=xxxx
 //! ```
 
-use std::env;
+use std::process::ExitCode;
 
+use clap::Parser;
 use fdb::{Fdb, Request};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
+/// Query the available axes (metadata dimensions) for a MARS request.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// MARS request selecting which databases to query,
+    /// e.g. `class=rd,expver=xxxx`.
+    request: String,
+}
 
+fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    let request: Request = args.request.parse()?;
     let fdb = Fdb::open_default()?;
 
-    let request: Request = if args.len() > 1 {
-        args[1].parse()?
-    } else {
-        println!("Usage: {} [key=value,key=value,...]", args[0]);
-        println!("Using default: class=od");
-        Request::new().with("class", "od")
-    };
-
-    println!("Querying axes...\n");
-
-    // Query axes with depth=3 (full traversal)
+    // Full traversal (db + index + datum) mirrors the behaviour of
+    // `fdb-axes --depth 3` and is what most callers actually want.
     let axes = fdb.axes(&request, 3)?;
 
     if axes.is_empty() {
         println!("No data matches the given request.");
-    } else {
-        for (name, values) in &axes {
-            println!("{name}:");
-            for value in values {
-                println!("  - {value}");
-            }
-        }
-        println!("\nFound {} axis/axes", axes.len());
+        return Ok(());
     }
 
+    let mut total_values = 0usize;
+    for (name, values) in &axes {
+        println!("{name}:");
+        for value in values {
+            println!("  - {value}");
+        }
+        total_values += values.len();
+    }
+    println!(
+        "\n{keys} key(s) covering {values} value(s)",
+        keys = axes.len(),
+        values = total_values,
+    );
+
     Ok(())
+}
+
+fn main() -> ExitCode {
+    let args = Args::parse();
+    match run(&args) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::FAILURE
+        }
+    }
 }
