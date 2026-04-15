@@ -67,22 +67,22 @@ the filesystem TOC backend, and remote FDB client support.
 
 ## Running
 
-### macOS
+Binaries and `cargo run` work out of the box on both macOS and Linux —
+no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup required. The build
+script stamps an RPATH onto the final binary so the dynamic linker can
+find the FDB / eckit / metkit / eccodes libraries at runtime:
 
-Binaries work out of the box - no environment variables needed.
-
-### Linux
-
-Set library path before running:
-
-```bash
-export LD_LIBRARY_PATH=$PWD/target/release/fdb_libs:$PWD/target/release/eccodes_libs:$LD_LIBRARY_PATH
-./target/release/my-fdb-app
-```
+- **Vendored** (default): binary-relative entries (`@executable_path/fdb_libs`
+  and `@executable_path/eccodes_libs` on macOS; `$ORIGIN/fdb_libs` and
+  `$ORIGIN/eccodes_libs` on Linux). The vendored build copies the
+  libraries into those subdirectories next to the compiled binary.
+- **System** (`--features system`): absolute entries pointing at the
+  `lib` directory that `find_package` resolved for each dependency.
 
 ### Distributing Portable Binaries
 
-Copy these directories alongside your binary:
+For a redistributable vendored build, copy these directories alongside
+your binary:
 
 ```
 my_app/
@@ -97,16 +97,10 @@ directory to ship. (If you opt out of `memfs`, you'd also need to ship
 `eccodes_resources/{definitions,samples}/` next to the binary and point
 `ECCODES_DEFINITION_PATH`/`ECCODES_SAMPLES_PATH` at it.)
 
-**macOS**: Works immediately after copying.
-
-**Linux**: Create a wrapper script:
-
-```bash
-#!/bin/bash
-DIR="$(cd "$(dirname "$0")" && pwd)"
-export LD_LIBRARY_PATH="$DIR/fdb_libs:$DIR/eccodes_libs:$LD_LIBRARY_PATH"
-exec "$DIR/my-fdb-app-bin" "$@"
-```
+The binary-relative RPATH means users can drop this tree anywhere on
+disk and the binary keeps loading the libraries from alongside itself
+— no wrapper script and no environment variables needed on either
+platform.
 
 ## License
 
