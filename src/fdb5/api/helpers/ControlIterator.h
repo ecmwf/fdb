@@ -15,6 +15,7 @@
 
 #include <cstdint>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/api/helpers/APIIterator.h"
@@ -95,6 +96,7 @@ public:
     ControlIdentifiers();
     ControlIdentifiers(const ControlIdentifier& val);
     ControlIdentifiers(eckit::Stream& s);
+    ControlIdentifiers(const eckit::LocalConfiguration& config);
 
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
     ControlIdentifiers operator|(const ControlIdentifier& val);
