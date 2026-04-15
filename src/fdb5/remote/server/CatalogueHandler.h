@@ -59,6 +59,8 @@ private:  // methods
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
+    bool isWipeEnabled(uint32_t clientID, uint32_t requestID);
+
     // API functionality
     template <typename HelperClass>
     void handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
@@ -100,6 +102,9 @@ private:  // member
 
     bool fdbControlConnection_;
     bool fdbDataConnection_;
+
+    std::string clientNetwork_;
+    ControlIdentifiers controlIdentifiers_;
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;
