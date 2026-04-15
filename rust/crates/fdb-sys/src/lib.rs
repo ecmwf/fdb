@@ -53,10 +53,16 @@ pub struct ReaderBox(Box<dyn std::io::Read + Send>);
 // - `config`: returns the same configuration the user just supplied to
 //   `Fdb::from_yaml(...)`. The user already has it; round-tripping it back
 //   through the FFI adds no information.
+// - `move`: admin-tier operation for physically relocating FDB databases
+//   between storage roots. Upstream `fdb-move` drives an MPI-based
+//   producer/consumer transport and calls `FileCopy::execute` / `cleanup`
+//   per element — none of which is feasible to bind cleanly, and none of
+//   which pyfdb exposes either. Rust programs that need to relocate data
+//   should shell out to the `fdb-move` CLI tool.
 #[track_cpp_api(
     "fdb5/api/FDB.h",
     class = "FDB",
-    ignore = ["inspect", "reindex", "axesIterator", "config"]
+    ignore = ["inspect", "reindex", "axesIterator", "config", "move"]
 )]
 #[cxx::bridge(namespace = "fdb::ffi")]
 mod ffi {
@@ -209,15 +215,6 @@ mod ffi {
         pub location: String,
         /// Control identifiers (each variant is the same as `fdb5::ControlIdentifier`).
         pub identifiers: Vec<ControlIdentifier>,
-    }
-
-    /// Result from move iteration.
-    #[derive(Debug, Clone, Default)]
-    pub struct MoveElementData {
-        /// Source location
-        pub source: String,
-        /// Destination location
-        pub destination: String,
     }
 
     // Bind to existing fdb5::ControlAction / fdb5::ControlIdentifier C++ enums.
@@ -416,19 +413,6 @@ mod ffi {
         fn next(self: Pin<&mut ControlIteratorHandle>) -> Result<ControlElementData>;
 
         // =====================================================================
-        // MoveIteratorHandle
-        // =====================================================================
-
-        /// Wrapper around fdb5::MoveIterator
-        type MoveIteratorHandle;
-
-        /// Check if the iterator has more elements.
-        fn hasNext(self: Pin<&mut MoveIteratorHandle>) -> Result<bool>;
-
-        /// Get the next element from the iterator.
-        fn next(self: Pin<&mut MoveIteratorHandle>) -> Result<MoveElementData>;
-
-        // =====================================================================
         // Initialization (free functions)
         // =====================================================================
 
@@ -620,17 +604,6 @@ mod ffi {
             action: ControlAction,
             identifiers: &[ControlIdentifier],
         ) -> Result<UniquePtr<ControlIteratorHandle>>;
-
-        // =====================================================================
-        // Move operations (free functions)
-        // =====================================================================
-
-        /// Move data to a new location.
-        fn move_data(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            dest: &str,
-        ) -> Result<UniquePtr<MoveIteratorHandle>>;
 
         // =====================================================================
         // Callback registration (free functions)

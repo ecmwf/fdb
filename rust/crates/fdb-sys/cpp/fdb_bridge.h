@@ -60,7 +60,6 @@ catch (...) {
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
@@ -89,7 +88,6 @@ struct IndexStatsData;
 struct DbStatsData;
 struct StatsElementData;
 struct ControlElementData;
-struct MoveElementData;
 
 // ============================================================================
 // Wrapper classes for opaque C++ types
@@ -324,30 +322,6 @@ private:
     bool exhausted_ = false;
 };
 
-/// Wrapper around fdb5::MoveIterator.
-class MoveIteratorHandle {
-public:
-
-    explicit MoveIteratorHandle(fdb5::MoveIterator&& it);
-    ~MoveIteratorHandle();
-
-    MoveIteratorHandle(const MoveIteratorHandle&) = delete;
-    MoveIteratorHandle& operator=(const MoveIteratorHandle&) = delete;
-    MoveIteratorHandle(MoveIteratorHandle&&) = default;
-    MoveIteratorHandle& operator=(MoveIteratorHandle&&) = default;
-
-    // Methods exposed to Rust via cxx
-    bool hasNext();
-    MoveElementData next();
-
-private:
-
-    fdb5::MoveIterator impl_;
-    fdb5::MoveElement current_;
-    bool has_current_ = false;
-    bool exhausted_ = false;
-};
-
 // ============================================================================
 // Initialization functions
 // ============================================================================
@@ -525,13 +499,6 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 /// Control database features.
 std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
                                                rust::Slice<const fdb5::ControlIdentifier> identifiers);
-
-// ============================================================================
-// Move functions
-// ============================================================================
-
-/// Move data to a new location.
-std::unique_ptr<MoveIteratorHandle> move_data(FdbHandle& handle, rust::Str request, rust::Str dest);
 
 // ============================================================================
 // Callback registration functions
