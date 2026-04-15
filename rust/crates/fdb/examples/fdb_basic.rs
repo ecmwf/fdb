@@ -11,9 +11,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a default handle (requires FDB_HOME or FDB5_CONFIG environment)
     let fdb = Fdb::open_default()?;
-    println!("FDB handle created successfully");
-    println!("FDB type: {}", fdb.name());
-    println!("FDB id: {}", fdb.id());
 
     // Check capabilities
     println!("\nCapabilities:");
