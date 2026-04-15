@@ -10,8 +10,8 @@ use parking_lot::Mutex;
 use crate::datareader::DataReader;
 use crate::error::Result;
 use crate::iterator::{
-    ControlIterator, DumpIterator, ListIterator, MoveIterator, PurgeIterator, StatsIterator,
-    StatusIterator, WipeIterator,
+    ControlIterator, DumpIterator, ListIterator, PurgeIterator, StatsIterator, StatusIterator,
+    WipeIterator,
 };
 use crate::key::Key;
 use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
@@ -563,21 +563,6 @@ impl Fdb {
             fdb_sys::control(h, &request.to_request_string(), action, identifiers)
         })?;
         Ok(ControlIterator::new(it))
-    }
-
-    /// Move data to a new location.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The request specifying which data to move
-    /// * `dest` - The destination path
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the move fails.
-    pub fn move_data(&self, request: &Request, dest: &str) -> Result<MoveIterator> {
-        let it = self.with_handle(|h| fdb_sys::move_data(h, &request.to_request_string(), dest))?;
-        Ok(MoveIterator::new(it))
     }
 
     /// Check if a control identifier is enabled.

@@ -1879,60 +1879,6 @@ fn test_fdb_read_from_list() {
     assert_eq!(data, grib_data, "data should match original");
 }
 
-/// Test `move_data()` - moves data to a new location.
-#[test]
-#[ignore = "requires FDB libraries"]
-fn test_fdb_move_data() {
-    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let config = create_test_config(tmpdir.path());
-
-    // Create a destination directory within tmpdir
-    let dest_dir = tmpdir.path().join("dest");
-    fs::create_dir(&dest_dir).expect("failed to create dest dir");
-
-    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
-
-    // Archive data
-    let grib_path = fixtures_dir().join("template.grib");
-    let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
-
-    let key = Key::new()
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper")
-        .with("date", "20230508")
-        .with("time", "1200")
-        .with("type", "fc")
-        .with("levtype", "sfc")
-        .with("step", "0")
-        .with("param", "151130");
-
-    fdb.archive(&key, &grib_data).expect("failed to archive");
-    fdb.flush().expect("flush failed");
-
-    // Move data to new location
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
-    let dest_path = dest_dir.to_str().expect("invalid path");
-
-    let result = fdb.move_data(&request, dest_path);
-    println!(
-        "move_data result: {}",
-        if result.is_ok() { "Ok" } else { "Err" }
-    );
-
-    // Collect move elements if successful
-    if let Ok(move_iter) = result {
-        let elements: Vec<_> = move_iter.filter_map(std::result::Result::ok).collect();
-        println!("move_data returned {} elements", elements.len());
-        for elem in &elements {
-            println!("  moved: {} -> {}", elem.source, elem.destination);
-        }
-    }
-
-    // Note: move_data behavior depends on FDB configuration and backend support.
-    // The test verifies the API works without panicking.
-}
-
 /// Walk a directory tree and collect every `toc.*` filename (subtoc files
 /// produced by `useSubToc: true`). Returns the relative basenames so the test
 /// only sees the discriminating part of the layout.

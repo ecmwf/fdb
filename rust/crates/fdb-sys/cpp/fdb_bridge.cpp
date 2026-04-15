@@ -525,48 +525,6 @@ ControlElementData ControlIteratorHandle::next() {
 }
 
 // ============================================================================
-// MoveIteratorHandle implementation
-// ============================================================================
-
-MoveIteratorHandle::MoveIteratorHandle(fdb5::MoveIterator&& it) : impl_(std::move(it)) {}
-
-MoveIteratorHandle::~MoveIteratorHandle() = default;
-
-bool MoveIteratorHandle::hasNext() {
-    if (exhausted_) {
-        return false;
-    }
-    if (has_current_) {
-        return true;
-    }
-
-    if (impl_.next(current_)) {
-        has_current_ = true;
-        return true;
-    }
-    else {
-        exhausted_ = true;
-        return false;
-    }
-}
-
-MoveElementData MoveIteratorHandle::next() {
-    if (!has_current_ && !hasNext()) {
-        throw eckit::OutOfRange("Iterator exhausted", Here());
-    }
-
-    has_current_ = false;
-
-    MoveElementData data;
-    // MoveElement is FileCopy - convert to string representation
-    std::ostringstream ss;
-    ss << current_;
-    data.source = rust::String(ss.str());
-    data.destination = rust::String("");
-    return data;
-}
-
-// ============================================================================
 // Library metadata functions
 // ============================================================================
 
@@ -843,19 +801,6 @@ std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str requ
 
     auto it = handle.inner().control(tool_request, action, ctrl_ids);
     return std::make_unique<ControlIteratorHandle>(std::move(it));
-}
-
-// ============================================================================
-// Move functions
-// ============================================================================
-
-std::unique_ptr<MoveIteratorHandle> move_data(FdbHandle& handle, rust::Str request, rust::Str dest) {
-    std::string request_str{request};
-    std::string dest_str{dest};
-    auto tool_request = make_tool_request(request_str);
-    eckit::URI dest_uri{dest_str};
-    auto it = handle.inner().move(tool_request, dest_uri);
-    return std::make_unique<MoveIteratorHandle>(std::move(it));
 }
 
 // ============================================================================
