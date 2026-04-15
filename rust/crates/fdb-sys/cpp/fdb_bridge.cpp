@@ -738,6 +738,16 @@ std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, b
     return std::make_unique<ListIteratorHandle>(std::move(it));
 }
 
+CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator) {
+    std::ostringstream os;
+    auto [fields, length] = iterator.inner().dumpCompact(os);
+    CompactListingData data;
+    data.text = rust::String(os.str());
+    data.fields = static_cast<uint64_t>(fields);
+    data.total_bytes = static_cast<uint64_t>(length);
+    return data;
+}
+
 // ============================================================================
 // Axes query functions
 // ============================================================================
