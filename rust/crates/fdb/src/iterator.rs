@@ -35,6 +35,48 @@ impl ListIterator {
     pub(crate) fn inner_mut(&mut self) -> std::pin::Pin<&mut fdb_sys::ListIteratorHandle> {
         self.handle.pin_mut()
     }
+
+    /// Drain the iterator and write the compact MARS-request aggregation
+    /// to `out`, mirroring `fdb-list --compact`.
+    ///
+    /// Returns the total number of fields that went into the aggregation
+    /// and their combined on-disk size. The C++ side groups adjacent
+    /// entries by their database + index keys and folds the leaf keys
+    /// via `metkit::hypercube::HyperCube`, so ranges like
+    /// `step=0/3/6/9/12` collapse into a single line.
+    ///
+    /// This consumes the iterator — the equivalent C++ call drains the
+    /// underlying `fdb5::ListIterator` entirely.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying C++ aggregation fails or if
+    /// writing to `out` fails.
+    pub fn dump_compact<W>(mut self, out: &mut W) -> Result<CompactSummary>
+    where
+        W: std::io::Write,
+    {
+        let data = fdb_sys::list_iterator_dump_compact(self.handle.pin_mut())?;
+        // Mark exhausted so any stray subsequent use surfaces as
+        // `None` rather than trying to touch the drained C++ iterator.
+        self.exhausted = true;
+        out.write_all(data.text.as_bytes())?;
+        Ok(CompactSummary {
+            fields: data.fields,
+            total_bytes: data.total_bytes,
+        })
+    }
+}
+
+/// Counters returned by [`ListIterator::dump_compact`] — mirrors the
+/// `std::pair<size_t, eckit::Length>` returned by
+/// `fdb5::ListIterator::dumpCompact`.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CompactSummary {
+    /// Total number of individual fields that went into the aggregation.
+    pub fields: u64,
+    /// Combined on-disk size of those fields, in bytes.
+    pub total_bytes: u64,
 }
 
 impl Iterator for ListIterator {
