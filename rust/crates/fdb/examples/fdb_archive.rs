@@ -28,7 +28,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // `fdb5::Config::make`, which loads YAML or JSON and expands `~fdb`/
     // `fdb_home` references — no need to slurp the file into a String first.
     let fdb = Fdb::open(Some(config_path), None)?;
-    println!("FDB handle created: {}", fdb.name());
 
     // Read GRIB data
     let data = fs::read(grib_path)?;
