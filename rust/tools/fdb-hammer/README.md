@@ -23,22 +23,13 @@ cargo build -p fdb-hammer --release --no-default-features --features system
 
 ## Running
 
-### macOS
-
-Binaries work out of the box - no environment variables needed:
-
-```bash
-cd target/release
-./fdb-hammer --help
-```
-
-### Linux
-
-Set library path before running:
+Binaries work out of the box on both macOS and Linux — no
+`LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup needed. The build script
+stamps a binary-relative RPATH so the dynamic linker finds the
+vendored libraries automatically:
 
 ```bash
 cd target/release
-export LD_LIBRARY_PATH=$PWD/fdb_libs:$PWD/eccodes_libs:$LD_LIBRARY_PATH
 ./fdb-hammer --help
 ```
 
