@@ -99,6 +99,7 @@ public:
     ControlIdentifiers();
     ControlIdentifiers(const ControlIdentifier& val);
     ControlIdentifiers(eckit::Stream& s);
+    ControlIdentifiers(const eckit::LocalConfiguration& config);
 
     static ControlIdentifiers parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault = true);
     static ControlIdentifiers parse(const eckit::LocalConfiguration& config, ControlIdentifiers defaultValue);
