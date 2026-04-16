@@ -48,12 +48,6 @@ FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), c
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
 
-std::string FDBBase::id() const {
-    std::ostringstream ss;
-    ss << config_;
-    return ss.str();
-}
-
 const std::string& FDBBase::name() const {
     return name_;
 }
