@@ -1,7 +1,7 @@
 //! FDB handle wrapper.
 
 use std::collections::HashMap;
-use std::sync::Once;
+use std::sync::{LazyLock, Once};
 
 use fdb_sys::UniquePtr;
 use fdb_sys::{ControlAction, ControlIdentifier};
@@ -18,6 +18,19 @@ use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 use crate::request::Request;
 
 static INIT: Once = Once::new();
+
+/// Process-global mutex serializing GRIB ingest across `Fdb`
+/// instances.
+///
+/// Running `archive_raw` / `archive_reader` from two separate
+/// instances on different threads crashes the process with `fatal
+/// flex scanner internal error — end of buffer missed` + SIGSEGV —
+/// non-reentrant state somewhere inside `libeccodes`' GRIB decoding
+/// path. This lock serializes those two methods' FFI hops, which
+/// empirically eliminates the crash. MARS-request methods
+/// (`list`, `retrieve`, etc.) were confirmed safe under parallel
+/// test pressure and remain lock-free.
+static LEXER_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 /// Initialize the FDB library.
 /// Called automatically when creating any FDB handle.
@@ -402,6 +415,7 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive_raw(&self, data: &[u8]) -> Result<()> {
+        let _lexer = LEXER_LOCK.lock();
         self.with_handle(|h| fdb_sys::archive_raw(h, data))?;
         Ok(())
     }
@@ -425,6 +439,7 @@ impl Fdb {
     where
         R: std::io::Read + Send + 'static,
     {
+        let _lexer = LEXER_LOCK.lock();
         let boxed = fdb_sys::make_reader_box(reader);
         self.with_handle(|h| fdb_sys::archive_reader(h, boxed))?;
         Ok(())

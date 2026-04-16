@@ -76,4 +76,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Test
-        run: cargo test --features vendored -- --test-threads=1
+        run: cargo test --features vendored
