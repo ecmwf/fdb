@@ -5,7 +5,7 @@
 //! `Fdb` implements `Send + Sync` and uses internal locking. Methods can be
 //! called directly on `Arc<Fdb>` without external synchronization.
 //!
-//! Run with: `cargo test --test fdb_async -- --ignored --test-threads=1`
+//! Run with `cargo test --test fdb_async`.
 
 use std::env;
 use std::fs;
@@ -71,7 +71,6 @@ fn archive_test_data(fdb: &Fdb, step: &str) -> Key {
 }
 
 #[tokio::test]
-#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_archive() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -121,7 +120,6 @@ async fn test_fdb_concurrent_archive() {
 }
 
 #[tokio::test]
-#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_retrieve() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -178,7 +176,6 @@ async fn test_fdb_concurrent_retrieve() {
 }
 
 #[tokio::test]
-#[ignore = "requires FDB libraries"]
 async fn test_fdb_concurrent_list() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -228,7 +225,6 @@ async fn test_fdb_concurrent_list() {
 }
 
 #[tokio::test]
-#[ignore = "requires FDB libraries"]
 async fn test_fdb_spawn_blocking_pattern() {
     // Test the recommended pattern for using FDB in async code:
     // use spawn_blocking for operations that may block
