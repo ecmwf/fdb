@@ -32,6 +32,33 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& s, const ControlIdentifier& i) {
+    switch (i) {
+        case ControlIdentifier::None:
+            s << "None";
+            break;
+        case ControlIdentifier::List:
+            s << "List";
+            break;
+        case ControlIdentifier::Retrieve:
+            s << "Retrieve";
+            break;
+        case ControlIdentifier::Archive:
+            s << "Archive";
+            break;
+        case ControlIdentifier::Wipe:
+            s << "Wipe";
+            break;
+        case ControlIdentifier::UniqueRoot:
+            s << "UniqueRoot";
+            break;
+    }
+    s << "(" << static_cast<typename std::underlying_type<ControlIdentifier>::type>(i) << ")";
+    return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ControlIdentifierIterator::ControlIdentifierIterator(const ControlIdentifiers& identifiers) :
     value_(0), remaining_(identifiers.value_) {
 

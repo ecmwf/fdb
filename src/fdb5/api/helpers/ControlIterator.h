@@ -53,6 +53,8 @@ enum class ControlIdentifier : uint16_t {
     UniqueRoot = 1 << 4
 };
 
+std::ostream& operator<<(std::ostream& s, const ControlIdentifier& m);
+
 static const std::initializer_list<ControlIdentifier> ControlIdentifierList{
     ControlIdentifier::List, ControlIdentifier::Retrieve, ControlIdentifier::Archive, ControlIdentifier::Wipe,
     ControlIdentifier::UniqueRoot};
