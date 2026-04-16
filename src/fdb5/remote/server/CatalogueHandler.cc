@@ -151,48 +151,36 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
-                if (isWipeEnabled(clientID, requestID)) {
-                    wipe(clientID, requestID, std::move(payload));
-                    return Handled::Yes;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                wipe(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
-                if (isWipeEnabled(clientID, requestID)) {
-                    // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in
-                    // succession
-                    doMaskIndexEntries(clientID, requestID, std::move(payload));
-                    return Handled::Yes;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in
+                // succession
+                doMaskIndexEntries(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
-                if (isWipeEnabled(clientID, requestID)) {
-                    doWipeURIs(clientID, requestID, std::move(payload));
-                    return Handled::Yes;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                doWipeURIs(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
-                if (isWipeEnabled(clientID, requestID)) {
-                    doWipeEmptyDatabase(clientID, requestID, std::move(payload));
-                    return Handled::Yes;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                doWipeEmptyDatabase(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
-                if (isWipeEnabled(clientID, requestID)) {
-                    doWipeUnknowns(clientID, requestID, std::move(payload));
-                    return Handled::Yes;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                doWipeUnknowns(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
-                if (isWipeEnabled(clientID, requestID)) {
-                    doUnsafeFullWipe(clientID, requestID, std::move(payload));
-                    return Handled::Replied;
-                }
-                return Handled::Replied;
+                checkIsEnabled(ControlIdentifier::Wipe);
+                doUnsafeFullWipe(clientID, requestID, std::move(payload));
+                return Handled::Yes;
 
             default: {
                 std::ostringstream ss;
@@ -202,6 +190,13 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 throw SeriousBug(ss.str(), Here());
             }
         }
+    }
+    catch (UnhandledOperationException& e) {
+        std::ostringstream ss;
+        ss << "ERROR: Operation " << e.controlIdentifier() << " is not enabled for client " << clientID;
+        Log::status() << ss.str() << std::endl;
+        Log::error() << ss.str() << std::endl;
+        error(ss.str(), clientID, requestID);
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
@@ -214,17 +209,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 }
 
 
-bool CatalogueHandler::isWipeEnabled(uint32_t clientID, uint32_t requestID) {
-    if (controlIdentifiers_.enabled(ControlIdentifier::Wipe)) {
-        return true;
+void CatalogueHandler::checkIsEnabled(ControlIdentifier identifier) {
+    if (!controlIdentifiers_.enabled(identifier)) {
+        throw UnhandledOperationException(identifier);
     }
-
-    std::ostringstream ss;
-    ss << "Client " << clientID << " attempted to wipe a catalogue, but this is disabled for their connection.";
-    Log::status() << ss.str() << std::endl;
-    Log::error() << ss.str() << std::endl;
-    error(ss.str(), clientID, requestID);
-    return false;
 }
 // API forwarding logic, adapted from original remoteHandler
 // Used for Inspect and List
@@ -393,6 +381,7 @@ void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    checkIsEnabled(ControlIdentifier::Wipe);
     handleApiCall<WipeHelper>(clientID, requestID, std::move(payload));
 }
 
