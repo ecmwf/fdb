@@ -21,12 +21,14 @@
 #include <mutex>
 
 #include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
@@ -42,6 +44,19 @@ enum class Handled {
     YesAddReadListener,
     YesRemoveReadListener,
     Replied,
+};
+
+class UnhandledOperationException : public eckit::Exception {
+public:
+
+    UnhandledOperationException(ControlIdentifier ci) :
+        eckit::Exception("UnhandledOperationException: " + std::to_string(static_cast<int>(ci))), ci_(ci) {}
+
+    ControlIdentifier controlIdentifier() const { return ci_; }
+
+private:
+
+    ControlIdentifier ci_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
