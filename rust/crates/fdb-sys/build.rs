@@ -45,8 +45,7 @@ fn build_system() {
     let eccodes_include = env::var("DEP_ECCODES_INCLUDE")
         .expect("DEP_ECCODES_INCLUDE not set - eccodes-sys must be a dependency");
 
-    let (root, fdb_include, lib_dir) =
-        bindman_utils::cmake_find_package("fdb5", "5.10.0", Some("FDB_DIR"));
+    let (root, fdb_include, lib_dir) = bindman_utils::cmake_find_package("fdb5", "5.10.0");
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=fdb5");
