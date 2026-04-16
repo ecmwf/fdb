@@ -76,22 +76,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Test
-        run: cargo test --features vendored
-
-  integration:
-    name: integration
-    if: ${{ !github.event.pull_request.head.repo.fork && github.ref == 'refs/heads/rust-bindings' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure git for private repos
-        run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Integration tests
-        run: cargo test --features vendored --test fdb_integration -- --ignored --test-threads=1
+        run: cargo test --features vendored -- --test-threads=1

@@ -10,10 +10,7 @@
 //! - Methods can be called from multiple threads via `Arc<Fdb>`
 //! - Internal `Mutex` ensures thread-safe access to the C++ handle
 //!
-//! Run with: `cargo test --test fdb_thread_safety --features vendored`
-//!
-//! For integration tests that require FDB libraries:
-//! `cargo test --test fdb_thread_safety --features vendored -- --ignored --test-threads=1`
+//! Run with `cargo test --test fdb_thread_safety`.
 
 use std::sync::Arc;
 use std::thread;
@@ -64,7 +61,6 @@ fn test_request_traits() {
 
 /// Test: `Fdb` handle can be created
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_handle_creation() {
     let fdb = Fdb::open_default();
     assert!(fdb.is_ok(), "Failed to create Fdb: {:?}", fdb.err());
@@ -72,7 +68,6 @@ fn test_handle_creation() {
 
 /// Test: `Fdb` can be shared via Arc for concurrent access
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_arc_sharing_readonly() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
@@ -97,7 +92,6 @@ fn test_arc_sharing_readonly() {
 
 /// Test: Concurrent read-only operations (id, name, dirty, stats)
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_readonly_methods() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
@@ -122,7 +116,6 @@ fn test_concurrent_readonly_methods() {
 
 /// Test: `Fdb` can be used for concurrent list operations
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_list_operations() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
@@ -151,7 +144,6 @@ fn test_concurrent_list_operations() {
 
 /// Test: Concurrent axes queries
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_axes() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
@@ -174,7 +166,6 @@ fn test_concurrent_axes() {
 
 /// Test: Stress test with many threads
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_stress_concurrent_access() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
     let iterations = 50;
@@ -218,7 +209,6 @@ fn test_stress_concurrent_access() {
 /// This test verifies the basic behavior but users should be aware of
 /// this limitation when using FDB in multi-threaded contexts with archiving.
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_errors_no_crash() {
     let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
 
@@ -285,7 +275,6 @@ spaces:
 /// archived messages from ALL threads. This test verifies that concurrent
 /// archive operations don't crash, but users should be aware of this behavior.
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_archive_operations() {
     use std::fs;
     use std::path::PathBuf;
@@ -365,7 +354,6 @@ fn test_concurrent_archive_operations() {
 
 /// Test: Mixed concurrent read and write operations.
 #[test]
-#[ignore = "requires FDB libraries and configuration"]
 fn test_concurrent_read_write_mix() {
     use std::fs;
     use std::path::PathBuf;

@@ -1,12 +1,7 @@
 //! Integration tests for FDB safe wrapper.
 //!
-//! These tests require FDB to be properly initialized and are marked with `#[ignore]`
-//! by default.
-//!
-//! Run with: `cargo test --test fdb_integration -- --ignored --test-threads=1`
-//!
-//! Note: `--test-threads=1` is recommended when running with gribjump tests that modify
-//! the global `FDB5_CONFIG` environment variable.
+//! Run with `cargo test --test fdb_integration`. Each test spins up its
+//! own temp FDB config so they're self-contained.
 
 use std::env;
 use std::fs;
@@ -43,7 +38,6 @@ spaces:
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_version() {
     let version = fdb::version();
     assert!(!version.is_empty());
@@ -51,7 +45,6 @@ fn test_fdb_version() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_git_sha1() {
     let sha = fdb::git_sha1();
     assert!(!sha.is_empty());
@@ -59,7 +52,6 @@ fn test_fdb_git_sha1() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_handle_from_yaml() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -70,7 +62,6 @@ fn test_fdb_handle_from_yaml() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_handle_from_path() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -122,7 +113,6 @@ fn test_fdb_handle_from_path() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_handle_from_path_invalid_utf8() {
     use std::os::unix::ffi::OsStrExt;
     use std::path::Path;
@@ -141,21 +131,18 @@ fn test_fdb_handle_from_path_invalid_utf8() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_key_creation() {
     let key = Key::new().with("class", "rd").with("expver", "xxxx");
     assert_eq!(key.len(), 2);
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_request_creation() {
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     assert_eq!(request.len(), 2);
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_list_no_results() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -184,7 +171,6 @@ fn test_fdb_list_no_results() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_archive_simple() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -222,7 +208,6 @@ fn test_fdb_archive_simple() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_archive_retrieve_cycle() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -285,7 +270,6 @@ fn test_fdb_archive_retrieve_cycle() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -340,7 +324,6 @@ fn test_fdb_axes() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_dump() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -390,7 +373,6 @@ fn test_fdb_dump() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_status() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -440,7 +422,6 @@ fn test_fdb_status() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_wipe_dry_run() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -516,7 +497,6 @@ fn test_fdb_wipe_dry_run() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_purge_dry_run() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -560,7 +540,6 @@ fn test_fdb_purge_dry_run() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_stats_iterator() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -640,7 +619,6 @@ fn test_fdb_stats_iterator() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_dirty_flag() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -678,7 +656,6 @@ fn test_fdb_dirty_flag() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_id_and_name() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -692,7 +669,6 @@ fn test_fdb_id_and_name() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_aggregate_stats() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -751,7 +727,6 @@ fn test_fdb_aggregate_stats() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_enabled() {
     use fdb::ControlIdentifier;
 
@@ -778,7 +753,6 @@ fn test_fdb_enabled() {
 /// Test matching C++ `test_callback.cc`: Archive and flush callback
 /// Archives multiple keys and verifies callbacks are called for each.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_callbacks() {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -871,7 +845,6 @@ fn test_fdb_callbacks() {
 /// Test matching C++ `test_wipe.cc`: Actual wipe (doit=true)
 /// Archives data to multiple databases, then wipes them.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_wipe_actual() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -984,7 +957,6 @@ fn test_fdb_wipe_actual() {
 /// Test matching C++ `test_wipe.cc`: Wipe masked data (duplicates)
 /// Archives same key multiple times, then wipes.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_wipe_masked_data() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1064,7 +1036,6 @@ fn test_fdb_wipe_masked_data() {
 
 /// Test matching C++ `test_wipe.cc`: Purge removes duplicates
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_purge_actual() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1141,7 +1112,6 @@ fn test_fdb_purge_actual() {
 
 /// Test matching C++ `test_config.cc`: Config expansion from YAML
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_config_from_yaml() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
 
@@ -1173,7 +1143,6 @@ spaces:
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_datareader_seek() {
     use std::io::{Read as IoRead, Seek as IoSeek, SeekFrom};
 
@@ -1289,7 +1258,6 @@ fn test_fdb_datareader_seek() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_list_element_full_key() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1369,7 +1337,6 @@ fn test_fdb_list_element_full_key() {
 ///   2. `fields` matches the number archived, and
 ///   3. `total_bytes` matches the combined byte length.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_list_dump_compact() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1441,7 +1408,6 @@ fn test_fdb_list_dump_compact() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_control_lock_unlock() {
     use fdb::ControlAction;
 
@@ -1513,7 +1479,6 @@ fn test_fdb_control_lock_unlock() {
 }
 
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_enabled_identifiers() {
     use fdb::ControlIdentifier;
 
@@ -1546,7 +1511,6 @@ fn test_fdb_enabled_identifiers() {
 /// Test `archive_raw()` - archives GRIB data with embedded metadata key.
 /// This is useful when archiving GRIB files that already contain full metadata.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_archive_raw() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1619,7 +1583,6 @@ fn test_fdb_archive_raw() {
 /// `RustReaderHandle` -> `fdb5::FDB::archive(DataHandle&)` -> the same
 /// metadata extraction the slice-based path uses.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_archive_reader() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1673,7 +1636,6 @@ fn test_fdb_archive_reader() {
 /// `invoke_reader_read` returns `-1`, which the global trycatch turns
 /// into a Rust `Err`.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_archive_reader_propagates_io_error() {
     /// A reader that always fails — used to prove errors propagate
     /// through the cxx callback boundary as a Rust `Err`.
@@ -1698,7 +1660,6 @@ fn test_fdb_archive_reader_propagates_io_error() {
 
 /// Test `read_uri()` - reads data from a specific URI location.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_read_uri() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1763,7 +1724,6 @@ fn test_fdb_read_uri() {
 
 /// Test `read_uris()` - reads data from multiple URI locations.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_read_uris() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1825,7 +1785,6 @@ fn test_fdb_read_uris() {
 
 /// Test `read_from_list()` - reads data from a `ListIterator`.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_read_from_list() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
@@ -1932,7 +1891,6 @@ fn archive_one_record(fdb: &Fdb) {
 /// database directory contains only the main `toc`, with the flag on we get
 /// at least one `toc.<unique>` subtoc file in the same place.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_subtoc_user_config() {
     // --- subtocs OFF (default) ---
     let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
@@ -1972,7 +1930,6 @@ fn test_fdb_subtoc_user_config() {
 /// on-disk artifact, so we can only verify that both values are accepted by
 /// the C++ side and that an archive + list round-trip succeeds in each mode.
 #[test]
-#[ignore = "requires FDB libraries"]
 fn test_fdb_preload_toc_btree_user_config() {
     for preload in ["true", "false"] {
         let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
