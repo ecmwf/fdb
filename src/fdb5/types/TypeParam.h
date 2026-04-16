@@ -36,6 +36,7 @@ public:  // methods
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
 
 protected:
+
     bool strictMatching_ = false;
 
 private:  // methods
