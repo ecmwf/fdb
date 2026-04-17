@@ -1,7 +1,0 @@
----
-schema: ./schema
-type: dist
-lanes:
-- type: remote
-  host: localhost
-  port: 36604
