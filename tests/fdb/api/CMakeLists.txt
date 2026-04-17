@@ -17,7 +17,6 @@ ecbuild_get_test_multidata( TARGET fdb_test_get_api_data
 list( APPEND api_tests
     config
     select
-    dist
     fdb_c
     callback
     auxiliary

@@ -17,8 +17,6 @@ list( APPEND fdb5_srcs
 
     api/fdb_c.cc
     api/fdb_c.h
-    api/DistFDB.cc
-    api/DistFDB.h
     api/FDB.cc
     api/FDB.h
     api/FDBFactory.cc
