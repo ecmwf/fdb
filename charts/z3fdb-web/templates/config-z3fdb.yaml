@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fdb-config
+data:
+  fdb-config: |
+    {{- required ".Values.config.fdb_config is required " .Values.config.fdb_config | toYaml | nindent 4 }}

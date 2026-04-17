@@ -16,7 +16,7 @@ from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalE
 pdv.init_bindings()
 
 
-class Chunking(enum.Enum):
+class Chunking(enum.StrEnum):
     """Defines how a axis will be chunked
 
     Attributes:
