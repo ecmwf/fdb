@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/message/MessageArchiver.h"
+
 #include <vector>
 
 #include "eckit/log/Bytes.h"

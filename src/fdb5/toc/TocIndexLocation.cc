@@ -12,9 +12,9 @@
 /// @author Tiago Quintino
 /// @date Nov 2016
 
-#include <typeinfo>
-
 #include "fdb5/toc/TocIndexLocation.h"
+
+#include <typeinfo>
 
 using namespace eckit;
 

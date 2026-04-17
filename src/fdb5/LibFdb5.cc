@@ -12,8 +12,6 @@
 /// @author Tiago Quintino
 /// @date   Nov 2016
 
-#include <algorithm>
-
 #include "fdb5/LibFdb5.h"
 
 #include "eckit/config/LibEcKit.h"
@@ -23,9 +21,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/fdb5_version.h"
-
 #include "fdb5/config/Config.h"
+#include "fdb5/fdb5_version.h"
 
 namespace fdb5 {
 

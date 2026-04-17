@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocStats.h"
+
 #include <algorithm>
 
 #include "eckit/log/Log.h"
-#include "fdb5/LibFdb5.h"
 
-#include "fdb5/toc/TocStats.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 

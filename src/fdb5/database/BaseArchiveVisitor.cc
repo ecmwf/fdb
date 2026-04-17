@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/BaseArchiveVisitor.h"
+
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"

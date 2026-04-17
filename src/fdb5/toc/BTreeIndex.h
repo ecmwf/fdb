@@ -15,9 +15,8 @@
 #ifndef fdb5_BTreeIndex_H
 #define fdb5_BTreeIndex_H
 
-#include "eckit/eckit.h"
-
 #include "eckit/container/BTree.h"
+#include "eckit/eckit.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 

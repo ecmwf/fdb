@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include <sys/file.h>
-
 #include "fdb5/toc/EnvVarFileSpaceHandler.h"
+
+#include <sys/file.h>
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"

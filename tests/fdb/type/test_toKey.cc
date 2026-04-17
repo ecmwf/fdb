@@ -10,6 +10,8 @@
 
 #include <cstdlib>
 
+#include <cstdlib>
+
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"

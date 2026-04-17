@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocStore.h"
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <memory>
@@ -17,6 +19,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"

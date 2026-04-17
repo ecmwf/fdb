@@ -23,6 +23,9 @@
 #include "eckit/memory/Zero.h"
 #include "eckit/runtime/Main.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_version.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
