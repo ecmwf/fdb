@@ -116,7 +116,7 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     }
 
     path_ = eckit::FamPath{args(0)};
-    isRegion_ = path_.objectName.empty();
+    isRegion_ = path_.objectName().empty();
 
     LOG_DEBUG_LIB(LibFdb5) << "Item " << item_ << std::endl;
 }

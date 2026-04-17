@@ -71,7 +71,7 @@ FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& cont
     CatalogueImpl({}, control_identifiers, config), FamCommon(uri, config) {
 
     // Strip table_suffix to recover the logical catalogue name
-    name_ = stripSuffix(eckit::FamPath(uri).objectName, FamCommon::table_suffix);
+    name_ = stripSuffix(eckit::FamPath(uri).objectName(), FamCommon::table_suffix);
 
     auto iter = catalogue().find(db_keyword);
     if (iter == catalogue().end()) {
