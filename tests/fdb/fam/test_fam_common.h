@@ -19,6 +19,10 @@
 
 #pragma once
 
+#include <sys/mman.h>
+
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -26,6 +30,8 @@
 #include <ostream>
 #include <regex>
 #include <string>
+
+#include <unistd.h>
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
@@ -52,9 +58,32 @@ using namespace std::string_literals;
 
 namespace fdb::test::fam {
 
+/// Derives the POSIX shm name from an endpoint (host part only, matching the mock's cisServer key).
+inline std::string shmNameFromEndpoint(const std::string& endpoint) {
+    auto colon = endpoint.rfind(':');
+    auto host = (colon != std::string::npos) ? endpoint.substr(0, colon) : endpoint;
+    std::transform(host.begin(), host.end(), host.begin(),
+                   [](unsigned char ch) { return std::isalnum(ch) ? static_cast<char>(ch) : '_'; });
+    return "/eckit_fam_mock_" + (host.empty() ? "default" : host);
+}
+
+/// Per-process unique endpoint with atexit cleanup.
 inline const std::string test_fdb_fam_endpoint = []() -> std::string {
     const char* ep = std::getenv("ECKIT_FAM_TEST_ENDPOINT");
-    return ep ? ep : "localhost:8880";
+    auto base = ep ? std::string(ep) : std::string("localhost:8880");
+    auto colon = base.rfind(':');
+    std::string endpoint;
+    if (colon == std::string::npos) {
+        endpoint = base + "_" + std::to_string(::getpid()) + ":0";
+    }
+    else {
+        auto host = base.substr(0, colon);
+        auto port = base.substr(colon);
+        endpoint = host + "_" + std::to_string(::getpid()) + port;
+    }
+    static std::string shm_name = shmNameFromEndpoint(endpoint);
+    std::atexit([] { ::shm_unlink(shm_name.c_str()); });
+    return endpoint;
 }();
 
 // const auto test_fdb_fam_region = eckit::FamPath("test_region_fdb");
