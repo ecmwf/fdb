@@ -19,12 +19,14 @@
 
 #include "test_fam_common.h"
 
+#include <atomic>
 #include <cstring>
 #include <ctime>
 #include <memory>
 #include <set>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "eckit/config/YAMLConfiguration.h"
@@ -1397,6 +1399,151 @@ CASE("FamIndexLocation: encode via IndexLocation pointer throws NOTIMP") {
     // encode on FamIndex throws NOTIMP
     EXPECT_THROWS(idx.encode(hs, 1));
     h.close();
+}
+
+CASE("FamIndex: concurrent writers flush axes without data loss") {
+    // Stress test: many threads writing disjoint fields to the SAME FamIndex,
+    // flushing multiple times mid-stream, then verifying every axes value survives.
+    // This simulates MPI tasks that share a FAM region and write concurrently
+    // to the same index (same db_key + idx_key combination).
+
+    constexpr eckit::fam::size_t large_region_size = 64 * 1024 * 1024;  // 64 MB
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(large_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    // Mock OpenFAM has 4096 objects/region.  Each archive creates ~3 objects
+    // (data + FamMap node + FamList node).  With overhead from catalogue/store
+    // infrastructure (~50 objects), we can fit about (4096-50)/3 ≈ 1300 fields.
+    // Use 8 writers × 100 fields = 800 fields to leave headroom.
+    constexpr int num_writers = 8;
+    constexpr int fields_per_writer = 100;
+    constexpr int flush_interval = 10;  // flush every N fields — maximises concurrent flush races
+
+    const char* data = "concurrent-stress-payload";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    // Track all expected values per writer for verification.
+    std::vector<std::set<std::string>> expected_per_writer(num_writers);
+
+    // Barrier: all writers start at the same time to maximise contention.
+    std::atomic<int> ready_count{0};
+
+    auto writer_func = [&](int writer_id) {
+        fdb5::FamStore fam_store(db_key, config);
+        fdb5::Store& store = fam_store;
+        fdb5::FamCatalogueWriter writer(db_key, config);
+        fdb5::CatalogueWriter& cat_writer = writer;
+
+        cat_writer.createIndex(idx_key, /*datumKeySize=*/3);
+
+        // Signal ready and spin until all threads are ready.
+        ready_count.fetch_add(1, std::memory_order_release);
+        while (ready_count.load(std::memory_order_acquire) < num_writers) { /* spin */
+        }
+
+        for (int i = 0; i < fields_per_writer; ++i) {
+            // Each writer varies fam3a (unique per writer+field) and fam3b (small set to
+            // exercise axes merging on overlapping keywords with both shared and unique values).
+            std::string fam3a_val = "w" + std::to_string(writer_id) + "f" + std::to_string(i);
+            std::string fam3b_val = "lev" + std::to_string(i % 10);     // 10 shared levels
+            std::string fam3c_val = "par" + std::to_string(writer_id);  // 1 per writer
+
+            expected_per_writer[writer_id].insert(fam3a_val);
+
+            fdb5::Key datum_key{{"fam1a", "a"},       {"fam1b", "b"},       {"fam1c", "c"},
+                                {"fam2a", "d"},       {"fam2b", "e"},       {"fam2c", "f"},
+                                {"fam3a", fam3a_val}, {"fam3b", fam3b_val}, {"fam3c", fam3c_val}};
+
+            auto location = store.archive(datum_key, data, eckit::Length(data_length));
+            cat_writer.archive(idx_key, datum_key, location->make_shared());
+
+            // Flush periodically — this is where the race condition matters.
+            // Multiple threads flushing simultaneously must merge axes correctly.
+            if ((i + 1) % flush_interval == 0) {
+                cat_writer.flush(1);
+            }
+        }
+
+        // Final flush for remaining fields.
+        cat_writer.flush(1);
+    };
+
+    // Launch all writers.
+    std::vector<std::thread> threads;
+    threads.reserve(num_writers);
+    for (int w = 0; w < num_writers; ++w) {
+        threads.emplace_back(writer_func, w);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    // ---- Verify via persisted axes (fast path) ----
+    eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto index_name = fdb5::FamCatalogue::indexName(cat_name, idx_key);
+
+    fdb5::FamIndex reader_idx(idx_key, root_name, index_name, /*read_axes=*/true);
+
+    // Collect persisted axes values.
+    std::set<std::string> found_fam3a;
+    std::set<std::string> found_fam3b;
+    std::set<std::string> found_fam3c;
+
+    EXPECT(reader_idx.axes().has("fam3a"));
+    EXPECT(reader_idx.axes().has("fam3b"));
+    EXPECT(reader_idx.axes().has("fam3c"));
+
+    for (const auto& v : reader_idx.axes().values("fam3a")) {
+        found_fam3a.insert(v);
+    }
+    for (const auto& v : reader_idx.axes().values("fam3b")) {
+        found_fam3b.insert(v);
+    }
+    for (const auto& v : reader_idx.axes().values("fam3c")) {
+        found_fam3c.insert(v);
+    }
+
+    // Check fam3a: must have num_writers × fields_per_writer unique values.
+    int missing = 0;
+    for (int w = 0; w < num_writers; ++w) {
+        for (const auto& expected : expected_per_writer[w]) {
+            if (found_fam3a.find(expected) == found_fam3a.end()) {
+                if (missing < 20) {
+                    eckit::Log::error() << "MISSING fam3a axes value: " << expected << " (writer " << w << ")"
+                                        << std::endl;
+                }
+                ++missing;
+            }
+        }
+    }
+
+    const auto expected_fam3a = static_cast<std::size_t>(num_writers * fields_per_writer);
+    eckit::Log::info() << "fam3a: found " << found_fam3a.size() << "/" << expected_fam3a << " (" << missing
+                       << " missing)" << std::endl;
+    EXPECT_EQUAL(missing, 0);
+    EXPECT_EQUAL(found_fam3a.size(), expected_fam3a);
+
+    // Check fam3b: 10 shared level values (lev0..lev9).
+    eckit::Log::info() << "fam3b: found " << found_fam3b.size() << " values" << std::endl;
+    EXPECT_EQUAL(found_fam3b.size(), 10);
+
+    // Check fam3c: num_writers unique param values (par0..par7).
+    eckit::Log::info() << "fam3c: found " << found_fam3c.size() << " values" << std::endl;
+    EXPECT_EQUAL(found_fam3c.size(), static_cast<std::size_t>(num_writers));
+
+    eckit::Log::info() << "Concurrent stress test PASSED: " << found_fam3a.size() << " unique fam3a values, "
+                       << found_fam3b.size() << " fam3b values, " << found_fam3c.size() << " fam3c values from "
+                       << num_writers << " writers (" << fields_per_writer << " fields each, flush every "
+                       << flush_interval << ")" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
