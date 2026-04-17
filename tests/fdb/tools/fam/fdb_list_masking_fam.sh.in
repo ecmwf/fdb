@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ux
+set -euxo pipefail
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
@@ -14,7 +14,7 @@ line_count() {
 
 grep_count() {
   [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
-  val=$(grep -cE "$1" out)
+  val=$(grep -cE "$1" out || true)
   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
 }
 
@@ -127,7 +127,11 @@ try fdb-list class=rd,expver=xxxx,date=20240911/20240912,stream=oper,type=an,lev
 line_count 96
 
 echo "Test: Incompatible options --only-duplicates and --full"
+set +e
 fdb-list --all --only-duplicates --full && die "fdb-list should have failed with --full and --only-duplicates"
 
 echo "Test: Incompatible options --only-duplicates and --compact"
 fdb-list --all --only-duplicates --compact && die "fdb-list should have failed with --compact and --only-duplicates"
+set -e
+
+echo "All masking tests passed"

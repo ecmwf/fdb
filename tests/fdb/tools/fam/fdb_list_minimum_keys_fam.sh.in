@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ux
+set -euxo pipefail
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
@@ -86,11 +86,13 @@ line_count 24
 
 
 echo "Test: nothing happens if any of the keys are missing"
+set +e
 for invalid_key in class=rd expver=xxxx; do
   fdb-list $invalid_key
   rc=$?
   [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
 done
+set -e
 
 
 echo "Test: supplying the key"
@@ -99,11 +101,13 @@ line_count 24
 
 
 echo "Test: changing the minimum keys"
+set +e
 for invalid_key in class=rd,expver=xxxx class=rd,time=1200 expver=xxxx,time=1200; do
   fdb-list --minimum-keys="class,expver,time" $invalid_key
   rc=$?
   [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
 done
+set -e
 
 
 echo "Test: the purge works now this is supplied"
