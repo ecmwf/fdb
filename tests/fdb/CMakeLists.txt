@@ -73,6 +73,7 @@ add_subdirectory( daos )
 add_subdirectory( fam )
 
 if (HAVE_FDB_BUILD_TOOLS)
+    add_subdirectory( timespan )
     add_subdirectory( tools )
 endif()
 

@@ -190,7 +190,6 @@ CompareResult bitComparison(const uint8_t* buffer1, const uint8_t* buffer2, size
 
     // Process sections based on edition
     for (int i = 0; i < numSections; ++i) {
-        // std::cout<<"offset " << offset<<std::endl;
         // Read section length
         uint32_t sectionLength1 = 0;
         uint32_t sectionLength2 = 0;

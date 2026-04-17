@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+
+set -eux
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+function post_process {
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+cd $bindir
+
+for f in in.grib local1.yaml local2.yaml local3.yaml schema1 schema2 schema3
+do
+  cp $srcdir/$f ./
+done
+
+######################################
+
+cat > base.req <<EOF
+retrieve,
+class=e6,expver=5659,stream=oper,date=20161230,type=fc,levtype=sfc,time=1800,step=6/12/18,param=167
+EOF
+
+cat > inst.req <<EOF
+retrieve,
+class=e6,expver=5659,stream=oper,date=20161230,type=fc,levtype=sfc,time=1800,step=6/12/18,param=167,timespan=none
+EOF
+
+cat > 1h.req <<EOF
+retrieve,
+class=e6,expver=5659,stream=oper,date=20161230,type=fc,levtype=sfc,time=1800,step=6/12,param=228143,timespan=1h
+EOF
+
+cat > content.inst <<EOF
+{ "messages" : [ 
+  {
+    "domain": "g",
+    "date": 20161230,
+    "time": 1800,
+    "expver": 5659,
+    "class": "e6",
+    "type": "fc",
+    "stream": "oper",
+    "step": 6,
+    "levtype": "sfc",
+    "param": 167,
+    "timespan": "none"
+  },
+  {
+    "domain": "g",
+    "date": 20161230,
+    "time": 1800,
+    "expver": 5659,
+    "class": "e6",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "sfc",
+    "param": 167,
+    "timespan": "none"
+  },
+  {
+    "domain": "g",
+    "date": 20161230,
+    "time": 1800,
+    "expver": 5659,
+    "class": "e6",
+    "type": "fc",
+    "stream": "oper",
+    "step": 18,
+    "levtype": "sfc",
+    "param": 167,
+    "timespan": "none"
+  }
+]}
+EOF
+
+cat > content.1h <<EOF
+{ "messages" : [ 
+  {
+    "domain": "g",
+    "date": 20161230,
+    "time": 1800,
+    "expver": 5659,
+    "class": "e6",
+    "type": "fc",
+    "stream": "oper",
+    "levtype": "sfc",
+    "step": 6,
+    "param": 228143,
+    "timespan": "1h"
+  },
+  {
+    "domain": "g",
+    "date": 20161230,
+    "time": 1800,
+    "expver": 5659,
+    "class": "e6",
+    "type": "fc",
+    "stream": "oper",
+    "levtype": "sfc",
+    "step": 12,
+    "param": 228143,
+    "timespan": "1h"
+  }
+]}
+EOF
+
+###################################### top level
+
+rm -rf localroot || true
+mkdir localroot
+
+export FDB5_CONFIG_FILE=local1.yaml
+
+fdb-write in.grib
+
+cat > expected.all <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=12,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=18,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=6,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=12,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=18,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=6,param=167}
+EOF
+
+cat > expected.inst <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=12,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=18,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=none}{type=fc,levtype=sfc}{time=1800,step=6,param=167}
+EOF
+
+cat > expected.1h <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=12,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=18,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g,timespan=1h}{type=fc,levtype=sfc}{time=1800,step=6,param=228143}
+EOF
+
+fdb-list class=e6,expver=5659 --porcelain | tee all
+cmp all expected.all
+
+fdb-list class=e6,expver=5659,timespan=none --porcelain | tee inst
+cmp inst expected.inst
+
+fdb-list class=e6,expver=5659,timespan=1h --porcelain | tee 1h
+cmp 1h expected.1h
+
+fdb-list class=e6,expver=5659,timespan=1h/none --porcelain | tee combo
+cmp combo expected.all
+
+
+fdb-read base.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read inst.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read 1h.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.1h                 | post_process | tee 1h
+diff out 1h
+
+###################################### second level
+
+rm -rf localroot || true
+mkdir localroot
+
+export FDB5_CONFIG_FILE=local2.yaml
+
+fdb-write in.grib
+
+cat > expected.all <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=12,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=18,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=6,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=12,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=18,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=6,param=228143}
+EOF
+
+cat > expected.inst <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=12,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=18,param=167}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=none}{time=1800,step=6,param=167}
+EOF
+
+cat > expected.1h <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=12,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=18,param=228143}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc,timespan=1h}{time=1800,step=6,param=228143}
+EOF
+
+fdb-list class=e6,expver=5659 --porcelain | tee all
+cmp all expected.all
+
+fdb-list class=e6,expver=5659,timespan=none --porcelain | tee inst
+cmp inst expected.inst
+
+fdb-list class=e6,expver=5659,timespan=1h --porcelain | tee 1h
+cmp 1h expected.1h
+
+fdb-list class=e6,expver=5659,timespan=none/1h --porcelain | tee combo
+cmp combo expected.all
+
+fdb-read base.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read inst.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read 1h.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.1h                 | post_process | tee 1h
+diff out 1h
+
+
+###################################### third level
+
+rm -rf localroot || true
+mkdir localroot
+
+export FDB5_CONFIG_FILE=local3.yaml
+
+fdb-write in.grib
+
+cat > expected.all <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=12,param=167,timespan=none}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=12,param=228143,timespan=1h}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=18,param=167,timespan=none}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=18,param=228143,timespan=1h}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=6,param=167,timespan=none}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=6,param=228143,timespan=1h}
+EOF
+
+cat > expected.inst <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=12,param=167,timespan=none}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=18,param=167,timespan=none}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=6,param=167,timespan=none}
+EOF
+
+cat > expected.1h <<EOF
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=12,param=228143,timespan=1h}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=18,param=228143,timespan=1h}
+{class=e6,expver=5659,stream=oper,date=20161230,domain=g}{type=fc,levtype=sfc}{time=1800,step=6,param=228143,timespan=1h}
+EOF
+
+fdb-list class=e6,expver=5659 --porcelain | tee all
+cmp all expected.all
+
+fdb-list class=e6,expver=5659,timespan=none --porcelain | tee inst
+cmp inst expected.inst
+
+fdb-list class=e6,expver=5659,timespan=1h --porcelain | tee 1h
+cmp 1h expected.1h
+
+fdb-list class=e6,expver=5659,timespan=none/1h --porcelain | tee combo
+cmp combo expected.all
+
+fdb-read base.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read inst.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.inst               | post_process | tee inst
+diff out inst
+
+fdb-read 1h.req out.grib
+grib_ls -jm out.grib           | post_process | tee out
+cat content.1h                 | post_process | tee 1h
+diff out 1h
+

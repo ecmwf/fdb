@@ -144,7 +144,7 @@ CASE("retrieves_distributed_according_to_dist") {
 
     // Do some archiving
 
-    metkit::mars::MarsRequest req;
+    metkit::mars::MarsRequest req{"retrieve"};
     req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od"});
     req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
     fdb.inspect(req);
