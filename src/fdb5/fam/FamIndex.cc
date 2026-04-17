@@ -224,12 +224,23 @@ void FamIndex::flush() {
     // Keep the in-memory axes sorted so readers always see a consistent view.
     axes_.sort();
 
-    // Persist the axes_ to FAM
+    // read-merge-write
     if (axes_.dirty()) {
-        auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [this](eckit::HandleStream& stream) {
-            axes_.encode(stream, IndexAxis::currentVersion());
-        });
         const Map::key_type axes_key{FamCommon::axes_keyword};
+
+        // Read existing persisted axes and merge local axes into them.
+        IndexAxis merged;
+        if (auto iter = data_.find(axes_key); iter != data_.end()) {
+            auto buf = (*iter).value;
+            eckit::MemoryStream stream{buf};
+            merged.decode(stream, IndexAxis::currentVersion());
+        }
+        merged.merge(axes_);
+        merged.sort();
+
+        auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
+            merged.encode(stream, IndexAxis::currentVersion());
+        });
         data_.insertOrAssign(axes_key, payload);
         axes_.clean();
     }
