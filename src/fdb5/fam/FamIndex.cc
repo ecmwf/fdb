@@ -84,7 +84,7 @@ FamIndex::FamIndex(const Key& key, const eckit::FamRegionName& region_name, cons
 //----------------------------------------------------------------------------------------------------------------------
 
 void FamIndex::add(const Key& key, const Field& field) {
-    data_.insert(FamCommon::toString(key), encodeIndex(field, key));
+    data_.forceInsert(FamCommon::toString(key), encodeIndex(field, key));
 }
 
 bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const {
