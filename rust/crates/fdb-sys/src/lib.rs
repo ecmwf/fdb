@@ -271,33 +271,11 @@ mod ffi {
         fn name(self: &FdbHandle) -> String;
 
         // =====================================================================
-        // eckit::DataHandle - For reading retrieved data
+        // eckit::DataHandleWrapper (from eckit-sys, cross-crate ExternType)
         // =====================================================================
 
-        /// Opaque handle to an `eckit::DataHandle` (the upstream abstract
-        /// base for byte streams). Owned via `UniquePtr<DataHandle>`;
-        /// `eckit::DataHandle` has a virtual destructor so cxx's
-        /// generated `delete` is correct for any concrete subclass.
-        #[namespace = "eckit"]
-        type DataHandle;
-
-        /// Open the handle for reading. Returns the estimated length.
-        fn data_handle_open(handle: Pin<&mut DataHandle>) -> Result<u64>;
-
-        /// Close the handle.
-        fn data_handle_close(handle: Pin<&mut DataHandle>) -> Result<()>;
-
-        /// Read up to `buffer.len()` bytes into `buffer`.
-        fn data_handle_read(handle: Pin<&mut DataHandle>, buffer: &mut [u8]) -> Result<usize>;
-
-        /// Seek to an absolute byte position.
-        fn data_handle_seek(handle: Pin<&mut DataHandle>, position: u64) -> Result<()>;
-
-        /// Current read position.
-        fn data_handle_tell(handle: Pin<&mut DataHandle>) -> u64;
-
-        /// Total size of the underlying data, in bytes.
-        fn data_handle_size(handle: Pin<&mut DataHandle>) -> u64;
+        #[namespace = "eckit_bridge"]
+        type DataHandleWrapper = eckit_sys::DataHandleWrapper;
 
         // =====================================================================
         // ListIteratorHandle
@@ -483,28 +461,29 @@ mod ffi {
         fn retrieve(
             handle: Pin<&mut FdbHandle>,
             request: &MarsRequestWrapper,
-        ) -> Result<UniquePtr<DataHandle>>;
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
 
         // =====================================================================
         // Read operations (by URI)
         // =====================================================================
 
         /// Read data from a single URI.
-        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
+        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str)
+        -> Result<UniquePtr<DataHandleWrapper>>;
 
         /// Read data from a list of URIs.
         fn read_uris(
             handle: Pin<&mut FdbHandle>,
             uris: &Vec<String>,
             in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
 
         /// Read data from a list iterator (most efficient).
         fn read_list_iterator(
             handle: Pin<&mut FdbHandle>,
             iterator: Pin<&mut ListIteratorHandle>,
             in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
 
         // =====================================================================
         // List operations (free functions)

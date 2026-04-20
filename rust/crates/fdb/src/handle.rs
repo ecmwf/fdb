@@ -7,7 +7,6 @@ use fdb_sys::UniquePtr;
 use fdb_sys::{ControlAction, ControlIdentifier};
 use parking_lot::Mutex;
 
-use crate::datareader::DataReader;
 use crate::error::Result;
 use crate::iterator::{
     ControlIterator, DumpIterator, ListIterator, PurgeIterator, StatsIterator, StatusIterator,
@@ -15,6 +14,7 @@ use crate::iterator::{
 };
 use crate::key::Key;
 use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+use eckit::DataHandle;
 
 static INIT: Once = Once::new();
 
@@ -296,34 +296,32 @@ impl Fdb {
 
     /// Retrieve data from FDB using a `MarsRequest`.
     ///
+    /// Returns an `eckit::DataHandle` opened for reading.
+    ///
     /// # Errors
     ///
     /// Returns an error if retrieval fails.
-    pub fn retrieve(&self, request: &metkit::MarsRequest) -> Result<DataReader> {
+    pub fn retrieve(&self, request: &metkit::MarsRequest) -> Result<DataHandle> {
         let handle = self.with_handle(|h| fdb_sys::retrieve(h, request.as_sys()))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data from a single URI location.
     ///
-    /// This is more efficient than `retrieve()` when you already have
+    /// More efficient than `retrieve()` when you already have
     /// the field location from a previous `list()` operation.
-    ///
-    /// # Arguments
-    ///
-    /// * `uri` - The URI to read from
     ///
     /// # Errors
     ///
     /// Returns an error if reading fails.
-    pub fn read_uri(&self, uri: &str) -> Result<DataReader> {
+    pub fn read_uri(&self, uri: &str) -> Result<DataHandle> {
         let handle = self.with_handle(|h| fdb_sys::read_uri(h, uri))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data from multiple URI locations.
     ///
-    /// This is more efficient than `retrieve()` when you already have
+    /// More efficient than `retrieve()` when you already have
     /// the field locations from a previous `list()` operation.
     ///
     /// # Arguments
@@ -335,21 +333,16 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if reading fails.
-    pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataReader> {
+    pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataHandle> {
         let uris_vec: Vec<String> = uris.to_vec();
         let handle = self.with_handle(|h| fdb_sys::read_uris(h, &uris_vec, in_storage_order))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data directly from a list iterator (most efficient).
     ///
-    /// This consumes the iterator and reads all matched fields.
+    /// Consumes the iterator and reads all matched fields.
     /// More efficient than `read_uris()` as it avoids URI string conversion.
-    ///
-    /// # Arguments
-    ///
-    /// * `list` - `ListIterator` to read from (consumed)
-    /// * `in_storage_order` - If true, data is returned in storage order
     ///
     /// # Errors
     ///
@@ -358,10 +351,10 @@ impl Fdb {
         &self,
         mut list: ListIterator,
         in_storage_order: bool,
-    ) -> Result<DataReader> {
+    ) -> Result<DataHandle> {
         let handle = self
             .with_handle(|h| fdb_sys::read_list_iterator(h, list.inner_mut(), in_storage_order))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Flush any pending writes to FDB.

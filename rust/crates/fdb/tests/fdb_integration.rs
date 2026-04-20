@@ -5,7 +5,7 @@
 
 use std::env;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::PathBuf;
 
 use fdb::{DumpOptions, Fdb, Key, ListOptions, PurgeOptions, WipeOptions};
@@ -280,9 +280,10 @@ fn test_fdb_archive_retrieve_cycle() {
         .build()
         .expect("failed to build retrieve request");
 
-    let mut reader = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
+    let mut handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
+    handle.open_for_read().expect("open_for_read failed");
     let mut retrieved_data = Vec::new();
-    reader
+    handle
         .read_to_end(&mut retrieved_data)
         .expect("failed to read");
 
@@ -1235,7 +1236,7 @@ fn test_fdb_datareader_seek() {
     fdb.archive(&key, &grib_data).expect("failed to archive");
     fdb.flush().expect("flush failed");
 
-    // Retrieve to get a DataReader
+    // Retrieve returns an eckit::DataHandle
     let retrieve_request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
@@ -1249,80 +1250,88 @@ fn test_fdb_datareader_seek() {
         .build()
         .expect("failed to build retrieve request");
 
-    let mut reader = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
+    let mut handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
 
-    // Test size() and tell()
-    let total_size = reader.size();
-    assert!(total_size > 0, "expected non-zero size");
-    assert_eq!(reader.tell(), 0, "expected initial position at 0");
+    // Open for reading and get estimated size
+    let estimated = handle.open_for_read().expect("open_for_read failed");
+    assert!(estimated > 0, "expected non-zero estimated size");
+    let total_size: u64 = estimated.try_into().expect("negative size");
+    assert_eq!(
+        handle.position().expect("position"),
+        0,
+        "expected initial position at 0"
+    );
 
     // Test SeekFrom::Start
-    let pos = reader
+    let pos = handle
         .seek(SeekFrom::Start(10))
         .expect("seek to start+10 failed");
     assert_eq!(pos, 10);
-    assert_eq!(reader.tell(), 10);
+    assert_eq!(handle.position().expect("position"), 10);
 
     // Test SeekFrom::Current (positive)
-    let pos = reader
+    let pos = handle
         .seek(SeekFrom::Current(5))
         .expect("seek current+5 failed");
     assert_eq!(pos, 15);
-    assert_eq!(reader.tell(), 15);
+    assert_eq!(handle.position().expect("position"), 15);
 
     // Test SeekFrom::Current (negative)
-    let pos = reader
+    let pos = handle
         .seek(SeekFrom::Current(-5))
         .expect("seek current-5 failed");
     assert_eq!(pos, 10);
-    assert_eq!(reader.tell(), 10);
+    assert_eq!(handle.position().expect("position"), 10);
 
     // Test SeekFrom::End
-    let pos = reader.seek(SeekFrom::End(-10)).expect("seek end-10 failed");
+    let pos = handle.seek(SeekFrom::End(-10)).expect("seek end-10 failed");
     assert_eq!(pos, total_size - 10);
-    assert_eq!(reader.tell(), total_size - 10);
+    assert_eq!(
+        u64::try_from(handle.position().expect("position")).expect("negative pos"),
+        total_size - 10
+    );
 
     // Test SeekFrom::End to get to end
-    let pos = reader.seek(SeekFrom::End(0)).expect("seek to end failed");
+    let pos = handle.seek(SeekFrom::End(0)).expect("seek to end failed");
     assert_eq!(pos, total_size);
 
     // Test SeekFrom::Start to rewind
-    let pos = reader.seek(SeekFrom::Start(0)).expect("rewind failed");
+    let pos = handle.seek(SeekFrom::Start(0)).expect("rewind failed");
     assert_eq!(pos, 0);
 
-    // Test seek_to() method
-    reader.seek_to(20).expect("seek_to failed");
-    assert_eq!(reader.tell(), 20);
+    // Test seek then read
+    handle.seek(SeekFrom::Start(20)).expect("seek failed");
+    assert_eq!(handle.position().expect("position"), 20);
 
-    // Test read after seek
     let mut buf = [0u8; 10];
-    let n = reader.read(&mut buf).expect("read after seek failed");
+    let n = handle.read(&mut buf).expect("read after seek failed");
     assert!(n > 0, "expected to read some bytes");
 
-    // Test read_all() reads from current position
-    reader
-        .seek(SeekFrom::Start(0))
-        .expect("rewind before read_all failed");
-    let all_data = reader.read_all().expect("read_all failed");
+    // Test read_to_end from start
+    handle.seek(SeekFrom::Start(0)).expect("rewind failed");
+    let mut all_data = Vec::new();
+    handle
+        .read_to_end(&mut all_data)
+        .expect("read_to_end failed");
     assert_eq!(all_data.len(), grib_data.len());
     assert_eq!(all_data, grib_data);
 
     // Test negative position errors
-    reader.seek(SeekFrom::Start(0)).expect("rewind failed");
-    let err = reader.seek(SeekFrom::Current(-100));
+    handle.seek(SeekFrom::Start(0)).expect("rewind failed");
+    let err = handle.seek(SeekFrom::Current(-100));
     assert!(
         err.is_err(),
         "expected error when seeking to negative position"
     );
 
-    let err = reader.seek(SeekFrom::End(-(total_size.cast_signed() + 100)));
+    let err = handle.seek(SeekFrom::End(-(total_size.cast_signed() + 100)));
     assert!(
         err.is_err(),
         "expected error when seeking before start via End"
     );
 
     // Test close() explicitly
-    reader.close().expect("close failed");
+    handle.close().expect("close failed");
 }
 
 #[test]
@@ -1800,9 +1809,12 @@ fn test_fdb_read_uri() {
 
     // Read using the URI
     let mut reader = fdb.read_uri(uri).expect("failed to read_uri");
+    reader.open_for_read().expect("open_for_read failed");
 
     // Seek to the offset and read the data
-    reader.seek_to(offset).expect("failed to seek");
+    reader
+        .seek(SeekFrom::Start(offset))
+        .expect("failed to seek");
     let mut data = vec![0u8; usize::try_from(length).expect("length exceeds usize::MAX")];
     reader.read_exact(&mut data).expect("failed to read");
 
@@ -1870,9 +1882,13 @@ fn test_fdb_read_uris() {
 
     // Read using multiple URIs
     let mut reader = fdb.read_uris(&uris, false).expect("failed to read_uris");
+    reader.open_for_read().expect("open_for_read failed");
 
     // Read all data
-    let data = reader.read_all().expect("failed to read_all");
+    let mut data = Vec::new();
+    reader
+        .read_to_end(&mut data)
+        .expect("failed to read_to_end");
     println!("read_uris returned {} bytes", data.len());
 
     // Should have read data from both URIs
@@ -1925,9 +1941,13 @@ fn test_fdb_read_from_list() {
     let mut reader = fdb
         .read_from_list(list_iter, false)
         .expect("failed to read_from_list");
+    reader.open_for_read().expect("open_for_read failed");
 
     // Read all data
-    let data = reader.read_all().expect("failed to read_all");
+    let mut data = Vec::new();
+    reader
+        .read_to_end(&mut data)
+        .expect("failed to read_to_end");
     println!("read_from_list returned {} bytes", data.len());
 
     assert_eq!(

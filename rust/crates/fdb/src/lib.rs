@@ -35,14 +35,12 @@
 //! # }
 //! ```
 
-mod datareader;
 mod error;
 mod handle;
 mod iterator;
 mod key;
 mod options;
 
-pub use datareader::DataReader;
 pub use error::{Error, Result};
 pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
 pub use iterator::{

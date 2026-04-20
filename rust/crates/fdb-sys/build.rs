@@ -6,9 +6,6 @@
 //!
 //! Both modes build the CXX bridge for C++ to Rust bindings.
 
-use std::env;
-use std::path::PathBuf;
-
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
@@ -34,6 +31,9 @@ fn main() {
 /// Build using system-installed fdb5 via `CMake` `find_package`
 #[cfg(feature = "system")]
 fn build_system() {
+    use std::env;
+    use std::path::PathBuf;
+
     let crate_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
 
@@ -42,6 +42,8 @@ fn build_system() {
         .expect("DEP_ECKIT_INCLUDE not set - eckit-sys must be a dependency");
     let eckit_out_dir = env::var("DEP_ECKIT_OUT_DIR")
         .expect("DEP_ECKIT_OUT_DIR not set - eckit-sys must be a dependency");
+    let eckit_cpp_dir = env::var("DEP_ECKIT_CPP_DIR")
+        .expect("DEP_ECKIT_CPP_DIR not set - eckit-sys must be a dependency");
     let metkit_include = env::var("DEP_METKIT_INCLUDE")
         .expect("DEP_METKIT_INCLUDE not set - metkit-sys must be a dependency");
     let metkit_cpp_dir = env::var("DEP_METKIT_CPP_DIR")
@@ -60,6 +62,7 @@ fn build_system() {
         .include(&fdb_include)
         .include(&eckit_include)
         .include(&eckit_out_dir) // for eckit_exceptions.h
+        .include(&eckit_cpp_dir) // for eckit_bridge.h
         .include(&metkit_include)
         .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(&eccodes_include)
@@ -108,7 +111,9 @@ fn build_system() {
 #[cfg(feature = "vendored")]
 #[allow(clippy::too_many_lines)]
 fn build_vendored() {
+    use std::env;
     use std::fs;
+    use std::path::PathBuf;
     use std::process::Command;
 
     const ECBUILD_REPO: &str = "https://github.com/ecmwf/ecbuild.git";
@@ -253,6 +258,8 @@ fn build_vendored() {
 
     let eckit_out_dir = env::var("DEP_ECKIT_OUT_DIR")
         .expect("DEP_ECKIT_OUT_DIR not set - eckit-sys must be a dependency");
+    let eckit_cpp_dir = env::var("DEP_ECKIT_CPP_DIR")
+        .expect("DEP_ECKIT_CPP_DIR not set - eckit-sys must be a dependency");
     let metkit_cpp_dir = env::var("DEP_METKIT_CPP_DIR")
         .expect("DEP_METKIT_CPP_DIR not set - metkit-sys must be a dependency");
 
@@ -263,6 +270,7 @@ fn build_vendored() {
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
         .include(&eckit_out_dir) // for eckit_exceptions.h
+        .include(&eckit_cpp_dir) // for eckit_bridge.h
         .include(format!("{metkit_root}/include"))
         .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(format!("{eccodes_root}/include"))
@@ -300,7 +308,7 @@ fn copy_resources_to_output(
     fdb_install_dir: &std::path::Path,
     eckit_root: &str,
     metkit_root: &str,
-) -> PathBuf {
+) -> std::path::PathBuf {
     use std::path::Path;
 
     let target_dir = bindman_utils::target_profile_dir();

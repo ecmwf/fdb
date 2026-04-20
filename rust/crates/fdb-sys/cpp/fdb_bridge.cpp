@@ -67,25 +67,6 @@ static rust::Vec<KeyValue> from_fdb_key(const fdb5::Key& key) {
     return result;
 }
 
-/// Parse a MARS request string into a fully-expanded `metkit::mars::MarsRequest`.
-///
-/// Uses the same parser + expansion pipeline as upstream FDB tools (see
-/// `fdb5::FDBToolRequest::requestsFromString`):
-///
-///   1. Prepend a dummy verb (`retrieve`) so `MarsParser` accepts the input.
-///   2. Run `MarsParser::parse()` to produce a `MarsParsedRequest`.
-///   3. Run `MarsExpansion::expand()` to apply `to`/`by` ranges, type
-///      expansion, optional fields, etc.
-///
-/// An empty request string is returned as a default-constructed
-/// `MarsRequest` (matches everything) without invoking the parser.
-/// Create an `FDBToolRequest` from a `MarsRequestWrapper`.
-static fdb5::FDBToolRequest make_tool_request(const metkit_bridge::MarsRequestWrapper& request) {
-    const auto& mars = request.inner();
-    bool all = mars.empty();
-    return fdb5::FDBToolRequest{mars, all, std::vector<std::string>{}};
-}
-
 // ============================================================================
 // FdbHandle implementation
 // ============================================================================
@@ -153,34 +134,6 @@ rust::String FdbHandle::name() const {
     return rust::String(impl_.name());
 }
 
-// ============================================================================
-// eckit::DataHandle shim functions
-// ============================================================================
-
-uint64_t data_handle_open(eckit::DataHandle& handle) {
-    return static_cast<uint64_t>(handle.openForRead());
-}
-
-void data_handle_close(eckit::DataHandle& handle) {
-    handle.close();
-}
-
-size_t data_handle_read(eckit::DataHandle& handle, rust::Slice<uint8_t> buffer) {
-    long n = handle.read(buffer.data(), static_cast<long>(buffer.size()));
-    return n < 0 ? 0 : static_cast<size_t>(n);
-}
-
-void data_handle_seek(eckit::DataHandle& handle, uint64_t position) {
-    handle.seek(eckit::Offset(position));
-}
-
-uint64_t data_handle_tell(eckit::DataHandle& handle) {
-    return static_cast<uint64_t>(handle.position());
-}
-
-uint64_t data_handle_size(eckit::DataHandle& handle) {
-    return static_cast<uint64_t>(handle.size());
-}
 
 // ============================================================================
 // ListIteratorHandle implementation
@@ -605,34 +558,33 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
 // Retrieve functions
 // ============================================================================
 
-std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request) {
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().retrieve(request.inner()));
+std::unique_ptr<DataHandleWrapper> retrieve(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request) {
+    return std::make_unique<DataHandleWrapper>(handle.inner().retrieve(request.inner()));
 }
 
 // ============================================================================
 // Read functions (by URI)
 // ============================================================================
 
-std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri) {
+std::unique_ptr<DataHandleWrapper> read_uri(FdbHandle& handle, rust::Str uri) {
     std::string uri_str{uri};
     eckit::URI eckit_uri{uri_str};
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uri));
+    return std::make_unique<DataHandleWrapper>(handle.inner().read(eckit_uri));
 }
 
-std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
+std::unique_ptr<DataHandleWrapper> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
                                              bool in_storage_order) {
     std::vector<eckit::URI> eckit_uris;
     eckit_uris.reserve(uris.size());
     for (const auto& uri : uris) {
         eckit_uris.emplace_back(std::string(uri));
     }
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uris, in_storage_order));
+    return std::make_unique<DataHandleWrapper>(handle.inner().read(eckit_uris, in_storage_order));
 }
 
-std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
+std::unique_ptr<DataHandleWrapper> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
                                                       bool in_storage_order) {
-    // Calls FDB::read(ListIterator&, bool) directly - most efficient path
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(iterator.inner(), in_storage_order));
+    return std::make_unique<DataHandleWrapper>(handle.inner().read(iterator.inner(), in_storage_order));
 }
 
 // ============================================================================
