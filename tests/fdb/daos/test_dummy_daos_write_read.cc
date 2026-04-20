@@ -56,7 +56,7 @@ CASE("dummy_daos_write_then_read") {
     d_rank_list_t svcl;
     svcl.rl_nr = 3;
     D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
-    EXPECT(svcl.rl_ranks != NULL);
+    EXPECT_NOT_EQUAL(svcl.rl_ranks, nullptr);
 
     // create a pool with user-defined label
 
