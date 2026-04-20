@@ -288,17 +288,13 @@ impl Fdb {
         Ok(ListIterator::new(it))
     }
 
-    /// Retrieve data from FDB.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - The request specifying which data to retrieve
+    /// Retrieve data from FDB using a `MarsRequest`.
     ///
     /// # Errors
     ///
     /// Returns an error if retrieval fails.
-    pub fn retrieve(&self, request: &Request) -> Result<DataReader> {
-        let handle = self.with_handle(|h| fdb_sys::retrieve(h, &request.to_request_string()))?;
+    pub fn retrieve(&self, request: &metkit::MarsRequest) -> Result<DataReader> {
+        let handle = self.with_handle(|h| fdb_sys::retrieve(h, request.as_sys()))?;
         DataReader::new(handle)
     }
 
