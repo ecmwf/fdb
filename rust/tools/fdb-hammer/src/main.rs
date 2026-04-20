@@ -39,7 +39,7 @@ use crossbeam_channel::{Receiver, Sender, bounded};
 use rand::Rng;
 
 use eccodes::GribHandle;
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 
 // =============================================================================
 // Valid parameter IDs (from C++ fdb-hammer)
@@ -762,7 +762,11 @@ impl HammerConfig {
 // Build request string
 // =============================================================================
 
-fn build_request(config: &HammerConfig, step: u32, member: u32) -> Request {
+fn build_request(
+    config: &HammerConfig,
+    step: u32,
+    member: u32,
+) -> eckit::Result<metkit::MarsRequest> {
     let levels_str = config
         .levels
         .iter()
@@ -776,7 +780,7 @@ fn build_request(config: &HammerConfig, step: u32, member: u32) -> Request {
         .collect::<Vec<_>>()
         .join("/");
 
-    Request::new()
+    metkit::MarsRequestBuilder::new("retrieve")
         .with("class", &config.class)
         .with("expver", &config.expver)
         .with("stream", &config.stream)
@@ -788,6 +792,7 @@ fn build_request(config: &HammerConfig, step: u32, member: u32) -> Request {
         .with("levelist", &levels_str)
         .with("param", &params_str)
         .with("number", &member.to_string())
+        .build()
 }
 
 // =============================================================================
@@ -1051,7 +1056,7 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member);
+            let request = build_request(config, step, member)?;
 
             // First pass: get metadata (count, keys for verification, expected sizes)
             let list_iter = fdb.list(
@@ -1173,7 +1178,7 @@ fn run_read_itt(
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member);
+            let request = build_request(config, step, member)?;
 
             // Calculate expected count with start_at/stop_at
             let total_fields = config.levels.len() * config.params.len();
@@ -1325,7 +1330,7 @@ fn run_list(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member);
+            let request = build_request(config, step, member)?;
 
             stats.record_io_start();
             let list_iter = fdb.list(

@@ -13,11 +13,14 @@
 //! `..Default::default()`:
 //!
 //! ```no_run
-//! use fdb::{Fdb, Request, WipeOptions};
+//! use fdb::{Fdb, WipeOptions};
 //!
 //! # fn main() -> fdb::Result<()> {
+//! eckit::init();
 //! let fdb = Fdb::open_default()?;
-//! let request = Request::new().with("class", "od");
+//! let request = metkit::MarsRequestBuilder::new("retrieve")
+//!     .with("class", "od")
+//!     .build()?;
 //!
 //! // Dry run with safe defaults — clearly the safe case.
 //! for entry in fdb.wipe(&request, WipeOptions::default())? { let _ = entry?; }

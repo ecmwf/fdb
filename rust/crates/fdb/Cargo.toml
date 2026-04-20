@@ -22,12 +22,14 @@ bindman-utils.workspace = true
 
 [dependencies]
 fdb-sys.workspace = true
+eckit.workspace = true
 metkit.workspace = true
-indexmap.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+eckit.workspace = true
+metkit.workspace = true
 clap = { version = "4", features = ["derive"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 tempfile.workspace = true

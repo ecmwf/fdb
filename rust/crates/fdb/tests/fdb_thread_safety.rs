@@ -15,7 +15,7 @@
 use std::sync::Arc;
 use std::thread;
 
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 
 // =============================================================================
 // Trait bound tests (compile-time verification)
@@ -43,16 +43,6 @@ fn test_key_traits() {
 
     assert_send::<Key>();
     assert_sync::<Key>();
-}
-
-/// Test: `Request` is Send + Sync
-#[test]
-fn test_request_traits() {
-    fn assert_send<T: Send>() {}
-    fn assert_sync<T: Sync>() {}
-
-    assert_send::<Request>();
-    assert_sync::<Request>();
 }
 
 // =============================================================================
@@ -123,7 +113,10 @@ fn test_concurrent_list_operations() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let request = metkit::MarsRequestBuilder::new("retrieve")
+                    .with("class", "rd")
+                    .build()
+                    .expect("build request");
                 for _ in 0..10 {
                     let _ = fdb.list(
                         &request,
@@ -151,7 +144,10 @@ fn test_concurrent_axes() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let request = metkit::MarsRequestBuilder::new("retrieve")
+                    .with("class", "rd")
+                    .build()
+                    .expect("build request");
                 for _ in 0..10 {
                     let _ = fdb.axes(&request, 1);
                 }
@@ -175,7 +171,10 @@ fn test_stress_concurrent_access() {
         .map(|i| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let request = metkit::MarsRequestBuilder::new("retrieve")
+                    .with("class", "rd")
+                    .build()
+                    .expect("build request");
                 for j in 0..iterations {
                     if (i + j) % 2 == 0 {
                         // Read-only operations
@@ -218,7 +217,10 @@ fn test_concurrent_errors_no_crash() {
             thread::spawn(move || {
                 // Use invalid requests to trigger errors
                 let value = format!("value_{i}");
-                let request = Request::new().with("INVALID_KEY", &value);
+                let request = metkit::MarsRequestBuilder::new("retrieve")
+                    .with("INVALID_KEY", &value)
+                    .build()
+                    .expect("build request");
                 for _ in 0..20 {
                     // Ignore the error - testing that concurrent errors don't crash
                     let _ = fdb.list(
@@ -330,7 +332,11 @@ fn test_concurrent_archive_operations() {
     fdb.flush().expect("flush failed");
 
     // Verify data was archived by listing
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -392,7 +398,11 @@ fn test_concurrent_read_write_mix() {
             let fdb = Arc::clone(&fdb);
             let grib_data = Arc::clone(&grib_data);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd").with("expver", "xxxx");
+                let request = metkit::MarsRequestBuilder::new("retrieve")
+                    .with("class", "rd")
+                    .with("expver", "xxxx")
+                    .build()
+                    .expect("build request");
 
                 for i in 0..iterations {
                     if thread_id % 2 == 0 {

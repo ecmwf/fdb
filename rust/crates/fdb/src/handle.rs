@@ -15,7 +15,6 @@ use crate::iterator::{
 };
 use crate::key::Key;
 use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
-use crate::request::Request;
 
 static INIT: Once = Once::new();
 
@@ -42,10 +41,10 @@ fn initialize() {
 /// valid UTF-8 (which the cxx bridge can't accept).
 fn path_to_str(path: &std::path::Path) -> Result<&str> {
     path.to_str().ok_or_else(|| {
-        crate::Error::UserError(format!(
+        crate::Error::Eckit(eckit::Error::UserError(format!(
             "FDB config path is not valid UTF-8: {}",
             path.display()
-        ))
+        )))
     })
 }
 
@@ -68,16 +67,20 @@ unsafe impl Send for HandleInner {}
 /// # Example
 ///
 /// ```no_run
-/// use fdb::{Fdb, Request};
+/// use fdb::Fdb;
 /// use std::sync::Arc;
 /// use std::thread;
 ///
+/// eckit::init();
 /// let fdb = Arc::new(Fdb::open_default().expect("failed to create FDB handle"));
 ///
 /// let handles: Vec<_> = (0..4).map(|_| {
 ///     let fdb = Arc::clone(&fdb);
 ///     thread::spawn(move || {
-///         let request = Request::new().with("class", "od");
+///         let request = metkit::MarsRequestBuilder::new("list")
+///             .with("class", "od")
+///             .build()
+///             .expect("build");
 ///         let _ = fdb.list(&request, fdb::ListOptions::default());
 ///     })
 /// }).collect();
@@ -217,9 +220,9 @@ impl Fdb {
             // no upstream entry point that says "env-default config plus
             // this user overlay", and silently dropping is a footgun.
             (None, Some(_)) => {
-                return Err(crate::Error::UserError(
+                return Err(crate::Error::Eckit(eckit::Error::UserError(
                     "Fdb::open: user_config requires a main config".to_string(),
-                ));
+                )));
             }
         };
 
@@ -281,10 +284,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if listing fails.
-    pub fn list(&self, request: &Request, options: ListOptions) -> Result<ListIterator> {
+    pub fn list(
+        &self,
+        request: &metkit::MarsRequest,
+        options: ListOptions,
+    ) -> Result<ListIterator> {
         let ListOptions { depth, deduplicate } = options;
-        let it = self
-            .with_handle(|h| fdb_sys::list(h, &request.to_request_string(), deduplicate, depth))?;
+        let it = self.with_handle(|h| fdb_sys::list(h, request.as_sys(), deduplicate, depth))?;
         Ok(ListIterator::new(it))
     }
 
@@ -453,8 +459,12 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the query fails.
-    pub fn axes(&self, request: &Request, depth: i32) -> Result<HashMap<String, Vec<String>>> {
-        let axes = self.with_handle(|h| fdb_sys::axes(h, &request.to_request_string(), depth))?;
+    pub fn axes(
+        &self,
+        request: &metkit::MarsRequest,
+        depth: i32,
+    ) -> Result<HashMap<String, Vec<String>>> {
+        let axes = self.with_handle(|h| fdb_sys::axes(h, request.as_sys(), depth))?;
         Ok(axes.into_iter().map(|a| (a.key, a.values)).collect())
     }
 
@@ -469,9 +479,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the dump fails.
-    pub fn dump(&self, request: &Request, options: DumpOptions) -> Result<DumpIterator> {
+    pub fn dump(
+        &self,
+        request: &metkit::MarsRequest,
+        options: DumpOptions,
+    ) -> Result<DumpIterator> {
         let DumpOptions { simple } = options;
-        let it = self.with_handle(|h| fdb_sys::dump(h, &request.to_request_string(), simple))?;
+        let it = self.with_handle(|h| fdb_sys::dump(h, request.as_sys(), simple))?;
         Ok(DumpIterator::new(it))
     }
 
@@ -484,8 +498,8 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the status query fails.
-    pub fn status(&self, request: &Request) -> Result<StatusIterator> {
-        let it = self.with_handle(|h| fdb_sys::status(h, &request.to_request_string()))?;
+    pub fn status(&self, request: &metkit::MarsRequest) -> Result<StatusIterator> {
+        let it = self.with_handle(|h| fdb_sys::status(h, request.as_sys()))?;
         Ok(StatusIterator::new(it))
     }
 
@@ -501,20 +515,18 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the wipe fails.
-    pub fn wipe(&self, request: &Request, options: WipeOptions) -> Result<WipeIterator> {
+    pub fn wipe(
+        &self,
+        request: &metkit::MarsRequest,
+        options: WipeOptions,
+    ) -> Result<WipeIterator> {
         let WipeOptions {
             doit,
             porcelain,
             unsafe_wipe_all,
         } = options;
         let it = self.with_handle(|h| {
-            fdb_sys::wipe(
-                h,
-                &request.to_request_string(),
-                doit,
-                porcelain,
-                unsafe_wipe_all,
-            )
+            fdb_sys::wipe(h, request.as_sys(), doit, porcelain, unsafe_wipe_all)
         })?;
         Ok(WipeIterator::new(it))
     }
@@ -531,10 +543,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the purge fails.
-    pub fn purge(&self, request: &Request, options: PurgeOptions) -> Result<PurgeIterator> {
+    pub fn purge(
+        &self,
+        request: &metkit::MarsRequest,
+        options: PurgeOptions,
+    ) -> Result<PurgeIterator> {
         let PurgeOptions { doit, porcelain } = options;
-        let it =
-            self.with_handle(|h| fdb_sys::purge(h, &request.to_request_string(), doit, porcelain))?;
+        let it = self.with_handle(|h| fdb_sys::purge(h, request.as_sys(), doit, porcelain))?;
         Ok(PurgeIterator::new(it))
     }
 
@@ -547,8 +562,8 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the stats query fails.
-    pub fn stats_iter(&self, request: &Request) -> Result<StatsIterator> {
-        let it = self.with_handle(|h| fdb_sys::stats_iterator(h, &request.to_request_string()))?;
+    pub fn stats_iter(&self, request: &metkit::MarsRequest) -> Result<StatsIterator> {
+        let it = self.with_handle(|h| fdb_sys::stats_iterator(h, request.as_sys()))?;
         Ok(StatsIterator::new(it))
     }
 
@@ -566,13 +581,12 @@ impl Fdb {
     /// Returns an error if the control operation fails.
     pub fn control(
         &self,
-        request: &Request,
+        request: &metkit::MarsRequest,
         action: ControlAction,
         identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
-        let it = self.with_handle(|h| {
-            fdb_sys::control(h, &request.to_request_string(), action, identifiers)
-        })?;
+        let it =
+            self.with_handle(|h| fdb_sys::control(h, request.as_sys(), action, identifiers))?;
         Ok(ControlIterator::new(it))
     }
 

@@ -19,6 +19,8 @@ system = ["fdb/system", "eccodes/system"]
 [dependencies]
 md-5 = "0.10"
 clap = { version = "4", features = ["derive"] }
+eckit.workspace = true
+metkit.workspace = true
 fdb = { path = "../../crates/fdb", default-features = false }
 eccodes = { path = "../../../../rust-wrappers-playground/eccodes/crates/eccodes", default-features = false }
 hostname = "0.4"

@@ -6,7 +6,7 @@
 //! Some benchmarks require FDB setup and will be skipped if setup fails.
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 use std::sync::OnceLock;
 
 // FDB setup for benchmarks that need data
@@ -114,30 +114,36 @@ fn bench_key_creation(c: &mut Criterion) {
     });
 }
 
-/// Benchmark Request creation with builder pattern.
+/// Benchmark `MarsRequest` creation with builder.
 fn bench_request_creation(c: &mut Criterion) {
+    eckit::init();
     c.bench_function("fdb_request_creation", |b| {
         b.iter(|| {
             black_box(
-                Request::new()
+                metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
                     .with("expver", "xxxx")
                     .with("stream", "oper")
                     .with("date", "20230508")
-                    .with("time", "1200"),
+                    .with("time", "1200")
+                    .build()
+                    .expect("build"),
             );
         });
     });
 }
 
-/// Benchmark Request creation with multiple values.
+/// Benchmark `MarsRequest` creation with multiple values.
 fn bench_request_multi_values(c: &mut Criterion) {
+    eckit::init();
     c.bench_function("fdb_request_multi_values", |b| {
         b.iter(|| {
             black_box(
-                Request::new()
+                metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
-                    .with_values("step", &["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]),
+                    .with_values("step", &["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+                    .build()
+                    .expect("build"),
             );
         });
     });
@@ -150,11 +156,14 @@ fn bench_list(c: &mut Criterion) {
         return;
     };
 
+    eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = Request::new()
+    let request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
-        .with("stream", "oper");
+        .with("stream", "oper")
+        .build()
+        .expect("build");
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
@@ -180,11 +189,14 @@ fn bench_axes(c: &mut Criterion) {
         return;
     };
 
+    eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = Request::new()
+    let request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
-        .with("stream", "oper");
+        .with("stream", "oper")
+        .build()
+        .expect("build");
 
     c.bench_function("fdb_axes", |b| {
         b.iter(|| {

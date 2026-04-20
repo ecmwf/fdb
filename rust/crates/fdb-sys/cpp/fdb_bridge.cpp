@@ -14,9 +14,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/runtime/Main.h"
-#include "metkit/mars/MarsExpansion.h"
-#include "metkit/mars/MarsParsedRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <mutex>
@@ -82,33 +79,9 @@ static rust::Vec<KeyValue> from_fdb_key(const fdb5::Key& key) {
 ///
 /// An empty request string is returned as a default-constructed
 /// `MarsRequest` (matches everything) without invoking the parser.
-///
-/// Throws on any parser/expansion error; the global `rust::behavior::trycatch`
-/// turns the exception into a Rust `Result::Err`.
-static metkit::mars::MarsRequest parse_to_mars_request(const std::string& request_str) {
-    if (request_str.empty()) {
-        return metkit::mars::MarsRequest{};
-    }
-
-    // MarsParser requires a verb at the start of the input. Use "retrieve"
-    // as the canonical verb (matches what `FDBToolRequest::requestsFromString`
-    // defaults to). The verb itself is discarded by MarsExpansion.
-    std::string full = "retrieve," + request_str;
-    std::istringstream in(full);
-    metkit::mars::MarsParser parser(in);
-    auto parsed = parser.parse();
-    ASSERT(parsed.size() == 1);
-
-    metkit::mars::MarsExpansion expand(/*inherit*/ false, /*strict*/ true);
-    auto expanded = expand.expand(parsed);
-    ASSERT(expanded.size() == 1);
-    return std::move(expanded.front());
-}
-
-/// Create an `FDBToolRequest` from a MARS request string.
-static fdb5::FDBToolRequest make_tool_request(const std::string& request_str) {
-    auto mars = parse_to_mars_request(request_str);
-    // If the request is empty, match all; otherwise filter by request.
+/// Create an `FDBToolRequest` from a `MarsRequestWrapper`.
+static fdb5::FDBToolRequest make_tool_request(const metkit_bridge::MarsRequestWrapper& request) {
+    const auto& mars = request.inner();
     bool all = mars.empty();
     return fdb5::FDBToolRequest{mars, all, std::vector<std::string>{}};
 }
@@ -537,29 +510,6 @@ rust::String fdb_git_sha1() {
     return rust::String(fdb5_git_sha1());
 }
 
-// ============================================================================
-// MARS request parsing
-// ============================================================================
-
-RequestData parse_mars_request(rust::Str request) {
-    // Parsing requires eckit to be initialised (type registries, log levels,
-    // etc.), but `parse_mars_request` is a free function that may be called
-    // before the user constructs an `Fdb`. Make it self-sufficient.
-    fdb_init();
-
-    auto mars = parse_to_mars_request(std::string(request));
-
-    RequestData out;
-    for (const auto& key : mars.params()) {
-        RequestParam param;
-        param.key = rust::String(key);
-        for (const auto& v : mars.values(key)) {
-            param.values.push_back(rust::String(v));
-        }
-        out.params.push_back(std::move(param));
-    }
-    return out;
-}
 
 // ============================================================================
 // Handle lifecycle functions
@@ -689,9 +639,10 @@ std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIte
 // List functions
 // ============================================================================
 
-std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                         bool deduplicate, int32_t level) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().list(tool_request, deduplicate, level);
     return std::make_unique<ListIteratorHandle>(std::move(it));
 }
@@ -710,9 +661,9 @@ CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator) {
 // Axes query functions
 // ============================================================================
 
-rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+rust::Vec<AxisEntry> axes(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request, int32_t level) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto index_axis = handle.inner().axes(tool_request, level);
 
     rust::Vec<AxisEntry> result;
@@ -733,9 +684,10 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
 // Dump functions
 // ============================================================================
 
-std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, bool simple) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                         bool simple) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().dump(tool_request, simple);
     return std::make_unique<DumpIteratorHandle>(std::move(it));
 }
@@ -744,9 +696,9 @@ std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, b
 // Status functions
 // ============================================================================
 
-std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str request) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().status(tool_request);
     return std::make_unique<StatusIteratorHandle>(std::move(it));
 }
@@ -755,10 +707,10 @@ std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str reques
 // Wipe functions
 // ============================================================================
 
-std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, bool doit, bool porcelain,
-                                         bool unsafe_wipe_all) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request, bool doit,
+                                         bool porcelain, bool unsafe_wipe_all) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().wipe(tool_request, doit, porcelain, unsafe_wipe_all);
     return std::make_unique<WipeIteratorHandle>(std::move(it));
 }
@@ -767,9 +719,10 @@ std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, b
 // Purge functions
 // ============================================================================
 
-std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request, bool doit, bool porcelain) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                           bool doit, bool porcelain) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().purge(tool_request, doit, porcelain);
     return std::make_unique<PurgeIteratorHandle>(std::move(it));
 }
@@ -778,9 +731,10 @@ std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request,
 // Stats functions
 // ============================================================================
 
-std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str request) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle,
+                                                    const metkit_bridge::MarsRequestWrapper& request) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
     auto it = handle.inner().stats(tool_request);
     return std::make_unique<StatsIteratorHandle>(std::move(it));
 }
@@ -789,10 +743,11 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 // Control functions
 // ============================================================================
 
-std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
+std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                               fdb5::ControlAction action,
                                                rust::Slice<const fdb5::ControlIdentifier> identifiers) {
-    std::string request_str{request};
-    auto tool_request = make_tool_request(request_str);
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
 
     fdb5::ControlIdentifiers ctrl_ids;
     for (auto id : identifiers) {

@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::Parser;
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 
 /// `fdb-read`-style retrieval tool. Reimplements a sensible subset of
 /// the upstream `fdb-read` CLI on top of the Rust `fdb` binding.
@@ -38,12 +38,11 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let request: Request = args.request.parse()?;
+    eckit::init();
+    let parsed = metkit::parse(&args.request, false)?;
+    let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
-    // `retrieve` hands back a `DataReader` (which implements
-    // `std::io::Read`) — exactly the streaming retrieval path the
-    // reviewer redesign was meant to enable.
     let mut reader = fdb.retrieve(&request)?;
 
     // Open the target. `-` means stdout, matching the convention of
