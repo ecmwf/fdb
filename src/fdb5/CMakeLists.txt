@@ -17,8 +17,6 @@ list( APPEND fdb5_srcs
 
     api/fdb_c.cc
     api/fdb_c.h
-    api/DistFDB.cc
-    api/DistFDB.h
     api/FDB.cc
     api/FDB.h
     api/FDBFactory.cc
@@ -550,7 +548,7 @@ if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
                             INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                             LIBS      fdb5 eckit metkit eccodes)
 endif()
-                        
+
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )

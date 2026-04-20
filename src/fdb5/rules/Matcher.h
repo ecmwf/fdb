@@ -47,6 +47,9 @@ public:  // methods
     virtual const std::string& value(const Key&, const std::string& keyword) const;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
                                                    const std::string& keyword) const;
+
+    virtual const std::vector<std::string>& optionalValues() const;
+
     virtual const std::string& defaultValue() const;
 
     virtual bool match(const std::string& value) const = 0;

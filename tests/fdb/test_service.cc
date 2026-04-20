@@ -46,8 +46,7 @@ using namespace eckit::testing;
 using namespace fdb5;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -68,15 +67,14 @@ struct FixtureService {
         p["time"] = "0000";
         p["type"] = "fc";
 
-        modelParams_.push_back("130.128");
-        modelParams_.push_back("138.128");
+        modelParams_.push_back("130");
+        modelParams_.push_back("138");
     }
 
     void write_cycle(fdb5::Archiver& fdb, StringDict& p) {
         Translator<size_t, std::string> str;
-        std::vector<std::string>::iterator param = modelParams_.begin();
-        for (; param != modelParams_.end(); ++param) {
-            p["param"] = *param;
+        for (const auto& param : modelParams_) {
+            p["param"] = param;
 
             p["levtype"] = "pl";
 
@@ -88,7 +86,7 @@ struct FixtureService {
 
                     std::ostringstream data;
                     data << "Raining cats and dogs -- "
-                         << " param " << *param << " step " << step << " level " << level << std::endl;
+                         << " param " << param << " step " << step << " level " << level << std::endl;
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
@@ -251,9 +249,8 @@ CASE("test_fdb_service") {
             Buffer buffer(1_KiB);
 
             Translator<size_t, std::string> str;
-            std::vector<std::string>::iterator param = f.modelParams_.begin();
-            for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"] = *param;
+            for (const auto& param : f.modelParams_) {
+                f.p["param"] = param;
                 f.p["levtype"] = "pl";
 
                 for (size_t step = 0; step < 2; ++step) {
@@ -269,7 +266,7 @@ CASE("test_fdb_service") {
                         auto it = fdb5::FDB{}.inspect(r);
                         fdb5::ListElement el;
                         EXPECT(it.next(el));
-                        EXPECT_EQUAL(el.combinedKey().get("param"), *param);
+                        EXPECT_EQUAL(el.combinedKey().get("param"), param);
                         EXPECT_EQUAL(el.combinedKey().get("step"), str(step * 3));
                         EXPECT_EQUAL(el.combinedKey().get("levelist"), str(level * 100));
                         EXPECT(!it.next(el));
@@ -286,7 +283,7 @@ CASE("test_fdb_service") {
 
                         std::ostringstream data;
                         data << "Raining cats and dogs -- "
-                             << " param " << *param << " step " << step << " level " << level << std::endl;
+                             << " param " << param << " step " << step << " level " << level << std::endl;
 
                         EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
@@ -299,9 +296,8 @@ CASE("test_fdb_service") {
             fdb5::FDB lister;
 
             Translator<size_t, std::string> str;
-            std::vector<std::string>::iterator param = f.modelParams_.begin();
-            for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"] = *param;
+            for (const auto& param : f.modelParams_) {
+                f.p["param"] = param;
                 f.p["levtype"] = "pl";
                 f.p["step"] = str(0);
                 f.p["levelist"] = str(0);
@@ -431,9 +427,8 @@ CASE("test_fdb_service_subtoc") {
             f.p["expver"] = "0002";
 
             Translator<size_t, std::string> str;
-            std::vector<std::string>::iterator param = f.modelParams_.begin();
-            for (; param != f.modelParams_.end(); ++param) {
-                f.p["param"] = *param;
+            for (const auto& param : f.modelParams_) {
+                f.p["param"] = param;
                 f.p["levtype"] = "pl";
 
                 for (size_t step = 0; step < 2; ++step) {
@@ -457,7 +452,7 @@ CASE("test_fdb_service_subtoc") {
 
                         std::ostringstream data;
                         data << "Raining cats and dogs -- "
-                             << " param " << *param << " step " << step << " level " << level << std::endl;
+                             << " param " << param << " step " << step << " level " << level << std::endl;
 
                         EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
@@ -472,10 +467,9 @@ CASE("test_fdb_service_subtoc") {
             f.p["expver"] = "0002";
 
             Translator<size_t, std::string> str;
-            std::vector<std::string>::iterator param = f.modelParams_.begin();
-            for (; param != f.modelParams_.end(); ++param) {
+            for (const auto& param : f.modelParams_) {
 
-                f.p["param"] = *param;
+                f.p["param"] = param;
                 f.p["levtype"] = "pl";
                 f.p["step"] = str(0);
                 f.p["levelist"] = str(0);
@@ -593,8 +587,7 @@ CASE("schemaSerialisation") {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     eckit::Main::initialise(argc, argv, "FDB_HOME");

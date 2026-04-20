@@ -308,6 +308,30 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("has_location", &fdb5::ListElement::hasLocation)
         .def("offset", [](const fdb5::ListElement& list_element) -> long long { return list_element.offset(); })
         .def("length", [](const fdb5::ListElement& list_element) -> long long { return list_element.length(); })
+        .def("keys",
+             [](const fdb5::ListElement& list_element) {
+                 const auto keys = list_element.keys();
+                 std::array<std::map<std::string, std::string>, 3> result;
+
+                 for (std::size_t i = 0; i < 3; ++i) {
+                     std::map<std::string, std::string> mapped_key;
+                     for (const auto& [key, value] : keys[i]) {
+                         mapped_key.emplace(key, value);
+                     }
+                     result[i] = mapped_key;
+                 }
+                 return result;
+             })
+        .def("combined_key",
+             [](const fdb5::ListElement& list_element) {
+                 const auto combined_key = list_element.combinedKey();
+                 std::map<std::string, std::string> result;
+
+                 for (const auto& [key, value] : combined_key) {
+                     result.emplace(key, value);
+                 }
+                 return result;
+             })
         .def("uri",
              [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
                  try {

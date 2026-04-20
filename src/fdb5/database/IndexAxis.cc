@@ -399,10 +399,13 @@ void IndexAxis::print(std::ostream& out) const {
 
     const char* sep = "";
     out << "{";
-    for (const auto& kv : axis_) {
-        out << sep << kv.first << "=(";
+    for (const auto& [k, vv] : axis_) {
+        if (vv->size() == 1 && vv->at(0).empty()) {
+            continue;
+        }
+        out << sep << k << "=(";
         const char* sep2 = "";
-        for (const auto& v : *kv.second) {
+        for (const auto& v : *vv) {
             out << sep2 << v;
             sep2 = ",";
         }
@@ -415,8 +418,11 @@ void IndexAxis::print(std::ostream& out) const {
 
 void IndexAxis::json(eckit::JSON& json) const {
     json.startObject();
-    for (const auto& kv : axis_) {
-        json << kv.first << *kv.second;
+    for (const auto& [k, vv] : axis_) {
+        if (vv->size() == 1 && vv->at(0).empty()) {
+            continue;
+        }
+        json << k << *vv;
     }
     json.endObject();
 }

@@ -35,7 +35,7 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
 
 void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t* it, bool checkLevel = true) {
     const char* k;
-    const char* v;
+    const char* v = nullptr;
     size_t l;
     int err;
 
@@ -47,7 +47,12 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t* it, boo
     size_t level = 0;
     for (const auto& key : keys) {
         for (const auto& k1 : key) {
-            int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            int err = FDB_SUCCESS;
+            v = nullptr;
+            // skip empty values (optional metadata)
+            while ((v == nullptr || strlen(v) == 0) && err == FDB_SUCCESS) {
+                err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            }
             std::cerr << "k=" << k << " v=" << v << " l=" << l << std::endl;
             EXPECT_EQUAL(err, FDB_SUCCESS);
             EXPECT_EQUAL(k1.first, k);

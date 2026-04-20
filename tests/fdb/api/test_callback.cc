@@ -48,7 +48,7 @@ CASE("Archive and flush callback") {
     keys.push_back(key);
     fdb.archive(key, data, length);
 
-    key.set("type", "pf");
+    key.set("type", "an");
     keys.push_back(key);
     fdb.archive(key, data, length);
 

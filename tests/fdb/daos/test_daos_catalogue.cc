@@ -527,9 +527,9 @@ CASE("DaosCatalogue tests") {
         fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
         fdb5::Key index_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}});
 
-        fdb5::FDBToolRequest full_req{request_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-        fdb5::FDBToolRequest index_req{index_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-        fdb5::FDBToolRequest db_req{db_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest full_req{request_key.request(), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest index_req{index_key.request(), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest db_req{db_key.request(), false, std::vector<std::string>{"a", "b"}};
         fdb5::FDBToolRequest all_req{metkit::mars::MarsRequest{}, true, std::vector<std::string>{}};
 
         // initialise FDB

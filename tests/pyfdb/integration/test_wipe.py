@@ -1,3 +1,11 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 from pyfdb import FDB
 from pyfdb.pyfdb_iterator import WipeElementType, _WipeElementType
 
@@ -6,9 +14,14 @@ def test_wipe_enum_mapping():
     assert WipeElementType.ERROR.value == _WipeElementType.ERROR.value
     assert WipeElementType.CATALOGUE_INFO.value == _WipeElementType.CATALOGUE_INFO.value
     assert WipeElementType.CATALOGUE.value == _WipeElementType.CATALOGUE.value
-    assert WipeElementType.CATALOGUE_INDEX.value == _WipeElementType.CATALOGUE_INDEX.value
+    assert (
+        WipeElementType.CATALOGUE_INDEX.value == _WipeElementType.CATALOGUE_INDEX.value
+    )
     assert WipeElementType.CATALOGUE_SAFE.value == _WipeElementType.CATALOGUE_SAFE.value
-    assert WipeElementType.CATALOGUE_CONTROL.value == _WipeElementType.CATALOGUE_CONTROL.value
+    assert (
+        WipeElementType.CATALOGUE_CONTROL.value
+        == _WipeElementType.CATALOGUE_CONTROL.value
+    )
     assert WipeElementType.STORE.value == _WipeElementType.STORE.value
     assert WipeElementType.STORE_AUX.value == _WipeElementType.STORE_AUX.value
     assert WipeElementType.STORE_SAFE.value == _WipeElementType.STORE_SAFE.value
@@ -43,7 +56,9 @@ def test_wipe_all_doit(read_write_fdb_setup):
     assert len(wiped_elements) > 0
 
     elements_after_wipe = list(fdb.list({"class": "ea"}))
-    print(f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}")
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
     assert len(elements) > len(elements_after_wipe)
 
 
@@ -58,7 +73,9 @@ def test_wipe_single_date_doit(read_write_fdb_setup):
     assert len(wiped_elements) > 0
 
     elements_after_wipe = list(fdb.list({"class": "ea"}))
-    print(f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}")
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
     assert len(elements) > len(elements_after_wipe)
     assert len(elements) == 96
     assert len(elements_after_wipe) == 72

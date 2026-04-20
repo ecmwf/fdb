@@ -28,7 +28,7 @@ eckit::PathName writeAuxiliaryData(const eckit::PathName datapath, const std::st
 
 std::set<eckit::PathName> setup(FDB& fdb, std::set<std::string> auxExtensions = {"foo", "bar"},
                                 const std::vector<std::string>& dates = {"20101010", "20111213"},
-                                const std::vector<std::string>& types = {"fc", "pf"},
+                                const std::vector<std::string>& types = {"fc", "an"},
                                 const std::vector<std::string>& steps = {"1", "2"}
 
 ) {
@@ -126,7 +126,7 @@ CASE("Wipe with extensions") {
     EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 8);
 
     // over specified wipe: returns nothing
-    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf,step=1")[0];
+    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=an,step=1")[0];
     doit = true;
     iter = fdb.wipe(request, doit);
     element_counts.clear();
@@ -140,7 +140,7 @@ CASE("Wipe with extensions") {
 
 
     // partial wipe on the second level. Hits half the data files
-    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=pf")[0];
+    request = FDBToolRequest::requestsFromString("class=od,expver=xxxx,type=an")[0];
     doit = true;
     iter = fdb.wipe(request, doit);
     element_counts.clear();
