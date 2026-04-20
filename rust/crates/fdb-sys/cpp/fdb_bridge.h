@@ -17,6 +17,9 @@
 // metkit-sys bridge — provides MarsRequestWrapper
 #include "metkit-sys/src/lib.rs.h"
 
+// eckit-sys bridge — provides DataHandleWrapper
+#include "eckit-sys/src/lib.rs.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
@@ -32,6 +35,9 @@ namespace fdb::ffi {
 
 // Import MarsRequestWrapper from metkit-sys bridge (cross-crate ExternType)
 using metkit_bridge::MarsRequestWrapper;
+
+// Import DataHandleWrapper from eckit-sys bridge (cross-crate ExternType)
+using eckit_bridge::DataHandleWrapper;
 
 // ============================================================================
 // Shared struct forward declarations (defined by cxx in generated code)
@@ -352,44 +358,22 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader);
 // ============================================================================
 
 /// Retrieve data matching a MarsRequest.
-std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request);
+std::unique_ptr<DataHandleWrapper> retrieve(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request);
 
 // ============================================================================
 // Read functions (by URI)
 // ============================================================================
 
 /// Read data from a single URI.
-std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri);
+std::unique_ptr<DataHandleWrapper> read_uri(FdbHandle& handle, rust::Str uri);
 
 /// Read data from a list of URIs.
-std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
+std::unique_ptr<DataHandleWrapper> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
                                              bool in_storage_order);
 
 /// Read data from a list iterator (most efficient - avoids URI conversion).
-std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
+std::unique_ptr<DataHandleWrapper> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
                                                       bool in_storage_order);
-
-// ============================================================================
-// eckit::DataHandle shim functions
-// ============================================================================
-
-/// Open the handle for reading. Returns the estimated length.
-uint64_t data_handle_open(eckit::DataHandle& handle);
-
-/// Read up to `buffer.size()` bytes into `buffer`. Returns the byte count.
-size_t data_handle_read(eckit::DataHandle& handle, rust::Slice<uint8_t> buffer);
-
-/// Seek to an absolute byte position in the underlying stream.
-void data_handle_seek(eckit::DataHandle& handle, uint64_t position);
-
-/// Current read position.
-uint64_t data_handle_tell(eckit::DataHandle& handle);
-
-/// Total size of the underlying data, in bytes.
-uint64_t data_handle_size(eckit::DataHandle& handle);
-
-/// Close the handle. Safe to call more than once.
-void data_handle_close(eckit::DataHandle& handle);
 
 // ============================================================================
 // List functions

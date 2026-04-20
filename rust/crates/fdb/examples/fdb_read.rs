@@ -43,18 +43,19 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
-    let mut reader = fdb.retrieve(&request)?;
+    let mut handle = fdb.retrieve(&request)?;
+    handle.open_for_read()?;
 
     // Open the target. `-` means stdout, matching the convention of
     // `fdb-read`'s sibling tools and most Unix utilities.
     let bytes_copied = if args.target == Path::new("-") {
         let stdout = io::stdout();
         let mut out = stdout.lock();
-        io::copy(&mut reader, &mut out)?
+        io::copy(&mut handle, &mut out)?
     } else {
         let file = File::create(&args.target)?;
         let mut out = BufWriter::new(file);
-        let n = io::copy(&mut reader, &mut out)?;
+        let n = io::copy(&mut handle, &mut out)?;
         out.flush()?;
         n
     };

@@ -31,10 +31,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let request = parsed.at(0)?;
 
     println!("Retrieving data...");
-    let mut reader = fdb.retrieve(&request)?;
+    let mut handle = fdb.retrieve(&request)?;
+    handle.open_for_read()?;
 
     let mut buffer = Vec::new();
-    let bytes_read = reader.read_to_end(&mut buffer)?;
+    let bytes_read = handle.read_to_end(&mut buffer)?;
     println!("Retrieved {bytes_read} bytes");
 
     // Write to file or show summary
