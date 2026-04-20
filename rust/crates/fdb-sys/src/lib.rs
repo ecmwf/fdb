@@ -491,11 +491,17 @@ mod ffi {
         fn archive_reader(handle: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
 
         // =====================================================================
-        // Retrieve operations (free functions)
+        // Retrieve operations
         // =====================================================================
 
-        /// Retrieve data matching a request.
-        fn retrieve(handle: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
+        #[namespace = "metkit_bridge"]
+        type MarsRequestWrapper = metkit_sys::ffi::MarsRequestWrapper;
+
+        /// Retrieve data matching a MarsRequest.
+        fn retrieve(
+            handle: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+        ) -> Result<UniquePtr<DataHandle>>;
 
         // =====================================================================
         // Read operations (by URI)

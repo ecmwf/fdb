@@ -23,8 +23,9 @@
 #include <sstream>
 #include <stdexcept>
 
-// Include the cxx-generated header for our bridge types
+// Include cxx-generated headers for bridge types
 #include "fdb-sys/src/lib.rs.h"
+#include "metkit-sys/src/lib.rs.h"
 
 namespace fdb::ffi {
 
@@ -654,9 +655,8 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
 // Retrieve functions
 // ============================================================================
 
-std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, rust::Str request) {
-    auto mars = parse_to_mars_request(std::string(request));
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().retrieve(mars));
+std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request) {
+    return std::unique_ptr<eckit::DataHandle>(handle.inner().retrieve(request.inner()));
 }
 
 // ============================================================================

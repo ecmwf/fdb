@@ -40,8 +40,12 @@ fn build_system() {
     // Get dependency paths from -sys crates
     let eckit_include = env::var("DEP_ECKIT_INCLUDE")
         .expect("DEP_ECKIT_INCLUDE not set - eckit-sys must be a dependency");
+    let eckit_out_dir = env::var("DEP_ECKIT_OUT_DIR")
+        .expect("DEP_ECKIT_OUT_DIR not set - eckit-sys must be a dependency");
     let metkit_include = env::var("DEP_METKIT_INCLUDE")
         .expect("DEP_METKIT_INCLUDE not set - metkit-sys must be a dependency");
+    let metkit_cpp_dir = env::var("DEP_METKIT_CPP_DIR")
+        .expect("DEP_METKIT_CPP_DIR not set - metkit-sys must be a dependency");
     let eccodes_include = env::var("DEP_ECCODES_INCLUDE")
         .expect("DEP_ECCODES_INCLUDE not set - eccodes-sys must be a dependency");
 
@@ -55,7 +59,9 @@ fn build_system() {
         .file(crate_dir.join("cpp/fdb_bridge.cpp"))
         .include(&fdb_include)
         .include(&eckit_include)
+        .include(&eckit_out_dir) // for eckit_exceptions.h
         .include(&metkit_include)
+        .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(&eccodes_include)
         .include(crate_dir.join("cpp"))
         .flag_if_supported("-std=c++17")
@@ -245,13 +251,20 @@ fn build_vendored() {
     // IMPORTANT: Copy resources FIRST, then link against the copied location.
     let libs_dest = copy_resources_to_output(&install_dir, &eckit_root, &metkit_root);
 
+    let eckit_out_dir = env::var("DEP_ECKIT_OUT_DIR")
+        .expect("DEP_ECKIT_OUT_DIR not set - eckit-sys must be a dependency");
+    let metkit_cpp_dir = env::var("DEP_METKIT_CPP_DIR")
+        .expect("DEP_METKIT_CPP_DIR not set - metkit-sys must be a dependency");
+
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
         .file(crate_dir.join("cpp/fdb_bridge.cpp"))
         .include(&include_dir)
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
+        .include(&eckit_out_dir) // for eckit_exceptions.h
         .include(format!("{metkit_root}/include"))
+        .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(format!("{eccodes_root}/include"))
         .include(crate_dir.join("cpp"))
         .flag_if_supported("-std=c++17")
