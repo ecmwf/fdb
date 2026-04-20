@@ -72,8 +72,8 @@ location from a predefined set of locations. You can supply a custom location
 by specifying the ``FDB_HOME`` environment variable. If you want to set the
 location of the configuration file only, use the ``FDB5_CONFIG_FILE``
 environment variable. There is a plethora of different configuration options,
-if in doubt, refer to the official ``FDB`` documentation at `ReadTheDocs
-<https://fields-database.readthedocs.io/en/latest/>`__.
+if in doubt, refer to the official ``FDB`` documentation at `ECMWF DOCS
+<https://sites.ecmwf.int/docs/fdb>`__.
 
 .. clear-namespace
 

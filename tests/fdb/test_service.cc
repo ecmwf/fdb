@@ -285,7 +285,7 @@ CASE("test_fdb_service") {
                         data << "Raining cats and dogs -- "
                              << " param " << param << " step " << step << " level " << level << std::endl;
 
-                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
+                        EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
                 }
             }
@@ -454,7 +454,7 @@ CASE("test_fdb_service_subtoc") {
                         data << "Raining cats and dogs -- "
                              << " param " << param << " step " << step << " level " << level << std::endl;
 
-                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
+                        EXPECT_EQUAL(::memcmp(buffer, data.str().c_str(), data.str().size()), 0);
                     }
                 }
             }
