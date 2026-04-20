@@ -27,19 +27,19 @@ CASE("Insertion and comparison") {
 
     ia1.insert(EXAMPLE_K1);
     EXPECT_NOT_EQUAL(ia1, ia2);
-    EXPECT(ia1 != ia2);
+    EXPECT(!(ia1 == ia2));
 
     ia2.insert(EXAMPLE_K2);
     EXPECT_NOT_EQUAL(ia1, ia2);
-    EXPECT(ia1 != ia2);
+    EXPECT(!(ia1 == ia2));
 
     ia1.insert(EXAMPLE_K2);
     EXPECT_NOT_EQUAL(ia1, ia2);
-    EXPECT(ia1 != ia2);
+    EXPECT(!(ia1 == ia2));
 
     ia2.insert(EXAMPLE_K1);
     EXPECT_NOT_EQUAL(ia1, ia2);
-    EXPECT(ia1 != ia2);
+    EXPECT(!(ia1 == ia2));
 
     ia1.sort();
     ia2.sort();
@@ -119,7 +119,7 @@ CASE("Check that merging works correctly") {
     ia2.insert(EXAMPLE_K3);
     ia2.sort();
 
-    EXPECT(ia1 != ia2);
+    EXPECT_NOT_EQUAL(ia1, ia2);
 
     fdb5::IndexAxis iatest;
     iatest.insert(EXAMPLE_K1);
@@ -127,13 +127,13 @@ CASE("Check that merging works correctly") {
     iatest.insert(EXAMPLE_K3);
     iatest.sort();
 
-    EXPECT(iatest != ia1);
-    EXPECT(iatest != ia2);
+    EXPECT_NOT_EQUAL(iatest, ia1);
+    EXPECT_NOT_EQUAL(iatest, ia2);
 
     ia1.merge(ia2);
 
     EXPECT_EQUAL(iatest, ia1);
-    EXPECT(iatest != ia2);
+    EXPECT_NOT_EQUAL(iatest, ia2);
 }
 
 CASE("Copy internal map") {
@@ -148,7 +148,7 @@ CASE("Copy internal map") {
 
     EXPECT_EQUAL(map.size(), 4);
     for (const auto& [k, v] : map) {
-        EXPECT_EQUAL(v, ia.values(k));
+        EXPECT(v == ia.values(k));
     }
 
     // Make sure it's not a shallow copy
