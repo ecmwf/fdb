@@ -6,18 +6,10 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-from enum import IntEnum, auto
 import logging
-from typing import (
-    Collection,
-    Dict,
-    ItemsView,
-    Iterator,
-    KeysView,
-    List,
-    Optional,
-    ValuesView,
-)
+from collections.abc import Collection, ItemsView, Iterator, KeysView, ValuesView
+from enum import IntEnum, auto
+from typing import Optional
 
 from pyfdb._internal import (
     ControlElement as _ControlElement,
@@ -29,6 +21,9 @@ from pyfdb._internal import (
     ListElement as _ListElement,
 )
 from pyfdb._internal import (
+    PurgeElement as _PurgeElement,
+)
+from pyfdb._internal import (
     StatsElement as _StatsElement,
 )
 from pyfdb._internal import (
@@ -36,9 +31,6 @@ from pyfdb._internal import (
 )
 from pyfdb._internal import (
     WipeElementType as _WipeElementType,
-)
-from pyfdb._internal import (
-    PurgeElement as _PurgeElement,
 )
 from pyfdb._internal.pyfdb_internal import InternalMarsSelection
 from pyfdb.pyfdb_type import URI, ControlIdentifier, DataHandle, MarsSelection, UserInputMapper
@@ -55,18 +47,131 @@ class ListElement:
         self._element: _ListElement = list_element
 
     def has_location(self) -> bool:
+        """
+        Does the `ListElement` have a location
+
+        Returns
+        -------
+        `bool`
+            `True` if this element has a location, `False` otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
         return self._element.has_location()
 
-    def offset(self) -> int:
-        return self._element.offset()
+    def offset(self) -> Optional[int]:
+        """
+        Offset within the file associated with the `ListElement`
 
-    def length(self) -> int:
-        return self._element.length()
+        Returns
+        -------
+        `Optional[int]`
+            Offset in bytes in the data file of the FDB, if `ListElement` is on `level` 3, None otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
+        if self.has_location():
+            return self._element.offset()
+        logger.info("Asking for offset on list element without location. Did you specify `level=3` in a list call?")
+        return None
+
+    def length(self) -> Optional[int]:
+        """
+        Size of the `ListElement` within the file associated.
+
+        Returns
+        -------
+        `Optional[int]`
+            Size in bytes in the data file of the FDB, if `ListElement` is on `level` 3, None otherwise.
+
+        Note
+        ----
+        Only for `ListElement`s which are on the third level of the schema.
+        """
+        if self.has_location():
+            return self._element.length()
+        logger.info("Asking for length on list element without location. Did you specify `level=3` in a list call?")
+        return None
+
+    def combined_key(self) -> dict[str, str]:
+        """
+        Return the MARS keys of the `ListElement`
+
+        Returns
+        -------
+        `dict[str, str]`
+            Dictionary containing all metadata for the `ListElement`
+
+        Note
+        ----
+        Depending on the `level` specified in the `list` command, the returned dictionary contains
+        all available keys from schema levels up to and including the requested level; keys that
+        exist only at deeper levels are omitted.
+
+        Examples
+        --------
+        >>> list_iterator = fdb.list(selection, level=3)
+        >>> assert list_iterator
+
+        >>> elements = list(list_iterator)
+
+        >>> for element in elements:
+        >>>     print(element.combined_key())
+
+        Output:
+
+        ``
+        ...
+        { 'class': 'ea', 'date': '20200104', ... , 'type': 'an' }
+        ...
+        ``
+        """
+        return self._element.combined_key()
+
+    def keys(self) -> list[dict[str, str]]:
+        """
+        Return the MARS keys of the `ListElement` separated by their level in the schema.
+
+        Returns
+        -------
+        `list[dict[str, str]]`
+            List containing MARS keys and their values for the `ListElement`. The keys are split
+            by their level in the schema
+
+        Note
+        ----
+        Depending on the `level` specified in the `list` command, the returned dictionary contains
+        all available keys from schema levels up to and including the requested level; keys that
+        exist only at deeper levels are omitted.
+
+        Examples
+        --------
+        >>> list_iterator = fdb.list(selection, level=3)
+        >>> assert list_iterator
+
+        >>> elements = list(list_iterator)
+
+        >>> for element in elements:
+        >>>     print(element.keys())
+
+        Output:
+
+        ``
+        ...
+        [{'class': 'ea', ... , 'time': '2100'}, {'levtype': 'sfc', 'type': 'an'}, {'param': '167', 'step': '0'}]
+        ...
+        ``
+        """
+        return self._element.keys()
 
     @property
     def data_handle(self) -> Optional[DataHandle]:
         """
-        Access the DataHandle
+        Access the `DataHandle`
 
         Returns
         -------
@@ -75,10 +180,11 @@ class ListElement:
 
         Examples
         --------
-        >>> data_handle = list_element.dataHandle()
-        >>> data_handle.open()
-        >>> data_handle.read(4)
-        >>> data_handle.close()
+        >>> data_handle = list_element.data_handle
+        >>> if data_handle is not None:
+        >>>     data_handle.open()
+        >>>     data_handle.read(4)
+        >>>     data_handle.close()
 
         Output:
 
@@ -105,7 +211,7 @@ class ListElement:
 
         Examples
         --------
-        >>> uri = list_element.uri()
+        >>> uri = list_element.uri
         >>> print(uri)
 
         Output:
@@ -179,7 +285,7 @@ class WipeElement:
     def msg(self) -> str:
         return self._element.msg()
 
-    def uris(self) -> List[URI]:
+    def uris(self) -> list[URI]:
         return [URI(uri) for uri in self._element.uris()]
 
     def __repr__(self) -> str:
@@ -209,7 +315,7 @@ class StatusElement:
     def location(self) -> URI:
         return URI(self.element.location())
 
-    def controlIdentifiers(self) -> List[ControlIdentifier]:
+    def controlIdentifiers(self) -> list[ControlIdentifier]:
         return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
 
     def key(self) -> MarsSelection:
@@ -268,7 +374,7 @@ class ControlElement:
     def location(self) -> URI:
         return URI(self.element.location())
 
-    def controlIdentifiers(self) -> List[ControlIdentifier]:
+    def controlIdentifiers(self) -> list[ControlIdentifier]:
         return [ControlIdentifier._from_raw(el) for el in self.element.controlIdentifiers()]
 
     def key(self) -> MarsSelection:
@@ -289,12 +395,12 @@ class IndexAxis(InternalMarsSelection):
     def __init__(self, index_axis: _IndexAxis | MarsSelection) -> None:
         if isinstance(index_axis, _IndexAxis):
             self.index_axis: _IndexAxis = index_axis
-        elif isinstance(index_axis, Dict):
+        elif isinstance(index_axis, dict):
             internal_mars_selection = UserInputMapper.map_selection_to_internal(index_axis)
             self.index_axis: _IndexAxis = _IndexAxis(internal_mars_selection)
         else:
             raise TypeError(
-                f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `Dict[str, Collection[str]]` are allowed."
+                f"IndexAxis: Unknown type {type(index_axis)} for creating IndexAxis. Only `IndexAxis` or `dict[str, Collection[str]]` are allowed."
             )
 
     def __repr__(self) -> str:
@@ -321,7 +427,7 @@ class IndexAxis(InternalMarsSelection):
     def __eq__(self, value) -> bool:
         dict_list_values = {}
 
-        if isinstance(value, (Dict, IndexAxis)):
+        if isinstance(value, (dict, IndexAxis)):
             for k, v in value.items():
                 if isinstance(v, str):
                     dict_list_values[k] = [v]

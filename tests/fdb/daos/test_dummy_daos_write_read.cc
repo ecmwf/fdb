@@ -67,7 +67,7 @@ CASE("dummy_daos_write_then_read") {
 
     uuid_t test_pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, prop, &svcl, test_pool_uuid);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     char test_pool_uuid_str[37] = "";
     uuid_unparse(test_pool_uuid, test_pool_uuid_str);
     EXPECT((dummy_daos_root() / test_pool_uuid_str).exists());
@@ -79,7 +79,7 @@ CASE("dummy_daos_write_then_read") {
 
     uuid_t pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, NULL, &svcl, pool_uuid);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     char uuid_str[37] = "";
     uuid_unparse(pool_uuid, uuid_str);
     std::string pool(uuid_str);
@@ -98,14 +98,14 @@ CASE("dummy_daos_write_then_read") {
     // connect to the pool, create and open a container
 
     rc = daos_pool_connect(pool.c_str(), NULL, DAOS_PC_RW, &poh, NULL, NULL);
-    EXPECT(rc == 0);
-    EXPECT(dummy_daos_get_handle_path(poh) == pool_path);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(dummy_daos_get_handle_path(poh), pool_path);
 
     // create, open and close a container with auto-generated uuid
 
     uuid_t cont_uuid = {0};
     rc = daos_cont_create(poh, &cont_uuid, NULL, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     char cont_uuid_label[37] = "";
     uuid_unparse(cont_uuid, cont_uuid_label);
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
@@ -114,21 +114,21 @@ CASE("dummy_daos_write_then_read") {
     daos_handle_t coh;
 
     rc = daos_cont_open(poh, cont_uuid_label, DAOS_COO_RW, &coh, NULL, NULL);
-    EXPECT(rc == 0);
-    EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont_uuid_label);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(dummy_daos_get_handle_path(coh), pool_path / cont_uuid_label);
 
     rc = daos_cont_close(coh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_size_t ncont = 1;
     std::array<struct daos_pool_cont_info, 1> cbuf;
     rc = daos_pool_list_cont(poh, &ncont, cbuf.data(), NULL);
-    EXPECT(rc == 0);
-    EXPECT(ncont == 1);
-    EXPECT(uuid_compare(cbuf[0].pci_uuid, cont_uuid) == 0);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(ncont, 1);
+    EXPECT_EQUAL(uuid_compare(cbuf[0].pci_uuid, cont_uuid), 0);
 
     rc = daos_cont_destroy(poh, cont_uuid_label, 1, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT(!(dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
     EXPECT(!(dummy_daos_get_handle_path(poh) / std::string("__dummy_daos_uuid_") + cont_uuid_label).exists());
 
@@ -138,7 +138,7 @@ CASE("dummy_daos_write_then_read") {
 
     uuid_t cont_uuid2 = {0};
     rc = daos_cont_create_with_label(poh, cont.c_str(), NULL, &cont_uuid2, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT((dummy_daos_get_handle_path(poh) / cont).exists());
     char cont_uuid2_str[37] = "";
     uuid_unparse(cont_uuid2, cont_uuid2_str);
@@ -147,14 +147,14 @@ CASE("dummy_daos_write_then_read") {
     daos_size_t ncont2 = 1;
     std::array<struct daos_pool_cont_info, 1> cbuf2;
     rc = daos_pool_list_cont(poh, &ncont2, cbuf2.data(), NULL);
-    EXPECT(rc == 0);
-    EXPECT(ncont == 1);
-    EXPECT(strcmp(cbuf2[0].pci_label, cont.c_str()) == 0);
-    EXPECT(uuid_compare(cbuf2[0].pci_uuid, cont_uuid2) == 0);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(ncont, 1);
+    EXPECT_EQUAL(strcmp(cbuf2[0].pci_label, cont.c_str()), 0);
+    EXPECT_EQUAL(uuid_compare(cbuf2[0].pci_uuid, cont_uuid2), 0);
 
     rc = daos_cont_open(poh, cont.c_str(), DAOS_COO_RW, &coh, NULL, NULL);
-    EXPECT(rc == 0);
-    EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont_uuid2_str);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(dummy_daos_get_handle_path(coh), pool_path / cont_uuid2_str);
 
     daos_size_t size;
     daos_size_t oid_alloc_size = 1;
@@ -163,15 +163,15 @@ CASE("dummy_daos_write_then_read") {
 
     daos_obj_id_t oid_kv;
     rc = daos_cont_alloc_oids(coh, oid_alloc_size, &oid_kv.lo, NULL);
-    EXPECT(rc == 0);
-    // EXPECT(oid_kv.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 0));
+    EXPECT_EQUAL(rc, 0);
+    // EXPECT_EQUAL(oid_kv.lo, ((((uint64_t) getpid()) << 48) | (uint64_t) 0));
 
     rc = daos_obj_generate_oid(coh, &oid_kv, DAOS_OT_KV_HASHED, OC_S1, 0, 0);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_handle_t oh_kv;
     rc = daos_kv_open(coh, oid_kv, DAOS_OO_RW, &oh_kv, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     std::ostringstream os_kv;
     os_kv << std::setw(16) << std::setfill('0') << std::hex << oid_kv.hi;
     os_kv << ".";
@@ -182,26 +182,26 @@ CASE("dummy_daos_write_then_read") {
     std::string value = "value";
 
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
-    EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t)0);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(size, (daos_size_t)0);
 
     rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key.c_str(), std::strlen(value.c_str()), value.c_str(), NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key).exists());
 
     char kv_get_buf[100] = "";
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
-    EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t)std::strlen(value.c_str()));
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(size, (daos_size_t)std::strlen(value.c_str()));
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, kv_get_buf, NULL);
-    EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t)std::strlen(value.c_str()));
-    EXPECT(std::strlen(kv_get_buf) == std::strlen(value.c_str()));
-    EXPECT(std::string(kv_get_buf) == value);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(size, (daos_size_t)std::strlen(value.c_str()));
+    EXPECT_EQUAL(std::strlen(kv_get_buf), std::strlen(value.c_str()));
+    EXPECT_EQUAL(std::string(kv_get_buf), value);
 
     std::string key2 = "key2";
     rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key2.c_str(), std::strlen(value.c_str()), value.c_str(), NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key2).exists());
 
     /// @todo: proper memory management
@@ -222,42 +222,42 @@ CASE("dummy_daos_write_then_read") {
         int rc;
         memset(list_buf, 0, bufsize);
         rc = daos_kv_list(oh_kv, DAOS_TX_NONE, &nkeys_found, key_sizes.data(), &sgl_kv_list, &listing_status, NULL);
-        EXPECT(rc == 0);
+        EXPECT_EQUAL(rc, 0);
         size_t key_start = 0;
         for (int i = 0; i < nkeys_found; i++) {
             listed_keys.push_back(std::string(list_buf + key_start, key_sizes[i].kd_key_len));
             key_start += key_sizes[i].kd_key_len;
         }
     }
-    EXPECT(listed_keys.size() == 2);
+    EXPECT_EQUAL(listed_keys.size(), 2);
     if (listed_keys[0] == key) {
-        EXPECT(listed_keys[1] == key2);
+        EXPECT_EQUAL(listed_keys[1], key2);
     }
     else {
-        EXPECT(listed_keys[1] == key);
-        EXPECT(listed_keys[0] == key2);
+        EXPECT_EQUAL(listed_keys[1], key);
+        EXPECT_EQUAL(listed_keys[0], key2);
     }
 
     rc = daos_kv_remove(oh_kv, DAOS_TX_NONE, 0, key.c_str(), NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT_NOT((dummy_daos_get_handle_path(oh_kv) / key).exists());
 
     daos_obj_close(oh_kv, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     // Array write
 
     daos_obj_id_t oid;
     rc = daos_cont_alloc_oids(coh, oid_alloc_size, &oid.lo, NULL);
-    EXPECT(rc == 0);
-    // EXPECT(oid.lo == ((((uint64_t) getpid()) << 48) | (uint64_t) 1));
+    EXPECT_EQUAL(rc, 0);
+    // EXPECT_EQUAL(oid.lo, ((((uint64_t) getpid()) << 48) | (uint64_t) 1));
 
     rc = daos_array_generate_oid(coh, &oid, true, OC_S1, 0, 0);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_handle_t oh;
     rc = daos_array_create(coh, oid, DAOS_TX_NONE, 1, 1048576, &oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     std::ostringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << oid.hi;
     os << ".";
@@ -282,24 +282,24 @@ CASE("dummy_daos_write_then_read") {
     sgl.sg_iovs = &iov;
 
     rc = daos_array_write(oh, DAOS_TX_NONE, &iod, &sgl, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT(dummy_daos_get_handle_path(oh).exists());
 
     daos_array_close(oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     // Array read
 
     daos_size_t cell_size, csize;
     rc = daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     char* data_read;
 
     daos_size_t array_size;
     rc = daos_array_get_size(oh, DAOS_TX_NONE, &array_size, NULL);
-    EXPECT(rc == 0);
-    EXPECT(array_size == rg.rg_len);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(array_size, rg.rg_len);
 
     data_read = (char*)malloc(sizeof(char) * ((size_t)array_size));
 
@@ -313,27 +313,27 @@ CASE("dummy_daos_write_then_read") {
     sgl.sg_iovs = &iov;
 
     rc = daos_array_read(oh, DAOS_TX_NONE, &iod, &sgl, NULL);
-    EXPECT(rc == 0);
-    EXPECT(std::memcmp(data, data_read, sizeof(data)) == 0);
+    EXPECT_EQUAL(rc, 0);
+    EXPECT_EQUAL(std::memcmp(data, data_read, sizeof(data)), 0);
 
     free(data_read);
 
     rc = daos_array_close(oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     // container list OIDs
 
     daos_epoch_t e;
     rc =
         daos_cont_create_snap_opt(coh, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     std::ostringstream os_epoch;
     os_epoch << std::setw(16) << std::setfill('0') << std::hex << e;
     EXPECT((dummy_daos_get_handle_path(coh) / os_epoch.str() + ".snap").exists());
 
     daos_handle_t oith;
     rc = daos_oit_open(coh, e, &oith, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_anchor_t anchor = DAOS_ANCHOR_INIT;
     constexpr size_t max_oids_per_rpc = 10;
@@ -342,54 +342,54 @@ CASE("dummy_daos_write_then_read") {
     while (!daos_anchor_is_eof(&anchor)) {
         uint32_t oids_nr = max_oids_per_rpc;
         rc = daos_oit_list(oith, oid_batch.data(), &oids_nr, &anchor, NULL);
-        EXPECT(rc == 0);
+        EXPECT_EQUAL(rc, 0);
         for (int i = 0; i < oids_nr; i++) {
             oids.push_back(oid_batch[i]);
         }
     }
-    EXPECT(oids.size() == 2);
-    EXPECT(std::memcmp(&oids[0], &oid_kv, sizeof(daos_obj_id_t)) == 0);
-    EXPECT(std::memcmp(&oids[1], &oid, sizeof(daos_obj_id_t)) == 0);
+    EXPECT_EQUAL(oids.size(), 2);
+    EXPECT_EQUAL(std::memcmp(&oids[0], &oid_kv, sizeof(daos_obj_id_t)), 0);
+    EXPECT_EQUAL(std::memcmp(&oids[1], &oid, sizeof(daos_obj_id_t)), 0);
 
     rc = daos_oit_close(oith, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_epoch_range_t epr{e, e};
     rc = daos_cont_destroy_snap(coh, epr, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT_NOT((dummy_daos_get_handle_path(coh) / os_epoch.str() + ".snap").exists());
 
     // close container and pool, finalize DAOS client
 
     rc = daos_kv_open(coh, oid_kv, DAOS_OO_RW, &oh_kv, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     rc = daos_kv_destroy(oh_kv, DAOS_TX_NONE, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_obj_close(oh_kv, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     rc = daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     rc = daos_array_destroy(oh, DAOS_TX_NONE, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT_NOT(dummy_daos_get_handle_path(oh).exists());
 
     rc = daos_array_close(oh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     rc = daos_cont_close(coh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     rc = daos_cont_destroy(poh, cont.c_str(), 1, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT(!(dummy_daos_get_handle_path(poh) / cont).exists());
     EXPECT(!(dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
 
     rc = daos_pool_disconnect(poh, NULL);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
 
     daos_fini();
 
@@ -397,11 +397,11 @@ CASE("dummy_daos_write_then_read") {
     // destroy the pools
 
     rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT(!pool_path.exists());
 
     rc = dmg_pool_destroy(NULL, test_pool_uuid, NULL, 1);
-    EXPECT(rc == 0);
+    EXPECT_EQUAL(rc, 0);
     EXPECT(!(dummy_daos_root() / test_pool_uuid_str).exists());
     EXPECT(!(dummy_daos_root() / label).exists());
 

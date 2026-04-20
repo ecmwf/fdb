@@ -35,7 +35,6 @@ try mkdir -p $test_name/localroot
 try cd $test_name
 
 try cp "$src_dir/local.yaml" ./
-try ln -s "$bin_dir/$src_data" ./
 
 work_dir=$(pwd)
 echo "Working directory: $work_dir"

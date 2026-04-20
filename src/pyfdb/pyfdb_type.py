@@ -6,9 +6,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from collections.abc import Collection, Mapping
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
-from typing import Collection, Dict, List, Mapping, Tuple
 from urllib import parse
 
 from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle
@@ -21,7 +21,7 @@ Selection part of a MARS request.
 This is a key-value map, with the data types allowed below
 """
 
-MarsIdentifier = List[Tuple[str, str]] | Dict[str, str]
+MarsIdentifier = list[tuple[str, str]] | dict[str, str]
 """
 This is the representation of a MARS identifier
 
@@ -53,8 +53,19 @@ class UserInputMapper:
                 converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, (str, int, float)):
+            elif isinstance(values, (int, float)):
                 result[key] = [str(values)]
+            elif isinstance(values, str):
+                # Note: Even `to`/`to-by` range expressions are split here and treated as plain values.
+                #       UserInputMapper.map_selection_to_internal() is used for all APIs (retrieve,
+                #       inspect, axes, etc.). The semantic expansion of these ranges now happens in
+                #       the bindings layer (see mars_requestfrom_map()), not directly in the FDB
+                #       tool request. We hand a list[str] to the pybind11 layer, matching the C++
+                #       splitting behaviour.
+                if "/" in values:
+                    result[key] = values.split("/")
+                else:
+                    result[key] = [values]
             else:
                 raise ValueError(
                     f"Unknown type for key: {key}. Type must be int, float, str or a collection of those."
@@ -69,12 +80,10 @@ class UserInputMapper:
         for key, values in selection.items():
             # Values is a list of values but not a single string
             if isinstance(values, Collection) and not isinstance(values, str):
-                converted_values = [
-                    str(v) if isinstance(v, float) or isinstance(v, int) else v for v in values
-                ]
+                converted_values = [str(v) if isinstance(v, (float, int)) else v for v in values]
                 result[key] = converted_values
             # Values is a string or a float or an int
-            elif isinstance(values, str) or isinstance(values, int) or isinstance(values, float):
+            elif isinstance(values, (str, int, float)):
                 result[key] = str(values)
             else:
                 raise ValueError(
@@ -85,13 +94,13 @@ class UserInputMapper:
 
     @classmethod
     def map_identifier_to_internal(cls, identifier: MarsIdentifier) -> InternalMarsIdentifier:
-        key_values: Dict[str, str] = {}
+        key_values: dict[str, str] = {}
 
         iterator = None
 
-        if isinstance(identifier, List):
+        if isinstance(identifier, list):
             iterator = identifier
-        elif isinstance(identifier, Dict):
+        elif isinstance(identifier, dict):
             iterator = identifier.items()
         else:
             raise ValueError(
@@ -241,7 +250,8 @@ class DataHandle:
         Parameters
         ----------
         `len`: int
-            The amount of bytes to read. If -1 is entered the whole data handle is read.
+            Number of bytes to read. Defaults to -1, which reads the entire buffer.
+            If the requested size exceeds the available data, the result is zero-padded to match the requested size.
 
         Returns
         -------
@@ -263,10 +273,16 @@ class DataHandle:
                 "DataHandle: Read occured before the handle was opened. Must be opened first."
             )
 
-        if len == -1:
-            len = self.dataHandle.size()
+        # NB: Some data handles do not implement the size() method. In this case, we just read the requested amount of bytes.
+        try:
+            dh_size = self.dataHandle.size()
+            array_size = dh_size if len == -1 else min(len, dh_size)
+        except RuntimeError:
+            if len == -1:
+                raise
+            array_size = len
 
-        buffer = bytearray(min(len, self.dataHandle.size()))
+        buffer = bytearray(array_size)
         read_bytes = self.dataHandle.read(buffer)
 
         if read_bytes == 0:

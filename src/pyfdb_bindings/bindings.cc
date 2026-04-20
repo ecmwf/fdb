@@ -27,7 +27,6 @@
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,7 +44,6 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
-#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/BaseKey.h"
@@ -53,6 +51,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace py = pybind11;
@@ -92,10 +91,17 @@ metkit::mars::MarsRequest mars_requestfrom_map(const std::map<std::string, std::
         for (const auto& value : pair.second) {
             value_list.emplace_back(value);
         }
-        value_map.emplace(eckit::Value(pair.first), eckit::Value(value_list));
+        value_map.emplace(eckit::Value(pair.first), value_list);
     }
 
-    return metkit::mars::MarsRequest("retrieve", value_map);
+    // Expand the mars request
+    auto mars_request = metkit::mars::MarsRequest("retrieve", value_map);
+
+    const bool inherit = false;
+    const bool strict = true;
+    metkit::mars::MarsExpansion expand(inherit, strict);
+
+    return expand.expand(mars_request);
 }
 
 PYBIND11_MODULE(pyfdb_bindings, m) {
@@ -302,6 +308,30 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
         .def("has_location", &fdb5::ListElement::hasLocation)
         .def("offset", [](const fdb5::ListElement& list_element) -> long long { return list_element.offset(); })
         .def("length", [](const fdb5::ListElement& list_element) -> long long { return list_element.length(); })
+        .def("keys",
+             [](const fdb5::ListElement& list_element) {
+                 const auto keys = list_element.keys();
+                 std::array<std::map<std::string, std::string>, 3> result;
+
+                 for (std::size_t i = 0; i < 3; ++i) {
+                     std::map<std::string, std::string> mapped_key;
+                     for (const auto& [key, value] : keys[i]) {
+                         mapped_key.emplace(key, value);
+                     }
+                     result[i] = mapped_key;
+                 }
+                 return result;
+             })
+        .def("combined_key",
+             [](const fdb5::ListElement& list_element) {
+                 const auto combined_key = list_element.combinedKey();
+                 std::map<std::string, std::string> result;
+
+                 for (const auto& [key, value] : combined_key) {
+                     result.emplace(key, value);
+                 }
+                 return result;
+             })
         .def("uri",
              [](const fdb5::ListElement& list_element) -> std::optional<eckit::URI> {
                  try {

@@ -268,10 +268,6 @@ public:  // methods
 
     // -------------- API management -----------------------------------------------------------------------------------
 
-    /// Returns the coniguration serialised into a string.
-    /// @return config as string.
-    const std::string id() const;
-
     // TODO(kkratz): Provide doc!
     FDBStats stats() const;
 

@@ -1,4 +1,10 @@
-from typing import List
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
 
 from pyfdb.pyfdb import FDB
 from pyfdb.pyfdb_iterator import StatusElement
@@ -30,7 +36,7 @@ def test_status(read_only_fdb_setup):
         "expver": ["0001"],
         "stream": ["oper"],
     }
-    expected_control_identifiers: List[StatusElement] = []
+    expected_control_identifiers: list[StatusElement] = []
 
     for element in elements:
         assert all(

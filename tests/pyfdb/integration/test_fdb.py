@@ -1,4 +1,10 @@
-from pathlib import Path
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
 
 import pytest
 import yaml
@@ -16,7 +22,9 @@ def test_fdb_config_default():
 
 
 def test_fdb_config_wrong_type():
-    with pytest.raises(ValueError, match="Config: Unknown config type, must be str, dict or Path"):
+    with pytest.raises(
+        ValueError, match="Config: Unknown config type, must be str, dict or Path"
+    ):
         fdb = FDB(0)
 
         assert fdb
@@ -56,7 +64,9 @@ def test_fdb_config_equality(read_only_fdb_setup):
     print(elements_dict)
     print(elements_str)
 
-    assert all(x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict))
+    assert all(
+        x == y == z for (x, y, z) in zip(elements_str, elements_path, elements_dict)
+    )
 
 
 def test_fdb_user_config(read_only_fdb_setup):
@@ -82,7 +92,9 @@ def test_fdb_user_config(read_only_fdb_setup):
     fdb_no_user_config = FDB(read_only_fdb_setup)
     print(fdb_no_user_config.config())
     print("Check for empty user config:")
-    system_config_no_user_config, user_config_no_user_config = fdb_no_user_config.config()
+    system_config_no_user_config, user_config_no_user_config = (
+        fdb_no_user_config.config()
+    )
 
     assert system_config == system_config_no_user_config
     assert user_config

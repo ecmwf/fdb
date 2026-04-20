@@ -1,12 +1,57 @@
+import os
+import platform
+import sys
+from pathlib import Path
+
 from setuptools import setup
+from wheel.bdist_wheel import bdist_wheel
+
+# NOTE this we need to correctly link with fdb5lib version on cd. For local builds feel free to ignore
+version_suffix = os.environ.get("VERSION_SUFFIX", "")
+if version_suffix:
+    version_suffix = f".{version_suffix}"
+    requires_extra = [f"fdb5lib==@fdb5_VERSION_STR@{version_suffix}"]
+else:
+    requires_extra = []
+
+
+# NOTE see ci-utils/wheelmaker/buildscripts/setup_utils, we need to get the right abi compat tag
+class bdist_wheel_ext(bdist_wheel):
+    def get_tag(self):
+        python, abi, plat = bdist_wheel.get_tag(self)
+        return python, abi, f"manylinux_2_28_{platform.machine()}"
+
+
+ext_kwargs = {
+    "darwin": {},
+    "linux": {"cmdclass": {"bdist_wheel": bdist_wheel_ext}},
+}
 
 setup(
     name="pyfdb",
-    version="@fdb5_VERSION_STR@",
+    version=f"@fdb5_VERSION_STR@{version_suffix}",
     packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
     package_data={
         "pyfdb_bindings": ["*.so", "*.pyd"],
     },
-    install_requires=["numpy", "zarr>=3,<4", "findlibs"],
+    license="Apache 2.0",
+    license_files=["LICENSE"],
+    long_description=Path.open("README.md", encoding="utf-8").read(),
+    long_description_content_type="text/markdown",
+    install_requires=["findlibs>=0.1.2", "PyYAML>=6.0.3"] + requires_extra,
+    python_requires=">3.10",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Operating System :: OS Independent",
+        "Topic :: Software Development :: Libraries",
+    ],
     has_ext_modules=lambda: True,
+    **ext_kwargs[sys.platform],
 )

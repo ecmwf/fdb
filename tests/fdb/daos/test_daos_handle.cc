@@ -91,7 +91,7 @@ CASE("DaosPool") {
 
         std::cout << pool.name() << std::endl;
 
-        EXPECT(pool.name().size() == 36);
+        EXPECT_EQUAL(pool.name().size(), 36);
 
         /// @todo: there's an attempt to close unopened pool here due to the pool destruction mechanism
     }
@@ -105,11 +105,11 @@ CASE("DaosPool") {
 
         std::cout << pool.name() << std::endl;
 
-        EXPECT(pool.name() == pool_name);
+        EXPECT_EQUAL(pool.name(), pool_name);
 
         fdb5::DaosPool& pool_h = s.getPool(pool_name);
 
-        EXPECT(&pool == &pool_h);
+        EXPECT_EQUAL(&pool, &pool_h);
     }
 
     SECTION("pool uuid actions") {
@@ -162,18 +162,18 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
 
         std::cout << cont.name() << std::endl;
 
-        EXPECT(cont.name() == cont_name);
+        EXPECT_EQUAL(cont.name(), cont_name);
 
         fdb5::DaosContainer& cont_h = pool.getContainer(cont_name);
 
-        EXPECT(&cont == &cont_h);
+        EXPECT_EQUAL(&cont, &cont_h);
 
         EXPECT_THROWS_AS(pool.getContainer("nonexisting_cont"), fdb5::DaosEntityNotFoundException);
 
         std::vector<std::string> cont_list(pool.listContainers());
         /// @note: not compatible with parallel test runs on a same pool (if !have_FDB_DAOS_ADMIN)
-        /// EXPECT(cont_list.size() == 1);
-        /// EXPECT(cont_list.front() == cont_name);
+        /// EXPECT_EQUAL(cont_list.size(), 1);
+        /// EXPECT_EQUAL(cont_list.front(), cont_name);
 
         /// @todo: two attempts to close unopened containers here. This is due to mechanism triggered upon
         ///   pool destroy to ensure all matching container handles in the session cache are closed.
@@ -205,10 +205,10 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
 
         std::string id_string = write_obj.name();
         std::cout << "New user-spec-based OID: " << id_string << std::endl;
-        EXPECT(id_string.length() == 32);
+        EXPECT_EQUAL(id_string.length(), 32);
         /// @todo: do these checks numerically. Also test invalid characters, etc.
         std::string end{"000000010000000000000001"};
-        EXPECT(0 == id_string.compare(id_string.length() - end.length(), end.length(), end));
+        EXPECT_EQUAL(0, id_string.compare(id_string.length() - end.length(), end.length(), end));
 
         // represent existing object with known oid
         fdb5::DaosOID read_id{id_string};
@@ -235,16 +235,16 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         kv.put(test_key, data, (uint64_t)sizeof(data));
 
         uint64_t size = kv.size(test_key);
-        EXPECT(size == (uint64_t)sizeof(data));
+        EXPECT_EQUAL(size, (uint64_t)sizeof(data));
 
         uint64_t res;
         char read_data[20] = "";
         res = kv.get(test_key, read_data, sizeof(read_data));
-        EXPECT(res == size);
-        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+        EXPECT_EQUAL(res, size);
+        EXPECT_EQUAL(std::memcmp(data, read_data, sizeof(data)), 0);
 
         EXPECT(!kv.has("nonexisting_key"));
-        EXPECT(kv.size("nonexisting_key") == 0);
+        EXPECT_EQUAL(kv.size("nonexisting_key"), 0);
         EXPECT_THROWS_AS(kv.get("nonexisting_key", nullptr, 0), fdb5::DaosEntityNotFoundException);
 
         /// @todo:
@@ -257,23 +257,23 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
 
         fdb5::DaosName np{pool_name};
         EXPECT(np.exists());
-        EXPECT(np.URI().asString() == std::string("daos:") + pool_name);
+        EXPECT_EQUAL(np.URI().asString(), std::string("daos:") + pool_name);
 
         fdb5::DaosName np_ne{"a"};
         EXPECT_NOT(np_ne.exists());
 
         fdb5::DaosName nc{pool_name, cont_name};
         EXPECT(nc.exists());
-        EXPECT(nc.URI().asString() == std::string("daos:") + pool_name + "/" + cont_name);
+        EXPECT_EQUAL(nc.URI().asString(), std::string("daos:") + pool_name + "/" + cont_name);
 
         fdb5::DaosName nc_ne{"a", "b"};
         EXPECT_NOT(nc_ne.exists());
 
         fdb5::DaosOID test_oid{1, 2, DAOS_OT_ARRAY, OC_S1};
         fdb5::DaosName n1{pool_name, cont_name, test_oid};
-        EXPECT(n1.poolName() == pool_name);
+        EXPECT_EQUAL(n1.poolName(), pool_name);
         EXPECT(n1.hasContainerName());
-        EXPECT(n1.containerName() == cont_name);
+        EXPECT_EQUAL(n1.containerName(), cont_name);
         EXPECT(n1.hasOID());
         EXPECT_NOT(test_oid.wasGenerated());
         fdb5::DaosOID test_oid_gen = n1.OID();
@@ -284,9 +284,9 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         std::string start{std::string("daos:") + pool_name + "/" + cont_name + "/"};
         std::string end{"000000010000000000000002"};
         std::string n1_uri_str = n1.URI().asString();
-        EXPECT(0 == n1_uri_str.compare(0, start.length(), start));
-        EXPECT(0 == n1_uri_str.compare(n1_uri_str.length() - end.length(), end.length(), end));
-        EXPECT(n1.size() == eckit::Length(0));
+        EXPECT_EQUAL(0, n1_uri_str.compare(0, start.length(), start));
+        EXPECT_EQUAL(0, n1_uri_str.compare(n1_uri_str.length() - end.length(), end.length(), end));
+        EXPECT_EQUAL(n1.size(), eckit::Length(0));
 
         fdb5::DaosName nc_new{pool_name, "new_cont"};
         EXPECT_NOT(nc_new.exists());
@@ -305,19 +305,19 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         std::string test_oid_2_str{"00000000000000020000000000000002"};
         fdb5::DaosOID test_oid_2{test_oid_2_str};
         fdb5::DaosName n2("a", "b", test_oid_2);
-        EXPECT(n2.asString() == "a/b/" + test_oid_2_str);
+        EXPECT_EQUAL(n2.asString(), "a/b/" + test_oid_2_str);
 
         eckit::URI u2("daos", "a/b/" + test_oid_2_str);
         fdb5::DaosName n3(u2);
-        EXPECT(n3.asString() == "a/b/" + test_oid_2_str);
-        EXPECT(n3.URI() == u2);
+        EXPECT_EQUAL(n3.asString(), "a/b/" + test_oid_2_str);
+        EXPECT_EQUAL(n3.URI(), u2);
 
         fdb5::DaosArray arr{cont, n1.OID()};
         fdb5::DaosName n4{arr};
         EXPECT(n4.exists());
 
         eckit::URI uri = n1.URI();
-        EXPECT(arr.URI() == uri);
+        EXPECT_EQUAL(arr.URI(), uri);
 
         /// @todo:
         // n1.destroy();
@@ -349,13 +349,13 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         kv.put("test_key_4", data, sizeof(data));
         EXPECT(nkv.has("test_key_4"));
         std::vector<std::string> keys = kv.keys();
-        EXPECT(keys.size() == 2);
+        EXPECT_EQUAL(keys.size(), 2);
         if (keys[0] == "test_key_3") {
-            EXPECT(keys[1] == "test_key_4");
+            EXPECT_EQUAL(keys[1], "test_key_4");
         }
         else {
-            EXPECT(keys[0] == "test_key_4");
-            EXPECT(keys[1] == "test_key_3");
+            EXPECT_EQUAL(keys[0], "test_key_4");
+            EXPECT_EQUAL(keys[1], "test_key_3");
         }
     }
 
@@ -373,12 +373,12 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
         {
             eckit::AutoClose closer(h);
             res = h.write(data, (uint64_t)sizeof(data));
-            EXPECT(res == (uint64_t)sizeof(data));
-            EXPECT(h.position() == Offset(sizeof(data)));
+            EXPECT_EQUAL(res, (uint64_t)sizeof(data));
+            EXPECT_EQUAL(h.position(), Offset(sizeof(data)));
 
             res = h.write(data, (uint64_t)sizeof(data));
-            EXPECT(res == (uint64_t)sizeof(data));
-            EXPECT(h.position() == Offset(2 * sizeof(data)));
+            EXPECT_EQUAL(res, (uint64_t)sizeof(data));
+            EXPECT_EQUAL(h.position(), Offset(2 * sizeof(data)));
         }
 
         h.flush();
@@ -388,19 +388,19 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
 
         fdb5::DaosArrayHandle h2(read_name);
         Length t = h2.openForRead();
-        EXPECT(t == Length(2 * sizeof(data)));
-        EXPECT(h2.position() == Offset(0));
+        EXPECT_EQUAL(t, Length(2 * sizeof(data)));
+        EXPECT_EQUAL(h2.position(), Offset(0));
         std::vector<char> read_data((size_t)t, 0);
         {
             eckit::AutoClose closer(h2);
             for (int i = 0; i < 2; ++i) {
                 res = h2.read(&read_data[0] + i * sizeof(data), (uint64_t)sizeof(data));
-                EXPECT(res == (uint64_t)sizeof(data));
+                EXPECT_EQUAL(res, (uint64_t)sizeof(data));
             }
-            EXPECT(h2.position() == Offset(2 * sizeof(data)));
+            EXPECT_EQUAL(h2.position(), Offset(2 * sizeof(data)));
         }
-        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
-        EXPECT(std::memcmp(data, &read_data[0] + sizeof(data), sizeof(data)) == 0);
+        EXPECT_EQUAL(std::memcmp(data, &read_data[0], sizeof(data)), 0);
+        EXPECT_EQUAL(std::memcmp(data, &read_data[0] + sizeof(data), sizeof(data)), 0);
 
         std::unique_ptr<eckit::DataHandle> h3(read_name.dataHandle());
         Length t2 = h3->openForRead();
@@ -411,8 +411,8 @@ CASE("DaosContainer, DaosArray and DaosKeyValue") {
                 h3->read(&read_data2[0] + i * sizeof(data), (uint64_t)sizeof(data));
             }
         }
-        EXPECT(std::memcmp(data, &read_data2[0], sizeof(data)) == 0);
-        EXPECT(std::memcmp(data, &read_data2[0] + sizeof(data), sizeof(data)) == 0);
+        EXPECT_EQUAL(std::memcmp(data, &read_data2[0], sizeof(data)), 0);
+        EXPECT_EQUAL(std::memcmp(data, &read_data2[0] + sizeof(data), sizeof(data)), 0);
 
         fdb5::DaosArrayHandle dh_fail(
             fdb5::DaosArrayName(pool_name, cont_name, fdb5::DaosOID{1, 0, DAOS_OT_ARRAY, OC_S1}));
@@ -488,7 +488,7 @@ CASE("DaosName and DaosHandle workflows") {
         EXPECT_THROWS_AS(oid.asString(), eckit::AssertionFailed);  /// ungenerated
         std::string oid_end{"000000030000000000000001"};
         EXPECT(endsWith(na.OID().asString(), oid_end));
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
     }
 
     SECTION("Array write to existing pool and container, with automatically generated OID") {
@@ -502,7 +502,7 @@ CASE("DaosName and DaosHandle workflows") {
             h->write(data, len);
         }
         std::cout << "Generated OID: " << na.OID().asString() << std::endl;
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
     }
 
     SECTION("Array write to existing pool and container, with URI") {
@@ -517,7 +517,7 @@ CASE("DaosName and DaosHandle workflows") {
             h->write(data, len);
         }
         std::cout << "Generated OID: " << na.OID().asString() << std::endl;
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
     }
 
     SECTION("Array write/read to/from existing pool and container, with generated OID") {
@@ -535,7 +535,7 @@ CASE("DaosName and DaosHandle workflows") {
         }
         std::string oid_end{"000000030000000000000002"};
         EXPECT(endsWith(na.OID().asString(), oid_end));
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
     }
 
     SECTION("Array write to existing pool but non-existing container, with ungenerated OID") {
@@ -553,7 +553,7 @@ CASE("DaosName and DaosHandle workflows") {
         EXPECT_THROWS_AS(oid.asString(), eckit::AssertionFailed);  /// ungenerated
         std::string oid_end{"000000030000000000000003"};
         EXPECT(endsWith(na.OID().asString(), oid_end));
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
         EXPECT(fdb5::DaosName(pool_name, "new_cont_1").exists());
     }
 
@@ -571,7 +571,7 @@ CASE("DaosName and DaosHandle workflows") {
             h->write(data, len);
         }
         std::cout << "Generated OID: " << na.OID().asString() << std::endl;
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
         EXPECT(fdb5::DaosName(pool_name, "new_cont_2").exists());
     }
 
@@ -593,7 +593,7 @@ CASE("DaosName and DaosHandle workflows") {
             h->write(data, len);
         }
         EXPECT(nc.exists());
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
     }
 
     SECTION("Array read from existing pool and container, with generated OID") {
@@ -606,7 +606,7 @@ CASE("DaosName and DaosHandle workflows") {
             eckit::AutoClose closer(*h);
             h->write(data, len);
         }
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
 
         /// existing generated OID
         fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
@@ -618,8 +618,8 @@ CASE("DaosName and DaosHandle workflows") {
             EXPECT(eckit::Length(read_data.size()) >= h2->size());
             res = h2->read(&read_data[0], h2->size());
         }
-        EXPECT(res == len);
-        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
+        EXPECT_EQUAL(res, len);
+        EXPECT_EQUAL(std::memcmp(data, &read_data[0], sizeof(data)), 0);
 
         /// non-existing generated OID
         fdb5::DaosArrayOID oid_ne{3, 5, OC_S1};
@@ -639,7 +639,7 @@ CASE("DaosName and DaosHandle workflows") {
             eckit::AutoClose closer(*h);
             h->write(data, len);
         }
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
 
         /// existing generated OID
         fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
@@ -655,8 +655,8 @@ CASE("DaosName and DaosHandle workflows") {
             h2->seek(skip_bytes);
             res = h2->read(&read_data[0], t - eckit::Length(skip_bytes));
         }
-        EXPECT(res == len - eckit::Length(skip_bytes));
-        EXPECT(std::memcmp(data + skip_bytes, &read_data[0], sizeof(data) - skip_bytes) == 0);
+        EXPECT_EQUAL(res, len - eckit::Length(skip_bytes));
+        EXPECT_EQUAL(std::memcmp(data + skip_bytes, &read_data[0], sizeof(data) - skip_bytes), 0);
     }
 
     SECTION("Array read from existing pool and container, with ungenerated OID") {
@@ -669,7 +669,7 @@ CASE("DaosName and DaosHandle workflows") {
             eckit::AutoClose closer(*h);
             h->write(data, len);
         }
-        EXPECT(na.size() == len);
+        EXPECT_EQUAL(na.size(), len);
 
         /// existing ungenerated OID
         fdb5::DaosArrayName na_read{pool_name, cont_name, oid};
@@ -682,8 +682,8 @@ CASE("DaosName and DaosHandle workflows") {
             std::memset(&read_data[0], 0, read_data.size());
             res = h2->read(&read_data[0], h2->size());
         }
-        EXPECT(res == len);
-        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
+        EXPECT_EQUAL(res, len);
+        EXPECT_EQUAL(std::memcmp(data, &read_data[0], sizeof(data)), 0);
 
         /// non-existing ungenerated OID
         fdb5::DaosArrayOID oid_ne{3, 8, OC_S1};

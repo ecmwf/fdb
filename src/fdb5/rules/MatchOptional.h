@@ -16,7 +16,9 @@
 #pragma once
 
 #include <iosfwd>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "fdb5/rules/Matcher.h"
 
@@ -46,6 +48,8 @@ private:  // methods
     void encode(eckit::Stream&) const override;
 
     bool optional() const override;
+    const std::vector<std::string>& optionalValues() const override;
+
     const std::string& value(const Key&, const std::string& keyword) const override;
     const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq,
                                            const std::string& keyword) const override;
@@ -59,6 +63,7 @@ private:  // members
     static eckit::Reanimator<MatchOptional> reanimator_;
 
     std::vector<std::string> default_;
+    mutable std::optional<std::vector<std::string>> optionalValues_ = std::nullopt;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

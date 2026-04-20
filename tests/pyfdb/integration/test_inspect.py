@@ -1,4 +1,10 @@
-from typing import List
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
 
 from pyfdb import FDB
 from pyfdb.pyfdb_iterator import ListElement
@@ -24,14 +30,12 @@ def test_inspect(read_only_fdb_setup):
 
     assert list_iterator
 
-    elements: List[ListElement] = []
+    elements: list[ListElement] = []
 
     for el in list_iterator:
         elements.append(el)
         print(el)
 
-    # Because the selection needs to be fully specified, there
-    # should be only a single message returned
     assert len(elements) == 1
 
     for el in elements:
@@ -68,9 +72,7 @@ def test_inspect_multiple_values(read_only_fdb_setup):
         elements.append(el)
         print(el)
 
-    # Because the selection needs to be fully specified, there
-    # should be only a single message returned
-    assert len(elements) == 1
+    assert len(elements) == 2
 
     for el in elements:
         data_handle = el.data_handle

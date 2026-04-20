@@ -1,8 +1,15 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 import pytest
 
-from pyfdb._internal import _ControlAction
-from pyfdb._internal import _ControlIdentifier
 from pyfdb import ControlAction, ControlIdentifier
+from pyfdb._internal import _ControlAction, _ControlIdentifier
 
 
 def test_enum_control_identifiers():
@@ -43,13 +50,24 @@ def test_enum_control_actions_from_raw(variant, expected):
 
 def test_control_action_mapping():
     assert ControlAction._from_raw(ControlAction.NONE._to_raw()) == ControlAction.NONE
-    assert ControlAction._from_raw(ControlAction.DISABLE._to_raw()) == ControlAction.DISABLE
-    assert ControlAction._from_raw(ControlAction.ENABLE._to_raw()) == ControlAction.ENABLE
+    assert (
+        ControlAction._from_raw(ControlAction.DISABLE._to_raw())
+        == ControlAction.DISABLE
+    )
+    assert (
+        ControlAction._from_raw(ControlAction.ENABLE._to_raw()) == ControlAction.ENABLE
+    )
 
 
 def test_control_identifier_mapping():
-    assert ControlIdentifier._from_raw(ControlIdentifier.NONE._to_raw()) == ControlIdentifier.NONE
-    assert ControlIdentifier._from_raw(ControlIdentifier.LIST._to_raw()) == ControlIdentifier.LIST
+    assert (
+        ControlIdentifier._from_raw(ControlIdentifier.NONE._to_raw())
+        == ControlIdentifier.NONE
+    )
+    assert (
+        ControlIdentifier._from_raw(ControlIdentifier.LIST._to_raw())
+        == ControlIdentifier.LIST
+    )
     assert (
         ControlIdentifier._from_raw(ControlIdentifier.RETRIEVE._to_raw())
         == ControlIdentifier.RETRIEVE
@@ -58,7 +76,10 @@ def test_control_identifier_mapping():
         ControlIdentifier._from_raw(ControlIdentifier.ARCHIVE._to_raw())
         == ControlIdentifier.ARCHIVE
     )
-    assert ControlIdentifier._from_raw(ControlIdentifier.WIPE._to_raw()) == ControlIdentifier.WIPE
+    assert (
+        ControlIdentifier._from_raw(ControlIdentifier.WIPE._to_raw())
+        == ControlIdentifier.WIPE
+    )
     assert (
         ControlIdentifier._from_raw(ControlIdentifier.UNIQUEROOT._to_raw())
         == ControlIdentifier.UNIQUEROOT

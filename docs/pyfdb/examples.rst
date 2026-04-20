@@ -72,8 +72,8 @@ location from a predefined set of locations. You can supply a custom location
 by specifying the ``FDB_HOME`` environment variable. If you want to set the
 location of the configuration file only, use the ``FDB5_CONFIG_FILE``
 environment variable. There is a plethora of different configuration options,
-if in doubt, refer to the official ``FDB`` documentation at `ReadTheDocs
-<https://fields-database.readthedocs.io/en/latest/>`__.
+if in doubt, refer to the official ``FDB`` documentation at `ECMWF DOCS
+<https://sites.ecmwf.int/docs/fdb>`__.
 
 .. clear-namespace
 
@@ -525,6 +525,57 @@ You can use this directly to read the message represented by the ``ListElement``
         data_handle.open()
         assert data_handle.read(4) == b"GRIB"
         data_handle.close()
+
+
+If you want to access the keys of any given ``ListElement``, you can use either
+the ``combined_key`` or the ``keys`` method of the ``ListElement`` class. ``keys``
+returns a ``list`` with 3 elements. Each entry is a dictionary, resembling the
+corresponding level of the ``FDB`` schema, e.g., the first entry contains all
+MARS keys of the first level, etc. In case the list call specifies ``level=2`` or
+``level=1``, the entries of the dictionaries linked to the lower levels are
+empty.
+
+.. code-block:: python
+
+    fdb = pyfdb.FDB(fdb_config_path)
+
+    selection = {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "20200101",
+            "levtype": "sfc",
+            "step": "0",
+            "param": ["167", "131", "132"],
+            "time": "1800",
+    }
+    list_iterator = fdb.list(selection, level=2)
+
+    for el in list_iterator:
+        keys = el.keys()
+        print(keys)
+
+For a single element of this ``list_iterator`` its keys would have the following structure:
+
+:: 
+
+    ...
+    [{'class': 'ea', 'date': '20200101', 'domain': 'g', 'expver': '0001', 'stream': 'oper', 'time': '1800'}, {'levtype': 'sfc', 'type': 'an'}, {}]
+    ...
+
+If we called ``fdb.list`` with ``level=1``, the result would have the following structure:
+
+:: 
+
+    ...
+    [{'class': 'ea', 'date': '20200101', 'domain': 'g', 'expver': '0001', 'stream': 'oper', 'time': '1800'}, {}, {}]
+    ...
+
+``combined_key`` is a convenience method for combining all dictionaries of the
+``keys`` function into a single dictionary.
+
 
 .. clear-namespace
 

@@ -106,7 +106,7 @@ void runmodel(size_t Nparam, size_t Nsteps, bool useSubToc = true, bool dofork =
             for (int i = 0; i < Nparam; i++) {
                 int status;
                 waitpid(pids[i], &status, 0);
-                EXPECT(status == 0);
+                EXPECT_EQUAL(status, 0);
             }
         }
         else {

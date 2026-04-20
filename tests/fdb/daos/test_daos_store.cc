@@ -195,8 +195,8 @@ CASE("DaosStore tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
         /// @todo: again, daos_fini happening before
 
         // remove
@@ -295,8 +295,8 @@ CASE("DaosStore tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
 
         // remove data
 
@@ -384,7 +384,7 @@ CASE("DaosStore tests") {
             std::cout << std::endl;
             ++count;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
         std::cout << "Listed 0 fields" << std::endl;
 
         // store data
@@ -408,15 +408,15 @@ CASE("DaosStore tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
 
         // wipe data
 
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        EXPECT(countWipeable(wipeObject) == 0);
+        EXPECT_EQUAL(countWipeable(wipeObject), 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
@@ -434,11 +434,11 @@ CASE("DaosStore tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 1);
+        EXPECT_EQUAL(count, 1);
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        EXPECT(countWipeable(wipeObject) == 0);
+        EXPECT_EQUAL(countWipeable(wipeObject), 0);
         /// @todo: really needed?
         fdb.flush();
         std::cout << "Flushed 0 fields" << std::endl;
@@ -457,7 +457,7 @@ CASE("DaosStore tests") {
         while (listObject.next(info)) {
             count++;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
         std::cout << "Listed 0 fields" << std::endl;
 
         /// @todo: ensure new DaosSession has updated daos client config
@@ -534,7 +534,7 @@ CASE("DaosStore tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
     }
 
     // teardown daos

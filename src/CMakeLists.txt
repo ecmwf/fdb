@@ -65,9 +65,24 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
         "${PYFDB_STAGING}/pyfdb" SYMBOLIC
     )
+    file(COPY
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
+        DESTINATION
+        ${PYFDB_STAGING} 
+    )
+    file(COPY
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+        DESTINATION
+        ${PYFDB_STAGING}
+    )
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/pyfdb_setup.py.in
         ${PYFDB_STAGING}/setup.py
+        @ONLY
+    )
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/pyfdb_setup.cfg.in
+        ${PYFDB_STAGING}/setup.cfg
         @ONLY
     )
     add_subdirectory(pyfdb_bindings)
@@ -76,12 +91,16 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "pyfdb/*.py"
         "pyfdb/_internal/*.py"
     )
+    list(APPEND _pyfdb_package_files
+        "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+    )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp
         COMMAND ${Python_EXECUTABLE} -m build --wheel ${PYFDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch pyfdb.wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS ${_pyfdb_package_files}
+        DEPENDS ${_pyfdb_package_files} pyfdb_bindings
         COMMENT "Building Python wheel for pyfdb..."
     )
     add_custom_target(pyfdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp)
