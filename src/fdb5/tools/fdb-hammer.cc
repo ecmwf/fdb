@@ -1100,7 +1100,7 @@ uint32_t xorshift(uint32_t& state) {
 
 float generateRandomFloat(uint32_t& state) {
     uint32_t randomInt = xorshift(state);
-    return static_cast<float>(randomInt) / std::numeric_limits<uint32_t>::max();
+    return static_cast<float>(randomInt) / static_cast<float>(std::numeric_limits<uint32_t>::max());
 }
 
 uint32_t generateRandomUint32() {

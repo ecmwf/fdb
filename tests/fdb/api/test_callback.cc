@@ -48,7 +48,7 @@ CASE("Archive and flush callback") {
     keys.push_back(key);
     fdb.archive(key, data, length);
 
-    key.set("type", "pf");
+    key.set("type", "an");
     keys.push_back(key);
     fdb.archive(key, data, length);
 
@@ -56,7 +56,7 @@ CASE("Archive and flush callback") {
 
     EXPECT(flushCalled);
 
-    EXPECT(map.size() == 3);
+    EXPECT_EQUAL(map.size(), 3);
 
     for (const auto& [key, uri] : map) {
         bool found = false;

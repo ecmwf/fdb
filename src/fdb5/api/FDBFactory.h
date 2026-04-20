@@ -101,10 +101,6 @@ public:  // methods
 
     // -------------- API management ----------------------------
 
-    /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used
-    /// within a DistFDB (i.e. within one Rendezvous hash).
-    virtual std::string id() const;
-
     const std::string& name() const;
 
     const Config& config() const;

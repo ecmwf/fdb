@@ -291,10 +291,6 @@ ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action
     return internal_->control(request, action, identifiers);
 }
 
-const std::string FDB::id() const {
-    return internal_->id();
-}
-
 MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
     return internal_->move(request, dest);
 }
