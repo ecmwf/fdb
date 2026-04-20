@@ -26,19 +26,19 @@ CASE("Insertion and comparison") {
     EXPECT(!(ia1 != ia2));
 
     ia1.insert(EXAMPLE_K1);
-    EXPECT_EQUAL(!(ia1, ia2));
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(ia1 != ia2);
 
     ia2.insert(EXAMPLE_K2);
-    EXPECT_EQUAL(!(ia1, ia2));
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(ia1 != ia2);
 
     ia1.insert(EXAMPLE_K2);
-    EXPECT_EQUAL(!(ia1, ia2));
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(ia1 != ia2);
 
     ia2.insert(EXAMPLE_K1);
-    EXPECT_EQUAL(!(ia1, ia2));
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(ia1 != ia2);
 
     ia1.sort();
