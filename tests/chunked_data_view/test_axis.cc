@@ -54,7 +54,7 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
         auto values = request_copy["date"];
 
         EXPECT_EQUAL(values.size(), 10);
-        EXPECT(values == axis.parameters()[0].values()[i]);
+        EXPECT_EQUAL(values, axis.parameters()[0].values()[i]);
     }
 }
 
@@ -90,12 +90,12 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
             auto time_values = request_copy["time"];
 
             EXPECT_EQUAL(date_values.size(), 10);
-            EXPECT(date_values == dates[i]);
+            EXPECT_EQUAL(date_values, dates[i]);
 
             eckit::Log::debug() << "Expecting: " << time_values << " == " << times[j] << std::endl;
             eckit::Log::debug() << request_copy << std::endl;
 
-            EXPECT(time_values == times[j]);
+            EXPECT_EQUAL(time_values, times[j]);
         }
     }
 }
@@ -107,7 +107,7 @@ bool assert_arrays(
         axis) {  // chunked_data_view::Axis::Parameter first, chunked_data_view::Axis::Parameter second,
                  // chunked_data_view::Axis::Parameter third, chunked_data_view::Axis::Parameter fourth) {
 
-    EXPECT(axis.parameters().size() == 4);
+    EXPECT_EQUAL(axis.parameters().size(), 4);
 
     const std::string first_name = axis.parameters()[0].name();
     const std::vector<std::string> first_values = axis.parameters()[0].values();
@@ -146,19 +146,19 @@ bool assert_arrays(
                     eckit::Log::debug() << "Expecting: " << first_result_values << " == " << first_values[i]
                                         << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
                                         << std::endl;
-                    EXPECT(first_result_values == first_values[i]);
+                    EXPECT_EQUAL(first_result_values, first_values[i]);
                     eckit::Log::debug() << "Expecting: " << second_result_values << " == " << second_values[j]
                                         << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
                                         << std::endl;
-                    EXPECT(second_result_values == second_values[j]);
+                    EXPECT_EQUAL(second_result_values, second_values[j]);
                     eckit::Log::debug() << "Expecting: " << third_result_values << " == " << third_values[k]
                                         << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
                                         << std::endl;
-                    EXPECT(third_result_values == third_values[k]);
+                    EXPECT_EQUAL(third_result_values, third_values[k]);
                     eckit::Log::debug() << "Expecting: " << fourth_result_values << " == " << fourth_values[l]
                                         << " | (i, j, k, l)=(" << i << "," << j << "," << k << "," << l << ")"
                                         << std::endl;
-                    EXPECT(fourth_result_values == fourth_values[l]);
+                    EXPECT_EQUAL(fourth_result_values, fourth_values[l]);
                 }
             }
         }

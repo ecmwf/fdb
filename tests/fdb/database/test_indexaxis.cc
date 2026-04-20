@@ -22,28 +22,28 @@ CASE("Insertion and comparison") {
 
     fdb5::IndexAxis ia1;
     fdb5::IndexAxis ia2;
-    EXPECT(ia1 == ia2);
+    EXPECT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 != ia2));
 
     ia1.insert(EXAMPLE_K1);
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 == ia2));
-    EXPECT(ia1 != ia2);
 
     ia2.insert(EXAMPLE_K2);
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 == ia2));
-    EXPECT(ia1 != ia2);
 
     ia1.insert(EXAMPLE_K2);
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 == ia2));
-    EXPECT(ia1 != ia2);
 
     ia2.insert(EXAMPLE_K1);
+    EXPECT_NOT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 == ia2));
-    EXPECT(ia1 != ia2);
 
     ia1.sort();
     ia2.sort();
-    EXPECT(ia1 == ia2);
+    EXPECT_EQUAL(ia1, ia2);
     EXPECT(!(ia1 != ia2));
 }
 
@@ -54,14 +54,14 @@ CASE("iostream and JSON output functions correctly") {
     {
         std::ostringstream ss;
         ss << ia;
-        EXPECT(ss.str() == "IndexAxis[axis={}]");
+        EXPECT_EQUAL(ss.str(), "IndexAxis[axis={}]");
     }
 
     {
         std::ostringstream ss;
         eckit::JSON json(ss);
         json << ia;
-        EXPECT(ss.str() == "{}");
+        EXPECT_EQUAL(ss.str(), "{}");
     }
 
     ia.insert(EXAMPLE_K1);
@@ -72,16 +72,17 @@ CASE("iostream and JSON output functions correctly") {
     {
         std::ostringstream ss;
         ss << ia;
-        EXPECT(ss.str() == "IndexAxis[axis={class=(od,rd),date=(20240223),expver=(0001,gotx),time=(0000,1200)}]");
+        EXPECT_EQUAL(ss.str(), "IndexAxis[axis={class=(od,rd),date=(20240223),expver=(0001,gotx),time=(0000,1200)}]");
     }
 
     {
         std::ostringstream ss;
         eckit::JSON json(ss);
         json << ia;
-        EXPECT(ss.str() ==
-               "{\"class\":[\"od\",\"rd\"],\"date\":[\"20240223\"],\"expver\":[\"0001\",\"gotx\"],\"time\":[\"0000\","
-               "\"1200\"]}");
+        EXPECT_EQUAL(
+            ss.str(),
+            "{\"class\":[\"od\",\"rd\"],\"date\":[\"20240223\"],\"expver\":[\"0001\",\"gotx\"],\"time\":[\"0000\","
+            "\"1200\"]}");
     }
 }
 
@@ -102,7 +103,7 @@ CASE("serialiastion and deserialisation") {
     {
         eckit::MemoryStream ms(buf);
         fdb5::IndexAxis newia(ms, fdb5::IndexAxis::currentVersion());
-        EXPECT(ia == newia);
+        EXPECT_EQUAL(ia, newia);
     }
 }
 
@@ -118,7 +119,7 @@ CASE("Check that merging works correctly") {
     ia2.insert(EXAMPLE_K3);
     ia2.sort();
 
-    EXPECT(ia1 != ia2);
+    EXPECT_NOT_EQUAL(ia1, ia2);
 
     fdb5::IndexAxis iatest;
     iatest.insert(EXAMPLE_K1);
@@ -126,13 +127,13 @@ CASE("Check that merging works correctly") {
     iatest.insert(EXAMPLE_K3);
     iatest.sort();
 
-    EXPECT(iatest != ia1);
-    EXPECT(iatest != ia2);
+    EXPECT_NOT_EQUAL(iatest, ia1);
+    EXPECT_NOT_EQUAL(iatest, ia2);
 
     ia1.merge(ia2);
 
-    EXPECT(iatest == ia1);
-    EXPECT(iatest != ia2);
+    EXPECT_EQUAL(iatest, ia1);
+    EXPECT_NOT_EQUAL(iatest, ia2);
 }
 
 CASE("Copy internal map") {
@@ -145,7 +146,7 @@ CASE("Copy internal map") {
 
     std::map<std::string, eckit::DenseSet<std::string>> map = ia.map();
 
-    EXPECT(map.size() == 4);
+    EXPECT_EQUAL(map.size(), 4);
     for (const auto& [k, v] : map) {
         EXPECT(v == ia.values(k));
     }

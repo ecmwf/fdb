@@ -57,7 +57,7 @@ html_theme = "pydata_sphinx_theme"
 html_context = {"default_mode": "auto"}
 html_theme_options = {
     "switcher": {
-        "json_url": "https://sites.ecmwf.int/docs/dev-section/fdb/versions.json",
+        "json_url": "https://sites.ecmwf.int/docs/fdb/versions.json",
         "version_match": version,
     },
     "show_toc_level": 2,

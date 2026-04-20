@@ -1,3 +1,11 @@
+# (C) Copyright 2025- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 # Cases where we support all selection on the C++ API
 #
 # list
@@ -96,7 +104,9 @@ def test_wipe_all_doit_all(read_write_fdb_setup):
     assert len(wiped_elements) > 0
 
     elements_after_wipe = list(fdb.list({}))
-    print(f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}")
+    print(
+        f"#Elements before: {len(elements)}, Elements after: {len(elements_after_wipe)}"
+    )
     assert len(elements_after_wipe) == 0
 
 
@@ -193,7 +203,10 @@ def test_control_lock_retrieve_all(read_only_fdb_setup):
     data_handle.close()
 
     assert not (
-        read_only_fdb_setup.parent / "db_store" / "ea:0001:oper:20200101:1800:g" / "retrieve.lock"
+        read_only_fdb_setup.parent
+        / "db_store"
+        / "ea:0001:oper:20200101:1800:g"
+        / "retrieve.lock"
     ).exists()
 
     print("Locking entire database for retrieve")
