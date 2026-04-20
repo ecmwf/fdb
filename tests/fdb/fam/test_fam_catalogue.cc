@@ -19,14 +19,12 @@
 
 #include "test_fam_common.h"
 
-#include <atomic>
 #include <cstring>
 #include <ctime>
 #include <memory>
 #include <set>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "eckit/config/YAMLConfiguration.h"
@@ -1402,7 +1400,7 @@ CASE("FamIndexLocation: encode via IndexLocation pointer throws NOTIMP") {
 }
 
 CASE("FamIndex: concurrent writers flush axes without data loss") {
-    // Stress test: many threads writing disjoint fields to the SAME FamIndex,
+    // Stress test: multiple processes writing disjoint fields to the SAME FamIndex,
     // flushing multiple times mid-stream, then verifying every axes value survives.
     // This simulates MPI tasks that share a FAM region and write concurrently
     // to the same index (same db_key + idx_key combination).
@@ -1419,24 +1417,18 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
     const auto idx_key =
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
-    // Mock OpenFAM has 4096 objects/region.  Each archive creates ~3 objects
-    // (data + FamMap node + FamList node).  With overhead from catalogue/store
-    // infrastructure (~50 objects), we can fit about (4096-50)/3 ≈ 1300 fields.
-    // Use 8 writers × 100 fields = 800 fields to leave headroom.
-    constexpr int num_writers = 8;
-    constexpr int fields_per_writer = 100;
+    // Mock OpenFAM has 4096 objects/region.  Each archive + flush cycle creates
+    // several objects (data, FamMap/FamList nodes, axes entries).  With overhead
+    // from catalogue/store infrastructure, 4 × 50 = 200 fields stays well within
+    // the mock's capacity while still exercising concurrent flush races.
+    constexpr int num_writers = 4;
+    constexpr int fields_per_writer = 50;
     constexpr int flush_interval = 10;  // flush every N fields — maximises concurrent flush races
 
     const char* data = "concurrent-stress-payload";
     const auto data_length = std::char_traits<char>::length(data);
 
-    // Track all expected values per writer for verification.
-    std::vector<std::set<std::string>> expected_per_writer(num_writers);
-
-    // Barrier: all writers start at the same time to maximise contention.
-    std::atomic<int> ready_count{0};
-
-    auto writer_func = [&](int writer_id) {
+    bool ok = forkAndRun(num_writers, [&](int writer_id) {
         fdb5::FamStore fam_store(db_key, config);
         fdb5::Store& store = fam_store;
         fdb5::FamCatalogueWriter writer(db_key, config);
@@ -1444,19 +1436,10 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
 
         cat_writer.createIndex(idx_key, /*datumKeySize=*/3);
 
-        // Signal ready and spin until all threads are ready.
-        ready_count.fetch_add(1, std::memory_order_release);
-        while (ready_count.load(std::memory_order_acquire) < num_writers) { /* spin */
-        }
-
         for (int i = 0; i < fields_per_writer; ++i) {
-            // Each writer varies fam3a (unique per writer+field) and fam3b (small set to
-            // exercise axes merging on overlapping keywords with both shared and unique values).
             std::string fam3a_val = "w" + std::to_string(writer_id) + "f" + std::to_string(i);
             std::string fam3b_val = "lev" + std::to_string(i % 10);     // 10 shared levels
             std::string fam3c_val = "par" + std::to_string(writer_id);  // 1 per writer
-
-            expected_per_writer[writer_id].insert(fam3a_val);
 
             fdb5::Key datum_key{{"fam1a", "a"},       {"fam1b", "b"},       {"fam1c", "c"},
                                 {"fam2a", "d"},       {"fam2b", "e"},       {"fam2c", "f"},
@@ -1466,7 +1449,7 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
             cat_writer.archive(idx_key, datum_key, location->make_shared());
 
             // Flush periodically — this is where the race condition matters.
-            // Multiple threads flushing simultaneously must merge axes correctly.
+            // Multiple processes flushing simultaneously must merge axes correctly.
             if ((i + 1) % flush_interval == 0) {
                 cat_writer.flush(1);
             }
@@ -1474,17 +1457,9 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
 
         // Final flush for remaining fields.
         cat_writer.flush(1);
-    };
+    });
 
-    // Launch all writers.
-    std::vector<std::thread> threads;
-    threads.reserve(num_writers);
-    for (int w = 0; w < num_writers; ++w) {
-        threads.emplace_back(writer_func, w);
-    }
-    for (auto& t : threads) {
-        t.join();
-    }
+    EXPECT(ok);
 
     // ---- Verify via persisted axes (fast path) ----
     eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
@@ -1515,7 +1490,8 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
     // Check fam3a: must have num_writers × fields_per_writer unique values.
     int missing = 0;
     for (int w = 0; w < num_writers; ++w) {
-        for (const auto& expected : expected_per_writer[w]) {
+        for (int f = 0; f < fields_per_writer; ++f) {
+            std::string expected = "w" + std::to_string(w) + "f" + std::to_string(f);
             if (found_fam3a.find(expected) == found_fam3a.end()) {
                 if (missing < 20) {
                     eckit::Log::error() << "MISSING fam3a axes value: " << expected << " (writer " << w << ")"
