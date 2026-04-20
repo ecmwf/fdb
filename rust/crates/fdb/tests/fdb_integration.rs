@@ -8,7 +8,7 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
-use fdb::{DumpOptions, Fdb, Key, ListOptions, PurgeOptions, Request, WipeOptions};
+use fdb::{DumpOptions, Fdb, Key, ListOptions, PurgeOptions, WipeOptions};
 
 /// Get the path to test fixtures directory.
 fn fixtures_dir() -> PathBuf {
@@ -97,7 +97,11 @@ fn test_fdb_handle_from_path() {
     fdb.archive(&key, &grib_data).expect("archive failed");
     fdb.flush().expect("flush failed");
 
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -125,7 +129,7 @@ fn test_fdb_handle_from_path_invalid_utf8() {
         .err()
         .expect("from_path should reject a non-UTF-8 path");
     assert!(
-        matches!(err, fdb::Error::UserError(_)),
+        matches!(err, fdb::Error::Eckit(eckit::Error::UserError(_))),
         "expected UserError for non-UTF-8 path, got {err:?}"
     );
 }
@@ -137,9 +141,15 @@ fn test_fdb_key_creation() {
 }
 
 #[test]
-fn test_fdb_request_creation() {
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
-    assert_eq!(request.len(), 2);
+fn test_mars_request_creation() {
+    eckit::init();
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
+    assert!(request.has("class"));
+    assert!(request.has("expver"));
 }
 
 #[test]
@@ -154,7 +164,11 @@ fn test_fdb_list_no_results() {
     // values it can type-check, so we can't pass a literal 'nonexistent'
     // class — we have to express "no results" via a value the schema
     // accepts but that doesn't appear in the database.
-    let request = Request::new().with("class", "rd").with("expver", "zzzz");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "zzzz")
+        .build()
+        .expect("build request");
 
     let items: Vec<_> = fdb
         .list(
@@ -232,7 +246,11 @@ fn test_fdb_archive_retrieve_cycle() {
     fdb.flush().expect("flush failed");
 
     // List with partial query
-    let list_request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
 
     let items: Vec<_> = fdb
         .list(
@@ -249,7 +267,7 @@ fn test_fdb_archive_retrieve_cycle() {
     assert!(!items.is_empty(), "no items found after archive");
 
     // Retrieve with fully-specified request (FDB needs exact match for retrieve)
-    let retrieve_request = Request::new()
+    let retrieve_request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
         .with("stream", "oper")
@@ -258,7 +276,9 @@ fn test_fdb_archive_retrieve_cycle() {
         .with("type", "fc")
         .with("levtype", "sfc")
         .with("step", "0")
-        .with("param", "151130");
+        .with("param", "151130")
+        .build()
+        .expect("failed to build retrieve request");
 
     let mut reader = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
     let mut retrieved_data = Vec::new();
@@ -295,7 +315,11 @@ fn test_fdb_axes() {
     fdb.flush().expect("flush failed");
 
     // Query axes
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let axes = fdb.axes(&request, 3).expect("failed to get axes");
 
     // We archived exactly one field, so each axis the schema covers
@@ -349,7 +373,10 @@ fn test_fdb_dump() {
     fdb.flush().expect("flush failed");
 
     // Dump database structure
-    let request = Request::new().with("class", "rd");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let dump_items: Vec<_> = fdb
         .dump(&request, DumpOptions { simple: true })
         .expect("failed to dump")
@@ -398,7 +425,10 @@ fn test_fdb_status() {
     fdb.flush().expect("flush failed");
 
     // Get status
-    let request = Request::new().with("class", "rd");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let status_items: Vec<_> = fdb
         .status(&request)
         .expect("failed to get status")
@@ -447,7 +477,10 @@ fn test_fdb_wipe_dry_run() {
     fdb.flush().expect("flush failed");
 
     // Verify data exists
-    let list_request = Request::new().with("class", "rd");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let items_before: Vec<_> = fdb
         .list(
             &list_request,
@@ -464,7 +497,11 @@ fn test_fdb_wipe_dry_run() {
     );
 
     // Dry-run wipe (doit=false)
-    let wipe_request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let wipe_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let wipe_items: Vec<_> = fdb
         .wipe(&wipe_request, WipeOptions::default())
         .expect("failed to wipe")
@@ -524,7 +561,10 @@ fn test_fdb_purge_dry_run() {
     fdb.flush().expect("flush failed");
 
     // Dry-run purge (doit=false)
-    let purge_request = Request::new().with("class", "rd");
+    let purge_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let purge_items: Vec<_> = fdb
         .purge(&purge_request, PurgeOptions::default())
         .expect("failed to purge")
@@ -565,7 +605,10 @@ fn test_fdb_stats_iterator() {
     fdb.flush().expect("flush failed");
 
     // Get stats
-    let request = Request::new().with("class", "rd");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let stats_items: Vec<_> = fdb
         .stats_iter(&request)
         .expect("failed to get stats")
@@ -884,7 +927,10 @@ fn test_fdb_wipe_actual() {
     println!("Archived 2 fields to 2 databases");
 
     // Verify FDB is populated
-    let list_request = Request::new().with("class", "rd");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &list_request,
@@ -899,7 +945,11 @@ fn test_fdb_wipe_actual() {
     println!("Listed {} fields", items.len());
 
     // Wipe first database (doit=true)
-    let wipe_request1 = Request::new().with("class", "rd").with("expver", "xxxx");
+    let wipe_request1 = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let wipe_items: Vec<_> = fdb
         .wipe(
             &wipe_request1,
@@ -927,7 +977,10 @@ fn test_fdb_wipe_actual() {
     println!("Listed {} fields after wipe", items_after.len());
 
     // Wipe remaining database
-    let wipe_request2 = Request::new().with("class", "rd");
+    let wipe_request2 = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let _: Vec<_> = fdb
         .wipe(
             &wipe_request2,
@@ -985,7 +1038,10 @@ fn test_fdb_wipe_masked_data() {
     println!("Archived 2 fields (1 masked)");
 
     // List including masked
-    let list_request = Request::new().with("class", "rd");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let items_with_masked: Vec<_> = fdb
         .list(
             &list_request,
@@ -1007,7 +1063,11 @@ fn test_fdb_wipe_masked_data() {
     assert_eq!(items_dedup.len(), 1, "expected 1 field when deduplicated");
 
     // Wipe all
-    let wipe_request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let wipe_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let wipe_items: Vec<_> = fdb
         .wipe(
             &wipe_request,
@@ -1064,7 +1124,10 @@ fn test_fdb_purge_actual() {
     println!("Archived 2 fields (1 duplicate)");
 
     // List including masked
-    let list_request = Request::new().with("class", "rd");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let items_before: Vec<_> = fdb
         .list(
             &list_request,
@@ -1078,7 +1141,10 @@ fn test_fdb_purge_actual() {
     println!("Listed {} fields before purge", items_before.len());
 
     // Purge duplicates (doit=true)
-    let purge_request = Request::new().with("class", "rd");
+    let purge_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .build()
+        .expect("build request");
     let purge_items: Vec<_> = fdb
         .purge(
             &purge_request,
@@ -1170,7 +1236,7 @@ fn test_fdb_datareader_seek() {
     fdb.flush().expect("flush failed");
 
     // Retrieve to get a DataReader
-    let retrieve_request = Request::new()
+    let retrieve_request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
         .with("stream", "oper")
@@ -1179,7 +1245,9 @@ fn test_fdb_datareader_seek() {
         .with("type", "fc")
         .with("levtype", "sfc")
         .with("step", "0")
-        .with("param", "151130");
+        .with("param", "151130")
+        .build()
+        .expect("failed to build retrieve request");
 
     let mut reader = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
 
@@ -1283,7 +1351,11 @@ fn test_fdb_list_element_full_key() {
     fdb.flush().expect("flush failed");
 
     // List and check full_key()
-    let list_request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let list_request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &list_request,
@@ -1366,7 +1438,11 @@ fn test_fdb_list_dump_compact() {
 
     // Default ListOptions (depth=3, deduplicate=true) matches the mode
     // `dumpCompact` requires — it asserts `keys.size() == 3` internally.
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let list_iter = fdb
         .list(&request, fdb::ListOptions::default())
         .expect("failed to list");
@@ -1434,7 +1510,11 @@ fn test_fdb_control_lock_unlock() {
     fdb.archive(&key, &grib_data).expect("failed to archive");
     fdb.flush().expect("flush failed");
 
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let identifiers = [
         fdb::ControlIdentifier::Retrieve,
         fdb::ControlIdentifier::Archive,
@@ -1531,7 +1611,11 @@ fn test_fdb_archive_raw() {
     // Verify the data actually landed in the database by listing it back
     // with the exact key the GRIB embeds, and check the field-level entry
     // matches.
-    let request = Request::new().with("class", "od").with("expver", "0001");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "od")
+        .with("expver", "0001")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -1600,7 +1684,11 @@ fn test_fdb_archive_reader() {
     fdb.flush().expect("flush failed");
 
     // Verify the same key/length the slice-based test asserts on.
-    let request = Request::new().with("class", "od").with("expver", "0001");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "od")
+        .with("expver", "0001")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -1685,7 +1773,11 @@ fn test_fdb_read_uri() {
     fdb.flush().expect("flush failed");
 
     // List to get the URI
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -1752,7 +1844,11 @@ fn test_fdb_read_uris() {
     fdb.flush().expect("flush failed");
 
     // List to get URIs
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -1810,7 +1906,11 @@ fn test_fdb_read_from_list() {
     fdb.flush().expect("flush failed");
 
     // Get a list iterator
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let request = metkit::MarsRequestBuilder::new("retrieve")
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .build()
+        .expect("build request");
     let list_iter = fdb
         .list(
             &request,
@@ -1941,7 +2041,11 @@ fn test_fdb_preload_toc_btree_user_config() {
 
         archive_one_record(&fdb);
 
-        let request = Request::new().with("class", "rd").with("expver", "xxxx");
+        let request = metkit::MarsRequestBuilder::new("retrieve")
+            .with("class", "rd")
+            .with("expver", "xxxx")
+            .build()
+            .expect("build request");
         let items: Vec<_> = fdb
             .list(
                 &request,

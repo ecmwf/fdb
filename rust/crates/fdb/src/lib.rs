@@ -9,14 +9,16 @@
 //! makes it the typical entry point for browsing what's archived.
 //!
 //! ```no_run
-//! use fdb::{Fdb, ListOptions, Request};
+//! use fdb::{Fdb, ListOptions};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! eckit::init();
 //! let fdb = Fdb::open_default()?;
 //!
-//! let request = Request::new()
+//! let request = metkit::MarsRequestBuilder::new("list")
 //!     .with("class", "od")
-//!     .with("expver", "0001");
+//!     .with("expver", "0001")
+//!     .build()?;
 //!
 //! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
 //! for item in fdb.list(&request, ListOptions::default())? {
@@ -39,7 +41,6 @@ mod handle;
 mod iterator;
 mod key;
 mod options;
-mod request;
 
 pub use datareader::DataReader;
 pub use error::{Error, Result};
@@ -51,7 +52,6 @@ pub use iterator::{
 };
 pub use key::Key;
 pub use options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
-pub use request::Request;
 
 // Re-export control enums from the cxx bindings
 pub use fdb_sys::{ControlAction, ControlIdentifier};

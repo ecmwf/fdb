@@ -39,7 +39,6 @@ using metkit_bridge::MarsRequestWrapper;
 
 struct KeyValue;
 struct KeyData;
-struct RequestData;
 struct ListElementData;
 struct CompactListingData;
 struct AxisEntry;
@@ -305,16 +304,6 @@ rust::String fdb_version();
 rust::String fdb_git_sha1();
 
 // ============================================================================
-// MARS request parsing
-// ============================================================================
-
-/// Parse a MARS request string with metkit's parser + expansion. Handles
-/// `to`/`by` ranges, type expansion, optional fields, etc. Throws an
-/// `eckit::Exception` on parse failure (which the global trycatch turns
-/// into a Rust `Result::Err`).
-RequestData parse_mars_request(rust::Str request);
-
-// ============================================================================
 // Handle lifecycle functions
 // ============================================================================
 
@@ -407,7 +396,8 @@ void data_handle_close(eckit::DataHandle& handle);
 // ============================================================================
 
 /// List data matching a request.
-std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level);
+std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                         bool deduplicate, int32_t level);
 
 /// Drain a `ListIteratorHandle` via `fdb5::ListIterator::dumpCompact` and
 /// return the aggregated MARS-request text plus the two counters.
@@ -418,50 +408,54 @@ CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator);
 // ============================================================================
 
 /// Get axes for a request.
-rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level);
+rust::Vec<AxisEntry> axes(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request, int32_t level);
 
 // ============================================================================
 // Dump functions
 // ============================================================================
 
 /// Dump database structure.
-std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, bool simple);
+std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                         bool simple);
 
 // ============================================================================
 // Status functions
 // ============================================================================
 
 /// Get database status.
-std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str request);
+std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request);
 
 // ============================================================================
 // Wipe functions
 // ============================================================================
 
 /// Wipe data matching a request.
-std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, bool doit, bool porcelain,
-                                         bool unsafe_wipe_all);
+std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request, bool doit,
+                                         bool porcelain, bool unsafe_wipe_all);
 
 // ============================================================================
 // Purge functions
 // ============================================================================
 
 /// Purge duplicate data.
-std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request, bool doit, bool porcelain);
+std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                           bool doit, bool porcelain);
 
 // ============================================================================
 // Stats functions
 // ============================================================================
 
 /// Get statistics iterator.
-std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str request);
+std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle,
+                                                    const metkit_bridge::MarsRequestWrapper& request);
 
 // ============================================================================
 // Control functions
 // ============================================================================
 
 /// Control database features.
-std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
+std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, const metkit_bridge::MarsRequestWrapper& request,
+                                               fdb5::ControlAction action,
                                                rust::Slice<const fdb5::ControlIdentifier> identifiers);
 
 // ============================================================================

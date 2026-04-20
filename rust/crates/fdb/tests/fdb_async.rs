@@ -13,7 +13,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 use tokio::task::JoinSet;
 
 /// Get the path to test fixtures directory.
@@ -42,13 +42,16 @@ spaces:
     )
 }
 
-/// Build a Request from a Key.
-fn request_from_key(key: &Key) -> Request {
-    let mut request = Request::new();
+/// Build a `MarsRequest` from a Key.
+fn request_from_key(key: &Key) -> metkit::MarsRequest {
+    eckit::init();
+    let mut builder = metkit::MarsRequestBuilder::new("retrieve");
     for (k, v) in key.entries() {
-        request = request.with(k, v);
+        builder = builder.with(k, v);
     }
-    request
+    builder
+        .build()
+        .expect("failed to build MarsRequest from key")
 }
 
 /// Archive test data and return the key used.
@@ -195,10 +198,12 @@ async fn test_fdb_concurrent_list() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let request = Request::new()
+            let request = metkit::MarsRequestBuilder::new("retrieve")
                 .with("class", "rd")
                 .with("expver", "xxxx")
-                .with("stream", "oper");
+                .with("stream", "oper")
+                .build()
+                .expect("build request");
 
             let entries: Vec<_> = fdb
                 .list(

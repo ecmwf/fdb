@@ -83,21 +83,6 @@ mod ffi {
         pub entries: Vec<KeyValue>,
     }
 
-    /// A single key in a parsed MARS request, paired with all of its values.
-    #[derive(Debug, Clone, Default)]
-    pub struct RequestParam {
-        pub key: String,
-        pub values: Vec<String>,
-    }
-
-    /// A fully-expanded MARS request, as produced by `parse_mars_request`.
-    /// `to`/`by` ranges, type expansions, etc. have already been applied by
-    /// `metkit::mars::MarsExpansion`.
-    #[derive(Debug, Clone, Default)]
-    pub struct RequestData {
-        pub params: Vec<RequestParam>,
-    }
-
     /// Data returned from list iteration.
     #[derive(Debug, Clone, Default)]
     pub struct ListElementData {
@@ -440,9 +425,6 @@ mod ffi {
         ///
         /// On success, returns the fully-expanded request as a sequence of
         /// `(key, [values])` pairs. On parse failure, returns an `Err` whose
-        /// message comes from the underlying eckit/metkit exception.
-        fn parse_mars_request(request: &str) -> Result<RequestData>;
-
         // =====================================================================
         // Handle lifecycle (free functions)
         // =====================================================================
@@ -531,7 +513,7 @@ mod ffi {
         /// List data matching a request.
         fn list(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
             deduplicate: bool,
             level: i32,
         ) -> Result<UniquePtr<ListIteratorHandle>>;
@@ -541,7 +523,11 @@ mod ffi {
         // =====================================================================
 
         /// Get axes (available metadata dimensions) for a request.
-        fn axes(handle: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
+        fn axes(
+            handle: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            level: i32,
+        ) -> Result<Vec<AxisEntry>>;
 
         // =====================================================================
         // Dump operations (free functions)
@@ -550,7 +536,7 @@ mod ffi {
         /// Dump database structure.
         fn dump(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
             simple: bool,
         ) -> Result<UniquePtr<DumpIteratorHandle>>;
 
@@ -561,7 +547,7 @@ mod ffi {
         /// Get database status.
         fn status(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
         ) -> Result<UniquePtr<StatusIteratorHandle>>;
 
         // =====================================================================
@@ -571,7 +557,7 @@ mod ffi {
         /// Wipe (delete) data matching a request.
         fn wipe(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
             doit: bool,
             porcelain: bool,
             unsafe_wipe_all: bool,
@@ -584,7 +570,7 @@ mod ffi {
         /// Purge duplicate data.
         fn purge(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
             doit: bool,
             porcelain: bool,
         ) -> Result<UniquePtr<PurgeIteratorHandle>>;
@@ -596,7 +582,7 @@ mod ffi {
         /// Get statistics iterator.
         fn stats_iterator(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
         ) -> Result<UniquePtr<StatsIteratorHandle>>;
 
         // =====================================================================
@@ -606,7 +592,7 @@ mod ffi {
         /// Control database features.
         fn control(
             handle: Pin<&mut FdbHandle>,
-            request: &str,
+            request: &MarsRequestWrapper,
             action: ControlAction,
             identifiers: &[ControlIdentifier],
         ) -> Result<UniquePtr<ControlIteratorHandle>>;
@@ -798,86 +784,51 @@ mod tests {
 
     #[test]
     fn test_eckit_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Generic eckit::Exception gets ECKIT: prefix
+        let err =
+            eckit_sys::Error::from(ffi::test_throw_eckit_exception().expect_err("expected error"));
         assert!(
-            err.what().starts_with("ECKIT: "),
-            "Expected ECKIT: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test eckit exception"),
-            "Expected eckit exception message, got: {}",
-            err.what()
+            matches!(err, eckit_sys::Error::Other(_)),
+            "expected Error::Other, got: {err:?}"
         );
     }
 
     #[test]
     fn test_eckit_serious_bug_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_serious_bug();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // SeriousBug gets specific prefix
-        assert!(
-            err.what().starts_with("ECKIT_SERIOUS_BUG: "),
-            "Expected ECKIT_SERIOUS_BUG: prefix, got: {}",
-            err.what()
+        let err = eckit_sys::Error::from(
+            ffi::test_throw_eckit_serious_bug().expect_err("expected error"),
         );
         assert!(
-            err.what().contains("test serious bug"),
-            "Expected serious bug message, got: {}",
-            err.what()
+            matches!(err, eckit_sys::Error::SeriousBug(_)),
+            "expected Error::SeriousBug, got: {err:?}"
         );
     }
 
     #[test]
     fn test_eckit_user_error_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_user_error();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // UserError gets specific prefix
+        let err =
+            eckit_sys::Error::from(ffi::test_throw_eckit_user_error().expect_err("expected error"));
         assert!(
-            err.what().starts_with("ECKIT_USER_ERROR: "),
-            "Expected ECKIT_USER_ERROR: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test user error"),
-            "Expected user error message, got: {}",
-            err.what()
+            matches!(err, eckit_sys::Error::UserError(_)),
+            "expected Error::UserError, got: {err:?}"
         );
     }
 
     #[test]
     fn test_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_std_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // std::exception should NOT have any ECKIT prefix
+        let err =
+            eckit_sys::Error::from(ffi::test_throw_std_exception().expect_err("expected error"));
         assert!(
-            !err.what().starts_with("ECKIT"),
-            "std::exception should not have ECKIT prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test std exception"),
-            "Expected std exception message, got: {}",
-            err.what()
+            matches!(err, eckit_sys::Error::Other(_)),
+            "expected Error::Other for std::exception, got: {err:?}"
         );
     }
 
     #[test]
     fn test_non_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_int();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Non-std exceptions get a generic message
+        let err = eckit_sys::Error::from(ffi::test_throw_int().expect_err("expected error"));
         assert!(
-            err.what().contains("non-std::exception"),
-            "Expected non-std::exception message, got: {}",
-            err.what()
+            matches!(err, eckit_sys::Error::Other(_)),
+            "expected Error::Other for non-std exception, got: {err:?}"
         );
     }
 }
