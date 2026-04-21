@@ -43,8 +43,8 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
-    let mut handle = fdb.retrieve(&request)?;
-    handle.open_for_read()?;
+    let handle = fdb.retrieve(&request)?;
+    let (mut handle, _len) = handle.open_for_read()?;
 
     // Open the target. `-` means stdout, matching the convention of
     // `fdb-read`'s sibling tools and most Unix utilities.

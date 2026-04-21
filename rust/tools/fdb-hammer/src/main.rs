@@ -1096,10 +1096,10 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
                 },
             )?;
             stats.record_io_start();
-            let mut reader = fdb.read_from_list(list_iter, false)?;
-            reader.open_for_read()?;
+            let reader = fdb.read_from_list(list_iter, false)?;
+            let (mut reader, estimated) = reader.open_for_read()?;
             if config.verbose {
-                println!("  Reader size: {} bytes", reader.estimate().unwrap_or(0));
+                println!("  Reader size: {} bytes", estimated);
             }
             let mut data = Vec::new();
             std::io::Read::read_to_end(&mut reader, &mut data)?;
@@ -1240,8 +1240,8 @@ fn run_read_itt(
                 },
             )?;
             stats.record_io_start();
-            let mut reader = fdb.read_from_list(list_iter, false)?;
-            reader.open_for_read()?;
+            let reader = fdb.read_from_list(list_iter, false)?;
+            let (mut reader, _len) = reader.open_for_read()?;
             let mut data = Vec::new();
             std::io::Read::read_to_end(&mut reader, &mut data)?;
             stats.record_io_end();
@@ -1300,8 +1300,8 @@ fn run_read_uri_file(
     );
 
     stats.record_io_start();
-    let mut reader = fdb.read_uris(&uris, false)?;
-    reader.open_for_read()?;
+    let reader = fdb.read_uris(&uris, false)?;
+    let (mut reader, _len) = reader.open_for_read()?;
     let mut data = Vec::new();
     std::io::Read::read_to_end(&mut reader, &mut data)?;
     stats.record_io_end();

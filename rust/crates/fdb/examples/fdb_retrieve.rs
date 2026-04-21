@@ -31,8 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let request = parsed.at(0)?;
 
     println!("Retrieving data...");
-    let mut handle = fdb.retrieve(&request)?;
-    handle.open_for_read()?;
+    let handle = fdb.retrieve(&request)?;
+    let (mut handle, _len) = handle.open_for_read()?;
 
     let mut buffer = Vec::new();
     let bytes_read = handle.read_to_end(&mut buffer)?;

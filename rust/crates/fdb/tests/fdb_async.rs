@@ -157,8 +157,8 @@ async fn test_fdb_concurrent_retrieve() {
             let request = request_from_key(&key);
 
             // Retrieve returns an eckit::DataHandle
-            let mut handle = fdb.retrieve(&request).expect("retrieve failed");
-            handle.open_for_read().expect("open_for_read failed");
+            let handle = fdb.retrieve(&request).expect("retrieve failed");
+            let (mut handle, _len) = handle.open_for_read().expect("open_for_read failed");
 
             let mut buf = Vec::new();
             handle.read_to_end(&mut buf).expect("read failed");
@@ -280,8 +280,8 @@ async fn test_fdb_spawn_blocking_pattern() {
             .with("param", "151130");
 
         let request = request_from_key(&key);
-        let mut handle = fdb_clone.retrieve(&request).expect("retrieve failed");
-        handle.open_for_read().expect("open_for_read failed");
+        let handle = fdb_clone.retrieve(&request).expect("retrieve failed");
+        let (mut handle, _len) = handle.open_for_read().expect("open_for_read failed");
 
         let mut buf = Vec::new();
         handle.read_to_end(&mut buf).expect("read failed");
