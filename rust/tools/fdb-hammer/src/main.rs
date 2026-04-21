@@ -1097,10 +1097,12 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
             )?;
             stats.record_io_start();
             let mut reader = fdb.read_from_list(list_iter, false)?;
+            reader.open_for_read()?;
             if config.verbose {
-                println!("  Reader size: {} bytes", reader.size());
+                println!("  Reader size: {} bytes", reader.estimate().unwrap_or(0));
             }
-            let data = reader.read_all()?;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut reader, &mut data)?;
             stats.record_io_end();
 
             stats.bytes_processed += data.len() as u64;
@@ -1239,7 +1241,9 @@ fn run_read_itt(
             )?;
             stats.record_io_start();
             let mut reader = fdb.read_from_list(list_iter, false)?;
-            let data = reader.read_all()?;
+            reader.open_for_read()?;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut reader, &mut data)?;
             stats.record_io_end();
 
             stats.bytes_processed += data.len() as u64;
@@ -1297,7 +1301,9 @@ fn run_read_uri_file(
 
     stats.record_io_start();
     let mut reader = fdb.read_uris(&uris, false)?;
-    let data = reader.read_all()?;
+    reader.open_for_read()?;
+    let mut data = Vec::new();
+    std::io::Read::read_to_end(&mut reader, &mut data)?;
     stats.record_io_end();
 
     stats.fields_processed = uris.len() as u64;
@@ -1387,14 +1393,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create FDB handle with optional subtoc configuration
     let fdb = if let Some(config_path) = &args.config {
-        let mut config_str = fs::read_to_string(config_path)?;
+        let cfg = eckit::Config::from_path(config_path)?;
         if args.disable_subtocs {
-            config_str.push_str("\nuseSubToc: false\n");
+            let user: eckit::Config = "useSubToc: false".parse()?;
+            Fdb::open(Some(&cfg), Some(&user))?
+        } else {
+            Fdb::open(Some(&cfg), None)?
         }
-        Fdb::open(Some(config_str.as_str()), None)?
     } else if args.disable_subtocs {
-        // Create config with subtoc disabled
-        Fdb::open(Some("useSubToc: false\n"), None)?
+        let cfg: eckit::Config = "useSubToc: false".parse()?;
+        Fdb::open(Some(&cfg), None)?
     } else {
         Fdb::open_default()?
     };

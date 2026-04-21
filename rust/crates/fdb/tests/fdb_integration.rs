@@ -17,7 +17,7 @@ fn fixtures_dir() -> PathBuf {
 }
 
 /// Create a temporary FDB configuration for testing.
-fn create_test_config(tmpdir: &std::path::Path) -> String {
+fn create_test_config_yaml(tmpdir: &std::path::Path) -> String {
     // Copy schema to temp directory
     let schema_src = fixtures_dir().join("schema");
     let schema_dst = tmpdir.join("schema");
@@ -35,6 +35,11 @@ spaces:
         tmpdir.display(),
         tmpdir.display()
     )
+}
+
+fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
+    let yaml = create_test_config_yaml(tmpdir);
+    yaml.parse().expect("failed to parse test config")
 }
 
 #[test]
@@ -55,7 +60,7 @@ fn test_fdb_git_sha1() {
 fn test_fdb_handle_from_yaml() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
-    println!("Config:\n{config}");
+    println!("Config loaded");
 
     let fdb = Fdb::open(Some(&config), None);
     assert!(fdb.is_ok(), "failed to create FDB handle: {:?}", fdb.err());
@@ -64,13 +69,14 @@ fn test_fdb_handle_from_yaml() {
 #[test]
 fn test_fdb_handle_from_path() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let config = create_test_config(tmpdir.path());
+    let yaml = create_test_config_yaml(tmpdir.path());
 
     // Write the config to a file and load it via the path-based constructor.
     let config_path = tmpdir.path().join("fdb.yaml");
-    fs::write(&config_path, &config).expect("failed to write config file");
+    fs::write(&config_path, &yaml).expect("failed to write config file");
 
-    let fdb = Fdb::open(Some(&config_path), None);
+    let config = eckit::Config::from_path(&config_path).expect("failed to load config from path");
+    let fdb = Fdb::open(Some(&config), None);
     assert!(
         fdb.is_ok(),
         "failed to create FDB handle from path {:?}: {:?}",
@@ -120,17 +126,16 @@ fn test_fdb_handle_from_path() {
 fn test_fdb_handle_from_path_invalid_utf8() {
     use std::os::unix::ffi::OsStrExt;
     use std::path::Path;
-    // Construct a path with a non-UTF-8 byte sequence. We don't need this
-    // file to exist — `from_path` should reject the path before touching
-    // the filesystem.
+    // Construct a path with a non-UTF-8 byte sequence. `Config::from_path`
+    // should reject the path before touching the filesystem.
     let bad = std::ffi::OsStr::from_bytes(b"/tmp/\xff-not-utf8");
-    let result = Fdb::open(Some(Path::new(bad)), None);
+    let result = eckit::Config::from_path(Path::new(bad));
     let err = result
         .err()
         .expect("from_path should reject a non-UTF-8 path");
     assert!(
-        matches!(err, fdb::Error::Eckit(eckit::Error::UserError(_))),
-        "expected UserError for non-UTF-8 path, got {err:?}"
+        matches!(err, eckit::Error::Other(_)),
+        "expected Other error for non-UTF-8 path, got {err:?}"
     );
 }
 
@@ -189,7 +194,7 @@ fn test_fdb_archive_simple() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     println!("Temp dir: {}", tmpdir.path().display());
-    println!("Config:\n{config}");
+    println!("Config loaded");
 
     let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
@@ -1188,7 +1193,7 @@ fn test_fdb_config_from_yaml() {
     fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
 
     // Create YAML config (matching C++ test_config.cc format)
-    let config = format!(
+    let yaml = format!(
         r"---
 type: local
 engine: toc
@@ -1200,8 +1205,9 @@ spaces:
         tmpdir.path().display(),
         tmpdir.path().display()
     );
+    let config: eckit::Config = yaml.parse().expect("failed to parse YAML config");
 
-    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from config");
 
     // Verify the FDB handle came up cleanly with the YAML we built.
     let name = fdb.name();
@@ -2016,8 +2022,8 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
     let config_off = create_test_config(tmpdir_off.path());
     {
-        let fdb_off =
-            Fdb::open(Some(&config_off), Some("useSubToc: false")).expect("from_yaml off");
+        let user_cfg_off: eckit::Config = "useSubToc: false".parse().expect("parse user config");
+        let fdb_off = Fdb::open(Some(&config_off), Some(&user_cfg_off)).expect("from_yaml off");
         archive_one_record(&fdb_off);
     } // drop handle so the TOC is fully closed before we walk the dir
 
@@ -2031,7 +2037,8 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_on = tempfile::tempdir().expect("failed to create temp dir");
     let config_on = create_test_config(tmpdir_on.path());
     {
-        let fdb_on = Fdb::open(Some(&config_on), Some("useSubToc: true")).expect("from_yaml on");
+        let user_cfg_on: eckit::Config = "useSubToc: true".parse().expect("parse user config");
+        let fdb_on = Fdb::open(Some(&config_on), Some(&user_cfg_on)).expect("from_yaml on");
         archive_one_record(&fdb_on);
     }
 
@@ -2054,10 +2061,12 @@ fn test_fdb_preload_toc_btree_user_config() {
     for preload in ["true", "false"] {
         let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
         let config = create_test_config(tmpdir.path());
-        let user_config = format!("preloadTocBTree: {preload}");
+        let user_config_yaml = format!("preloadTocBTree: {preload}");
+        let user_config: eckit::Config = user_config_yaml.parse().expect("parse user config");
 
-        let fdb = Fdb::open(Some(&config), Some(&user_config))
-            .unwrap_or_else(|e| panic!("from_yaml_with_user_config({user_config:?}) failed: {e}"));
+        let fdb = Fdb::open(Some(&config), Some(&user_config)).unwrap_or_else(|e| {
+            panic!("from_yaml_with_user_config({user_config_yaml:?}) failed: {e}")
+        });
 
         archive_one_record(&fdb);
 

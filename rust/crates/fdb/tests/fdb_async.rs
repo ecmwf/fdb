@@ -23,12 +23,12 @@ fn fixtures_dir() -> PathBuf {
 }
 
 /// Create a temporary FDB configuration for testing.
-fn create_test_config(tmpdir: &std::path::Path) -> String {
+fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
     let schema_src = fixtures_dir().join("schema");
     let schema_dst = tmpdir.join("schema");
     fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
 
-    format!(
+    let yaml = format!(
         r"---
 type: local
 engine: toc
@@ -39,7 +39,8 @@ spaces:
 ",
         tmpdir.display(),
         tmpdir.display()
-    )
+    );
+    yaml.parse().expect("failed to parse test config")
 }
 
 /// Build a `MarsRequest` from a Key.
