@@ -245,7 +245,7 @@ fn test_concurrent_errors_no_crash() {
 // =============================================================================
 
 /// Helper to create test configuration
-fn create_test_config(tmpdir: &std::path::Path) -> String {
+fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
     use std::fs;
     use std::path::PathBuf;
 
@@ -257,7 +257,7 @@ fn create_test_config(tmpdir: &std::path::Path) -> String {
     let schema_dst = tmpdir.join("schema");
     fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
 
-    format!(
+    let yaml = format!(
         r"---
 type: local
 engine: toc
@@ -268,7 +268,8 @@ spaces:
 ",
         tmpdir.display(),
         tmpdir.display()
-    )
+    );
+    yaml.parse().expect("failed to parse test config")
 }
 
 /// Test: Concurrent archive operations from multiple threads.

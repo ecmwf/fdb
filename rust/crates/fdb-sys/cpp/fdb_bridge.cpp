@@ -10,9 +10,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
 
-#include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/PathName.h"
 #include "eckit/runtime/Main.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -73,35 +71,10 @@ static rust::Vec<KeyValue> from_fdb_key(const fdb5::Key& key) {
 
 FdbHandle::FdbHandle() = default;
 
-FdbHandle::FdbHandle(const std::string& yaml_config) :
-    impl_([&] {
-        eckit::YAMLConfiguration config(yaml_config);
-        fdb5::Config fdb_config(config);
-        return fdb5::FDB(fdb_config);
-    }()) {}
+FdbHandle::FdbHandle(const eckit_bridge::ConfigWrapper& config) : impl_(fdb5::Config(config.inner())) {}
 
-FdbHandle::FdbHandle(const std::string& yaml_config, const std::string& yaml_user_config) :
-    impl_([&] {
-        eckit::YAMLConfiguration config(yaml_config);
-        eckit::YAMLConfiguration user_config(yaml_user_config);
-        fdb5::Config fdb_config(config, user_config);
-        return fdb5::FDB(fdb_config);
-    }()) {}
-
-FdbHandle::FdbHandle(FromPathTag, const std::string& path) :
-    impl_([&] {
-        // `Config::make` loads YAML/JSON from the given path, expands
-        // `~fdb` and `fdb_home` references, and returns a fully-resolved
-        // `fdb5::Config`. This is the same entry point upstream FDB tools
-        // use when handed a `--config-file` / `FDB_CONFIG_FILE`.
-        return fdb5::FDB(fdb5::Config::make(eckit::PathName(path)));
-    }()) {}
-
-FdbHandle::FdbHandle(FromPathTag, const std::string& path, const std::string& yaml_user_config) :
-    impl_([&] {
-        eckit::YAMLConfiguration user_config(yaml_user_config);
-        return fdb5::FDB(fdb5::Config::make(eckit::PathName(path), user_config));
-    }()) {}
+FdbHandle::FdbHandle(const eckit_bridge::ConfigWrapper& config, const eckit_bridge::ConfigWrapper& user_config) :
+    impl_(fdb5::Config(config.inner(), user_config.inner())) {}
 
 FdbHandle::~FdbHandle() = default;
 
@@ -472,20 +445,13 @@ std::unique_ptr<FdbHandle> new_fdb() {
     return std::make_unique<FdbHandle>();
 }
 
-std::unique_ptr<FdbHandle> new_fdb_from_yaml(rust::Str config) {
-    return std::make_unique<FdbHandle>(std::string(config));
+std::unique_ptr<FdbHandle> new_fdb_from_config(const eckit_bridge::ConfigWrapper& config) {
+    return std::make_unique<FdbHandle>(config);
 }
 
-std::unique_ptr<FdbHandle> new_fdb_from_yaml_with_user_config(rust::Str config, rust::Str user_config) {
-    return std::make_unique<FdbHandle>(std::string(config), std::string(user_config));
-}
-
-std::unique_ptr<FdbHandle> new_fdb_from_path(rust::Str path) {
-    return std::make_unique<FdbHandle>(FdbHandle::FromPathTag{}, std::string(path));
-}
-
-std::unique_ptr<FdbHandle> new_fdb_from_path_with_user_config(rust::Str path, rust::Str user_config) {
-    return std::make_unique<FdbHandle>(FdbHandle::FromPathTag{}, std::string(path), std::string(user_config));
+std::unique_ptr<FdbHandle> new_fdb_from_config_with_user_config(const eckit_bridge::ConfigWrapper& config,
+                                                                const eckit_bridge::ConfigWrapper& user_config) {
+    return std::make_unique<FdbHandle>(config, user_config);
 }
 
 // ============================================================================

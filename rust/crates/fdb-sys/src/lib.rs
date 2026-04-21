@@ -277,6 +277,9 @@ mod ffi {
         #[namespace = "eckit_bridge"]
         type DataHandleWrapper = eckit_sys::DataHandleWrapper;
 
+        #[namespace = "eckit_bridge"]
+        type ConfigWrapper = eckit_sys::ConfigWrapper;
+
         // =====================================================================
         // ListIteratorHandle
         // =====================================================================
@@ -410,27 +413,13 @@ mod ffi {
         /// Create a new FDB handle with default configuration.
         fn new_fdb() -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from YAML configuration.
-        fn new_fdb_from_yaml(config: &str) -> Result<UniquePtr<FdbHandle>>;
+        /// Create a new FDB handle from an `eckit::Config`.
+        fn new_fdb_from_config(config: &ConfigWrapper) -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from YAML configuration plus a YAML
-        /// per-instance "user config" (e.g. `useSubToc`, `preloadTocBTree`).
-        fn new_fdb_from_yaml_with_user_config(
-            config: &str,
-            user_config: &str,
-        ) -> Result<UniquePtr<FdbHandle>>;
-
-        /// Create a new FDB handle by loading the configuration file at
-        /// `path`. Delegates to `fdb5::Config::make`, which loads YAML or
-        /// JSON, expands `~fdb` and `fdb_home` references, and resolves
-        /// transitive sub-configurations.
-        fn new_fdb_from_path(path: &str) -> Result<UniquePtr<FdbHandle>>;
-
-        /// Same as `new_fdb_from_path` but additionally applies a YAML
-        /// per-instance "user config" (e.g. `useSubToc`).
-        fn new_fdb_from_path_with_user_config(
-            path: &str,
-            user_config: &str,
+        /// Create a new FDB handle from an `eckit::Config` with user config.
+        fn new_fdb_from_config_with_user_config(
+            config: &ConfigWrapper,
+            user_config: &ConfigWrapper,
         ) -> Result<UniquePtr<FdbHandle>>;
 
         // =====================================================================
