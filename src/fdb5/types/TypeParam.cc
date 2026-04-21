@@ -48,7 +48,12 @@ void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::s
     }
 
     bool windConversion = false;
-    metkit::ParamID::normalise(request, user, axis, windConversion);
+    if (strictMatching_) {
+        metkit::ParamID::normalise(request, user, axis, windConversion, metkit::NormalisationMode::Strict);
+    }
+    else {
+        metkit::ParamID::normalise(request, user, axis, windConversion);
+    }
 
     std::set<Param> axisSet;
 
@@ -95,6 +100,16 @@ void TypeParam::print(std::ostream& out) const {
 }
 
 static TypeBuilder<TypeParam> type("Param");
+
+class TypeParamStrict : public TypeParam {
+public:
+
+    TypeParamStrict(const std::string& name, const std::string& type) : TypeParam(name, type) {
+        strictMatching_ = true;
+    }
+};
+
+static TypeBuilder<TypeParamStrict> typeStrict("ParamID");
 
 //----------------------------------------------------------------------------------------------------------------------
 
