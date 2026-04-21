@@ -17,6 +17,8 @@
 /// @author Metin Cakircali
 /// @date   Jun 2024
 
+#pragma once
+
 #include "fdb5/database/FieldLocation.h"
 
 #include <memory>
