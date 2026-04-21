@@ -70,7 +70,7 @@ constexpr eckit::fam::perm_t test_region_perm = 0640;
 const auto test_fdb_fam_region = eckit::FamPath("test_fdb_catalogue");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
-const std::string test_config = fam::makeTestConfig(test_fdb_fam_uri);
+const std::string test_config = fam::make_test_config(test_fdb_fam_uri);
 
 }  // namespace
 
@@ -1407,7 +1407,7 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
     const char* data = "concurrent-stress-payload";
     const auto data_length = std::char_traits<char>::length(data);
 
-    bool ok = forkAndRun(num_writers, [&](int writer_id) {
+    bool ok = fork_and_run(num_writers, [&](int writer_id) {
         fdb5::FamStore fam_store(db_key, config);
         fdb5::Store& store = fam_store;
         fdb5::FamCatalogueWriter writer(db_key, config);

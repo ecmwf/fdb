@@ -43,6 +43,7 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/log/Log.h"
+#include "eckit/testing/ProcessFork.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ListElement.h"
@@ -60,7 +61,7 @@ using namespace std::string_literals;
 namespace fdb::test::fam {
 
 /// Derives the POSIX shm name from an endpoint (host part only, matching the mock's cisServer key).
-inline std::string shmNameFromEndpoint(const std::string& endpoint) {
+inline std::string shm_name_from_endpoint(const std::string& endpoint) {
     auto colon = endpoint.rfind(':');
     auto host = (colon != std::string::npos) ? endpoint.substr(0, colon) : endpoint;
     std::transform(host.begin(), host.end(), host.begin(),
@@ -82,7 +83,7 @@ inline const std::string test_fdb_fam_endpoint = []() -> std::string {
         auto port = base.substr(colon);
         endpoint = host + "_" + std::to_string(::getpid()) + port;
     }
-    static std::string shm_name = shmNameFromEndpoint(endpoint);
+    static std::string shm_name = shm_name_from_endpoint(endpoint);
     std::atexit([] { ::shm_unlink(shm_name.c_str()); });
     return endpoint;
 }();
@@ -139,8 +140,8 @@ const std::string test_schema =
 /// @param fam_uri    e.g. "fam://host:port/region"
 /// @param catalogue  "toc" or "fam"
 /// @param engine     empty for toc-based, "fam" for fam catalogue
-inline std::string makeTestConfig(const std::string& fam_uri, const std::string& catalogue = "fam",
-                                  const std::string& engine = "fam") {
+inline std::string make_test_config(const std::string& fam_uri, const std::string& catalogue = "fam",
+                                    const std::string& engine = "fam") {
     std::string config =
         "---\n"
         "type: local\n";
@@ -192,100 +193,6 @@ struct FamSetup {
 
 namespace fdb::test {
 
-/// Fork @p n child processes. Each child waits on a barrier, then runs @p fn(child_index).
-/// Parent waits for all children to exit.
-/// Returns true if every child exited with status 0.
-template <typename Fn>
-bool forkAndRun(int n, Fn&& fn) {
-    int barrier[2];
-    if (::pipe(barrier) != 0) {
-        return false;
-    }
-
-    std::vector<pid_t> pids;
-    pids.reserve(n);
-
-    for (int i = 0; i < n; ++i) {
-        const pid_t pid = ::fork();
-        if (pid < 0) {
-            for (auto p : pids) {
-                ::kill(p, SIGTERM);
-                ::waitpid(p, nullptr, 0);
-            }
-            ::close(barrier[0]);
-            ::close(barrier[1]);
-            return false;
-        }
-        if (pid == 0) {
-            std::set_terminate([]() { ::_exit(1); });
-            ::close(barrier[1]);
-            char buf;
-            static_cast<void>(::read(barrier[0], &buf, 1));
-            ::close(barrier[0]);
-            try {
-                fn(i);
-                ::_exit(0);
-            }
-            catch (...) {
-                ::_exit(1);
-            }
-        }
-        pids.push_back(pid);
-    }
-
-    ::close(barrier[0]);
-    ::close(barrier[1]);
-
-    bool all_ok = true;
-    for (auto pid : pids) {
-        int status = 0;
-        if (::waitpid(pid, &status, 0) < 0) {
-            all_ok = false;
-        }
-        else if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            all_ok = false;
-        }
-    }
-    return all_ok;
-}
-
-/// Fork a single child that runs @p fn. Parent blocks until child completes.
-/// Returns true if child exited with status 0.
-template <typename Fn>
-bool forkWriter(Fn&& fn) {
-    int barrier[2];
-    if (::pipe(barrier) != 0) {
-        return false;
-    }
-
-    const pid_t pid = ::fork();
-    if (pid < 0) {
-        ::close(barrier[0]);
-        ::close(barrier[1]);
-        return false;
-    }
-    if (pid == 0) {
-        std::set_terminate([]() { ::_exit(1); });
-        ::close(barrier[0]);
-        try {
-            fn();
-            ::close(barrier[1]);
-            ::_exit(0);
-        }
-        catch (...) {
-            ::close(barrier[1]);
-            ::_exit(1);
-        }
-    }
-
-    ::close(barrier[1]);
-    char buf;
-    static_cast<void>(::read(barrier[0], &buf, 1));
-    ::close(barrier[0]);
-
-    int status = 0;
-    ::waitpid(pid, &status, 0);
-    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
-}
+using eckit::testing::fork_and_run;
 
 }  // namespace fdb::test

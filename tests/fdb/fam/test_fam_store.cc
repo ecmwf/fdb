@@ -53,7 +53,7 @@ constexpr eckit::fam::perm_t test_region_perm = 0640;
 const auto test_fdb_fam_region = eckit::FamPath("test_fdb_store");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
-const std::string test_config = fam::makeTestConfig(test_fdb_fam_uri, "toc", "");
+const std::string test_config = fam::make_test_config(test_fdb_fam_uri, "toc", "");
 
 
 }  // namespace
