@@ -68,6 +68,7 @@ bool FamEngine::canHandle(const eckit::URI& uri, const Config& config) const {
         return root.exists();
     }
     catch (...) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamEngine::canHandle: exception checking URI: " << uri << '\n';
         return false;
     }
 }

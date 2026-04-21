@@ -21,6 +21,7 @@
 
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamMapEntry.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/MD5.h"
 
@@ -192,39 +193,159 @@ MoveVisitor* FamCatalogue::moveVisitor(const Store& store, const metkit::mars::M
                                        const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     NOTIMP;
 }
-void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {}
+void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+    auto& cat = catalogue();
+    for (const auto& index : indexes) {
+        const auto entry_key = std::string("i:") + toString(index.key());
+        cat.erase(entry_key);
+    }
+}
 void FamCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                              std::set<eckit::URI>& data) const {}
 void FamCatalogue::control(const ControlAction& /*action*/, const ControlIdentifiers& /*identifiers*/) const {}
-bool FamCatalogue::markIndexForWipe(const Index& /*index*/, bool /*include*/,
-                                    CatalogueWipeState& /*wipe_state*/) const {
-    return false;
+bool FamCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipe_state) const {
+    const eckit::URI location_uri = index.location().uri();
+
+    // If the index belongs to a different region, refuse to delete it.
+    if (!uriBelongs(location_uri)) {
+        include = false;
+    }
+
+    if (include) {
+        wipe_state.markForMasking(index);
+        wipe_state.markForDeletion(WipeElementType::CATALOGUE_INDEX, {location_uri});
+    }
+    else {
+        wipe_state.markAsSafe({location_uri});
+    }
+
+    return include;
 }
 
-void FamCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
+void FamCatalogue::finaliseWipeState(CatalogueWipeState& wipe_state) const {
     // Mark the catalogue-level FAM map table as to be deleted (full wipe) or safe (partial).
     // A "full wipe" is indicated by an empty safeURIs set — i.e. everything matched.
     const eckit::URI cat_uri = uri();
-    if (wipeState.safeURIs().empty()) {
-        wipeState.markForDeletion(WipeElementType::CATALOGUE, {cat_uri});
+    if (wipe_state.safeURIs().empty()) {
+        wipe_state.markForDeletion(WipeElementType::CATALOGUE, {cat_uri});
     }
     else {
-        wipeState.markAsSafe({cat_uri});
+        wipe_state.markAsSafe({cat_uri});
     }
 }
 
-bool FamCatalogue::doWipeUnknowns(const std::set<eckit::URI>& /*unknown_uris*/) const {
-    return false;  // FAM wipe of unknown objects not yet implemented
+bool FamCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknown_uris) const {
+    for (const auto& uri : unknown_uris) {
+        if (!uriBelongs(uri)) {
+            continue;
+        }
+        try {
+            root_.object(eckit::FamPath(uri).objectName()).lookup().deallocate();
+        }
+        catch (const eckit::NotFound& e) {
+            LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeUnknowns: object already absent: " << e.what() << '\n';
+        }
+    }
+    return true;
 }
 
-bool FamCatalogue::doWipeURIs(const CatalogueWipeState& /*wipe_state*/) const {
-    return false;  // FAM catalogue wipe not yet implemented
+bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
+    const bool wipe_all = wipe_state.safeURIs().empty();
+
+    for (const auto& [type, uris] : wipe_state.deleteMap()) {
+        for (const auto& uri : uris) {
+            if (!uriBelongs(uri)) {
+                continue;
+            }
+            // Each URI points to a FAM object (table/count/lock of a FamMap, or other data item).
+            // Best-effort removal: treat NotFound as benign.
+            try {
+                const auto obj_name = eckit::FamPath(uri).objectName();
+                root_.object(obj_name).lookup().deallocate();
+
+                // A FamMap also creates companion objects (.c count, .l lock);
+                // attempt to clean those up if the URI was a table (.t) object.
+                if (obj_name.size() > 2 && obj_name.substr(obj_name.size() - 2) == FamCommon::table_suffix) {
+                    const auto base = obj_name.substr(0, obj_name.size() - 2);
+                    for (const char* suffix : {Map::count_suffix, Map::lock_suffix}) {
+                        try {
+                            root_.object(base + suffix).lookup().deallocate();
+                        }
+                        catch (const eckit::NotFound& e) {
+                            LOG_DEBUG_LIB(LibFdb5)
+                                << "FamCatalogue::doWipeURIs: companion object already absent: " << e.what() << '\n';
+                        }
+                    }
+                }
+            }
+            catch (const eckit::NotFound& e) {
+                LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeURIs: object already absent: " << e.what() << '\n';
+            }
+        }
+    }
+
+    if (wipe_all) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+    return true;
 }
 
-void FamCatalogue::doWipeEmptyDatabase() const {}
+void FamCatalogue::doWipeEmptyDatabase() const {
+    if (!cleanupEmptyDatabase_) {
+        return;
+    }
+
+    // Deregister this DB from the global FDB registry map.
+    try {
+        Map registry(registry_keyword, getRegion());
+        registry.erase(toString(dbKey_));
+    }
+    catch (const eckit::Exception& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeEmptyDatabase: registry cleanup failed: " << e.what() << '\n';
+    }
+
+    cleanupEmptyDatabase_ = false;
+}
 
 bool FamCatalogue::doUnsafeFullWipe() const {
-    return false;  // FAM unsafe full wipe not yet implemented
+    // Delete the catalogue map and all index maps by clearing their FAM objects.
+    try {
+        // Clear all index maps first.
+        for (const auto& [k, v] : catalogue()) {
+            const auto key_name = k.asString();
+            if (key_name.size() < 2 || key_name[0] != 'i' || key_name[1] != ':') {
+                continue;
+            }
+            const auto key = decodeKey(v);
+            const auto idx_name = indexName(key);
+            try {
+                Map idx_map(idx_name, getRegion());
+                idx_map.clear();
+            }
+            catch (const eckit::Exception& e) {
+                LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: failed to clear index map '" << idx_name
+                                       << "': " << e.what() << '\n';
+            }
+        }
+
+        // Clear the catalogue map itself.
+        catalogue().clear();
+    }
+    catch (const eckit::Exception& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: failed to clear catalogue: " << e.what() << '\n';
+    }
+
+    // Deregister from the global registry.
+    try {
+        Map registry(registry_keyword, getRegion());
+        registry.erase(toString(dbKey_));
+    }
+    catch (const eckit::Exception& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: registry deindex failed: " << e.what() << '\n';
+    }
+
+    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

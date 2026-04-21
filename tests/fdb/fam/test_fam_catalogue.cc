@@ -520,7 +520,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 // FamCatalogue: wipe and stub coverage
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamCatalogue: wipe stubs return expected values") {
+CASE("FamCatalogue: wipe methods work correctly") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -533,28 +533,28 @@ CASE("FamCatalogue: wipe stubs return expected values") {
     fdb5::FamCatalogueWriter writer(db_key, config);
     fdb5::Catalogue& cat = writer;
 
-    // doUnsafeFullWipe returns false
-    EXPECT(!cat.doUnsafeFullWipe());
+    // doUnsafeFullWipe clears catalogue + registry, returns true
+    EXPECT(cat.doUnsafeFullWipe());
 
-    // doWipeEmptyDatabase is a no-op
+    // doWipeEmptyDatabase is a no-op when cleanupEmptyDatabase_ is false
     EXPECT_NO_THROW(cat.doWipeEmptyDatabase());
 
-    // doWipeUnknowns returns false
+    // doWipeUnknowns returns true (best-effort removal)
     std::set<eckit::URI> unknowns{eckit::URI("fam://host:1234/region/object")};
-    EXPECT(!cat.doWipeUnknowns(unknowns));
+    EXPECT(cat.doWipeUnknowns(unknowns));
 
-    // doWipeURIs returns false
+    // doWipeURIs returns true
     fdb5::CatalogueWipeState wipeState(db_key);
-    EXPECT(!cat.doWipeURIs(wipeState));
+    EXPECT(cat.doWipeURIs(wipeState));
 
-    // markIndexForWipe returns false
+    // markIndexForWipe returns true for index belonging to same region
     auto idx_key =
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
     fdb5::CatalogueWriter& writer_iface = writer;
     writer_iface.createIndex(idx_key, 3);
     writer_iface.selectIndex(idx_key);
     auto index = writer_iface.currentIndex();
-    EXPECT(!cat.markIndexForWipe(index, true, wipeState));
+    EXPECT(cat.markIndexForWipe(index, true, wipeState));
 }
 
 CASE("FamCatalogue: wipeInit returns db key") {

@@ -205,7 +205,18 @@ void FamIndex::funlock() const {
 }
 
 std::vector<eckit::URI> FamIndex::dataURIs() const {
-    return {};
+    std::vector<eckit::URI> result;
+
+    for (const auto& [key, value] : data_) {
+        if (key.asString() == FamCommon::axes_keyword) {
+            continue;
+        }
+        eckit::MemoryStream stream{value};
+        auto [timestamp, location] = decodePrefix(stream);
+        result.push_back(location->uri());
+    }
+
+    return result;
 }
 
 bool FamIndex::dirty() const {

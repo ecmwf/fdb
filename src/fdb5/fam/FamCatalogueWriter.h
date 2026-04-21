@@ -47,7 +47,7 @@ public:  // methods
 
     void reconsolidate() override;
 
-    void overlayDB(const Catalogue& other_catalogue, const eckit::StringSet& variable_keys, bool unmount) override;
+    void overlayDB(const Catalogue& other_catalogue, const std::set<std::string>& variable_keys, bool unmount) override;
 
     const Index& currentIndex() override;
 

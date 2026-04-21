@@ -120,6 +120,8 @@ private:  // members
     const RuleDatabase* rule_{nullptr};
 
     mutable std::optional<Map> catalogue_;
+
+    mutable bool cleanupEmptyDatabase_{false};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
