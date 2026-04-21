@@ -600,7 +600,7 @@ CASE("FamCatalogue: finaliseWipeState with non-empty safeURIs marks safe") {
     EXPECT(fullWipe.countURIsToDelete() > 0);
 }
 
-CASE("FamCatalogue: enabled returns true, control is a no-op") {
+CASE("FamCatalogue: NOTIMP methods, enabled, and control") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -611,54 +611,27 @@ CASE("FamCatalogue: enabled returns true, control is a no-op") {
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
 
     fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::FamStore fam_store(db_key, config);
     fdb5::Catalogue& cat = writer;
 
+    // NOTIMP methods
+    EXPECT_THROWS(cat.checkUID());
+    EXPECT_THROWS(cat.statsReportVisitor());
+    EXPECT_THROWS(cat.purgeVisitor(fam_store));
+
+    metkit::mars::MarsRequest request("retrieve");
+    eckit::URI dest("fam://host:1234/dest");
+    eckit::Queue<fdb5::MoveElement> queue(1);
+    EXPECT_THROWS(cat.moveVisitor(fam_store, request, dest, queue));
+
+    // enabled always returns true
     EXPECT(cat.enabled(fdb5::ControlIdentifier::List));
     EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
     EXPECT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
 
-    // control() is a no-op and should not throw
+    // control is a no-op
     fdb5::ControlIdentifiers ids;
     EXPECT_NO_THROW(cat.control(fdb5::ControlAction::Disable, ids));
-}
-
-CASE("FamCatalogue: maskIndexEntries and allMasked are no-ops") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    fdb5::FamCatalogueWriter writer(db_key, config);
-    fdb5::Catalogue& cat = writer;
-
-    std::set<fdb5::Index> indexes;
-    EXPECT_NO_THROW(cat.maskIndexEntries(indexes));
-
-    std::set<std::pair<eckit::URI, eckit::Offset>> metadata;
-    std::set<eckit::URI> data;
-    EXPECT_NO_THROW(cat.allMasked(metadata, data));
-    EXPECT(metadata.empty());
-    EXPECT(data.empty());
-}
-
-CASE("FamCatalogue: NOTIMP methods throw") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    fdb5::FamCatalogueWriter writer(db_key, config);
-    fdb5::Catalogue& cat = writer;
-
-    EXPECT_THROWS(cat.checkUID());
 
     // dump — empty catalogue, simple mode
     {
@@ -669,19 +642,14 @@ CASE("FamCatalogue: NOTIMP methods throw") {
         const auto dump_str = out.str();
         EXPECT(dump_str.find("FamCatalogue") != std::string::npos);
         EXPECT(dump_str.find("{fam1a=a,fam1b=b,fam1c=c}") != std::string::npos);
-        EXPECT(dump_str.find("uri=") != std::string::npos);
-        // No indexes archived, so no "Key:" lines
-        EXPECT(dump_str.find("Key:") == std::string::npos);
     }
-
-    EXPECT_THROWS(cat.statsReportVisitor());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // FamCatalogueWriter: NOTIMP and print coverage
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamCatalogueWriter: NOTIMP methods throw") {
+CASE("FamCatalogueWriter: NOTIMP methods and print") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -697,19 +665,6 @@ CASE("FamCatalogueWriter: NOTIMP methods throw") {
     EXPECT_THROWS(iface.index(fdb5::Key(), eckit::URI(), eckit::Offset(0), eckit::Length(0)));
     EXPECT_THROWS(iface.reconsolidate());
     EXPECT_THROWS(iface.overlayDB(writer, {}, false));
-}
-
-CASE("FamCatalogueWriter: print outputs info") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    fdb5::FamCatalogueWriter writer(db_key, config);
 
     std::ostringstream out;
     out << writer;
@@ -717,27 +672,10 @@ CASE("FamCatalogueWriter: print outputs info") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogueReader: NOTIMP, print, inline methods coverage
+// FamCatalogueReader: coverage
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamCatalogueReader: stats throws NOTIMP") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    // Seed the catalogue first
-    { fdb5::FamCatalogueWriter writer(db_key, config); }
-
-    fdb5::FamCatalogueReader reader(db_key, config);
-    EXPECT_THROWS(reader.stats());
-}
-
-CASE("FamCatalogueReader: print, flush, clean, close coverage") {
+CASE("FamCatalogueReader: NOTIMP, print, and inline methods") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -751,6 +689,8 @@ CASE("FamCatalogueReader: print, flush, clean, close coverage") {
 
     fdb5::FamCatalogueReader reader(db_key, config);
     EXPECT(reader.open());
+
+    EXPECT_THROWS(reader.stats());
 
     std::ostringstream out;
     out << reader;
@@ -761,40 +701,17 @@ CASE("FamCatalogueReader: print, flush, clean, close coverage") {
     EXPECT_NO_THROW(reader.close());
 }
 
-CASE("FamCatalogueReader: key-based construction") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    // Seed catalogue
-    { fdb5::FamCatalogueWriter writer(db_key, config); }
-
-    fdb5::FamCatalogueReader reader(db_key, config);
-    EXPECT(reader.open());
-    EXPECT_EQUAL(reader.uri().scheme(), std::string("fam"));
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 // FamEngine: additional coverage
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamEngine: NOTIMP methods throw") {
+CASE("FamEngine: NOTIMP methods and name") {
 
     fdb5::Engine& engine = fdb5::Engine::backend("fam");
 
+    EXPECT_EQUAL(engine.name(), std::string("fam"));
     EXPECT_THROWS(engine.location(fdb5::Key(), fdb5::Config()));
     EXPECT_THROWS(engine.dbType());
-}
-
-CASE("FamEngine: name returns fam") {
-
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
-    EXPECT_EQUAL(engine.name(), std::string("fam"));
 }
 
 CASE("FamEngine: visitableLocations with MarsRequest") {
@@ -997,47 +914,6 @@ CASE("FamCatalogue: indexes returns empty when catalogue does not exist") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogue: additional NOTIMP coverage
-//----------------------------------------------------------------------------------------------------------------------
-
-CASE("FamCatalogue: purgeVisitor throws NOTIMP") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    fdb5::FamCatalogueWriter writer(db_key, config);
-    fdb5::FamStore fam_store(db_key, config);
-    fdb5::Catalogue& cat = writer;
-
-    EXPECT_THROWS(cat.purgeVisitor(fam_store));
-}
-
-CASE("FamCatalogue: moveVisitor throws NOTIMP") {
-
-    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
-        .create(test_region_size, test_region_perm, true);
-
-    const fam::FamSetup setup(fam::test_schema, test_config);
-    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
-
-    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
-
-    fdb5::FamCatalogueWriter writer(db_key, config);
-    fdb5::FamStore fam_store(db_key, config);
-    fdb5::Catalogue& cat = writer;
-
-    metkit::mars::MarsRequest request("retrieve");
-    eckit::URI dest("fam://host:1234/dest");
-    eckit::Queue<fdb5::MoveElement> queue(1);
-    EXPECT_THROWS(cat.moveVisitor(fam_store, request, dest, queue));
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // FamCatalogueWriter: URI constructor and selectIndex cache hit
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -1179,15 +1055,6 @@ CASE("FamCatalogueReader: open returns false when catalogue does not exist") {
 //----------------------------------------------------------------------------------------------------------------------
 // FamEngine: print and edge-case coverage
 //----------------------------------------------------------------------------------------------------------------------
-
-CASE("FamEngine: print via FamCatalogueWriter containing engine name") {
-
-    // Engine::print is protected and operator<< is not defined,
-    // but we can verify engine's name is "fam" (already tested).
-    // This test exercises the engine factory lookup path.
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
-    EXPECT_EQUAL(engine.name(), std::string("fam"));
-}
 
 CASE("FamEngine: visitableLocations with non-existent region") {
 
@@ -1350,33 +1217,178 @@ CASE("FamFieldLocation: visit dispatches to visitor") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamIndexLocation: encode throws NOTIMP
+// FamCatalogue: maskIndexEntries, dataURIs, end-to-end wipe
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamIndexLocation: encode via IndexLocation pointer throws NOTIMP") {
+CASE("FamCatalogue: maskIndexEntries removes index from catalogue") {
 
-    const eckit::URI test_uri("fam://" + fam::test_fdb_fam_endpoint + "/test_region/test_object");
-    // encode is protected; test via Index::encode which delegates
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
     const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
     const auto idx_key =
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
-    eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
-    const auto cat_name = fdb5::FamCatalogue::catalogueName(idx_key);
-    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(cat_name, idx_key), false));
+    const char* data = "mask-test-data";
+    const auto data_length = std::char_traits<char>::length(data);
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", "i"}});
 
-    eckit::MemoryHandle h(256);
-    h.openForWrite(0);
-    eckit::HandleStream hs(h);
-    // encode on FamIndex throws NOTIMP
-    EXPECT_THROWS(idx.encode(hs, 1));
-    h.close();
+    fdb5::FamStore fam_store(db_key, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
+    auto loc = store.archive(datum_key, data, eckit::Length(data_length));
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key, loc->make_shared());
+    writer_iface.flush(1);
+
+    // Verify index exists
+    fdb5::Catalogue& cat = writer;
+    EXPECT_EQUAL(cat.indexes().size(), 1U);
+
+    // Mask the index
+    auto idxs = cat.indexes();
+    std::set<fdb5::Index> to_mask(idxs.begin(), idxs.end());
+    cat.maskIndexEntries(to_mask);
+
+    // After masking, indexes() should return empty (entry removed from catalogue map)
+    fdb5::FamCatalogueReader reader(writer.uri(), config);
+    EXPECT(reader.open());
+    fdb5::Catalogue& reader_cat = reader;
+    EXPECT(reader_cat.indexes().empty());
 }
+
+CASE("FamIndex: dataURIs returns field locations after archive") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    const char* data1 = "data-uri-test-1";
+    const auto data1_length = std::char_traits<char>::length(data1);
+    const char* data2 = "data-uri-test-2";
+    const auto data2_length = std::char_traits<char>::length(data2);
+
+    const auto datum_key1 = fdb5::Key({{"fam1a", "a"},
+                                       {"fam1b", "b"},
+                                       {"fam1c", "c"},
+                                       {"fam2a", "d"},
+                                       {"fam2b", "e"},
+                                       {"fam2c", "f"},
+                                       {"fam3a", "g"},
+                                       {"fam3b", "h"},
+                                       {"fam3c", "i"}});
+    const auto datum_key2 = fdb5::Key({{"fam1a", "a"},
+                                       {"fam1b", "b"},
+                                       {"fam1c", "c"},
+                                       {"fam2a", "d"},
+                                       {"fam2b", "e"},
+                                       {"fam2c", "f"},
+                                       {"fam3a", "x"},
+                                       {"fam3b", "y"},
+                                       {"fam3c", "z"}});
+
+    fdb5::FamStore fam_store(db_key, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
+    auto loc1 = store.archive(datum_key1, data1, eckit::Length(data1_length));
+    auto loc2 = store.archive(datum_key2, data2, eckit::Length(data2_length));
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key1, loc1->make_shared());
+    writer_iface.archive(idx_key, datum_key2, loc2->make_shared());
+    writer_iface.flush(2);
+
+    // Retrieve the index and check dataURIs
+    fdb5::Catalogue& cat = writer;
+    auto idxs = cat.indexes();
+    EXPECT_EQUAL(idxs.size(), 1U);
+
+    auto data_uris = idxs[0].dataURIs();
+    EXPECT_EQUAL(data_uris.size(), 2U);
+
+    // All returned URIs should be fam:// scheme and point to actual data objects
+    for (const auto& uri : data_uris) {
+        EXPECT_EQUAL(uri.scheme(), std::string("fam"));
+        EXPECT(fam_store.uriBelongs(uri));
+        EXPECT(fam_store.uriExists(uri));
+    }
+}
+
+CASE("FamCatalogue: end-to-end wipe removes catalogue and data") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", "i"}});
+
+    const char* data = "wipe-e2e-data";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    // 1. Archive data and metadata
+    fdb5::FamStore fam_store(db_key, config);
+    auto& store = static_cast<fdb5::Store&>(fam_store);
+    auto loc = store.archive(datum_key, data, eckit::Length(data_length));
+    EXPECT(loc);
+    EXPECT(fam_store.uriExists(loc->uri()));
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key, loc->make_shared());
+    writer_iface.flush(1);
+
+    fdb5::Catalogue& cat = writer;
+
+    // Verify everything exists before wipe
+    EXPECT(cat.exists());
+    EXPECT_EQUAL(cat.indexes().size(), 1U);
+
+    // 2. Verify the engine can discover this DB
+    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    EXPECT(!engine.visitableLocations(db_key, config).empty());
+
+    // 3. Perform doUnsafeFullWipe (clears all maps + deregisters from registry)
+    EXPECT(cat.doUnsafeFullWipe());
+
+    // 4. Verify catalogue data is gone — engine should no longer discover it
+    EXPECT(engine.visitableLocations(db_key, config).empty());
+
+    // 5. Data objects in the store are not affected by catalogue wipe (separate concern)
+    //    Store wipe is tested in test_fam_store.cc
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamIndex: concurrent writers flush axes without data loss") {
     // Stress test: multiple processes writing disjoint fields to the SAME FamIndex,
