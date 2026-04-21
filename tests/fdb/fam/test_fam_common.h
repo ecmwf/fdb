@@ -34,8 +34,6 @@
 #include <regex>
 #include <string>
 
-#include <unistd.h>
-
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -129,6 +127,43 @@ inline int count_list(fdb5::ListIterator& list, std::ostream& out = std::cout) {
         ++count;
     }
     return count;
+}
+
+/// Default 3-level test schema shared across store and catalogue tests.
+const std::string test_schema =
+    "[ fam1a, fam1b, fam1c\n"
+    "    [ fam2a, fam2b, fam2c\n"
+    "       [ fam3a, fam3b, fam3c ]]]\n";
+
+/// Build a YAML config string for a FAM-backed FDB test.
+/// @param fam_uri    e.g. "fam://host:port/region"
+/// @param catalogue  "toc" or "fam"
+/// @param engine     empty for toc-based, "fam" for fam catalogue
+inline std::string makeTestConfig(const std::string& fam_uri, const std::string& catalogue = "fam",
+                                  const std::string& engine = "fam") {
+    std::string config =
+        "---\n"
+        "type: local\n";
+    if (!engine.empty()) {
+        config += "engine: " + engine + "\n";
+    }
+    config +=
+        "schema: ./schema\n"
+        "store: fam\n"
+        "catalogue: " +
+        catalogue +
+        "\n"
+        "spaces:\n"
+        "- handler: Default\n"
+        "  roots:\n"
+        "  - path: ./root\n"
+        "fam_roots:\n"
+        "- uri: " +
+        fam_uri +
+        "\n"
+        "  writable: true\n"
+        "  visit: true\n";
+    return config;
 }
 
 struct FamSetup {

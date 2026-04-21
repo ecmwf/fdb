@@ -53,27 +53,7 @@ constexpr eckit::fam::perm_t test_region_perm = 0640;
 const auto test_fdb_fam_region = eckit::FamPath("test_fdb_store");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
-const std::string test_schema =
-    "[ fam1a, fam1b, fam1c\n"
-    "    [ fam2a, fam2b, fam2c\n"
-    "       [ fam3a, fam3b, fam3c ]]]\n";
-
-const std::string test_config =
-    "---\n"
-    "type: local\n"
-    "schema: ./schema\n"
-    "store: fam\n"
-    "catalogue: toc\n"
-    "spaces:\n"
-    "- handler: Default\n"
-    "  roots:\n"
-    "  - path: ./root\n"
-    "fam_roots:\n"
-    "- uri: " +
-    test_fdb_fam_uri +
-    "\n"
-    "  writable: true\n"
-    "  visit: true\n";
+const std::string test_config = fam::makeTestConfig(test_fdb_fam_uri, "toc", "");
 
 
 }  // namespace
@@ -85,7 +65,7 @@ CASE("FamStore: metadata and identity") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -109,7 +89,7 @@ CASE("FamStore: archive, retrieve, flush") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -214,7 +194,7 @@ CASE("FamStore: URI-based construction") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     // Construct from URI instead of Key
@@ -256,7 +236,7 @@ CASE("FamStore: asCollocatedDataURIs validates URIs") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -300,7 +280,7 @@ CASE("FamStore: getAuxiliaryURIs returns empty") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -320,7 +300,7 @@ CASE("FamStore: print outputs store info") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -337,7 +317,7 @@ CASE("FamStore: remove deallocates archived object") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -384,7 +364,7 @@ CASE("FamStore: doUnsafeFullWipe returns false") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -399,7 +379,7 @@ CASE("FamStore: doWipeEmptyDatabase is a no-op") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -414,7 +394,7 @@ CASE("FamStore: doWipeUnknowns removes matching objects") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -452,7 +432,7 @@ CASE("FamStore: doWipeURIs removes included and auxiliary URIs") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -488,7 +468,7 @@ CASE("FamStore: finaliseWipeState with empty URIs returns immediately") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -504,7 +484,7 @@ CASE("FamStore: finaliseWipeState with existing URI") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -539,7 +519,7 @@ CASE("FamStore: checkUID is a no-op") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -553,7 +533,7 @@ CASE("FamStore: open returns true") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -577,7 +557,7 @@ CASE("FamStore: finaliseWipeState throws on non-belonging URI") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});

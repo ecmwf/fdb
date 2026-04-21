@@ -70,28 +70,7 @@ constexpr eckit::fam::perm_t test_region_perm = 0640;
 const auto test_fdb_fam_region = eckit::FamPath("test_fdb_catalogue");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
-const std::string test_schema =
-    "[ fam1a, fam1b, fam1c\n"
-    "    [ fam2a, fam2b, fam2c\n"
-    "       [ fam3a, fam3b, fam3c ]]]\n";
-
-const std::string test_config =
-    "---\n"
-    "type: local\n"
-    "engine: fam\n"
-    "schema: ./schema\n"
-    "store: fam\n"
-    "catalogue: fam\n"
-    "spaces:\n"
-    "- handler: Default\n"
-    "  roots:\n"
-    "  - path: ./root\n"
-    "fam_roots:\n"
-    "- uri: " +
-    test_fdb_fam_uri +
-    "\n"
-    "  writable: true\n"
-    "  visit: true\n";
+const std::string test_config = fam::makeTestConfig(test_fdb_fam_uri);
 
 }  // namespace
 
@@ -123,7 +102,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -252,7 +231,7 @@ CASE("FamCatalogueReader: loads schema from persisted FAM copy") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -273,7 +252,7 @@ CASE("FamCatalogueWriter: persisted FAM schema is authoritative") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -293,7 +272,7 @@ CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -381,7 +360,7 @@ CASE("FamEngine: canHandle and visitableLocations") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     // Access through the Engine base class (canHandle/visitableLocations are public there)
@@ -409,7 +388,7 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
 
     TEST_LOG_DEBUG("SETUP FDB FAM");
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
 
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
@@ -546,7 +525,7 @@ CASE("FamCatalogue: wipe stubs return expected values") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -583,7 +562,7 @@ CASE("FamCatalogue: wipeInit returns db key") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -601,7 +580,7 @@ CASE("FamCatalogue: finaliseWipeState with non-empty safeURIs marks safe") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -626,7 +605,7 @@ CASE("FamCatalogue: enabled returns true, control is a no-op") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -648,7 +627,7 @@ CASE("FamCatalogue: maskIndexEntries and allMasked are no-ops") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -671,7 +650,7 @@ CASE("FamCatalogue: NOTIMP methods throw") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -707,7 +686,7 @@ CASE("FamCatalogueWriter: NOTIMP methods throw") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -725,7 +704,7 @@ CASE("FamCatalogueWriter: print outputs info") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -746,7 +725,7 @@ CASE("FamCatalogueReader: stats throws NOTIMP") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -763,7 +742,7 @@ CASE("FamCatalogueReader: print, flush, clean, close coverage") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -787,7 +766,7 @@ CASE("FamCatalogueReader: key-based construction") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -823,7 +802,7 @@ CASE("FamEngine: visitableLocations with MarsRequest") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -852,7 +831,7 @@ CASE("FamEngine: visitableLocations with MarsRequest") {
 
 CASE("FamEngine: rootURI parses config") {
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     auto root = fdb5::FamEngine::rootURI(config);
@@ -874,7 +853,7 @@ CASE("FamIndex: NOTIMP and stub methods") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -921,7 +900,7 @@ CASE("FamFieldLocation: print and make_shared") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -1003,7 +982,7 @@ CASE("FamCatalogue: indexes returns empty when catalogue does not exist") {
         "fam_roots:\n- uri: " +
         fresh_uri + "\n  writable: true\n  visit: true\n";
 
-    const fam::FamSetup setup(test_schema, alt_config);
+    const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "x"}, {"fam1b", "y"}, {"fam1c", "z"}};
@@ -1026,7 +1005,7 @@ CASE("FamCatalogue: purgeVisitor throws NOTIMP") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1043,7 +1022,7 @@ CASE("FamCatalogue: moveVisitor throws NOTIMP") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1067,7 +1046,7 @@ CASE("FamCatalogueWriter: URI-based construction") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1091,7 +1070,7 @@ CASE("FamCatalogueWriter: selectIndex cache hit path") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1150,7 +1129,7 @@ CASE("FamCatalogueReader: retrieve returns false when no index selected") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1187,7 +1166,7 @@ CASE("FamCatalogueReader: open returns false when catalogue does not exist") {
         "fam_roots:\n- uri: " +
         fresh_uri + "\n  writable: true\n  visit: true\n";
 
-    const fam::FamSetup setup(test_schema, alt_config);
+    const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "x"}, {"fam1b", "y"}, {"fam1c", "z"}};
@@ -1220,7 +1199,7 @@ CASE("FamEngine: visitableLocations with non-existent region") {
         "fam_roots:\n- uri: " +
         no_region_uri + "\n  writable: true\n  visit: true\n";
 
-    const fam::FamSetup setup(test_schema, alt_config);
+    const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     fdb5::Engine& engine = fdb5::Engine::backend("fam");
@@ -1250,7 +1229,7 @@ CASE("FamEngine: visitableLocations with empty registry") {
         "fam_roots:\n- uri: " +
         empty_uri + "\n  writable: true\n  visit: true\n";
 
-    const fam::FamSetup setup(test_schema, alt_config);
+    const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     fdb5::Engine& engine = fdb5::Engine::backend("fam");
@@ -1269,7 +1248,7 @@ CASE("FamEngine: visitableLocations with empty registry") {
 
 CASE("FamEngine: canHandle with invalid FAM URI") {
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     fdb5::Engine& engine = fdb5::Engine::backend("fam");
@@ -1288,7 +1267,7 @@ CASE("FamIndex: dump, encode, visit, statistics") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto idx_key =
@@ -1339,7 +1318,7 @@ CASE("FamFieldLocation: visit dispatches to visitor") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
@@ -1381,7 +1360,7 @@ CASE("FamIndexLocation: encode via IndexLocation pointer throws NOTIMP") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto idx_key =
@@ -1410,7 +1389,7 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(large_region_size, test_region_perm, true);
 
-    const fam::FamSetup setup(test_schema, test_config);
+    const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
