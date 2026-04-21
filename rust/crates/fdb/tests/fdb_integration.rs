@@ -285,8 +285,8 @@ fn test_fdb_archive_retrieve_cycle() {
         .build()
         .expect("failed to build retrieve request");
 
-    let mut handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
-    handle.open_for_read().expect("open_for_read failed");
+    let handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
+    let (mut handle, _len) = handle.open_for_read().expect("open_for_read failed");
     let mut retrieved_data = Vec::new();
     handle
         .read_to_end(&mut retrieved_data)
@@ -1256,10 +1256,10 @@ fn test_fdb_datareader_seek() {
         .build()
         .expect("failed to build retrieve request");
 
-    let mut handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
+    let handle = fdb.retrieve(&retrieve_request).expect("failed to retrieve");
 
     // Open for reading and get estimated size
-    let estimated = handle.open_for_read().expect("open_for_read failed");
+    let (mut handle, estimated) = handle.open_for_read().expect("open_for_read failed");
     assert!(estimated > 0, "expected non-zero estimated size");
     let total_size: u64 = estimated.try_into().expect("negative size");
     assert_eq!(
@@ -1337,7 +1337,7 @@ fn test_fdb_datareader_seek() {
     );
 
     // Test close() explicitly
-    handle.close().expect("close failed");
+    let _closed = handle.close();
 }
 
 #[test]
@@ -1814,8 +1814,8 @@ fn test_fdb_read_uri() {
     println!("Reading from URI: {uri} (offset={offset}, length={length})");
 
     // Read using the URI
-    let mut reader = fdb.read_uri(uri).expect("failed to read_uri");
-    reader.open_for_read().expect("open_for_read failed");
+    let reader = fdb.read_uri(uri).expect("failed to read_uri");
+    let (mut reader, _len) = reader.open_for_read().expect("open_for_read failed");
 
     // Seek to the offset and read the data
     reader
@@ -1887,8 +1887,8 @@ fn test_fdb_read_uris() {
     println!("Reading from {} URIs", uris.len());
 
     // Read using multiple URIs
-    let mut reader = fdb.read_uris(&uris, false).expect("failed to read_uris");
-    reader.open_for_read().expect("open_for_read failed");
+    let reader = fdb.read_uris(&uris, false).expect("failed to read_uris");
+    let (mut reader, _len) = reader.open_for_read().expect("open_for_read failed");
 
     // Read all data
     let mut data = Vec::new();
@@ -1944,10 +1944,10 @@ fn test_fdb_read_from_list() {
         .expect("failed to list");
 
     // Read from the list iterator
-    let mut reader = fdb
+    let reader = fdb
         .read_from_list(list_iter, false)
         .expect("failed to read_from_list");
-    reader.open_for_read().expect("open_for_read failed");
+    let (mut reader, _len) = reader.open_for_read().expect("open_for_read failed");
 
     // Read all data
     let mut data = Vec::new();
