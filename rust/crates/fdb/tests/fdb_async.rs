@@ -50,9 +50,7 @@ fn request_from_key(key: &Key) -> metkit::MarsRequest {
     for (k, v) in key.entries() {
         builder = builder.with(k, v);
     }
-    builder
-        .build()
-        .expect("failed to build MarsRequest from key")
+    builder.build()
 }
 
 /// Archive test data and return the key used.
@@ -204,8 +202,7 @@ async fn test_fdb_concurrent_list() {
                 .with("class", "rd")
                 .with("expver", "xxxx")
                 .with("stream", "oper")
-                .build()
-                .expect("build request");
+                .build();
 
             let entries: Vec<_> = fdb
                 .list(
