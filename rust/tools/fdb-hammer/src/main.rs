@@ -762,11 +762,7 @@ impl HammerConfig {
 // Build request string
 // =============================================================================
 
-fn build_request(
-    config: &HammerConfig,
-    step: u32,
-    member: u32,
-) -> eckit::Result<metkit::MarsRequest> {
+fn build_request(config: &HammerConfig, step: u32, member: u32) -> metkit::MarsRequest {
     let levels_str = config
         .levels
         .iter()
@@ -1056,7 +1052,7 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member)?;
+            let request = build_request(config, step, member);
 
             // First pass: get metadata (count, keys for verification, expected sizes)
             let list_iter = fdb.list(
@@ -1180,7 +1176,7 @@ fn run_read_itt(
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member)?;
+            let request = build_request(config, step, member);
 
             // Calculate expected count with start_at/stop_at
             let total_fields = config.levels.len() * config.params.len();
@@ -1336,7 +1332,7 @@ fn run_list(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 
     for &step in &config.steps {
         for &member in &config.members {
-            let request = build_request(config, step, member)?;
+            let request = build_request(config, step, member);
 
             stats.record_io_start();
             let list_iter = fdb.list(

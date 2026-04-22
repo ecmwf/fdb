@@ -60,7 +60,8 @@ mod fdb_setup {
             env::set_var("FDB5_CONFIG", &config);
         }
 
-        let fdb = Fdb::open(Some(&config), None).ok()?;
+        let eckit_config: eckit::Config = config.parse().ok()?;
+        let fdb = Fdb::open(Some(&eckit_config), None).ok()?;
 
         // Read test GRIB data
         let grib_path = fixtures_dir.join("synth11.grib");
@@ -126,8 +127,7 @@ fn bench_request_creation(c: &mut Criterion) {
                     .with("stream", "oper")
                     .with("date", "20230508")
                     .with("time", "1200")
-                    .build()
-                    .expect("build"),
+                    .build(),
             );
         });
     });
@@ -142,8 +142,7 @@ fn bench_request_multi_values(c: &mut Criterion) {
                 metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
                     .with_values("step", &["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
-                    .build()
-                    .expect("build"),
+                    .build(),
             );
         });
     });
@@ -162,8 +161,7 @@ fn bench_list(c: &mut Criterion) {
         .with("class", "rd")
         .with("expver", "xxxx")
         .with("stream", "oper")
-        .build()
-        .expect("build");
+        .build();
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
@@ -195,8 +193,7 @@ fn bench_axes(c: &mut Criterion) {
         .with("class", "rd")
         .with("expver", "xxxx")
         .with("stream", "oper")
-        .build()
-        .expect("build");
+        .build();
 
     c.bench_function("fdb_axes", |b| {
         b.iter(|| {

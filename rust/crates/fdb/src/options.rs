@@ -20,7 +20,7 @@
 //! let fdb = Fdb::open_default()?;
 //! let request = metkit::MarsRequestBuilder::new("retrieve")
 //!     .with("class", "od")
-//!     .build()?;
+//!     .build();
 //!
 //! // Dry run with safe defaults — clearly the safe case.
 //! for entry in fdb.wipe(&request, WipeOptions::default())? { let _ = entry?; }

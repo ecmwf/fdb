@@ -68,8 +68,7 @@ unsafe impl Send for HandleInner {}
 ///     thread::spawn(move || {
 ///         let request = metkit::MarsRequestBuilder::new("list")
 ///             .with("class", "od")
-///             .build()
-///             .expect("build");
+///             .build();
 ///         let _ = fdb.list(&request, fdb::ListOptions::default());
 ///     })
 /// }).collect();

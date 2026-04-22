@@ -18,7 +18,7 @@
 //! let request = metkit::MarsRequestBuilder::new("list")
 //!     .with("class", "od")
 //!     .with("expver", "0001")
-//!     .build()?;
+//!     .build();
 //!
 //! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
 //! for item in fdb.list(&request, ListOptions::default())? {

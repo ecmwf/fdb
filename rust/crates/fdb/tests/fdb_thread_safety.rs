@@ -115,8 +115,7 @@ fn test_concurrent_list_operations() {
             thread::spawn(move || {
                 let request = metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
-                    .build()
-                    .expect("build request");
+                    .build();
                 for _ in 0..10 {
                     let _ = fdb.list(
                         &request,
@@ -146,8 +145,7 @@ fn test_concurrent_axes() {
             thread::spawn(move || {
                 let request = metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
-                    .build()
-                    .expect("build request");
+                    .build();
                 for _ in 0..10 {
                     let _ = fdb.axes(&request, 1);
                 }
@@ -173,8 +171,7 @@ fn test_stress_concurrent_access() {
             thread::spawn(move || {
                 let request = metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
-                    .build()
-                    .expect("build request");
+                    .build();
                 for j in 0..iterations {
                     if (i + j) % 2 == 0 {
                         // Read-only operations
@@ -219,8 +216,7 @@ fn test_concurrent_errors_no_crash() {
                 let value = format!("value_{i}");
                 let request = metkit::MarsRequestBuilder::new("retrieve")
                     .with("INVALID_KEY", &value)
-                    .build()
-                    .expect("build request");
+                    .build();
                 for _ in 0..20 {
                     // Ignore the error - testing that concurrent errors don't crash
                     let _ = fdb.list(
@@ -336,8 +332,7 @@ fn test_concurrent_archive_operations() {
     let request = metkit::MarsRequestBuilder::new("retrieve")
         .with("class", "rd")
         .with("expver", "xxxx")
-        .build()
-        .expect("build request");
+        .build();
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -402,8 +397,7 @@ fn test_concurrent_read_write_mix() {
                 let request = metkit::MarsRequestBuilder::new("retrieve")
                     .with("class", "rd")
                     .with("expver", "xxxx")
-                    .build()
-                    .expect("build request");
+                    .build();
 
                 for i in 0..iterations {
                     if thread_id % 2 == 0 {
