@@ -20,7 +20,6 @@
 #include <sstream>
 
 #include "eckit/io/fam/FamMap.h"
-#include "eckit/io/fam/FamMapEntry.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/MD5.h"

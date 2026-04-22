@@ -20,7 +20,6 @@
 #include "test_fam_common.h"
 
 #include <cstring>
-#include <ctime>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -646,7 +645,7 @@ CASE("FamCatalogue: NOTIMP methods, enabled, and control") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogueWriter: NOTIMP and print coverage
+// FamCatalogueWriter: NOTIMP methods and print
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamCatalogueWriter: NOTIMP methods and print") {
@@ -672,7 +671,7 @@ CASE("FamCatalogueWriter: NOTIMP methods and print") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogueReader: coverage
+// FamCatalogueReader: NOTIMP, print, and inline methods
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamCatalogueReader: NOTIMP, print, and inline methods") {
@@ -702,7 +701,7 @@ CASE("FamCatalogueReader: NOTIMP, print, and inline methods") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamEngine: additional coverage
+// FamEngine: NOTIMP, canHandle, and visitableLocations
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamEngine: NOTIMP methods and name") {
@@ -762,7 +761,7 @@ CASE("FamEngine: rootURI parses config") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamIndex: additional coverage
+// FamIndex: NOTIMP, stubs, and data URIs
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamIndex: NOTIMP and stub methods") {
@@ -809,7 +808,7 @@ CASE("FamIndex: NOTIMP and stub methods") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamFieldLocation: coverage
+// FamFieldLocation: print, make_shared, and visit
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamFieldLocation: print and make_shared") {
@@ -858,7 +857,7 @@ CASE("FamFieldLocation: print and make_shared") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamIndexLocation: coverage
+// FamIndexLocation: uri, clone, print, encode
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamIndexLocation: uri, clone, print, encode") {
@@ -882,7 +881,7 @@ CASE("FamIndexLocation: uri, clone, print, encode") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogue: indexes() when catalogue does not exist
+// FamCatalogue: edge cases
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamCatalogue: indexes returns empty when catalogue does not exist") {
@@ -997,7 +996,7 @@ CASE("FamCatalogueWriter: selectIndex cache hit path") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogueReader: additional coverage for uncovered paths
+// FamCatalogueReader: edge cases
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamCatalogueReader: retrieve returns false when no index selected") {
@@ -1053,7 +1052,7 @@ CASE("FamCatalogueReader: open returns false when catalogue does not exist") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamEngine: print and edge-case coverage
+// FamEngine: edge cases
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamEngine: visitableLocations with non-existent region") {
@@ -1126,7 +1125,7 @@ CASE("FamEngine: canHandle with invalid FAM URI") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamIndex: additional NOTIMP coverage
+// FamIndex: dump, encode, visit, statistics
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamIndex: dump, encode, visit, statistics") {
@@ -1177,7 +1176,7 @@ CASE("FamIndex: dump, encode, visit, statistics") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamFieldLocation: visit coverage
+// FamFieldLocation: visit
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FamFieldLocation: visit dispatches to visitor") {

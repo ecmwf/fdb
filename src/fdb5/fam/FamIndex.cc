@@ -29,7 +29,6 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/fam/FamCommon.h"
-#include "fdb5/fam/FamIndexLocation.h"
 
 namespace fdb5 {
 

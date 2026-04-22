@@ -70,9 +70,19 @@ inline std::string shm_name_from_endpoint(const std::string& endpoint) {
 }
 
 /// Per-process unique endpoint with atexit cleanup.
+/// When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM CIS), use it verbatim — the PID
+/// mangling is only needed for the mock backend, where the endpoint string becomes a POSIX
+/// shm key. With real OpenFAM, the endpoint must be a valid host:port for DNS resolution.
 inline const std::string test_fdb_fam_endpoint = []() -> std::string {
     const char* ep = std::getenv("ECKIT_FAM_TEST_ENDPOINT");
-    auto base = ep ? std::string(ep) : std::string("localhost:8880");
+
+    // Real OpenFAM: use the endpoint as-is.
+    if (ep && *ep) {
+        return std::string(ep);
+    }
+
+    // Mock OpenFAM: append "_<pid>" to produce a unique POSIX shm path per process.
+    auto base = std::string("localhost:8880");
     auto colon = base.rfind(':');
     std::string endpoint;
     if (colon == std::string::npos) {
