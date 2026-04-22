@@ -11,10 +11,13 @@ description = "Benchmark and stress test tool for FDB"
 name = "fdb-hammer"
 path = "src/main.rs"
 
+[build-dependencies]
+bindman-utils.workspace = true
+
 [features]
 default = ["vendored"]
-vendored = ["fdb/vendored", "eccodes/vendored"]
-system = ["fdb/system", "eccodes/system"]
+vendored = ["fdb/vendored"]
+system = ["fdb/system"]
 
 [dependencies]
 md-5 = "0.10"
@@ -22,7 +25,6 @@ clap = { version = "4", features = ["derive"] }
 eckit.workspace = true
 metkit.workspace = true
 fdb = { path = "../../crates/fdb", default-features = false }
-eccodes = { path = "../../../../rust-wrappers-playground/eccodes/crates/eccodes", default-features = false }
 hostname = "0.4"
 rand = "0.9"
 nix = { version = "0.29", features = ["fs", "signal", "user"] }
