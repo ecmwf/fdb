@@ -1,7 +1,7 @@
 if( HAVE_FAMFDB )
 
     list( APPEND _fam_tests
-        store catalogue
+        store catalogue engine index pipeline
     )
 
     list( APPEND _fam_environment ${_test_environment}
